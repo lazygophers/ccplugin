@@ -43,8 +43,8 @@ researcher bootstrap 模式扫以下五维, 每维产 0..N 条候选 (无信号�
 保留下来的候选**逐条**走 sediment 写盘 (**复用** [sediment-workflow.md](sediment-workflow.md))。冷启动跑前 (①) 已一次 `AskUserQuestion` 征同意, 覆盖整轮 —— 内部候选**自动写盘, 不逐条再问用户**:
 
 - main 逐项输出 trace (层 + 类目 + 标题 + 触发项) 供审阅, 不硬停。
-- 写盘: `skein-spec sediment --layer core|recall --category <类目> --title T --keywords "a,b" --source bootstrap --body-file <正文.md>` (自动 reindex)。
-- `--source bootstrap` 统一标来源, 便于日后审计冷启动规则。
+- 写盘: `skein-spec sediment --layer core|recall --category <类目> --topic <主题> --title T --keywords "a,b" --body-file <正文.md>` (追加为主题文件章节 + 自动 reindex)。
+- 同主题规则并入同一 `<类目>/<主题>.md`, 禁一规则一文件; 关联写 `[[主题#规则标题]]`。
 
 ## 一次性边界
 

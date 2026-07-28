@@ -17,14 +17,15 @@ skills:
 dispatch prompt 指定 4 类写路径之一 (sediment / reconstruct·maintain / prune / auto-fix)。写盘全经 `skein-spec` CLI, 禁手改文件。本 agent 不做 recall 召回 (归 skein-recaller); 文中 recall 均指 spec 层名。
 
 ### 1. sediment · 主动落盘记忆·决策
-依上下文 / finish 证据跑判定门 → 分层 + 类目 → body 参照模板填 → 逐条写盘 → reindex → 就地自愈体检:
+依上下文 / finish 证据跑判定门 → 分层 + 类目 + 主题 → body 参照模板填 → 逐条写盘 → reindex → 就地自愈体检:
 ```
-skein-spec sediment --layer=<core|recall> --category=<类目>
+skein-spec sediment --layer=<core|recall> --category=<类目> --topic=<主题>
 skein-spec reindex
 # 写盘可能致 core 超 budget → 就地体检修 (不留 .pending-fix 给 Stop hook 二次派)
 python3 scripts/spec.py maintain --apply
 ```
 - 分层: core 层放硬约束 (SessionStart 常驻), recall 层放长尾 (按需召回)。
+- 粒度: 文件夹 = 类目, 文件 = 主题, 文件内 `## <规则标题>` = 一条规则。同主题规则**必须并入同一文件** (禁一规则一文件); 关联写 `[[主题#规则标题]]` wikilink, reindex 自动建正反链。
 - 判定门通过即自主写, 不逐次问用户, 不硬凑沉淀。
 - 末尾 maintain --apply 仅 core 超 budget 时实际降级, 不超则报「全清」跳过; 降级走可逆 archive; 断链只报告入 unfixed_links 交 needs_main。
 - CLI 报错 → `[工具失败: sediment 写盘失败]`, 报已写条数。

@@ -28,11 +28,13 @@
 ## 4. 写盘命令
 
 ```
-skein-spec sediment --layer core|recall --category git \
-  --title "契约标题" --keywords "worktree,merge" --source <task-id> --body-file <正文.md>
+skein-spec sediment --layer core|recall --category git --topic merge \
+  --title "契约标题" --keywords "worktree,merge" --body-file <正文.md>
 ```
 
-自动写规则文件到 `<layer>/<category>/<source>-<seq>.md` (带 frontmatter: title/layer/category/keywords/source/authored-by/created) + **自动 reindex** (重建两层 index + 顶层 index, 否则新规则漏检)。
+把规则作为 `## <title>` 章节**追加**进 `<layer>/<category>/<topic>.md` (不存在则建; frontmatter 只留 title/layer/category/keywords/status, 无时间字段) + **自动 reindex** (重建两层 index + 顶层 index + 正反链, 否则新规则漏检)。
+
+粒度硬规: 文件夹 = 类目, 文件 = 主题 (文件名即主题), `## <规则标题>` = 一条规则。同主题规则并入同一文件, **禁一条规则一个文件**。`--topic` 缺省回落类目同名主题。关联写 `[[主题#规则标题]]` wikilink → `backlinks.md` 自动出正链 (→) 与反链 (←)。
 
 ## 升降级 (可选, 按需再加)
 

@@ -63,7 +63,7 @@ dispatch prompt「已知」段标 `mode=bootstrap` + `task-id=reconstruct` + **�
 分层判据同 [sediment-workflow §2](sediment-workflow.md)。重构证据来自静态扫描 (非踩坑实证), **从严控 core**: 默认 recall, 仅"违反必炸"硬约束进 core (见 §5 各型 core 倾向)。与归档旧规则**逐条比对**: 现状仍成立 → 重沉淀; 已过期 → drop (留在归档); 现状新增 → 新沉淀。
 
 ### ⑥ sediment 写盘 (main)
-逐条走 sediment 写盘 ([sediment-workflow.md](sediment-workflow.md)), `--source reconstruct` 统一标来源。重构跑前 (②前) 已一次 `AskUserQuestion` 征同意 (归档虽可逆仍全局动作), 覆盖整轮 —— 内部候选**自动写盘, 不逐条再问用户**; main 逐项输出 trace 供审阅, 误沉淀可 `skein-spec restore` 回滚归档或后续调层纠正。
+逐条走 sediment 写盘 ([sediment-workflow.md](sediment-workflow.md)), 同主题规则并入同一 `<类目>/<主题>.md` (禁一规则一文件)。重构跑前 (②前) 已一次 `AskUserQuestion` 征同意 (归档虽可逆仍全局动作), 覆盖整轮 —— 内部候选**自动写盘, 不逐条再问用户**; main 逐项输出 trace 供审阅, 误沉淀可 `skein-spec restore` 回滚归档或后续调层纠正。
 
 ### ⑦ 验证 + 保留归档
 ```

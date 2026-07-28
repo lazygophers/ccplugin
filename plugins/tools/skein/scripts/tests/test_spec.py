@@ -1,16 +1,20 @@
-"""spec.py 测试 — init/sediment/recall/inject-core/session-start/subagent-start/reindex/backlinks/orphan。
+"""spec.py 测试 — init/sediment/recall/inject-core/session-start/subagent-start/reindex/backlinks/orphan/restructure。
 
 通过 subprocess 跑 spec.py CLI (conftest 的 mem_ws fixture 造隔离 .skein/spec/ 仓),
-覆盖三条核心路径:
-  1. init 建 spec 骨架 + sediment 写盘 + 三层索引同步 (layer/category/top) + 跨类目 seq 递增 + reindex 幂等。
-  2. recall 粗筛 (命中/无命中) + inject-core 隔离层 (core 全文 / 去 frontmatter / 不混 recall)。
-  3. hook 注入: session-start 只出极简索引 + 合法 hook JSON; subagent-start 注 core 全文 + spec 纪律。
+覆盖章节粒度模型 (文件夹=类目 / 文件=主题 / `## 标题`=单条规则):
+  1. init 建 spec 骨架 + sediment 追加进主题文件 (同主题合并成一个文件) + 三层索引同步 + reindex 幂等。
+  2. recall 粗筛 (FTS5 / grep fallback, 命中到 topic.md#标题) + inject-core 隔离层 (无时间元数据)。
+  3. hook 注入: session-start 只出极简索引; subagent-start 注 core 全文 + spec 纪律。
+  4. 关联: [[主题#规则标题]] 正反链; 新旧判定走文件 mtime (frontmatter 无时间字段)。
+  5. restructure: 碎片文件按映射合并进主题文件, 源归档可 restore。
 """
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Callable
 
@@ -20,63 +24,76 @@ MemCli = Callable[..., subprocess.CompletedProcess[str]]
 
 
 def test_init_sediment_index(mem_ws: Path, mem_cli: MemCli) -> None:
-    """init 建 spec 骨架; sediment core 写盘 + 三层 index 同步 + 跨类目 seq 递增 + reindex 幂等。"""
+    """init 建 spec 骨架; sediment 追加为主题文件章节 — 同主题合并成一个文件, 不再一规则一文件。"""
     rules = mem_ws / ".skein" / "spec"
     assert (rules / "core/index.md").exists() and (rules / "recall/index.md").exists()
     assert (rules / "index.md").exists(), "顶层总索引缺失"
 
     body = _write_body(mem_ws, "b1.md", "finish 合并冲突必 abort, 禁强解。")
-    mem_cli(mem_ws, "sediment", "--layer", "core", "--category", "git", "--title", "合并冲突处理",
-            "--keywords", "merge,conflict,worktree", "--source", "t01", "--body-file", str(body))
+    mem_cli(mem_ws, "sediment", "--layer", "core", "--category", "git", "--topic", "merge",
+            "--title", "合并冲突处理", "--keywords", "merge,conflict", "--body-file", str(body))
+    body2 = _write_body(mem_ws, "b2.md", "共享分支禁 rebase。")
+    mem_cli(mem_ws, "sediment", "--layer", "core", "--category", "git", "--topic", "merge",
+            "--title", "rebase 策略", "--keywords", "rebase", "--body-file", str(body2))
+
     core_files = [p.relative_to(rules / "core").as_posix()
                   for p in (rules / "core").rglob("*.md")
                   if p.name not in ("index.md", "backlinks.md")]
-    assert core_files == ["git/t01-00.md"], core_files
+    assert core_files == ["git/merge.md"], f"同主题未合并进一个文件: {core_files}"
+    txt = (rules / "core/git/merge.md").read_text()
+    assert "## 合并冲突处理" in txt and "## rebase 策略" in txt, f"两条规则未各成章节: {txt}"
+    assert "merge" in txt and "rebase" in txt, "keywords 未并入"
+    for k in ("created:", "updated:", "source:", "authored-by:"):
+        assert k not in txt, f"frontmatter 残留废弃字段 {k}"
+
     assert "合并冲突处理" in (rules / "core/index.md").read_text(), "core index 未同步"
     assert "git" in (rules / "index.md").read_text(), "顶层索引未含类目"
 
-    # 跨类目 seq 全局递增: 第二次沉淀到 style, 序号仍 +1 (不重置)
-    mem_cli(mem_ws, "sediment", "--layer", "core", "--category", "style", "--title", "命名规范",
-            "--keywords", "naming", "--source", "t03", "--body-file", str(body))
+    # 索引按章节粒度: 一个主题文件两条规则 = 两行
     rows = _rule_rows(rules / "core/index.md")
-    assert len(rows) == 2, f"预期 2 行 core 规则得 {len(rows)}"
-    assert (rules / "core/style/t03-01.md").exists(), "跨类目 seq 未递增"
+    assert len(rows) == 2, f"预期 2 行规则得 {len(rows)}: {rows}"
 
     # reindex 幂等: 行数不变
     mem_cli(mem_ws, "reindex")
     assert len(_rule_rows(rules / "core/index.md")) == 2, "reindex 后行数变了"
 
+    # --topic 缺省 → 落到类目同名主题文件
+    mem_cli(mem_ws, "sediment", "--layer", "core", "--category", "style",
+            "--title", "命名规范", "--keywords", "naming", "--body-file", str(body))
+    assert (rules / "core/style/style.md").exists(), "--topic 缺省未回落类目同名主题"
+
 
 def test_recall_and_inject_core(mem_ws: Path, mem_cli: MemCli) -> None:
     """recall 粗筛命中/无命中; inject-core 输出 core 全文, 去 frontmatter, 不混 recall。"""
     body_c = _write_body(mem_ws, "b1.md", "finish 合并冲突必 abort, 禁强解。")
-    mem_cli(mem_ws, "sediment", "--layer", "core", "--category", "git", "--title", "合并冲突处理",
-            "--keywords", "merge,conflict", "--source", "t01", "--body-file", str(body_c))
+    mem_cli(mem_ws, "sediment", "--layer", "core", "--category", "git", "--topic", "merge",
+            "--title", "合并冲突处理", "--keywords", "merge,conflict", "--body-file", str(body_c))
     body_r = _write_body(mem_ws, "b2.md", "pnpm workspace 加包后必跑 install。")
-    mem_cli(mem_ws, "sediment", "--layer", "recall", "--category", "build", "--title", "pnpm workspace 装包",
-            "--keywords", "pnpm,workspace,install", "--source", "t02", "--body-file", str(body_r))
+    mem_cli(mem_ws, "sediment", "--layer", "recall", "--category", "build", "--topic", "pnpm",
+            "--title", "pnpm workspace 装包", "--keywords", "pnpm,workspace,install",
+            "--body-file", str(body_r))
 
     out = mem_cli(mem_ws, "recall", "pnpm 装依赖").stdout
-    assert "pnpm" in out and "t02-00.md" in out, f"recall 未命中: {out}"
+    assert "pnpm.md#pnpm workspace 装包" in out, f"recall 未命中到章节: {out}"
     assert "无命中" in mem_cli(mem_ws, "recall", "无关词汇xyz").stdout, "无关 query 不该命中"
 
     inj = mem_cli(mem_ws, "inject-core").stdout
     assert "合并冲突必 abort" in inj, "inject-core 缺 core 正文"
-    assert "authored-by" not in inj, "inject-core 未去 frontmatter"
+    assert "layer:" not in inj and "keywords:" not in inj, "inject-core 未去 frontmatter"
     assert "pnpm" not in inj, "inject-core 混入 recall"
 
 
 def test_hook_inject_session_and_subagent(mem_ws: Path, mem_cli: MemCli) -> None:
-    """session-start 只注入极简索引 (标题+类目, 无正文) + 合法 hook JSON;
+    """session-start 只注入极简索引 (标题+主题, 无正文) + 合法 hook JSON;
     subagent-start 注 core 全文 + spec 纪律指令。"""
     body = _write_body(mem_ws, "b1.md", "finish 合并冲突必 abort, 禁强解。")
-    mem_cli(mem_ws, "sediment", "--layer", "core", "--category", "git", "--title", "合并冲突处理",
-            "--keywords", "merge,conflict", "--source", "t01", "--body-file", str(body))
+    mem_cli(mem_ws, "sediment", "--layer", "core", "--category", "git", "--topic", "merge",
+            "--title", "合并冲突处理", "--keywords", "merge,conflict", "--body-file", str(body))
 
     ss = json.loads(mem_cli(mem_ws, "session-start").stdout)
     ctx = ss["hookSpecificOutput"]["additionalContext"]
     assert ss["hookSpecificOutput"]["hookEventName"] == "SessionStart", "hook 格式错"
-    assert "合并冲突处理" in ctx, "索引缺规则标题"
+    assert "[git/merge] 合并冲突处理" in ctx, f"索引缺 主题/规则标题: {ctx}"
     assert "合并冲突必 abort" not in ctx, "session-start 不该注入正文 (只索引)"
     assert "inject-core" in ctx, "索引未提示按需拉全文"
 
@@ -90,22 +107,22 @@ def test_hook_inject_session_and_subagent(mem_ws: Path, mem_cli: MemCli) -> None
 def test_recall_fts5_and_grep_fallback(mem_ws: Path, mem_cli: MemCli) -> None:
     """recall 优先 FTS5 BM25 (reindex 生成 .recall.db); 删 db → grep fallback 仍命中不崩。"""
     body = _write_body(mem_ws, "b1.md", "pnpm workspace 装包后必跑 install。")
-    mem_cli(mem_ws, "sediment", "--layer", "recall", "--category", "build",
+    mem_cli(mem_ws, "sediment", "--layer", "recall", "--category", "build", "--topic", "pnpm",
             "--title", "pnpm workspace 装包", "--keywords", "pnpm,workspace",
-            "--source", "t02", "--body-file", str(body))
+            "--body-file", str(body))
 
     db = mem_ws / ".skein" / "spec" / ".recall.db"
     assert db.exists(), "reindex 未生成 .recall.db"
 
     # FTS5 BM25 路径 (OR 兼容中文: 'pnpm' 命中即召回, '装依赖' 分词对不上 '装包' 无碍)
     out = mem_cli(mem_ws, "recall", "pnpm 装依赖").stdout
-    assert "pnpm" in out and "t02-00.md" in out, f"FTS5 未命中: {out}"
+    assert "pnpm.md#" in out, f"FTS5 未命中: {out}"
     assert "BM25" in out, f"未走 FTS5 路径: {out}"
 
     # 删 .recall.db → grep fallback 仍命中且不崩
     db.unlink()
     out2 = mem_cli(mem_ws, "recall", "pnpm").stdout
-    assert "pnpm" in out2 and "t02-00.md" in out2, f"grep fallback 未命中: {out2}"
+    assert "pnpm.md" in out2, f"grep fallback 未命中: {out2}"
     assert "fallback" in out2, f"未走 grep fallback: {out2}"
 
     # 含双引号的 query → 提前降级 grep (不触发 MATCH 语法错)
@@ -114,88 +131,101 @@ def test_recall_fts5_and_grep_fallback(mem_ws: Path, mem_cli: MemCli) -> None:
 
 
 def test_backlinks_rebuild(mem_ws: Path, mem_cli: MemCli) -> None:
-    """A-MEM-lite 反链: A body 写 [[B-stem]] → reindex 产 recall/backlinks.md, B 章节列 A 反链。"""
-    # 先存 B (stem = t02-00), 再存 A (stem = t01-01, 层内 seq 全局递增) body 引用 B
+    """A-MEM-lite 正反链: A body 写 [[主题#规则标题]] → backlinks.md 里 B 记 ← 入链, A 记 → 出链。"""
     body_b = _write_body(mem_ws, "b.md", "pnpm workspace 装包后必跑 install。")
-    mem_cli(mem_ws, "sediment", "--layer", "recall", "--category", "build",
-            "--title", "pnpm 装包", "--keywords", "pnpm", "--source", "t02",
-            "--body-file", str(body_b))
-    body_a = _write_body(mem_ws, "a.md", "装依赖见 [[t02-00]]。")
-    mem_cli(mem_ws, "sediment", "--layer", "recall", "--category", "build",
-            "--title", "依赖流程", "--keywords", "deps", "--source", "t01",
-            "--body-file", str(body_a))
+    mem_cli(mem_ws, "sediment", "--layer", "recall", "--category", "build", "--topic", "pnpm",
+            "--title", "pnpm 装包", "--keywords", "pnpm", "--body-file", str(body_b))
+    body_a = _write_body(mem_ws, "a.md", "装依赖见 [[pnpm#pnpm 装包]]。")
+    mem_cli(mem_ws, "sediment", "--layer", "recall", "--category", "build", "--topic", "deps",
+            "--title", "依赖流程", "--keywords", "deps", "--body-file", str(body_a))
 
     bl = mem_ws / ".skein" / "spec" / "recall" / "backlinks.md"
     assert bl.exists(), "reindex 未产 recall/backlinks.md"
     txt = bl.read_text()
-    assert "## t02-00" in txt, f"backlinks 缺 B 章节 (反链目标): {txt}"
-    assert "recall/build/t01-01" in txt, f"backlinks 缺 A 反链 (referrer): {txt}"
+    assert "## build/pnpm.md#pnpm 装包" in txt, f"backlinks 缺 B 章节 (反链目标): {txt}"
+    assert "← recall/build/deps.md#依赖流程" in txt, f"backlinks 缺 B 的入链: {txt}"
+    assert "→ [[pnpm#pnpm 装包]]" in txt, f"backlinks 缺 A 的出链: {txt}"
 
 
 def test_orphan_detection(mem_ws: Path, mem_cli: MemCli) -> None:
-    """孤立判据: 无入度 + active + created 超 STALE_DAYS → maintain 报 [孤立], --apply 归档。"""
-    import re
-    import time
-
+    """孤立判据: 无入度 + active + 最近修改超 STALE_DAYS (走文件 mtime) → maintain 报 [孤立], --apply 归档。"""
     body = _write_body(mem_ws, "b.md", "孤立规则正文, 无 wikilink 入度。")
-    mem_cli(mem_ws, "sediment", "--layer", "core", "--category", "git",
-            "--title", "孤立规则", "--keywords", "orphan", "--source", "t01",
-            "--body-file", str(body))
-    # 改老 created (> STALE_DAYS=180); updated 保留新 — 排除 stale 误判, 只剩孤立信号
-    rule = mem_ws / ".skein" / "spec" / "core" / "git" / "t01-00.md"
-    old_ts = str(int(time.time()) - 200 * 86400)
-    rule.write_text(re.sub(r"^created: \d+", f"created: {old_ts}",
-                           rule.read_text(), flags=re.MULTILINE))
-    mem_cli(mem_ws, "reindex")
+    mem_cli(mem_ws, "sediment", "--layer", "core", "--category", "git", "--topic", "orphan",
+            "--title", "孤立规则", "--keywords", "orphan", "--body-file", str(body))
+    # frontmatter 已无时间字段 → 改文件 mtime 造老规则 (> STALE_DAYS=180)
+    rule = mem_ws / ".skein" / "spec" / "core" / "git" / "orphan.md"
+    _age(rule, 200)
 
     out = mem_cli(mem_ws, "maintain").stdout
-    assert "[孤立]" in out and "t01-00" in out, f"maintain 未报孤立: {out}"
+    assert "[孤立]" in out and "orphan" in out, f"maintain 未报孤立: {out}"
 
+    # 孤立判据含 age > STALE_DAYS → 必同时命中 stale, 归档审计理由取先命中的 prune-stale
     out_apply = mem_cli(mem_ws, "maintain", "--apply").stdout
     assert not rule.exists(), f"--apply 未归档孤立规则: {out_apply}"
-    assert "prune-orphan" in out_apply, f"--apply 缺 prune-orphan 审计: {out_apply}"
+    assert "prune-" in out_apply and "orphan.md" in out_apply, f"--apply 缺归档审计: {out_apply}"
+
+
+def test_restructure_merge(mem_ws: Path, mem_cli: MemCli) -> None:
+    """restructure: 碎片文件按映射合并进主题文件 — 一个源文件 = 一条规则, 源归档后可 restore。"""
+    rules = mem_ws / ".skein" / "spec"
+    for i, (title, text) in enumerate([("变量命名", "# 小写下划线\n\n禁驼峰。"),
+                                       ("函数命名", "动词开头。")]):
+        b = _write_body(mem_ws, f"s{i}.md", text)
+        mem_cli(mem_ws, "sediment", "--layer", "recall", "--category", "style",
+                "--topic", f"frag-{i}", "--title", title, "--keywords", "naming",
+                "--body-file", str(b))
+
+    plan = mem_ws / "plan.json"
+    plan.write_text(json.dumps({"recall/style/convention.md":
+                                ["recall/style/frag-0.md", "recall/style/frag-1.md"]}))
+
+    dry = mem_cli(mem_ws, "restructure", "--map", str(plan), "--dry-run").stdout
+    assert "dry-run" in dry and (rules / "recall/style/frag-0.md").exists(), "dry-run 不该落盘"
+
+    mem_cli(mem_ws, "restructure", "--map", str(plan))
+    merged = rules / "recall/style/convention.md"
+    txt = merged.read_text()
+    assert "## 变量命名" in txt and "## 函数命名" in txt, f"未合并成两条规则: {txt}"
+    assert "### 小写下划线" in txt, f"源正文一级标题未降级为 ###: {txt}"
+    assert not (rules / "recall/style/frag-0.md").exists(), "源文件未归档"
+
+    ts = sorted(p.name for p in (rules / ".archive").iterdir())[-1]
+    mem_cli(mem_ws, "restore", ts)
+    assert (rules / "recall/style/frag-0.md").exists(), "restore 未回滚源文件"
 
 
 def test_external_layer(mem_ws: Path, mem_cli: MemCli) -> None:
     """external 层: sediment --layer external 写盘; recall 跨层 FTS5 命中带 [external];
-    顶层 index 含 external 行; maintain 扫 external (stale 对 external 生效);
+    顶层 index 含 external 行; maintain 扫 external (stale 走 mtime);
     degrade external/... 拒 (终点层)。"""
     rules = mem_ws / ".skein" / "spec"
 
     # 1. sediment --layer external 写盘
     body = _write_body(mem_ws, "ext.md", "外部依赖: vue3 组合式 API 用 setup。")
-    mem_cli(mem_ws, "sediment", "--layer", "external", "--category", "docs",
-            "--title", "vue3 setup", "--keywords", "vue,setup", "--source", "ext01",
-            "--body-file", str(body))
-    ext_file = rules / "external" / "docs" / "ext01-00.md"
+    mem_cli(mem_ws, "sediment", "--layer", "external", "--category", "docs", "--topic", "vue",
+            "--title", "vue3 setup", "--keywords", "vue,setup", "--body-file", str(body))
+    ext_file = rules / "external" / "docs" / "vue.md"
     assert ext_file.exists(), f"external 写盘失败: {ext_file}"
 
     # 2. recall 跨层命中 external, 带 [external] 标识
     out = mem_cli(mem_ws, "recall", "vue setup").stdout
-    assert "[external]" in out and "ext01-00.md" in out, f"recall 未跨层命中 external: {out}"
+    assert "[external]" in out and "vue.md#vue3 setup" in out, f"recall 未跨层命中 external: {out}"
 
     # 3. 顶层 index.md 含 external 行
     top = (rules / "index.md").read_text()
     assert "| external |" in top, f"顶层索引缺 external 行: {top}"
 
-    # 4. maintain 默认扫三层 (external 文件新鲜 → 不报 stale, 但 list 含 external)
+    # 4. list 含 external
     list_out = mem_cli(mem_ws, "list").stdout
-    assert "[external]" in list_out and "ext01-00.md" in list_out, f"list 缺 external: {list_out}"
+    assert "[external]" in list_out and "vue.md#vue3 setup" in list_out, f"list 缺 external: {list_out}"
 
-    # 5. maintain 对 external 生效: 改老 created+updated → 报 [stale] external/...
-    import re
-    import time
-    old_ts = str(int(time.time()) - 200 * 86400)
-    new_txt = ext_file.read_text()
-    new_txt = re.sub(r"^created: \d+", f"created: {old_ts}", new_txt, flags=re.MULTILINE)
-    new_txt = re.sub(r"^updated: \d+", f"updated: {old_ts}", new_txt, flags=re.MULTILINE)
-    ext_file.write_text(new_txt)
-    mem_cli(mem_ws, "reindex")
+    # 5. maintain 对 external 生效: 改老 mtime → 报 [stale] external/...
+    _age(ext_file, 200)
     mout = mem_cli(mem_ws, "maintain").stdout
-    assert "[stale]" in mout and "external/docs/ext01-00" in mout, f"maintain 未扫 external stale: {mout}"
+    assert "[stale]" in mout and "external/docs/vue" in mout, f"maintain 未扫 external stale: {mout}"
 
-    # 6. degrade external/<cat>/<name> 拒 (终点层) — 直跑 subprocess 取 returncode (fixture 强 check=True)
-    dgr = subprocess.run([sys.executable, str(MEM), "degrade", "external/docs/ext01-00"],
+    # 6. degrade external/<cat>/<topic> 拒 (终点层) — 直跑 subprocess 取 returncode (fixture 强 check=True)
+    dgr = subprocess.run([sys.executable, str(MEM), "degrade", "external/docs/vue"],
                          cwd=mem_ws, capture_output=True, text=True)
     assert dgr.returncode != 0, f"degrade external 不该成功: {dgr.stdout}"
     assert "终点层" in dgr.stderr, f"degrade 拒绝提示缺终点层: {dgr.stderr}"
@@ -225,6 +255,12 @@ def test_core_budget_from_config(mem_ws: Path) -> None:
     assert _budget() == 1000, "非数字值未回落默认 1000"
 
 
+def _age(f: Path, days: int) -> None:
+    """把文件 mtime 推老 days 天 (frontmatter 已无时间字段, 新旧判定只看 mtime/git)。"""
+    old = time.time() - days * 86400
+    os.utime(f, (old, old))
+
+
 def _write_body(d: Path, name: str, text: str) -> Path:
     p = d / name
     p.write_text(text)
@@ -233,7 +269,7 @@ def _write_body(d: Path, name: str, text: str) -> Path:
 
 def _rule_rows(index_md: Path) -> list[str]:
     return [l for l in index_md.read_text().splitlines()
-            if l.startswith("| ") and "index" not in l and "---" not in l and "file" not in l]
+            if l.startswith("| ") and not l.startswith("| rule") and "---" not in l]
 
 
 def _mem(cwd: Path, *args: str) -> subprocess.CompletedProcess[str]:
@@ -265,6 +301,8 @@ if __name__ == "__main__":
     mem_cli = _MemCli()
     for fn in (test_init_sediment_index, test_recall_and_inject_core, test_hook_inject_session_and_subagent,
                test_recall_fts5_and_grep_fallback, test_backlinks_rebuild, test_orphan_detection,
-               test_external_layer, test_core_budget_from_config):
+               test_restructure_merge, test_external_layer,
+               lambda ws, _cli: test_core_budget_from_config(ws)):  # 只收 ws, 无 cli
         fn(_mk_ws(), mem_cli)
-    print("spec.py 测试全过 (init/sediment+三层索引/recall FTS5+grep fallback/inject-core隔离层/hook注入/backlinks/孤立/external层/core_budget config)")
+    print("spec.py 测试全过 (init/sediment主题合并/recall FTS5+grep fallback/inject-core隔离层/"
+          "hook注入/正反链/孤立/restructure/external层/core_budget config)")
