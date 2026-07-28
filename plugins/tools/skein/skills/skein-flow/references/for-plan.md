@@ -56,7 +56,10 @@ brainstorm 前先定**是否需要派 skein-researcher**, 按信号分档自动�
 
 **🛑 plan/confirm 不受 deps 完成状态阻塞 (仅 `skein start` 受限)** — `skein create`/`deps`/`confirm` 均不查前置完成状态, 仅 `skein start` 才查 (脚本硬拒未完成 deps)。pending task 不论前置是否 plan/finish, 照常走完整流程推到就绪, 等 `skein start` 时才等前置。
 
-1. **判新旧 + 定粒度** — 全新任务 vs 对现有 active task 的补充/延续。不准 → `AskUserQuestion` 用户裁定。并入现有 → 更新其工件 + `subtask add`, 不新建。
+1. **拆诉求 → 逐条判新旧 + 定粒度** — **用户一句话 ≠ 一个 task**。先把请求拆成互不依赖的独立诉求, 再逐条判去向。
+   - **诉求数 ≠ task 数**: 一条请求可能对应 1 个 task / N 个 task / 部分并入已有 task + 剩余拆 N 个新 task。**禁默认一句话开一个 task** — 把不相关诉求塞进同一 task 会让 prd 边界糊、验收无法逐条核对、一处卡住全批停。
+   - **归一 vs 拆分判据**: 改动面重叠 / 互为前置 / 共享契约 → 归一个 task; 改动面不相交且各自可独立验收 → 拆成各自的 task。拿不准 → `AskUserQuestion` 用户裁定。
+   - 逐条诉求各自判「全新 vs 对现有 active task 的补充/延续」。不准 → `AskUserQuestion` 用户裁定。并入现有 → 更新其工件 + `subtask add`, 不新建。
    - **登记前强制先查未完成 task (硬前置)** — 任何 `create` 之前 MUST 先 `skein list --status open --json | jq -c '[.[] | {id,name,desc}]'` 核对: 新请求与在列某 task **相关** (同目标/同模块/共享改动面/互为前置) → **并入该 task 补 subtask, 禁新建**; 无相关项才 `create`。**禁不查就 create、禁一直堆新 task** (散 task 丢共享上下文一致性, 头号反模式)。
    - **🧭 模糊信号判据 (命中即 cold-start, 进愿景翻译; 不命中走常规 brainstorm, 零增量)** — 用户输入任一命中: ① 无动词或动词泛 ("重构/优化/加能力"无宾语); ② 无文件路径 / 无具体模块名; ③ 一句话 <15 字; ④ 愿景腔 → 标 cold-start。命中零条 = 清晰输入, 跳过愿景翻译直接常规 brainstorm。
    - **归一 vs 分立按相关性, 非按「可独立验收」** — 新交付物与现有 active task 或本请求内其他交付物**相关** → **优先归一 task 拆 subtask**, 禁另开多 task。仅当目标独立、无共享改动面、无依赖 → 才拆多 task。

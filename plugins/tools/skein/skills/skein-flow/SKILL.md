@@ -54,7 +54,7 @@ effort: medium
 
 ## ✅ plan 阶段完成判据 (勾满才转 exec)
 
-- [ ] task 已 `create` (含可读 slug)
+- [ ] 用户诉求已逐条映射到 task (一句话可能对应 1 个 / N 个 / 部分并入已有 task), 各 task 已 `create` (含可读 slug)
 - [ ] prd.md 已填完 (目标/边界/索引章 `- [ ] TODO` 全勾; **验收标准章条目列全即可, 保持未勾 — 勾选归 check 阶段**)
 - [ ] subtask 已规划 (`subtask add` 落 task.json DAG)
 - [ ] 设计方案已定 (design.md 正文; 或 main 判定豁免)
