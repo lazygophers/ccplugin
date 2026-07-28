@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="zh" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>skein · benchmark (Linear-migrated)</title>
+<style>
+/*
+  设计方向 B — 标杆迁移: Linear (linear.app)
+  迁移要点:
+   - 字体: Inter, 负字距 (-0.011em), 紧凑字号阶梯, 数字 tabular
+   - 色板: 中性冷灰阶 + 单一静态 accent (Linear indigo #5E6AD2, 纯填充无 glow 无渐变)
+   - 布局: 细 1px 分隔线, 无阴影/极弱阴影, 高信息密度行式排布
+   - 状态: 小圆点/环状字形 + 中性文字标签 (Linear issue-status 语言), 不用霓虹
+   - 交互: 极窄行 hover 底纹, 键盘感的方形 kbd 标签
+*/
+:root{
+  --font: "Inter","SF Pro Text",-apple-system,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;
+  --accent:#5E6AD2;
+  --accent-weak:rgba(94,106,210,.14);
+  /* status */
+  --st-pending:#8A8F98;
+  --st-active:#E5A94E;
+  --st-check:#4EA7FC;
+  --st-done:#4CB782;
+  --st-failed:#EB5757;
+}
+html[data-theme="dark"]{
+  --bg:#08090A;
+  --panel:#0E0F11;
+  --panel-2:#131417;
+  --row-hover:#16181B;
+  --border:#212327;
+  --border-soft:#191B1E;
+  --text:#EEEFF1;
+  --text-2:#9598A1;
+  --text-3:#6A6D75;
+  --kbd-bg:#1A1C20;
+}
+html[data-theme="light"]{
+  --bg:#FFFFFF;
+  --panel:#FFFFFF;
+  --panel-2:#F7F8FA;
+  --row-hover:#F4F5F8;
+  --border:#E4E6EB;
+  --border-soft:#EDEEF1;
+  --text:#111318;
+  --text-2:#5B5F68;
+  --text-3:#8A8F98;
+  --kbd-bg:#F0F1F4;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--font);
+  font-size:14px;
+  line-height:1.5;
+  letter-spacing:-0.011em;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+.tabnums{font-variant-numeric:tabular-nums}
+
+/* ---------- top bar ---------- */
+.topbar{
+  height:48px;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  padding:0 16px;
+  border-bottom:1px solid var(--border);
+  background:var(--panel);
+  position:sticky;top:0;z-index:20;
+}
+.brand{
+  display:flex;align-items:center;gap:8px;
+  font-weight:600;font-size:14.5px;letter-spacing:-0.02em;
+  padding-right:6px;
+}
+.brand .glyph{
+  width:18px;height:18px;border-radius:5px;
+  background:var(--accent);
+  display:inline-flex;align-items:center;justify-content:center;
+  color:#fff;font-size:11px;font-weight:700;
+}
+nav{display:flex;align-items:center;gap:1px}
+nav button{
+  all:unset;
+  cursor:pointer;
+  font:inherit;
+  font-size:13px;
+  color:var(--text-2);
+  padding:5px 10px;
+  border-radius:6px;
+  letter-spacing:-0.01em;
+}
+nav button:hover{background:var(--row-hover);color:var(--text)}
+nav button.on{color:var(--text);background:var(--accent-weak)}
+.spacer{flex:1}
+.search{
+  display:flex;align-items:center;gap:8px;
+  height:30px;width:238px;
+  padding:0 9px;
+  border:1px solid var(--border);
+  border-radius:7px;
+  background:var(--panel-2);
+  color:var(--text-3);
+}
+.search:focus-within{border-color:var(--accent)}
+.search input{
+  all:unset;flex:1;font:inherit;font-size:13px;color:var(--text);
+}
+.search input::placeholder{color:var(--text-3)}
+.kbd{
+  font-family:var(--font);
+  font-size:11px;
+  line-height:1;
+  padding:3px 5px;
+  border:1px solid var(--border);
+  border-radius:4px;
+  background:var(--kbd-bg);
+  color:var(--text-3);
+}
+.icobtn{
+  all:unset;cursor:pointer;
+  width:30px;height:30px;border-radius:7px;
+  display:inline-flex;align-items:center;justify-content:center;
+  border:1px solid var(--border);
+  color:var(--text-2);
+  background:var(--panel-2);
+}
+.icobtn:hover{color:var(--text);border-color:var(--text-3)}
+
+/* ---------- shell ---------- */
+main{max-width:1180px;margin:0 auto;padding:0 16px}
+.view{display:none}
+.view.on{display:block}
+
+.pagehead{
+  display:flex;align-items:baseline;gap:12px;
+  padding:20px 0 12px;
+}
+.pagehead h1{
+  margin:0;font-size:18px;font-weight:600;letter-spacing:-0.02em;
+}
+.pagehead .sub{color:var(--text-3);font-size:12.5px}
+
+/* section header (Linear list group header) */
+.grouphead{
+  display:flex;align-items:center;gap:8px;
+  height:34px;
+  border-top:1px solid var(--border);
+  color:var(--text-2);
+  font-size:12px;font-weight:590;letter-spacing:.01em;
+  text-transform:uppercase;
+}
+.grouphead .count{
+  color:var(--text-3);font-weight:500;
+  background:var(--panel-2);
+  border:1px solid var(--border-soft);
+  border-radius:20px;padding:1px 7px;font-size:11px;
+  letter-spacing:0;
+}
+
+/* ---------- task cards (grid of flat cards) ---------- */
+.cardgrid{
+  display:grid;grid-template-columns:1fr 1fr;gap:10px;
+  padding-bottom:8px;
+}
+.card{
+  border:1px solid var(--border);
+  border-radius:9px;
+  background:var(--panel);
+  padding:13px 14px 14px;
+  display:flex;flex-direction:column;gap:9px;
+  transition:border-color .12s;
+}
+.card:hover{border-color:var(--text-3)}
+.card .row1{display:flex;align-items:center;gap:9px}
+.card .idline{
+  font-size:13.5px;font-weight:560;letter-spacing:-0.01em;
+  flex:1;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.card .desc{color:var(--text-2);font-size:13px;line-height:1.45}
+.card .meta{
+  display:flex;align-items:center;gap:10px;
+  color:var(--text-3);font-size:12px;
+}
+
+/* status pill: dot glyph + label */
+.status{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:12px;color:var(--text-2);
+  white-space:nowrap;
+}
+.status svg{display:block;flex:none}
+.status.pending{color:var(--st-pending)}
+.status.active{color:var(--st-active)}
+.status.check{color:var(--st-check)}
+.status.done{color:var(--st-done)}
+.status.failed{color:var(--st-failed)}
+
+/* progress: thin segmented bar */
+.prog{display:flex;align-items:center;gap:9px}
+.prog .track{
+  flex:1;height:4px;border-radius:3px;
+  background:var(--panel-2);
+  border:1px solid var(--border-soft);
+  overflow:hidden;position:relative;
+}
+.prog .fill{height:100%;border-radius:3px}
+.prog .num{color:var(--text-3);font-size:11.5px;min-width:26px;text-align:right}
+
+/* queue rows (dense list) */
+.queue{border-top:1px solid var(--border)}
+.qrow{
+  display:flex;align-items:center;gap:11px;
+  height:40px;padding:0 4px;
+  border-bottom:1px solid var(--border-soft);
+  cursor:default;
+}
+.qrow:hover{background:var(--row-hover)}
+.qrow .qid{font-size:13px;font-weight:520;flex:1;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.qrow .parent{color:var(--text-3);font-size:12px}
+.tag{
+  font-size:11px;letter-spacing:-0.005em;
+  border:1px solid var(--border);
+  color:var(--text-2);
+  border-radius:5px;padding:2px 7px;background:var(--panel-2);
+}
+.tag.ready{color:var(--st-check);border-color:rgba(78,167,252,.35);background:rgba(78,167,252,.08)}
+
+/* ---------- spec view (tree + reader) ---------- */
+.specwrap{
+  display:grid;grid-template-columns:250px 1fr;gap:0;
+  border:1px solid var(--border);border-radius:10px;overflow:hidden;
+  min-height:560px;margin-bottom:24px;
+}
+.tree{
+  border-right:1px solid var(--border);
+  background:var(--panel);
+  padding:8px 6px;
+  overflow:auto;
+}
+.tree .cat{
+  font-size:11px;text-transform:uppercase;letter-spacing:.02em;
+  color:var(--text-3);font-weight:600;
+  padding:9px 8px 4px;
+}
+.tree .node{
+  display:flex;align-items:center;gap:8px;
+  height:29px;padding:0 8px;border-radius:6px;
+  color:var(--text-2);font-size:13px;cursor:default;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.tree .node:hover{background:var(--row-hover);color:var(--text)}
+.tree .node.sel{background:var(--accent-weak);color:var(--text)}
+.tree .node .fico{color:var(--text-3);flex:none}
+.tree .node.sel .fico{color:var(--accent)}
+
+.reader{background:var(--bg);display:flex;flex-direction:column;min-width:0}
+.readbar{
+  height:44px;flex:none;
+  display:flex;align-items:center;gap:10px;
+  padding:0 16px;border-bottom:1px solid var(--border);
+  background:var(--panel);
+}
+.crumb{color:var(--text-3);font-size:12.5px;flex:1;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.crumb b{color:var(--text-2);font-weight:560}
+.btn{
+  all:unset;cursor:pointer;font:inherit;font-size:12.5px;
+  padding:5px 11px;border-radius:6px;border:1px solid var(--border);
+  color:var(--text);background:var(--panel-2);letter-spacing:-0.005em;
+}
+.btn:hover{border-color:var(--text-3)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{filter:brightness(1.08)}
+
+.doc{padding:22px 26px;overflow:auto;max-width:760px}
+.doc h1{font-size:21px;margin:0 0 4px;letter-spacing:-0.02em;font-weight:640}
+.doc .docmeta{color:var(--text-3);font-size:12.5px;margin-bottom:20px;
+  display:flex;gap:12px;align-items:center;}
+.doc h2{font-size:15px;margin:26px 0 8px;letter-spacing:-0.01em;font-weight:600}
+.doc p{color:var(--text-2);margin:0 0 12px;line-height:1.62}
+.doc ul{margin:0 0 12px;padding-left:18px;color:var(--text-2)}
+.doc li{margin:4px 0;line-height:1.6}
+.doc code{
+  font-family:"SF Mono",ui-monospace,"JetBrains Mono",monospace;
+  font-size:12.5px;background:var(--panel-2);
+  border:1px solid var(--border-soft);border-radius:4px;padding:1px 5px;
+}
+.doc pre{
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:8px;padding:12px 14px;overflow:auto;margin:0 0 14px;
+}
+.doc pre code{background:none;border:none;padding:0;font-size:12.5px;color:var(--text)}
+.doc blockquote{
+  margin:0 0 14px;padding:2px 0 2px 13px;
+  border-left:2px solid var(--accent);color:var(--text-2);
+}
+.editor{padding:16px 26px;display:none;flex-direction:column;gap:12px;max-width:840px}
+.editor.on{display:flex}
+.doc.hidden{display:none}
+.editor textarea{
+  width:100%;min-height:420px;resize:vertical;
+  font-family:"SF Mono",ui-monospace,"JetBrains Mono",monospace;
+  font-size:13px;line-height:1.6;
+  background:var(--panel);color:var(--text);
+  border:1px solid var(--border);border-radius:9px;
+  padding:14px 16px;outline:none;
+}
+.editor textarea:focus{border-color:var(--accent)}
+.editor .actions{display:flex;gap:8px;justify-content:flex-end}
+.savehint{color:var(--st-done);font-size:12.5px;display:none;align-items:center;gap:6px}
+.savehint.on{display:inline-flex}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand"><span class="glyph">s</span>skein</div>
+  <nav id="nav">
+    <button data-view="dash" class="on">面板</button>
+    <button data-view="dash">队列</button>
+    <button data-view="dash">任务</button>
+    <button data-view="spec">spec</button>
+    <button data-view="dash">归档</button>
+    <button data-view="spec">搜索</button>
+  </nav>
+  <div class="spacer"></div>
+  <label class="search">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    <input placeholder="搜索任务 / spec…">
+    <span class="kbd">⌘K</span>
+  </label>
+  <button class="icobtn" id="themeBtn" title="明暗切换">
+    <svg id="themeIco" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+  </button>
+</div>
+
+<main>
+
+<!-- ===================== DASHBOARD ===================== -->
+<section class="view on" id="view-dash">
+  <div class="pagehead">
+    <h1>面板</h1>
+    <span class="sub tabnums">4 个任务 · 1 running · 2 就绪</span>
+  </div>
+
+  <div class="grouphead">进行中的任务<span class="count tabnums">4</span></div>
+
+  <div class="cardgrid" id="cards"></div>
+
+  <div class="grouphead">待执行队列<span class="count tabnums">2</span></div>
+  <div class="queue">
+    <div class="qrow">
+      <span class="status check" title="ready">
+        <svg width="14" height="14" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-dasharray="3 3"/></svg>
+      </span>
+      <span class="qid">serve-admin-platform-02 · 队列区块前端实现</span>
+      <span class="parent">← serve-admin-platform</span>
+      <span class="tag ready">ready</span>
+      <span class="kbd">R</span>
+    </div>
+    <div class="qrow">
+      <span class="status check" title="ready">
+        <svg width="14" height="14" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-dasharray="3 3"/></svg>
+      </span>
+      <span class="qid">serve-admin-platform-03 · spec 页只读渲染</span>
+      <span class="parent">← serve-admin-platform</span>
+      <span class="tag ready">ready</span>
+      <span class="kbd">R</span>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SPEC ===================== -->
+<section class="view" id="view-spec">
+  <div class="pagehead">
+    <h1>spec</h1>
+    <span class="sub">core / recall 知识库</span>
+  </div>
+
+  <div class="specwrap">
+    <aside class="tree">
+      <div class="cat">core</div>
+      <div class="node"><svg class="fico" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v5h5M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/></svg>git-workflow.md</div>
+      <div class="node"><svg class="fico" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v5h5M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/></svg>test-strategy.md</div>
+      <div class="node"><svg class="fico" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v5h5M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/></svg>arch-overview.md</div>
+      <div class="cat">recall</div>
+      <div class="node"><svg class="fico" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v5h5M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/></svg>frontend/petite-vue-notes.md</div>
+      <div class="node sel"><svg class="fico" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v5h5M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/></svg>frontend/webapp-tpl-fragment-crash-00.md</div>
+      <div class="node"><svg class="fico" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v5h5M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/></svg>arch/serve-deps-slim.md</div>
+      <div class="node"><svg class="fico" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v5h5M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/></svg>arch/worktree-model.md</div>
+    </aside>
+
+    <div class="reader">
+      <div class="readbar">
+        <span class="crumb">recall / frontend / <b>webapp-tpl-fragment-crash-00.md</b></span>
+        <span class="savehint" id="savehint">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>已保存
+        </span>
+        <button class="btn" id="editBtn">编辑</button>
+        <button class="btn primary" id="saveBtn" style="display:none">保存</button>
+        <button class="btn" id="cancelBtn" style="display:none">取消</button>
+      </div>
+
+      <article class="doc" id="doc">
+        <h1>webapp 全页加载崩溃 (template fragment 顶层 v-if)</h1>
+        <div class="docmeta tabnums">
+          <span>recall / frontend</span>
+          <span>·</span>
+          <span>更新于 2026-07-16</span>
+          <span>·</span>
+          <span>1.4 KB</span>
+        </div>
+
+        <p>petite-vue 挂载一个 <code>&lt;template&gt;</code> fragment 时, 若顶层节点带 <code>v-if</code>, 且条件初始为假, 挂载阶段会抛 <code>Cannot read properties of null</code> 导致整页白屏。</p>
+
+        <h2>复现</h2>
+        <ul>
+          <li>根组件模板顶层写 <code>&lt;template v-if="ready"&gt;…&lt;/template&gt;</code></li>
+          <li><code>ready</code> 由异步 fetch 置真, 初始 <code>false</code></li>
+          <li>首帧渲染即崩, 控制台仅一行栈, 无组件名</li>
+        </ul>
+
+        <h2>根因</h2>
+        <p>petite-vue 的 <code>walk()</code> 对顶层 fragment 不建立锚点占位, <code>v-if</code> 转假时插入点 <code>anchor</code> 为 <code>null</code>, 后续 <code>insertBefore</code> 解引用空值。属于顶层 fragment 与结构指令的组合边界。</p>
+
+        <h2>修复</h2>
+        <blockquote>把顶层 <code>v-if</code> 下沉一层: 外层包一个始终存在的宿主节点, 结构指令挂到子节点。</blockquote>
+        <pre><code>&lt;div id="app"&gt;
+  &lt;main v-if="ready"&gt;…&lt;/main&gt;   &lt;!-- 宿主常驻, v-if 落子节点 --&gt;
+  &lt;div v-else class="loading"&gt;载入中&lt;/div&gt;
+&lt;/div&gt;</code></pre>
+
+        <h2>关联</h2>
+        <ul>
+          <li>commit <code>3a71c160</code> — 修复 webapp 全页加载崩溃</li>
+          <li>见 <code>arch/serve-deps-slim.md</code> — 预构建入库策略</li>
+        </ul>
+      </article>
+
+      <div class="editor" id="editor">
+        <textarea id="ta"># webapp 全页加载崩溃 (template fragment 顶层 v-if)
+
+> recall / frontend · 更新于 2026-07-16
+
+petite-vue 挂载一个 `<template>` fragment 时, 若顶层节点带 `v-if`, 且条件初始为假, 挂载阶段会抛 `Cannot read properties of null` 导致整页白屏。
+
+## 复现
+- 根组件模板顶层写 `<template v-if="ready">…</template>`
+- `ready` 由异步 fetch 置真, 初始 `false`
+- 首帧渲染即崩, 控制台仅一行栈, 无组件名
+
+## 根因
+petite-vue 的 `walk()` 对顶层 fragment 不建立锚点占位, `v-if` 转假时插入点 `anchor` 为 `null`, 后续 `insertBefore` 解引用空值。
+
+## 修复
+把顶层 `v-if` 下沉一层: 外层包一个始终存在的宿主节点, 结构指令挂到子节点。
+
+```
+<div id="app">
+  <main v-if="ready">…</main>
+  <div v-else class="loading">载入中</div>
+</div>
+```
+</textarea>
+        <div class="actions">
+          <button class="btn" id="cancelBtn2">取消</button>
+          <button class="btn primary" id="saveBtn2">保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<script>
+// ---- status glyphs (Linear-style ring/dot) ----
+function statusSvg(kind){
+  const c={pending:'--st-pending',active:'--st-active',check:'--st-check',done:'--st-done',failed:'--st-failed'};
+  if(kind==='done') return '<svg width="14" height="14" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="currentColor"/><path d="M8 12.3l2.6 2.6L16 9.2" fill="none" stroke="var(--panel)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  if(kind==='active') return '<svg width="14" height="14" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M12 12 L12 4 A8 8 0 0 1 19 12 Z" fill="currentColor"/></svg>';
+  if(kind==='check') return '<svg width="14" height="14" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-dasharray="3 3"/></svg>';
+  if(kind==='failed') return '<svg width="14" height="14" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="currentColor"/><path d="M9 9l6 6M15 9l-6 6" stroke="var(--panel)" stroke-width="2.2" stroke-linecap="round"/></svg>';
+  return '<svg width="14" height="14" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2.2"/></svg>'; // pending
+}
+const label={pending:'待处理',active:'进行中',check:'检查中',done:'已完成',failed:'失败'};
+
+const tasks=[
+  {id:'serve-admin-platform', st:'active', done:2, total:3, running:1, desc:'serve 多页管理平台重设计: 面板 / 队列 / spec 三视图 + 主题化。'},
+  {id:'skill-dev-methodology-fusion', st:'done', done:4, total:4, running:0, desc:'两插件融合方法论: 流程 A 创建 / 流程 B 优化统一入口。'},
+  {id:'task-prd-tabs-fmt', st:'pending', done:0, total:0, running:0, desc:'PRD 分栏视图 + 保存前 fmt hook, 尚未拆 subtask。'},
+  {id:'webapp-drop-themes', st:'done', done:3, total:3, running:0, desc:'移除多主题系统, 收敛为单一 Linear 风中性主题。'},
+];
+const stColor={pending:'var(--st-pending)',active:'var(--st-active)',check:'var(--st-check)',done:'var(--st-done)',failed:'var(--st-failed)'};
+
+document.getElementById('cards').innerHTML = tasks.map(t=>{
+  const pct = t.total? Math.round(t.done/t.total*100) : 0;
+  const progNum = t.total? `${t.done}/${t.total}` : '0';
+  const runTag = t.running? `<span class="tag" style="color:var(--st-active);border-color:rgba(229,169,78,.35);background:rgba(229,169,78,.08)">${t.running} running</span>` : '';
+  return `<div class="card">
+    <div class="row1">
+      <span class="status ${t.st}">${statusSvg(t.st)}<span>${label[t.st]}</span></span>
+      <span class="idline">${t.id}</span>
+      ${runTag}
+    </div>
+    <div class="desc">${t.desc}</div>
+    <div class="prog">
+      <span class="track"><span class="fill" style="width:${pct}%;background:${stColor[t.st]}"></span></span>
+      <span class="num tabnums">${progNum}</span>
+    </div>
+  </div>`;
+}).join('');
+
+// ---- view switch ----
+const navBtns=[...document.querySelectorAll('#nav button')];
+function show(v){
+  document.getElementById('view-dash').classList.toggle('on', v==='dash');
+  document.getElementById('view-spec').classList.toggle('on', v==='spec');
+  navBtns.forEach(b=>b.classList.toggle('on', b.dataset.view===v && (v==='dash'? b.textContent==='面板': b.textContent==='spec')));
+}
+navBtns.forEach(b=>b.addEventListener('click',()=>show(b.dataset.view)));
+
+// ---- theme toggle ----
+document.getElementById('themeBtn').addEventListener('click',()=>{
+  const h=document.documentElement;
+  h.dataset.theme = h.dataset.theme==='dark'?'light':'dark';
+});
+
+// ---- spec edit toggle ----
+const doc=document.getElementById('doc'), editor=document.getElementById('editor');
+const editBtn=document.getElementById('editBtn'), saveBtn=document.getElementById('saveBtn'), cancelBtn=document.getElementById('cancelBtn');
+const hint=document.getElementById('savehint');
+function enterEdit(){ doc.classList.add('hidden'); editor.classList.add('on'); editBtn.style.display='none'; saveBtn.style.display=''; cancelBtn.style.display=''; hint.classList.remove('on'); }
+function leaveEdit(saved){ doc.classList.remove('hidden'); editor.classList.remove('on'); editBtn.style.display=''; saveBtn.style.display='none'; cancelBtn.style.display='none'; if(saved){hint.classList.add('on'); setTimeout(()=>hint.classList.remove('on'),1800);} }
+editBtn.addEventListener('click',()=>enterEdit());
+saveBtn.addEventListener('click',()=>leaveEdit(true));
+cancelBtn.addEventListener('click',()=>leaveEdit(false));
+document.getElementById('saveBtn2').addEventListener('click',()=>leaveEdit(true));
+document.getElementById('cancelBtn2').addEventListener('click',()=>leaveEdit(false));
+</script>
+</body>
+</html>

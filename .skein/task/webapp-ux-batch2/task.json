@@ -84,13 +84,17 @@
         "滚动/选中/展开态保留",
         "WS 消息带增量字段"
       ],
-      "验收done": [],
-      "status": "运行中",
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785243708,
       "started": 1785244927,
-      "finished": null
+      "finished": 1785245920
     },
     {
       "sid": "s5",
@@ -125,5 +129,5 @@
   "confirmed": 1785243792,
   "checked": null,
   "finished": null,
-  "updated": 1785244927
+  "updated": 1785245920
 }

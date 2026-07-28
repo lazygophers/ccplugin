@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="zh" data-theme="loom-dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>skein · 织机 (方向C 定制)</title>
+<style>
+/*
+  设计方向 C — novel 定制: 「织机 (the loom)」
+  母题溯源: skein = 一束绞纱。skein 引擎按经纬编织 task → subtask → worktree。
+   - task   = 上机的一根「纬线 (weft strand)」, 横贯整块织面
+   - subtask= 纬线上串起的「织结 (knot)」, 已织=紧实上色, 未织=松散空结
+   - 进度   = 纬线被「织入」的长度 (dyed weave) vs 松垂的原纱 (raw tail)
+   - 依赖   = 结与结之间穿梭的引线
+   - worktree = 从主股分岔的独立股 (spool)
+   - status = 染缸的五种植物染色 (未染/茜黄/靛蓝/草木绿/茜红), 非霓虹
+   - 背景   = 极淡的经纬织纹, 只作织面底噪, 不与信息争对比
+  可用性护栏: 织纹 alpha 极低; 正文实色高对比; 织结带文字标签不靠纯色区分。
+*/
+:root{
+  /* 植物染 (natural dye) 五态 — 土质暖色, 反霓虹 */
+  --dye-pending:#A2957C;   /* 未染 · 原麻灰 */
+  --dye-active:#D98A2B;    /* 茜黄 · 梭子在动 */
+  --dye-check:#3E77B8;     /* 靛蓝 · 待验 */
+  --dye-done:#4E9E6A;      /* 草木绿 · 成织 */
+  --dye-failed:#C24A3B;    /* 茜红 · 断线 */
+  --indigo:#3D5A98;        /* 靛蓝染缸 · 主调 */
+  --font: "Songti SC", ui-serif, "PingFang SC", -apple-system, system-ui, sans-serif;
+  --sans: -apple-system, system-ui, "PingFang SC", "Segoe UI", sans-serif;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", monospace;
+  --radius:14px;
+}
+html[data-theme="loom-dark"]{
+  --bg:#16171C;            /* 暮色织房 · 暖炭 */
+  --loom:#1D1E25;          /* 织机木架 */
+  --panel:#20222A;
+  --panel-2:#191A20;
+  --raw:#3A3B44;           /* 松散原纱 (未织) 线色 */
+  --hair:#2A2C35;          /* 发丝分隔 */
+  --hair-soft:#232530;
+  --fg:#ECE6D9;            /* 亚麻本白 */
+  --head:#F6F1E6;
+  --muted:#9A9585;
+  --muted-2:#726E62;
+  --weave-a:rgba(236,230,217,.028);
+  --weave-b:rgba(61,90,152,.05);
+  --indigo-fg:#8FB0E4;     /* 暗底下靛蓝文字提亮 */
+  --chip:#262832;
+}
+html[data-theme="loom-light"]{
+  --bg:#F3EDDF;            /* 生亚麻 · 未漂 */
+  --loom:#EBE3D1;
+  --panel:#FBF7EC;
+  --panel-2:#F0E9D9;
+  --raw:#CFC6B0;
+  --hair:#DDD3BC;
+  --hair-soft:#E6DDC9;
+  --fg:#33302A;
+  --head:#211F1A;
+  --muted:#6E695C;
+  --muted-2:#928C7B;
+  --weave-a:rgba(51,48,42,.03);
+  --weave-b:rgba(61,90,152,.055);
+  --indigo-fg:#2E4C86;
+  --chip:#EAE1CE;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+@property --shuttle{syntax:'<percentage>';initial-value:0%;inherits:false}
+body{
+  min-height:100vh;color:var(--fg);font-family:var(--sans);
+  font-size:15px;line-height:1.55;letter-spacing:.1px;
+  background:
+    /* 经线 (warp) 竖纹 */
+    repeating-linear-gradient(90deg, var(--weave-a) 0 1px, transparent 1px 9px),
+    /* 纬线 (weft) 横纹 */
+    repeating-linear-gradient(0deg, var(--weave-a) 0 1px, transparent 1px 9px),
+    /* 靛蓝染晕, 织房纵深 */
+    radial-gradient(120% 60% at 50% -8%, var(--weave-b) 0%, transparent 60%),
+    var(--bg);
+  background-attachment:fixed;
+  transition:background .4s,color .4s;
+  -webkit-font-smoothing:antialiased;
+}
+.tnum{font-variant-numeric:tabular-nums}
+.mono{font-family:var(--mono)}
+
+/* ── 顶栏: 织机横梁 (loom beam) ── */
+.beam{
+  position:sticky;top:0;z-index:40;
+  display:flex;align-items:center;gap:18px;
+  padding:11px 26px;
+  background:color-mix(in srgb, var(--loom) 92%, transparent);
+  border-bottom:1px solid var(--hair);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  box-shadow:0 1px 0 color-mix(in srgb,var(--indigo) 22%,transparent);
+}
+.logo{display:flex;align-items:center;gap:10px;font-family:var(--font);
+  font-size:21px;font-weight:700;letter-spacing:.5px;color:var(--head)}
+/* 绞纱标志: 三股扭绞的 SVG */
+.logo svg{display:block;flex:none}
+.nav{display:flex;align-items:center;gap:2px;
+  padding:3px;border-radius:11px;background:var(--panel-2);border:1px solid var(--hair)}
+.nav a{padding:6px 13px;border-radius:8px;font-size:13.5px;font-weight:500;
+  color:var(--muted);cursor:pointer;text-decoration:none;transition:color .15s,background .15s;
+  position:relative;white-space:nowrap}
+.nav a:hover{color:var(--fg);background:color-mix(in srgb,var(--fg) 6%,transparent)}
+.nav a.on{color:var(--head);background:var(--panel)}
+/* 选中项下方一小段「织入」的靛蓝纬线 */
+.nav a.on::after{content:"";position:absolute;left:11px;right:11px;bottom:2px;height:2px;
+  border-radius:2px;background:var(--indigo);box-shadow:0 0 6px color-mix(in srgb,var(--indigo) 55%,transparent)}
+.search{margin-left:auto;display:flex;align-items:center;gap:8px;
+  min-width:230px;height:34px;padding:0 12px;border-radius:9px;
+  background:var(--panel-2);border:1px solid var(--hair);color:var(--muted)}
+.search:focus-within{border-color:var(--indigo)}
+.search input{all:unset;flex:1;font:inherit;font-size:13.5px;color:var(--fg)}
+.search input::placeholder{color:var(--muted-2)}
+.kbd{font-family:var(--mono);font-size:11px;padding:2px 5px;border-radius:4px;
+  border:1px solid var(--hair);background:var(--chip);color:var(--muted-2)}
+.tog{display:inline-flex;border:1px solid var(--hair);border-radius:999px;overflow:hidden;background:var(--panel-2)}
+.tog button{all:unset;cursor:pointer;font:13px/1 var(--sans);padding:7px 13px;color:var(--muted);transition:.2s}
+.tog button.on{background:var(--indigo);color:#F6F1E6}
+
+/* ── 布局壳 ── */
+.wrap{max-width:1180px;margin:0 auto;padding:26px 26px 70px}
+.view{display:none}
+.view.on{display:block;animation:weave-in .5s cubic-bezier(.33,0,.2,1) both}
+@keyframes weave-in{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+
+.eyebrow{font-family:var(--font);font-size:12px;font-weight:600;letter-spacing:3px;
+  color:var(--indigo-fg);text-transform:uppercase;margin-bottom:7px;display:flex;align-items:center;gap:9px}
+.eyebrow::before{content:"";width:26px;height:1px;background:var(--indigo);opacity:.6}
+.phead{display:flex;align-items:baseline;gap:14px;margin-bottom:6px}
+.phead h1{font-family:var(--font);font-size:27px;font-weight:700;letter-spacing:.3px;color:var(--head)}
+.phead .sub{color:var(--muted);font-size:13.5px}
+.rule{height:1px;background:var(--hair);margin:16px 0 22px;
+  background-image:repeating-linear-gradient(90deg,var(--hair) 0 6px,transparent 6px 9px)}
+
+/* ── 染缸图例 (五态可辨, 文字+色双编码) ── */
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin:2px 0 20px;padding:11px 15px;
+  border:1px solid var(--hair);border-radius:11px;background:var(--panel-2);font-size:12.5px}
+.legend .lg{display:flex;align-items:center;gap:7px;color:var(--muted)}
+.legend .sw{width:13px;height:13px;border-radius:4px;flex:none;position:relative}
+.legend .sw::after{content:"";position:absolute;inset:0;border-radius:4px;
+  background-image:repeating-linear-gradient(45deg,rgba(0,0,0,.18) 0 1.5px,transparent 1.5px 3px)}
+
+/* ═══════════ DASHBOARD: 织面 (the woven face) ═══════════ */
+/* 每个 task = 一根横贯的纬线 strand; subtask = 线上的织结 */
+.loom-face{display:flex;flex-direction:column;gap:0;
+  border:1px solid var(--hair);border-radius:var(--radius);overflow:hidden;
+  background:var(--panel)}
+.strand{
+  display:grid;grid-template-columns:270px 1fr 116px;align-items:center;gap:20px;
+  padding:20px 24px;position:relative;
+  border-top:1px solid var(--hair-soft);transition:background .15s}
+.strand:first-child{border-top:0}
+.strand:hover{background:color-mix(in srgb,var(--fg) 3%,transparent)}
+/* 左端: task 身份牌 = 线轴挂签 */
+.tag-side{min-width:0}
+.tag-id{display:flex;align-items:center;gap:9px;margin-bottom:3px}
+.tag-id .code{font-family:var(--mono);font-size:14.5px;font-weight:600;color:var(--head);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tag-desc{color:var(--muted);font-size:13px;line-height:1.4}
+
+/* status = 染色徽 (色块+文字双编码, 靠得住) */
+.dye{display:inline-flex;align-items:center;gap:6px;flex:none;
+  font-size:11.5px;font-weight:600;padding:2px 9px 2px 7px;border-radius:999px;
+  border:1px solid transparent;white-space:nowrap}
+.dye .bead{width:8px;height:8px;border-radius:50%;flex:none;position:relative}
+.dye.pending{color:#C9BE9F;background:color-mix(in srgb,var(--dye-pending) 22%,transparent);border-color:color-mix(in srgb,var(--dye-pending) 40%,transparent)}
+.dye.pending .bead{background:var(--dye-pending)}
+.dye.active{color:#F1B863;background:color-mix(in srgb,var(--dye-active) 20%,transparent);border-color:color-mix(in srgb,var(--dye-active) 45%,transparent)}
+.dye.active .bead{background:var(--dye-active);box-shadow:0 0 0 0 color-mix(in srgb,var(--dye-active) 60%,transparent);animation:shuttle-pulse 1.9s ease-in-out infinite}
+.dye.check{color:#82ACDF;background:color-mix(in srgb,var(--dye-check) 20%,transparent);border-color:color-mix(in srgb,var(--dye-check) 45%,transparent)}
+.dye.check .bead{background:var(--dye-check)}
+.dye.done{color:#7CC79A;background:color-mix(in srgb,var(--dye-done) 20%,transparent);border-color:color-mix(in srgb,var(--dye-done) 42%,transparent)}
+.dye.done .bead{background:var(--dye-done)}
+.dye.failed{color:#E58072;background:color-mix(in srgb,var(--dye-failed) 20%,transparent);border-color:color-mix(in srgb,var(--dye-failed) 45%,transparent)}
+.dye.failed .bead{background:var(--dye-failed)}
+@keyframes shuttle-pulse{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--dye-active) 55%,transparent)}50%{box-shadow:0 0 0 4px color-mix(in srgb,var(--dye-active) 0%,transparent)}}
+html[data-theme="loom-light"] .dye.pending{color:#7A6E52}
+html[data-theme="loom-light"] .dye.active{color:#9A5E10}
+html[data-theme="loom-light"] .dye.check{color:#295A93}
+html[data-theme="loom-light"] .dye.done{color:#2C7048}
+html[data-theme="loom-light"] .dye.failed{color:#9A3226}
+
+/* 中段: 纬线 + 织结 (核心母题可视化) */
+.strand-line{position:relative;height:34px;display:flex;align-items:center}
+/* 底纱 = 松散原纱 (整根未织的纱) */
+.strand-line::before{content:"";position:absolute;left:0;right:0;top:50%;height:2px;
+  transform:translateY(-50%);border-radius:2px;
+  background:repeating-linear-gradient(90deg,var(--raw) 0 5px,transparent 5px 8px)}
+/* 织入段 = 上色的紧实纬线, 宽度 = 进度 */
+.woven{position:absolute;left:0;top:50%;transform:translateY(-50%);height:3px;border-radius:3px;
+  background:linear-gradient(90deg,var(--wv,--indigo),color-mix(in srgb,var(--wv,--indigo) 78%,#fff));
+  box-shadow:0 0 7px color-mix(in srgb,var(--wv,--indigo) 40%,transparent)}
+/* 活动梭子: 织入段末端一道游走高光 */
+.woven.live::after{content:"";position:absolute;right:-3px;top:-3px;width:9px;height:9px;border-radius:50%;
+  background:var(--dye-active);box-shadow:0 0 10px var(--dye-active);animation:glide 2.2s ease-in-out infinite}
+@keyframes glide{0%,100%{transform:translateX(0)}50%{transform:translateX(-6px)}}
+.knots{position:relative;display:flex;align-items:center;justify-content:space-between;
+  width:100%;z-index:2}
+.knot{width:15px;height:15px;border-radius:4px;transform:rotate(45deg);flex:none;
+  border:2px solid var(--raw);background:var(--panel);position:relative;transition:.2s}
+.knot::after{content:"";position:absolute;inset:2px;border-radius:2px;background:transparent}
+.knot.done{border-color:var(--dye-done)}
+.knot.done::after{background:var(--dye-done)}
+.knot.active{border-color:var(--dye-active);background:var(--panel);
+  box-shadow:0 0 12px color-mix(in srgb,var(--dye-active) 55%,transparent)}
+.knot.active::after{background:var(--dye-active)}
+.knot.check{border-color:var(--dye-check)}
+.knot.check::after{background:var(--dye-check)}
+.knot.failed{border-color:var(--dye-failed)}
+.knot.failed::after{background:var(--dye-failed)}
+.knot.pending{border-color:var(--raw)}
+
+/* 右段: 进度计数 */
+.strand-meta{text-align:right}
+.strand-meta .frac{font-family:var(--mono);font-size:16px;font-weight:600;color:var(--head)}
+.strand-meta .frac small{color:var(--muted);font-size:12px;font-weight:500}
+.strand-meta .note{font-size:11.5px;color:var(--muted-2);margin-top:2px}
+
+/* ── 上机队列 (队列 = 待上机的线轴 bobbins) ── */
+.deck{margin-top:30px}
+.deck-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.bobbin{display:flex;align-items:center;gap:14px;padding:15px 17px;
+  border:1px solid var(--hair);border-radius:12px;background:var(--panel);
+  border-left:3px solid var(--dye-check)}
+.spool{width:38px;height:38px;flex:none;border-radius:9px;display:grid;place-items:center;
+  background:color-mix(in srgb,var(--dye-check) 14%,transparent);
+  border:1px solid color-mix(in srgb,var(--dye-check) 35%,transparent)}
+.spool svg{display:block}
+.bobbin .b-body{min-width:0;flex:1}
+.bobbin .b-name{font-family:var(--mono);font-size:13.5px;font-weight:600;color:var(--head);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bobbin .b-meta{font-size:12px;color:var(--muted);margin-top:3px}
+.ready-tag{font-size:11px;font-weight:600;color:#82ACDF;flex:none;
+  padding:2px 9px;border-radius:999px;
+  background:color-mix(in srgb,var(--dye-check) 16%,transparent);
+  border:1px solid color-mix(in srgb,var(--dye-check) 38%,transparent)}
+html[data-theme="loom-light"] .ready-tag{color:#295A93}
+
+/* ═══════════ SPEC: 经线树 (warp tree) + 织面读稿 ═══════════ */
+.spec-grid{display:grid;grid-template-columns:262px minmax(0,1fr);gap:22px;align-items:start}
+/* 左: 一束下垂的经线, 文件挂在股上 */
+.warp{padding:16px 12px;border:1px solid var(--hair);border-radius:var(--radius);
+  background:var(--panel);position:sticky;top:74px}
+.warp-cat{margin-bottom:6px}
+.warp-cat:last-child{margin-bottom:0}
+.cat-head{display:flex;align-items:center;gap:8px;padding:6px 8px;
+  font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.5px;color:var(--muted)}
+.cat-head .spindle{width:9px;height:9px;border-radius:2px;transform:rotate(45deg);flex:none;
+  background:var(--indigo)}
+.cat-head.recall .spindle{background:var(--dye-done)}
+.cat-head .ct{margin-left:auto;font-size:11px;color:var(--muted-2);letter-spacing:0}
+/* 挂在经线上的文件: 左侧一道连接股线 */
+.strand-list{padding-left:4px;margin-left:8px;border-left:1.5px solid var(--hair);
+  position:relative}
+.leaf{display:flex;align-items:center;gap:9px;padding:6px 9px;margin:1px 0 1px 6px;
+  border-radius:8px;font-size:13.5px;color:var(--fg);cursor:pointer;position:relative;
+  transition:background .15s}
+/* 从经线伸出的一小段横纱 */
+.leaf::before{content:"";position:absolute;left:-14px;top:50%;width:12px;height:1.5px;
+  background:var(--hair)}
+.leaf:hover{background:color-mix(in srgb,var(--fg) 5%,transparent)}
+.leaf.sel{background:color-mix(in srgb,var(--indigo) 16%,transparent);font-weight:600;color:var(--head)}
+.leaf.sel::before{background:var(--indigo)}
+.leaf .fk{width:11px;height:11px;border-radius:3px;transform:rotate(45deg);flex:none;
+  border:1.5px solid var(--muted-2)}
+.leaf.sel .fk{border-color:var(--indigo);background:color-mix(in srgb,var(--indigo) 45%,transparent)}
+.leaf .fn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* 右: 读稿面 = 一块织好的布, 左缘一道彩色布边 (selvage) */
+.cloth{position:relative;border:1px solid var(--hair);border-radius:var(--radius);
+  background:var(--panel);overflow:hidden;min-height:520px;
+  /* 极淡织纹底噪 */
+  background-image:
+    repeating-linear-gradient(90deg,var(--weave-a) 0 1px,transparent 1px 11px),
+    repeating-linear-gradient(0deg,var(--weave-a) 0 1px,transparent 1px 11px)}
+/* selvage 布边: 左缘靛蓝竖带 */
+.cloth::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;
+  background:linear-gradient(180deg,var(--indigo),var(--dye-done))}
+.cloth-bar{display:flex;align-items:center;gap:10px;padding:14px 22px 14px 26px;
+  border-bottom:1px solid var(--hair);background:color-mix(in srgb,var(--panel-2) 70%,transparent)}
+.crumb{flex:1;min-width:0;font-family:var(--mono);font-size:12.5px;color:var(--muted);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.crumb b{color:var(--fg);font-weight:600}
+.saved{display:none;align-items:center;gap:6px;font-size:12.5px;color:var(--dye-done)}
+.saved.on{display:inline-flex}
+.btn{all:unset;cursor:pointer;font:inherit;font-size:13px;font-weight:500;
+  padding:7px 14px;border-radius:9px;border:1px solid var(--hair);color:var(--fg);
+  background:var(--panel-2);transition:.15s}
+.btn:hover{border-color:var(--muted-2)}
+.btn.primary{background:var(--indigo);border-color:var(--indigo);color:#F6F1E6}
+.btn.primary:hover{filter:brightness(1.08)}
+
+.doc{padding:28px 34px 40px 38px;max-width:76ch}
+.doc h2{font-family:var(--font);font-size:23px;font-weight:700;letter-spacing:.2px;
+  color:var(--head);margin-bottom:10px}
+.doc .docmeta{display:flex;gap:12px;align-items:center;color:var(--muted-2);
+  font-size:12.5px;margin-bottom:22px;font-family:var(--mono)}
+.doc h3{font-family:var(--font);font-size:16px;font-weight:700;color:var(--head);margin:26px 0 9px;
+  display:flex;align-items:center;gap:9px}
+.doc h3::before{content:"";width:11px;height:11px;border-radius:3px;transform:rotate(45deg);
+  background:var(--indigo);flex:none}
+.doc p{color:var(--fg);font-size:15px;line-height:1.75;margin:11px 0;max-width:70ch}
+.doc code{font-family:var(--mono);font-size:13.5px;padding:1.5px 6px;border-radius:5px;
+  background:color-mix(in srgb,var(--fg) 8%,transparent);color:var(--indigo-fg)}
+.doc ul{margin:11px 0 11px 6px;padding-left:20px}
+.doc li{margin:6px 0;font-size:15px;line-height:1.7}
+.doc li::marker{color:var(--indigo)}
+.doc blockquote{margin:15px 0;padding:12px 18px;border-radius:0 10px 10px 0;
+  border-left:3px solid var(--dye-done);
+  background:color-mix(in srgb,var(--dye-done) 9%,transparent);color:var(--fg)}
+.doc pre{margin:14px 0;padding:15px 18px;border-radius:10px;overflow-x:auto;
+  background:var(--panel-2);border:1px solid var(--hair);
+  font-family:var(--mono);font-size:13px;line-height:1.65;color:var(--fg)}
+.doc pre .cm{color:var(--muted-2)}
+
+.editor{display:none;padding:22px 34px 28px 38px}
+.editor.on{display:block;animation:weave-in .3s ease both}
+.editor textarea{width:100%;min-height:360px;resize:vertical;padding:16px 18px;border-radius:12px;
+  background:var(--panel-2);border:1px solid var(--hair);color:var(--fg);outline:none;
+  font-family:var(--mono);font-size:13.5px;line-height:1.7}
+.editor textarea:focus{border-color:var(--indigo)}
+.editor .acts{display:flex;gap:10px;margin-top:14px}
+.doc.hidden{display:none}
+
+@media (max-width:900px){
+  .spec-grid{grid-template-columns:1fr}
+  .warp{position:static}
+  .strand{grid-template-columns:1fr;gap:12px}
+  .strand-line{order:3}
+  .strand-meta{text-align:left}
+  .deck-grid{grid-template-columns:1fr}
+  .search{min-width:0}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none !important}
+}
+</style>
+</head>
+<body>
+
+<!-- ── 顶栏: 织机横梁 ── -->
+<header class="beam">
+  <div class="logo">
+    <!-- 绞纱标志: 三股扭绞 -->
+    <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+      <path d="M4 6 C10 10, 16 2, 22 6" stroke="var(--indigo)" stroke-width="2.4" stroke-linecap="round"/>
+      <path d="M4 13 C10 17, 16 9, 22 13" stroke="var(--dye-active)" stroke-width="2.4" stroke-linecap="round"/>
+      <path d="M4 20 C10 24, 16 16, 22 20" stroke="var(--dye-done)" stroke-width="2.4" stroke-linecap="round"/>
+    </svg>
+    skein
+  </div>
+  <nav class="nav">
+    <a class="on" data-view="dash">面板</a>
+    <a data-view="dash">队列</a>
+    <a data-view="dash">任务</a>
+    <a data-view="spec">spec</a>
+    <a data-view="dash">归档</a>
+    <a data-view="spec">搜索</a>
+  </nav>
+  <label class="search">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    <input placeholder="搜索任务 / subtask / spec…">
+    <span class="kbd">⌘K</span>
+  </label>
+  <div class="tog">
+    <button data-set="loom-light">浅</button>
+    <button class="on" data-set="loom-dark">暗</button>
+  </div>
+</header>
+
+<div class="wrap">
+
+<!-- ═══════════ DASHBOARD ═══════════ -->
+<section class="view on" id="view-dash">
+  <div class="eyebrow">织面 · the woven face</div>
+  <div class="phead">
+    <h1>面板</h1>
+    <span class="sub tnum">4 根纬线上机 · 1 梭在织 · 2 结待上机</span>
+  </div>
+  <div class="rule"></div>
+
+  <!-- 染缸图例: 五态色 + 文字双编码 -->
+  <div class="legend">
+    <span class="lg"><span class="sw" style="background:var(--dye-pending)"></span>待处理 · 未染</span>
+    <span class="lg"><span class="sw" style="background:var(--dye-active)"></span>进行中 · 梭动</span>
+    <span class="lg"><span class="sw" style="background:var(--dye-check)"></span>待验 · 靛蓝</span>
+    <span class="lg"><span class="sw" style="background:var(--dye-done)"></span>已完成 · 成织</span>
+    <span class="lg"><span class="sw" style="background:var(--dye-failed)"></span>失败 · 断线</span>
+  </div>
+
+  <!-- 织面: 每 task 一根纬线 -->
+  <div class="loom-face">
+
+    <!-- ① serve-admin-platform · 进行中 2/3 -->
+    <div class="strand">
+      <div class="tag-side">
+        <div class="tag-id">
+          <span class="code">serve-admin-platform</span>
+          <span class="dye active"><span class="bead"></span>进行中</span>
+        </div>
+        <div class="tag-desc">serve 多页平台重设计</div>
+      </div>
+      <div class="strand-line" title="subtask 织结: 已织 2 · 梭动 1">
+        <div class="woven live" style="width:66%;--wv:var(--dye-done)"></div>
+        <div class="knots">
+          <span class="knot done" title="01 三方案视觉设计 · 成织"></span>
+          <span class="knot done" title="02 骨架与令牌搭建 · 成织"></span>
+          <span class="knot active" title="03 交互接线 · 梭动中"></span>
+        </div>
+      </div>
+      <div class="strand-meta">
+        <div class="frac tnum">2<small>/3</small></div>
+        <div class="note">1 running</div>
+      </div>
+    </div>
+
+    <!-- ② skill-dev-methodology-fusion · 已完成 4/4 -->
+    <div class="strand">
+      <div class="tag-side">
+        <div class="tag-id">
+          <span class="code">skill-dev-methodology-fusion</span>
+          <span class="dye done"><span class="bead"></span>已完成</span>
+        </div>
+        <div class="tag-desc">两插件融合方法论</div>
+      </div>
+      <div class="strand-line" title="全线织入 · 4/4">
+        <div class="woven" style="width:100%;--wv:var(--dye-done)"></div>
+        <div class="knots">
+          <span class="knot done"></span>
+          <span class="knot done"></span>
+          <span class="knot done"></span>
+          <span class="knot done"></span>
+        </div>
+      </div>
+      <div class="strand-meta">
+        <div class="frac tnum">4<small>/4</small></div>
+        <div class="note">已归架</div>
+      </div>
+    </div>
+
+    <!-- ③ task-prd-tabs-fmt · 待处理 0 -->
+    <div class="strand">
+      <div class="tag-side">
+        <div class="tag-id">
+          <span class="code">task-prd-tabs-fmt</span>
+          <span class="dye pending"><span class="bead"></span>待处理</span>
+        </div>
+        <div class="tag-desc">PRD 分栏 + fmt hook</div>
+      </div>
+      <div class="strand-line" title="未上机 · 原纱松垂">
+        <div class="knots">
+          <span class="knot pending"></span>
+          <span class="knot pending"></span>
+          <span class="knot pending"></span>
+        </div>
+      </div>
+      <div class="strand-meta">
+        <div class="frac tnum">0<small>/3</small></div>
+        <div class="note">未拆分</div>
+      </div>
+    </div>
+
+    <!-- ④ webapp-drop-themes · 已完成 -->
+    <div class="strand">
+      <div class="tag-side">
+        <div class="tag-id">
+          <span class="code">webapp-drop-themes</span>
+          <span class="dye done"><span class="bead"></span>已完成</span>
+        </div>
+        <div class="tag-desc">移除主题系统</div>
+      </div>
+      <div class="strand-line" title="全线织入 · 3/3">
+        <div class="woven" style="width:100%;--wv:var(--dye-done)"></div>
+        <div class="knots">
+          <span class="knot done"></span>
+          <span class="knot done"></span>
+          <span class="knot done"></span>
+        </div>
+      </div>
+      <div class="strand-meta">
+        <div class="frac tnum">3<small>/3</small></div>
+        <div class="note">已归架</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 上机队列: 待上机的线轴 -->
+  <div class="deck">
+    <div class="eyebrow">上机队列 · ready to string</div>
+    <div class="phead"><h1 style="font-size:19px">待执行队列</h1><span class="sub tnum">2 结就绪</span></div>
+    <div class="rule"></div>
+    <div class="deck-grid">
+      <div class="bobbin">
+        <div class="spool">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--dye-check)" stroke-width="2" stroke-linecap="round">
+            <rect x="5" y="3" width="14" height="18" rx="1.5"/><path d="M5 8h14M5 16h14"/>
+          </svg>
+        </div>
+        <div class="b-body">
+          <div class="b-name">serve-admin-platform-02</div>
+          <div class="b-meta">队列区块前端实现 · ← serve-admin-platform</div>
+        </div>
+        <span class="ready-tag">ready</span>
+      </div>
+      <div class="bobbin">
+        <div class="spool">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--dye-check)" stroke-width="2" stroke-linecap="round">
+            <rect x="5" y="3" width="14" height="18" rx="1.5"/><path d="M5 8h14M5 16h14"/>
+          </svg>
+        </div>
+        <div class="b-body">
+          <div class="b-name">serve-admin-platform-03</div>
+          <div class="b-meta">spec 页只读渲染 · ← serve-admin-platform</div>
+        </div>
+        <span class="ready-tag">ready</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ SPEC ═══════════ -->
+<section class="view" id="view-spec">
+  <div class="eyebrow">经线库 · warp of knowledge</div>
+  <div class="phead"><h1>spec</h1><span class="sub">core / recall 知识经线</span></div>
+  <div class="rule"></div>
+
+  <div class="spec-grid">
+    <!-- 左: 经线树 -->
+    <aside class="warp">
+      <div class="warp-cat">
+        <div class="cat-head"><span class="spindle"></span>core<span class="ct">3</span></div>
+        <div class="strand-list">
+          <div class="leaf"><span class="fk"></span><span class="fn">git/workflow.md</span></div>
+          <div class="leaf"><span class="fk"></span><span class="fn">test/strategy.md</span></div>
+          <div class="leaf"><span class="fk"></span><span class="fn">arch/overview.md</span></div>
+        </div>
+      </div>
+      <div class="warp-cat">
+        <div class="cat-head recall"><span class="spindle"></span>recall<span class="ct">5</span></div>
+        <div class="strand-list">
+          <div class="leaf"><span class="fk"></span><span class="fn">frontend/petite-vue-notes.md</span></div>
+          <div class="leaf sel" data-sel><span class="fk"></span><span class="fn">frontend/webapp-tpl-fragment-crash-00.md</span></div>
+          <div class="leaf"><span class="fk"></span><span class="fn">frontend/oklch-token.md</span></div>
+          <div class="leaf"><span class="fk"></span><span class="fn">arch/serve-deps-slim.md</span></div>
+          <div class="leaf"><span class="fk"></span><span class="fn">arch/worktree-model.md</span></div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 右: 织面读稿 -->
+    <div class="cloth">
+      <div class="cloth-bar">
+        <span class="crumb">recall / frontend / <b>webapp-tpl-fragment-crash-00.md</b></span>
+        <span class="saved" id="saved">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>已保存
+        </span>
+        <button class="btn" id="editBtn">编辑</button>
+        <button class="btn primary" id="saveBtn" style="display:none">保存</button>
+        <button class="btn" id="cancelBtn" style="display:none">取消</button>
+      </div>
+
+      <article class="doc" id="doc">
+        <h2>petite-vue 顶层 v-if 崩溃</h2>
+        <div class="docmeta">
+          <span>recall / frontend</span><span>·</span><span>更新于 2026-07-16</span><span>·</span><span>1.4 KB</span>
+        </div>
+
+        <p>petite-vue 挂载一个 <code>&lt;template&gt;</code> fragment 时, 若顶层节点直接带 <code>v-if</code> 且条件初始为假, 挂载阶段会抛 <code>Cannot read properties of null</code>, 导致整页白屏。这根线一断, 整块织面塌掉。</p>
+
+        <h3>复现</h3>
+        <ul>
+          <li>根组件模板顶层写 <code>&lt;template v-if="ready"&gt;…&lt;/template&gt;</code></li>
+          <li><code>ready</code> 由异步 fetch 置真, 初始为 <code>false</code></li>
+          <li>首帧渲染即崩, 控制台仅一行栈, 无组件名</li>
+        </ul>
+
+        <h3>根因</h3>
+        <p>petite-vue 的 <code>walk()</code> 对顶层 fragment 不建立锚点占位。<code>v-if</code> 转假时插入点 <code>anchor</code> 为 <code>null</code>, 后续 <code>insertBefore</code> 解引用空值。属于「顶层 fragment × 结构指令」的组合边界问题。</p>
+
+        <h3>修复</h3>
+        <blockquote>把顶层 <code>v-if</code> 下沉一层: 外层包一个始终存在的宿主节点, 结构指令挂到子节点上。宿主常驻 = 锚点常在。</blockquote>
+        <pre><code>&lt;div id="app"&gt;
+  &lt;main v-if="ready"&gt;…&lt;/main&gt;   <span class="cm">&lt;!-- 宿主常驻, v-if 落子节点 --&gt;</span>
+  &lt;div v-else class="loading"&gt;载入中…&lt;/div&gt;
+&lt;/div&gt;</code></pre>
+      </article>
+
+      <div class="editor" id="editor">
+        <textarea id="ta"># petite-vue 顶层 v-if 崩溃
+
+petite-vue 挂载一个 `<template>` fragment 时, 若顶层节点直接带 `v-if` 且条件初始为假, 挂载阶段会抛 `Cannot read properties of null`, 导致整页白屏。
+
+## 复现
+- 根组件模板顶层写 `<template v-if="ready">…</template>`
+- `ready` 由异步 fetch 置真, 初始为 `false`
+- 首帧渲染即崩, 控制台仅一行栈, 无组件名
+
+## 根因
+petite-vue 的 `walk()` 对顶层 fragment 不建立锚点占位。`v-if` 转假时插入点 `anchor` 为 `null`, 后续 `insertBefore` 解引用空值。
+
+## 修复
+> 把顶层 `v-if` 下沉一层: 外层包一个始终存在的宿主节点, 结构指令挂到子节点上。
+</textarea>
+        <div class="acts">
+          <button class="btn primary" id="saveBtn2">保存</button>
+          <button class="btn" id="cancelBtn2">取消</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<script>
+// ── 视图切换 ──
+const navLinks=[...document.querySelectorAll('.nav a')];
+navLinks.forEach(a=>a.addEventListener('click',()=>{
+  navLinks.forEach(x=>x.classList.remove('on'));a.classList.add('on');
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('on',v.id==='view-'+a.dataset.view));
+  window.scrollTo({top:0,behavior:'smooth'});
+}));
+
+// ── 明暗切换 ──
+document.querySelectorAll('.tog button').forEach(b=>b.addEventListener('click',()=>{
+  document.documentElement.setAttribute('data-theme',b.dataset.set);
+  document.querySelectorAll('.tog button').forEach(x=>x.classList.toggle('on',x===b));
+}));
+
+// ── 经线树选中 ──
+document.querySelectorAll('.leaf').forEach(l=>l.addEventListener('click',()=>{
+  document.querySelectorAll('.leaf').forEach(x=>x.classList.remove('sel'));l.classList.add('sel');
+}));
+
+// ── spec 编辑器 ──
+const doc=document.getElementById('doc'),editor=document.getElementById('editor'),saved=document.getElementById('saved');
+const editBtn=document.getElementById('editBtn'),saveBtn=document.getElementById('saveBtn'),cancelBtn=document.getElementById('cancelBtn');
+function edit(on){
+  doc.classList.toggle('hidden',on);editor.classList.toggle('on',on);
+  editBtn.style.display=on?'none':'';saveBtn.style.display=on?'':'none';cancelBtn.style.display=on?'':'none';
+}
+editBtn.onclick=()=>{edit(true);saved.classList.remove('on')};
+cancelBtn.onclick=document.getElementById('cancelBtn2').onclick=()=>edit(false);
+function save(){edit(false);saved.classList.add('on');setTimeout(()=>saved.classList.remove('on'),2400)}
+saveBtn.onclick=document.getElementById('saveBtn2').onclick=save;
+</script>
+</body>
+</html>
