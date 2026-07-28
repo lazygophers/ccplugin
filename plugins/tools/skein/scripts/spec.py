@@ -616,8 +616,8 @@ class Spec:
         # 它已成 recall 层, 旧 core/ Path 在 findings 里过期, 下轮 maintain 再扫到。
         archive_reasons = {f: r for f, r in archive_reasons.items() if f.exists()}
         if archive_reasons:
-            moved = self._archive_batch(list(archive_reasons.keys()), archive_reasons)
-            for f, (act, reason) in archive_reasons.items():
+            self._archive_batch(list(archive_reasons.keys()), archive_reasons)
+            for f, (act, _reason) in archive_reasons.items():
                 actions.append(f"归档 ({act}): {f.relative_to(self.root).as_posix()}")
 
         print("maintain --apply 已执行:")
