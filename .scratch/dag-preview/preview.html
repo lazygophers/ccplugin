@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>DAG 布局方案对比</title>
+<style>
+  body { margin:0; background:#0b0f17; color:#c9d4e5; font:13px/1.5 ui-sans-serif,system-ui,"PingFang SC",sans-serif; }
+  section { border-bottom:1px solid #1e2836; }
+  h2 { margin:0; padding:14px 20px 4px; font-size:15px; color:#e6edf7; }
+  h2 small { font-weight:400; color:#7d8ba1; margin-left:10px; }
+  .metrics { padding:0 20px 10px; color:#8fa3bf; font-size:12px; font-family:ui-monospace,monospace; }
+  .metrics b { color:#5fd3a0; }
+  .metrics .bad { color:#e8825a; }
+  .viewport { width:1400px; overflow:auto; border-top:1px solid #1e2836; background:#0e131d; }
+  .viewport.tall { max-height:900px; }
+  svg { display:block; }
+</style>
+</head>
+<body>
+<div id="out"></div>
+<script>
+// ---------- 合成图: 27 层深链 + 菱形团簇 + 一个大扇入, 逼近真实 skein 项目形状 ----------
+function makeGraph() {
+  const deps = {};                       // id -> 前驱数组
+  const add = (id, d) => { deps[id] = d; };
+  add('m0', []);
+  let n = 1;
+  const fanTail = [];
+  for (let b = 1; b <= 18 && n < 96; b++) {
+    const p = `m${b - 1}`;
+    const kids = [];
+    for (let k = 0; k < 3 && n < 96; k++) { const id = `t${b}_${k}`; add(id, [p]); kids.push(id); n++; }
+    add(`m${b}`, kids); n++;
+    fanTail.push(`m${b}`);
+  }
+  // 叶子: 挂在若干中间节点上, 制造扇出
+  let li = 0;
+  while (n < 95) { const p = fanTail[li % fanTail.length]; add(`leaf${li}`, [p]); n++; li++; }
+  // 大扇入节点: 收全部 m* + 一半叶子
+  add('release', Object.keys(deps).filter(id => id.startsWith('m') || (id.startsWith('leaf') && +id.slice(4) % 2 === 0)));
+  const ids = Object.keys(deps);
+  return { ids, depsOf: id => (deps[id] || []).filter(d => deps[d] !== undefined) };
+}
+
+const G = makeGraph();
+const STATUS = ['done', 'active', 'ready', 'blocked', 'planning'];
+const COLOR = { done: '#3d7a5c', active: '#c98a2e', ready: '#3f7fb5', blocked: '#8a4a4a', planning: '#4a5468' };
+const statusOf = id => STATUS[[...id].reduce((a, c) => a + c.charCodeAt(0), 0) % STATUS.length];
+
+const MAXW = 1400, S = { colW: 300, rowH: 200, padX: 40, padY: 30, gapX: 30, gapY: 20 };
+const hOf = id => 104 + (([...id].reduce((a, c) => a + c.charCodeAt(0), 0) % 3) ? 24 : 0) + (id.startsWith('m') ? 34 : 0);
+
+// ---------- 公共: 拓扑序 ----------
+function topo(ids, depsOf) {
+  const left = new Map(ids.map(i => [i, depsOf(i).length]));
+  const succ = new Map(ids.map(i => [i, []]));
+  for (const i of ids) for (const d of depsOf(i)) succ.get(d).push(i);
+  const st = ids.filter(i => left.get(i) === 0), out = [], seen = new Set();
+  while (st.length) {
+    const c = st.pop(); if (seen.has(c)) continue; seen.add(c); out.push(c);
+    for (const nx of succ.get(c)) { left.set(nx, left.get(nx) - 1); if (!left.get(nx)) st.push(nx); }
+  }
+  for (const i of ids) if (!seen.has(i)) out.push(i);
+  return out;
+}
+function mkEdges(nodes, ids, depsOf) {
+  const m = new Map(nodes.map(n => [n.id, n])), es = [];
+  for (const i of ids) for (const d of depsOf(i)) { const f = m.get(d), t = m.get(i); if (f && t) es.push({ from: f, to: t }); }
+  return es;
+}
+
+// ---------- A: 贴合装箱 (线上现状) ----------
+function layoutFit(ids, depsOf, cw = MAXW, size = { w: S.colW - S.gapX, h: null }) {
+  const order = topo(ids, depsOf);
+  const nodes = order.map(id => ({ id, w: size.w, h: size.h || hOf(id), x: 0, y: 0 }));
+  const nmap = new Map(nodes.map(n => [n.id, n]));
+  const nbr = new Map(nodes.map(n => [n.id, { pred: [], all: [] }]));
+  for (const i of ids) for (const d of depsOf(i)) {
+    if (!nmap.has(d) || !nmap.has(i)) continue;
+    nbr.get(i).pred.push(d); nbr.get(i).all.push(d); nbr.get(d).all.push(i);
+  }
+  const B = 8, cols = Math.max(1, Math.floor((cw - S.padX * 2) / B));
+  const place = pick => {
+    const sky = new Float64Array(cols);
+    for (const n of nodes) {
+      const span = Math.max(1, Math.ceil((n.w + S.gapX) / B)), maxC = Math.max(0, cols - span);
+      const cand = new Set([0, maxC]);
+      for (const m of pick(n)) cand.add(Math.min(maxC, Math.max(0, Math.round((m.x - S.padX) / B))));
+      for (let i = 1; i < cols; i++) if (sky[i] !== sky[i - 1]) cand.add(Math.min(maxC, i));
+      let best = null;
+      for (const c of cand) {
+        let y = 0;
+        for (let i = c; i < c + span && i < cols; i++) if (sky[i] > y) y = sky[i];
+        const x = S.padX + c * B;
+        let cost = y * 1.5;
+        for (const m of pick(n)) cost += Math.abs(x - m.x) + Math.abs(y + S.padY - m.y);
+        for (const m of nbr.get(n.id).pred.map(i => nmap.get(i)))
+          if (y + S.padY < m.y + m.h) cost += (m.y + m.h - y - S.padY) * 0.6;
+        if (!best || cost < best.cost) best = { cost, x, y, c };
+      }
+      n.x = best.x; n.y = S.padY + best.y;
+      for (let i = best.c; i < best.c + span && i < cols; i++) sky[i] = best.y + n.h + S.gapY;
+    }
+  };
+  place(n => nbr.get(n.id).pred.map(i => nmap.get(i)));
+  place(n => nbr.get(n.id).all.map(i => nmap.get(i)));
+  return finish(nodes, mkEdges(nodes, ids, depsOf));
+}
+
+// ---------- B: 横向分层 (列 = 依赖深度, 破「宽不超视口」) ----------
+function layoutLayered(ids, depsOf) {
+  const order = topo(ids, depsOf), lay = new Map();
+  for (const id of order) lay.set(id, Math.max(0, ...depsOf(id).map(d => (lay.get(d) ?? 0) + 1)));
+  const cols = [];
+  for (const id of order) (cols[lay.get(id)] ||= []).push(id);
+  const w = 220, colGap = 90;
+  const nodes = [], pos = new Map();
+  // 两遍 barycenter: 按前驱平均 y 排序, 减少交叉
+  for (let pass = 0; pass < 3; pass++) {
+    cols.forEach((c, li) => {
+      if (pass) c.sort((a, b) => bary(a) - bary(b));
+      let y = S.padY;
+      for (const id of c) { pos.set(id, { x: S.padX + li * (w + colGap), y, h: hOf(id) }); y += hOf(id) + S.gapY; }
+    });
+  }
+  function bary(id) {
+    const ps = depsOf(id).map(d => pos.get(d)).filter(Boolean);
+    return ps.length ? ps.reduce((a, p) => a + p.y, 0) / ps.length : (pos.get(id)?.y ?? 0);
+  }
+  for (const id of order) { const p = pos.get(id); nodes.push({ id, x: p.x, y: p.y, w, h: p.h }); }
+  return finish(nodes, mkEdges(nodes, ids, depsOf), { horiz: true });
+}
+
+// ---------- C: 卡片分档缩小 (破「卡片不缩」) ----------
+function layoutSmall(ids, depsOf) {
+  return layoutFit(ids, depsOf, MAXW, { w: 150, h: 64 });
+}
+
+// ---------- D: 焦点邻域展开 + 其余折叠 (破「全量绘制」) ----------
+function layoutFocus(ids, depsOf) {
+  const focus = 'm9';
+  const adj = new Map(ids.map(i => [i, []]));
+  for (const i of ids) for (const d of depsOf(i)) { if (!adj.has(d)) continue; adj.get(i).push(d); adj.get(d).push(i); }
+  const near = new Set([focus]); let front = [focus];
+  for (let k = 0; k < 2; k++) { const nx = []; for (const c of front) for (const b of adj.get(c)) if (!near.has(b)) { near.add(b); nx.push(b); } front = nx; }
+  const shown = [...near];
+  const rest = ids.filter(i => !near.has(i));
+  const sub = layoutFit(shown, id => depsOf(id).filter(d => near.has(d)));
+  // 折叠包: 上游包 / 下游包 各一个
+  const order = topo(ids, depsOf), rank = new Map(order.map((id, i) => [id, i]));
+  const up = rest.filter(i => rank.get(i) < rank.get(focus)).length;
+  const down = rest.length - up;
+  const y0 = sub.height;
+  const packs = [
+    { id: `▲ 上游折叠 ${up} 张`, x: S.padX, y: y0, w: 640, h: 88, pack: 1 },
+    { id: `▼ 下游折叠 ${down} 张`, x: S.padX + 680, y: y0, w: 640, h: 88, pack: 1 },
+  ];
+  const nodes = sub.nodes.concat(packs);
+  return finish(nodes, sub.edges, { focus });
+}
+
+// ---------- E: 位置同 A, 只改走线 (正交 + 通道分配) ----------
+function layoutOrtho(ids, depsOf) {
+  const r = layoutFit(ids, depsOf);
+  r.ortho = true;
+  return r;
+}
+
+// ---------- F/G: 真分层 (行 = 依赖深度) + 层内折行 + barycenter 排序 ----------
+// 当年判分层死刑的 15500px = 66 行 × 220px 行高。行高由节点尺寸定, 不是算法定的。
+// 节点降到 120×32, 同样的层数只占 1/5 高度 —— 分层本身没问题, 大信息卡才是问题。
+function layoutTiered(ids, depsOf, nw, nh, gx = 14, gy = 22) {
+  const order = topo(ids, depsOf), lay = new Map();
+  for (const id of order) lay.set(id, Math.max(0, ...depsOf(id).map(d => (lay.get(d) ?? 0) + 1)));
+  const tiers = [];
+  for (const id of order) (tiers[lay.get(id)] ||= []).push(id);
+  const perRow = Math.max(1, Math.floor((MAXW - S.padX * 2 + gx) / (nw + gx)));
+  const pos = new Map();
+  const bary = id => {
+    const ps = depsOf(id).map(d => pos.get(d)).filter(Boolean);
+    return ps.length ? ps.reduce((a, p) => a + p.x, 0) / ps.length : 1e9;
+  };
+  let y = S.padY;
+  for (let pass = 0; pass < 2; pass++) {
+    y = S.padY;
+    for (const tier of tiers) {
+      if (pass) tier.sort((a, b) => bary(a) - bary(b));
+      // 层内折行: 一层放不下就换行, 层高 = 行数 × 节点高。整层仍是同一依赖深度。
+      const rows = Math.ceil(tier.length / perRow);
+      const cnt = Math.ceil(tier.length / rows);                    // 均分, 避免末行只剩 1 个
+      tier.forEach((id, i) => {
+        const r = Math.floor(i / cnt), c = i % cnt;
+        const rowN = Math.min(cnt, tier.length - r * cnt);
+        const x0 = S.padX + (MAXW - S.padX * 2 - (rowN * (nw + gx) - gx)) / 2;   // 层内居中
+        pos.set(id, { x: x0 + c * (nw + gx), y: y + r * (nh + 6) });
+      });
+      y += rows * (nh + 6) - 6 + gy;
+    }
+  }
+  const nodes = order.map(id => ({ id, ...pos.get(id), w: nw, h: nh, tier: lay.get(id) }));
+  return finish(nodes, mkEdges(nodes, ids, depsOf));
+}
+
+// ---------- H: 分层 + 报纸分栏 ----------
+// F 每层只有 3~5 个节点, 横向 2/3 是空的, 而层数把画布拉长。像报纸一样把层序切成几栏,
+// 栏内仍是严格分层 (行 = 依赖深度), 栏与栏之间从上一栏底接到下一栏顶。
+// 结果: 面积用满, 「同一行 = 同一深度」在栏内仍然成立。
+function layoutColumns(ids, depsOf, nw, nh, targetH = 860) {
+  const order = topo(ids, depsOf), lay = new Map();
+  for (const id of order) lay.set(id, Math.max(0, ...depsOf(id).map(d => (lay.get(d) ?? 0) + 1)));
+  const tiers = [];
+  for (const id of order) (tiers[lay.get(id)] ||= []).push(id);
+
+  // 先估: 每栏放多少层才刚好到 targetH。层高取决于该层要折几行。
+  const gx = 12, gy = 20, rowH = nh + 6;
+  const fit = (colW) => {
+    const per = Math.max(1, Math.floor((colW + gx) / (nw + gx)));
+    return tiers.map(t => Math.ceil(t.length / per) * rowH - 6 + gy);
+  };
+  let cols = 1, band = null;
+  for (cols = 1; cols <= 6; cols++) {
+    const colW = (MAXW - S.padX * 2 - (cols - 1) * 40) / cols;
+    const hs = fit(colW);
+    // 贪心切成 cols 段, 看最高一段是否落进 targetH
+    const total = hs.reduce((a, b) => a + b, 0), cut = total / cols;
+    let acc = 0, seg = 0, maxH = 0, cur = 0, plan = [[]];
+    hs.forEach((h, i) => {
+      if (cur + h > cut && seg < cols - 1 && plan[seg].length) { maxH = Math.max(maxH, cur); seg++; cur = 0; plan[seg] = []; }
+      plan[seg].push(i); cur += h; acc += h;
+    });
+    maxH = Math.max(maxH, cur);
+    if (maxH <= targetH || cols === 6) { band = { cols, colW, plan, hs }; break; }
+  }
+  const { colW, plan, hs } = band;
+  const per = Math.max(1, Math.floor((colW + gx) / (nw + gx)));
+  const pos = new Map();
+  const bary = id => { const ps = depsOf(id).map(d => pos.get(d)).filter(Boolean); return ps.length ? ps.reduce((a, p) => a + p.x, 0) / ps.length : 1e9; };
+  for (let pass = 0; pass < 2; pass++) {
+    plan.forEach((tierIdx, ci) => {
+      const x0 = S.padX + ci * (colW + 40);
+      let y = S.padY;
+      for (const ti of tierIdx) {
+        const tier = tiers[ti];
+        if (pass) tier.sort((a, b) => bary(a) - bary(b));
+        const rows = Math.ceil(tier.length / per), cnt = Math.ceil(tier.length / rows);
+        tier.forEach((id, i) => {
+          const r = Math.floor(i / cnt), c = i % cnt, rowN = Math.min(cnt, tier.length - r * cnt);
+          pos.set(id, { x: x0 + (colW - (rowN * (nw + gx) - gx)) / 2 + c * (nw + gx), y: y + r * rowH });
+        });
+        y += hs[ti];
+      }
+    });
+  }
+  const nodes = order.map(id => ({ id, ...pos.get(id), w: nw, h: nh, tier: lay.get(id) }));
+  return finish(nodes, mkEdges(nodes, ids, depsOf), { bandCols: band.cols });
+}
+
+function finish(nodes, edges, extra = {}) {
+  return {
+    nodes, edges, ...extra,
+    width: Math.max(...nodes.map(n => n.x + n.w)) + S.padX,
+    height: Math.max(...nodes.map(n => n.y + n.h)) + S.padY,
+  };
+}
+
+// ---------- 指标 ----------
+// 边端点: 竖向布局从卡底出、卡顶入; 横向布局从卡右出、卡左入
+function ends(r, e) {
+  return r.horiz
+    ? [e.from.x + e.from.w, e.from.y + e.from.h / 2, e.to.x, e.to.y + e.to.h / 2]
+    : [e.from.x + e.from.w / 2, e.from.y + e.from.h, e.to.x + e.to.w / 2, e.to.y];
+}
+function metrics(r) {
+  const span = r.edges.reduce((a, e) => a + Math.abs(e.from.x - e.to.x) + Math.abs(e.from.y - e.to.y), 0);
+  const segs = r.edges.map(e => ends(r, e));
+  let cross = 0;
+  for (let i = 0; i < segs.length; i++) for (let j = i + 1; j < segs.length; j++) if (inter(segs[i], segs[j])) cross++;
+  const back = r.edges.filter(e => r.horiz ? e.to.x < e.from.x + e.from.w : e.to.y < e.from.y + e.from.h).length;
+  return { span, cross, back, avg: Math.round(span / (r.edges.length || 1)) };
+}
+function inter(a, b) {
+  const d = (p, q, s) => Math.sign((q[0] - p[0]) * (s[1] - p[1]) - (q[1] - p[1]) * (s[0] - p[0]));
+  const A = [a[0], a[1]], B = [a[2], a[3]], C = [b[0], b[1]], D = [b[2], b[3]];
+  return d(A, B, C) * d(A, B, D) < 0 && d(C, D, A) * d(C, D, B) < 0;
+}
+
+// ---------- 渲染 ----------
+function render(r, title, note, tall) {
+  const m = metrics(r);
+  // 全景: 等比缩到 1340 宽 / 760 高以内, 看整体形状而不是局部
+  const k = Math.min(1, 1340 / r.width, 1900 / r.height);
+  const svg = [`<svg width="${Math.round(r.width * k)}" height="${Math.round(r.height * k)}" viewBox="0 0 ${r.width} ${r.height}">`];
+  svg.push(`<defs><marker id="ar" markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6z" fill="#4d6580"/></marker></defs>`);
+  // 边
+  const lane = new Map();
+  r.edges.forEach((e, i) => {
+    const [x1, y1, x2, y2] = ends(r, e);
+    let d;
+    if (r.horiz) {
+      const dx = Math.max(30, Math.abs(x2 - x1) * 0.4);
+      d = `M${x1},${y1} C${x1 + dx},${y1} ${x2 - dx},${y2} ${x2},${y2}`;
+    } else if (r.ortho) {
+      // 通道分配: 每条边在源卡下方 12~40px 的一条专属水平通道上横移, 通道号按目标 x 取模错开
+      const key = Math.round(y1 / 40);
+      const k = (lane.get(key) || 0); lane.set(key, k + 1);
+      const yc = y1 + 12 + (k % 6) * 6;
+      d = `M${x1},${y1} L${x1},${yc} L${x2},${yc} L${x2},${y2}`;
+    } else {
+      const dy = Math.max(24, Math.abs(y2 - y1) * 0.4);
+      d = `M${x1},${y1} C${x1},${y1 + dy} ${x2},${y2 - dy} ${x2},${y2}`;
+    }
+    svg.push(`<path d="${d}" fill="none" stroke="#3a4d63" stroke-width="1.2" marker-end="url(#ar)" opacity=".75"/>`);
+  });
+  // 卡
+  for (const n of r.nodes) {
+    if (n.pack) {
+      svg.push(`<rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="10" fill="#141b28" stroke="#33405a" stroke-dasharray="6 4"/>`);
+      svg.push(`<text x="${n.x + n.w / 2}" y="${n.y + n.h / 2 + 5}" fill="#8fa3bf" font-size="15" text-anchor="middle">${n.id}</text>`);
+      continue;
+    }
+    const st = statusOf(n.id), c = COLOR[st], isFocus = r.focus === n.id;
+    if (n.h <= 40) {
+      // 迷你节点: 状态用左侧色点 + 边框色, 名字一行, 信息靠 hover / 侧栏
+      svg.push(`<rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="${n.h / 2}" fill="#151d2b" stroke="${c}" stroke-width="1.4" opacity=".95"/>`);
+      svg.push(`<circle cx="${n.x + 14}" cy="${n.y + n.h / 2}" r="4" fill="${c}"/>`);
+      svg.push(`<text x="${n.x + 25}" y="${n.y + n.h / 2 + 4}" fill="#dbe5f2" font-size="${n.h > 40 ? 13 : 11}">${n.id}</text>`);
+      continue;
+    }
+    svg.push(`<rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="8" fill="#141b28" stroke="${isFocus ? '#e9b949' : '#26313f'}" stroke-width="${isFocus ? 2.5 : 1}"/>`);
+    svg.push(`<rect x="${n.x}" y="${n.y}" width="${n.w}" height="4" rx="2" fill="${c}"/>`);
+    if (n.h > 80) {
+      svg.push(`<text x="${n.x + 12}" y="${n.y + 26}" fill="#dbe5f2" font-size="13">${n.id}</text>`);
+      svg.push(`<text x="${n.x + 12}" y="${n.y + 46}" fill="#6f8099" font-size="11">${st} · 依赖任务描述文字占位</text>`);
+      svg.push(`<rect x="${n.x + 12}" y="${n.y + n.h - 22}" width="${n.w - 24}" height="5" rx="2.5" fill="#1e2836"/>`);
+    } else {
+      svg.push(`<text x="${n.x + 10}" y="${n.y + 26}" fill="#dbe5f2" font-size="11">${n.id}</text>`);
+      svg.push(`<text x="${n.x + 10}" y="${n.y + 44}" fill="#6f8099" font-size="10">${st}</text>`);
+    }
+  }
+  svg.push('</svg>');
+  return `<section>
+    <h2>${title}<small>${note}</small></h2>
+    <div class="metrics">画布 <b>${r.width}×${r.height}</b> · 边总长 <b>${m.span}</b> · 均边长 <b>${m.avg}</b> · 交叉 <b>${m.cross}</b> · 回绕 <span class="${m.back > 5 ? 'bad' : ''}">${m.back}</span> · 卡片 ${r.nodes.length} · 全景缩放 ${(k * 100).toFixed(0)}%</div>
+    <div class="viewport">${svg.join('')}</div>
+  </section>`;
+}
+
+const html = [
+  render(layoutFit(G.ids, G.depsOf), 'A · 贴合装箱（线上现状）', '不破任何约束 — 位置由前驱后继打分决定', 1),
+  render(layoutLayered(G.ids, G.depsOf), 'B · 横向分层（破「宽不超视口」）', '列 = 依赖深度，横向滚动，线全部朝右', 1),
+  render(layoutSmall(G.ids, G.depsOf), 'C · 卡片缩小 150×64（破「卡片不缩」）', '同样的贴合装箱，卡片改小档', 1),
+  render(layoutFocus(G.ids, G.depsOf), 'D · 焦点邻域 + 折叠（破「全量绘制」）', '只展开 m9 的 2 跳邻域，其余折叠成包', 0),
+  render(layoutOrtho(G.ids, G.depsOf), 'E · 位置同 A，只重画线（不破约束）', '正交折线 + 水平通道错开，不再有曲线穿卡', 1),
+  render(layoutTiered(G.ids, G.depsOf, 120, 32), 'F · 迷你节点 120×32 + 真分层', '行 = 依赖深度回来了，层内折行 + barycenter 排序', 1),
+  render(layoutTiered(G.ids, G.depsOf, 190, 52), 'G · 中号节点 190×52 + 真分层', 'F 的节点放大一档，能塞下 id + 状态两行', 1),
+  render(layoutColumns(G.ids, G.depsOf, 120, 32), 'H · F + 报纸分栏', '层序切成几栏填满横向空白，栏内仍是「行 = 依赖深度」', 1),
+  render(layoutColumns(G.ids, G.depsOf, 190, 52), 'I · G + 报纸分栏', '中号节点 + 分栏', 1),
+].join('');
+document.getElementById('out').innerHTML = html;
+</script>
+</body>
+</html>
