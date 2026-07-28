@@ -1098,8 +1098,11 @@ function contractsView(contracts) {
     h('div.space-y-2',
       contracts.map((c, i) =>
         h('div.p-2.rounded.bg-surface/50.border.border-brd/30', [
-          h('div.text-sm.font-medium.text-head', c.name || c.title || `契约 ${i + 1}`),
-          c.desc || c.description ? h('div.text-xs.text-muted.mt-1', c.desc || c.description) : null,
+          // 契约落盘为字符串 (skein contract --add); 对象形态仅作兼容
+          h('div.text-sm.font-medium.text-head.leading-relaxed',
+            typeof c === 'string' ? c : (c.name || c.title || `契约 ${i + 1}`)),
+          typeof c !== 'string' && (c.desc || c.description)
+            ? h('div.text-xs.text-muted.mt-1', c.desc || c.description) : null,
         ])
       )
     ),
@@ -1567,7 +1570,7 @@ export async function render(mount, params, ctx) {
 
   function openDetailPage(id) {
     if (ctx && ctx.navigate) {
-      ctx.navigate('/task/' + id);
+      ctx.navigate('/task/detail?id=' + encodeURIComponent(id));
     }
   }
 

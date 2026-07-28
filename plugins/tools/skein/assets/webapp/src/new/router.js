@@ -20,12 +20,13 @@ function parse() {
   if (!ROUTES.includes(name)) name = DEFAULT;
   const params = {};
   if (name === "task") {
-    // 支持两种格式: /task/:id (路径参数) 和 /task?id=xxx (查询参数)
-    const pathId = seg[1];
-    if (pathId) params.id = decodeURIComponent(pathId);
-    else {
-      const id = new URLSearchParams(location.search).get("id");
-      if (id) params.id = decodeURIComponent(id);
+    // 参数一律 query: 详情页 = /task/detail?id=xxx。禁 path 参数。
+    const id = new URLSearchParams(location.search).get("id");
+    if (id) params.id = id;
+    // 旧链接 /task/<id> 兼容: 就地改写成 query 形式
+    else if (seg[1] && seg[1] !== "detail") {
+      params.id = decodeURIComponent(seg[1]);
+      history.replaceState({}, "", "/task/detail?id=" + encodeURIComponent(params.id));
     }
   }
   // 解析查询参数 (所有页面通用)

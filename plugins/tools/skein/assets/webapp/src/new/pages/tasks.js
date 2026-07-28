@@ -23,7 +23,7 @@ function priorityBadge(priority) {
 
 function taskRow(task) {
   return h('a.glass-card.flex.items-center.gap-4.p-4.cursor-pointer.hover\\:shadow-lg.transition-all',
-    { href: '/task/' + task.id, 'data-nav-link': true },
+    { href: '/task/detail?id=' + encodeURIComponent(task.id), 'data-nav-link': true },
     [
       h('div.flex-1.min-w-0', [
         h('div.flex.items-center.gap-2.mb-1.flex-wrap', [

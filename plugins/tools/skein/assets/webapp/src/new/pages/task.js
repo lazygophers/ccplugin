@@ -1,6 +1,7 @@
 // ============================================================
 //  Task — 任务详情
-//  设计: 左详情(描述/目标/边界/验收/设计/时间线/子任务) + 右信息面板
+//  设计: 左元信息(基本信息/时间线/子任务 DAG/依赖/操作) + 右完整内容(描述/PRD/契约/设计/调研/子任务列表)
+//  路由: /task/detail?id=<tid> — 参数一律 query, 禁 path 参数
 //  状态: 规划中 / 待执行 / 执行中 / 验收中 / 已完成
 // ============================================================
 
@@ -224,28 +225,40 @@ function subDAGView(subs, onSubClick) {
 // ---- PRD 章节渲染 ----
 function prdSectionView(prd) {
   if (!prd || !prd.length) return [];
-  return prd.map(sec => {
-    const icon = sec.name === '目标' ? 'fa-bullseye' : sec.name === '验收标准' ? 'fa-check-square-o' : 'fa-file-text-o';
-    const color = sec.name === '目标' ? 'st-planning' : sec.name === '验收标准' ? 'st-check' : 'st-active';
-    return h('div.glass-card.p-5', [
-      h('h3.section-title', [
-        h(`i.fa.${icon}.text-${color}`),
-        sec.name + (sec.badge ? ` (${sec.badge[0]}/${sec.badge[1]})` : ''),
-      ]),
-      sec.items && sec.items.length
-        ? h('div.space-y-2',
-            sec.items.map(item =>
-              h('div.flex.items-start.gap-3.text-sm', [
-                item.kind === 'check'
-                  ? h(`i.fa.${item.done ? 'fa-check-square' : 'fa-square-o'}.${item.done ? 'text-st-done' : 'text-muted'}.mt-0.5.flex-shrink-0`)
-                  : h('span.w-1.5.h-1.5.rounded-full.bg-muted.mt-2.flex-shrink-0'),
-                h('span.text-fg.leading-relaxed' + (item.done ? '.line-through.text-muted' : ''), item.text),
-              ])
-            )
+  const cards = prd.map(prdCard);
+  // 大屏: 目标 / 验收标准 并排两 card; 其余章节仍整行
+  const pair = [];
+  const rest = [];
+  prd.forEach((sec, i) => (sec.name === '目标' || sec.name === '验收标准' ? pair : rest).push(cards[i]));
+  return [
+    pair.length
+      ? h('div.grid.grid-cols-1.xl\\:grid-cols-2.gap-6.items-start', pair)
+      : null,
+    ...rest,
+  ].filter(Boolean);
+}
+
+function prdCard(sec) {
+  const icon = sec.name === '目标' ? 'fa-bullseye' : sec.name === '验收标准' ? 'fa-check-square-o' : 'fa-file-text-o';
+  const color = sec.name === '目标' ? 'st-planning' : sec.name === '验收标准' ? 'st-check' : 'st-active';
+  return h('div.glass-card.p-5', [
+    h('h3.section-title', [
+      h(`i.fa.${icon}.text-${color}`),
+      sec.name + (sec.badge ? ` (${sec.badge[0]}/${sec.badge[1]})` : ''),
+    ]),
+    sec.items && sec.items.length
+      ? h('div.space-y-2',
+          sec.items.map(item =>
+            h('div.flex.items-start.gap-3.text-sm', [
+              item.kind === 'check'
+                ? h(`i.fa.${item.done ? 'fa-check-square' : 'fa-square-o'}.${item.done ? 'text-st-done' : 'text-muted'}.mt-0.5.flex-shrink-0`)
+                : h('span.w-1.5.h-1.5.rounded-full.bg-muted.mt-2.flex-shrink-0'),
+              h('span.text-fg.leading-relaxed' + (item.done ? '.line-through.text-muted' : ''), item.text),
+            ])
           )
-        : h('p.text-sm.text-muted', '—'),
-    ]);
-  });
+        )
+      : h('p.text-sm.text-muted', '—'),
+  ]);
 }
 
 // ---- 契约 ----
@@ -259,8 +272,11 @@ function contractsView(contracts) {
     h('div.space-y-3',
       contracts.map((c, i) =>
         h('div.p-3.rounded-lg.bg-surface/50.border.border-brd/30', [
-          h('div.text-sm.font-semibold.text-head', c.name || c.title || `契约 ${i + 1}`),
-          c.desc || c.description ? h('div.text-xs.text-muted.mt-1.leading-relaxed', c.desc || c.description) : null,
+          // 契约落盘为字符串 (skein contract --add); 对象形态仅作兼容
+          h('div.text-sm.font-semibold.text-head.leading-relaxed',
+            typeof c === 'string' ? c : (c.name || c.title || `契约 ${i + 1}`)),
+          typeof c !== 'string' && (c.desc || c.description)
+            ? h('div.text-xs.text-muted.mt-1.leading-relaxed', c.desc || c.description) : null,
         ])
       )
     ),
@@ -276,6 +292,34 @@ function designView(design) {
       '详细设计',
     ]),
     h('pre.text-xs.text-fg.whitespace-pre-wrap.font-mono.bg-surface/30.p-4.rounded-lg.overflow-x-auto', design),
+  ]);
+}
+
+// ---- 调研 (findings.md 结论 + research/*.md 过程笔记) ----
+function docBody(text) {
+  // ponytail: 原文直出, 不引 markdown 渲染器
+  return h('pre.text-xs.text-fg.whitespace-pre-wrap.font-mono.bg-surface/30.p-4.rounded-lg.overflow-x-auto', text);
+}
+
+function researchView(findings, research) {
+  const notes = Object.entries(research || {});
+  if (!findings && !notes.length) return null;
+  return h('div.glass-card.p-5', [
+    h('h3.section-title', [
+      h('i.fa.fa-flask.text-st-planning'),
+      `调研${notes.length ? ` (结论 + ${notes.length} 篇过程笔记)` : ' 结论'}`,
+    ]),
+    findings ? docBody(findings) : h('p.text-sm.text-muted', '无收敛结论 (findings.md 未生成)'),
+    notes.length
+      ? h('div.space-y-2.mt-4',
+          notes.map(([name, body]) =>
+            h('details.rounded-lg.bg-surface/30.border.border-brd/30', [
+              h('summary.cursor-pointer.px-3.py-2.text-sm.text-head.select-none', name),
+              h('div.px-3.pb-3', docBody(body)),
+            ])
+          )
+        )
+      : null,
   ]);
 }
 
@@ -318,7 +362,12 @@ export async function render(mount, params, ctx) {
   ]).catch(() => [null, null]);
 
   // 用列表数据补充详情数据(prd 等只在列表接口有)
-  const taskRaw = taskResp && (taskResp.task || taskResp.card || taskResp);
+  // /task/<id> 返回 {task, docs, research, ...}: docs/research 是 task 的兄弟字段, 需合并进来
+  const taskRaw = taskResp
+    ? (taskResp.task
+        ? { ...taskResp.task, docs: taskResp.docs, research: taskResp.research }
+        : (taskResp.card || taskResp))
+    : null;
   const listTask = allResp && allResp.cards ? allResp.cards.find(c => c.id === taskId) : null;
   const mergedTask = listTask && taskRaw ? { ...listTask, ...taskRaw } : (taskRaw || listTask);
   const task = normalizeTask(mergedTask);
@@ -376,52 +425,9 @@ export async function render(mount, params, ctx) {
       ]),
     ]),
 
-    // 两列布局
+    // 两列布局: 左 = 元信息 / 时间线 / 子任务 DAG; 右 = 完整内容
     h('div.grid.grid-cols-1.lg\\:grid-cols-3.gap-6', [
-      // 左: 详情
-      h('div.lg\\:col-span-2.space-y-6', [
-        // 描述
-        task.description
-          ? h('div.glass-card.p-5', [
-              h('h3.section-title', '任务描述'),
-              h('div.text-sm.text-fg.leading-relaxed.whitespace-pre-wrap', task.description),
-            ])
-          : null,
-
-        // 目标 / 验收标准 (来自 PRD)
-        ...prdSectionView(task.prd),
-
-        // 契约
-        contractsView(task.contracts),
-
-        // 详细设计
-        task.docs && task.docs.design ? designView(task.docs.design) : null,
-
-        // 子任务 DAG
-        task.subtasks && task.subtasks.length >= 2
-          ? h('div.glass-card.p-5', [
-              h('h3.section-title', [
-                h('i.fa.fa-sitemap.text-accent'),
-                `子任务 DAG (${task.subtasks.length})`,
-              ]),
-              subDAGView(task.subtasks, onSubClick),
-            ])
-          : null,
-
-        // 子任务列表
-        subtaskListView(task.subtasks),
-
-        // 时间线
-        h('div.glass-card.p-5', [
-          h('h3.section-title', [
-            h('i.fa.fa-history.text-accent'),
-            '生命周期时间线',
-          ]),
-          timelineView(timeline, task),
-        ]),
-      ]),
-
-      // 右: 信息面板
+      // 左: 元信息面板
       h('div.space-y-6', [
         // 基本信息
         h('div.glass-card.p-5', [
@@ -439,6 +445,26 @@ export async function render(mount, params, ctx) {
           task.finishedAt ? infoItem('完成于', fmtTime(task.finishedAt)) : null,
         ]),
 
+        // 时间线
+        h('div.glass-card.p-5', [
+          h('h3.section-title', [
+            h('i.fa.fa-history.text-accent'),
+            '生命周期时间线',
+          ]),
+          timelineView(timeline, task),
+        ]),
+
+        // 子任务 DAG
+        task.subtasks && task.subtasks.length >= 2
+          ? h('div.glass-card.p-5', [
+              h('h3.section-title', [
+                h('i.fa.fa-sitemap.text-accent'),
+                `子任务 DAG (${task.subtasks.length})`,
+              ]),
+              subDAGView(task.subtasks, onSubClick),
+            ])
+          : null,
+
         // 前置依赖
         h('div.glass-card.p-5', [
           h('h3.section-title', [
@@ -450,7 +476,7 @@ export async function render(mount, params, ctx) {
             ? h('div.space-y-2',
                 depTasks.map(d =>
                   h(`a.flex.items-center.gap-2.p-2.rounded-lg.hover\\:bg-card\\/40.transition-colors`,
-                    { href: `/task/${d.id}`, 'data-nav': '' },
+                    { href: `/task/detail?id=${d.id}`, 'data-nav': '' },
                     [
                       h(`span.w-2.h-2.rounded-full.bg-${ST_COLOR[d.status || 'planning']}`),
                       h('span.text-sm.text-fg.truncate.flex-1', d.title || d.name || d.id),
@@ -472,7 +498,7 @@ export async function render(mount, params, ctx) {
               h('div.space-y-2',
                 dependents.map(d =>
                   h(`a.flex.items-center.gap-2.p-2.rounded-lg.hover\\:bg-card\\/40.transition-colors`,
-                    { href: `/task/${d.id}`, 'data-nav': '' },
+                    { href: `/task/detail?id=${d.id}`, 'data-nav': '' },
                     [
                       h(`span.w-2.h-2.rounded-full.bg-${ST_COLOR[d.status || 'planning']}`),
                       h('span.text-sm.text-fg.truncate.flex-1', d.title || d.name || d.id),
@@ -511,6 +537,32 @@ export async function render(mount, params, ctx) {
               : null,
           ]),
         ]),
+      ]),
+
+      // 右: 完整内容
+      h('div.lg\\:col-span-2.space-y-6', [
+        // 描述
+        task.description
+          ? h('div.glass-card.p-5', [
+              h('h3.section-title', '任务描述'),
+              h('div.text-sm.text-fg.leading-relaxed.whitespace-pre-wrap', task.description),
+            ])
+          : null,
+
+        // 目标 / 验收标准 (来自 PRD)
+        ...prdSectionView(task.prd),
+
+        // 契约
+        contractsView(task.contracts),
+
+        // 详细设计
+        task.docs && task.docs.design ? designView(task.docs.design) : null,
+
+        // 调研: findings.md 结论 + research/*.md 过程
+        researchView(task.docs && task.docs.findings, task.research),
+
+        // 子任务列表
+        subtaskListView(task.subtasks),
       ]),
     ]),
   );

@@ -3232,6 +3232,10 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
     async def _spa_task() -> str:  # /task 裸路径 (task 列表页) / /task?id=<tid> (详情) 均走 SPA; ?id 保留给前端 router
         return _spa()
 
+    @app.get("/task/detail", response_class=HTMLResponse)
+    async def _spa_task_detail() -> str:  # 详情页 /task/detail?id=<tid>: 参数一律走 query, 禁 path 参数
+        return _spa()
+
     @app.get("/board", response_class=HTMLResponse)
     async def _spa_board() -> str:  # /board 裸路径 = board 页
         return _spa()

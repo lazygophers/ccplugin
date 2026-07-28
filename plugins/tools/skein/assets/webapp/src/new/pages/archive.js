@@ -12,7 +12,7 @@ const ST_COLOR = { done: 'st-done', failed: 'st-failed', cancelled: 'muted', arc
 function archiveItem(task) {
   const st = task.status || 'done';
   return h(`a.flex.items-start.gap-4.p-4.rounded-xl.border.border-brd/40.bg-card/30.hover\\:bg-card\\/60.hover\\:border-brd\\/60.transition-all.cursor-pointer`,
-    { href: `/task/${task.id}`, 'data-nav': '' },
+    { href: `/task/detail?id=${task.id}`, 'data-nav': '' },
     [
       // 左侧状态图标
       h(`div.w-10.h-10.rounded-lg.flex.items-center.justify-center.flex-shrink-0.bg-${ST_COLOR[st]}/10.text-${ST_COLOR[st]}`,

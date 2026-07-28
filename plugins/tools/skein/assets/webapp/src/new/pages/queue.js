@@ -79,7 +79,7 @@ export async function render(mount, params, ctx) {
             queueTasks.map(t => {
               const st = t.status || 'pending';
               return h(`a.flex.items-center.gap-4.p-4.hover\\:bg-card\\/40.transition-colors.cursor-pointer`,
-                { href: `/task/${t.id}`, 'data-nav': '' },
+                { href: `/task/detail?id=${t.id}`, 'data-nav': '' },
                 [
                   // 状态指示
                   h(`span.w-2.h-2.rounded-full.bg-${ST_COLOR[st]}.flex-shrink-0`),

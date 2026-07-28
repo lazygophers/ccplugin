@@ -71,7 +71,7 @@ function statusDistribution(stats) {
 function taskRow(task) {
   const st = task.status || 'pending';
   return h(`a.task-row.flex.items-center.gap-3.p-3.rounded-lg.border.border-transparent.hover\\:border-brd\\/60.hover\\:bg-card\\/40.transition-all.cursor-pointer`,
-    { href: `/task/${task.id}`, 'data-nav': '' },
+    { href: `/task/detail?id=${task.id}`, 'data-nav': '' },
     [
       h(`span.w-2.h-2.rounded-full.bg-${ST_COLOR[st]}.flex-shrink-0`),
       h('div.flex-1.min-w-0', [
