@@ -94,3 +94,6 @@ graphify-out/.worktrees/
 
 # skein-spec archive 归档数据 (可逆归档, 不应入库)
 **/.archive/
+
+# 原型/一次性产物 (prototype 用完即弃, 结论落 ADR)
+.scratch/
