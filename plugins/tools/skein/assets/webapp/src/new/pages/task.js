@@ -292,6 +292,21 @@ function prdCard(sec) {
   ]);
 }
 
+// ---- 依赖链接 (前置依赖 / 被依赖共用) ----
+function depLink(d) {
+  const desc = d.desc || d.description || '';
+  return h('a.flex.items-start.gap-2.p-2.rounded-lg.hover\\:bg-card\\/40.transition-colors',
+    { href: `/task/detail?id=${d.id}`, 'data-nav': '' },
+    [
+      h(`span.w-2.h-2.mt-1.5.flex-shrink-0.rounded-full.bg-${ST_COLOR[d.status || 'planning']}`),
+      h('div.min-w-0.flex-1', [
+        h('div.text-sm.text-fg', d.title || d.name || d.id),
+        desc ? h('div.text-xs.text-muted.mt-0.5.leading-relaxed', desc) : null,
+      ]),
+    ]
+  );
+}
+
 // ---- 契约 ----
 function contractsView(contracts) {
   if (!contracts || !contracts.length) return null;
@@ -466,17 +481,13 @@ export async function render(mount, params, ctx) {
         // 基本信息
         h('div.glass-card.p-5', [
           h('h3.section-title', '基本信息'),
-          infoItem('状态', h(`span.antd-tag.antd-tag-${ST_COLOR[st].replace('st-', '')}`, ST_LABEL[st] || st)),
+          // 状态在页头徽标已有, 各时间点归时间线; 这里不重复
           infoItem('优先级',
             task.priority === 'high' ? '高' : task.priority === 'low' ? '低' : '中'
           ),
           infoItem('负责人', task.assignee || '未分配'),
           infoItem('预估工时', task.estimate ? task.estimate + ' 小时' : '—'),
           infoItem('进度', task.progress != null ? task.progress + '%' : '—'),
-          task.createdAt ? infoItem('创建于', fmtTime(task.createdAt)) : null,
-          task.startedAt ? infoItem('开始于', fmtTime(task.startedAt)) : null,
-          task.checkedAt ? infoItem('验收于', fmtTime(task.checkedAt)) : null,
-          task.finishedAt ? infoItem('完成于', fmtTime(task.finishedAt)) : null,
         ]),
 
         // 时间线
@@ -507,17 +518,7 @@ export async function render(mount, params, ctx) {
                 '前置依赖',
                 ` (${depTasks.length})`,
               ]),
-              h('div.space-y-2',
-                depTasks.map(d =>
-                  h(`a.flex.items-center.gap-2.p-2.rounded-lg.hover\\:bg-card\\/40.transition-colors`,
-                    { href: `/task/detail?id=${d.id}`, 'data-nav': '' },
-                    [
-                      h(`span.w-2.h-2.rounded-full.bg-${ST_COLOR[d.status || 'planning']}`),
-                      h('span.text-sm.text-fg.truncate.flex-1', d.title || d.name || d.id),
-                    ]
-                  )
-                )
-              ),
+              h('div.space-y-2', depTasks.map(depLink)),
             ])
           : null,
 
@@ -529,17 +530,7 @@ export async function render(mount, params, ctx) {
                 '被依赖',
                 ` (${dependents.length})`,
               ]),
-              h('div.space-y-2',
-                dependents.map(d =>
-                  h(`a.flex.items-center.gap-2.p-2.rounded-lg.hover\\:bg-card\\/40.transition-colors`,
-                    { href: `/task/detail?id=${d.id}`, 'data-nav': '' },
-                    [
-                      h(`span.w-2.h-2.rounded-full.bg-${ST_COLOR[d.status || 'planning']}`),
-                      h('span.text-sm.text-fg.truncate.flex-1', d.title || d.name || d.id),
-                    ]
-                  )
-                )
-              ),
+              h('div.space-y-2', dependents.map(depLink)),
             ])
           : null,
 
