@@ -4,7 +4,7 @@
 //  状态: 规划中 / 待执行 / 执行中 / 验收中 / 已完成
 // ============================================================
 
-import { h, api, fmtRelative, fmtTime, normalizeTasks, prioLabel, prioTextColor,
+import { h, api, fmtRelative, fmtTime, normalizeTasks, normalizeTask, prioLabel, prioTextColor,
          confirmDialog, alertDialog, buildTimeline, subTimelineView } from '../app.js';
 
 const ST_COLOR = {
@@ -1409,9 +1409,10 @@ export async function render(mount, params, ctx) {
   let scale = 1;
   let focusedOnce = false;
 
-  // 状态计数
-  const countBy = {};
-  for (const t of allTasks) countBy[t.status] = (countBy[t.status] || 0) + 1;
+  // 状态计数 — draw() 内每次重算 (原地 patch 后 allTasks 状态可能变, 计数不能只算一次)
+  let countBy = {};
+  // 当前一轮 DAG 布局结果缓存, 增量 patch (patchDagNode/patchEdgesFor) 靠它定位节点/边, 不用重新 layout
+  let curNodes = [], curEdges = [], curDensity = 'compact';
 
   function selectTask(id) {
     selectedId = id;
@@ -1623,10 +1624,12 @@ export async function render(mount, params, ctx) {
   }
 
   function draw() {
+    countBy = {};
+    for (const t of allTasks) countBy[t.status] = (countBy[t.status] || 0) + 1;
     const allSelected = ALL_STATUSES.every(s => statusSet.has(s));
     const lay = layoutDAG(allTasks, viewBox, densityPref);
     const { nodes, edges, width, height } = lay;
-    const curDensity = lay.density;
+    curNodes = nodes; curEdges = edges; curDensity = lay.density;
     const selectedTask = allTasks.find(t => t.id === selectedId) || null;
     const hasPanel = !!selectedTask;
     const highlightedCount = allTasks.filter(t => statusSet.has(t.status)).length;
@@ -1732,6 +1735,77 @@ export async function render(mount, params, ctx) {
         focusedOnce = true;
         focusActive(wrap, nodes);
       }
+    });
+  }
+
+  // ---- WS 增量: 单卡片/DAG 节点原地 patch, 不整树重绘 (选中态/滚动/档位/面板开合都保) ----
+  const escId = (s) => (window.CSS && CSS.escape ? CSS.escape(s) : String(s).replace(/[^a-zA-Z0-9_-]/g, '\\$&'));
+
+  function patchEdgesFor(id) {
+    const svg = document.querySelector('#board-dag-wrap .dag-edges');
+    if (!svg || !curEdges.length) return;
+    const kindOf = edgeKinds(curEdges);
+    for (const e of curEdges) {
+      if (e.from.id !== id && e.to.id !== id) continue;
+      const path = svg.querySelector(`path[data-from="${escId(e.from.id)}"][data-to="${escId(e.to.id)}"]`);
+      if (!path) continue;
+      const k = kindOf(e);
+      path.setAttribute('stroke', `var(--${EDGE_KIND[k].color})`);
+      path.setAttribute('marker-end', `url(#arrow-${k})`);
+      // ponytail: 新 kind 对应的 <marker> defs 里可能没有 (罕见: 该图历来只出现过 1-2 种边语义),
+      // 缺失时箭头会不显示但不报错, 比为这种小概率整树重绘划算。
+    }
+  }
+
+  function patchDagNode(id) {
+    const node = curNodes.find(n => n.id === id);
+    const wrap = document.querySelector(`.dag-node-wrap[data-node-id="${escId(id)}"]`);
+    if (!node || !wrap) { draw(); return; }  // 布局里找不到 (罕见结构漂移) → 兜底整绘
+    const dimmed = !statusSet.has(node.task.status || 'planning');
+    wrap.replaceWith(nodeCard(node, selectTask, dimmed, curDensity));
+    patchEdgesFor(id);
+  }
+
+  function patchPanel(id) {
+    const aside = document.querySelector('.detail-panel');
+    if (!aside) return;
+    const body = aside.querySelector('.detail-panel-body');
+    const scrollTop = body ? body.scrollTop : 0;
+    const t = allTasks.find(x => x.id === id);
+    const fresh = detailPanel(t, allTasks, closePanel, onSubClick, openDetailPage, selectTask, deleteTask);
+    aside.replaceWith(fresh);
+    const freshBody = fresh.querySelector('.detail-panel-body');
+    if (freshBody) freshBody.scrollTop = scrollTop;
+  }
+
+  function applyCardDelta(id, cardData) {
+    const idx = allTasks.findIndex(t => t.id === id);
+    if (cardData == null) {                          // 后端摘除的 task (删除/归档)
+      if (idx === -1) return;
+      allTasks.splice(idx, 1);
+      if (selectedId === id) selectedId = null;       // 面板正显示它才关, 显示别的 task 不受影响
+      draw();
+      return;
+    }
+    const norm = normalizeTask(cardData);
+    if (idx === -1) {                                 // 新 task 出现 — 结构性, 走整绘
+      allTasks.push(norm);
+      draw();
+      return;
+    }
+    Object.assign(allTasks[idx], norm);                // 原地更新, 保对象引用 (selectedTask 闭包不失效)
+    if (view === 'dag') {
+      patchDagNode(id);
+      if (selectedId === id) patchPanel(id);
+    } else {
+      draw();  // list 视图按状态分列, 状态变=换列, 当结构性处理 (selectedId/statusSet 仍经闭包原样保留)
+    }
+  }
+
+  if (ctx && ctx.onLive) {
+    ctx.onLive((msg) => {
+      if (!msg || msg.type !== 'task-changed' || !msg.id) return;
+      applyCardDelta(msg.id, msg.card);
     });
   }
 

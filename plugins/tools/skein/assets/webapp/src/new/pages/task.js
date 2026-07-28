@@ -360,7 +360,6 @@ export async function render(mount, params, ctx) {
   }
 
   const st = task.status || 'planning';
-  const timeline = buildTimeline(task);
 
   function onSubClick(sid) {
     console.log('subtask clicked:', sid);
@@ -386,6 +385,52 @@ export async function render(mount, params, ctx) {
     else window.location.href = '/board';
   }
 
+  // 基本信息 / 时间线卡片抽成函数 — 初绘和增量 patch (patchInfoCard/patchTimelineCard) 共用同一份 markup,
+  // 固定 id 供 patch 时 querySelector 定位替换。
+  function infoCard() {
+    return h('div.glass-card.p-5', { id: 'task-info-card' }, [
+      h('h3.section-title', '基本信息'),
+      // 状态在页头徽标已有, 各时间点归时间线; 这里不重复
+      infoItem('优先级', task.priority === 'high' ? '高' : task.priority === 'low' ? '低' : '中'),
+      infoItem('负责人', task.assignee || '未分配'),
+      infoItem('预估工时', task.estimate ? task.estimate + ' 小时' : '—'),
+      infoItem('进度', task.progress != null ? task.progress + '%' : '—'),
+    ]);
+  }
+  function timelineCard() {
+    return h('div.glass-card.p-5', { id: 'task-timeline-card' }, [
+      h('h3.section-title', [h('i.fa.fa-history.text-accent'), '生命周期时间线']),
+      timelineView(buildTimeline(task), task),
+    ]);
+  }
+
+  // ---- WS 增量: 只刷卡片形状字段 (status/进度/时间线等), docs/research/prd/depTasks 等详情端点独有
+  // 字段不动 (delta 只带 board 卡片字段, 强行覆盖反而会把富字段冲掉) ----
+  const PATCH_FIELDS = ['status', 'stage', 'priority', 'assignee', 'estimate', 'progress',
+    'createdAt', 'startedAt', 'updatedAt', 'completedAt', 'finishedAt', 'checkedAt', 'subtasks'];
+
+  if (ctx && ctx.onLive) {
+    ctx.onLive((msg) => {
+      if (!msg || msg.type !== 'task-changed' || msg.id !== task.id || !msg.card) return;
+      // card 为 null (task 被删) 场景保守跳过: 详情页整体依赖已失效, 交给用户自行退出, 不强行处理
+      const norm = normalizeTask(msg.card);
+      for (const k of PATCH_FIELDS) task[k] = norm[k];
+      const icon = document.getElementById('task-status-icon');
+      if (icon) icon.className = `fa ${ST_ICON[task.status || 'planning']} text-${ST_COLOR[task.status || 'planning']} text-xl`;
+      const tag = document.getElementById('task-status-tag');
+      if (tag) {
+        tag.className = `antd-tag antd-tag-${ST_COLOR[task.status || 'planning'].replace('st-', '')} text-base px-4 py-1`;
+        tag.textContent = ST_LABEL[task.status] || task.status;
+      }
+      const infoEl = document.getElementById('task-info-card');
+      if (infoEl) infoEl.replaceWith(infoCard());
+      const tlEl = document.getElementById('task-timeline-card');
+      if (tlEl) tlEl.replaceWith(timelineCard());
+      const subWrap = document.getElementById('task-subtask-wrap');
+      if (subWrap) subWrap.replaceChildren(subtaskListView(task.subtasks) || document.createTextNode(''));
+    });
+  }
+
   mount.replaceChildren(
     // 面包屑 + 标题
     h('div.mb-6', [
@@ -399,7 +444,7 @@ export async function render(mount, params, ctx) {
       h('div.flex.items-start.justify-between.flex-wrap.gap-3', [
         h('div', [
           h('div.flex.items-center.gap-3.mb-2', [
-            h(`i.fa.${ST_ICON[st]}.text-${ST_COLOR[st]}.text-xl`),
+            h(`i.fa.${ST_ICON[st]}.text-${ST_COLOR[st]}.text-xl`, { id: 'task-status-icon' }),
             h('h1.text-3xl.font-bold.text-head', task.title || task.name || '(未命名)'),
           ]),
           h('div.flex.items-center.gap-3.text-sm.text-muted', [
@@ -410,7 +455,8 @@ export async function render(mount, params, ctx) {
             h('span', task.updatedAt ? '更新于 ' + fmtRelative(task.updatedAt) : ''),
           ]),
         ]),
-        h(`span.antd-tag.antd-tag-${ST_COLOR[st].replace('st-', '')}.text-base.px-4.py-1`, ST_LABEL[st] || st),
+        h(`span.antd-tag.antd-tag-${ST_COLOR[st].replace('st-', '')}.text-base.px-4.py-1`,
+          { id: 'task-status-tag' }, ST_LABEL[st] || st),
       ]),
     ]),
 
@@ -419,28 +465,13 @@ export async function render(mount, params, ctx) {
       // 左: 元信息面板 (min-w-0: grid item 默认 min-width:auto 会被 DAG 内容撑宽)
       h('div.space-y-6.min-w-0', [
         // 基本信息
-        h('div.glass-card.p-5', [
-          h('h3.section-title', '基本信息'),
-          // 状态在页头徽标已有, 各时间点归时间线; 这里不重复
-          infoItem('优先级',
-            task.priority === 'high' ? '高' : task.priority === 'low' ? '低' : '中'
-          ),
-          infoItem('负责人', task.assignee || '未分配'),
-          infoItem('预估工时', task.estimate ? task.estimate + ' 小时' : '—'),
-          infoItem('进度', task.progress != null ? task.progress + '%' : '—'),
-        ]),
+        infoCard(),
 
         // 时间线
-        h('div.glass-card.p-5', [
-          h('h3.section-title', [
-            h('i.fa.fa-history.text-accent'),
-            '生命周期时间线',
-          ]),
-          timelineView(timeline, task),
-        ]),
+        timelineCard(),
 
-        // 子任务列表
-        subtaskListView(task.subtasks),
+        // 子任务列表 — 常驻壳 (id 稳定), 增量态可能 null↔非空 (子任务数变), 内容包一层可替换
+        h('div', { id: 'task-subtask-wrap' }, [subtaskListView(task.subtasks)]),
 
         // 前置依赖 (空则整卡不渲染, 与「被依赖」一致)
         depTasks.length

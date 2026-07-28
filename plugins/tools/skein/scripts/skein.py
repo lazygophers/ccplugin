@@ -3169,16 +3169,22 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
             if cur_a != last_a:
                 msgs.append(json.dumps({"type": "reload"}))
             elif cur_d != last_d:
-                # 数据变: diff task id 推精准 swap; 无差异兜底 "data" (全订阅软刷)
+                # 数据变: diff task id 推精准 swap (带 card 增量, 前端可原地 patch 不必整页拉 /data);
+                # 无差异兜底 "data" (全订阅软刷)。
                 try:
-                    new_cards = _cards_signature(board._board_data())
+                    board_data = board._board_data()
+                    new_cards = _cards_signature(board_data)
+                    card_by_id = {c["id"]: c for c in board_data.get("cards", [])}
                 except Exception:
                     new_cards = {}
+                    card_by_id = {}
                 changed = [tid for tid, sig in new_cards.items() if last_cards.get(tid) != sig]
-                # 兼容删除的 task: 旧有新无也算 changed (软刷列表移除)
+                # 兼容删除的 task: 旧有新无也算 changed (软刷列表移除, card 置 None 告知前端摘除)
                 removed = [tid for tid in last_cards if tid not in new_cards]
-                for tid in changed + removed:
-                    msgs.append(json.dumps({"type": "task-changed", "id": tid}))
+                for tid in changed:
+                    msgs.append(json.dumps({"type": "task-changed", "id": tid, "card": card_by_id.get(tid)}))
+                for tid in removed:
+                    msgs.append(json.dumps({"type": "task-changed", "id": tid, "card": None}))
                 if not msgs:
                     msgs.append("data")  # 旧字符串协议兜底 (无差异但 rev 变, 全订阅软刷)
                 last_cards = new_cards

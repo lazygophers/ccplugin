@@ -24,7 +24,7 @@ export function subscribe(cb, opts) {
   return () => subs.delete(cb);
 }
 
-function broadcast(cb) { try { cb(); } catch (_) {} }
+function broadcast(cb, msg) { try { cb(msg); } catch (_) {} }  // msg: cb 拿到消息对象 (旧无参用法仍兼容, 忽略参数即可)
 
 // GRACE 5min: WS 断后未恢复 → 判定服务已停, 落遮罩 (现版 live.js:13-16)。
 const GRACE = 5 * 60 * 1000;
@@ -45,18 +45,19 @@ export function start() {
   function dispatch(payload) {
     // 兼容现字符串协议 ("reload"/"data") + T3 JSON 协议
     if (payload === "reload") return location.reload();
-    if (payload === "data") return subs.forEach(broadcast);
+    if (payload === "data") { const m = { type: "data" }; return subs.forEach((cb) => broadcast(cb, m)); }
     let m = null;
     try { m = typeof payload === "string" ? JSON.parse(payload) : payload; } catch (_) { return; }
     if (!m || typeof m !== "object") return;
     if (m.type === "reload") return location.reload();
-    if (m.type === "data") return subs.forEach(broadcast);
+    if (m.type === "data") return subs.forEach((cb) => broadcast(cb, m));
     if (m.type === "task-changed" && m.id) {
-      subs.forEach(broadcast);                                  // 兜底: 全订阅者也软刷 (page 不带 id 过滤的旧契约)
+      // card 增量已随消息带上, 订阅者原地 patch 即可; 无需再对全体 subs 兜底广播 (卡片带 null 代表被删)。
+      subs.forEach((cb) => broadcast(cb, m));
       const set = taskSubs.get(m.id);
-      if (set) set.forEach(broadcast);
+      if (set) set.forEach((cb) => broadcast(cb, m));
     }
-    if (m.type === "spec-changed") subs.forEach(broadcast);     // ponytail: spec 页保守, 全订阅软刷
+    if (m.type === "spec-changed") subs.forEach((cb) => broadcast(cb, m));  // ponytail: spec 页保守, 全订阅软刷
   }
 
   (function conn() {
