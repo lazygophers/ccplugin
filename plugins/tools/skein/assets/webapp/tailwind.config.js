@@ -3,7 +3,12 @@
 //   cd assets/webapp && npx tailwindcss@3 -c tailwind.config.js -i tailwind.in.css -o src/tailwind.css --minify
 // 注: 色值是裸 var(--x), 故 `bg-card/60` 这类透明度修饰符不生成 (CDN JIT 同样不生成, 行为对齐)。
 module.exports = {
-  content: ['./src/new/**/*.{html,js}', './src/*.js'],
+  content: {
+    files: ['./src/new/**/*.{html,js}', './src/*.js'],
+    // h() 的 tag 简写里响应式类写成 'div.lg\\:grid-cols-3' (运行时脱掉反斜杠)。
+    // 扫描器按字面看到 `lg\:grid-cols-3` 不认作候选 → 响应式类一个都不生成。先脱转义再扫。
+    transform: { js: (c) => c.replace(/\\+:/g, ':') },
+  },
   darkMode: ['class', '[data-theme="skein-dark"]'],
   theme: {
     extend: {

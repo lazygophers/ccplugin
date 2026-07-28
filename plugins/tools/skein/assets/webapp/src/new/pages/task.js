@@ -193,7 +193,8 @@ function subDAGView(subs, onSubClick) {
     });
   });
 
-  return h('div.sub-dag-wrap.overflow-auto', [
+  // 外框宽度固定为列宽 (max-w-full + min-w-0), 图超宽则内部横向滚动, 不撑破左列
+  return h('div.sub-dag-wrap.overflow-auto.max-w-full.min-w-0', [
     h('div.relative',
       { style: { width: width + 'px', height: height + 'px', minWidth: '100%' } },
       [
@@ -426,9 +427,9 @@ export async function render(mount, params, ctx) {
     ]),
 
     // 两列布局: 左 = 元信息 / 时间线 / 子任务 DAG; 右 = 完整内容
-    h('div.grid.grid-cols-1.lg\\:grid-cols-3.gap-6', [
-      // 左: 元信息面板
-      h('div.space-y-6', [
+    h('div.grid.grid-cols-1.lg\\:grid-cols-5.gap-6', [
+      // 左: 元信息面板 (min-w-0: grid item 默认 min-width:auto 会被 DAG 内容撑宽)
+      h('div.space-y-6.min-w-0', [
         // 基本信息
         h('div.glass-card.p-5', [
           h('h3.section-title', '基本信息'),
@@ -540,7 +541,7 @@ export async function render(mount, params, ctx) {
       ]),
 
       // 右: 完整内容
-      h('div.lg\\:col-span-2.space-y-6', [
+      h('div.lg\\:col-span-4.space-y-6.min-w-0', [
         // 描述
         task.description
           ? h('div.glass-card.p-5', [
