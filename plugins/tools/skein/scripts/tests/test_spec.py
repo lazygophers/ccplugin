@@ -268,8 +268,8 @@ def _write_body(d: Path, name: str, text: str) -> Path:
 
 
 def _rule_rows(index_md: Path) -> list[str]:
-    return [l for l in index_md.read_text().splitlines()
-            if l.startswith("| ") and not l.startswith("| rule") and "---" not in l]
+    return [ln for ln in index_md.read_text().splitlines()
+            if ln.startswith("| ") and not ln.startswith("| rule") and "---" not in ln]
 
 
 def _mem(cwd: Path, *args: str) -> subprocess.CompletedProcess[str]:
