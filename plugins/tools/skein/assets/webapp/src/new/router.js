@@ -12,21 +12,21 @@
 //   render 抛错 → 占位错误框, 不影响顶栏。
 
 const ROUTES = ["board", "task", "tasks", "queue", "dashboard", "archive", "spec"];
-const DEFAULT = "dashboard";
+const DEFAULT = "board";   // 访问 / 或未知路由 → 看板
 
 function parse() {
   const seg = location.pathname.split("/").filter(Boolean);  // ["task","abc"] | ["board"] | []
   let name = seg[0] || DEFAULT;
   if (!ROUTES.includes(name)) name = DEFAULT;
   const params = {};
-  if (name === "task") {
-    // 参数一律 query: 详情页 = /task/detail?id=xxx。禁 path 参数。
+  if (name === "task" || name === "spec") {
+    // 参数一律 query: 详情页 = /<page>/detail?id=xxx。禁 path 参数。
     const id = new URLSearchParams(location.search).get("id");
     if (id) params.id = id;
-    // 旧链接 /task/<id> 兼容: 就地改写成 query 形式
+    // 旧链接 /<page>/<id> 兼容: 就地改写成 query 形式
     else if (seg[1] && seg[1] !== "detail") {
       params.id = decodeURIComponent(seg[1]);
-      history.replaceState({}, "", "/task/detail?id=" + encodeURIComponent(params.id));
+      history.replaceState({}, "", `/${name}/detail?id=` + encodeURIComponent(params.id));
     }
   }
   // 解析查询参数 (所有页面通用)

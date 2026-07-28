@@ -1591,7 +1591,17 @@ dialog.dag-modal::backdrop { background: rgba(15,32,51,0.45); backdrop-filter: b
 [data-theme="skein-dark"] .antd-tag.ocean { color: var(--ocean-shallow); }
 [data-theme="skein-dark"] .antd-tag.gold  { color: var(--goldSand-mid); }
 
-/* 状态 tag: pending / active / check / done / failed */
+/* 状态 tag: planning / ready / active / check / done / failed (5 状态系统 + 兼容 pending) */
+.antd-tag-planning {
+  background: rgba(167, 139, 250, 0.14);
+  border-color: rgba(167, 139, 250, 0.32);
+  color: #7c3aed;
+}
+.antd-tag-ready {
+  background: rgba(56, 189, 248, 0.14);
+  border-color: rgba(56, 189, 248, 0.32);
+  color: #0369a1;
+}
 .antd-tag-pending {
   background: rgba(66, 156, 209, 0.12);
   border-color: rgba(66, 156, 209, 0.30);
@@ -1617,6 +1627,8 @@ dialog.dag-modal::backdrop { background: rgba(15,32,51,0.45); backdrop-filter: b
   border-color: rgba(229, 62, 62, 0.30);
   color: var(--danger);
 }
+[data-theme="skein-dark"] .antd-tag-planning { color: #c4b5fd; }
+[data-theme="skein-dark"] .antd-tag-ready { color: #7dd3fc; }
 [data-theme="skein-dark"] .antd-tag-pending { color: var(--ocean-shallow); }
 [data-theme="skein-dark"] .antd-tag-active  { color: var(--goldSand-mid); }
 [data-theme="skein-dark"] .antd-tag-check   { color: var(--ocean-shallow); }

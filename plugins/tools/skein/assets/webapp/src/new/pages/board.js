@@ -1462,7 +1462,13 @@ function detailPanel(task, allTasks, onClose, onSubClick, onOpenDetail, onTaskCl
       // 详细设计 — 跨全宽
       task.docs && task.docs.design ? h('div.panel-span-2', designView(task.docs.design)) : null,
 
-      // 依赖 DAG 图（上下游 + 可拖拽）— 仅当有依赖时显示，跨全宽
+      // 时间线 — 跨全宽
+      h('div.glass-card.p-4.panel-span-2', [
+        h('div.eyebrow.text-accent.mb-3', '生命周期时间线'),
+        timelineView(timeline, task),
+      ]),
+
+      // 依赖 DAG 图（上下游 + 可拖拽）— 仅当有依赖时显示，跨全宽, 最底部
       (() => {
         const { nodes } = buildDepDAG(task.id, allTasks);
         if (nodes.length <= 1) return null;
@@ -1474,12 +1480,6 @@ function detailPanel(task, allTasks, onClose, onSubClick, onOpenDetail, onTaskCl
           depDAGView(task, allTasks, onTaskClick),
         ]);
       })(),
-
-      // 时间线 — 跨全宽, 最底部
-      h('div.glass-card.p-4.panel-span-2', [
-        h('div.eyebrow.text-accent.mb-3', '生命周期时间线'),
-        timelineView(timeline, task),
-      ]),
     ]),
   ]);
 }

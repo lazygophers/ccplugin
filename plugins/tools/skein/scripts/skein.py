@@ -330,9 +330,9 @@ class Skein:
                         f"subtasks={len(t.get('subtasks', []))} deps={t.get('deps') or '-'} "
                         f"contracts={len(t.get('contracts', []))}", style="dim")
         # 状态优先排序 (进行中>检查中>就绪>待处理>已完成), 同状态内按优先级降序 (数字越大越靠前), 同优先级按 id 序
-        out.sort(key=lambda t: (STATUS_ORDER.get(t["status"], 9),
+        out.sort(key=lambda t: (STATUS_ORDER.get(t.get("status"), 9),
                                 -(t.get("priority") or 5),
-                                t["id"]))
+                                t.get("id") or ""))
         return out
 
     def _render_tasks(self) -> list[dict[str, Any]]:
@@ -1975,6 +1975,9 @@ class Skein:
         return _view_task_detail(self._snapshot(), tid)
     def _archive_list(self) -> list[dict[str, Any]]:
         return _view_archive_list(self._snapshot())
+
+    def _archive_data(self) -> dict[str, Any]:
+        return _view_archive(self._snapshot())
     def _dashboard(self) -> dict[str, Any]:
         return _view_dashboard(self._snapshot())
     def _queue(self) -> dict[str, Any]:
@@ -2430,7 +2433,7 @@ def _task_pct(t: dict[str, Any]) -> int:
     # task 进度 = subtask 完成度 (有 subs) / 状态机阶段 (无 subs).
     # ponytail: 进度反映客观完成度, 不混状态机加权 — subs 全 done 即 100,
     #   哪怕 task 仍在 active/check (状态机推进由人/finish 命令, 不影响进度数).
-    st = t["status"]
+    st = t.get("status")
     if st == S_DONE:
         return 100
     subs: list[dict[str, Any]] = t.get("subtasks", [])
@@ -2448,7 +2451,7 @@ def _task_pct(t: dict[str, Any]) -> int:
 
 def _task_stage(t: dict[str, Any]) -> str:
     # task 阶段标签 (plan/ready/exec/check/done) 供 board card 渲染
-    st = t["status"]
+    st = t.get("status")
     if st == S_DONE:
         return "done"
     return PHASE_OF.get(st, "plan")  # 待处理→plan / 就绪→ready / 进行中→exec / 检查中→check
@@ -2575,6 +2578,50 @@ class Snapshot:
         return hits[0] if hits else None
 
 
+def _prd_data(snap: Snapshot, tid: str) -> list[dict[str, Any]]:
+    prd = snap.prd_path(tid)
+    return _prd_parse(prd.read_text(encoding="utf-8", errors="replace")) if prd.exists() else []
+
+
+def _prd_parse(text: Optional[str]) -> list[dict[str, Any]]:
+    # 解析 prd.md 目标/验收标准 两节: checklist (勾选态) + prose 直显; 跳 TODO 占位
+    if not text:
+        return []
+    secs: dict[str, list[tuple[str, bool, str]]] = {}
+    cur: Optional[str] = None
+    for ln in text.splitlines():
+        h = re.match(r"^#{1,6}\s+(.+?)\s*$", ln)
+        if h:
+            cur = h.group(1).strip() if h.group(1).strip() in ("目标", "验收标准") else None
+            continue
+        if not cur:
+            continue
+        m = re.match(r"^\s*[-*]\s+\[([ xX])\]\s+(.+?)\s*$", ln)
+        if m:
+            txt = m.group(2).strip()
+            if not txt.lstrip().startswith("TODO"):
+                secs.setdefault(cur, []).append(("check", m.group(1).lower() == "x", txt))
+            continue
+        txt = re.sub(r"^\s*[-*]\s+", "", ln).strip()
+        if txt and not txt.lstrip().startswith("TODO"):
+            secs.setdefault(cur, []).append(("prose", False, txt))
+    out: list[dict[str, Any]] = []
+    for name in ("目标", "验收标准"):
+        items = secs.get(name)
+        if not items:
+            continue
+        checks = [d for k, d, _ in items if k == "check"]
+        badge: Optional[list[int]] = [sum(1 for c in checks if c), len(checks)] if checks else None
+        prose_cls = ""  # 目标/验收标准 一致: 非 checkbox 行也渲 todo ○/● 标记 (不再对验收段打 .prose 去标记)
+        out.append({
+            "name": name, "badge": badge,
+            "items": [{"kind": k, "done": bool(d), "text": tt,
+                       "proseCls": ("" if k == "check" else prose_cls)}
+                      for k, d, tt in items],
+        })
+    return out
+
+
 def _view_board_data(snap: Snapshot) -> dict[str, Any]:
     # 结构化看板数据 (GET /__skein__/data); 呈现全由 webapp 前端做。
     # 业务逻辑 (pct/耗时/聚合/next-up/prd 解析) 留此当数据, 不拼 HTML; DAG 由前端从 cards 推。
@@ -2659,44 +2706,7 @@ def _view_board_data(snap: Snapshot) -> dict[str, Any]:
                            if t["status"] == S_READY
                            and not any(snap.dep_unfinished(d) for d in t.get("deps", []))), None)
 
-    def prd_data(tid: str) -> list[dict[str, Any]]:
-        # 解析 prd.md 目标/验收标准 两节: checklist (勾选态) + prose 直显; 跳 TODO 占位
-        prd = snap.prd_path(tid)
-        if not prd.exists():
-            return []
-        secs: dict[str, list[tuple[str, bool, str]]] = {}
-        cur: Optional[str] = None
-        for ln in prd.read_text(encoding="utf-8", errors="replace").splitlines():
-            h = re.match(r"^#{1,6}\s+(.+?)\s*$", ln)
-            if h:
-                cur = h.group(1).strip() if h.group(1).strip() in ("目标", "验收标准") else None
-                continue
-            if not cur:
-                continue
-            m = re.match(r"^\s*[-*]\s+\[([ xX])\]\s+(.+?)\s*$", ln)
-            if m:
-                txt = m.group(2).strip()
-                if not txt.lstrip().startswith("TODO"):
-                    secs.setdefault(cur, []).append(("check", m.group(1).lower() == "x", txt))
-                continue
-            txt = re.sub(r"^\s*[-*]\s+", "", ln).strip()
-            if txt and not txt.lstrip().startswith("TODO"):
-                secs.setdefault(cur, []).append(("prose", False, txt))
-        out: list[dict[str, Any]] = []
-        for name in ("目标", "验收标准"):
-            items = secs.get(name)
-            if not items:
-                continue
-            checks = [d for k, d, _ in items if k == "check"]
-            badge: Optional[list[int]] = [sum(1 for c in checks if c), len(checks)] if checks else None
-            prose_cls = ""  # 目标/验收标准 一致: 非 checkbox 行也渲 todo ○/● 标记 (不再对验收段打 .prose 去标记)
-            out.append({
-                "name": name, "badge": badge,
-                "items": [{"kind": k, "done": bool(d), "text": tt,
-                           "proseCls": ("" if k == "check" else prose_cls)}
-                          for k, d, tt in items],
-            })
-        return out
+    prd_data = lambda tid: _prd_data(snap, tid)  # noqa: E731 — 实现提到模块级 _prd_data (detail 端点复用)
 
     cards: list[dict[str, Any]] = []
     for t in tasks:
@@ -2776,8 +2786,21 @@ def _view_task_detail(snap: Snapshot, tid: str) -> Optional[dict[str, Any]]:
     if rdir.is_dir():
         for rf in sorted(rdir.glob("*.md")):
             research[rf.name] = rf.read_text(encoding="utf-8", errors="replace")
+    # 依赖明细直接内联 — 详情页据此渲染前置/被依赖, 无需再拉 /data 全量看板
+    deps = data.get("deps", [])
+    dep_tasks: list[dict[str, Any]] = []
+    dependents: list[dict[str, Any]] = []
+    for t in snap.all_tasks:
+        brief = {"id": t["id"], "name": t.get("name") or t["id"],
+                 "status": t.get("status"), "desc": t.get("desc", "")}
+        if t["id"] in deps:
+            dep_tasks.append(brief)
+        if tid in t.get("deps", []):
+            dependents.append(brief)
     return {"task": data, "docs": docs, "research": research, "archived": archived,
-            "subtasks": data.get("subtasks", []), "contracts": data.get("contracts", [])}
+            "subtasks": data.get("subtasks", []), "contracts": data.get("contracts", []),
+            "prd": _prd_parse(docs.get("prd")), "progress": _task_pct(data),
+            "stage": _task_stage(data), "depTasks": dep_tasks, "dependents": dependents}
 
 
 def _view_archive_list(snap: Snapshot) -> list[dict[str, Any]]:
@@ -2797,6 +2820,18 @@ def _view_archive_list(snap: Snapshot) -> list[dict[str, Any]]:
                         "finished": t.get("finished"), "archivedAt": d.parent.name,
                         "subs": len(t.get("subtasks", []))})
     return out
+
+
+def _view_archive(snap: Snapshot) -> dict[str, Any]:
+    # 归档页数据源 (端点自足, 归档页不再拉 /data 全量看板):
+    #   archive/ 目录内已归档 task + 仍在 task/ 内的已完成 task (尚未到保留期)
+    tasks = list(_view_archive_list(snap))
+    tasks += [{"id": t["id"], "name": t.get("name", t["id"]), "desc": t.get("desc", ""),
+               "status": t["status"], "created": t.get("created"),
+               "started": t.get("started"), "finished": t.get("finished"),
+               "subs": len(t.get("subtasks", []))}
+              for t in snap.tasks if t["status"] == S_DONE]
+    return {"tasks": tasks}
 
 
 def _view_dashboard(snap: Snapshot) -> dict[str, Any]:
@@ -2855,7 +2890,18 @@ def _view_dashboard(snap: Snapshot) -> dict[str, Any]:
                "pct": c["spct"], "sdone": c["sdone"], "stotal": c["stotal"],
                "elapsed": c.get("elapsed")}
         (active_tasks if c["status"] == S_ACTIVE else check_tasks).append(row)
+    # 首页最近列表: 端点自足 (首页不再拉 /data 全量看板), 按最近活动时间倒序
+    def brief(t: dict[str, Any]) -> dict[str, Any]:
+        return {"id": t["id"], "name": t.get("name", t["id"]), "desc": t.get("desc", ""),
+                "status": t["status"], "created": t.get("created"),
+                "started": t.get("started"), "finished": t.get("finished")}
+    recent = sorted(snap.tasks,
+                    key=lambda t: -(t.get("finished") or t.get("started") or t.get("created") or 0))
+    recent_active = [brief(t) for t in recent
+                     if t["status"] in (S_PENDING, S_READY, S_ACTIVE, S_CHECK)][:8]
+    recent_done = [brief(t) for t in recent if t["status"] == S_DONE][:5]
     return {"proj": snap.proj, "taskCount": total,
+            "recentActive": recent_active, "recentDone": recent_done,
             "doneRate": round(done / total * 100) if total else 0,
             "activeCount": ov["stats"].get(S_ACTIVE, 0) + ov["stats"].get(S_CHECK, 0),
             "combinedPct": ov["combinedPct"], "statusDist": ov["stats"],
@@ -2916,7 +2962,14 @@ def _view_queue(snap: Snapshot) -> dict[str, Any]:
                              "pct": _task_pct(t),
                              "sdone": sum(1 for s in subs if s["status"] == SS_DONE),
                              "stotal": len(subs), "elapsed": elapsed})
+    # task 级队列: 未完成的全量 (端点自足, 队列页不再拉 /data 全量看板)
+    queue_tasks = [{"id": t["id"], "name": t.get("name", t["id"]), "desc": t.get("desc", ""),
+                    "status": t["status"], "priority": t.get("priority"),
+                    "created": t.get("created"), "started": t.get("started"),
+                    "spct": _task_pct(t)}
+                   for t in tasks if t["status"] in (S_PENDING, S_READY, S_ACTIVE, S_CHECK)]
     return {"pendingQueue": _pending_queue(tasks, snap.dep_unfinished),
+            "queueTasks": queue_tasks,
             "readyTasks": ready_tasks, "readySubtasks": ready_subs,
             "activeTasks": active_tasks, "runningSubs": running_subs}
 
@@ -2976,6 +3029,7 @@ class DataSource(Protocol):
     def _queue(self) -> dict[str, Any]: ...
     def _task_detail(self, tid: str) -> Optional[dict[str, Any]]: ...
     def _archive_list(self) -> list[dict[str, Any]]: ...
+    def _archive_data(self) -> dict[str, Any]: ...
     def _search(self, q: Any) -> dict[str, Any]: ...
     def _spec_tree(self) -> dict[str, Any]: ...
     def _spec_resolve(self, rel: Any) -> Optional[Path]: ...
@@ -3215,8 +3269,8 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
         return JSONResponse({"ok": True, "config": board.config()})  # 返回读回值 (含 ENV override)
 
     @app.get("/__skein__/archive")
-    async def _archive() -> JSONResponse:  # 已归档 task 列表
-        return JSONResponse(board._archive_list())
+    async def _archive() -> JSONResponse:  # 归档页: 已归档 + 已完成 task
+        return JSONResponse(board._archive_data())
 
     @app.get("/__skein__/search")
     async def _search(q: str = "") -> JSONResponse:  # 跨 task/subtask/prd/spec 关键词搜

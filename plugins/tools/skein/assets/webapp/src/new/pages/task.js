@@ -407,23 +407,22 @@ function subtaskListView(subs) {
 export async function render(mount, params, ctx) {
   const taskId = params.id;
 
-  // 并行: 任务详情 + 所有任务(用于依赖渲染)
-  const [taskResp, allResp] = await Promise.all([
-    api.task(taskId),
-    api.data(),
-  ]).catch(() => [null, null]);
+  // 详情端点自足: prd / progress / stage / 依赖明细都内联返回, 不再拉 /data 全量看板
+  const taskResp = await api.task(taskId).catch(() => null);
 
-  // 用列表数据补充详情数据(prd 等只在列表接口有)
-  // /task/<id> 返回 {task, docs, research, ...}: docs/research 是 task 的兄弟字段, 需合并进来
+  // /task/<id> 返回 {task, docs, research, prd, ...}: 兄弟字段需合并进 task
   const taskRaw = taskResp
     ? (taskResp.task
-        ? { ...taskResp.task, docs: taskResp.docs, research: taskResp.research }
+        ? {
+            ...taskResp.task,
+            docs: taskResp.docs, research: taskResp.research,
+            prd: taskResp.prd, progress: taskResp.progress, stage: taskResp.stage,
+          }
         : (taskResp.card || taskResp))
     : null;
-  const listTask = allResp && allResp.cards ? allResp.cards.find(c => c.id === taskId) : null;
-  const mergedTask = listTask && taskRaw ? { ...listTask, ...taskRaw } : (taskRaw || listTask);
-  const task = normalizeTask(mergedTask);
-  const allTasks = normalizeTasks((allResp && allResp.cards) || []);
+  const task = normalizeTask(taskRaw);
+  const depTasks = normalizeTasks((taskResp && taskResp.depTasks) || []);
+  const dependents = normalizeTasks((taskResp && taskResp.dependents) || []);
 
   if (!task) {
     mount.replaceChildren(
@@ -440,9 +439,6 @@ export async function render(mount, params, ctx) {
   }
 
   const st = task.status || 'planning';
-  const deps = task.deps || [];
-  const depTasks = allTasks.filter(t => deps.includes(t.id));
-  const dependents = allTasks.filter(t => (t.deps || []).includes(taskId));
   const timeline = buildTimeline(task);
 
   function onSubClick(sid) {

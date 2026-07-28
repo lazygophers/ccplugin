@@ -62,11 +62,9 @@ function archiveGroup(title, icon, items) {
 }
 
 export async function render(mount, params, ctx) {
-  const [dataResp, archResp] = await Promise.all([
-    api.data(), api.archive(),
-  ]).catch(() => [null, null]);
-
-  const tasks = normalizeTasks((archResp && archResp.tasks) || (dataResp && dataResp.cards) || []);
+  // /archive 端点自足: 已归档 + 已完成 task 全在 tasks 里, 不再拉 /data 全量看板
+  const archResp = await api.archive().catch(() => null) || {};
+  const tasks = normalizeTasks(archResp.tasks || []);
 
   // 归档: done + failed + cancelled + archived
   const archived = tasks.filter(t =>

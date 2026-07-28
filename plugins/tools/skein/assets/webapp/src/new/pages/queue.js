@@ -5,9 +5,9 @@
 
 import { h, api, fmtRelative, normalizeTasks, prioShortLabel, prioColor, prioLevel } from '../app.js';
 
-const ST_LABEL = { pending: '待办', active: '执行中', check: '待验收', done: '已完成', failed: '失败' };
+const ST_LABEL = { planning: '规划中', ready: '待执行', active: '执行中', check: '待验收', done: '已完成', failed: '失败' };
 const ST_COLOR = {
-  pending: 'st-pending', active: 'st-active',
+  planning: 'st-planning', ready: 'st-ready', active: 'st-active',
   check: 'st-check', done: 'st-done', failed: 'st-failed',
 };
 
@@ -20,15 +20,11 @@ function priorityBadge(p) {
 }
 
 export async function render(mount, params, ctx) {
-  const [dataResp, queueResp] = await Promise.all([
-    api.data(), api.queue(),
-  ]).catch(() => [null, null]);
+  // /queue 端点自足: queueTasks 已是未完成 task 全量, 不再拉 /data 全量看板
+  const queueResp = await api.queue().catch(() => null) || {};
 
-  const tasks = normalizeTasks((queueResp && queueResp.tasks) || (dataResp && dataResp.cards) || []);
-
-  // 队列: pending + active + check, 按优先级降序 + 时间降序
-  const queueTasks = tasks
-    .filter(t => ['pending', 'active', 'check'].includes(t.status))
+  // 按优先级降序 + 时间降序
+  const queueTasks = normalizeTasks(queueResp.queueTasks || [])
     .sort((a, b) => {
       const pa = a.priority != null ? Number(a.priority) : 5;
       const pb = b.priority != null ? Number(b.priority) : 5;
@@ -37,7 +33,7 @@ export async function render(mount, params, ctx) {
     });
 
   const activeCount = queueTasks.filter(t => t.status === 'active').length;
-  const pendingCount = queueTasks.filter(t => t.status === 'pending').length;
+  const pendingCount = queueTasks.filter(t => t.status === 'planning' || t.status === 'ready').length;
 
   mount.replaceChildren(
     // 标题
@@ -55,7 +51,7 @@ export async function render(mount, params, ctx) {
         h('div.text-xs.text-muted', '执行中'),
       ]),
       h('div.glass-card.text-center', [
-        h('div.text-2xl.font-bold.text-st-pending.mb-1', pendingCount),
+        h('div.text-2xl.font-bold.text-st-ready.mb-1', pendingCount),
         h('div.text-xs.text-muted', '待执行'),
       ]),
       h('div.glass-card.text-center', [
@@ -77,7 +73,7 @@ export async function render(mount, params, ctx) {
       queueTasks.length
         ? h('div.divide-y divide-line/40',
             queueTasks.map(t => {
-              const st = t.status || 'pending';
+              const st = t.status || 'planning';
               return h(`a.flex.items-center.gap-4.p-4.hover\\:bg-card\\/40.transition-colors.cursor-pointer`,
                 { href: `/task/detail?id=${t.id}`, 'data-nav': '' },
                 [

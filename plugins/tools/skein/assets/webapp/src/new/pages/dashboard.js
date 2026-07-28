@@ -3,17 +3,16 @@
 //  设计: 4 个 KPI 玻璃卡 + 状态分布 + 最近活跃任务 + 最近完成
 // ============================================================
 
-import { h, api, fmtRelative, normalizeTasks } from '../app.js';
+import { h, api, fmtRelative, normalizeTasks, normalizeStatus } from '../app.js';
 
 // ---- 颜色辅助 ----
 const ST_COLOR = {
-  pending: 'st-pending', active: 'st-active',
-  check:   'st-check',   done: 'st-done',
-  failed:  'st-failed',
+  planning: 'st-planning', ready: 'st-ready', active: 'st-active',
+  check:    'st-check',    done:  'st-done',  failed: 'st-failed',
 };
 const ST_LABEL = {
-  pending: '待办', active: '执行中',
-  check:   '待验收', done: '已完成', failed: '失败',
+  planning: '规划中', ready: '待执行', active: '执行中',
+  check:    '待验收', done: '已完成',  failed: '失败',
 };
 
 // ---- KPI 玻璃卡 ----
@@ -33,7 +32,7 @@ function kpiCard(label, value, iconClass, colorVar, trend) {
 // ---- 状态分布进度条 ----
 function statusDistribution(stats) {
   const total = Object.values(stats).reduce((a, b) => a + b, 0) || 1;
-  const order = ['pending', 'active', 'check', 'done', 'failed'];
+  const order = ['planning', 'ready', 'active', 'check', 'done'];
   const items = order.map(s => ({
     key: s, label: ST_LABEL[s], count: stats[s] || 0,
     pct: ((stats[s] || 0) / total) * 100,
@@ -69,7 +68,7 @@ function statusDistribution(stats) {
 
 // ---- 任务列表行 ----
 function taskRow(task) {
-  const st = task.status || 'pending';
+  const st = task.status || 'planning';
   return h(`a.task-row.flex.items-center.gap-3.p-3.rounded-lg.border.border-transparent.hover\\:border-brd\\/60.hover\\:bg-card\\/40.transition-all.cursor-pointer`,
     { href: `/task/detail?id=${task.id}`, 'data-nav': '' },
     [
@@ -105,55 +104,38 @@ function listCard(title, icon, tasks, emptyText) {
 
 // ---- 主渲染 ----
 export async function render(mount) {
-  // 并发取数据
-  const [dataResp, dashResp] = await Promise.all([
-    api.data(), api.dashboard(),
-  ]).catch(() => [null, null]);
+  // /dashboard 端点自足: 计数 / 完成率 / 最近列表全内联, 不再拉 /data 全量看板
+  const dash = await api.dashboard().catch(() => null) || {};
 
-  const tasks = normalizeTasks((dataResp && dataResp.cards) || (dashResp && dashResp.tasks) || []);
-  const stats = (dashResp && dashResp.stats) || {};
-
-  // 状态计数
+  // statusDist 键是中文状态 → 归一到 5 状态系统
   const countBy = {};
-  for (const t of tasks) {
-    const s = t.status || 'pending';
-    countBy[s] = (countBy[s] || 0) + 1;
+  for (const [k, v] of Object.entries(dash.statusDist || {})) {
+    const s = normalizeStatus(k);
+    countBy[s] = (countBy[s] || 0) + v;
   }
 
-  // 最近活跃: pending + active + check
-  const recentActive = tasks
-    .filter(t => ['pending', 'active', 'check'].includes(t.status))
-    .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))
-    .slice(0, 8);
-
-  // 最近完成
-  const recentDone = tasks
-    .filter(t => t.status === 'done' || t.status === 'failed')
-    .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))
-    .slice(0, 5);
-
-  // 总体进度
-  const doneCount = countBy.done || 0;
-  const totalCount = tasks.length || 1;
-  const progressPct = Math.round((doneCount / totalCount) * 100);
+  const recentActive = normalizeTasks(dash.recentActive || []);
+  const recentDone = normalizeTasks(dash.recentDone || []);
+  const taskCount = dash.taskCount || 0;
+  const progressPct = dash.doneRate || 0;
 
   mount.replaceChildren(
     // 页标题
     h('div.mb-8', [
       h('h1.text-3xl.font-bold.text-head.mb-2', '项目概览'),
-      h('p.text-muted', `共 ${tasks.length} 个任务 · 完成度 ${progressPct}%`),
+      h('p.text-muted', `共 ${taskCount} 个任务 · 完成度 ${progressPct}%`),
     ]),
 
     // KPI 4 卡
     h('div.grid.grid-cols-2.lg\\:grid-cols-4.gap-4.mb-6', [
-      kpiCard('总任务', tasks.length, 'fa-tasks', 'accent',
+      kpiCard('总任务', taskCount, 'fa-tasks', 'accent',
         `${progressPct}% 完成率`),
       kpiCard('进行中', countBy.active || 0, 'fa-spinner', 'st-active',
         `${countBy.check || 0} 个待验收`),
-      kpiCard('待办', countBy.pending || 0, 'fa-clock-o', 'st-pending',
-        '等待开始'),
+      kpiCard('待办', (countBy.planning || 0) + (countBy.ready || 0), 'fa-clock-o', 'st-planning',
+        `${countBy.ready || 0} 个已就绪`),
       kpiCard('已完成', countBy.done || 0, 'fa-check-circle', 'st-done',
-        `${countBy.failed || 0} 个失败`),
+        `${progressPct}% 完成率`),
     ]),
 
     // 状态分布

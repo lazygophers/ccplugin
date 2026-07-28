@@ -55,6 +55,9 @@ const STATUS_MAP = {
   '已归档': 'archived',
 };
 
+// 中文/英文状态 → 5 状态系统 (统计类接口只回状态计数时用)
+export function normalizeStatus(s) { return STATUS_MAP[s] || s; }
+
 // ---- 优先级工具 (0-10 分, 默认 5 = 中) ----
 export function prioLevel(p) {
   const n = p != null ? Number(p) : 5;
