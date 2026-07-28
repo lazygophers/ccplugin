@@ -1045,6 +1045,9 @@
   background: var(--surface);
   color: var(--text);
 }
+/* 危险动作 (删除任务): 常态即红, hover 也不回落到普通色 */
+.detail-panel-close.is-danger,
+.detail-panel-close.is-danger:hover { color: var(--danger); }
 .detail-panel-body {
   padding: 16px 20px;
   flex: 1;

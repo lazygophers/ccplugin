@@ -225,6 +225,48 @@ export function h(tag, props, ...children) {
   return el;
 }
 
+// ── 确认 / 提示弹窗 (替 window.confirm/alert, 走站内样式) ──
+// ponytail: 原生 <dialog> + 已有 .dag-modal 样式, 不写 overlay/焦点陷阱 (dialog.showModal 自带)
+// 返回 Promise<boolean>: 确定 true, 取消/Esc/点关闭 false。cancel: null → 单按钮提示框。
+export function confirmDialog(opts) {
+  const o = opts || {};
+  const { title = '确认', message = '', ok = '确定', cancel = '取消', danger = false } = o;
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (v) => {
+      if (settled) return;
+      settled = true;
+      dlg.close();
+      dlg.remove();
+      resolve(v);
+    };
+    const dlg = h('dialog.dag-modal',
+      { onclose: () => finish(false) },   // Esc / 外部 close 一律当取消
+      h('div.dag-modal-inner', [
+        h('div.dag-modal-head', [
+          h('h3.dag-modal-title', [
+            // 图标限 icons.css 子集内 (fa 子集只含实际用到的字形, 加新图标要重生成 woff2)
+            h(`i.fa.${danger ? 'fa-exclamation-triangle' : 'fa-check-circle'}`),
+            title,
+          ]),
+          h('button.dag-modal-close', { onclick: () => finish(false), title: '关闭' }, '×'),
+        ]),
+        h('div.text-sm.text-fg.whitespace-pre-wrap.leading-relaxed', message),
+        h('div.flex.justify-end.gap-2.mt-2', [
+          cancel ? h('button.antd-btn.antd-btn-default', { onclick: () => finish(false) }, cancel) : null,
+          h('button.antd-btn' + (danger ? '.antd-btn-danger' : ''),
+            { onclick: () => finish(true) }, ok),
+        ]),
+      ]));
+    document.body.appendChild(dlg);
+    dlg.showModal();
+  });
+}
+
+export function alertDialog(message, title) {
+  return confirmDialog({ title: title || '提示', message, ok: '知道了', cancel: null });
+}
+
 // ── htm 加载: 本地 vendor 优先, CDN 兜底 — T3/T7 加 /vendor/htm.js 静态 mount ──
 async function loadHtm() {
   try {

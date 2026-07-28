@@ -2040,6 +2040,8 @@ class Skein:
             except ValueError:
                 return None
             return base + ["clean", "--days", str(d)] if d >= 0 else None
+        if cmd == "del":  # 看板「删除任务」: 软删进 .skein/trash/ 可恢复 (仅整 task, 不开放 sid 级)
+            return base + ["del", g("id")] if s("id") else None
         if cmd == "prd":  # 网页端 prd 章节编辑: read/write/add/check/uncheck (复用 CLI 同一写盘逻辑)
             if not (s("id") and s("type") and s("action")):
                 return None

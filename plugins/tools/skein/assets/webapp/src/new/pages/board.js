@@ -4,7 +4,8 @@
 //  状态: 规划中 / 待执行 / 执行中 / 验收中 / 已完成
 // ============================================================
 
-import { h, api, fmtRelative, fmtTime, normalizeTasks, prioLabel, prioTextColor } from '../app.js';
+import { h, api, fmtRelative, fmtTime, normalizeTasks, prioLabel, prioTextColor,
+         confirmDialog, alertDialog } from '../app.js';
 
 const ST_COLOR = {
   planning: 'st-planning', ready: 'st-ready',
@@ -1357,7 +1358,7 @@ function depDAGView(task, allTasks, onTaskClick) {
 }
 
 // ---- 右侧详情面板 (仅当有选中任务时显示) ----
-function detailPanel(task, allTasks, onClose, onSubClick, onOpenDetail, onTaskClick) {
+function detailPanel(task, allTasks, onClose, onSubClick, onOpenDetail, onTaskClick, onDelete) {
   if (!task) return null;
 
   const st = task.status || 'planning';
@@ -1378,6 +1379,10 @@ function detailPanel(task, allTasks, onClose, onSubClick, onOpenDetail, onTaskCl
           { onclick: () => { if (onOpenDetail) onOpenDetail(task.id); },
             title: '打开详情页' },
           h('i.fa.fa-external-link')
+        ),
+        h('button.detail-panel-close.is-danger',
+          { onclick: () => { if (onDelete) onDelete(task); }, title: '删除任务 (软删进 .skein/trash/)' },
+          h('i.fa.fa-times-circle')   // fa 子集无 trash 字形, 复用已有字形免重生成 woff2
         ),
         h('button.detail-panel-close',
           { onclick: onClose, title: '关闭' },
@@ -1565,15 +1570,40 @@ export async function render(mount, params, ctx) {
 
   // 清理已完成: 归档是可逆的 (进 archive/, 归档页可查), 但仍二次确认再执行
   async function cleanDone() {
-    if (!confirm(`归档全部 ${countBy.done} 个已完成任务? (可在归档页查回)`)) return;
+    const yes = await confirmDialog({
+      title: '清理已完成任务',
+      message: `将归档全部 ${countBy.done} 个已完成任务 (等价 skein clean --days=0)。\n归档可逆 — 归档页仍可查回。`,
+      ok: '归档',
+    });
+    if (!yes) return;
     try {
       const r = await api.exec('clean', { days: 0 });
       if (!r || !r.ok) throw new Error((r && (r.stderr || r.error)) || '清理失败');
     } catch (e) {
-      alert('清理失败: ' + (e && e.message ? e.message : e));
+      await alertDialog('清理失败: ' + (e && e.message ? e.message : e), '清理失败');
       return;
     }
     await render(mount, params, ctx);  // 重拉 /data 重绘 (计数/DAG 全变)
+  }
+
+  // 删除任务: 软删进 .skein/trash/ (skein del), 可从 trash 恢复
+  async function deleteTask(t) {
+    const yes = await confirmDialog({
+      title: '删除任务',
+      message: `删除任务 #${t.id} ${t.title || t.name || ''}?\n软删进 .skein/trash/, 可从磁盘恢复; 在途 task 的 worktree/分支会一并销毁。`,
+      ok: '删除',
+      danger: true,
+    });
+    if (!yes) return;
+    try {
+      const r = await api.exec('del', { id: t.id });
+      if (!r || !r.ok) throw new Error((r && (r.stderr || r.error)) || '删除失败');
+    } catch (e) {
+      await alertDialog('删除失败: ' + (e && e.message ? e.message : e), '删除失败');
+      return;
+    }
+    selectedId = null;  // 面板里删的就是当前选中项, 关掉再重绘
+    await render(mount, params, ctx);
   }
 
   function onSubClick(sid) {
@@ -1799,7 +1829,7 @@ export async function render(mount, params, ctx) {
             : [listView(allTasks, selectTask, statusSet)]
         ),
         // 右侧: 详情面板 (仅选中时显示)
-        hasPanel ? detailPanel(selectedTask, allTasks, closePanel, onSubClick, openDetailPage, selectTask) : null,
+        hasPanel ? detailPanel(selectedTask, allTasks, closePanel, onSubClick, openDetailPage, selectTask, deleteTask) : null,
         // 连线图例 (浮在画布区左下角, 不随画布滚动)
         view === 'dag' ? edgeLegend() : null,
       ]),

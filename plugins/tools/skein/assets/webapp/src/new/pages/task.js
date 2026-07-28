@@ -5,7 +5,8 @@
 //  状态: 规划中 / 待执行 / 执行中 / 验收中 / 已完成
 // ============================================================
 
-import { h, api, md, fmtRelative, fmtTime, normalizeTask, normalizeTasks } from '../app.js';
+import { h, api, md, fmtRelative, fmtTime, normalizeTask, normalizeTasks,
+         confirmDialog, alertDialog } from '../app.js';
 
 const ST_LABEL = {
   planning: '规划中', ready: '待执行',
@@ -445,6 +446,26 @@ export async function render(mount, params, ctx) {
     console.log('subtask clicked:', sid);
   }
 
+  // 删除任务: 软删进 .skein/trash/ (skein del), 删完回看板
+  async function deleteTask() {
+    const yes = await confirmDialog({
+      title: '删除任务',
+      message: `删除任务 #${task.id} ${task.title || task.name || ''}?\n软删进 .skein/trash/, 可从磁盘恢复; 在途 task 的 worktree/分支会一并销毁。`,
+      ok: '删除',
+      danger: true,
+    });
+    if (!yes) return;
+    try {
+      const r = await api.exec('del', { id: task.id });
+      if (!r || !r.ok) throw new Error((r && (r.stderr || r.error)) || '删除失败');
+    } catch (e) {
+      await alertDialog('删除失败: ' + (e && e.message ? e.message : e), '删除失败');
+      return;
+    }
+    if (ctx && ctx.navigate) ctx.navigate('/board');
+    else window.location.href = '/board';
+  }
+
   mount.replaceChildren(
     // 面包屑 + 标题
     h('div.mb-6', [
@@ -533,24 +554,27 @@ export async function render(mount, params, ctx) {
           ]),
           h('div.flex.flex-wrap.gap-2', [
             h('button.antd-btn.antd-btn-primary.flex-1',
-              { onclick: () => alert('编辑功能开发中') },
+              { onclick: () => alertDialog('编辑功能开发中') },
               [h('i.fa.fa-pencil.mr-1.5'), '编辑']
             ),
             st === 'planning'
               ? h('button.antd-btn.antd-btn-default',
-                  { onclick: () => alert('状态变更开发中') },
+                  { onclick: () => alertDialog('状态变更开发中') },
                   [h('i.fa.fa-flag.mr-1.5'), '就绪'])
               : null,
             st === 'ready'
               ? h('button.antd-btn.antd-btn-default',
-                  { onclick: () => alert('状态变更开发中') },
+                  { onclick: () => alertDialog('状态变更开发中') },
                   [h('i.fa.fa-play.mr-1.5'), '开始'])
               : null,
             st === 'active'
               ? h('button.antd-btn.antd-btn-default',
-                  { onclick: () => alert('状态变更开发中') },
+                  { onclick: () => alertDialog('状态变更开发中') },
                   [h('i.fa.fa-check.mr-1.5'), '提交验收'])
               : null,
+            h('button.antd-btn.antd-btn-danger.w-full',
+              { onclick: deleteTask, title: '软删进 .skein/trash/, 可恢复' },
+              [h('i.fa.fa-times-circle.mr-1.5'), '删除任务']),
           ]),
         ]),
       ]),
