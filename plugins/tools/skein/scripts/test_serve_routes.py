@@ -53,7 +53,7 @@ def test_routes_real() -> None:
                 assert any(card["id"] == "alpha" for card in data["cards"])
                 assert c.get("/__skein__/dashboard").json()["proj"] == "TESTPROJ"
                 assert "pendingQueue" in c.get("/__skein__/queue").json()
-                assert isinstance(c.get("/__skein__/archive").json(), list)
+                assert isinstance(c.get("/__skein__/archive").json()["tasks"], list)
                 hits = c.get("/__skein__/search", params={"q": "alpha"}).json()["hits"]
                 assert any(h["id"] == "alpha" for h in hits)
                 assert c.get("/__skein__/task/alpha").status_code == 200
