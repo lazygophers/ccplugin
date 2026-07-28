@@ -1,0 +1,23 @@
+{
+  "id": "webapp-motion-depdag",
+  "name": "webapp 呼吸动效 + 依赖关系图落位",
+  "desc": "1) timeline/DAG 执行中态改光晕扩散+微缩放呼吸动效; 2) task 详情页补依赖关系图, board detailPanel 依赖图上提位置",
+  "status": "待处理",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [],
+  "priority": 5,
+  "estimate": null,
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/webapp-motion-depdag",
+  "parent": null,
+  "kind": "task",
+  "created": 1785252935,
+  "started": null,
+  "confirmed": null,
+  "checked": null,
+  "finished": null,
+  "updated": 1785252935
+}
