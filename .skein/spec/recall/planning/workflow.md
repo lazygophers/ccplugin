@@ -1,6 +1,6 @@
 ---
 title: workflow
-layer: core
+layer: recall
 category: planning
 keywords: [workflow,连线,阶段,确认,confirm,就绪,ready,start,自动,状态转移,exec,验收,checkpoint,职责划分,check阶段,check,场景自适应,编程任务,文案任务,finish,merge,worktree,spec,沉淀,异步,fire-and-forget]
 status: active
