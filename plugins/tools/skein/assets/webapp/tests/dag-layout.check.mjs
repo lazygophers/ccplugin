@@ -8,9 +8,15 @@ const cut = (name) => {
 };
 // 布局链是纯函数, 整串 eval 出来 (layoutPacked 依赖 components/sugiyama/packLayout)。
 // eval 的输入是本仓库自己的源码, 非外部输入 — 这里只是绕开 board.js 的浏览器 ESM 依赖。
-const { sugiyama, layoutPacked, layoutGrid, layoutCoord, edgeKinds, focusActive, bundleTrunks } = eval(
-  `(() => { ${['sugiyama', 'packLayout', 'components', 'transpose', 'layoutComponent', 'layoutPacked', 'layoutGrid', 'layoutCoord', 'edgeKinds', 'focusActive', 'bundleTrunks'].map(cut).join('\n')}
-   return { sugiyama, layoutPacked, layoutGrid, layoutCoord, edgeKinds, focusActive, bundleTrunks }; })()`);
+const { sugiyama, layoutPacked, layoutTiered, autoDensity, edgeKinds, focusActive, bundleTrunks } = eval(
+  `(() => { ${['sugiyama', 'packLayout', 'components', 'transpose', 'layoutComponent', 'layoutPacked', 'layoutTiered', 'autoDensity', 'edgeKinds', 'focusActive', 'bundleTrunks'].map(cut).join('\n')}
+   return { sugiyama, layoutPacked, layoutTiered, autoDensity, edgeKinds, focusActive, bundleTrunks }; })()`);
+
+// 两档节点尺寸 — 与 board.js DAG_DENSITY 同值
+const D = {
+  compact: { w: 190, h: 52, gapX: 14, gapY: 22, padX: 40, padY: 30 },
+  mini: { w: 120, h: 32, gapX: 14, gapY: 22, padX: 40, padY: 30 },
+};
 
 const S = { colW: 300, rowH: 200, padX: 40, padY: 30, gapX: 30, gapY: 20 };
 const run = (g, view) => sugiyama(Object.keys(g), id => g[id], { ...S, maxWidth: view.w, viewH: view.h });
@@ -154,80 +160,64 @@ const run = (g, view) => sugiyama(Object.keys(g), id => g[id], { ...S, maxWidth:
   console.log('10 边语义 OK ' + got);
 }
 
-// 11. 满铺网格: 主看板布局。⌈N/列数⌉ 行, 不留稀疏层空行, 宽度不超约束, 无重叠
+// 11. 真分层 (layoutTiered): 行 = 依赖深度, 回绕 0, 不超宽, 无重叠, 稀疏长链也不再是 15000px 柱子
 {
-  // 稀疏长链 (每层 1 个节点) —— 分层排布最吃亏的形状
+  // 稀疏长链 (每层 1 个节点) —— 大信息卡时代分层排布最吃亏的形状
   const g = { n0: [] };
   for (let i = 1; i < 30; i++) g['n' + i] = ['n' + (i - 1)];
-  const ids = Object.keys(g);
-  const grid = layoutGrid(ids, id => g[id], S, 1400, () => ({}));
-  const cols = Math.floor((1400 - S.padX * 2) / S.colW);       // = 4
-  console.assert(grid.width <= 1400, '满铺不许超宽, 实际 ' + grid.width);
-  console.assert(grid.nodes.length === 30, '节点应全画, 实际 ' + grid.nodes.length);
-  const rows = new Set(grid.nodes.map(n => n.y)).size;
-  console.assert(rows === Math.ceil(30 / cols), `应为 ${Math.ceil(30 / cols)} 行, 实际 ${rows}`);
-  // 同形状走分层排布 = 30 行, 满铺应显著更矮
-  const packed = layoutPacked(ids, id => g[id], S, 1400, 800, () => ({}));
-  console.assert(grid.height < packed.height * 0.6, `满铺应远矮于分层: ${grid.height} vs ${packed.height}`);
-  const seen = new Set();
-  for (const n of grid.nodes) {
-    const k = n.x + ',' + n.y;
-    console.assert(!seen.has(k), '坐标重叠 ' + n.id);
-    seen.add(k);
+  const ids = Object.keys(g), depsOf = id => g[id];
+  const r = layoutTiered(ids, depsOf, D.mini, 1400, () => ({}));
+  console.assert(r.nodes.length === 30, '节点应全画, 实际 ' + r.nodes.length);
+  console.assert(r.edges.length === 29, '边应全保留, 实际 ' + r.edges.length);
+  console.assert(r.width <= 1400, '不许超宽, 实际 ' + r.width);
+  // 行 = 依赖深度: 同一 tier 的节点 y 必须相同, 不同 tier 必须不同
+  const byTier = new Map();
+  for (const n of r.nodes) {
+    if (!byTier.has(n.tier)) byTier.set(n.tier, new Set());
+    byTier.get(n.tier).add(n.y);
   }
-  console.assert(grid.edges.length === 29, '边应全保留, 实际 ' + grid.edges.length);
-  // 依赖深度递增 → 阅读序 (行主序) 递增, 边才不会大面积往回绕
-  const pos = new Map(grid.nodes.map((n, i) => [n.id, i]));
-  console.assert(grid.edges.every(e => pos.get(e.from.id) < pos.get(e.to.id)), '被依赖方应排在前面');
-  // DFS 拓扑序 + 蛇形行序: 一条纯链的每条边都该落在相邻格 (换行处靠蛇形转向消化, 不横穿画板)
-  const far = grid.edges.filter(e =>
-    Math.abs(e.from.x - e.to.x) > S.colW || Math.abs(e.from.y - e.to.y) > S.rowH);
-  console.assert(far.length === 0, '纯链不该有跨格边, 实际 ' + far.length);
-  console.log(`11 满铺网格 OK ${cols}列x${rows}行 size=${grid.width}x${grid.height} (分层为 ${Math.round(packed.height)}) 跨格边 ${far.length}`);
+  for (const [t, ys] of byTier) console.assert(ys.size === 1, `tier ${t} 的节点应同一行, 实际 ${ys.size} 个 y`);
+  // 回绕 0: 每条边的目标都在源的下方
+  const back = r.edges.filter(e => e.to.y < e.from.y + e.from.h).length;
+  console.assert(back === 0, '分层排布回绕应为 0, 实际 ' + back);
+  // 同形状用大信息卡走分层 = 30 行 × 200px; 迷你节点应矮到 1/4 以内
+  const packed = layoutPacked(ids, depsOf, S, 1400, 800, () => ({}));
+  console.assert(r.height < packed.height * 0.3, `迷你分层应远矮于大卡分层: ${r.height} vs ${packed.height}`);
+  console.log(`11 真分层 OK ${byTier.size}层 size=${Math.round(r.width)}x${Math.round(r.height)} (大卡分层为 ${Math.round(packed.height)}) 回绕 ${back}`);
 }
 
-// 16. 贴合装箱 (layoutCoord): 位置由前驱+后继决定, 边更短、无重叠、不超宽、面积不劣于网格
+// 16. 层内折行 + 无重叠: 宽层折成多行 (整层仍是同一依赖深度的相邻几行), 卡片永不重叠
 {
-  // 菱形团簇串成的图 —— 既有扇出扇入又有长链, 比纯链更接近真实 task 图
-  const g = { r: [] };
-  for (let b = 0; b < 8; b++) {
-    const p = b === 0 ? 'r' : `m${b - 1}`;
-    g[`a${b}`] = [p]; g[`c${b}`] = [p]; g[`d${b}`] = [p];
-    g[`m${b}`] = [`a${b}`, `c${b}`, `d${b}`];
-  }
+  const g = { root: [] };
+  for (let i = 0; i < 40; i++) g['k' + i] = ['root'];      // 扇出 40, 一行放不下
   const ids = Object.keys(g), depsOf = id => g[id];
-  const co = layoutCoord(ids, depsOf, S, 1400, () => ({}));
-  const grid = layoutGrid(ids, depsOf, S, 1400, () => ({}));
-  console.assert(co.nodes.length === ids.length, '节点应全画, 实际 ' + co.nodes.length);
-  console.assert(co.edges.length === grid.edges.length, '边应全保留');
-  console.assert(co.width <= 1400, '不许超宽, 实际 ' + co.width);
+  const r = layoutTiered(ids, depsOf, D.compact, 1400, () => ({}));
+  const perRow = Math.floor((1400 - 80 + 14) / (190 + 14));
+  const tier1 = r.nodes.filter(n => n.tier === 1);
+  const rows = new Set(tier1.map(n => n.y)).size;
+  console.assert(rows === Math.ceil(40 / perRow), `40 个节点应折成 ${Math.ceil(40 / perRow)} 行, 实际 ${rows}`);
+  console.assert(r.width <= 1400, '折行后仍不许超宽, 实际 ' + r.width);
   let overlap = 0;
-  for (let i = 0; i < co.nodes.length; i++) for (let j = i + 1; j < co.nodes.length; j++) {
-    const a = co.nodes[i], b = co.nodes[j];
+  for (let i = 0; i < r.nodes.length; i++) for (let j = i + 1; j < r.nodes.length; j++) {
+    const a = r.nodes[i], b = r.nodes[j];
     if (a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h) overlap++;
   }
   console.assert(overlap === 0, '卡片不许重叠, 实际 ' + overlap);
-  const span = (r) => r.edges.reduce((n, e) =>
-    n + Math.abs(e.from.x - e.to.x) + Math.abs(e.from.y - e.to.y), 0);
-  console.assert(span(co) < span(grid), `总边长应短于网格: ${span(co)} vs ${span(grid)}`);
-  console.assert(co.height <= grid.height * 1.15, `高度不该明显劣于网格: ${co.height} vs ${grid.height}`);
-  console.log(`16 贴合装箱 OK ${co.width}x${co.height} (网格 ${grid.width}x${grid.height}) 边长 ${span(co)} vs ${span(grid)}`);
+  console.log(`16 层内折行 OK ${rows}行/层 size=${Math.round(r.width)}x${Math.round(r.height)}`);
 }
 
-// 15. 行高自适应: 卡高按内容, 行高取该行最高, 短卡不被拉高, 总高低于等高网格
+// 15. 两档尺寸 + 自动判档: mini 更矮更窄; 高过 3 屏才降档, 小图留在 compact
 {
-  const ids = ['a', 'b', 'c', 'd', 'e'];
-  const tall = new Set(['b']);
-  const hOf = id => (tall.has(id) ? 172 : 104);
-  const grid = layoutGrid(ids, () => [], S, 1400, () => ({}), hOf);   // 4 列 → 2 行
-  const n = Object.fromEntries(grid.nodes.map(x => [x.id, x]));
-  console.assert(n.a.h === 104 && n.b.h === 172, '卡高应各按内容, 实际 ' + n.a.h + '/' + n.b.h);
-  console.assert(n.a.y === n.b.y, '同行应顶对齐');
-  console.assert(n.a.rowH === 172 && n.e.rowH === 104, '行高应取该行最高, 实际 ' + n.a.rowH + '/' + n.e.rowH);
-  console.assert(n.e.y === n.a.y + 172 + S.gapY, '次行 y 应按上一行行高推进, 实际 ' + n.e.y);
-  const flat = layoutGrid(ids, () => [], S, 1400, () => ({}));
-  console.assert(grid.height < flat.height, '自适应总高应低于等高网格 ' + grid.height + ' vs ' + flat.height);
-  console.log(`15 行高自适应 OK 行高=${n.a.rowH}/${n.e.rowH} 总高 ${grid.height} (等高为 ${flat.height})`);
+  const g = { n0: [] };
+  for (let i = 1; i < 60; i++) g['n' + i] = ['n' + (i - 1)];
+  const ids = Object.keys(g), depsOf = id => g[id];
+  const c = layoutTiered(ids, depsOf, D.compact, 1400, () => ({}));
+  const m = layoutTiered(ids, depsOf, D.mini, 1400, () => ({}));
+  console.assert(m.height < c.height, `mini 应更矮: ${m.height} vs ${c.height}`);
+  console.assert(m.nodes[0].w === 120 && c.nodes[0].w === 190, '两档宽度应各按 DAG_DENSITY');
+  console.assert(autoDensity(c.height, 800) === 'mini', `60 层 compact (${c.height}px) 超 3 屏应降到 mini`);
+  console.assert(autoDensity(600, 800) === 'compact', '装得下的图应留在 compact');
+  console.log(`15 两档尺寸 OK compact=${Math.round(c.height)} mini=${Math.round(m.height)} 自动档=${autoDensity(c.height, 800)}`);
 }
 
 // 14. 边捆绑: 扇入 ≥3 的跨行长边共用一条主干 x, 短边和小扇入不参与
@@ -254,11 +244,12 @@ const run = (g, view) => sugiyama(Object.keys(g), id => g[id], { ...S, maxWidth:
   console.log(`14 边捆绑 OK 主干x=${t.x} 入束${t.set.size}条`);
 }
 
-// 12. 满铺网格环兜底: 有环也不死循环
+// 12. 分层环兜底: 环上节点入度永不归零, 仍须全量绘制且不死循环
 {
-  const grid = layoutGrid(['a', 'b', 'c'], id => ({ a: ['b'], b: ['a'], c: ['a'] })[id], S, 1400, () => ({}));
-  console.assert(grid.nodes.length === 3, '环图节点应全画');
-  console.log('12 满铺环兜底 OK ' + grid.width + 'x' + grid.height);
+  const r = layoutTiered(['a', 'b', 'c'], id => ({ a: ['b'], b: ['a'], c: ['a'] })[id], D.mini, 1400, () => ({}));
+  console.assert(r.nodes.length === 3, '环图节点应全画, 实际 ' + r.nodes.length);
+  console.assert(r.nodes.every(n => Number.isFinite(n.x) && Number.isFinite(n.y)), '环上节点也要有坐标');
+  console.log('12 分层环兜底 OK ' + Math.round(r.width) + 'x' + Math.round(r.height));
 }
 
 // 13. 进页自动定位: 视口居中到执行中的 task (画布几千 px, 从左上角开始等于没看到东西)

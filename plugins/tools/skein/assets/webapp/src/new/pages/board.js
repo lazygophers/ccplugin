@@ -278,164 +278,91 @@ function sugiyama(ids, depsOf, opt) {
   };
 }
 
-// 响应式布局参数
-const DAG_SIZES = {
-  sm: { colW: 260, rowH: 180, padX: 32, padY: 24, gapX: 24, gapY: 16 },
-  md: { colW: 300, rowH: 200, padX: 40, padY: 30, gapX: 30, gapY: 20 },
-  lg: { colW: 340, rowH: 220, padX: 50, padY: 40, gapX: 36, gapY: 24 },
-  xl: { colW: 380, rowH: 240, padX: 60, padY: 50, gapX: 40, gapY: 28 },
+// 两档节点尺寸 —— 分层排布的高度直接由节点高定 (行 = 依赖深度, 层数不可压)。
+// compact 卡上放得下标题 + 状态两行; mini 只剩状态色点 + id, 详情全靠 hover popover。
+const DAG_DENSITY = {
+  compact: { w: 190, h: 52, gapX: 14, gapY: 22, padX: 40, padY: 30 },
+  mini: { w: 120, h: 32, gapX: 14, gapY: 22, padX: 40, padY: 30 },
 };
 
-// ---- DAG 布局 ----
-// view = { w, h } 可用画布尺寸 — 详情面板开合 / 窗口缩放都会改变它, 布局随之重排
-// 宽度是硬约束 (画布永不横向溢出), 高度自由, 超出部分由容器纵向滚动条承担
-// 卡高按内容算, 不是固定 rowH: 没描述 / 没子任务的卡不该跟着最长的卡一起占满一格。
-// 纯函数, 不测 DOM —— 卡片结构是固定的几块, 各块高度是已知常量; 测量-重排循环换不来精度,
-// 只会换来一次多余的重绘和抖动。估值取偏大一档, 宁可留白也别被 overflow-hidden 裁掉内容。
-function cardHeight(t) {
-  let h = 104;                                 // padding + 顶部色条 + 标题/id + 底栏
-  if (t.description) {
-    // line-clamp-2 是上限不是定值 —— 短描述只占一行, 按 (卡宽 270px ÷ text-xs 中文字宽 12px)
-    // ≈ 22 权重/行 估行数, 西文字符按 0.55 折算
-    const wgt = [...t.description].reduce((n, ch) => n + (ch.charCodeAt(0) > 255 ? 1 : 0.55), 0);
-    h += Math.min(2, Math.max(1, Math.ceil(wgt / 22))) * 16 + 8;
-  }
-  if ((t.subtasks || []).length) h += 34;      // 子任务计数行 + 进度条
-  return h;
+// 默认档由画布算出来, 不是拍脑袋的节点数阈值: 先按 compact 排, 高度超过视口 3 屏就降到 mini。
+// 图窄或任务少时 compact 本来就装得下, 不该被一刀切的 "> 50 个任务用 mini" 强行缩小。
+function autoDensity(h, viewH) {
+  return h > Math.max(600, viewH) * 3 ? 'mini' : 'compact';
 }
 
-function layoutDAG(tasks, size = 'md', view) {
-  if (!tasks || !tasks.length) return { nodes: [], edges: [], width: 0, height: 0 };
-  const s = DAG_SIZES[size] || DAG_SIZES.md;
+// view = { w, h } 可用画布尺寸 — 详情面板开合 / 窗口缩放都会改变它, 布局随之重排。
+// 宽度是硬约束 (画布永不横向溢出), 高度自由, 超出部分由容器纵向滚动条承担。
+function layoutDAG(tasks, view, density) {
+  if (!tasks || !tasks.length) return { nodes: [], edges: [], width: 0, height: 0, density: density || 'compact' };
   const byId = new Map(tasks.map(t => [t.id, t]));
   const depsOf = id => (byId.get(id).deps || []).filter(d => byId.has(d));
-  return layoutCoord(tasks.map(t => t.id), depsOf, s,
-    (view && view.w) || 1200, id => ({ task: byId.get(id) }),
-    id => cardHeight(byId.get(id)));
+  const ids = tasks.map(t => t.id);
+  const maxW = (view && view.w) || 1200;
+  const extraOf = id => ({ task: byId.get(id) });
+  const run = (d) => ({ ...layoutTiered(ids, depsOf, DAG_DENSITY[d], maxW, extraOf), density: d });
+
+  if (density === 'mini' || density === 'compact') return run(density);
+  const c = run('compact');
+  const auto = autoDensity(c.height, (view && view.h) || 0);
+  return auto === 'compact' ? c : run('mini');
 }
 
-// 卡片位置由它的前驱 + 后继共同决定: 逐张按拓扑序落位, 候选落点打分 = 到各邻居的距离 + 落点高度,
-// 取最低分。网格排布是反过来的 —— 先划死格子再往里塞卡, 位置与依赖关系无关, 线只能绕着格子走。
-//
-// 落点由 skyline (逐桶记录当前占用底沿) 给出: 选定 x 后 y 就是该段 skyline 的最高点, 卡自动
-// 贴着已放的卡长上去。面积因此不会退化 —— 这是「贴合装箱」而非力导向, 后者实测把画布拉到近两倍高。
-// 跑两遍: 第一遍只有前驱已定位, 第二遍拿第一遍的坐标, 前驱后继一起参与打分。
-function layoutCoord(ids, depsOf, s, maxW, extraOf, heightOf) {
-  // nodes 顺序即 layoutGrid 的 DFS 拓扑序; 借它的节点尺寸与边表, 位置全部重算
-  const g = layoutGrid(ids, depsOf, s, maxW, extraOf, heightOf);
-  const nodes = g.nodes;
-  if (nodes.length < 2) return g;
-
-  const nmap = new Map(nodes.map(n => [n.id, n]));
-  const nbrIds = new Map(nodes.map(n => [n.id, { pred: [], all: [] }]));
-  for (const id of ids) {
-    for (const d of depsOf(id)) {
-      if (!nmap.has(d) || !nmap.has(id)) continue;
-      nbrIds.get(id).pred.push(d);
-      nbrIds.get(id).all.push(d);
-      nbrIds.get(d).all.push(id);
+// 真分层 (行 = 依赖深度), 靠缩小节点换回来的。
+// ADR 0001 当年判分层死刑的 15514px = 66 行 × 220px 行高 —— 行高由卡片尺寸定, 不是算法定的。
+// 节点降到 120×32 / 190×52, 同样的层数只占 1/5 高度: 实测 96 节点 2090px / 2850px, 回绕 0。
+// 层内一行放不下就折行 (整层仍是同一依赖深度), 折行数按 perRow 均分, 避免末行只剩 1 个。
+// 层内顺序按 barycenter (前驱平均 x) 排, 跑两遍让第二遍拿到真实前驱坐标。
+function layoutTiered(ids, depsOf, s, maxW, extraOf) {
+  const nw = s.w, nh = s.h;
+  const inSet = new Set(ids);
+  const lay = new Map();
+  // 最长路径深度: 按拓扑序推进, 环上节点 (depsOf 拿不到已定层的前驱) 落回 0
+  const topo = [];
+  {
+    const deps = new Map(ids.map(id => [id, depsOf(id).filter(d => inSet.has(d))]));
+    const left = new Map(ids.map(id => [id, deps.get(id).length]));
+    const succ = new Map(ids.map(id => [id, []]));
+    for (const id of ids) for (const d of deps.get(id)) succ.get(d).push(id);
+    const q = ids.filter(id => left.get(id) === 0);
+    const seen = new Set();
+    while (q.length) {
+      const cur = q.shift();
+      seen.add(cur);
+      topo.push(cur);
+      for (const nx of succ.get(cur)) { left.set(nx, left.get(nx) - 1); if (left.get(nx) === 0) q.push(nx); }
     }
+    for (const id of ids) if (!seen.has(id)) topo.push(id);   // 环兜底: 全量绘制
   }
+  for (const id of topo) lay.set(id, Math.max(0, ...depsOf(id).map(d => (lay.get(d) ?? -1) + 1)));
 
-  const B = 8;                                        // 落点按 8px 量化 — 够细, 又把候选数压住
-  const cols = Math.max(1, Math.floor((maxW - s.padX * 2) / B));
-  const place = (pick) => {
-    const sky = new Float64Array(cols);
-    for (const n of nodes) {
-      const span = Math.max(1, Math.ceil((n.w + s.gapX) / B));
-      const maxC = Math.max(0, cols - span);
-      const cand = new Set([0, maxC]);
-      // 候选一: 邻居正下方 / 正上方 (对齐邻居 x, 线就是一条直竖线)
-      for (const m of pick(n)) cand.add(Math.min(maxC, Math.max(0, Math.round((m.x - s.padX) / B))));
-      // 候选二: skyline 的每个台阶变化点 —— 贴着台阶放才不留空洞
-      for (let i = 1; i < cols; i++) if (sky[i] !== sky[i - 1]) cand.add(Math.min(maxC, i));
-      let best = null;
-      for (const c of cand) {
-        let y = 0;
-        for (let i = c; i < c + span && i < cols; i++) if (sky[i] > y) y = sky[i];
-        const x = s.padX + c * B;
-        // 高度项的权重决定「压面积」和「缩短线」谁让步。1.5 是实测的平衡点:
-        // 再低画布迅速长高, 再高就退化成一格接一格的网格。
-        let cost = y * 1.5;
-        for (const m of pick(n)) cost += Math.abs(x - m.x) + Math.abs(y + s.padY - m.y);
-        // 回绕惩罚: 落在前驱上方的边要往回爬, 读图时方向感直接断掉。罚重于省下的那点距离,
-        // 但不设为硬约束 —— 硬约束就退回分层排布 (一层独占一行) 那套 15000px 的柱子了。
-        for (const m of nbrIds.get(n.id).pred.map(id => nmap.get(id))) {
-          if (y + s.padY < m.y + m.h) cost += (m.y + m.h - y - s.padY) * 0.6;
-        }
-        if (!best || cost < best.cost) best = { cost, x, y, c };
-      }
-      n.x = best.x;
-      n.y = s.padY + best.y;
-      for (let i = best.c; i < best.c + span && i < cols; i++) sky[i] = best.y + n.h + s.gapY;
-    }
+  const tiers = [];
+  for (const id of topo) (tiers[lay.get(id)] || (tiers[lay.get(id)] = [])).push(id);
+  const perRow = Math.max(1, Math.floor((maxW - s.padX * 2 + s.gapX) / (nw + s.gapX)));
+  const rowH = nh + 6;
+  const pos = new Map();
+  const bary = (id) => {
+    const ps = depsOf(id).map(d => pos.get(d)).filter(Boolean);
+    return ps.length ? ps.reduce((a, p) => a + p.x, 0) / ps.length : Infinity;
   };
-  place(n => nbrIds.get(n.id).pred.map(id => nmap.get(id)));
-  place(n => nbrIds.get(n.id).all.map(id => nmap.get(id)));
-
-  return {
-    nodes, edges: g.edges,
-    width: Math.max(...nodes.map(n => n.x + n.w)) + s.padX,
-    height: Math.max(...nodes.map(n => n.y + n.h)) + s.padY,
-  };
-}
-
-// 拓扑序满铺网格: 一行内可以并排不同依赖深度的卡。
-// 分层排布 (layoutPacked) 里 27 个依赖层有 21 层只有 1~2 个节点, 每层仍独占整行 —— 98 张卡排出
-// 66 行 15494px, 其中 44 行只坐了 1 张。满铺按 ⌈N/列数⌉ 排, 同样 98 张压到 33 行 ~7300px。
-// 代价: 行不再等于依赖深度, 依赖方向只能靠箭头认。这是明确的取舍 (高度 ÷2 换读图规则)。
-function layoutGrid(ids, depsOf, s, maxW, extraOf, heightOf) {
-  const cols = Math.max(1, Math.floor((maxW - s.padX * 2) / s.colW));
-  const w = s.colW - s.gapX, hgt = s.rowH - s.gapY;
-
-  // 排序: 分量内走 DFS 风格拓扑序 (Kahn + LIFO)。纯按依赖深度排会把链上的父子拆到很远的
-  // 格子, 边就成了横跨半张画板的长线; LIFO 让刚解锁的后继立刻接在父节点后面, 一条链连续铺开。
-  const order = [];
-  for (const comp of components(ids, depsOf)) {
-    const set = new Set(comp);
-    const deps = new Map(comp.map(id => [id, depsOf(id).filter(d => set.has(d))]));
-    const left = new Map(comp.map(id => [id, deps.get(id).length]));
-    const succ = new Map(comp.map(id => [id, []]));
-    for (const id of comp) for (const d of deps.get(id)) succ.get(d).push(id);
-    const stack = comp.filter(id => left.get(id) === 0);
-    const placed = new Set();
-    while (stack.length) {
-      const cur = stack.pop();
-      if (placed.has(cur)) continue;
-      placed.add(cur);
-      order.push(cur);
-      for (const nx of succ.get(cur)) {
-        left.set(nx, left.get(nx) - 1);
-        if (left.get(nx) === 0) stack.push(nx);
-      }
-    }
-    // 环上的节点入度永不归零, Kahn 排不出来 — 按原序补在后面, 保证全量绘制
-    for (const id of comp) if (!placed.has(id)) order.push(id);
-  }
-
-  // 蛇形行序: 偶数行左→右, 奇数行右→左。行末节点与下一行行首同列, 换行的边只需竖直下降,
-  // 不必从画板最右横穿回最左 —— 长横线是「大量竖线挤在列间空隙」的主要来源。
-  //
-  // 行高自适应: 卡高按各自内容 (heightOf), 行高取该行最高的那张。死板的等高网格让描述短的卡
-  // 拖着一大片留白, 整张画板被最长的那条描述定了调子。行内仍顶对齐 —— 保住蛇形与行间走线通道,
-  // 完全 masonry 会把这两样一起拆掉。node.rowH 带出行底, 走线要用它而不是自身 h 找通道。
-  const hOf = (id) => Math.max(48, Math.round((heightOf && heightOf(id)) || hgt));
-  const nodes = [];
   let y = s.padY;
-  for (let i = 0; i < order.length; i += cols) {
-    const rowIds = order.slice(i, i + cols);
-    const row = i / cols, rowH = Math.max(...rowIds.map(hOf));
-    rowIds.forEach((id, k) => {
-      const col = row % 2 === 0 ? k : cols - 1 - k;
-      nodes.push({
-        id, band: 0, w, h: hOf(id), rowH,
-        x: s.padX + col * s.colW,
-        y,
-        ...extraOf(id),
+  for (let pass = 0; pass < 2; pass++) {
+    y = s.padY;
+    for (const tier of tiers) {
+      if (!tier) continue;
+      if (pass) tier.sort((a, b) => bary(a) - bary(b));
+      const rows = Math.ceil(tier.length / perRow);
+      const cnt = Math.ceil(tier.length / rows);
+      tier.forEach((id, i) => {
+        const r = Math.floor(i / cnt), c = i % cnt;
+        const rowN = Math.min(cnt, tier.length - r * cnt);
+        const x0 = s.padX + (maxW - s.padX * 2 - (rowN * (nw + s.gapX) - s.gapX)) / 2;
+        pos.set(id, { x: Math.max(s.padX, x0) + c * (nw + s.gapX), y: y + r * rowH });
       });
-    });
-    y += rowH + s.gapY;
+      y += rows * rowH - 6 + s.gapY;
+    }
   }
+  const nodes = topo.map(id => ({ id, ...pos.get(id), w: nw, h: nh, rowH: nh, band: 0, tier: lay.get(id), ...extraOf(id) }));
   const nmap = new Map(nodes.map(n => [n.id, n]));
   const edges = [];
   for (const id of ids) {
@@ -446,7 +373,7 @@ function layoutGrid(ids, depsOf, s, maxW, extraOf, heightOf) {
   }
   return {
     nodes, edges,
-    width: Math.min(cols, order.length) * s.colW + s.padX * 2 - s.gapX,
+    width: Math.max(...nodes.map(n => n.x + n.w)) + s.padX,
     height: y - s.gapY + s.padY,
   };
 }
@@ -674,92 +601,62 @@ function getSubtaskStats(task) {
 }
 
 // ---- DAG 节点卡片 ----
-function nodeCard(node, onClick, onToggleExpand, isExpanded, dimmed) {
+// 分层排布下节点尺寸是布局的自变量 (行 = 依赖深度, 高度 = 层数 × 节点高), 所以卡面内容跟着档位走:
+// compact 52px 放标题 + id/状态一行, mini 32px 只剩色点 + 标题。两档的详情都在 hover popover 里,
+// 卡面少画几行不等于信息丢失。
+function nodeCard(node, onClick, onToggleExpand, isExpanded, dimmed, density = 'compact') {
   const t = node.task;
   const st = t.status || 'planning';
   const subs = t.subtasks || [];
   const subStats = getSubtaskStats(t);
   const hasSubs = subs.length > 0;
 
+  const mini = density === 'mini';
   // 淡化用 .is-dim 而非 tailwind .opacity-40: 后者作用在 wrap 上会把 ::before 的
   // 不透明底垫一起调淡, 连线立刻从卡片里透出来。CSS 里 .is-dim 只淡内层卡面。
   return h(`div.dag-node-wrap.absolute${dimmed ? ' is-dim' : ''}`,
     {
       'data-node-id': t.id,
-      style: {
-        left: node.x + 'px', top: node.y + 'px',
-        width: node.w + 'px',
-      },
+      style: { left: node.x + 'px', top: node.y + 'px', width: node.w + 'px' },
     },
     [
       nodePopover(node),
       // 卡片本体高度锁定为 node.h — drawEdges 用 node.h 算端点中线, 内容撑高会让连线脱离卡片
-      h('div.dag-node.glass-card.p-3.cursor-pointer.hover-float.transition-all.overflow-hidden.flex.flex-col',
+      h(`div.dag-node.dag-node-${density}.glass-card.cursor-pointer.transition-all.overflow-hidden.flex.items-center.gap-2.st-${st}`,
         {
           onclick: (e) => { e.preventDefault(); onClick(t.id); },
           'data-task-id': t.id,
           style: { height: node.h + 'px' },
         },
         [
-          h(`div.h-1.rounded-full.-mx-3.-mt-3.mb-2.${ST_COLOR[st]}.opacity-60`),
-          h('div.flex.items-start.gap-2.mb-1.5', [
-            h(`i.fa.${ST_ICON[st]}.text-${ST_COLOR[st]}.mt-0.5.flex-shrink-0.text-sm`),
-            h('div.flex-1.min-w-0', [
-              h('div.text-sm.font-semibold.text-head.truncate', t.title || t.name || '(未命名)'),
-              h('div.text-xs.text-muted.font-mono.truncate', '#' + t.id),
-            ]),
-          ]),
-          t.description
-            ? h('div.text-xs.text-muted.line-clamp-2.mb-2', t.description)
-            : null,
-          hasSubs ? h('div.mb-2', [
-            h('div.flex.items-center.justify-between.text-xs.text-muted.mb-1', [
-              h('span.flex.items-center.gap-1', [
-                h('i.fa.fa-sitemap.text-xxs'),
-                `子任务 ${subStats.done}/${subStats.total}`,
+          h(`span.dag-dot.bg-${ST_COLOR[st]}`),
+          h('div.flex-1.min-w-0', mini
+            ? [h('div.text-xs.text-head.truncate.leading-none', t.title || t.name || t.id)]
+            : [
+                h('div.text-xs.font-semibold.text-head.truncate.leading-tight', t.title || t.name || '(未命名)'),
+                h('div.flex.items-center.gap-1\\.5.text-xxs.text-muted.leading-tight', [
+                  h('span.font-mono.truncate', '#' + t.id),
+                  hasSubs ? h('span.flex-shrink-0', `${subStats.done}/${subStats.total}`) : null,
+                ]),
               ]),
-              h('span', `${subStats.progress}%`),
-            ]),
-            h('div.h-1.rounded-full.bg-line.overflow-hidden',
-              [
-                h('div.h-full.rounded-full',
-                  {
-                    style: {
-                      width: subStats.progress + '%',
-                      background: 'var(--st-done)',
-                    },
-                  }
-                ),
-              ]
-            ),
-          ]) : null,
-          h('div.flex.items-center.justify-between.text-xs.mt-auto', [
-            h(`span.badge.badge-sm.${ST_COLOR[st]}`, ST_LABEL[st] || st),
-            h('div.flex.items-center.gap-2', [
-              hasSubs
-                ? h('button',
-                    {
-                      onclick: (e) => { e.stopPropagation(); if (onToggleExpand) onToggleExpand(t.id); },
-                      title: isExpanded ? '收起子任务' : '展开子任务',
-                      class: 'text-muted hover:text-accent transition-colors',
-                    },
-                    [h(`i.fa.fa-chevron-${isExpanded ? 'up' : 'down'}`)]
-                  )
-                : null,
-              h('span.text-muted', t.updatedAt ? fmtRelative(t.updatedAt) : ''),
-            ]),
-          ]),
+          // 子任务展开只在 compact 档给按钮 — mini 卡宽 120px, 塞不下, 点卡片进详情面板一样能看
+          !mini && hasSubs
+            ? h('button.flex-shrink-0.px-1.text-muted.hover\\:text-accent.transition-colors',
+                {
+                  onclick: (e) => { e.stopPropagation(); if (onToggleExpand) onToggleExpand(t.id); },
+                  title: isExpanded ? '收起子任务' : '展开子任务',
+                },
+                [h(`i.fa.fa-chevron-${isExpanded ? 'up' : 'down'}.text-xxs`)])
+            : null,
         ]
       ),
-      isExpanded && hasSubs ? h('div.mt-2.glass-card.p-3',
+      isExpanded && hasSubs && !mini ? h('div.mt-2.glass-card.p-3',
         { onclick: (e) => e.stopPropagation() },
         [
           h('div.eyebrow.text-accent.mb-2.text-xs', `子任务 DAG (${subs.length})`),
           subs.length >= 2
-            ? subDAGView(subs, (sid) => { onClick(t.id); })
-            : subs.length === 1
-              ? h('div.p-2.rounded.bg-surface/50.text-sm', subs[0].title || subs[0].name || subs[0].sid)
-              : null,
+            ? subDAGView(subs, () => { onClick(t.id); })
+            : h('div.p-2.rounded.bg-surface/50.text-sm', subs[0].title || subs[0].name || subs[0].sid),
         ]
       ) : null,
     ]
@@ -892,7 +789,7 @@ function drawEdges(edges, getEdgeInfo) {
     if (bundled) {
       // 出源卡侧沿朝外 → 下探到源所在行的行间通道 (同一行的多条接入线在此重叠, 又是一次合流)
       // → 横向并入主干 → 沿主干竖直下到目标 → 横入目标左沿
-      // 通道走行底而非源卡底: 行高自适应后同行卡片高度不一, 用自身 h 会把通道画进旁边高卡的肚子里
+      // 通道走行底 (node.rowH) 而非源卡底: 分层排布下两者相等, 但子任务迷你 DAG 的行仍可能不等高
       const sx = x1 + (rightward ? 16 : -16), yc = e.from.y + (e.from.rowH || e.from.h) + 10;
       pts.push({ x: sx, y: y1 }, { x: sx, y: yc }, { x: trunk.x, y: yc }, { x: trunk.x, y: y2 });
     } else if (e.cross) {
@@ -1674,24 +1571,20 @@ export async function render(mount, params, ctx) {
     }
   }
 
-  // ---- 响应式 size 检测 ----
-  function getSize() {
-    const w = window.innerWidth;
-    if (w >= 1700) return 'xl';
-    if (w >= 1440) return 'lg';
-    if (w >= 1024) return 'md';
-    return 'sm';
+  // 节点档位: null = 跟随画布自动判定 (autoDensity), 用户切过一次就记住, 换页/刷新不用重切
+  let densityPref = null;
+  try { const v = localStorage.getItem('skein.dag.density'); if (v === 'mini' || v === 'compact') densityPref = v; } catch (_) { /* 隐私模式禁 localStorage */ }
+  function setDensity(d) {
+    densityPref = d;
+    try { d ? localStorage.setItem('skein.dag.density', d) : localStorage.removeItem('skein.dag.density'); } catch (_) { /* 同上 */ }
+    draw();
   }
-  let curSize = getSize();
   // 布局用的可用画布尺寸 — 每次 draw 后按真实 DOM 校正, 详情面板开合 / 窗口缩放都会改到它
   let viewBox = { w: Math.max(400, window.innerWidth - 80), h: Math.max(600, window.innerHeight - 260) };
   let resizeTimer = null;
   window.addEventListener('resize', () => {
     if (resizeTimer) clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(() => {
-      curSize = getSize();
-      draw();
-    }, 150);
+    resizeTimer = setTimeout(draw, 150);
   });
 
   // ---- DAG 抓手拖拽 ----
@@ -1809,7 +1702,9 @@ export async function render(mount, params, ctx) {
 
   function draw() {
     const allSelected = ALL_STATUSES.every(s => statusSet.has(s));
-    const { nodes, edges, width, height } = layoutDAG(allTasks, curSize, viewBox);
+    const lay = layoutDAG(allTasks, viewBox, densityPref);
+    const { nodes, edges, width, height } = lay;
+    const curDensity = lay.density;
     const selectedTask = allTasks.find(t => t.id === selectedId) || null;
     const hasPanel = !!selectedTask;
     const highlightedCount = allTasks.filter(t => statusSet.has(t.status)).length;
@@ -1824,6 +1719,19 @@ export async function render(mount, params, ctx) {
         h('div.flex-1.min-w-0', statusFilterBar(statusSet, countBy, setFilter)),
         h('div.flex.items-center.gap-3.flex-shrink-0', [
           view === 'dag' ? h('div.flex.items-center.gap-1.glass.rounded-lg.p-1.border.border-brd/40', [
+            h(`button.px-2.py-1.rounded-md.text-sm.transition-colors.${curDensity === 'compact' ? 'text-accent' : 'text-muted'}.hover\\:text-accent`,
+              {
+                onclick: () => setDensity(densityPref === 'compact' ? null : 'compact'),
+                title: densityPref === 'compact' ? '中号节点 (点击回自动)' : '切到中号节点',
+              },
+              h('i.fa.fa-th-large')),
+            h(`button.px-2.py-1.rounded-md.text-sm.transition-colors.${curDensity === 'mini' ? 'text-accent' : 'text-muted'}.hover\\:text-accent`,
+              {
+                onclick: () => setDensity(densityPref === 'mini' ? null : 'mini'),
+                title: densityPref === 'mini' ? '迷你节点 (点击回自动)' : '切到迷你节点',
+              },
+              h('i.fa.fa-th')),
+            h('span.w-px.h-4.bg-brd/60.mx-1'),
             h('button.px-2.py-1.rounded-md.text-sm.text-muted.hover\\:text-accent.transition-colors',
               { onclick: () => { scale = Math.min(scale + 0.1, 2); draw(); }, title: '放大' },
               h('i.fa.fa-search-plus')),
@@ -1864,7 +1772,7 @@ export async function render(mount, params, ctx) {
                       const toSt = e.to.task ? e.to.task.status : 'planning';
                       return { dimmed: !(statusSet.has(fromSt) && statusSet.has(toSt)) };
                     }),
-                    ...nodes.map(n => nodeCard(n, selectTask, toggleExpand, expandedNodes.has(n.id), !statusSet.has(n.task.status))),
+                    ...nodes.map(n => nodeCard(n, selectTask, toggleExpand, expandedNodes.has(n.id), !statusSet.has(n.task.status), curDensity)),
                   ]
                 ),
               ]

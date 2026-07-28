@@ -648,6 +648,35 @@
   border-color: var(--accent);
   box-shadow: 0 0 0 1px var(--accent), 0 8px 24px rgba(0,0,0,0.28);
 }
+/* 两档节点尺寸: 分层排布 (行 = 依赖深度) 的画布高度 = 层数 × 节点高, 节点高就是布局的自变量。
+   状态色走描边而非顶部色条 —— 32px 高的卡切一条 4px 色带就只剩 28px 放字。 */
+.dag-node.dag-node-compact,
+.dag-node.dag-node-mini {
+  padding: 0 10px;
+  border-radius: 999px;
+  border-width: 1.4px;
+  border-style: solid;
+}
+.dag-node.dag-node-compact { padding: 0 12px; border-radius: 12px; }
+/* board.js 一直在用 .text-xxs, 但从来没定义过 —— 之前只是继承父级字号, 没人发现 */
+.text-xxs { font-size: 0.625rem; line-height: 0.9rem; }
+.dag-node .dag-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dag-node.st-planning { border-color: var(--st-planning); }
+.dag-node.st-ready    { border-color: var(--st-ready); }
+.dag-node.st-pending  { border-color: var(--st-pending); }
+.dag-node.st-active   { border-color: var(--st-active); }
+.dag-node.st-check    { border-color: var(--st-check); }
+.dag-node.st-done     { border-color: var(--st-done); }
+.dag-node.st-failed   { border-color: var(--st-failed); }
+.dag-node.dag-node-mini:hover,
+.dag-node.dag-node-compact:hover { filter: brightness(1.18); }
+/* 底垫圆角跟着卡形走, 否则 mini 的胶囊四角会露出方形底垫 */
+.dag-node-wrap:has(.dag-node-mini)::before { border-radius: 999px; }
+
 .dag-node-wrap .dag-popover {
   position: absolute;
   left: 50%;
