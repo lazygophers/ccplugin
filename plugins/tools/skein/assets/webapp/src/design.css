@@ -1210,6 +1210,46 @@
 [data-theme="skein-dark"] .tl-st.pending { color: #64748b; border-color: #334155; }
 [data-theme="skein-dark"] .tl-time { color: #64748b; }
 [data-theme="skein-dark"] .tl-dur  { color: #64748b; }
+/* markdown 正文 (task 详情的 design.md / findings.md / research/*.md) — 沿用 tokens, 与 glass-card 内文一致 */
+.md-body { font-size: 13px; line-height: 1.75; color: var(--fg); word-break: break-word; }
+.md-body > :first-child { margin-top: 0; }
+.md-body > :last-child { margin-bottom: 0; }
+.md-body h1, .md-body h2, .md-body h3, .md-body h4, .md-body h5, .md-body h6 {
+  color: var(--head); font-weight: 600; line-height: 1.4; margin: 18px 0 8px;
+}
+.md-body h1 { font-size: 17px; }
+.md-body h2 { font-size: 15px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+.md-body h3 { font-size: 14px; }
+.md-body h4, .md-body h5, .md-body h6 { font-size: 13px; color: var(--muted); }
+.md-body p { margin: 8px 0; }
+.md-body ul, .md-body ol { margin: 8px 0; padding-left: 20px; }
+.md-body li { margin: 3px 0; }
+.md-body li.task { list-style: none; margin-left: -18px; display: flex; gap: 6px; align-items: baseline; }
+.md-body li.task input { accent-color: var(--accent); }
+.md-body a { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; }
+.md-body a:hover { border-bottom-color: var(--accent); }
+.md-body code {
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", monospace; font-size: 12px;
+  padding: 1px 5px; border-radius: var(--radius-sm); background: rgba(148,163,184,0.16); color: var(--head);
+}
+.md-body pre {
+  margin: 10px 0; padding: 12px 14px; border-radius: var(--radius); overflow-x: auto;
+  background: rgba(148,163,184,0.12); border: 1px solid var(--brd);
+}
+.md-body pre code { padding: 0; background: none; font-size: 12px; line-height: 1.6; }
+.md-body blockquote {
+  margin: 10px 0; padding: 2px 12px; color: var(--muted);
+  border-left: 3px solid var(--accent); background: rgba(148,163,184,0.08); border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+.md-body hr { margin: 16px 0; border: 0; border-top: 1px solid var(--line); }
+.md-body table { width: 100%; margin: 10px 0; border-collapse: collapse; font-size: 12px; display: block; overflow-x: auto; }
+.md-body th, .md-body td { padding: 6px 10px; border: 1px solid var(--brd); text-align: left; }
+.md-body th { background: rgba(148,163,184,0.12); color: var(--head); font-weight: 600; }
+.md-body img { max-width: 100%; border-radius: var(--radius-sm); }
+[data-theme="skein-dark"] .md-body code,
+[data-theme="skein-dark"] .md-body pre,
+[data-theme="skein-dark"] .md-body th { background: rgba(15,23,42,0.55); }
+
 /* 执行阶段子时间线 (task 详情: 每 subtask 执行过程, 默认折叠) */
 .tl-sub { margin-top: 6px; }
 .tl-sub-sum {

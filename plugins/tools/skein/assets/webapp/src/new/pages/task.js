@@ -5,7 +5,7 @@
 //  状态: 规划中 / 待执行 / 执行中 / 验收中 / 已完成
 // ============================================================
 
-import { h, api, fmtRelative, fmtTime, normalizeTask, normalizeTasks } from '../app.js';
+import { h, api, md, fmtRelative, fmtTime, normalizeTask, normalizeTasks } from '../app.js';
 
 const ST_LABEL = {
   planning: '规划中', ready: '待执行',
@@ -329,33 +329,36 @@ function contractsView(contracts) {
   ]);
 }
 
+const docEmpty = md.isPlaceholder;   // 模板占位 (只有标题 + 提示句) 视为空, 整块不渲染
+
 // ---- 详细设计 ----
 function designView(design) {
-  if (!design) return null;
+  if (docEmpty(design)) return null;
   return h('div.glass-card.p-5', [
     h('h3.section-title', [
       h('i.fa.fa-sitemap.text-st-active'),
       '详细设计',
     ]),
-    h('pre.text-xs.text-fg.whitespace-pre-wrap.font-mono.bg-surface/30.p-4.rounded-lg.overflow-x-auto', design),
+    docBody(design),
   ]);
 }
 
-// ---- 调研 (findings.md 结论 + research/*.md 过程笔记) ----
+// ---- 文档正文 (design.md / findings.md / research/*.md 都是 md) ----
 function docBody(text) {
-  // ponytail: 原文直出, 不引 markdown 渲染器
-  return h('pre.text-xs.text-fg.whitespace-pre-wrap.font-mono.bg-surface/30.p-4.rounded-lg.overflow-x-auto', text);
+  // lib/md.js 渲染 (normalize 先自动修常见瑕疵) + sanitize; .md-body 承载排版样式
+  return h('div.md-body', { html: md.renderSafe(text) });
 }
 
 function researchView(findings, research) {
-  const notes = Object.entries(research || {});
-  if (!findings && !notes.length) return null;
+  const notes = Object.entries(research || {}).filter(([, body]) => !docEmpty(body));
+  const hasFindings = !docEmpty(findings);
+  if (!hasFindings && !notes.length) return null;   // 全是模板占位 → 整卡不渲染
   return h('div.glass-card.p-5', [
     h('h3.section-title', [
       h('i.fa.fa-flask.text-st-planning'),
       `调研${notes.length ? ` (结论 + ${notes.length} 篇过程笔记)` : ' 结论'}`,
     ]),
-    findings ? docBody(findings) : h('p.text-sm.text-muted', '无收敛结论 (findings.md 未生成)'),
+    hasFindings ? docBody(findings) : h('p.text-sm.text-muted', '无收敛结论 (findings.md 未生成)'),
     notes.length
       ? h('div.space-y-2.mt-4',
           notes.map(([name, body]) =>
