@@ -8,64 +8,10 @@
   <!-- 设计系统基底: 16 色硬 token + 布局原语 + 动效; 早加载避免 FOUC -->
   <link rel="stylesheet" href="../tokens.css">
   <link rel="stylesheet" href="../design.css">
-  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
-
-  <!-- Tailwind CDN (buildless, 同 examples 范式); 内联 config 把品牌色别名指 tokens.css CSS 变量 -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: ['class', '[data-theme="skein-dark"]'],
-      theme: {
-        extend: {
-          colors: {
-            ocean:      { foam: 'var(--ocean-foam)', shallow: 'var(--ocean-shallow)', mid: 'var(--ocean-mid)', deep: 'var(--ocean-deep)', abyss: 'var(--ocean-abyss)' },
-            whiteSand:  { pearl: 'var(--whiteSand-pearl)', shell: 'var(--whiteSand-shell)', cream: 'var(--whiteSand-cream)' },
-            goldSand:   { light: 'var(--goldSand-light)', mid: 'var(--goldSand-mid)', deep: 'var(--goldSand-deep)', sunset: 'var(--goldSand-sunset)' },
-            night:      { base: 'var(--night-base)', mid: 'var(--night-mid)', deep: 'var(--night-deep)' },
-            success: 'var(--success)',
-            warning: 'var(--warning)',
-            danger:  'var(--danger)',
-            bg:      'var(--bg)',
-            card:    'var(--card)',
-            fg:      'var(--fg)',
-            head:    'var(--head)',
-            muted:   'var(--muted)',
-            brd:     'var(--brd)',
-            line:    'var(--line)',
-            accent:  'var(--accent)',
-            accent2: 'var(--accent2)',
-            'st-pending': 'var(--st-pending)',
-            'st-active':  'var(--st-active)',
-            'st-check':   'var(--st-check)',
-            'st-done':    'var(--st-done)',
-            'st-failed':  'var(--st-failed)',
-          },
-          fontFamily: {
-            sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
-            mono: ['ui-monospace', 'SF Mono', 'JetBrains Mono', 'monospace'],
-          },
-          borderRadius: { DEFAULT: 'var(--radius)', sm: 'var(--radius-sm)', lg: 'var(--radius-lg)' },
-        },
-      },
-    };
-  </script>
-
-  <style type="text/tailwindcss">
-    @layer utilities {
-      .glass-card { @apply glass rounded-xl p-5 border border-brd/60; }
-      .section-title {
-        @apply text-xl font-semibold mb-4 flex items-center gap-2;
-      }
-      .section-title::before {
-        content: '';
-        width: 4px;
-        height: 24px;
-        background: var(--accent);
-        border-radius: 2px;
-        flex-shrink: 0;
-      }
-    }
-  </style>
+  <!-- 图标: font-awesome 4.7 子集 (53 枚字形, 5KB woff2), 本地直出无外网请求 -->
+  <link rel="stylesheet" href="../icons.css">
+  <!-- Tailwind 预构建静态 css (原 cdn.tailwindcss.com 运行时 JIT, 省 ~400KB JS); 置于 design.css 后保持原级联顺序 -->
+  <link rel="stylesheet" href="../tailwind.css?v={{VER}}">
 </head>
 <body class="bg-fluid-light min-h-screen font-sans text-fg transition-colors duration-500 ease-in-out">
   <!-- 早同步主题 (避免闪屏): localStorage 校验 → 默认 dark -->

@@ -36,8 +36,7 @@
 | `config.yaml` | 插件配置 | 用户 | 可读 |
 | `task.json` | 顶层状态汇总 `{tasks:[{id,status,deps}]}` | 脚本 | **禁** |
 | `task.md` | 文本看板 (从 task.json 渲染) | 脚本 | **禁** |
-| `task.html` | 可视化看板 (4 主题 6 配色) | 脚本 | **禁** |
-| `board/` | 主题 CSS (从 assets/board/ 拷贝) | 脚本 | git 忽略 |
+| `task.html` | 可视化看板 (`skein board` 落盘; serve 走实时渲染) | 脚本 | **禁** |
 | `task/<id>/task.json` | 单 task + subtask DAG + contracts | 脚本 | **禁** |
 | `task/<id>/task.md` | 子任务看板 | 脚本 | **禁** |
 | `task/<id>/prd.md` | planning 主入口 | AI | 可读写 |
