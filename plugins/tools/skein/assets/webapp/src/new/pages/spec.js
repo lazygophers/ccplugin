@@ -3,7 +3,7 @@
 //  设计: 列表 = 卡片网格 + 搜索; 详情 = /spec/detail?id=<rel path> 渲染 md 原文
 // ============================================================
 
-import { h, api, md } from '../app.js';
+import { h, api, md, fmtTime } from '../app.js';
 
 const LAYER_LABEL = { core: '常驻', recall: '召回' };
 
@@ -44,21 +44,61 @@ function specCard(spec) {
   );
 }
 
-// ---- 详情: 单 spec md 原文 ----
+// 值渲染: 数组 → chip 组; 时间戳 → 可读时间; 状态 → 徽标; 其余 → 文本
+const META_LABEL = {
+  title: '标题', layer: '层级', category: '类目', keywords: '关键词',
+  source: '来源', 'authored-by': '写入者', created: '创建', updated: '更新',
+  status: '状态', related: '关联',
+};
+const META_ORDER = ['layer', 'category', 'status', 'source', 'authored-by',
+                    'created', 'updated', 'keywords', 'related'];
+
+function metaValue(key, val) {
+  if (Array.isArray(val)) {
+    return val.length
+      ? h('div.flex.flex-wrap.gap-1.5', val.map(v => h('span.antd-tag', String(v))))
+      : h('span.text-muted', '—');
+  }
+  if ((key === 'created' || key === 'updated') && /^\d{9,}$/.test(String(val))) {
+    return h('span', fmtTime(Number(val) * 1000));
+  }
+  if (key === 'status') return h('span.antd-tag' + (val === 'active' ? '.success' : ''), String(val));
+  if (key === 'layer') return h('span.antd-tag', LAYER_LABEL[val] || String(val));
+  return h('span', String(val));
+}
+
+function metaCard(meta) {
+  const keys = [...META_ORDER.filter(k => meta[k] != null),
+                ...Object.keys(meta).filter(k => k !== 'title' && !META_ORDER.includes(k))];
+  if (!keys.length) return null;
+  return h('div.glass-card.p-5.mb-6', [
+    h('h3.section-title', [h('i.fa.fa-info-circle.text-accent'), '元数据']),
+    h('div.grid.grid-cols-1.md\\:grid-cols-2.gap-x-6.gap-y-3',
+      keys.map(k => h('div.flex.items-start.gap-3', [
+        h('span.text-xs.text-muted.w-16.flex-shrink-0.pt-0.5', META_LABEL[k] || k),
+        h('div.text-sm.text-fg.min-w-0.flex-1', metaValue(k, meta[k])),
+      ]))
+    ),
+  ]);
+}
+
+// ---- 详情: 单 spec (frontmatter 走元数据卡, 正文走 md) ----
 async function renderDetail(mount, relPath) {
   const resp = await api.specFile(relPath).catch(() => null);
   const seg = relPath.split('/');
+  const { meta, body } = md.frontmatter(resp && resp.content);
+  const title = (meta && meta.title) || (seg[seg.length - 1] || relPath).replace(/\.md$/, '');
   mount.replaceChildren(
     h('div.mb-6', [
       h('a.text-sm.text-muted.hover\\:text-accent.transition-colors',
         { href: '/spec', 'data-nav': '' }, [h('i.fa.fa-angle-left.mr-1'), '返回规范列表']),
-      h('h1.text-3xl.font-bold.text-head.mt-2.mb-1',
-        (seg[seg.length - 1] || relPath).replace(/\.md$/, '')),
+      h('h1.text-3xl.font-bold.text-head.mt-2.mb-1', title),
       h('div.text-xs.text-muted.font-mono', relPath),
     ]),
+    meta ? metaCard(meta) : null,
     h('div.glass-card.p-5',
       resp && resp.content
-        ? h('div.md-body', { html: md.renderSafe(resp.content) })
+        ? h('div.md-body', { html: md.renderSafe(body) })
         : h('div.py-16.text-center.text-muted', '规范不存在或读取失败')
     ),
   );
