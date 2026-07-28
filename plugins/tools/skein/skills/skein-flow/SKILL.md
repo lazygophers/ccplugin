@@ -1,9 +1,9 @@
 ---
 name: skein-flow
-description: SKEIN task 闭环编排器 (plan→exec→check→finish 单一真值源)。按参数路由各阶段 — plan 规划真值源 (判新旧 + create 登记 + brainstorm + grill 硬门, 产 prd/design/subtask DAG) / exec 执行编排调度 (双层 DAG, 完成即派, 并发 2, main 禁亲改源码) / check 质量门 (lint/type/test/契约 + 一致性核查, 验证修复分离) / finish 收尾闭环门 (勘察 + merge + 销 worktree + 标记完成 + 异步 sediment)。复杂/多步/跨文件请求, 或用户显式要求把请求作为 SKEIN task 处理时使用 — 强推闭环, main 作调度器派 subagent 在 worktree 内执行, 禁 inline 直接做。默认无参 = flow 全闭环 (plan→exec→check→finish 一路推到 finish, 不停在 plan)。
+description: SKEIN task 闭环编排器 (plan→exec→check→finish 单一真值源)。按参数路由各阶段 — flow (缺省, 全闭环一路推到 finish) / plan 规划真值源 (判新旧 + create 登记 + brainstorm + grill 硬门, 产 prd/design/subtask DAG) / exec 执行编排调度 (双层 DAG, 完成即派, 并发 2, main 禁亲改源码) / check 质量门 (lint/type/test/契约 + 一致性核查, 验证修复分离) / finish 收尾闭环门 (勘察 + merge + 销 worktree + 标记完成 + 异步 sediment)。复杂/多步/跨文件请求, 或用户显式要求把请求作为 SKEIN task 处理时使用 — 强推闭环, main 作调度器派 subagent 在 worktree 内执行, 禁 inline 直接做。默认无参 = flow 全闭环 (plan→exec→check→finish 一路推到 finish, 不停在 plan)。
 user-invocable: true
-argument-hint: "[plan|exec|check|finish] [任务描述/ID]"
-arguments: "[plan|exec|check|finish] [任务描述/ID]"
+argument-hint: "[flow|plan|exec|check|finish] [任务描述/ID]"
+arguments: ["阶段 (可选; 缺省 = flow 全闭环)", "任务描述/ID"]
 model: sonnet
 effort: medium
 ---
@@ -16,13 +16,13 @@ effort: medium
 
 解析 `$1` (首个参数), 定阶段:
 
-| `$1` | 阶段 | 行为 |
-| --- | --- | --- |
-| **缺省 / 任务描述** | **flow (默认)** | 走完整闭环 plan→exec→check→finish, 阶段间自动续跑不停顿。循环编排详见 [references/flow-loop.md](references/flow-loop.md) |
-| `plan` | **plan** | **仅规划** — 判新旧 + create/并入 + brainstorm + grill 硬门, 推到就绪即停 (停在 `skein start` 前) |
-| `exec` | **exec** | 驱动就绪/在途 task 走完整闭环到 finish (start→exec→check→finish) |
-| `check` | **check** | exec 产物完成后、finish 前, 派 skein-checker 跑验证 |
-| `finish` | **check 全绿后** | 派 skein-finisher 勘察 + skein finish 闭环 + 异步 sediment |
+| `$1`                | 阶段             | 行为                                                                                                                     |
+| ------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `flow` / **缺省 / 任务描述** | **flow (默认)**  | 走完整闭环 plan→exec→check→finish, 阶段间自动续跑不停顿。循环编排详见 [references/flow-loop.md](references/flow-loop.md) |
+| `plan`              | **plan**         | **仅规划** — 判新旧 + create/并入 + brainstorm + grill 硬门, 推到就绪即停 (停在 `skein start` 前)                        |
+| `exec`              | **exec**         | 驱动就绪/在途 task 走完整闭环到 finish (start→exec→check→finish)                                                         |
+| `check`             | **check**        | exec 产物完成后、finish 前, 派 skein-checker 跑验证                                                                      |
+| `finish`            | **check 全绿后** | 派 skein-finisher 勘察 + skein finish 闭环 + 异步 sediment                                                               |
 
 🔒 **禁把缺省当 plan 用** — 无参 / 只给任务描述 = 用户要**做完**, 不是要个规划稿。plan 收敛后禁停手问「要不要开始执行」, 直接续 exec。只有显式 `/skein-flow plan` 才停在就绪。
 
@@ -40,13 +40,13 @@ effort: medium
 
 brainstorm 前先定**是否需要派 skein-researcher**, 按信号分档自动判:
 
-| 档 | 信号 | 判定 |
-| --- | --- | --- |
-| **明确需** | 外部 API / 库选型 / 跨陌生子系统 / 现状代码未知 / 协议待定 | **自动派 researcher** |
-| **明确不需** | 已知代码模式 / 用户给足信息 / 单熟悉子系统 / 单点改 | **跳 research, 直 brainstorm** |
-| **保守灰区** | 倾向需但不明确 (可能涉未知但不确定) | **自动派 researcher** (宁可调研) |
-| **激进灰区** | 倾向不需但拿不准 (看似简单但可能有坑) | **AskUserQuestion 问用户是否需 research** |
-| **兜底** | brainstorm 中 subtask 切不动 / depends_on 定不了 | **触发派 researcher** 勘察代码再拆 |
+| 档           | 信号                                                       | 判定                                      |
+| ------------ | ---------------------------------------------------------- | ----------------------------------------- |
+| **明确需**   | 外部 API / 库选型 / 跨陌生子系统 / 现状代码未知 / 协议待定 | **自动派 researcher**                     |
+| **明确不需** | 已知代码模式 / 用户给足信息 / 单熟悉子系统 / 单点改        | **跳 research, 直 brainstorm**            |
+| **保守灰区** | 倾向需但不明确 (可能涉未知但不确定)                        | **自动派 researcher** (宁可调研)          |
+| **激进灰区** | 倾向不需但拿不准 (看似简单但可能有坑)                      | **AskUserQuestion 问用户是否需 research** |
+| **兜底**     | brainstorm 中 subtask 切不动 / depends_on 定不了           | **触发派 researcher** 勘察代码再拆        |
 
 派 researcher 后仍受「探索封顶」约束 — 够拆 subtask 即收敛, 禁无限深挖。结论持久化在 `.skein/task/<id>/research/`, planning 后续步骤可复读。
 
@@ -58,21 +58,21 @@ brainstorm 前先定**是否需要派 skein-researcher**, 按信号分档自动�
 
 判新旧后先给任务定档, 决定 planning 力度 (**仅路由启发, 非新增机器/字段**):
 
-| 档 | 判据 | 走法 |
-| --- | --- | --- |
-| `direct-fix` | 单点微改, 在作用域边界表豁免范围内 | 不建 task, 直接改 |
-| `standard` | 跨文件 / 多步, 单 task 可覆盖 | 常规 plan→exec→check→finish |
-| `heavy` | 跨子系统 / 破坏式重构 / 多 task 并行 | 强化 grill + 可能拆多 task + 显式 `depends_on`。破坏式重构 (改契约/删旧路径/全站点一次改齐, 禁垫片) 见 [references/breaking-refactor.md](references/breaking-refactor.md) |
+| 档           | 判据                                 | 走法                                                                                                                                                                      |
+| ------------ | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `direct-fix` | 单点微改, 在作用域边界表豁免范围内   | 不建 task, 直接改                                                                                                                                                         |
+| `standard`   | 跨文件 / 多步, 单 task 可覆盖        | 常规 plan→exec→check→finish                                                                                                                                               |
+| `heavy`      | 跨子系统 / 破坏式重构 / 多 task 并行 | 强化 grill + 可能拆多 task + 显式 `depends_on`。破坏式重构 (改契约/删旧路径/全站点一次改齐, 禁垫片) 见 [references/breaking-refactor.md](references/breaking-refactor.md) |
 
 ### 🛑 复杂度天花板 (归一有上限, 命中必提醒用户拆多 task)
 
 归一是默认, 但**单 task 有复杂度天花板** —— planning 拆完 subtask 后 (subtask 数已知) 逐项对表, **命中任一即停下**, 用 `AskUserQuestion` 提醒用户「本 task 过复杂, 建议拆成多个互相依赖的 task」:
 
-| 天花板信号 | 判据 |
-| --- | --- |
-| subtask 数超阈值 | 拆出 subtask **> 8** (或 brainstorm 已看出会 > 8) |
-| 跨子系统 / 多改动面 | scope 跨 ≥2 子系统 / 多个独立改动面 |
-| 工期 / 风险高 | 预估工期长 / 破坏式重构 (heavy 档) / 一处崩全批停 |
+| 天花板信号          | 判据                                              |
+| ------------------- | ------------------------------------------------- |
+| subtask 数超阈值    | 拆出 subtask **> 8** (或 brainstorm 已看出会 > 8) |
+| 跨子系统 / 多改动面 | scope 跨 ≥2 子系统 / 多个独立改动面               |
+| 工期 / 风险高       | 预估工期长 / 破坏式重构 (heavy 档) / 一处崩全批停 |
 
 - **用户选拆** → 按子系统 / 改动面切成多 task, 各 `skein create` 登记, task 级 `--deps` 串成互依赖 DAG (契约/基础 task 先)。原归一 task 作废或改造为其中一个。
 - **用户选不拆** → 归一继续。
@@ -123,11 +123,11 @@ brainstorm 前先定**是否需要派 skein-researcher**, 按信号分档自动�
 
 ## plan 失败模式
 
-| 触发 | 一线修复 | 仍失败兜底 |
-| --- | --- | --- |
-| brainstorm 用户答不出关键分歧 | 给 2-3 推荐选项让用户选 (非开放式问) | 仍答不出 → 标「需求未定」, 停在 planning, 禁 start |
-| grill 弱点表 >3 轮不收敛 | 归并同源弱点, 一次批量 `AskUserQuestion` 裁完 | 仍发散 → scope 过大, 拆多 task (heavy 档 + depends_on) |
-| subtask 粒度不清 / 无从定 depends_on | 回 brainstorm 补边界, 按可独立验收切 | 仍切不动 → 派 `skein-researcher` 勘察代码再拆 |
+| 触发                                 | 一线修复                                      | 仍失败兜底                                             |
+| ------------------------------------ | --------------------------------------------- | ------------------------------------------------------ |
+| brainstorm 用户答不出关键分歧        | 给 2-3 推荐选项让用户选 (非开放式问)          | 仍答不出 → 标「需求未定」, 停在 planning, 禁 start     |
+| grill 弱点表 >3 轮不收敛             | 归并同源弱点, 一次批量 `AskUserQuestion` 裁完 | 仍发散 → scope 过大, 拆多 task (heavy 档 + depends_on) |
+| subtask 粒度不清 / 无从定 depends_on | 回 brainstorm 补边界, 按可独立验收切          | 仍切不动 → 派 `skein-researcher` 勘察代码再拆          |
 
 ---
 
@@ -185,10 +185,10 @@ while skein claim 返回非空:       # 全局跨 task 合池竞争 max_parallel
 
 ## exec 失败模式
 
-| 触发 | 一线修复 | 仍失败兜底 |
-| --- | --- | --- |
-| subtask 报错 (非阻塞) | 自愈: 定点重派 ≤2 轮 / 根因独立则插修复 subtask | 修复也失败/超 scope → 停调度回传 main (走 root-cause-protocol), 禁跳过下游 |
-| subagent 返回 `需要:` | main 转达用户 / 补信息后重派 | 信息仍缺 → 该 subtask 挂起, 下游保持未 ready, 禁标 done |
+| 触发                           | 一线修复                                          | 仍失败兜底                                                                                       |
+| ------------------------------ | ------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| subtask 报错 (非阻塞)          | 自愈: 定点重派 ≤2 轮 / 根因独立则插修复 subtask   | 修复也失败/超 scope → 停调度回传 main (走 root-cause-protocol), 禁跳过下游                       |
+| subagent 返回 `需要:`          | main 转达用户 / 补信息后重派                      | 信息仍缺 → 该 subtask 挂起, 下游保持未 ready, 禁标 done                                          |
 | `claim` 返回空 (满槽 / 无就绪) | 找 `待处理` 且无 subtask 的 task 提前 plan 填空闲 | 满槽等回传; 全 pending 有 subtask 但 `claim` 仍空 → 查 depends_on 死锁 (环) → 停手回 plan 改 DAG |
 
 ---
@@ -236,11 +236,11 @@ exec 完成后、finish 前的**质量门**。**验证与修复分离**: `skein-
 
 ## check 失败模式
 
-| 触发 | 一线修复 | 仍失败兜底 |
-| --- | --- | --- |
-| 孤立失败 (单点 lint/type/test/契约 fail) | 回 planning 重确认: grill/AskUserQuestion 敲定修复方向, 同 task `subtask add` 1 个定点修复子任务 (--deps 失败源), task 保持 `进行中` | 反复不过 → 见下「≥3 轮」路径 |
-| 一致性冲突 / 根因跨 subtask | 同 task `subtask add` 多个修复子任务 (一冲突一 subtask), 逐条覆盖 | 冲突未全覆盖禁 finish |
-| 修复子任务 ≥2 轮仍 FAIL (第 3 轮) | 停加子任务循环 → 按 [references/root-cause-protocol.md](references/root-cause-protocol.md) 5 维根因复盘 | 带根因回 planning 重确认定向重修; 根因超 exec (需求/设计缺陷) → 停手附根因报告转人工 |
+| 触发                                     | 一线修复                                                                                                                             | 仍失败兜底                                                                           |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| 孤立失败 (单点 lint/type/test/契约 fail) | 回 planning 重确认: grill/AskUserQuestion 敲定修复方向, 同 task `subtask add` 1 个定点修复子任务 (--deps 失败源), task 保持 `进行中` | 反复不过 → 见下「≥3 轮」路径                                                         |
+| 一致性冲突 / 根因跨 subtask              | 同 task `subtask add` 多个修复子任务 (一冲突一 subtask), 逐条覆盖                                                                    | 冲突未全覆盖禁 finish                                                                |
+| 修复子任务 ≥2 轮仍 FAIL (第 3 轮)        | 停加子任务循环 → 按 [references/root-cause-protocol.md](references/root-cause-protocol.md) 5 维根因复盘                              | 带根因回 planning 重确认定向重修; 根因超 exec (需求/设计缺陷) → 停手附根因报告转人工 |
 
 ---
 
@@ -250,11 +250,11 @@ check 全绿后的**收尾门**。验收/完成度核对已在 check 阶段做�
 
 ## 载体分工
 
-| 动作 | 谁 | 产出 |
-| --- | --- | --- |
-| 收尾勘察 | 派 `skein-finisher` (只读, 合并前清障) | diff 摘要 + 悬挂清单 (不做验收核对) |
-| 清悬挂 + 生命周期 | main 同步跑 (不算实质工作) | `TaskList`/`TaskStop` + `skein finish` (commit→merge→销 worktree→标记完成) |
-| sediment 沉淀 | **异步 fire-and-forget** 派 `skein-specer` (finish 闭环后) | specer 自主跑判定门 + `skein-spec sediment` 写盘 + reindex (main 不等回传) |
+| 动作              | 谁                                                         | 产出                                                                       |
+| ----------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------- |
+| 收尾勘察          | 派 `skein-finisher` (只读, 合并前清障)                     | diff 摘要 + 悬挂清单 (不做验收核对)                                        |
+| 清悬挂 + 生命周期 | main 同步跑 (不算实质工作)                                 | `TaskList`/`TaskStop` + `skein finish` (commit→merge→销 worktree→标记完成) |
+| sediment 沉淀     | **异步 fire-and-forget** 派 `skein-specer` (finish 闭环后) | specer 自主跑判定门 + `skein-spec sediment` 写盘 + reindex (main 不等回传) |
 
 ## 流程
 
@@ -274,12 +274,12 @@ check 全绿后的**收尾门**。验收/完成度核对已在 check 阶段做�
 
 ## finish 失败模式
 
-| 触发 | 一线修复 | 仍失败兜底 |
-| --- | --- | --- |
-| finisher 报悬挂残留 | main 清理后再合并 | 清不掉 → 停手, 报用户裁 |
-| `skein finish` merge 冲突 | 读冲突文件手动解 → 重跑 finish | 解不开 → 停手, 保留 worktree, 报用户裁 (5 步纪律见 [references/merge-conflict-resolution.md](references/merge-conflict-resolution.md)) |
-| auto_commit=false 且有未提交改动 → finish 拒绝 | 提示用户手动 `git commit` 后重跑 finish | 用户不提交 → 停手, 禁 --force 强删 (会丢改动) |
-| 悬挂 subagent `TaskStop` 关不掉 | 重试 `TaskStop` | 仍在 → 停手, 禁 finish (未闭环) |
+| 触发                                           | 一线修复                                | 仍失败兜底                                                                                                                             |
+| ---------------------------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| finisher 报悬挂残留                            | main 清理后再合并                       | 清不掉 → 停手, 报用户裁                                                                                                                |
+| `skein finish` merge 冲突                      | 读冲突文件手动解 → 重跑 finish          | 解不开 → 停手, 保留 worktree, 报用户裁 (5 步纪律见 [references/merge-conflict-resolution.md](references/merge-conflict-resolution.md)) |
+| auto_commit=false 且有未提交改动 → finish 拒绝 | 提示用户手动 `git commit` 后重跑 finish | 用户不提交 → 停手, 禁 --force 强删 (会丢改动)                                                                                          |
+| 悬挂 subagent `TaskStop` 关不掉                | 重试 `TaskStop`                         | 仍在 → 停手, 禁 finish (未闭环)                                                                                                        |
 
 ---
 
@@ -296,12 +296,12 @@ check 全绿后的**收尾门**。验收/完成度核对已在 check 阶段做�
 
 **原则: 该走 flow 的直接走, 不问用户要不要走; 简单的直接做, 不问能不能 inline。能走 flow 还是 inline 是 AI 自己该判的选择, 禁抛给用户。**
 
-| 特征 | 判定 |
-| --- | --- |
-| 纯查询 / 文档阅读 / 问答 (无改动) | 豁免 (直接做) |
-| 单文件单处改, ≤20 行且位置已知 | 豁免 (直接做) |
-| 跨 ≥2 文件 / 单文件多处 / 多步骤 | **必建 task (直接走 flow)** |
-| 需外部调研 / 产出文档交付 | **必建 task (直接走 flow)** |
+| 特征                              | 判定                                        |
+| --------------------------------- | ------------------------------------------- |
+| 纯查询 / 文档阅读 / 问答 (无改动) | 豁免 (直接做)                               |
+| 单文件单处改, ≤20 行且位置已知    | 豁免 (直接做)                               |
+| 跨 ≥2 文件 / 单文件多处 / 多步骤  | **必建 task (直接走 flow)**                 |
+| 需外部调研 / 产出文档交付         | **必建 task (直接走 flow)**                 |
 | 边界模糊 (走 flow vs inline 难判) | AskUserQuestion 问用户 (禁自行 inline 蒙混) |
 
 归一 vs 分立 / worktree 豁免 / 完成判定 详见 [references/scope-boundary.md](references/scope-boundary.md)。
@@ -310,52 +310,52 @@ check 全绿后的**收尾门**。验收/完成度核对已在 check 阶段做�
 
 决定建 task 后, 按**输入场景**定 planning 力度与走法:
 
-| 场景信号 | skein 内置走法 |
-| --- | --- |
-| **新 idea / 新功能 (有 codebase)** | 常规 plan→exec→check→finish; plan 跑 grill 硬门 + research 判定门 |
+| 场景信号                                            | skein 内置走法                                                                              |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| **新 idea / 新功能 (有 codebase)**                  | 常规 plan→exec→check→finish; plan 跑 grill 硬门 + research 判定门                           |
 | **雾区大需求 (跨子系统 / 破坏式重构 / 看不清全貌)** | heavy 档: 强化 grill + research 判定门保守灰区自动派 researcher + 命中复杂度天花板拆多 task |
-| **bug 堆积 / 多 issue 涌入** | plan 登记前查未完成 task (查重归并) + plan 收尾异步派 skein-dedup 织 DAG |
-| **难 bug 反复 (一处崩全批停)** | exec subtask 失败自愈闭环; check 根因协议兜底 |
-| **代码健康 / 架构改进 (非 feature)** | 独立 `skein create` 改进类 task, 走标准四步闭环 |
-| **设计问题需验证 (UI/状态模型)** | plan research 判定门派 skein-researcher 勘察, 或独立 sandbox task 原型验证 (不落主仓库) |
-| **多 session 大型 build** | supertask 聚合层 + child task 各自完整闭环, task 级 `--deps` 排队 |
+| **bug 堆积 / 多 issue 涌入**                        | plan 登记前查未完成 task (查重归并) + plan 收尾异步派 skein-dedup 织 DAG                    |
+| **难 bug 反复 (一处崩全批停)**                      | exec subtask 失败自愈闭环; check 根因协议兜底                                               |
+| **代码健康 / 架构改进 (非 feature)**                | 独立 `skein create` 改进类 task, 走标准四步闭环                                             |
+| **设计问题需验证 (UI/状态模型)**                    | plan research 判定门派 skein-researcher 勘察, 或独立 sandbox task 原型验证 (不落主仓库)     |
+| **多 session 大型 build**                           | supertask 聚合层 + child task 各自完整闭环, task 级 `--deps` 排队                           |
 
 **零外部 skill 硬依赖** — skein 四步闭环自包含覆盖全部场景。熟悉 Matt Pocock `/ask-matt` 套件者, 完整 skill 级映射见 [references/matt-pocock-mapping.md](references/matt-pocock-mapping.md)。
 
 ## 失败模式 (全阶段通用)
 
-| 触发 | 一线修复 | 仍失败兜底 |
-| --- | --- | --- |
-| 判新旧不准 (新建 vs 并入现有 active) | `AskUserQuestion` 用户裁定 | 用户也不确定 → 默认新建, 保守留旧 task 不动 |
-| 相关工作误判成独立 (拆多 task) | 按相关性收敛: 相关 → 归一 task 拆 subtask (`subtask add`) | 已误建多 task → `skein archive <多余task-id>` 归档多余者 |
-| 某阶段未达出口 (plan 未收敛 / check 未绿) | 停在该阶段, 禁跨阶段推进 | 反复不过 → 走对应阶段兜底 (check 第 3 轮根因复盘) |
-| 宣称派 agent 但无 `Agent` tool_use | 立即在同回合补真实 `Agent` 调用 | 补不出 → 硬错停手, 禁回传「已派出 / 在做」 |
-| 有 subtask 却想 inline 顺跑 | 停手, 走 exec `claim→派 Agent` 循环 | 派不出 → 硬错停手, 禁 main 代跑 subtask |
-| 第二个 flow 进来, 第一个还没 durable | 先给第一个 `skein create` 落盘再处理第二个 | 都未落盘 → 立即各自 `create`, 未处理者留 pending 待续 |
+| 触发                                      | 一线修复                                                  | 仍失败兜底                                               |
+| ----------------------------------------- | --------------------------------------------------------- | -------------------------------------------------------- |
+| 判新旧不准 (新建 vs 并入现有 active)      | `AskUserQuestion` 用户裁定                                | 用户也不确定 → 默认新建, 保守留旧 task 不动              |
+| 相关工作误判成独立 (拆多 task)            | 按相关性收敛: 相关 → 归一 task 拆 subtask (`subtask add`) | 已误建多 task → `skein archive <多余task-id>` 归档多余者 |
+| 某阶段未达出口 (plan 未收敛 / check 未绿) | 停在该阶段, 禁跨阶段推进                                  | 反复不过 → 走对应阶段兜底 (check 第 3 轮根因复盘)        |
+| 宣称派 agent 但无 `Agent` tool_use        | 立即在同回合补真实 `Agent` 调用                           | 补不出 → 硬错停手, 禁回传「已派出 / 在做」               |
+| 有 subtask 却想 inline 顺跑               | 停手, 走 exec `claim→派 Agent` 循环                       | 派不出 → 硬错停手, 禁 main 代跑 subtask                  |
+| 第二个 flow 进来, 第一个还没 durable      | 先给第一个 `skein create` 落盘再处理第二个                | 都未落盘 → 立即各自 `create`, 未处理者留 pending 待续    |
 
 ## ✅ 正向配方 (命中反面=流程错误)
 
 > 🔒 铁律: 「派 agent」=真实 `Agent` tool_use — 无 tool_use 即没派, 禁回传「已派出」。
 
-| 场景 | 正确做法 (❌ 反面) |
-| --- | --- |
-| 改动源码 | 派 agent 在 task worktree 内改 (❌ main 直接改源码 / 无 worktree 改源码) |
-| 处理请求 | 强制走 task 闭环, 即使看似简单 (❌ inline 跳 task) |
-| 派 agent 声明 | 必带真实 `Agent` tool_use, 无则硬错停手禁回传 (❌ 宣称派 agent 无 tool_use) |
-| 改任务状态 | 经 skein CLI 操作 (❌ 直编 `.skein/task.md`) |
-| 用户确认 / 选择 | 走 AskUserQuestion 工具 (❌ 纯文本代替) |
-| exec 派发顺序 | 按 depends_on DAG 自动排序即派 (❌ exec 阶段问用户顺序) |
-| 有 subtask 的 task | 走 claim→派 subagent→done 循环 (❌ main inline 顺跑不派 subagent) |
-| 新 flow 进来 / 多请求 | 先给在飞的第一个 task durable 落盘再处理第二个 (❌ 第二个 flow 顶掉在飞 task) |
-| 相关工作组织 | 归一 task 拆 subtask (❌ 相关工作拆成多个 task) |
-| brainstorm 载体 | main 亲做交互式对话 (❌ 派 subagent 做 brainstorm — 它不能问用户) |
-| 进 exec 前置 | 先过 grill 硬门再推进 (❌ 跳 grill 硬门进 exec) |
-| 调度图/子任务落盘 | 写进 task.json (❌ 写进 md 文件) |
-| subagent 回传后 (exec) | 只 `subtask done/fail` (❌ exec 阶段勾验收 — 归 check) |
-| 跑验证 (check) | 派 `skein-checker` (❌ main 亲跑 lint/test) |
-| checker 报失败 | 交合适修复 agent 定点改 (❌ checker 自改码) |
-| check 失败 | 走回 planning 重确认: grill 敲定方向 → 同 task `subtask add`, task 保持 `进行中` (❌ 跳确认补 subtask / 改状态 / 另建 task) |
-| 收尾勘察 | 派 `skein-finisher` 做勘察 (❌ main 亲跑收尾勘察) |
-| finisher 职责 | finisher 只读勘察改动+悬挂, 不做验收核对 (❌ finisher 核对 subtask 完成度 / 自己改码 / 跑 sediment) |
-| sediment 时序 | finish 先闭环, sediment 异步 fire-and-forget 在后 (❌ sediment 阻塞 finish) |
-| 宣告 Done | `skein finish` 标记完成后才宣告 Done (❌ 未 finish 闭环即宣告 Done) |
+| 场景                   | 正确做法 (❌ 反面)                                                                                                          |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| 改动源码               | 派 agent 在 task worktree 内改 (❌ main 直接改源码 / 无 worktree 改源码)                                                    |
+| 处理请求               | 强制走 task 闭环, 即使看似简单 (❌ inline 跳 task)                                                                          |
+| 派 agent 声明          | 必带真实 `Agent` tool_use, 无则硬错停手禁回传 (❌ 宣称派 agent 无 tool_use)                                                 |
+| 改任务状态             | 经 skein CLI 操作 (❌ 直编 `.skein/task.md`)                                                                                |
+| 用户确认 / 选择        | 走 AskUserQuestion 工具 (❌ 纯文本代替)                                                                                     |
+| exec 派发顺序          | 按 depends_on DAG 自动排序即派 (❌ exec 阶段问用户顺序)                                                                     |
+| 有 subtask 的 task     | 走 claim→派 subagent→done 循环 (❌ main inline 顺跑不派 subagent)                                                           |
+| 新 flow 进来 / 多请求  | 先给在飞的第一个 task durable 落盘再处理第二个 (❌ 第二个 flow 顶掉在飞 task)                                               |
+| 相关工作组织           | 归一 task 拆 subtask (❌ 相关工作拆成多个 task)                                                                             |
+| brainstorm 载体        | main 亲做交互式对话 (❌ 派 subagent 做 brainstorm — 它不能问用户)                                                           |
+| 进 exec 前置           | 先过 grill 硬门再推进 (❌ 跳 grill 硬门进 exec)                                                                             |
+| 调度图/子任务落盘      | 写进 task.json (❌ 写进 md 文件)                                                                                            |
+| subagent 回传后 (exec) | 只 `subtask done/fail` (❌ exec 阶段勾验收 — 归 check)                                                                      |
+| 跑验证 (check)         | 派 `skein-checker` (❌ main 亲跑 lint/test)                                                                                 |
+| checker 报失败         | 交合适修复 agent 定点改 (❌ checker 自改码)                                                                                 |
+| check 失败             | 走回 planning 重确认: grill 敲定方向 → 同 task `subtask add`, task 保持 `进行中` (❌ 跳确认补 subtask / 改状态 / 另建 task) |
+| 收尾勘察               | 派 `skein-finisher` 做勘察 (❌ main 亲跑收尾勘察)                                                                           |
+| finisher 职责          | finisher 只读勘察改动+悬挂, 不做验收核对 (❌ finisher 核对 subtask 完成度 / 自己改码 / 跑 sediment)                         |
+| sediment 时序          | finish 先闭环, sediment 异步 fire-and-forget 在后 (❌ sediment 阻塞 finish)                                                 |
+| 宣告 Done              | `skein finish` 标记完成后才宣告 Done (❌ 未 finish 闭环即宣告 Done)                                                         |

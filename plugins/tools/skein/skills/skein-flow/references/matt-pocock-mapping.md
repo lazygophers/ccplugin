@@ -6,7 +6,7 @@
 
 **外部源注入约定 (存在则用增强 / 否则原生)** — 本表任一行若列有对应 ask-matt skill: **已装** → main 可选委托它作增强 (原生为主, 仅补充不替代默认路径, 结论仍回落 skein 工件); **未装** → 静默跳过走 skein 原生默认。判「是否已装」**不做机器探测**: 委托 `Skill(...)` 解析到即用、解析不到即原生兜底, 缺失绝不阻断四步闭环。
 
-ask-matt 的「路由」理念 skein 已内建: skein-flow (强制走 task, 参数路由 plan|exec|check|finish, 缺省 = flow 全闭环) 四步闭环自包含 — plan 阶段 (research 判定门 / brainstorm / grill) → exec 阶段 → check 阶段 → finish 阶段。
+ask-matt 的「路由」理念 skein 已内建: skein-flow (强制走 task, 参数路由 flow|plan|exec|check|finish, 缺省 = flow 全闭环) 四步闭环自包含 — plan 阶段 (research 判定门 / brainstorm / grill) → exec 阶段 → check 阶段 → finish 阶段。
 
 ---
 
