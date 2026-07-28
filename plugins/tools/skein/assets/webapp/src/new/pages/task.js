@@ -87,6 +87,34 @@ function buildTimeline(task) {
   return stages;
 }
 
+// 执行阶段子时间线: 每个 subtask 的执行过程 (默认折叠)
+function subTimelineView(subs) {
+  const ordered = [...subs].sort((a, b) => (a.startedAt || Infinity) - (b.startedAt || Infinity));
+  return h('details.tl-sub', [
+    h('summary.tl-sub-sum', `子任务执行过程 (${subs.length})`),
+    h('div.tl-sub-list',
+      ordered.map(s => {
+        const st = s.status || 'planning';
+        const dur = s.startedAt && s.finishedAt
+          ? `耗时 ${Math.max(1, Math.round((s.finishedAt - s.startedAt) / 60000))} 分钟` : '';
+        return h('div.tl-sub-item', [
+          h(`span.w-1.5.h-1.5.rounded-full.flex-shrink-0.mt-1.5.bg-${ST_COLOR[st]}`),
+          h('div.min-w-0.flex-1', [
+            h('div.text-xs.text-fg', s.title || s.name || s.sid),
+            h('div.text-xs.text-muted.mt-0.5',
+              [ST_LABEL[st] || st,
+               s.startedAt ? `起 ${fmtTime(s.startedAt)}` : null,
+               s.finishedAt ? `止 ${fmtTime(s.finishedAt)}` : null,
+               dur || null,
+               s.agent || null,
+              ].filter(Boolean).join(' · ')),
+          ]),
+        ]);
+      })
+    ),
+  ]);
+}
+
 function timelineView(stages, task) {
   if (!stages || !stages.length) {
     return h('div.py-8.text-center.text-muted.text-sm', '暂无活动记录');
@@ -119,6 +147,7 @@ function timelineView(stages, task) {
           extraInfo ? h('span.tl-dur', extraInfo) : null,
         ]),
         h('div.tl-desc', s.desc),
+        s.key === 'started' && subs.length ? subTimelineView(subs) : null,
       ]);
     })
   );
@@ -251,7 +280,8 @@ function prdCard(sec) {
       ? h('div.space-y-2',
           sec.items.map(item =>
             h('div.flex.items-start.gap-3.text-sm', [
-              item.kind === 'check'
+              // 目标同验收标准, 一律 todo (checkbox) 样式
+              item.kind === 'check' || sec.name === '目标'
                 ? h(`i.fa.${item.done ? 'fa-check-square' : 'fa-square-o'}.${item.done ? 'text-st-done' : 'text-muted'}.mt-0.5.flex-shrink-0`)
                 : h('span.w-1.5.h-1.5.rounded-full.bg-muted.mt-2.flex-shrink-0'),
               h('span.text-fg.leading-relaxed' + (item.done ? '.line-through.text-muted' : ''), item.text),

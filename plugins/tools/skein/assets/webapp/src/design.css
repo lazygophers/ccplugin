@@ -1210,6 +1210,19 @@
 [data-theme="skein-dark"] .tl-st.pending { color: #64748b; border-color: #334155; }
 [data-theme="skein-dark"] .tl-time { color: #64748b; }
 [data-theme="skein-dark"] .tl-dur  { color: #64748b; }
+/* 执行阶段子时间线 (task 详情: 每 subtask 执行过程, 默认折叠) */
+.tl-sub { margin-top: 6px; }
+.tl-sub-sum {
+  cursor: pointer; user-select: none; font-size: 11px; color: var(--muted);
+  padding: 2px 0; list-style: none;
+}
+.tl-sub-sum::marker, .tl-sub-sum::-webkit-details-marker { display: none; content: ""; }
+.tl-sub-sum::before { content: "\25B8"; display: inline-block; margin-right: 4px; transition: transform .15s; }
+.tl-sub[open] > .tl-sub-sum::before { transform: rotate(90deg); }
+.tl-sub-list { margin-top: 4px; padding-left: 8px; border-left: 1px dashed rgba(148,163,184,0.35); }
+.tl-sub-item { display: flex; gap: 6px; padding: 3px 0; }
+[data-theme="skein-dark"] .tl-sub-list { border-left-color: rgba(148,163,184,0.25); }
+
 /* 横向 timeline (examples:232-241) */
 .tl-h-axis { position: relative; display: flex; justify-content: space-between; padding: 24px 12px 8px; overflow-x: auto; }
 .tl-h-axis::before {
