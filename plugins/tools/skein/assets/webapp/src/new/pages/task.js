@@ -7,6 +7,7 @@
 
 import { h, api, md, fmtRelative, fmtTime, normalizeTask, normalizeTasks,
          confirmDialog, alertDialog, buildTimeline, subTimelineView } from '../app.js';
+import { depDAGView } from '../lib/depdag.js';
 
 const ST_LABEL = {
   planning: '规划中', ready: '待执行',
@@ -365,6 +366,13 @@ export async function render(mount, params, ctx) {
     console.log('subtask clicked:', sid);
   }
 
+  // 依赖关系图点击节点: 跳到该 task 详情页 (query 参数, 禁 path 参数)
+  function onDepNodeClick(id) {
+    if (id === task.id) return;
+    if (ctx && ctx.navigate) ctx.navigate(`/task/detail?id=${id}`);
+    else window.location.href = `/task/detail?id=${id}`;
+  }
+
   // 删除任务: 软删进 .skein/trash/ (skein del), 删完回看板
   async function deleteTask() {
     const yes = await confirmDialog({
@@ -494,6 +502,17 @@ export async function render(mount, params, ctx) {
                 ` (${dependents.length})`,
               ]),
               h('div.space-y-2', dependents.map(depLink)),
+            ])
+          : null,
+
+        // 依赖关系图 — 只拿 前置+本 task+后置 这一层, 详情端点已内联返回, 不额外拉 /data 全量看板
+        depTasks.length || dependents.length
+          ? h('div.glass-card.p-4', [
+              h('div.flex.items-center.gap-2.mb-3', [
+                h('i.fa.fa-share-alt.text-st-active.text-sm'),
+                h('div.eyebrow.text-accent.m-0', `依赖关系图 (${depTasks.length + dependents.length + 1})`),
+              ]),
+              depDAGView(task, [task, ...depTasks, ...dependents], onDepNodeClick),
             ])
           : null,
 

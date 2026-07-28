@@ -673,7 +673,7 @@
 .dag-node.st-planning { border-color: var(--st-planning); }
 .dag-node.st-ready    { border-color: var(--st-ready); }
 .dag-node.st-pending  { border-color: var(--st-pending); }
-.dag-node.st-active   { border-color: var(--st-active); animation: dagPulse 1.6s ease-in-out infinite; }
+.dag-node.st-active   { border-color: var(--st-active); animation: dagBreathe 1.8s ease-in-out infinite; }
 .dag-node.st-check    { border-color: var(--st-check); }
 .dag-node.st-done     { border-color: var(--st-done); }
 .dag-node.st-failed   { border-color: var(--st-failed); }
@@ -813,7 +813,7 @@
   height: auto;
 }
 .dag-node-wrap .dag-pop-badge.done { background: rgba(72,187,120,0.18); color: #2f855a; }
-.dag-node-wrap .dag-pop-badge.active { background: rgba(201,162,39,0.2); color: var(--goldSand-deep); animation: dagPulse 1.6s ease-in-out infinite; }
+.dag-node-wrap .dag-pop-badge.active { background: rgba(201,162,39,0.2); color: var(--goldSand-deep); animation: dagBreathe 1.8s ease-in-out infinite; }
 .dag-node-wrap .dag-pop-badge.planning { background: rgba(116,185,232,0.2); color: var(--ocean-deep); }
 .dag-node-wrap .dag-pop-badge.ready { background: rgba(66,156,209,0.18); color: var(--ocean-deep); }
 .dag-node-wrap .dag-pop-badge.check { background: rgba(201,162,39,0.18); color: var(--goldSand-deep); }
@@ -1208,7 +1208,7 @@
 [data-theme="skein-dark"] .tl-dot { border-color: #475569; background: var(--night-mid); }
 .tl-dot.done { background: var(--tl-c, var(--ocean-mid)); border-color: var(--tl-c, var(--ocean-mid)); color: #fff; }
 .tl-dot.done::after { content: "\2713"; font-size: 7px; line-height: 1; }
-.tl-dot.cur { background: var(--tl-c, var(--ocean-mid)); border-color: var(--tl-c, var(--ocean-mid)); animation: tlPulse 1.6s ease-in-out infinite; }
+.tl-dot.cur { background: var(--tl-c, var(--ocean-mid)); border-color: var(--tl-c, var(--ocean-mid)); animation: tlPulse 1.8s ease-in-out infinite; }
 .tl-dot.custom { background: var(--tl-c, var(--ocean-mid)); border-color: var(--tl-c, var(--ocean-mid)); color: #fff; }
 .tl-dot.custom::after { content: var(--tl-icon, "\2713"); font-size: 7px; line-height: 1; }
 .tl-time { font-variant-numeric: tabular-nums; font-size: 11px; color: #94a3b8; letter-spacing: 0.02em; }
@@ -1625,7 +1625,7 @@ dialog.dag-modal::backdrop { background: rgba(15,32,51,0.45); backdrop-filter: b
   background: rgba(200, 149, 72, 0.14);
   border-color: rgba(200, 149, 72, 0.35);
   color: var(--goldSand-sunset);
-  animation: dagPulse 1.6s ease-in-out infinite;
+  animation: dagBreathe 1.8s ease-in-out infinite;
 }
 .antd-tag-check {
   background: rgba(116, 185, 232, 0.14);
@@ -1769,7 +1769,7 @@ dialog.antd-modal::backdrop { background: rgba(15,32,51,0.45); backdrop-filter: 
 }
 
 /* ═══════════ 动效 (examples:144-348) ═══════════
-   7 核心 keyframes: waveShift / staggerIn / pulseDot / tlPulse / dagPulse / antdSpin / antdShimmer
+   8 核心 keyframes: waveShift / staggerIn / pulseDot / tlPulse / dagBreathe / dagPulse / antdSpin / antdShimmer
    + skeinShimmer 进度条流光 + dagFlow 边流动 + dagFadeIn 节点入场 */
 
 /* 1. waveShift (examples:144-148) */
@@ -1799,16 +1799,22 @@ dialog.antd-modal::backdrop { background: rgba(15,32,51,0.45); backdrop-filter: 
 }
 .pulse-dot { animation: pulseDot 1.6s ease-in-out infinite; }
 
-/* 4. tlPulse (examples:207-211) — Timeline 当前点 */
+/* 4. tlPulse (examples:207-211) — Timeline 当前点, 光晕扩散 + 微缩放呼吸 */
 @keyframes tlPulse {
-  0%, 100% { box-shadow: 0 0 0 0 var(--tl-c, var(--ocean-mid)); }
-  50%      { box-shadow: 0 0 0 6px transparent; }
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--tl-c, var(--ocean-mid)) 55%, transparent); transform: scale(1); }
+  50%      { box-shadow: 0 0 0 7px color-mix(in srgb, var(--tl-c, var(--ocean-mid)) 0%, transparent); transform: scale(1.15); }
 }
 
-/* 5. dagPulse (examples:325-331) — DAG 进行中节点 opacity */
+/* 4b. dagBreathe (HTML 元素专用) — DAG 卡片/徽标呼吸, 光晕扩散 + 轻微缩放, 幅度小于 tlPulse (矩形卡片) */
+@keyframes dagBreathe {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--st-active) 45%, transparent); transform: scale(1); }
+  50%      { box-shadow: 0 0 0 6px color-mix(in srgb, var(--st-active) 0%, transparent); transform: scale(1.03); }
+}
+
+/* 5. dagPulse (examples:325-331) — DAG 进行中节点, SVG 专用 (不支持 box-shadow, 用 drop-shadow 呼吸) */
 @keyframes dagPulse {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0.7; }
+  0%, 100% { filter: drop-shadow(0 0 0 transparent); opacity: 1; }
+  50%      { filter: drop-shadow(0 0 5px var(--ocean-mid)) drop-shadow(0 0 2px var(--ocean-mid)); opacity: 0.94; }
 }
 
 /* 6. antdSpin (examples:245) */

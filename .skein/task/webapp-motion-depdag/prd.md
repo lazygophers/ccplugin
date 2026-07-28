@@ -16,9 +16,9 @@
 - [ ] dagPulse 保留但仅供 SVG (.dag-svg .node.active), 改为 SVG 可见的呼吸 (drop-shadow 强弱起伏), 不再是纯 opacity 闪烁
 - [ ] prefers-reduced-motion 媒体查询覆盖全部新增/改名后的动效选择器, 无遗漏
 - [ ] 新建 new/lib/depdag.js, 导出 buildDepDAG + depDAGView (含其依赖的 drawEdges 一族), board.js 改为 import 该模块, 无重复实现
-- [ ] task.js 详情页新增「依赖关系图」卡片: 仅当 depTasks.length 或 dependents.length 非零时渲染, 数据用 [task, ...depTasks, ...dependents] 喂 buildDepDAG, 不新增网络请求
+- [ ] task.js 详情页左栏「被依赖」卡下方新增「依赖关系图」卡片: 仅当 depTasks.length 或 dependents.length 非零时渲染, 数据用 [task, ...depTasks, ...dependents] 喂 buildDepDAG, 不新增网络请求
 - [ ] board.js detailPanel 依赖关系图块位置上提到「子任务 DAG」之前
-- [ ] 浏览器实际打开 board 与 task 详情页, 执行中节点肉眼可见呼吸, 依赖图正确渲染且可点击跳转
+- [ ] 静态核对: node --check 各改动 js 文件语法通过; grep 核对 dagPulse 仅剩 SVG 选择器引用; 无残留旧 keyframes 死代码 (用户裁定验收方式=静态核对+自行目视)
 ## 索引
 - 详细设计: [design.md](design.md)
 - 调研收敛: [findings.md](findings.md) (仅真调研时生)
