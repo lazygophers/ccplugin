@@ -299,11 +299,14 @@ _UNINIT_PLAIN = """# SKEIN 未初始化 — 先初始化再处理任务
 #   走 flow 由 cmd_task_created (机械阻 TaskCreate) 兜底, 落码不再强制 active task (用户定: 去落码门);
 #   prompt 仅留正向指引 + 证据展示, 不重复禁令。
 _CTX = """# 任务判定
+- 现有任务的补充：根据补充信息重新规划
 - 走任务：跨≥2文件/多步骤/改动类动词/新建类/复杂调研
 - 直接执行：纯查询/问答/单文件单处
 
-如果无法判断是否走任务，通过 AskUserQuestion 和用户确认，AI 应该倾向走任务
+如果无法判断，通过 AskUserQuestion 和用户确认，AI 应该倾向走任务
 如果确认走任务，应该通过 Bash(skein create) 建 task 走 Skills(skein-flow)
+
+**注意**：不要因为用户输入直接中断前面正在进行的，要确保前置的内容不会因此中断、丢失
 """
 
 # 信号判据 (只检测证据, 不替判档位 — 档位交 AI 读 _CTX 判据自判)

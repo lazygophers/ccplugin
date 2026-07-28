@@ -67,27 +67,29 @@ function metaValue(key, val) {
   return h('span', String(val));
 }
 
+// 元数据侧栏: 单列 (窄栏), 键值上下堆
 function metaCard(meta) {
   const keys = [...META_ORDER.filter(k => meta[k] != null),
                 ...Object.keys(meta).filter(k => k !== 'title' && !META_ORDER.includes(k))];
   if (!keys.length) return null;
-  return h('div.glass-card.p-5.mb-6', [
+  return h('div.glass-card.p-4', [
     h('h3.section-title', [h('i.fa.fa-info-circle.text-accent'), '元数据']),
-    h('div.grid.grid-cols-1.md\\:grid-cols-2.gap-x-6.gap-y-3',
-      keys.map(k => h('div.flex.items-start.gap-3', [
-        h('span.text-xs.text-muted.w-16.flex-shrink-0.pt-0.5', META_LABEL[k] || k),
-        h('div.text-sm.text-fg.min-w-0.flex-1', metaValue(k, meta[k])),
+    h('div.space-y-3',
+      keys.map(k => h('div', [
+        h('div.text-xs.text-muted.mb-1', META_LABEL[k] || k),
+        h('div.text-sm.text-fg.break-words', metaValue(k, meta[k])),
       ]))
     ),
   ]);
 }
 
-// ---- 详情: 单 spec (frontmatter 走元数据卡, 正文走 md) ----
+// ---- 详情: 单 spec (meta/body 由后端 /spec/file 解析好, 前端只渲染) ----
 async function renderDetail(mount, relPath) {
   const resp = await api.specFile(relPath).catch(() => null);
   const seg = relPath.split('/');
-  const { meta, body } = md.frontmatter(resp && resp.content);
-  const title = (meta && meta.title) || (seg[seg.length - 1] || relPath).replace(/\.md$/, '');
+  const meta = (resp && resp.meta) || {};
+  const body = (resp && resp.body) || '';
+  const title = meta.title || (seg[seg.length - 1] || relPath).replace(/\.md$/, '');
   mount.replaceChildren(
     h('div.mb-6', [
       h('a.text-sm.text-muted.hover\\:text-accent.transition-colors',
@@ -95,15 +97,18 @@ async function renderDetail(mount, relPath) {
       h('h1.text-3xl.font-bold.text-head.mt-2.mb-1', title),
       h('div.text-xs.text-muted.font-mono', relPath),
     ]),
-    meta ? metaCard(meta) : null,
-    // 正文区: 规则类 spec 常只有 frontmatter (标题即全部内容), body 空时给占位而非空白卡
-    h('div.glass-card.p-5',
-      !resp || !resp.content
-        ? h('div.py-16.text-center.text-muted', '规范不存在或读取失败')
-        : body.trim()
-          ? h('div.md-body', { html: md.renderSafe(body) })
-          : h('div.py-10.text-center.text-muted.text-sm', '此规范无正文 — 全部内容见上方标题与元数据')
-    ),
+    // 左信息栏 (元数据) + 右正文
+    h('div.grid.grid-cols-1.lg\\:grid-cols-4.gap-6.items-start', [
+      h('div.lg\\:col-span-1', metaCard(meta)),
+      h('div.lg\\:col-span-3.glass-card.p-5',
+        // 规则类 spec 常只有 frontmatter (标题即全部内容), body 空时给占位而非空白卡
+        !resp
+          ? h('div.py-16.text-center.text-muted', '规范不存在或读取失败')
+          : body.trim()
+            ? h('div.md-body', { html: md.renderSafe(body) })
+            : h('div.py-10.text-center.text-muted.text-sm', '此规范无正文 — 全部内容见标题与左侧元数据')
+      ),
+    ]),
   );
 }
 

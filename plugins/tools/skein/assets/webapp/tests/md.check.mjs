@@ -1,5 +1,5 @@
 import assert from 'assert';
-import { normalize, render, isPlaceholder, frontmatter } from '../src/new/lib/md.js';
+import { normalize, render, isPlaceholder } from '../src/new/lib/md.js';
 // normalize 自动修复
 assert.equal(normalize('##标题').trim(), '## 标题');
 assert.equal(normalize('-项').trim(), '- 项');
@@ -22,25 +22,3 @@ assert.equal(docEmpty('# x\n\n说明:\n- 真内容\n'), false);
 assert.equal(docEmpty(null), true);
 console.log('docEmpty OK');
 
-// ---- frontmatter ----
-{
-  const src = `---
-title: webapp 参数一律 query (禁 path 参数)
-layer: core
-keywords: [路由,url,"query"]
-related: []
-created: 1785230805
----
-
-正文首行`;
-  const { meta, body } = frontmatter(src);
-  assert.equal(meta.title, "webapp 参数一律 query (禁 path 参数)");
-  assert.equal(meta.layer, "core");
-  assert.deepEqual(meta.keywords, ["路由", "url", "query"]);
-  assert.deepEqual(meta.related, []);
-  assert.equal(meta.created, "1785230805");
-  assert.equal(body.trim(), "正文首行");
-  assert.deepEqual(frontmatter("# 无 front").meta, null);   // 无 frontmatter → meta=null
-  assert.equal(frontmatter(null).body, "");
-  console.log("frontmatter OK");
-}

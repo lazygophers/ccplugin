@@ -2192,6 +2192,8 @@ class Skein:
         script_dir = str(Path(__file__).resolve().parent)
         os.environ["PYTHONPATH"] = script_dir + (os.pathsep + os.environ["PYTHONPATH"] if os.environ.get("PYTHONPATH") else "")
         os.environ["SKEIN_SERVE_QUIET"] = "1" if quiet else "0"
+        if DBG.enabled:
+            os.environ["SKEIN_DEBUG"] = "1"  # --debug 传进 reload 子进程 (argv 不继承, 访问日志才开)
         try:
             uvicorn.run("skein:_serve_app_factory", factory=True, host="127.0.0.1", port=port,
                         log_level="warning", access_log=False, reload=True, reload_dirs=[script_dir])  # 阻塞; SIGINT/SIGTERM 优雅停机
@@ -3046,6 +3048,26 @@ class DataSource(Protocol):
     def config(self) -> dict[str, Any]: ...
 
 
+def _spec_frontmatter(text: str) -> tuple[dict[str, Any], str]:
+    # spec md 头部 `---` 包裹的 YAML 子集 → (meta, body)。解析归后端 (前端只渲染)。
+    # 值形态: `key: value` / `key: [a,b]` (数组, 引号剥离)。无 frontmatter → ({}, 原文)。
+    m = re.match(r"^---\n(.*?)\n---\n?", text, re.S)
+    if not m:
+        return {}, text
+    meta: dict[str, Any] = {}
+    for ln in m.group(1).splitlines():
+        kv = re.match(r"^([\w-]+):\s*(.*)$", ln)
+        if not kv:
+            continue
+        v: Any = kv.group(2).strip()
+        if v.startswith("[") and v.endswith("]"):
+            v = [x.strip().strip("\"'") for x in v[1:-1].split(",") if x.strip()]
+        else:
+            v = v.strip("\"'")
+        meta[kv.group(1)] = v
+    return meta, text[m.end():]
+
+
 def _cards_signature(data: dict[str, Any]) -> dict[str, tuple]:
     # 取 cards 关键字段做 signature (变即推 task-changed); 不深比 desc/subtable 等重字段 (省 CPU)。
     # ponytail: O(n) n=task 数; signature tuple 含 status/pct/sdone/stotal/started/finished/worktree, 软刷覆盖此集变化。
@@ -3162,7 +3184,9 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
             except Exception:
                 extra = ""
         resp = await call_next(request)
-        if not quiet:
+        # 访问日志属 debug 级 (静态资源 200/304 刷屏无信息量): --debug / SKEIN_DEBUG 才逐条打。
+        # 非 debug 只留服务端错误 (5xx) — 真问题不该被静默。
+        if not quiet and (debug_enabled(None) or resp.status_code >= 500):
             ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
             sys.stderr.write(f"{ts} {request.method} {request.url.path}{extra} -> {resp.status_code}\n")
         return resp
@@ -3220,7 +3244,9 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
             return JSONResponse({"error": "路径越界"}, status_code=403)
         if not p.is_file():
             return JSONResponse({"error": "文件不存在"}, status_code=404)
-        return {"path": path, "content": p.read_text(encoding="utf-8", errors="replace")}
+        txt = p.read_text(encoding="utf-8", errors="replace")
+        meta, body = _spec_frontmatter(txt)  # frontmatter 解析归后端; content 保留原文 (编辑器用)
+        return {"path": path, "content": txt, "meta": meta, "body": body}
 
     @app.post("/__skein__/spec/save")
     async def _spec_save(request: Request) -> Any:  # 写 spec (realpath 校验越界拒; 仅 .md)
