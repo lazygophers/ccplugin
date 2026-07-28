@@ -2031,6 +2031,15 @@ class Skein:
             if s("agent"):
                 argv += ["--agent", g("agent")]
             return base + argv
+        if cmd == "clean":  # 看板「清理已完成」: 归档超 days 天的完成 task (days 仅认非负整数, 缺省 0)
+            days = body.get("days", 0)
+            if isinstance(days, bool) or not isinstance(days, (int, str)):
+                return None
+            try:
+                d = int(days)
+            except ValueError:
+                return None
+            return base + ["clean", "--days", str(d)] if d >= 0 else None
         if cmd == "prd":  # 网页端 prd 章节编辑: read/write/add/check/uncheck (复用 CLI 同一写盘逻辑)
             if not (s("id") and s("type") and s("action")):
                 return None

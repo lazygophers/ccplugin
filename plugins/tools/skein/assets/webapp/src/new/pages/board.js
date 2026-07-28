@@ -1563,6 +1563,19 @@ export async function render(mount, params, ctx) {
     draw();
   }
 
+  // 清理已完成: 归档是可逆的 (进 archive/, 归档页可查), 但仍二次确认再执行
+  async function cleanDone() {
+    if (!confirm(`归档全部 ${countBy.done} 个已完成任务? (可在归档页查回)`)) return;
+    try {
+      const r = await api.exec('clean', { days: 0 });
+      if (!r || !r.ok) throw new Error((r && (r.stderr || r.error)) || '清理失败');
+    } catch (e) {
+      alert('清理失败: ' + (e && e.message ? e.message : e));
+      return;
+    }
+    await render(mount, params, ctx);  // 重拉 /data 重绘 (计数/DAG 全变)
+  }
+
   function onSubClick(sid) {
     // 子任务点击: 可以高亮/展开, 暂仅打 log
     console.log('subtask clicked:', sid);
@@ -1746,6 +1759,10 @@ export async function render(mount, params, ctx) {
               { onclick: () => { scale = 1; const wp = document.getElementById('board-dag-wrap'); if (wp) wp.scrollTo(0, 0); draw(); }, title: '重置' },
               h('i.fa.fa-expand')),
           ]) : null,
+          // 清理已完成 = skein clean --days=0 (归档到 archive/, 可在归档页查回); 无完成 task 时不显示
+          countBy.done ? h('button.filter-btn.st-done',
+            { onclick: cleanDone, title: '归档全部已完成任务 (等价 skein clean --days=0)' },
+            [h('i.fa.fa-archive.mr-1.5'), `清理已完成 (${countBy.done})`]) : null,
           viewToggle(view, setView),
         ]),
       ]),
