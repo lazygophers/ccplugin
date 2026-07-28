@@ -98,7 +98,7 @@
 | 步骤 | 说明 |
 | --- | --- |
 | claim | DAG → 就绪 subtask → 拓扑排序 → dispatch |
-| dispatch | 按 subtask.agent 派发, 并发 ≤ max_parallel |
+| dispatch | 按 subtask.agent 派发, 并发 ≤ max_active |
 | 完成判定 | 每 subtask 回 done/fail; fail 重派 ≤2 轮 (质量验收全归 check) |
 | 完成即派 | 1 subtask 完 → 释放槽 → claim 下一个 |
 
@@ -182,15 +182,14 @@ subtasks:
 
 | 范围 | 命令 | 行为 |
 | --- | --- | --- |
-| 单 task | `skein subtask claim <id>` | DAG → ready set → 拓扑排序 → max_parallel 个 |
+| 单 task | `skein subtask claim <id>` | DAG → ready set → 拓扑排序 → max_active 个 |
 | 全局 | `skein claim` | 所有进行中 task 同上 |
 
 ### 调度约束
 
 | 参数 | 默认 | 说明 |
 | --- | --- | --- |
-| max_active | 2 | 同时进行中 task 数 |
-| max_parallel | 2 | 同时运行 subtask 数 (全局) |
+| max_active | 2 | 同时进行中 task 数 (subtask 并发全局复用同一键) |
 | 深度 | 2 层 | supertask→task→subtask, child 不再生 child |
 
 ### Worktree 模型

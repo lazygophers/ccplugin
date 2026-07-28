@@ -59,8 +59,7 @@
 
 | 键 | 默认 | 说明 |
 | --- | --- | --- |
-| max_active | 2 | 同时活跃 task 数 |
-| max_parallel | 2 | 同时运行 subtask 数 |
+| max_active | 2 | 同时活跃 task 数 (subtask 并发复用同一键) |
 | retain_days | 7 | 归档保留天数 |
 | auto_commit | true | 自动 git commit |
 | worktree_root | `.worktrees` | worktree 路径 |

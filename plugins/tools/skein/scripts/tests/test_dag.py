@@ -5,7 +5,8 @@
 双层并发模型 (真实行为):
 - task 级 `max_active` (.skein/config.yaml): start task 时限制同时 active task 数。
 - subtask 级 `max_active` (同键): 单/全局 ready/claim 批 = max_active - running subtask。
-  注: 代码无独立 `max_parallel` 键, subtask 并发复用 `max_active` (skein.py:1241/1259/1380)。
+  注: 历史上曾用 `max_parallel` 命名, 现已统一为 `max_active` — subtask 并发复用
+  `max_active` (skein.py:1701/1719/1744), 勿再引入独立键。
 """
 from __future__ import annotations
 

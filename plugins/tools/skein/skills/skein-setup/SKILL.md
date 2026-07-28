@@ -39,7 +39,7 @@ skein setup   # 幂等 scaffold + 输出 manifest JSON
 
 | 想改 | 怎么改 | 收尾 |
 |---|---|---|
-| 并发上限 (max_active / max_parallel) | 直接 Edit `.skein/config.yaml` | 无 |
+| 并发上限 (max_active) | 直接 Edit `.skein/config.yaml` | 无 |
 | spec 类目重组 (类目 = 层内子目录, 自由取名 git/test/arch/build/style/domain/ops...) | 移动 / 改名 `.skein/spec/<layer>/<category>/*.md` | `skein-spec reindex` |
 | core↔recall 层调 (core 常驻过重, >8000 字符会告警) | 把规则文件从 `spec/core/` 移到 `spec/recall/` (或反向) | `skein-spec reindex` |
 | 新增一条规则 | `skein-spec sediment --layer <core\|recall> --category <cat> --topic <主题> --title <T>` | 追加为主题文件章节 + 自动 reindex |

@@ -212,7 +212,7 @@ def main() -> None:
         s1 = next(s for s in subs_c if s["sid"] == "s1")
         assert isinstance(s1["created"], int) and isinstance(s1["started"], int), "subtask created/started 未记"
         assert s1["finished"] is None, "未 done 不应有 finished"
-        # 满槽 (max_parallel=2) → start 第三个应报错
+        # 满槽 (max_active=2) → start 第三个应报错
         assert sk(d, "subtask", "start", "task-5", "s3", check=False).returncode != 0, "满槽未挡"
         assert "无就绪" in sk(d, "subtask", "claim", "task-5").stdout, "满槽 claim 未阻塞"
         sk(d, "subtask", "done", "task-5", "s1")
