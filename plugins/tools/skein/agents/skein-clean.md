@@ -78,10 +78,10 @@ git branch --merged
 
 ## 失败模式 (if-then 三段式)
 
-| 触发                             | 一线处理                           | 兜底                                                   |
-| -------------------------------- | ---------------------------------- | ------------------------------------------------------ |
-| `skein clean` 脚本报错           | 读报错定位, 修环境重跑 1 次        | `[工具失败: <原因>]`, 跳过归档继续 worktree/分支项     |
+| 触发 | 一线处理 | 兜底 |
+|---|---|---|
+| `skein clean` 脚本报错 | 读报错定位, 修环境重跑 1 次 | `[工具失败: <原因>]`, 跳过归档继续 worktree/分支项 |
 | `worktree remove` 失败 (占用/锁) | `git worktree prune` 后重试 remove | 仍失败 → 保留 + 报用户, 禁 `--force` 强删活跃 worktree |
-| `branch -D` 失败 (未合并)        | 查 `git branch --merged` 核实      | 未合并 → 保留 + 报用户 (有未落地 commit)               |
-| worktree/分支无对应 task 记录    | 报用户裁定 (别猜)                  | 用户未定 → 保留, 禁自行删                              |
-| 入参 N > config `retain_days`    | 视为无效, 按 config ceiling 跑     | 报告标注「入参 N 无效, 已按 config <retain_days>」     |
+| `branch -D` 失败 (未合并) | 查 `git branch --merged` 核实 | 未合并 → 保留 + 报用户 (有未落地 commit) |
+| worktree/分支无对应 task 记录 | 报用户裁定 (别猜) | 用户未定 → 保留, 禁自行删 |
+| 入参 N > config `retain_days` | 视为无效, 按 config ceiling 跑 | 报告标注「入参 N 无效, 已按 config <retain_days>」 |

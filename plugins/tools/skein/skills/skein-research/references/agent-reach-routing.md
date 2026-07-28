@@ -5,7 +5,7 @@ skein-research 外部检索探测到 agent-reach **AVAILABLE** 时按本文件�
 ## 路由对照 (调研意图 → agent-reach 分类)
 
 | 调研意图 | agent-reach 分类 |
-| --- | --- |
+|---|---|
 | 网页/代码搜索 (选型、报错、文档) | search |
 | GitHub 仓库/实现/issue/PR | dev |
 | 社区讨论 (小红书/Twitter/B站/Reddit/V2EX) | social |

@@ -5,7 +5,7 @@
 ## 两模式 (main 定, 缺省兼容)
 
 | 模式 | 命令 | `.trellis/` 数据 | 接线 (hooks/scripts/settings + `.claude/*trellis*`) |
-| --- | --- | --- | --- |
+|---|---|---|---|
 | **兼容 (默认)** | `skein setup` | 留 (spec/task 给其它工具) | **无条件删** (避免 skein/trellis 双注入) |
 | **完全** | `skein setup --full` | 整删 `.trellis/` | 无条件删 |
 

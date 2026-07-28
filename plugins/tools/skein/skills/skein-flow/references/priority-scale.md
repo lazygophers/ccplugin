@@ -23,7 +23,7 @@ SKEIN task 优先级采用 0-10 整数打分制，默认 5 (中优先级)。用�
 ## 等级映射
 
 | 分数区间 | 等级 | 英文别名 | 含义 |
-|---------|------|---------|------|
+|---|---|---|---|
 | **7-10** | 高优先级 | high | 紧急、重要、阻塞其他 task，优先调度 |
 | **4-6** | 中优先级 | mid | 正常优先级，按部就班 (默认) |
 | **0-3** | 低优先级 | low | 不急、可以往后排、有空再做 |
@@ -107,7 +107,7 @@ out.sort(key=lambda t: (STATUS_ORDER.get(t["status"], 9),
 `"{等级}优先级 ({分数})"`
 
 | 分数 | 展示文本 |
-|------|---------|
+|---|---|
 | 8 | `高优先级 (8)` |
 | 5 | `中优先级 (5)` |
 | 2 | `低优先级 (2)` |
@@ -125,7 +125,7 @@ export function prioLabel(p) {
 ### 颜色映射
 
 | 等级 | 颜色名 | CSS 类 | 语义 |
-|------|--------|--------|------|
+|---|---|---|---|
 | 高优先级 | danger / red | `text-danger` / `bg-danger` | 危险/紧急，红色系 |
 | 中优先级 | warning / gold | `text-warning` / `bg-warning` | 警告/注意，金色系 |
 | 低优先级 | accent / blue | `text-accent` / `bg-accent` | 辅助/一般，蓝色系 |
@@ -141,7 +141,7 @@ export function prioColor(p) {
 ### 图标映射 (看板 popover)
 
 | 等级 | 图标 |
-|------|------|
+|---|---|
 | 高优先级 | `fa-arrow-up` (向上箭头) |
 | 中优先级 | `fa-minus` (横线) |
 | 低优先级 | `fa-arrow-down` (向下箭头) |
@@ -169,7 +169,7 @@ const prioIcon = prio >= 7 ? 'fa-arrow-up' : prio >= 4 ? 'fa-minus' : 'fa-arrow-
 ## 设置方式
 
 | 方式 | 命令 / 操作 | 阶段 |
-|------|------------|------|
+|---|---|---|
 | 创建时指定 | `skein create <id> --priority 8` | create |
 | 规划时设置 | planning 阶段在 task.json 里填 priority 字段 | pending |
 | 运行时调整 | `skein priority <id> <0-10>` (如有此命令) | 任意阶段 |

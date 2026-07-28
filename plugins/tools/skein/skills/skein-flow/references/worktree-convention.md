@@ -9,7 +9,7 @@ use_worktree 配置、探测方式、两种模式 (worktree 模式 vs 原地模�
 ### 1.1 配置项
 
 | 项 | 值 | 说明 |
-|----|----|------|
+|---|---|---|
 | 配置名 | `use_worktree` | 布尔值 |
 | 默认值 | `true` | 默认启用 worktree 隔离 |
 | 存储位置 | `.skein/config.json` | 仓库级配置 |
@@ -35,7 +35,7 @@ fi
 ### 1.3 三态取值
 
 | 探测结果 | 含义 | 模式 |
-|---------|------|------|
+|---|---|---|
 | `true` | 显式启用 | worktree 模式 |
 | `false` | 显式禁用 | 原地模式 |
 | `unknown` / 报错 | 未配置 / 非 git 仓库 | 原地模式 (安全回退) |
@@ -47,7 +47,7 @@ fi
 ### 2.1 Worktree 模式 (use_worktree=true 且仓库是 git)
 
 | 特征 | 说明 |
-|------|------|
+|---|---|
 | 隔离方式 | 每个 task 一个独立的 git worktree 分支 |
 | 工作目录 | `.worktrees/skein-<task-id>/` |
 | 主工作区 | 零改动，task 改动全部在 worktree 内 |
@@ -74,7 +74,7 @@ skein start 为每个声明子 git 各建 worktree:
 ### 2.2 原地模式 (use_worktree=false 或非 git)
 
 | 特征 | 说明 |
-|------|------|
+|---|---|
 | 隔离方式 | 无隔离，直接在当前仓库改动 |
 | 工作目录 | 仓库根目录 (当前工作目录) |
 | 主工作区 | 直接改动，task 完成后也留在原地 |
@@ -120,7 +120,7 @@ skein task show <tid> --json | jq -r '.worktree'
 ### 4.1 Exec 阶段
 
 | 模式 | 工作目录 | 操作约定 |
-|------|---------|---------|
+|---|---|---|
 | worktree 模式 | task.worktree 路径 | 所有 subagent 共享该 task worktree，subtask 不绑定单独 worktree |
 | 原地模式 | 仓库根 | 所有改动直接在仓库根 |
 
@@ -140,7 +140,7 @@ worktree 态 → 只在此 worktree 内改、禁碰主工作区;
 ### 4.2 Check 阶段
 
 | 模式 | 工作目录 | 操作约定 |
-|------|---------|---------|
+|---|---|---|
 | worktree 模式 | task.worktree 路径 | skein-checker 在该 worktree 内跑 lint/test/契约验证 |
 | 原地模式 | 仓库根 | 在仓库根跑验证 |
 
@@ -152,7 +152,7 @@ worktree 态 → 只在此 worktree 内改、禁碰主工作区;
 ### 4.3 Finish 阶段
 
 | 模式 | 工作目录 | 操作约定 |
-|------|---------|---------|
+|---|---|---|
 | worktree 模式 | task.worktree 路径 → 主仓 | commit→merge 回主仓→销 worktree |
 | 原地模式 | 仓库根 | 仅 commit (无 merge / 销 worktree) |
 
@@ -185,7 +185,7 @@ worktree 态 → 只在此 worktree 内改、禁碰主工作区;
 ## 5. 各阶段切换速查表
 
 | 阶段 | 进入前状态 | 工作目录 | 谁决定路径 |
-|------|-----------|---------|-----------|
+|---|---|---|---|
 | plan | 待处理 | 主工作区 (不写源码) | N/A |
 | start (建 worktree) | 就绪 → 进行中 | 建 worktree | skein start 脚本 |
 | exec | 进行中 | task.worktree / 仓库根 | task.worktree 字段 |

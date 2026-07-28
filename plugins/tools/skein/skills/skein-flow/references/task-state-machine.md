@@ -8,7 +8,7 @@ SKEIN task 生命周期的 5 个状态、流转规则、操作命令与合法性
 ## 5 个状态
 
 | 状态 (中文) | 英文别名 | 阶段 | 占 active 槽 | 有 worktree | 含义 |
-|------------|---------|------|-------------|------------|------|
+|---|---|---|---|---|---|
 | **待处理** | pending / planning | plan | 否 | 否 | 刚创建，正在 brainstorm / 规划 subtask / 填 PRD / 出 design，未过用户确认门 |
 | **就绪** | ready | ready | 否 | 否 | planning 完成 (prd 齐 + ≥1 subtask) + 用户确认通过，排队等 `skein start` 启动 |
 | **进行中** | active | exec | **是** | 是 | 已 start，worktree 已建，subtask 正在被派发执行 |
@@ -61,7 +61,7 @@ SKEIN task 生命周期的 5 个状态、流转规则、操作命令与合法性
 ## 状态切换命令
 
 | 命令 | 源状态 | 目标状态 | 前置校验 | 副作用 |
-|------|--------|---------|---------|--------|
+|---|---|---|---|---|
 | `skein create <id>` | (无) | 待处理 | id 合法 (kebab-case slug)、未占用 | 建 task 目录 + prd/design 脚手架 |
 | `skein confirm <id>` | 待处理 | 就绪 | ≥1 subtask 登记 + prd 三章节齐 + 无 TODO 占位 | 置 `confirmed` 时间戳 |
 | `skein start <id>` | 就绪 | 进行中 | doctor 体检过 + 非满槽 (`max_active`) + deps 全完成 + prd 二次校验 | 建 worktree + 置 `started` 时间戳 |
@@ -80,7 +80,7 @@ SKEIN task 生命周期的 5 个状态、流转规则、操作命令与合法性
 ### 1. 不能跳阶段
 
 | 操作 | 合法源状态 | 跳阶段示例 (非法) |
-|------|-----------|------------------|
+|---|---|---|
 | `confirm` | 仅待处理 | 就绪态再 confirm → 拒 |
 | `start` | 仅就绪 | 待处理直接 start → 拒 (须先 confirm) |
 | `check` | 仅进行中 | 待处理/就绪 check → 拒 |
@@ -95,7 +95,7 @@ SKEIN task 生命周期的 5 个状态、流转规则、操作命令与合法性
 ### 3. 幂等性边界
 
 | 操作 | 重复调用行为 |
-|------|------------|
+|---|---|
 | `create` 同 id | 拒 (id 已占用，含已归档也不可复用) |
 | `confirm` 已就绪 | 拒 (只能 confirm 待处理) |
 | `start` 已进行中 | 拒 (只能 start 就绪) |

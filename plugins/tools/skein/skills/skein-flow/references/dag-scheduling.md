@@ -11,7 +11,7 @@ SKEIN 双层同构调度 (subtask 级 + task 级) 的核心算法：依赖模型
 SKEIN 的调度完全基于显式依赖边，无隐式依赖推测。
 
 | 层级 | 字段 | 登记位置 | 登记命令 |
-|------|------|---------|---------|
+|---|---|---|---|
 | **subtask 级** | `depends_on` (简称 `deps`) | per-task `task.json` 的 `subtasks[].depends_on` | `skein subtask add --deps <sid1>,<sid2>` |
 | **task 级** | `deps` | `.skein/tasks.json` 的 `tasks[].deps` | `skein create --deps <tid1>,<tid2>` |
 
@@ -40,7 +40,7 @@ subtask.ready = (∀ dep ∈ subtask.depends_on: dep.status == done)
 ### 2.2 deps 阻塞的范围
 
 | 操作 | 是否被 deps 阻塞 | 说明 |
-|------|----------------|------|
+|---|---|---|
 | `skein create` / `subtask add` | ❌ 不阻塞 | pending task 不论前置是否 plan/finish，一律提前 plan |
 | `skein confirm` | ❌ 不阻塞 | planning 正常推进到就绪 |
 | `skein start` (task 级) | ✅ 阻塞 | 前置 task 未 done，start 硬拒 |
@@ -102,7 +102,7 @@ layer N: 最下游节点
 `max_active` 同时作用于三个层面，是同一个配置值：
 
 | 层面 | 约束 | 校验位置 |
-|------|------|---------|
+|---|---|---|
 | **task 级** | 同时「进行中」的 task 数 ≤ max_active | `skein start` 时硬拒 |
 | **单 task 内 subtask** | 单 task 内同时「运行中」的 subtask 数 ≤ max_active | `skein subtask start` 时硬拒 |
 | **全局 subtask** | 所有 active task 加起来的 running subtask 数 ≤ max_active | `skein claim` 全局认领时截断 |
@@ -136,7 +136,7 @@ while skein claim 返回非空:       # 全局跨 task 合池竞争
 ### 5.3 claim 命令族
 
 | 命令 | 范围 | 用途 |
-|------|------|------|
+|---|---|---|
 | `skein claim` | 全局跨 task | **主路径**：所有 active task 的 ready subtask 合池竞争 |
 | `skein subtask claim <tid>` | 单 task 内 | 兼容模式：仅指定 task 内截断，不跨 task 竞争 |
 | `skein claim --dry-run` | 全局只读 | 预览就绪批，不改态不占槽 |

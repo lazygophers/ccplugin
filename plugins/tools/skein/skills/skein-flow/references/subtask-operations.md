@@ -7,7 +7,7 @@
 ## 1. 四种场景总览
 
 | 场景 | 触发时机 | 谁发起 | task 状态 | 典型数量 |
-|------|---------|--------|-----------|---------|
+|---|---|---|---|---|
 | **规划新增** | plan 阶段，brainstorm + grill 后拆分子任务 | skein-flow plan 阶段 | 待处理 (pending) | 多个，构成初始 DAG |
 | **自愈修复** | exec 阶段，subtask 失败后的一线修复 | skein-flow exec 阶段 (main 自主) | 进行中 (active) | 1 个 (定点小缺陷) |
 | **check 修复** | check 阶段，验证失败 / 检出冲突后 | skein-flow check 阶段 (需用户确认方向) | 进行中 (active，回炉) | 1~多个 (一冲突一 subtask) |
@@ -38,7 +38,7 @@ skein subtask add <tid> <sid> \
 ### 2.3 字段说明
 
 | 参数 | 必填 | 默认值 | 说明 |
-|------|------|--------|------|
+|---|---|---|---|
 | `<tid>` | ✅ | - | 目标 task id |
 | `<sid>` | ✅ | - | subtask id (kebab-case，task 内唯一) |
 | `--name` | ✅ | - | 子任务名称 (简短) |
@@ -91,7 +91,7 @@ skein subtask add <tid> <fix-sid> \
 ### 3.5 与原地重派的分流
 
 | 情况 | 做法 |
-|------|------|
+|---|---|
 | 定点小缺陷 (实现 bug / 局部漏改) | 原地重派 `skein subtask start <tid> <sid>`，不新增 subtask |
 | 根因是独立可修单元 | 插修复 subtask，修完重派原 subtask |
 | 根因超本 task scope | 停手回传，走 root-cause-protocol |
@@ -196,7 +196,7 @@ skein subtask add <tid> <new-sid> \
 ### 6.2 常见环陷阱
 
 | 陷阱 | 示例 | 正确做法 |
-|------|------|---------|
+|---|---|---|
 | 互相依赖 | A.deps=[B], B.deps=[A] | 拆出共享前置 C，A.deps=[C], B.deps=[C] |
 | 修复 subtask 挂错 | 修复 subtask deps=[失败sid] | 修复 subtask deps=[失败sid的前置]，失败sid 依赖修复sid |
 | 跨层跳挂 | 下游 subtask 直接 deps 源头，但中间层也依赖它 | 理清楚真实顺序，按层级挂 |
@@ -219,7 +219,7 @@ skein subtask add <tid> <new-sid> \
 ### 7.2 判定逻辑
 
 | 情况 | 建议 |
-|------|------|
+|---|---|
 | ≤ 8 subtask 且单子系统 | 正常，单 task 承载 |
 | > 8 subtask 但单子系统 | 提醒：考虑拆成多个 task，用 task 级 `--deps` 串 |
 | 跨子系统 (无论数量) | 提醒：按子系统拆 task，各管各的域 |

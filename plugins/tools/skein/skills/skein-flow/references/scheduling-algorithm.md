@@ -19,7 +19,7 @@
 subtask DAG 存 per-task `task.json` 的 `subtasks[]` (guard 硬阻 AI 直读写), 全程经 `skein subtask` 命令维护。**DAG 算法 + 就绪判定 + 改态由脚本一次性做** (`claim`), main 只负责派 agent (脚本不能 spawn):
 
 | 命令 | 谁跑 | 作用 |
-| --- | --- | --- |
+|---|---|---|
 | `subtask add <tid> <sid> --name --desc [--agent --deps --check --skills]` | planning/main | 登记 subtask 到 DAG。**`sid`/`--name`/`--desc` 必填** (缺一 argparse 报错); `--agent` 省略默认 `skein-executor` (有更合适的具名 agent 显式填); `--check` = 验收标准 checklist 分号分隔, `--skills` 逗号分隔 0-n |
 | `claim` | main (每轮, **主路径**) | **全局跨 task**: 所有 active task 的 ready subtask 合池竞争同一 `max_parallel` 槽, 按 (拓扑深度降序, task 登记序, subtask 登记序) 截取 + 整批标 running, 返回给 main 逐个 dispatch |
 | `subtask claim <tid>` | main (单 task 兼容模式) | **仅该 task 内**算就绪批 (拓扑深度降序) + 标 running; 不跨 task 竞争, 单 task 场景的兼容路径 |

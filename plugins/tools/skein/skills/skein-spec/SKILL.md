@@ -18,10 +18,10 @@ effort: medium
 > - **读路径 → `skein-recaller`** (只读同步召回员, 单一 recall 职责): recall 检索 (planning) 派它, **main 等召回结果进 planning** (dispatch prompt「已知」段带上)。
 > - **写路径 → `skein-specer`** (记忆写盘员): sediment/reconstruct·maintain/prune 三类写作业 (finish 读 diff + subagent 回传摘要 跑判定门产候选 + 写盘 + reindex)。**异步 fire-and-forget 模式** (被 skein-flow finish 阶段在 finish 闭环后派发): specer 自主跑判定门 + `skein-spec sediment` 写盘 + reindex, **无需 main 等待回传** (main 派发即结束回合, 回传到达后只补 output trace; 判定门通过即自主写, 不逐次询问用户)。仅 bootstrap/reconstruct 全局动作跑前一次征同意。
 
-| 层         | 路径                             | 加载                                                 | 适合                             |
-| ---------- | -------------------------------- | ---------------------------------------------------- | -------------------------------- |
-| **core**   | `.skein/spec/core/<类目>/*.md`   | 每 session 常驻 (SessionStart hook 注入正文)         | 硬约束 / 命令式契约 (后续必再踩) |
-| **recall** | `.skein/spec/recall/<类目>/*.md` | 按需语义召回 (planning 时 grep index → model 读全文) | 长尾、上下文密集经验             |
+| 层 | 路径 | 加载 | 适合 |
+|---|---|---|---|
+| **core** | `.skein/spec/core/<类目>/*.md` | 每 session 常驻 (SessionStart hook 注入正文) | 硬约束 / 命令式契约 (后续必再踩) |
+| **recall** | `.skein/spec/recall/<类目>/*.md` | 按需语义召回 (planning 时 grep index → model 读全文) | 长尾、上下文密集经验 |
 
 **两层 × 类目**: 层内按类目 (category) 分子目录 —— git / test / arch / build / style / domain / ops... 自由取名、按需建。索引三份: 每层 `<layer>/index.md` (层内全规则, 带 category 列) + 顶层 `index.md` (两层聚合概览)。core 常驻有软预算 (8000 字符, 超则告警降级, 契合「常驻只放最小硬规」)。
 
@@ -54,7 +54,7 @@ sediment 写盘后, memorier 顺带跑一轮精简: 扫两层规则, 按 maintai
 **精简判定门** (命中任一条即 archive):
 
 | 判据 | 触发 | 处置 |
-| --- | --- | --- |
+|---|---|---|
 | stale | created > 180 天且 updated 无后续 | `skein-spec archive <path>` |
 | keywords 重复 | 同 keywords 组 ≥ 3 条 | 保留最新 (按 updated), 其余 archive |
 | 废弃 | status=deprecated / superseded | `skein-spec archive <path>` |
@@ -89,7 +89,7 @@ sediment 写盘后, memorier 顺带跑一轮精简: 扫两层规则, 按 maintai
 **六档深度** (`reconstruct --deep=<recall|low|full|deep|max|high>`, 对应 ②archive 范围 + ④扫描深度):
 
 | 档 | archive 范围 | 扫描 | 适用 |
-| --- | --- | --- | --- |
+|---|---|---|---|
 | **recall** | `archive --layer recall` (保留手工 core) | 五维基线 + 主类型侧重 | 漂移/污染集中长尾, core 仍可信 |
 | **low** | `archive --layer recall` (保留手工 core) | 五维基线 | 轻量核查, 仅验证 recall 层完整性 |
 | **full** | `archive` 两层全归档 | 五维基线 + 主类型侧重 | 换栈/架构翻新, core 也过期 |
@@ -110,25 +110,25 @@ skein-spec restore <ts>                  # 回滚 (撞名不覆盖新规则)
 
 ## 失败模式 (if-then 三段式: 触发 → 一线修复 → 仍失败兜底)
 
-| 触发                          | 一线修复                                          | 仍失败兜底                                                   |
-| ----------------------------- | ------------------------------------------------- | ------------------------------------------------------------ |
-| recall grep 无命中            | 放宽 / 换关键词重 grep 一次 (同义词 / 上位类目)   | 仍无 → planning 走无规则路径, 不阻塞; 靠 finish sediment 增量补 |
-| `skein-spec sediment/reindex` 报错 | 读脚本 stderr 定位 (路径 / 权限 / 类目名非法)    | 仍失败 → 该候选暂存草案不落盘, 记 `需要: 手工核对`, 禁半写坏盘 |
-| core 常驻超 8000 字符告警     | prune 自动降级最少复用的 core 到 recall (`sediment` 调层) | 仍超 → 停手, 提示用户 core 膨胀, 需人工裁剪硬规集            |
-| reconstruct 重建不满意        | `skein-spec restore <ts>` 从归档恢复 (撞名加 restored- 前缀并存) | 仍失败 → 归档目录仍在 `.skein/spec/.archive/<ts>/`, 手动核对取舍 |
+| 触发 | 一线修复 | 仍失败兜底 |
+|---|---|---|
+| recall grep 无命中 | 放宽 / 换关键词重 grep 一次 (同义词 / 上位类目) | 仍无 → planning 走无规则路径, 不阻塞; 靠 finish sediment 增量补 |
+| `skein-spec sediment/reindex` 报错 | 读脚本 stderr 定位 (路径 / 权限 / 类目名非法) | 仍失败 → 该候选暂存草案不落盘, 记 `需要: 手工核对`, 禁半写坏盘 |
+| core 常驻超 8000 字符告警 | prune 自动降级最少复用的 core 到 recall (`sediment` 调层) | 仍超 → 停手, 提示用户 core 膨胀, 需人工裁剪硬规集 |
+| reconstruct 重建不满意 | `skein-spec restore <ts>` 从归档恢复 (撞名加 restored- 前缀并存) | 仍失败 → 归档目录仍在 `.skein/spec/.archive/<ts>/`, 手动核对取舍 |
 
 ## ✅ 正向配方 (命中反面=流程错误)
 
 > 🔒 铁律: sediment+prune 异步 fire-and-forget 禁阻塞 finish; core 只留命令式硬约束。
 
-| 场景                               | 正确做法 (❌ 反面)                                                       |
-| ---------------------------------- | ----------------------------------------------------------------------- |
-| sediment 写盘 / prune 自动 archive | 逐项输出判定 trace, memorier 回传后 main 补 (❌ 未输出判定 trace)         |
-| 判定门全否                         | 跳过不沉淀 (❌ 无增量硬凑沉淀)                                           |
-| 判定门通过要不要问用户             | 自主写盘, 只输出 trace 不硬停 (❌ 逐次 AskUserQuestion 问用户批不批)      |
-| finish 闭环 vs sediment/prune      | 异步 fire-and-forget, finish 先 archive (❌ 为等 sediment/prune 阻塞闭环) |
-| 写盘更新 index.md                  | skein-spec sediment 自动同步 (❌ 不同步 index.md / 手改绕过)             |
-| 规则分层                           | 默认落 recall, core 只留硬约束 (❌ 什么都塞 core 常驻)                    |
+| 场景 | 正确做法 (❌ 反面) |
+|---|---|
+| sediment 写盘 / prune 自动 archive | 逐项输出判定 trace, memorier 回传后 main 补 (❌ 未输出判定 trace) |
+| 判定门全否 | 跳过不沉淀 (❌ 无增量硬凑沉淀) |
+| 判定门通过要不要问用户 | 自主写盘, 只输出 trace 不硬停 (❌ 逐次 AskUserQuestion 问用户批不批) |
+| finish 闭环 vs sediment/prune | 异步 fire-and-forget, finish 先 archive (❌ 为等 sediment/prune 阻塞闭环) |
+| 写盘更新 index.md | skein-spec sediment 自动同步 (❌ 不同步 index.md / 手改绕过) |
+| 规则分层 | 默认落 recall, core 只留硬约束 (❌ 什么都塞 core 常驻) |
 
 ## maintain (手动体检, main)
 
@@ -149,7 +149,7 @@ skein-spec maintain --apply   # 同一次扫描自动修可修项 (断链只报�
 3. **修复 (skein-specer)** — 读标记 → `skein-spec maintain --apply` 一次性自动修:
 
 | 问题 | 处置 |
-| --- | --- |
+|---|---|
 | 超预算 (core > 8000) | 循环降级 top-1 最大 core 规则 → recall, 直到 core < 8000 |
 | stale (created > 180 天) | archive (可逆) |
 | keywords 重复 (同组 ≥ 3) | 保留最新, 余 archive (可逆) |

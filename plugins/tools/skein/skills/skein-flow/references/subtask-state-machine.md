@@ -8,7 +8,7 @@ SKEIN subtask 的 4 个状态、流转规则、操作命令及与 `max_parallel`
 ## 4 个状态
 
 | 状态 (中文) | 英文别名 | 占并发槽 | 含义 |
-|------------|---------|---------|------|
+|---|---|---|---|
 | **待处理** | pending | 否 | 已登记 (`subtask add`)，依赖未全 done / 还没被认领，排队等待调度 |
 | **运行中** | running | **是** | 已 claim / start，占 `max_parallel` 槽，agent 正在执行 |
 | **已完成** | done | 否 | 执行成功，验收全过，释放槽位，下游依赖可解锁 |
@@ -101,7 +101,7 @@ SKEIN subtask 的 4 个状态、流转规则、操作命令及与 `max_parallel`
 `max_active` (config 参数，默认 2) 既是 **task 级并发上限**，也是 **subtask 级并发上限**：
 
 | 层面 | 约束 | 校验位置 |
-|------|------|---------|
+|---|---|---|
 | **task 级** | 同时「进行中」的 task 数 ≤ `max_active` | `skein start` 时 |
 | **单 task 内 subtask** | 单 task 内同时「运行中」的 subtask 数 ≤ `max_active` | `skein subtask start` 时 |
 | **全局 subtask** | 所有 active task 加起来的 running subtask 数 ≤ `max_active` | `skein claim` 全局认领时 |
@@ -112,7 +112,7 @@ SKEIN subtask 的 4 个状态、流转规则、操作命令及与 `max_parallel`
 ### 占槽 / 释槽时机
 
 | 事件 | 槽位变化 |
-|------|---------|
+|---|---|
 | `claim` / `subtask start` → running | **占** 1 个槽 |
 | `subtask done` / `subtask fail` | **释** 1 个槽 |
 | `skein start` (task 级) | task 占 1 个 active 槽 (与 subtask 槽是两套) |

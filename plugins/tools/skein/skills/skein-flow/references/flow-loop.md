@@ -25,7 +25,7 @@ while 有可推进 task:                      # task 级并发受 max_active (�
 停顿 = 结束本回合等用户答。只有这几处:
 
 | 停顿点 | 原因 |
-| --- | --- |
+|---|---|
 | plan 的 brainstorm / grill 逐问 | 需求归用户, subagent 不能与用户对话 |
 | check FAIL 后的修复方向确认 | 「方向确认=必经门」, 禁凭报告原文擅自补 subtask |
 | subagent 回传 `需要: <问题>` | 信息缺口只有用户能填 |

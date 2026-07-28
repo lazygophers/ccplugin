@@ -19,7 +19,7 @@
 ### 🛑 硬门 1: Task 级 — 未 start 禁 exec
 
 | 项 | 内容 |
-|----|------|
+|---|---|
 | **门规** | task 必须先 `skein confirm` (待处理→就绪) + `skein start` (就绪→进行中) 才能进 exec 调度门 |
 | **禁止行为** | 待处理 / 就绪态 task 禁派 subtask、禁跑 exec |
 | **违反后果** | 流程错误，所做的 inline 改动 / 派发全部无效，必须回退重走 |
@@ -36,7 +36,7 @@
 ### 🛑 硬门 2: Subtask 级 — 未 claim 占槽禁派
 
 | 项 | 内容 |
-|----|------|
+|---|---|
 | **门规** | subtask 必须先 `skein claim` / `skein subtask claim <tid>` / `skein subtask start <tid> <sid>` (标 running 占 `max_parallel` 槽) 才能派 agent |
 | **禁止行为** | pending / failed 态 subtask 禁直接派 agent，必须先经 claim / start 占槽 |
 | **违反后果** | 流程错误，已派出的 agent 视为无槽运行，必须回收或补占槽 |
@@ -53,7 +53,7 @@
 ### 🛑 硬门 3: Check 级 — 未 skein check 禁验证宣告
 
 | 项 | 内容 |
-|----|------|
+|---|---|
 | **门规** | 全 subtask done 后必须先 `skein check` (进行中→检查中) 才能跑验证 / lint / test / 契约核对 |
 | **禁止行为** | 禁 main 在 task 仍「进行中」态自跑验证当 check 结果 |
 | **违反后果** | 流程错误，验证结果无效，必须重新走 check 流程 |
@@ -75,7 +75,7 @@
 ## 判定速查表
 
 | 场景 | 先做什么 | 再做什么 |
-|------|---------|---------|
+|---|---|---|
 | 想派 subtask 执行 | `skein confirm` + `skein start` 进进行中 | `skein claim` 占槽 → 派 agent |
 | 想派单个 subtask | `skein subtask start <tid> <sid>` 标 running | 派 agent |
 | 想跑验证 / lint / test | `skein check` 进检查中 | 派 skein-checker |
