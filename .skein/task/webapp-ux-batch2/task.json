@@ -2,7 +2,7 @@
   "id": "webapp-ux-batch2",
   "name": "webapp 交互批次2: 动效/面板/DAG档位/增量刷新/工时门",
   "desc": "11 项 UI 与流程修正: 执行中动效、面板结构、DAG 尺寸档、进度综合算法、WS 增量更新不破坏用户操作、plan-ready 工时门",
-  "status": "进行中",
+  "status": "已完成",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -127,7 +127,7 @@
   "created": 1785243693,
   "started": 1785243792,
   "confirmed": 1785243792,
-  "checked": null,
-  "finished": null,
-  "updated": 1785245920
+  "checked": 1785245950,
+  "finished": 1785246233,
+  "updated": 1785246233
 }

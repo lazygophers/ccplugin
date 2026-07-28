@@ -1,15 +1,6 @@
 {
   "tasks": [
     {
-      "id": "webapp-ux-batch2",
-      "status": "进行中",
-      "deps": [],
-      "priority": 5,
-      "worktree": null,
-      "parent": null,
-      "kind": "task"
-    },
-    {
       "id": "skein-wf-refs",
       "status": "待处理",
       "deps": [],
@@ -146,6 +137,15 @@
     },
     {
       "id": "webapp-rewrite",
+      "status": "已完成",
+      "deps": [],
+      "priority": 5,
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    },
+    {
+      "id": "webapp-ux-batch2",
       "status": "已完成",
       "deps": [],
       "priority": 5,
