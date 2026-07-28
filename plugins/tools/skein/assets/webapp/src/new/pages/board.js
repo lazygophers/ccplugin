@@ -5,7 +5,7 @@
 // ============================================================
 
 import { h, api, fmtRelative, fmtTime, normalizeTasks, prioLabel, prioTextColor,
-         confirmDialog, alertDialog } from '../app.js';
+         confirmDialog, alertDialog, buildTimeline } from '../app.js';
 
 const ST_COLOR = {
   planning: 'st-planning', ready: 'st-ready',
@@ -914,71 +914,7 @@ function listView(tasks, onClick, statusSet) {
   );
 }
 
-// ---- 时间线 ----
-const STAGE_COLORS = {
-  created:  '#74b9e8',
-  ready:    '#429cd1',
-  started:  '#237bb8',
-  checked:  '#c9a227',
-  finished: '#48bb78',
-};
-
-function buildTimeline(task) {
-  const st = task.status || 'planning';
-  const stages = [
-    {
-      key: 'created', label: '创建', name: '创建任务',
-      desc: '任务创建与初始化',
-      time: task.createdAt,
-      done: !!task.createdAt,
-      current: false,
-      color: STAGE_COLORS.created,
-    },
-    {
-      key: 'ready', label: '就绪', name: '进入待执行',
-      desc: '规划完成，等待开始执行',
-      time: task.readyAt,
-      done: !!task.readyAt || st === 'ready' || st === 'active' || st === 'check' || st === 'done' || st === 'failed',
-      current: st === 'ready',
-      color: STAGE_COLORS.ready,
-    },
-    {
-      key: 'started', label: '执行', name: '开始执行',
-      desc: '任务执行中，子任务调度',
-      time: task.startedAt,
-      done: !!task.startedAt || st === 'active' || st === 'check' || st === 'done' || st === 'failed',
-      current: st === 'active',
-      color: STAGE_COLORS.started,
-    },
-    {
-      key: 'checked', label: '验收', name: '进入验收',
-      desc: 'checkpoint 核对 + 场景自适应校验',
-      time: task.checkedAt,
-      done: !!task.checkedAt || st === 'check' || st === 'done' || st === 'failed',
-      current: st === 'check',
-      color: STAGE_COLORS.checked,
-    },
-    {
-      key: 'finished', label: '完成', name: '已完成',
-      desc: '任务完成，归档沉淀',
-      time: task.finishedAt,
-      done: !!task.finishedAt || st === 'done',
-      current: false,
-      color: STAGE_COLORS.finished,
-    },
-  ];
-  // 标记当前进行中的阶段（取第一个 current=true 或最后一个 done 之后的 pending）
-  let foundCurrent = false;
-  for (const s of stages) {
-    if (s.current) { foundCurrent = true; break; }
-  }
-  if (!foundCurrent) {
-    // 找第一个未完成的作为当前
-    const firstPending = stages.find(s => !s.done);
-    if (firstPending) firstPending.current = false; // pending 态，不算 cur
-  }
-  return stages;
-}
+// ---- 时间线 (buildTimeline 见 app.js, 与 task 详情页共用) ----
 
 function timelineView(stages, task) {
   if (!stages || !stages.length) {

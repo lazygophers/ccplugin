@@ -58,6 +58,53 @@ const STATUS_MAP = {
 // 中文/英文状态 → 5 状态系统 (统计类接口只回状态计数时用)
 export function normalizeStatus(s) { return STATUS_MAP[s] || s; }
 
+// ---- 生命周期时间线 (board 详情面板 / task 详情页共用) ----
+// 阶段序: 已过的阶段=done, 正处的阶段=current, 之后=pending。
+// 关键: 当前阶段绝不标 done — 状态 active 时「执行」应是「当前」而非「已完成」。
+const STAGE_ORDER = { planning: 0, ready: 1, active: 2, check: 3, done: 4 };
+const STAGE_COLORS = {
+  created:  '#74b9e8',
+  ready:    '#429cd1',
+  started:  '#237bb8',
+  checked:  '#c9a227',
+  finished: '#48bb78',
+};
+
+export function buildTimeline(task) {
+  const st = task.status || 'planning';
+  const idx = STAGE_ORDER[st];
+  // failed 无阶段序 → 回落时间戳判定 (失败点未知, 有时间戳的阶段算走过)
+  const byTs = idx == null;
+  const at = (i, ts) => (byTs ? !!ts : idx > i);
+  return [
+    {
+      key: 'created', label: '创建', name: '创建任务', desc: '任务创建与初始化',
+      time: task.createdAt, done: !!task.createdAt, current: false,
+      color: STAGE_COLORS.created,
+    },
+    {
+      key: 'ready', label: '就绪', name: '进入待执行', desc: '规划完成，等待开始执行',
+      time: task.readyAt, done: at(1, task.readyAt), current: idx === 1,
+      color: STAGE_COLORS.ready,
+    },
+    {
+      key: 'started', label: '执行', name: '开始执行', desc: '任务执行中，子任务调度',
+      time: task.startedAt, done: at(2, task.startedAt), current: idx === 2,
+      color: STAGE_COLORS.started,
+    },
+    {
+      key: 'checked', label: '验收', name: '进入验收', desc: 'checkpoint 核对 + 场景自适应校验',
+      time: task.checkedAt, done: at(3, task.checkedAt), current: idx === 3,
+      color: STAGE_COLORS.checked,
+    },
+    {
+      key: 'finished', label: '完成', name: '已完成', desc: '任务完成，归档沉淀',
+      time: task.finishedAt, done: byTs ? !!task.finishedAt : idx >= 4, current: false,
+      color: STAGE_COLORS.finished,
+    },
+  ];
+}
+
 // ---- 优先级工具 (0-10 分, 默认 5 = 中) ----
 export function prioLevel(p) {
   const n = p != null ? Number(p) : 5;

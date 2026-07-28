@@ -6,7 +6,7 @@
 // ============================================================
 
 import { h, api, md, fmtRelative, fmtTime, normalizeTask, normalizeTasks,
-         confirmDialog, alertDialog } from '../app.js';
+         confirmDialog, alertDialog, buildTimeline } from '../app.js';
 
 const ST_LABEL = {
   planning: '规划中', ready: '待执行',
@@ -32,61 +32,7 @@ function infoItem(label, value) {
   ]);
 }
 
-// ---- 时间线 ----
-const STAGE_COLORS = {
-  created:  '#74b9e8',
-  ready:    '#429cd1',
-  started:  '#237bb8',
-  checked:  '#c9a227',
-  finished: '#48bb78',
-};
-
-function buildTimeline(task) {
-  const st = task.status || 'planning';
-  const stages = [
-    {
-      key: 'created', label: '创建', name: '创建任务',
-      desc: '任务创建与初始化',
-      time: task.createdAt,
-      done: !!task.createdAt,
-      current: false,
-      color: STAGE_COLORS.created,
-    },
-    {
-      key: 'ready', label: '就绪', name: '进入待执行',
-      desc: '规划完成，等待开始执行',
-      time: task.readyAt,
-      done: !!task.readyAt || st === 'ready' || st === 'active' || st === 'check' || st === 'done' || st === 'failed',
-      current: st === 'ready',
-      color: STAGE_COLORS.ready,
-    },
-    {
-      key: 'started', label: '执行', name: '开始执行',
-      desc: '任务执行中，子任务调度',
-      time: task.startedAt,
-      done: !!task.startedAt || st === 'active' || st === 'check' || st === 'done' || st === 'failed',
-      current: st === 'active',
-      color: STAGE_COLORS.started,
-    },
-    {
-      key: 'checked', label: '验收', name: '进入验收',
-      desc: 'checkpoint 核对 + 场景自适应校验',
-      time: task.checkedAt,
-      done: !!task.checkedAt || st === 'check' || st === 'done' || st === 'failed',
-      current: st === 'check',
-      color: STAGE_COLORS.checked,
-    },
-    {
-      key: 'finished', label: '完成', name: '已完成',
-      desc: '任务完成，归档沉淀',
-      time: task.finishedAt,
-      done: !!task.finishedAt || st === 'done',
-      current: false,
-      color: STAGE_COLORS.finished,
-    },
-  ];
-  return stages;
-}
+// ---- 时间线 (buildTimeline 见 app.js, 与看板详情面板共用) ----
 
 // 执行阶段子时间线: 每个 subtask 的执行过程 (默认折叠)
 function subTimelineView(subs) {

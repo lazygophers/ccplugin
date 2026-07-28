@@ -2435,11 +2435,13 @@ def _split_semi(s: Optional[str]) -> list[str]:
 
 
 def _sub_pct(s: dict[str, Any]) -> int:
-    # subtask 完成百分比 = 已通过验收/总验收 (done 强制 100; 无验收则未完成即 0)
+    # subtask 完成百分比 = 已通过验收/总验收 (done 强制 100; 无验收则按状态给底分)
     if s["status"] == SS_DONE:
         return 100
     crit = s.get("验收", [])
-    return round(len(s.get("验收done", [])) / len(crit) * 100) if crit else 0
+    if crit:
+        return round(len(s.get("验收done", [])) / len(crit) * 100)
+    return 50 if s["status"] == SS_RUNNING else 0  # 无验收项: 在跑的记半程, 否则 0
 
 
 def _task_pct(t: dict[str, Any]) -> int:
@@ -2451,7 +2453,9 @@ def _task_pct(t: dict[str, Any]) -> int:
         return 100
     subs: list[dict[str, Any]] = t.get("subtasks", [])
     if subs:
-        return sum(_sub_pct(s) for s in subs) // len(subs)
+        # 状态机阶段做下限: 已 start 的 task 不该显示 0% (subtask 尚未起跑时).
+        floor = 85 if st == S_CHECK else 10 if st == S_ACTIVE else 8 if st == S_READY else 5
+        return max(floor, sum(_sub_pct(s) for s in subs) // len(subs))
     # 无 subs: 用状态机阶段 (planning/exec/check 收尾的单点 task)
     if st == S_CHECK:
         return 85
