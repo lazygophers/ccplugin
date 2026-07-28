@@ -1,6 +1,6 @@
 ---
 name: skein-flow
-description: SKEIN task 闭环编排器 (plan→exec→check→finish 单一真值源)。按参数路由各阶段 — plan 规划真值源 (判新旧 + create 登记 + brainstorm + grill 硬门, 产 prd/design/subtask DAG) / exec 执行编排调度 (双层 DAG, 完成即派, 并发 2, main 禁亲改源码) / check 质量门 (lint/type/test/契约 + 一致性核查, 验证修复分离) / finish 收尾闭环门 (勘察 + merge + 销 worktree + 标记完成 + 异步 sediment)。复杂/多步/跨文件请求, 或用户显式要求把请求作为 SKEIN task 处理时使用 — 强推闭环, main 作调度器派 subagent 在 worktree 内执行, 禁 inline 直接做。默认无参 = plan (规划任务到就绪)。
+description: SKEIN task 闭环编排器 (plan→exec→check→finish 单一真值源)。按参数路由各阶段 — plan 规划真值源 (判新旧 + create 登记 + brainstorm + grill 硬门, 产 prd/design/subtask DAG) / exec 执行编排调度 (双层 DAG, 完成即派, 并发 2, main 禁亲改源码) / check 质量门 (lint/type/test/契约 + 一致性核查, 验证修复分离) / finish 收尾闭环门 (勘察 + merge + 销 worktree + 标记完成 + 异步 sediment)。复杂/多步/跨文件请求, 或用户显式要求把请求作为 SKEIN task 处理时使用 — 强推闭环, main 作调度器派 subagent 在 worktree 内执行, 禁 inline 直接做。默认无参 = flow 全闭环 (plan→exec→check→finish 一路推到 finish, 不停在 plan)。
 user-invocable: true
 argument-hint: "[plan|exec|check|finish] [任务描述/ID]"
 arguments: "[plan|exec|check|finish] [任务描述/ID]"
@@ -10,7 +10,7 @@ effort: medium
 
 # skein-flow — task 闭环编排器 (四阶段单一真值源)
 
-**plan→exec→check→finish 四步闭环全流程编排。** 按首参路由阶段, 缺省 = plan。
+**plan→exec→check→finish 四步闭环全流程编排。** 按首参路由阶段, **缺省 = flow 全闭环** (非 plan)。
 
 ## 🧭 参数路由
 
@@ -18,10 +18,13 @@ effort: medium
 
 | `$1` | 阶段 | 行为 |
 | --- | --- | --- |
-| `plan` / 缺省 / 任务描述 | **plan** | 判新旧 + create/并入 + brainstorm + grill 硬门, 推到就绪 (停在 `skein start` 前) |
+| **缺省 / 任务描述** | **flow (默认)** | 走完整闭环 plan→exec→check→finish, 阶段间自动续跑不停顿。循环编排详见 [references/flow-loop.md](references/flow-loop.md) |
+| `plan` | **plan** | **仅规划** — 判新旧 + create/并入 + brainstorm + grill 硬门, 推到就绪即停 (停在 `skein start` 前) |
 | `exec` | **exec** | 驱动就绪/在途 task 走完整闭环到 finish (start→exec→check→finish) |
 | `check` | **check** | exec 产物完成后、finish 前, 派 skein-checker 跑验证 |
 | `finish` | **check 全绿后** | 派 skein-finisher 勘察 + skein finish 闭环 + 异步 sediment |
+
+🔒 **禁把缺省当 plan 用** — 无参 / 只给任务描述 = 用户要**做完**, 不是要个规划稿。plan 收敛后禁停手问「要不要开始执行」, 直接续 exec。只有显式 `/skein-flow plan` 才停在就绪。
 
 **载体铁律**: 「派 agent」=真实 `Agent` tool_use / main 默认禁写源码 / 有 task 必有 worktree / dispatch 6 字段 / 完成即时回传 / 并发请求禁互相顶掉 等。全量 11 条铁律详见 [references/carrier-rules.md](references/carrier-rules.md)。
 
@@ -105,7 +108,9 @@ brainstorm 前先定**是否需要派 skein-researcher**, 按信号分档自动�
      - **tracer-bullet (端到端瘦实现优先, ask-matt 同源)** — 契约 subtask 本身该是**端到端穿通的最瘦实现** (各层 stub / 空实现但全链路跑通一个 happy path): 第一个 subtask 完成后能验证「整条路走得通」, 再逐 subtask flesh 内部逻辑。早一个周期发现协议缺陷, 是压 makespan 的第二命门。
      - **拆完对表复杂度天花板 (硬)** — subtask 落完立刻对天花板表逐项核。
 6. **异步派 skein-dedup (fire-and-forget, 不阻塞 exec)** — 所有 task planning 完成 (batch 末 / plan 收尾, exec 触发前), main **异步派 `skein-dedup`** subagent 全量扫一次未完成 task: ① 查重归并 (自动 `subtask add` 迁入主 task + `skein del` 次 task); ② 给散落的相关 task 补执行序织成完整 DAG (自动 `skein deps`, **仅对现无 deps 的 pending task 补前置, 已有 deps 的不碰**)。**异步不阻塞**: dedup 后台跑, exec 照常推进。
-7. **返回** — 无参 plan 停在 start 前, 提示用户 `/skein-flow exec <task>` 激活。
+7. **出口 (按路由分流)** — 完成判据勾满后:
+   - **flow (缺省 / 任务描述)** → `skein confirm` 转就绪, **直接续 exec 阶段**, 禁停手问用户要不要执行。
+   - **显式 `plan`** → 停在 `skein start` 前, 提示用户 `/skein-flow exec <task>` 激活。
 
 ## ✅ plan 阶段完成判据 (勾满才转 exec)
 
