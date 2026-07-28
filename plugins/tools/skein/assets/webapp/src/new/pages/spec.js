@@ -96,10 +96,13 @@ async function renderDetail(mount, relPath) {
       h('div.text-xs.text-muted.font-mono', relPath),
     ]),
     meta ? metaCard(meta) : null,
+    // 正文区: 规则类 spec 常只有 frontmatter (标题即全部内容), body 空时给占位而非空白卡
     h('div.glass-card.p-5',
-      resp && resp.content
-        ? h('div.md-body', { html: md.renderSafe(body) })
-        : h('div.py-16.text-center.text-muted', '规范不存在或读取失败')
+      !resp || !resp.content
+        ? h('div.py-16.text-center.text-muted', '规范不存在或读取失败')
+        : body.trim()
+          ? h('div.md-body', { html: md.renderSafe(body) })
+          : h('div.py-10.text-center.text-muted.text-sm', '此规范无正文 — 全部内容见上方标题与元数据')
     ),
   );
 }
