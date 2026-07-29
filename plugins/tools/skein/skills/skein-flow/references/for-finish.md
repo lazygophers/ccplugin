@@ -9,7 +9,7 @@ check 全绿后的**收尾门**。验收/完成度核对已在 check 阶段做�
 
 ## 流程步骤 (main 保留项)
 
-1. **派发** — 传 `task id + 工作目录` (task 的 `worktree` 字段; null=原地仓库根) → 派 `skein-finisher`。finisher 自主完成勘察改动 (git diff/status) + 清悬挂后台 task (`TaskList`/`TaskStop`) + 在仓库根跑 `skein finish <tid>` (commit→merge→销 worktree→标记完成), 全流程权威定义见 `skein-finisher.md` (agents/), 本文件不重复。
+1. **派发 (经 `Agent` 工具派具名 subagent, 禁 teammate / team)** — 传 `task id + 工作目录` (task 的 `worktree` 字段; null=原地仓库根) → 派 `skein-finisher`。finisher 自主完成勘察改动 (git diff/status) + 清悬挂后台 task (`TaskList`/`TaskStop`) + 在仓库根跑 `skein finish <tid>` (commit→merge→销 worktree→标记完成), 全流程权威定义见 `skein-finisher.md` (agents/), 本文件不重复。
 2. **读结果, 按 verdict 分流** — finisher 回传 `收尾干净 | 需处理`:
    - **收尾干净** → 已闭环 (finish 已由 finisher 自跑成功), 直接进第 3 步。
    - **需处理** → 按 `needs_main`/`dangling`/`tool_failures` 定位问题 (悬挂残留清不掉 / `skein finish` 报错 / 无改动异常), 处理后视情况重派 finisher 或人工介入, 见下方失败模式表。

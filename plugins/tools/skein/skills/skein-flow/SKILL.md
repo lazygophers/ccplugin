@@ -29,7 +29,7 @@ effort: medium
 
 🔒 **全空 = 清空存量, 禁走 plan** — 无 `$1` 且无任务描述时无新需求可规划, 直接进 exec 消化存量: `待处理` 态先补 plan 收敛再 start, `就绪 && ready=true` 直接 start, `进行中/检查中` 续跑当前阶段。禁凭空造 task、禁问用户「要做什么」。
 
-**载体铁律 + 正向配方** — 「派 agent」=真实 `Agent` tool_use / main 默认禁写源码 / 有 task 必有 worktree / dispatch 6 字段 / 完成即时回传 / 并发请求禁互相顶掉 等 11 条铁律, 及命中即流程错误的正向配方表, 全量详见 [references/carrier-rules.md](references/carrier-rules.md)。
+**载体铁律 + 正向配方** — 「派 agent」=真实 `Agent` tool_use / **exec·check·finish 一律具名 subagent, 禁 teammate·agent-team** / main 默认禁写源码 / 有 task 必有 worktree / dispatch 6 字段 / 完成即时回传 / 并发请求禁互相顶掉 等 12 条铁律, 及命中即流程错误的正向配方表, 全量详见 [references/carrier-rules.md](references/carrier-rules.md)。
 
 ## 🛑 状态先行三硬门 (单一真值源)
 
