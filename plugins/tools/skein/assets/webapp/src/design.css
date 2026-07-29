@@ -1027,6 +1027,9 @@ html { font-size: 17px; }
   border-left: 1px solid var(--brd);
   background: var(--bg);
   overflow-y: auto;
+  /* 宽度是硬约束: 只许纵向滚。overflow-y:auto 会把 overflow-x 的 visible 算作 auto,
+     内容一超宽就冒横条 — 显式钉死 hidden */
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   /* 高度跟画布区一齐 (由 board.js 精算), 面板内部自己滚 — 不让它把页面撑出滚动条 */
@@ -1070,6 +1073,10 @@ html { font-size: 17px; }
   gap: .941rem;
   align-content: start;
 }
+/* grid/flex 子项默认 min-width:auto — 长 id / 代码块 / 表格会顶破固定面板宽。
+   钉 0 让它们改为收缩, 溢出交给各自的 truncate / overflow-x-auto 处理 */
+.detail-panel-body > *,
+.detail-info-row > * { min-width: 0; }
 /* 顶部信息卡片区: 两列紧凑排列 */
 .detail-info-row {
   display: grid;
