@@ -35,7 +35,7 @@
 
 调度循环本身 (`while skein claim 返回非空: 派 → 等回传 → done/fail → 再 claim`) 与并发上限 / 并行判定详见 [dag-scheduling.md](dag-scheduling.md) 第 5.1 节, 禁另抄一份。
 
-- **🟢 subtask 调度优先, 空闲才提前 plan (禁干等)** — 详见 [dag-scheduling.md](dag-scheduling.md) 第 6 节 (plan-ahead)。优先级: 有可调度 subtask → 一律先 `claim` 派 subtask, plan-ahead 是次级填充器必须让位 subtask。
+- **🟢 派异步优先, 同步 plan 填余力 (禁干等)** — 每回合先 `claim` 把就绪 subtask 派出去占满 `max_active` 槽 (异步, 立即回手), **槽位满或 `claim` 返回空时才做 plan-ahead** 把 pending task 推到就绪, 保证一有槽位释放即有 ready task 接上。只要还有 pending task 未就绪, plan-ahead 就不停 (前提是槽位已满 / 无可派 subtask), 禁 idle 干等。详见 [dag-scheduling.md](dag-scheduling.md) §6.1。
 - **🔴 exec 无验收 (完成即 done, 验收全归 check)** — executor 回传即执行完成 (自跑 `subtask done/fail`), main **不重复勾验收**。exec 只判「执行有没有跑完/报错」, 不判「验收过没过」。
 - **并行只看 depends_on DAG / 并发上限 2 / 完成即派** — 详见 [dag-scheduling.md](dag-scheduling.md)。任一 done/fail 后即再 `claim`, 不等一批跑完。
 - **返回 `需要:` / 阻塞 → 不计 done** — 该 subtask 未完成, 下游保持未 ready; **main 转达用户/补信息后重派** (main 保留项, executor 无 AskUserQuestion)。

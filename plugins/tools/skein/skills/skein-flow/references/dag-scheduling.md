@@ -164,12 +164,19 @@ while skein claim 返回非空:       # 全局跨 task 合池竞争
 
 ## 6. Plan-ahead 填空闲策略
 
-### 6.1 优先级顺序
+### 6.1 优先级总纲: 派异步优先, 同步 plan 填余力
 
-**subtask 调度优先，plan-ahead 是次级填充器**：
+**铁律: 优先把槽位占满异步执行, 同步 plan 只在槽位已满 / 无可调度 subtask 时跑。** subagent 跑起来后是异步占槽, 同步 plan 不抢这个槽 —— 所以每回合先 `claim` 把能派的 subtask 派出去 (占满 `max_active` 槽), 槽位满或 `claim` 返回空时才做 plan-ahead, 用同步空档把 pending task 推到就绪, 保证一有槽位释放即有 ready task 接上, 流水线不断档。
 
-1. **有可调度 subtask** → 一律先 `claim` 派 subtask (尽早完成在飞 task)
-2. **claim 返回空** (满槽等回传 / 无就绪 subtask) → 才做 plan-ahead
+```
+每回合:
+  1. skein claim  → 有就绪 subtask 就派, 占满 max_active 槽 (异步, 立即回手)
+  2. 槽位满 OR claim 返回空 → 加载 plan-ahead 推 pending task 到就绪
+  3. plan 每步间回探 claim → 有 subtask 可派立即中断 plan 回去派
+```
+
+- **派 subtask 是异步动作** (派出即占槽, 不阻塞 main), plan 是同步动作 —— 同回合内先做异步占槽, 再做同步 plan, 两不耽误。
+- **只要还有 pending task 未就绪, plan-ahead 就不停** (前提是槽位已满 / 无可派 subtask), 不能 idle 干等 subagent 回传。
 
 ### 6.2 Plan-ahead 做什么
 
