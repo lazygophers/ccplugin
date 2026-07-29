@@ -1,6 +1,7 @@
 ---
 name: plugin-dev
-description: '创建与优化 Claude Code 插件的方法论框架。流程 A 新建 (plugin.json manifest + 接线 commands/agents/skills/hooks/MCP/LSP + 挂 marketplace)，流程 B 优化现有 (8 维: manifest 合规/接线完整/hook 健壮/marketplace 一致)。单组件级编写/评分路由 /skill-dev，本 skill 管插件级。'
+description: '创建与优化 Claude Code 插件的方法论框架。流程 A 新建 (plugin.json manifest + 接线 commands/agents/skills/hooks/MCP/LSP + 挂 marketplace)，流程 B 优化现有 (8 维: manifest 合规/接线完整/hook 健壮/marketplace 一致)。单组件级编写/评分路由 /skill-dev，本 skill 管插件级。仅手动 /plugin-dev。'
+disable-model-invocation: true
 argument-hint: "[create|optimize] <插件路径>"
 ---
 
