@@ -14,7 +14,7 @@
 | planning 入口 | `skein-flow plan 阶段` | 判新旧 + 登记 + brainstorm + grill 硬门 (必走) |
 | **两层×类目规则记忆** | `skein-spec` + `skein-spec` | **差异化核心** (见下) |
 | 对抗式审查 | `skein-grill` | 需求/工件对抗校对 (planning 硬门) |
-| 破坏式重构 | `skein-flow plan 阶段` (heavy 档, `references/breaking-refactor.md`) | 不保兼容、全站点一次改齐的重构模式注解 |
+| 破坏式重构 | `skein-flow plan 阶段` (heavy 档) | 不保兼容、全站点一次改齐的重构模式, 须任务显式授权 |
 | 质量门 + 一致性核查 | `skein-flow check 阶段` | 派 `skein-checker` 验证 (lint/type/test/契约 + subtask 产物一致性核查), 未过派合适 agent (无则 `skein-executor`) 修复重检; **孤立失败定点修, 跨 subtask 冲突/check 失败 → 深化拆分 (回 plan 拆新 subtask 逐条覆盖直到零冲突)** |
 | 第 3 轮根因复盘 | `skein-flow check 阶段` (`references/root-cause-protocol.md`) | check 第 3 轮仍 FAIL 时跨维度结构化根因复盘 (需求/设计/实现/环境/测试 5 维 + 预防措施), 出口回 exec 定向重修或停手转人工 |
 | finish 收尾编排门 | `skein-flow finish 阶段` | check 全绿后被 flow 委托: 派 `skein-finisher` 收尾勘察 + 委托 `skein-spec` sediment + 清理悬挂 + `skein finish` (commit→merge→销 worktree→标记完成, 异步 spec) |

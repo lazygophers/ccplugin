@@ -36,12 +36,11 @@ check 全绿后的**收尾门**。验收/完成度核对已在 check 阶段做�
 | 触发 | 一线修复 | 仍失败兜底 |
 |---|---|---|
 | finisher 报悬挂残留 | main 清理后再合并 | 清不掉 → 停手, 报用户裁 |
-| `skein finish` merge 冲突 | 读冲突文件手动解 → 重跑 finish | 解不开 → 停手, 保留 worktree, 报用户裁 (5 步纪律见 [merge-conflict-resolution.md](merge-conflict-resolution.md)) |
+| `skein finish` merge 冲突 | `git status` 列冲突文件 → 读冲突双方 commit 理解各自 intent → 逐文件手动解 → 重跑 finish | 解不开 → 停手, 保留 worktree, 报用户裁 |
 | auto_commit=false 且有未提交改动 → finish 拒绝 | 提示用户手动 `git commit` 后重跑 finish | 用户不提交 → 停手, 禁 --force 强删 (会丢改动) |
 | 悬挂 subagent `TaskStop` 关不掉 | 重试 `TaskStop` | 仍在 → 停手, 禁 finish (未闭环) |
 
 ## 延伸引用
 
 - [sediment-protocol.md](sediment-protocol.md) — sediment 异步派出细节
-- [merge-conflict-resolution.md](merge-conflict-resolution.md) — merge 冲突 5 步解决纪律
 - [worktree-convention.md](worktree-convention.md) — 工作目录约定 (task worktree 字段真值)

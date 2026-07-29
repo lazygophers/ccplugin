@@ -36,7 +36,7 @@ brainstorm 前先定**是否需要派 skein-researcher**, 按信号分档自动�
 |---|---|---|
 | `direct-fix` | 单点微改, 在作用域边界表豁免范围内 | 不建 task, 直接改 |
 | `standard` | 跨文件 / 多步, 单 task 可覆盖 | 常规 plan→exec→check→finish |
-| `heavy` | 跨子系统 / 破坏式重构 / 多 task 并行 | 强化 grill + 可能拆多 task + 显式 `depends_on`。破坏式重构 (改契约/删旧路径/全站点一次改齐, 禁垫片) 见 [breaking-refactor.md](breaking-refactor.md) |
+| `heavy` | 跨子系统 / 破坏式重构 / 多 task 并行 | 强化 grill + 可能拆多 task + 显式 `depends_on`。破坏式重构 (改契约/删旧路径/全站点一次改齐, 禁垫片) 须任务显式授权, 否则默认走加固式修补 |
 
 ### 🛑 复杂度天花板 (归一有上限, 命中必提醒用户拆多 task)
 
@@ -80,7 +80,7 @@ brainstorm 前先定**是否需要派 skein-researcher**, 按信号分档自动�
    - `design.md` — 详细设计: 架构 / 数据流 / 取舍 / 技术选型 (**不含调度图**) + **可能性分支** section。**写入界限: 仅 planning 阶段写 (含 check 失败回 planning 的二次进入); exec / check / finish 阶段禁动 design.md**。exec/check 发现方案需调整 → 回 planning 改 design 后重派。
      - **当前方案 = 精简守现状 (YAGNI)** — design.md 正文只写满足当前需求的最小可行设计, 禁塞"以后可能要"的扩展点。
      - **可能性分支 section (研究期允许过度探索, 仅留痕)** — 现状之外的扩展方案 / 未来约束变化时的演进分支 / 被否决的备选, 写入「可能性分支」section, 每条**必须标触发条件**。不进最终设计方案正文, 不进 task.json DAG, 不生成 subtask。
-     - **deep-module 词表 + ADR**: 设计模块形状 (deep/shallow/seam/depth) + 难逆决策记录见 [design-vocabulary.md](design-vocabulary.md) (跨子系统/破坏式重构/选型类 task 必用)。
+     - **难逆决策实时记 ADR**: 跨子系统 / 破坏式重构 / 选型类 task, 难逆决策当场记进「取舍」/「可能性分支」段 (选了什么 · 否了什么 · 为什么), 防回退代价高的决策无痕迹蒸发。
    - **子任务 + 调度 DAG (协议先行, 后并行)** — 拆分铁律: 先把 subtask 间的**共享契约** (接口签名 / 数据结构 / 类型 / 协议格式 / DB schema) 抽成**单个前置 subtask** 优先定死, 下游各实现 subtask 只 `--deps` 这一个契约 subtask、彼此**不互挂依赖** → 契约一 done 即全批并行。每个 subtask 含 depends_on + 验收 checklist, 逐条 `skein subtask add <id> <sid> --name --desc [--agent --deps --check]` 落进 task.json。**这是 exec 唯一调度真值源**, 不写 mermaid 图文件。subtask 拆分 + 依赖登记模板详见 [dispatch-graph.md](dispatch-graph.md)。
      - **tracer-bullet (端到端瘦实现优先, ask-matt 同源)** — 契约 subtask 本身该是**端到端穿通的最瘦实现** (各层 stub / 空实现但全链路跑通一个 happy path): 第一个 subtask 完成后能验证「整条路走得通」, 再逐 subtask flesh 内部逻辑。早一个周期发现协议缺陷, 是压 makespan 的第二命门。
      - **拆完对表复杂度天花板 (硬)** — subtask 落完立刻对天花板表逐项核。
@@ -109,7 +109,5 @@ brainstorm 前先定**是否需要派 skein-researcher**, 按信号分档自动�
 
 ## 延伸引用
 
-- [breaking-refactor.md](breaking-refactor.md) — 破坏式重构 (heavy 档) 操作规范
-- [design-vocabulary.md](design-vocabulary.md) — deep-module 词表 + ADR
 - [dispatch-graph.md](dispatch-graph.md) — subtask 拆分 + 依赖登记模板
 - [estimate-gate.md](estimate-gate.md) — 预计工时硬校验规则

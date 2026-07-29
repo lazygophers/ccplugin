@@ -172,7 +172,7 @@ check 全绿后的**收尾门**, 只做收尾 (勘察改动+悬挂 → 合并 �
 | check | 一致性冲突 / 根因跨 subtask | 加多个修复 subtask (一冲突一), 逐条覆盖 | 冲突未全覆盖禁 finish |
 | check | 修复子任务 ≥2 轮仍 FAIL (第 3 轮) | 按 root-cause-protocol 5 维根因复盘 | 带根因回 planning 定向重修; 超 exec (需求/设计缺陷) → 转人工 |
 | finish | finisher 报悬挂残留 | main 清理后再合并 | 清不掉 → 停手, 报用户裁 |
-| finish | `skein finish` merge 冲突 | 读冲突文件手动解后重跑 finish | 解不开 → 停手保留 worktree, 报用户裁 (见 merge-conflict-resolution.md) |
+| finish | `skein finish` merge 冲突 | 读冲突文件手动解后重跑 finish | 解不开 → 停手保留 worktree, 报用户裁 |
 
 各阶段完整失败模式明细详见对应作业手册: [for-plan.md](references/for-plan.md) / [for-exec.md](references/for-exec.md) / [for-check.md](references/for-check.md) / [for-finish.md](references/for-finish.md)。
 
