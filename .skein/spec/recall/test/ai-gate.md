@@ -10,7 +10,7 @@ status: active
 
 ### 铁律
 
-- MUST：代码改动前后用 `claude -p "<内容>" --output-format stream-json | jq` 验证 AI 可正确识别
+- MUST：代码改动前后跑 claude -p 理解门验证 AI 可正确识别；命令形式见 `recall/test/claude-p-quality-gate.md`（单一真值源）
 - MUST：skill 目录配置 `test-prompts.json`，包含 prompt/expected 对进行回归
 - MUST：仅返回结果非空、符合预期时，才认为优化/简化有效
 
