@@ -23,7 +23,7 @@ Sutter & Alexandrescu(C++ Coding Standards Item 9):"不要过早优化"**不等�
 
 ## 关键引用
 
-> "Premature optimization is the root of all evil. **Yet we should not pass up our opportunities in that critical 3%** ... but only after that code has been identified." —— Knuth, 1974
+> (Knuth 原文全文见上方「张力 1」)
 
 > "Don't guess, measure." —— Brendan Gregg, 《Systems Performance》
 
