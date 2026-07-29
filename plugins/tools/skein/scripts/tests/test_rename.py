@@ -93,6 +93,7 @@ def test_task_rename_id_non_pending_rejected(skein_cli: SkeinCli, ws: Path) -> N
     skein_cli(ws, "subtask", "add", "task-a", "s1", "--name", "x", "--desc", "d",
               "--agent", "skein-executor")
     _fill_prd(ws, "task-a")
+    skein_cli(ws, "estimate", "task-a", "--set", "1")  # estimate 硬门: confirm 前须填实工时
     skein_cli(ws, "confirm", "task-a")  # 待处理→就绪
     skein_cli(ws, "start", "task-a")
     r = skein_cli(ws, "rename", "task-a", "--id", "task-x", check=False)

@@ -32,6 +32,7 @@ def _mk(skein_cli: SkeinCli, ws: Path, tid: str = "feat-x", *,
         skein_cli(ws, "subtask", "add", tid, SID, "--name", "S", "--desc", "d")
         _fill_prd(ws, tid)  # confirm/start 前置 prd 门: 填实占位免被拒
     if ready:
+        skein_cli(ws, "estimate", tid, "--set", "1")  # estimate 硬门: confirm 前须填实工时
         skein_cli(ws, "confirm", tid)  # 待处理→就绪 用户确认门
     return tid
 
@@ -141,10 +142,24 @@ def test_finish_pending_rejected(skein_cli: SkeinCli, ws: Path) -> None:
 def test_confirm_no_subtask_rejected(skein_cli: SkeinCli, ws: Path) -> None:
     """非法: confirm 无 subtask 的 task (subtask 门在 confirm, 应拒, 留待处理)。"""
     tid = _mk(skein_cli, ws)
+    skein_cli(ws, "estimate", tid, "--set", "1")  # estimate 硬门: confirm 前须填实工时
     r = skein_cli(ws, "confirm", tid, check=False)
     assert r.returncode == 1
     assert "无 subtask" in r.stdout + r.stderr
     assert _status_of(skein_cli, ws, tid) == S_PENDING
+
+
+def test_confirm_no_estimate_rejected(skein_cli: SkeinCli, ws: Path) -> None:
+    """非法: confirm 未填预计工时的 task (estimate 硬门, 应拒, 留待处理)。"""
+    tid = _mk(skein_cli, ws, sub=True)  # 有 subtask+prd, 只差 estimate
+    r = skein_cli(ws, "confirm", tid, check=False)
+    assert r.returncode == 1
+    assert "预计工时未填" in r.stdout + r.stderr
+    assert _status_of(skein_cli, ws, tid) == S_PENDING
+    # 填实后同一条 confirm 应放行
+    skein_cli(ws, "estimate", tid, "--set", "1")
+    skein_cli(ws, "confirm", tid)
+    assert _status_of(skein_cli, ws, tid) == S_READY
 
 
 def test_start_pending_rejected(skein_cli: SkeinCli, ws: Path) -> None:

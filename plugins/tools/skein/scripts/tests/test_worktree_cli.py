@@ -29,6 +29,7 @@ def _mk(skein_cli: SkeinCli, ws: Path, tid: str = "feat-wt", *, sub: bool = True
     if sub:
         skein_cli(ws, "subtask", "add", tid, "sub-a", "--name", "A", "--desc", "d")
         _fill_prd(ws, tid)  # start 前置 prd 门: 填实占位免被拒
+        skein_cli(ws, "estimate", tid, "--set", "1")  # estimate 硬门: confirm 前须填实工时
         skein_cli(ws, "confirm", tid)  # 待处理→就绪 用户确认门 (start 需就绪态)
     return tid
 
@@ -124,6 +125,7 @@ def test_multi_repos_each_gets_worktree(skein_cli: SkeinCli, git_cmd: GitCmd, ws
     skein_cli(ws, "create", tid, "--name", tid, "--desc", "d", "--repos", "sub-a,sub-b")
     skein_cli(ws, "subtask", "add", tid, "sub-a", "--name", "A", "--desc", "d")
     _fill_prd(ws, tid)
+    skein_cli(ws, "estimate", tid, "--set", "1")  # estimate 硬门: confirm 前须填实工时
     skein_cli(ws, "confirm", tid)
     r = skein_cli(ws, "start", tid)
     assert r.returncode == 0, r.stderr
@@ -142,6 +144,7 @@ def test_multi_repos_finish_merges_each(skein_cli: SkeinCli, git_cmd: GitCmd, ws
     skein_cli(ws, "create", tid, "--name", tid, "--desc", "d", "--repos", "sub-a,sub-b")
     skein_cli(ws, "subtask", "add", tid, "sub-a", "--name", "A", "--desc", "d")
     _fill_prd(ws, tid)
+    skein_cli(ws, "estimate", tid, "--set", "1")  # estimate 硬门: confirm 前须填实工时
     skein_cli(ws, "confirm", tid)
     skein_cli(ws, "start", tid)
     # 各 worktree 造改动
@@ -166,6 +169,7 @@ def test_repos_plain_subdir_rejected(skein_cli: SkeinCli, git_cmd: GitCmd, ws: P
     skein_cli(ws, "create", tid, "--name", tid, "--desc", "d", "--repos", "plainsub")
     skein_cli(ws, "subtask", "add", tid, "s", "--name", "A", "--desc", "d")
     _fill_prd(ws, tid)
+    skein_cli(ws, "estimate", tid, "--set", "1")  # estimate 硬门: confirm 前须填实工时
     skein_cli(ws, "confirm", tid)
     r = skein_cli(ws, "start", tid, check=False)
     assert r.returncode == 1
@@ -187,6 +191,7 @@ def test_repos_deep_nested_git_gets_worktree(skein_cli: SkeinCli, git_cmd: GitCm
     skein_cli(ws, "create", tid, "--name", tid, "--desc", "d", "--repos", rel)
     skein_cli(ws, "subtask", "add", tid, "s", "--name", "A", "--desc", "d")
     _fill_prd(ws, tid)
+    skein_cli(ws, "estimate", tid, "--set", "1")  # estimate 硬门: confirm 前须填实工时
     skein_cli(ws, "confirm", tid)
     r = skein_cli(ws, "start", tid)
     assert r.returncode == 0, r.stderr

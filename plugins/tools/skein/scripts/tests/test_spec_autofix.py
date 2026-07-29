@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 import time
@@ -57,6 +58,9 @@ def _write_rule(mem_ws: Path, layer: str, cat: str, name: str, *,
         f"status: {status}\n"
         "---\n\n"
         f"{body}\n")
+    # stale / keywords-dup 判据的时间源是 git 提交时间 → fs mtime (spec.py:141 _mtimes,
+    # frontmatter created/updated 已废弃), 故同步落到 mtime 上, 否则判据永远看不到"旧"
+    os.utime(f, (up, up))
     return f
 
 

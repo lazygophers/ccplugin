@@ -50,6 +50,7 @@ def _start_task(skein_cli: SkeinCli, ws: Path, tid: str) -> None:
     skein_cli(ws, "subtask", "add", tid, "s1", "--name", "x", "--desc", "d",
               "--agent", "skein-executor")
     _fill_prd(ws, tid)
+    skein_cli(ws, "estimate", tid, "--set", "1")  # estimate 硬门: confirm 前须填实工时
     skein_cli(ws, "confirm", tid)  # 待处理→就绪 用户确认门
     skein_cli(ws, "start", tid)
 
@@ -91,5 +92,6 @@ def test_session_context_lists_active_phase(skein_cli: SkeinCli, ws: Path) -> No
 def test_phase_mapping_active_to_exec(skein_cli: SkeinCli, ws: Path) -> None:
     """进行中 status 在 user-prompt (hooks._PHASE) 与 session (PHASE_OF) 均映射 exec。"""
     _start_task(skein_cli, ws, "task-m")
-    assert "task-m(exec)" in _user_prompt(ws, "go"), "hooks _PHASE 映射 进行中→exec 失效"
+    # prompt 不能用 "go"/"exec"/"do"/"skein-*": hooks.py:387 对它们早退不注入 (显式走 flow 无需路由提示)
+    assert "task-m(exec)" in _user_prompt(ws, "继续"), "hooks _PHASE 映射 进行中→exec 失效"
     assert "task-m(exec)" in _session_ctx(ws), "skein PHASE_OF 映射 进行中→exec 失效"

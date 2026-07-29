@@ -83,7 +83,7 @@
           }
         ],
         "sdone": 1,
-        "spct": 25,
+        "spct": 38,
         "stage": "exec",
         "started": 1999992000,
         "status": "进行中",
@@ -102,7 +102,7 @@
             "子-s2",
             "运行中",
             [],
-            0,
+            50,
             "desc-s2"
           ],
           [
@@ -112,7 +112,7 @@
             [
               "s1"
             ],
-            0,
+            2,
             "desc-s3"
           ],
           [
@@ -122,7 +122,7 @@
             [
               "s2"
             ],
-            0,
+            2,
             "desc-s4"
           ]
         ],
@@ -149,7 +149,7 @@
             "dependsOn": [],
             "finished": null,
             "name": "子-s2",
-            "pct": 0,
+            "pct": 50,
             "sid": "s2",
             "skills": [],
             "started": 1999997000,
@@ -167,7 +167,7 @@
             ],
             "finished": null,
             "name": "子-s3",
-            "pct": 0,
+            "pct": 2,
             "sid": "s3",
             "skills": [],
             "started": null,
@@ -185,7 +185,7 @@
             ],
             "finished": null,
             "name": "子-s4",
-            "pct": 0,
+            "pct": 2,
             "sid": "s4",
             "skills": [],
             "started": null,
@@ -210,7 +210,7 @@
         "parent": null,
         "prd": [],
         "sdone": 0,
-        "spct": 10,
+        "spct": 47,
         "stage": "exec",
         "started": 1999991500,
         "status": "进行中",
@@ -235,7 +235,7 @@
         "parent": null,
         "prd": [],
         "sdone": 1,
-        "spct": 100,
+        "spct": 98,
         "stage": "check",
         "started": 1999993000,
         "status": "检查中",
@@ -284,7 +284,7 @@
         "parent": null,
         "prd": [],
         "sdone": 0,
-        "spct": 0,
+        "spct": 5,
         "stage": "ready",
         "started": null,
         "status": "就绪",
@@ -295,7 +295,7 @@
             "子-g1",
             "待处理",
             [],
-            0,
+            2,
             "desc-g1"
           ]
         ],
@@ -308,7 +308,7 @@
             "dependsOn": [],
             "finished": null,
             "name": "子-g1",
-            "pct": 0,
+            "pct": 2,
             "sid": "g1",
             "skills": [],
             "started": null,
@@ -337,7 +337,7 @@
         "parent": null,
         "prd": [],
         "sdone": 0,
-        "spct": 0,
+        "spct": 5,
         "stage": "ready",
         "started": null,
         "status": "就绪",
@@ -348,7 +348,7 @@
             "子-z1",
             "待处理",
             [],
-            0,
+            2,
             "desc-z1"
           ]
         ],
@@ -361,7 +361,7 @@
             "dependsOn": [],
             "finished": null,
             "name": "子-z1",
-            "pct": 0,
+            "pct": 2,
             "sid": "z1",
             "skills": [],
             "started": null,
@@ -397,7 +397,7 @@
             "子-d1",
             "待处理",
             [],
-            0,
+            2,
             "desc-d1"
           ]
         ],
@@ -410,7 +410,7 @@
             "dependsOn": [],
             "finished": null,
             "name": "子-d1",
-            "pct": 0,
+            "pct": 2,
             "sid": "d1",
             "skills": [],
             "started": null,
@@ -435,7 +435,7 @@
         "parent": null,
         "prd": [],
         "sdone": 0,
-        "spct": 5,
+        "spct": 2,
         "stage": "plan",
         "started": null,
         "status": "待处理",
@@ -495,7 +495,7 @@
       }
     ],
     "overview": {
-      "combinedPct": 29,
+      "combinedPct": 37,
       "estMeta": "已耗 8h59m",
       "hasSub": true,
       "stats": {
@@ -516,7 +516,7 @@
         "elapsed": 133,
         "id": "alpha",
         "name": "Alpha 任务",
-        "pct": 25,
+        "pct": 38,
         "sdone": 1,
         "status": "进行中",
         "stotal": 4
@@ -525,7 +525,7 @@
         "elapsed": 142,
         "id": "super1",
         "name": "Super 任务",
-        "pct": 10,
+        "pct": 47,
         "sdone": 0,
         "status": "进行中",
         "stotal": 0
@@ -536,13 +536,13 @@
         "elapsed": 117,
         "id": "beta",
         "name": "Beta 任务",
-        "pct": 100,
+        "pct": 98,
         "sdone": 1,
         "status": "检查中",
         "stotal": 1
       }
     ],
-    "combinedPct": 29,
+    "combinedPct": 37,
     "doneRate": 12,
     "estMeta": "已耗 8h59m",
     "proj": "TESTPROJ",
@@ -563,6 +563,82 @@
         "desc": "待启动",
         "id": "gamma",
         "name": "Gamma 任务"
+      }
+    ],
+    "recentActive": [
+      {
+        "created": 1999990000,
+        "desc": "待验收",
+        "finished": null,
+        "id": "beta",
+        "name": "Beta 任务",
+        "started": 1999993000,
+        "status": "检查中"
+      },
+      {
+        "created": 1999990000,
+        "desc": "活跃任务",
+        "finished": null,
+        "id": "alpha",
+        "name": "Alpha 任务",
+        "started": 1999992000,
+        "status": "进行中"
+      },
+      {
+        "created": 1999990000,
+        "desc": "聚合",
+        "finished": null,
+        "id": "super1",
+        "name": "Super 任务",
+        "started": 1999991500,
+        "status": "进行中"
+      },
+      {
+        "created": 1999990000,
+        "desc": "待启动",
+        "finished": null,
+        "id": "gamma",
+        "name": "Gamma 任务",
+        "started": null,
+        "status": "就绪"
+      },
+      {
+        "created": 1999990000,
+        "desc": "被阻塞",
+        "finished": null,
+        "id": "zeta",
+        "name": "Zeta 任务",
+        "started": null,
+        "status": "就绪"
+      },
+      {
+        "created": 1999990000,
+        "desc": "规划中",
+        "finished": null,
+        "id": "delta",
+        "name": "Delta 任务",
+        "started": null,
+        "status": "待处理"
+      },
+      {
+        "created": null,
+        "desc": "",
+        "finished": null,
+        "id": "ghost1",
+        "name": "ghost1",
+        "started": null,
+        "status": "待处理"
+      }
+    ],
+    "recentDone": [
+      {
+        "created": 1999990000,
+        "desc": "完成态",
+        "finished": 1999999800,
+        "id": "epsilon",
+        "name": "Epsilon 任务",
+        "started": 1999991000,
+        "status": "已完成"
       }
     ],
     "runningSubs": [
@@ -602,7 +678,7 @@
         "elapsed": 133,
         "id": "alpha",
         "name": "Alpha 任务",
-        "pct": 25,
+        "pct": 38,
         "sdone": 1,
         "status": "进行中",
         "stotal": 4
@@ -611,7 +687,7 @@
         "elapsed": 142,
         "id": "super1",
         "name": "Super 任务",
-        "pct": 10,
+        "pct": 47,
         "sdone": 0,
         "status": "进行中",
         "stotal": 0
@@ -620,7 +696,7 @@
         "elapsed": 117,
         "id": "beta",
         "name": "Beta 任务",
-        "pct": 100,
+        "pct": 98,
         "sdone": 1,
         "status": "检查中",
         "stotal": 1
@@ -702,6 +778,78 @@
         "trank": 2
       }
     ],
+    "queueTasks": [
+      {
+        "created": 1999990000,
+        "desc": "活跃任务",
+        "id": "alpha",
+        "name": "Alpha 任务",
+        "priority": null,
+        "spct": 38,
+        "started": 1999992000,
+        "status": "进行中"
+      },
+      {
+        "created": 1999990000,
+        "desc": "聚合",
+        "id": "super1",
+        "name": "Super 任务",
+        "priority": null,
+        "spct": 47,
+        "started": 1999991500,
+        "status": "进行中"
+      },
+      {
+        "created": 1999990000,
+        "desc": "待验收",
+        "id": "beta",
+        "name": "Beta 任务",
+        "priority": null,
+        "spct": 98,
+        "started": 1999993000,
+        "status": "检查中"
+      },
+      {
+        "created": 1999990000,
+        "desc": "待启动",
+        "id": "gamma",
+        "name": "Gamma 任务",
+        "priority": null,
+        "spct": 5,
+        "started": null,
+        "status": "就绪"
+      },
+      {
+        "created": 1999990000,
+        "desc": "被阻塞",
+        "id": "zeta",
+        "name": "Zeta 任务",
+        "priority": null,
+        "spct": 5,
+        "started": null,
+        "status": "就绪"
+      },
+      {
+        "created": 1999990000,
+        "desc": "规划中",
+        "id": "delta",
+        "name": "Delta 任务",
+        "priority": null,
+        "spct": 0,
+        "started": null,
+        "status": "待处理"
+      },
+      {
+        "created": null,
+        "desc": "",
+        "id": "ghost1",
+        "name": "ghost1",
+        "priority": 5,
+        "spct": 2,
+        "started": null,
+        "status": "待处理"
+      }
+    ],
     "readySubtasks": [
       {
         "agent": "skein-executor",
@@ -721,7 +869,7 @@
         "desc": "待启动",
         "id": "gamma",
         "name": "Gamma 任务",
-        "spct": 0,
+        "spct": 5,
         "status": "就绪"
       }
     ],
@@ -779,12 +927,79 @@
       "契约A",
       "契约B"
     ],
+    "depTasks": [],
+    "dependents": [
+      {
+        "desc": "被阻塞",
+        "id": "zeta",
+        "name": "Zeta 任务",
+        "status": "就绪"
+      }
+    ],
     "docs": {
       "design": null,
       "findings": null,
       "prd": "# alpha — PRD\n\n## 目标\n交付纯视图模块。\n- [x] 拆出 Snapshot\n- [ ] 六视图纯函数化\n- [ ] TODO: 占位跳过\n\n## 边界\n- [ ] 不动调度\n\n## 验收标准\n输出字节级不变。\n- [x] golden 通过\n- [ ] TestClient 覆盖\n"
     },
+    "prd": [
+      {
+        "badge": [
+          1,
+          2
+        ],
+        "items": [
+          {
+            "done": false,
+            "kind": "prose",
+            "proseCls": "",
+            "text": "交付纯视图模块。"
+          },
+          {
+            "done": true,
+            "kind": "check",
+            "proseCls": "",
+            "text": "拆出 Snapshot"
+          },
+          {
+            "done": false,
+            "kind": "check",
+            "proseCls": "",
+            "text": "六视图纯函数化"
+          }
+        ],
+        "name": "目标"
+      },
+      {
+        "badge": [
+          1,
+          2
+        ],
+        "items": [
+          {
+            "done": false,
+            "kind": "prose",
+            "proseCls": "",
+            "text": "输出字节级不变。"
+          },
+          {
+            "done": true,
+            "kind": "check",
+            "proseCls": "",
+            "text": "golden 通过"
+          },
+          {
+            "done": false,
+            "kind": "check",
+            "proseCls": "",
+            "text": "TestClient 覆盖"
+          }
+        ],
+        "name": "验收标准"
+      }
+    ],
+    "progress": 38,
     "research": {},
+    "stage": "exec",
     "subtasks": [
       {
         "agent": "skein-executor",
@@ -911,12 +1126,17 @@
   "task_detail_old1": {
     "archived": true,
     "contracts": [],
+    "depTasks": [],
+    "dependents": [],
     "docs": {
       "design": null,
       "findings": null,
       "prd": null
     },
+    "prd": [],
+    "progress": 100,
     "research": {},
+    "stage": "done",
     "subtasks": [
       {
         "agent": "skein-executor",
