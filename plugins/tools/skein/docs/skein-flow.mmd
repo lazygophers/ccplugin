@@ -127,7 +127,7 @@ graph TB
 
   subgraph Finish["Phase 4: 收束 — skein-finish"]
     CHECK_PASS --> INSPECT[收尾勘察<br/>派 skein-finisher 只读 diff+悬挂残留<br/>不做验收核对]
-    INSPECT --> CLEAN_SUB["清悬挂 subagent/后台任务<br/>TaskList → TaskStop<br/>未关 = 未闭环 禁 finish"]
+    INSPECT --> CLEAN_SUB["main 清悬挂后台 agent<br/>本 task 派出的均已结束<br/>未关 = 未闭环 禁 finish"]
     CLEAN_SUB --> FINISH_CMD["skein finish &lt;id&gt;<br/>原子动作: commit→merge→销 worktree→标记完成<br/>检查中→已完成 (归档=保留期后自动迁移)"]
     FINISH_CMD --> AUTO_COMMIT_CHK{worktree?<br/>是: 强制 commit<br/>否: 才看 auto_commit}
     AUTO_COMMIT_CHK --> ASYNC["异步 fire-and-forget agent<br/>(finish 已闭环, 不阻塞)"]
@@ -171,7 +171,7 @@ graph TB
     CONFLICT[finish merge 冲突] --> RESOLVE["5 步纪律: see state / find intent /<br/>resolve each hunk / run checks / finish<br/>🛑 禁 --abort, 禁 invent new behavior"]
     RESOLVE -->|解不开| MANUAL["停手 保留 worktree<br/>报用户裁 (附双方 commit + intent)<br/>禁强制覆盖"]
     INPLACE_NO_COMMIT["原地模式 + auto_commit=false<br/>有未提交改动"] --> LEAVE_UNCOMMITTED["finish 照常完成<br/>改动留工作区<br/>汇报提示用户自行 commit"]
-    SUBAGENT_LEFT[悬挂 subagent TaskStop 失败] --> RETRY_STOP[重试 TaskStop<br/>仍在 → 禁 finish 未闭环]
+    SUBAGENT_LEFT[悬挂后台 agent 未结束] --> RETRY_STOP[main 重试清理<br/>仍在 → 禁 finish 未闭环]
   end
 
   style CREATE fill:#4a9eff,color:#fff

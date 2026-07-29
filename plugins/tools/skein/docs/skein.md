@@ -51,7 +51,6 @@
 | spec-meta | PostToolUse (Edit/Write/MultiEdit) | 检查 spec frontmatter |
 | batch | PostToolBatch | 阻止并发状态写 |
 | report | PostToolUseFailure (Bash) | 错误上下文注入 |
-| task-created | TaskCreated | 阻止 TaskCreate |
 | stop-check | Stop | 扫描 spec 问题 → `.pending-fix` |
 
 ### Guards
@@ -60,7 +59,6 @@
 | --- | --- | --- |
 | 文件守卫 | AI 直接读写 task.json/task.md | 通过 skein 命令 |
 | batch 守卫 | 并发 start/finish/archive | 串行 |
-| TaskCreate 守卫 | harness 创建子 task | 无 |
 | trellis 迁移守卫 | 同时 .trellis/ + .skein/ | 迁移完成 |
 
 ---

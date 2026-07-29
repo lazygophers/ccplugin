@@ -1,0 +1,23 @@
+{
+  "id": "git-skills-optimize",
+  "name": "按 writing-great-skills 优化 skills/git/ 四个 skill (试点)",
+  "desc": "以 Matt Pocock writing-great-skills 方法论诊断并改写 skills/git/ 下 4 个 SKILL.md, 跑 claude -p 质量门, 产出可复用优化 checklist 供其余 9 个 skill 推广",
+  "status": "待处理",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [],
+  "priority": 5,
+  "estimate": null,
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/git-skills-optimize",
+  "parent": null,
+  "kind": "task",
+  "created": 1785316592,
+  "started": null,
+  "confirmed": null,
+  "checked": null,
+  "finished": null,
+  "updated": 1785316592
+}

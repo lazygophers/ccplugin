@@ -51,7 +51,6 @@
 | `spec-meta` | 检查 spec frontmatter |
 | `stop-check` | 扫描 spec → .pending-fix |
 | `user-prompt` | 信号路由 |
-| `task-created` | 阻止 TaskCreate |
 | `subagent-start` | 注入 core 规则 |
 | `session-context` | 注入活跃 task + core |
 

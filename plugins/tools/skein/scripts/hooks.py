@@ -10,7 +10,6 @@
   spec-meta   PostToolUse: 写 .skein/spec/**/*.md 后检查 frontmatter 必填字段 + layer 合法 (非阻塞 warning)。
   stop-check  Stop: 扫 spec 问题写 .pending-fix 标记 (只读不修, 供 main 下回合派 specer bg 修复)。
   user-prompt UserPromptSubmit: 已初始化按 prompt 信号三档注入 (flow/inline/grey); 未初始化注入 setup 提示。
-  task-created TaskCreated: .skein 已初始化时机械阻 harness 内置 TaskCreate (冒充 skein create)。
 
 各子命令读 stdin JSON, 逻辑与拆分前的 *-skein.py 一致; 无命中一律静默 exit 0。
 """
@@ -296,8 +295,7 @@ _UNINIT_PLAIN = """# SKEIN 未初始化 — 先初始化再处理任务
 #   ponytail: 删旧 _INIT_CTX 全 negation 框架 (MUST/禁/违规/黑名单) — 官方 hooks 文档实证
 #   祈使句框架触发 prompt-injection 防御致 AI 自降级; 改事实陈述 + 正向目标行为。
 #   信号是参谋非判官: _judge_signal 只检测命中信号作证据, 走 flow/inline 完全交 AI 读 _CTX 条件自判 (脚本不替判档位)。
-#   走 flow 由 cmd_task_created (机械阻 TaskCreate) 兜底, 落码不再强制 active task (用户定: 去落码门);
-#   prompt 仅留正向指引 + 证据展示, 不重复禁令。
+#   落码不再强制 active task (用户定: 去落码门); prompt 仅留正向指引 + 证据展示, 不重复禁令。
 _CTX = """# 任务判定
 - 现有任务的补充：根据补充信息重新规划
 - **flow**: 跨≥2文件/多步骤/改动类动词/新建类/复杂调研
@@ -411,21 +409,10 @@ def cmd_user_prompt(d: dict[str, Any]) -> int:
     return 0
 
 
-# ── task-created (TaskCreated: 机械阻 harness 内置 TaskCreate 冒充 skein create) ──
-def cmd_task_created(d: dict[str, Any]) -> int:
-    """TaskCreated: .skein 已初始化 → 机械阻 TaskCreate (冒充 skein create)。"""
-    root = _git_root(d.get("cwd") or os.getcwd())
-    if os.path.exists(os.path.join(root, ".skein", "config.yaml")):
-        print("检测到 TaskCreate。已初始化 SKEIN 项目禁用 harness 内置 TaskCreate 冒充 task 建立 — "
-              "跨文件任务用 `skein create` 正式建 task 走 flow 闭环。", file=sys.stderr)
-        return 2
-    return 0
-
-
 DISPATCH: dict[str, Any] = {"permission": cmd_permission, "guard": cmd_guard,
             "batch": cmd_batch, "report": cmd_report, "fmt": cmd_fmt,
             "spec-meta": cmd_spec_meta, "stop-check": cmd_stop_check,
-            "user-prompt": cmd_user_prompt, "task-created": cmd_task_created}
+            "user-prompt": cmd_user_prompt}
 
 
 def main() -> int:
