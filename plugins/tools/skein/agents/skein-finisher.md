@@ -1,7 +1,7 @@
 ---
 name: skein-finisher
-description: SKEIN finish 阶段收尾执行器。在仓库根勘察 git 改动 + 清悬挂后台 task, 跑 `skein finish <tid>` 完成合并销 worktree, 回传收尾摘要。验收核对已由 check 做完, 本 agent 不重做。
-tools: Read, Bash, Grep, Glob, TaskList, TaskStop
+description: SKEIN finish 阶段收尾执行器。在仓库根勘察 git 改动, 跑 `skein finish <tid>` 完成合并销 worktree, 回传收尾摘要。验收核对已由 check 做完, 本 agent 不重做; 派出的后台 agent 均已结束由 main 在派发前确认。
+tools: Read, Bash, Grep, Glob
 model: haiku
 effort: low
 color: green
@@ -24,14 +24,7 @@ git -C <工作目录> status --short
 - 查未提交文件 / 调试代码 / TODO 遗留 / 临时文件 / 空目录, 列入 dangling。
 - 命令报错 → `[工具失败: <原因>]`, 上报无法勘察。
 
-### 2. 清悬挂后台 task
-```
-TaskList
-```
-- 找出属于本 task 且仍 running/pending 的后台 agent (残留的并行执行者), 逐个 `TaskStop <task_id>`。
-- 不属于本 task 的后台 task 不动。
-
-### 3. 在仓库根跑 skein finish
+### 2. 在仓库根跑 skein finish
 ```
 python3 <插件根>/plugins/tools/skein/scripts/skein.py finish <tid>
 ```
@@ -39,7 +32,7 @@ python3 <插件根>/plugins/tools/skein/scripts/skein.py finish <tid>
 - 确保在仓库根的做法: 用 `git -C <仓库根>` 前缀跑, 或 `cd` 前先 `pwd` 确认路径不含 `.skein/worktrees/`(或 config 配置的 worktree_root) 再执行；不确定就用绝对仓库根路径显式指定, 不依赖当前 shell cwd。
 - `finish` 内部: worktree 模式 → 强制 commit (不看 auto_commit) → merge --no-ff → worktree remove → 标记完成; 原地模式 → 才按 auto_commit 决定提不提交。冲突时 `finish` 会保留已合并进度并 raise, 原样上报, 不重跑冲突分支。
 
-### 4. 回传收尾摘要
+### 3. 回传收尾摘要
 收尾干净 | 需处理 + 改动摘要 + 悬挂残留 + `skein finish` 执行结果 + 需 main 介入项。
 
 ## Checkpoints
@@ -57,7 +50,7 @@ python3 <插件根>/plugins/tools/skein/scripts/skein.py finish <tid>
 {
   "verdict": "收尾干净 | 需处理",
   "changes": [{"file": "<path>", "summary": "<改了什么>"}],
-  "dangling": ["<悬挂残留: 未提交/调试码/TODO/临时文件/后台task>"],
+  "dangling": ["<悬挂残留: 未提交/调试码/TODO/临时文件>"],
   "needs_main": ["<需 main 介入项, 如 sediment 派 skein-specer>"],
   "tool_failures": ["[工具失败: <原因>]"]
 }
@@ -69,5 +62,5 @@ python3 <插件根>/plugins/tools/skein/scripts/skein.py finish <tid>
 |---|---|---|
 | `git diff`/`status` 报错 | 核对工作目录路径, 重试 1 次 | `[工具失败: <原因>]` + verdict=需处理 (无法勘察不放行) |
 | `skein finish` 报错 (合并冲突/worktree 缺失/未提交改动) | 原样记录报错文本, 不重试 (finish 幂等, 交 main 判断解冲突后重跑) | needs_main 标「finish 失败: <原因>」, verdict=需处理 |
-| 悬挂残留 (调试码/TODO/后台task) | 逐条列入 dangling, 后台 task 已 TaskStop 的记为已清 | 清不掉的交 main |
+| 悬挂残留 (调试码/TODO/临时文件) | 逐条列入 dangling | 清不掉的交 main |
 | 工作目录无任何改动 | 记 changes 空 + 提示 | needs_main 标「无改动, main 核实是否误派 finish」 |

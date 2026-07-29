@@ -126,7 +126,7 @@ check 全绿后的**收尾门**, 只做收尾 (勘察改动+悬挂 → 合并 �
 
 ## 载体分工
 
-派 `skein-finisher` 自主完成勘察改动 + 清悬挂后台 task (`TaskList`/`TaskStop`) + 仓库根跑 `skein finish` (commit→merge→销 worktree→标记完成) → main 只读结果按 verdict 分流 (需处理时兜底) → 异步派 `skein-specer` 做 sediment (finish 先闭环, main 不等回传)。
+派 finish 前 main 先确认本 task 派出的后台 agent 均已结束 (悬挂未清 = 未闭环, 禁派 finisher) → 派 `skein-finisher` 自主完成勘察改动 + 仓库根跑 `skein finish` (commit→merge→销 worktree→标记完成) → main 只读结果按 verdict 分流 (需处理时兜底) → 异步派 `skein-specer` 做 sediment (finish 先闭环, main 不等回传)。
 
 ## ✅ finish 阶段完成判据 (勾满才算闭环)
 
