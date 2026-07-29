@@ -1471,9 +1471,11 @@ class Skein:
                 sid = s.get("sid", "?")
                 if s.get("status") not in {SS_PENDING, SS_RUNNING, SS_DONE, SS_FAILED}:
                     errs.append(f"{tid}/{sid}: 非法 subtask status {s.get('status')!r}")
-                for f in ("sid", "name", "desc", "estimate"):
+                for f in ("sid", "name", "desc"):
                     if not s.get(f):
-                        errs.append(f"{tid}/{sid}: subtask 缺 {f} (sid/name/desc/estimate 必填)")
+                        errs.append(f"{tid}/{sid}: subtask 缺 {f} (sid/name/desc 必填)")
+                if not s.get("estimate"):  # add 时必填, 但历史 subtask 普遍无 — 只警告不判错
+                    warns.append(f"{tid}/{sid}: subtask 缺 estimate")
                 for d in s.get("depends_on", []):
                     if d == sid:
                         errs.append(f"{tid}/{sid}: depends_on 自引用")
