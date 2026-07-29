@@ -2793,6 +2793,7 @@ def _view_board_data(snap: Snapshot) -> dict[str, Any]:
                        _sub_pct(s), s.get("desc", "")) for s in subs]
         subtable = [{
             "sid": s["sid"], "name": s["name"], "status": s["status"], "pct": _sub_pct(s),
+            "estimate": s.get("estimate"),  # 预计工时(小时); 前端 ETA 逐项累加用
             "agent": s.get("agent", "skein-executor"),
             "skills": s.get("skills", []),
             "dependsOn": s.get("depends_on", []),
@@ -2816,6 +2817,7 @@ def _view_board_data(snap: Snapshot) -> dict[str, Any]:
             "checked": t.get("checked"),
             "finished": t.get("finished"),
             "elapsed": elapsed_of(t),
+            "estimate": t.get("estimate"),  # task 预计工时(小时) = Σ subtask + plan/check 自身开销
             "sdone": sdone, "stotal": len(subs), "spct": task_pct(t),
             "prd": prd_data(t["id"]),
             "subtable": subtable,
