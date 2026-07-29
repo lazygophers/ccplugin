@@ -76,7 +76,7 @@ brainstorm 前先定**是否需要派 skein-researcher**, 按信号分档自动�
    - **锁定契约** — grill/brainstorm 里梳理出的不变量 (MUST/禁/边界条件) 由 main 用脚本逐条锁进 task.json (main 同步跑脚本, 不派 agent):
      - `skein contract <id> --add "契约文本"` (每条一次) / `skein contract <id>` (列出核对)
 5. **产出工件** — `create` 落 prd/design 双脚手架 (本步填正文); 调度落 task.json (脚本):
-   - `prd.md` (主入口) — 分章节: **目标 / 边界 / 验收标准 / 索引**。每章节自带 `- [ ] TODO`, 填完逐个勾掉。**验收标准章例外**: planning 只列全、**保持 `- [ ]` 未勾** (勾选归 check 阶段验证通过后回写)。**prd 章节内容经脚本写, 禁裸 Edit prd.md**: `skein prd write <id> --type={目标|goal|边界|scope|验收标准|acceptance} --list "<多行文本>"` / `skein prd add` (追加) / `skein prd check <id> --type=acceptance --list "<条目>"` (勾选)。
+   - `prd.md` (主入口) — 分章节: **目标 / 边界 / 验收标准 / 索引**。每章节自带 `- [ ] TODO: 填X` 占位, 填写 = 把占位**整行替换**为真实内容 (`prd write` 自动完成), **不是把它勾成 `- [x]`**。**目标/验收标准两章条目 planning 期一律保持 `- [ ]` 未勾** — 勾选权归 check 阶段验证通过后回写, planning 预勾即流程错误。**prd 章节内容经脚本写, 禁裸 Edit prd.md**: `skein prd write <id> --type={目标|goal|边界|scope|验收标准|acceptance} --list "<多行文本>"` / `skein prd add` (追加) / `skein prd check <id> --type=acceptance --list "<条目>"` (勾选)。
    - `design.md` — 详细设计: 架构 / 数据流 / 取舍 / 技术选型 (**不含调度图**) + **可能性分支** section。**写入界限: 仅 planning 阶段写 (含 check 失败回 planning 的二次进入); exec / check / finish 阶段禁动 design.md**。exec/check 发现方案需调整 → 回 planning 改 design 后重派。
      - **当前方案 = 精简守现状 (YAGNI)** — design.md 正文只写满足当前需求的最小可行设计, 禁塞"以后可能要"的扩展点。
      - **可能性分支 section (研究期允许过度探索, 仅留痕)** — 现状之外的扩展方案 / 未来约束变化时的演进分支 / 被否决的备选, 写入「可能性分支」section, 每条**必须标触发条件**。不进最终设计方案正文, 不进 task.json DAG, 不生成 subtask。
@@ -92,7 +92,7 @@ brainstorm 前先定**是否需要派 skein-researcher**, 按信号分档自动�
 ## 完成判据
 
 - [ ] task 已 `create` (含可读 slug)
-- [ ] prd.md 已填完 (目标/边界/索引章 `- [ ] TODO` 全勾; **验收标准章条目列全即可, 保持未勾 — 勾选归 check 阶段**)
+- [ ] prd.md 已填完 (四章 `- [ ] TODO: 填X` 占位**已全部整行替换**为真实内容; **目标/验收标准两章条目一律保持 `- [ ]` 未勾 — 勾选归 check 阶段**)
 - [ ] subtask 已规划 (`subtask add` 落 task.json DAG)
 - [ ] 设计方案已定 (design.md 正文; 或 main 判定豁免)
 - [ ] 预计工时已填 (`skein estimate <id> --set <小时数>`; `skein confirm` 硬校验非空正数, 规则详见 [estimate-gate.md](estimate-gate.md))

@@ -519,11 +519,13 @@ class Skein:
         if sections != expected:
             raise SystemExit(
                 f"{tid} prd 未就绪: 二级章节须为 {expected} (齐备且顺序一致), 实际 {sections} — 先填 prd 再 start")
-        # 占位检查: 模板各节初始即 `- [ ] TODO: 填X`, 填实后会被替换为真实内容 → 仍含即判未填
-        todos = [ln for ln in lines if re.match(r"^- \[ \]\s+TODO\b", ln)]
+        # 占位检查: 模板各节初始即 `- [ ] TODO: 填X`, 填实后会被替换为真实内容 → 仍含即判未填。
+        # 勾选态一并拒: 把占位勾成 `- [x] TODO` 不是填写, 只是把占位藏起来
+        todos = [ln for ln in lines if re.match(r"^- \[[ xX]\]\s+TODO\b", ln)]
         if todos:
             raise SystemExit(
-                f"{tid} prd 未就绪: 检出 {len(todos)} 处 `- [ ] TODO` 占位未填实 — 先填 prd 再 start")
+                f"{tid} prd 未就绪: 检出 {len(todos)} 处 `TODO` 占位未填实 (勾成 `- [x]` 不算填) — "
+                f"把占位整行替换为真实内容再 start")
 
     def init(self, _: argparse.Namespace) -> None:
         self.dir.mkdir(exist_ok=True)

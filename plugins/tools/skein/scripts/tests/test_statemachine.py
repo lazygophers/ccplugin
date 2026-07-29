@@ -214,6 +214,20 @@ def test_start_prd_placeholder_rejected(skein_cli: SkeinCli, ws: Path) -> None:
     assert _status_of(skein_cli, ws, tid) == S_READY  # start 被拒不回滚, 保持就绪
 
 
+def test_start_prd_checked_placeholder_rejected(skein_cli: SkeinCli, ws: Path) -> None:
+    """非法: 占位被勾成 `- [x] TODO` — 勾选不等于填实, 同样应拒 (防 plan 期预勾绕门)。"""
+    tid = _mk(skein_cli, ws, ready=True)
+    (ws / ".skein" / "task" / tid / "prd.md").write_text(
+        f"# {tid} — PRD\n\n## 目标\n- [x] TODO: 填目标\n\n"
+        "## 边界\n- 边界内容\n\n## 验收标准\n- [X] TODO: 填验收标准\n\n## 索引\n- design.md\n")
+    r = skein_cli(ws, "start", tid, check=False)
+    assert r.returncode == 1
+    out = r.stdout + r.stderr
+    assert "prd 未就绪" in out
+    assert "2 处" in out, f"勾选态占位应全数计入: {out}"
+    assert _status_of(skein_cli, ws, tid) == S_READY
+
+
 def test_start_prd_ok_passes(skein_cli: SkeinCli, ws: Path) -> None:
     """合法: prd.md 章节齐 + 无占位 → start 正常进 active。"""
     tid = _mk(skein_cli, ws, ready=True)  # _mk 内已 _fill_prd + confirm 到就绪
