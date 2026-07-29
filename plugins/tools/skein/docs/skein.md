@@ -21,7 +21,7 @@
 | skein-clean | 清理: 孤儿 worktree / 悬挂分支 | 手动 |
 | skein-setup | 初始化 / trellis 迁移 | 首次 |
 
-### Agents (8)
+### Agents (9)
 
 | Agent | 读写限制 | 用途 |
 | --- | --- | --- |
@@ -33,22 +33,26 @@
 | skein-recaller | 只读 spec/ | 按关键词召回规则 |
 | skein-setup | 全读写 | 初始化/迁移 |
 | skein-dedup | 只读 | 去重 + DAG 排序 |
+| skein-clean | 只读 + 清理命令 | 归档完成 task + 清孤儿 worktree/悬挂分支 (仅 `/skein-clean` 显式调用) |
 
-### Hooks (11)
+### Hooks (12)
+
+> 触发事件以 `.claude-plugin/plugin.json` 的 `hooks` 段为真值源。
 
 | Hook | 触发 | 用途 |
 | --- | --- | --- |
-| permission | PreToolUse | 自动批准 `.skein/` 操作 |
-| guard | PreToolUse | 阻止 AI 直接读写脚本管理文件 |
-| batch | PreToolUse | 阻止并发状态写 |
-| user-prompt | PreToolUse | 信号路由 (flow/inline/grey) |
-| task-created | PostToolUse | 阻止 TaskCreate |
-| session-context | PostToolUse | 注入活跃 task + core 规则 |
-| subagent-start | PostToolUse | 注入 core 规则到 subagent |
-| fmt | PostToolUse | 自动格式化 prd.md |
-| spec-meta | PostToolUse | 检查 spec frontmatter |
-| stop-check | PostToolUse | 扫描 spec 问题 → `.pending-fix` |
-| report | Error | 错误上下文注入 |
+| session-start | SessionStart | spec 索引注入 (`skein-spec`) |
+| session-context | SessionStart | 注入活跃 task + core 规则 |
+| user-prompt | UserPromptSubmit | 信号路由 (flow/inline/grey) |
+| subagent-start | SubagentStart | 注入 core 规则到 subagent |
+| guard | PreToolUse (Edit/Write/MultiEdit/Read) | 阻止 AI 直接读写脚本管理文件 |
+| permission | PermissionRequest + PermissionDenied | 自动批准 `.skein/` 操作 |
+| fmt | PostToolUse (Edit/Write/MultiEdit) | 自动格式化 prd.md |
+| spec-meta | PostToolUse (Edit/Write/MultiEdit) | 检查 spec frontmatter |
+| batch | PostToolBatch | 阻止并发状态写 |
+| report | PostToolUseFailure (Bash) | 错误上下文注入 |
+| task-created | TaskCreated | 阻止 TaskCreate |
+| stop-check | Stop | 扫描 spec 问题 → `.pending-fix` |
 
 ### Guards
 
