@@ -205,7 +205,7 @@ function prdCard(sec) {
               // 目标同验收标准, 一律 todo (checkbox) 样式
               item.kind === 'check' || sec.name === '目标'
                 ? h(`i.fa.${item.done ? 'fa-check-square' : 'fa-square-o'}.${item.done ? 'text-st-done' : 'text-muted'}.mt-0.5.flex-shrink-0`)
-                : h('span.w-1.5.h-1.5.rounded-full.bg-muted.mt-2.flex-shrink-0'),
+                : h('span.w-2.h-2.rounded-full.bg-muted.mt-2.flex-shrink-0'),
               h('span.text-fg.leading-relaxed' + (item.done ? '.line-through.text-muted' : ''), item.text),
             ])
           )
@@ -239,7 +239,9 @@ function contractsView(contracts) {
     ]),
     h('div.space-y-3',
       contracts.map((c, i) =>
-        h('div.p-3.rounded-lg.bg-surface/50.border.border-brd/30', [
+        h('div.p-3.rounded-lg.border.border-brd\\/40',
+          { style: { background: 'color-mix(in srgb, var(--surface) 50%, transparent)' } },
+          [
           // 契约落盘为字符串 (skein contract --add); 对象形态仅作兼容
           h('div.text-sm.font-semibold.text-head.leading-relaxed',
             typeof c === 'string' ? c : (c.name || c.title || `契约 ${i + 1}`)),
@@ -284,10 +286,12 @@ function researchView(findings, research) {
     notes.length
       ? h('div.space-y-2.mt-4',
           notes.map(([name, body]) =>
-            h('details.rounded-lg.bg-surface/30.border.border-brd/30', [
-              h('summary.cursor-pointer.px-3.py-2.text-sm.text-head.select-none', name),
-              h('div.px-3.pb-3', docBody(body)),
-            ])
+            h('details.rounded-lg.border.border-brd\\/40',
+              { style: { background: 'color-mix(in srgb, var(--surface) 30%, transparent)' } },
+              [
+                h('summary.cursor-pointer.px-3.py-2.text-sm.text-head.select-none', name),
+                h('div.px-3.pb-3', docBody(body)),
+              ])
           )
         )
       : null,
@@ -308,7 +312,7 @@ function subtaskListView(subs) {
       subs.map(s => {
         const st = s.status || 'planning';
         const desc = s.desc || s.description || '';
-        return h('div.flex.items-start.gap-3.p-3.rounded-lg.hover\\:bg-card/40.transition-colors', [
+        return h('div.subtask-row.flex.items-start.gap-3.p-3.rounded-lg.transition-colors', [
           h(`span.w-2.5.h-2.5.mt-1.5.rounded-full.flex-shrink-0.bg-${ST_COLOR[st]}`),
           h('div.flex-1.min-w-0', [
             h('div.text-sm.text-fg', s.title || s.name || s.sid || s.id),
@@ -352,7 +356,7 @@ export async function render(mount, params, ctx) {
         h('i.fa.fa-exclamation-triangle.text-4xl.text-warning.mb-3'),
         h('h2.text-xl.font-semibold.text-head.mb-2', '任务不存在'),
         h('p.text-muted.mb-4', `ID: ${taskId}`),
-        h('a.antd-btn.antd-btn-primary',
+        h('a.antd-btn',
           { href: '/dashboard', 'data-nav': '' },
           '返回概览'),
       ])
@@ -442,12 +446,12 @@ export async function render(mount, params, ctx) {
   mount.replaceChildren(
     // 面包屑 + 标题
     h('div.mb-6', [
-      h('nav.flex.items-center.gap-2.text-sm.text-muted.mb-3', [
-        h('a.hover\\:text-accent.transition-colors', { href: '/dashboard', 'data-nav': '' }, '概览'),
-        h('i.fa.fa-angle-right.text-xs'),
-        h('a.hover\\:text-accent.transition-colors', { href: '/board', 'data-nav': '' }, '看板'),
-        h('i.fa.fa-angle-right.text-xs'),
-        h('span.text-head', task.title || task.name || task.id),
+      h('nav.antd-breadcrumb.mb-3', [
+        h('a', { href: '/dashboard', 'data-nav': '' }, '概览'),
+        h('span.sep', '/'),
+        h('a', { href: '/board', 'data-nav': '' }, '看板'),
+        h('span.sep', '/'),
+        h('span.current', task.title || task.name || task.id),
       ]),
       h('div.flex.items-start.justify-between.flex-wrap.gap-3', [
         h('div', [
@@ -457,9 +461,9 @@ export async function render(mount, params, ctx) {
           ]),
           h('div.flex.items-center.gap-3.text-sm.text-muted', [
             h('span.font-mono', '#' + task.id),
-            h('span·opacity-40', '·'),
+            h('span.opacity-40', '·'),
             h('span', task.createdAt ? '创建于 ' + fmtRelative(task.createdAt) : ''),
-            h('span·opacity-40', '·'),
+            h('span.opacity-40', '·'),
             h('span', task.updatedAt ? '更新于 ' + fmtRelative(task.updatedAt) : ''),
           ]),
         ]),
@@ -523,7 +527,7 @@ export async function render(mount, params, ctx) {
             '操作',
           ]),
           h('div.flex.flex-wrap.gap-2', [
-            h('button.antd-btn.antd-btn-primary.flex-1',
+            h('button.antd-btn.flex-1',
               { onclick: () => alertDialog('编辑功能开发中') },
               [h('i.fa.fa-pencil.mr-1.5'), '编辑']
             ),
