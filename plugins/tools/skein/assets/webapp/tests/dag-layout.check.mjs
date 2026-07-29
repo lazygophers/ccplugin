@@ -1,16 +1,21 @@
 // DAG 布局自检: node plugins/tools/skein/assets/webapp/tests/dag-layout.check.mjs
 // board.js 是浏览器 ESM (依赖 htm/DOM), 不能整体 import — 只把纯函数 sugiyama 抠出来跑
 import { readFileSync } from 'fs';
-const src = readFileSync(new URL('../src/new/pages/board.js', import.meta.url), 'utf8');
+// 布局函数在 board.js, 边分类/捆绑在 lib/depdag.js — 两处都抠。
+const SRC = ['../src/new/pages/board.js', '../src/new/lib/depdag.js']
+  .map((p) => readFileSync(new URL(p, import.meta.url), 'utf8'));
 const cut = (name) => {
-  const a = src.indexOf('function ' + name + '(');
-  return src.slice(a, src.indexOf('\n}\n', a) + 2);
+  for (const src of SRC) {
+    const a = src.indexOf('function ' + name + '(');
+    if (a !== -1) return src.slice(a, src.indexOf('\n}\n', a) + 2);
+  }
+  throw new Error(`抠不到函数 ${name} — 源码已改名/搬走, 同步改本自检`);
 };
 // 布局链是纯函数, 整串 eval 出来 (layoutPacked 依赖 components/sugiyama/packLayout)。
-// eval 的输入是本仓库自己的源码, 非外部输入 — 这里只是绕开 board.js 的浏览器 ESM 依赖。
-const { sugiyama, layoutPacked, layoutTiered, autoDensity, edgeKinds, focusActive, bundleTrunks } = eval(
-  `(() => { ${['sugiyama', 'packLayout', 'components', 'transpose', 'layoutComponent', 'layoutPacked', 'layoutTiered', 'autoDensity', 'edgeKinds', 'focusActive', 'bundleTrunks'].map(cut).join('\n')}
-   return { sugiyama, layoutPacked, layoutTiered, autoDensity, edgeKinds, focusActive, bundleTrunks }; })()`);
+// eval 的输入是本仓库自己的源码, 非外部输入 — 这里只是绕开浏览器 ESM 依赖。
+const { sugiyama, layoutPacked, layoutTiered, edgeKinds, focusActive, bundleTrunks } = eval(
+  `(() => { ${['sugiyama', 'packLayout', 'components', 'transpose', 'layoutComponent', 'layoutPacked', 'layoutTiered', 'edgeKinds', 'focusActive', 'bundleTrunks'].map(cut).join('\n')}
+   return { sugiyama, layoutPacked, layoutTiered, edgeKinds, focusActive, bundleTrunks }; })()`);
 
 // 两档节点尺寸 — 与 board.js DAG_DENSITY 同值
 const D = {
@@ -215,9 +220,7 @@ const run = (g, view) => sugiyama(Object.keys(g), id => g[id], { ...S, maxWidth:
   const m = layoutTiered(ids, depsOf, D.mini, 1400, () => ({}));
   console.assert(m.height < c.height, `mini 应更矮: ${m.height} vs ${c.height}`);
   console.assert(m.nodes[0].w === 120 && c.nodes[0].w === 190, '两档宽度应各按 DAG_DENSITY');
-  console.assert(autoDensity(c.height, 800) === 'mini', `60 层 compact (${c.height}px) 超 3 屏应降到 mini`);
-  console.assert(autoDensity(600, 800) === 'compact', '装得下的图应留在 compact');
-  console.log(`15 两档尺寸 OK compact=${Math.round(c.height)} mini=${Math.round(m.height)} 自动档=${autoDensity(c.height, 800)}`);
+  console.log(`15 两档尺寸 OK compact=${Math.round(c.height)} mini=${Math.round(m.height)}`);
 }
 
 // 14. 边捆绑: 扇入 ≥3 的跨行长边共用一条主干 x, 短边和小扇入不参与

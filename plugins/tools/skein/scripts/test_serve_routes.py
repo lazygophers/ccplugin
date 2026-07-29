@@ -56,8 +56,9 @@ def test_routes_real() -> None:
                 assert isinstance(c.get("/__skein__/archive").json()["tasks"], list)
                 hits = c.get("/__skein__/search", params={"q": "alpha"}).json()["hits"]
                 assert any(h["id"] == "alpha" for h in hits)
-                assert c.get("/__skein__/task/alpha").status_code == 200
-                assert c.get("/__skein__/task/ghost1").status_code == 404
+                assert c.get("/__skein__/task", params={"id": "alpha"}).status_code == 200
+                assert c.get("/__skein__/task", params={"id": "ghost1"}).status_code == 404
+                assert c.get("/__skein__/task").status_code == 422  # id 必填, 禁 path 参数
                 assert c.get("/").status_code == 200
         finally:
             os.chdir(cwd0)

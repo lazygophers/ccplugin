@@ -3305,9 +3305,9 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
     async def _queue() -> JSONResponse:  # 待执行队列: pending subtask 队列 + task 就绪 + active 内就绪 subtask
         return JSONResponse(board._queue())
 
-    @app.get("/__skein__/task/{tid}")
-    async def _task(tid: str) -> Any:  # 单 task: task.json 全文 + prd/design/findings 原文 + subtask + 契约
-        d = board._task_detail(tid)
+    @app.get("/__skein__/task")  # 参数一律走 query, 禁 path 参数
+    async def _task(id: str) -> Any:  # 单 task: task.json 全文 + prd/design/findings 原文 + subtask + 契约
+        d = board._task_detail(id)
         return JSONResponse(d) if d else JSONResponse({"error": "task 不存在"}, status_code=404)
 
     @app.get("/__skein__/spec")

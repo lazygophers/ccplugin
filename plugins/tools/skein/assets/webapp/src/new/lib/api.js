@@ -37,7 +37,7 @@ export const rev      = () => getJSON(BASE + "/rev");                // 轮询�
 export const data     = () => getJSON(BASE + "/data");               // board 全量 (cards + overview)
 export const dashboard = () => getJSON(BASE + "/dashboard");
 export const queue    = () => getJSON(BASE + "/queue");
-export const task     = (tid) => getJSON(BASE + "/task/" + encodeURIComponent(tid));
+export const task     = (tid) => getJSON(BASE + "/task?id=" + encodeURIComponent(tid));
 export const spec     = () => getJSON(BASE + "/spec");
 export const specFile = (path) => getJSON(BASE + "/spec/file?path=" + encodeURIComponent(path));
 export const specSave = (path, content) => postJSON(BASE + "/spec/save", { path, content });
