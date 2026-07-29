@@ -85,13 +85,16 @@
         "产出风险清单含 file:line",
         "零代码改动 (git diff 对这 6 个文件为空)"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2
+      ],
+      "status": "已完成",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785291217,
-      "started": null,
-      "finished": null
+      "started": 1785293645,
+      "finished": 1785293863
     }
   ],
   "repos": [],
@@ -105,6 +108,6 @@
   "confirmed": 1785291329,
   "checked": null,
   "finished": null,
-  "updated": 1785293645,
+  "updated": 1785293863,
   "estimate": 3.0
 }
