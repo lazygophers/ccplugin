@@ -1,8 +1,8 @@
 ---
 name: skein-flow
-description: SKEIN task 闭环编排器 (plan→exec→check→finish)。$1 路由阶段, 缺省=flow 全闭环到 finish。跨文件/多步或要求走 SKEIN 流程时用: 强制建 task, main 派 subagent 在 worktree 执行, 禁 inline 直改。
+description: SKEIN task 闭环编排器 (plan→exec→check→finish)。$1 路由阶段, 缺省=flow 全闭环到 finish; 全空 (无参无描述)=清空模式, 把全部未完成 task 逐个跑到 finish。跨文件/多步或要求走 SKEIN 流程时用: 强制建 task, main 派 subagent 在 worktree 执行, 禁 inline 直改。
 user-invocable: true
-argument-hint: "[flow|plan|exec|check|finish] [任务描述/ID]"
+argument-hint: "[flow|plan|exec|check|finish] [任务描述/ID] (全空=清空全部未完成 task)"
 arguments: ["flow|plan|exec|check|finish", "任务描述/ID"]
 model: sonnet
 effort: medium
@@ -18,6 +18,7 @@ effort: medium
 
 | `$1` | 阶段 | 行为 |
 |---|---|---|
+| **全空 (无 `$1` 无描述)** | **flow · 清空模式** | 不新建 task, 取 `skein list --status open --json`, 按 DAG 就绪序把**全部未完成 task** 逐个走完闭环到 finish (并发受 max_active 限)。列表为空 → 报「无未完成 task」即停 |
 | `flow` / **缺省 / 任务描述** | **flow (默认)** | 走完整闭环 plan→exec→check→finish, 阶段间自动续跑不停顿。循环编排详见 [references/flow-loop.md](references/flow-loop.md) |
 | `plan` | **plan** | **仅规划** — 判新旧 + create/并入 + brainstorm + grill 硬门, 推到就绪即停 (停在 `skein start` 前) |
 | `exec` | **exec** | 驱动就绪/在途 task 走完整闭环到 finish (start→exec→check→finish) |
@@ -25,6 +26,8 @@ effort: medium
 | `finish` | **check 全绿后** | 派 skein-finisher 勘察 + skein finish 闭环 + 异步 sediment |
 
 🔒 **禁把缺省当 plan 用** — 无参 / 只给任务描述 = 用户要**做完**, 不是要个规划稿。plan 收敛后禁停手问「要不要开始执行」, 直接续 exec。只有显式 `/skein-flow plan` 才停在就绪。
+
+🔒 **全空 = 清空存量, 禁走 plan** — 无 `$1` 且无任务描述时无新需求可规划, 直接进 exec 消化存量: `待处理` 态先补 plan 收敛再 start, `就绪 && ready=true` 直接 start, `进行中/检查中` 续跑当前阶段。禁凭空造 task、禁问用户「要做什么」。
 
 **载体铁律 + 正向配方** — 「派 agent」=真实 `Agent` tool_use / main 默认禁写源码 / 有 task 必有 worktree / dispatch 6 字段 / 完成即时回传 / 并发请求禁互相顶掉 等 11 条铁律, 及命中即流程错误的正向配方表, 全量详见 [references/carrier-rules.md](references/carrier-rules.md)。
 
@@ -72,7 +75,7 @@ effort: medium
 
 ## 触发
 
-`$1=exec` (驱动就绪/在途 task 走完整闭环到 finish) 或 `$1` 缺省/flow (plan 收敛后自动续)。
+`$1=exec` (驱动就绪/在途 task 走完整闭环到 finish) 或 `$1` 缺省/flow (plan 收敛后自动续) 或**全空清空模式** (直接进本阶段消化 `list --status open` 全部存量)。
 
 ## 🛑 硬门
 
