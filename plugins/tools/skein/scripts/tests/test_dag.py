@@ -40,7 +40,7 @@ def _set_max_active(ws: Path, n: int) -> None:
 
 def _add(skein_cli: SkeinCli, ws: Path, tid: str, sid: str, *, deps: str = "",
          check: str = "", agent: str | None = None) -> None:
-    args = ["subtask", "add", tid, sid, "--name", f"N{sid}", "--desc", "d"]
+    args = ["subtask", "add", tid, sid, "--name", f"N{sid}", "--desc", "d", "--estimate", "1"]
     if deps:
         args += ["--deps", deps]
     if check:

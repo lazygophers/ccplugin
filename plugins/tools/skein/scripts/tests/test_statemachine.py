@@ -29,7 +29,7 @@ def _mk(skein_cli: SkeinCli, ws: Path, tid: str = "feat-x", *,
     """造 task。sub=附 1 subtask + 填实 prd (满足 confirm/start 前置); ready=再 confirm 推到就绪 (可 start)。"""
     skein_cli(ws, "create", tid, "--name", tid, "--desc", "d")
     if sub or ready:
-        skein_cli(ws, "subtask", "add", tid, SID, "--name", "S", "--desc", "d")
+        skein_cli(ws, "subtask", "add", tid, SID, "--name", "S", "--desc", "d", "--estimate", "1")
         _fill_prd(ws, tid)  # confirm/start 前置 prd 门: 填实占位免被拒
     if ready:
         skein_cli(ws, "estimate", tid, "--set", "1")  # estimate 硬门: confirm 前须填实工时
@@ -162,6 +162,36 @@ def test_confirm_no_estimate_rejected(skein_cli: SkeinCli, ws: Path) -> None:
     assert _status_of(skein_cli, ws, tid) == S_READY
 
 
+def test_subtask_add_requires_estimate(skein_cli: SkeinCli, ws: Path) -> None:
+    """非法: subtask add 缺 --estimate (必填, argparse 层拒, 退出码 2)。"""
+    skein_cli(ws, "create", "feat-e", "--name", "n", "--desc", "d")
+    r = skein_cli(ws, "subtask", "add", "feat-e", SID, "--name", "S", "--desc", "d", check=False)
+    assert r.returncode == 2
+    assert "--estimate" in r.stdout + r.stderr
+    # 非正数同样拒 (方法层)
+    r = skein_cli(ws, "subtask", "add", "feat-e", SID, "--name", "S", "--desc", "d",
+                  "--estimate", "0", check=False)
+    assert r.returncode == 1
+    assert "正数" in r.stdout + r.stderr
+
+
+def test_confirm_estimate_below_subtask_sum_rejected(skein_cli: SkeinCli, ws: Path) -> None:
+    """非法: task 工时低于 Σ subtask (自下而上累加硬门, 应拒)。"""
+    tid = _mk(skein_cli, ws)  # 只 create, 自己控 subtask 工时
+    skein_cli(ws, "subtask", "add", tid, "sub-a", "--name", "A", "--desc", "d", "--estimate", "3")
+    skein_cli(ws, "subtask", "add", tid, "sub-b", "--name", "B", "--desc", "d", "--estimate", "2")
+    _fill_prd(ws, tid)
+    skein_cli(ws, "estimate", tid, "--set", "4")  # < 3+2=5
+    r = skein_cli(ws, "confirm", tid, check=False)
+    assert r.returncode == 1
+    assert "低于 subtask 合计 5" in r.stdout + r.stderr
+    assert _status_of(skein_cli, ws, tid) == S_PENDING
+    # 补到含 plan/check 自身开销即放行
+    skein_cli(ws, "estimate", tid, "--set", "6")
+    skein_cli(ws, "confirm", tid)
+    assert _status_of(skein_cli, ws, tid) == S_READY
+
+
 def test_start_pending_rejected(skein_cli: SkeinCli, ws: Path) -> None:
     """非法: start 未 confirm 的待处理 task (须先过 confirm 到就绪, 应拒)。"""
     tid = _mk(skein_cli, ws, sub=True)  # 有 subtask+prd 但未 confirm → 仍待处理
@@ -248,6 +278,6 @@ def test_archive_already_archived_idempotent(skein_cli: SkeinCli, ws: Path) -> N
 def test_subtask_add_duplicate_rejected(skein_cli: SkeinCli, ws: Path) -> None:
     """幂等边界: subtask add 同 sid 重复 (应拒)。"""
     tid = _mk(skein_cli, ws, sub=True)
-    r = skein_cli(ws, "subtask", "add", tid, SID, "--name", "S", "--desc", "d", check=False)
+    r = skein_cli(ws, "subtask", "add", tid, SID, "--name", "S", "--desc", "d", "--estimate", "1", check=False)
     assert r.returncode == 1
     assert "subtask 已存在" in r.stdout + r.stderr

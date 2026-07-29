@@ -87,7 +87,7 @@ def test_status_json_worktree_null_when_disabled(skein_cli: SkeinCli, ws: Path) 
     _disable(skein_cli, ws)
     tid = "feat-st"
     skein_cli(ws, "create", tid, "--name", tid, "--desc", "d")
-    skein_cli(ws, "subtask", "add", tid, "s", "--name", "A", "--desc", "d")
+    skein_cli(ws, "subtask", "add", tid, "s", "--name", "A", "--desc", "d", "--estimate", "1")
     _fill_prd(ws, tid)
     skein_cli(ws, "estimate", tid, "--set", "1")  # estimate 硬门: confirm 前须填实工时
     skein_cli(ws, "confirm", tid)
@@ -102,7 +102,7 @@ def test_current_no_worktree_col_when_disabled(skein_cli: SkeinCli, ws: Path) ->
     _disable(skein_cli, ws)
     tid = "feat-cur"
     skein_cli(ws, "create", tid, "--name", tid, "--desc", "d")
-    skein_cli(ws, "subtask", "add", tid, "s", "--name", "A", "--desc", "d")
+    skein_cli(ws, "subtask", "add", tid, "s", "--name", "A", "--desc", "d", "--estimate", "1")
     _fill_prd(ws, tid)
     skein_cli(ws, "estimate", tid, "--set", "1")  # estimate 硬门: confirm 前须填实工时
     skein_cli(ws, "confirm", tid)
@@ -116,7 +116,7 @@ def test_session_context_hides_worktree_when_disabled(skein_cli: SkeinCli, ws: P
     _disable(skein_cli, ws)
     tid = "feat-sc"
     skein_cli(ws, "create", tid, "--name", tid, "--desc", "d")
-    skein_cli(ws, "subtask", "add", tid, "s", "--name", "A", "--desc", "d")
+    skein_cli(ws, "subtask", "add", tid, "s", "--name", "A", "--desc", "d", "--estimate", "1")
     _fill_prd(ws, tid)
     skein_cli(ws, "estimate", tid, "--set", "1")  # estimate 硬门: confirm 前须填实工时
     skein_cli(ws, "confirm", tid)

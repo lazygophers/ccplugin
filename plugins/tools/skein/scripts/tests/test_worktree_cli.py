@@ -27,7 +27,7 @@ def _mk(skein_cli: SkeinCli, ws: Path, tid: str = "feat-wt", *, sub: bool = True
     """造就绪 task (附 1 subtask + 填 prd + confirm 过用户确认门), 返回 tid。"""
     skein_cli(ws, "create", tid, "--name", tid, "--desc", "d")
     if sub:
-        skein_cli(ws, "subtask", "add", tid, "sub-a", "--name", "A", "--desc", "d")
+        skein_cli(ws, "subtask", "add", tid, "sub-a", "--name", "A", "--desc", "d", "--estimate", "1")
         _fill_prd(ws, tid)  # start 前置 prd 门: 填实占位免被拒
         skein_cli(ws, "estimate", tid, "--set", "1")  # estimate 硬门: confirm 前须填实工时
         skein_cli(ws, "confirm", tid)  # 待处理→就绪 用户确认门 (start 需就绪态)
@@ -123,7 +123,7 @@ def test_multi_repos_each_gets_worktree(skein_cli: SkeinCli, git_cmd: GitCmd, ws
     _mk_sub_git(git_cmd, ws, "sub-b")
     tid = "feat-multi"
     skein_cli(ws, "create", tid, "--name", tid, "--desc", "d", "--repos", "sub-a,sub-b")
-    skein_cli(ws, "subtask", "add", tid, "sub-a", "--name", "A", "--desc", "d")
+    skein_cli(ws, "subtask", "add", tid, "sub-a", "--name", "A", "--desc", "d", "--estimate", "1")
     _fill_prd(ws, tid)
     skein_cli(ws, "estimate", tid, "--set", "1")  # estimate 硬门: confirm 前须填实工时
     skein_cli(ws, "confirm", tid)
@@ -142,7 +142,7 @@ def test_multi_repos_finish_merges_each(skein_cli: SkeinCli, git_cmd: GitCmd, ws
     _mk_sub_git(git_cmd, ws, "sub-b")
     tid = "feat-mfin"
     skein_cli(ws, "create", tid, "--name", tid, "--desc", "d", "--repos", "sub-a,sub-b")
-    skein_cli(ws, "subtask", "add", tid, "sub-a", "--name", "A", "--desc", "d")
+    skein_cli(ws, "subtask", "add", tid, "sub-a", "--name", "A", "--desc", "d", "--estimate", "1")
     _fill_prd(ws, tid)
     skein_cli(ws, "estimate", tid, "--set", "1")  # estimate 硬门: confirm 前须填实工时
     skein_cli(ws, "confirm", tid)
@@ -167,7 +167,7 @@ def test_repos_plain_subdir_rejected(skein_cli: SkeinCli, git_cmd: GitCmd, ws: P
     (ws / "plainsub").mkdir()  # 普通子目录, 属根仓工作树, 非独立 git
     tid = "feat-plain"
     skein_cli(ws, "create", tid, "--name", tid, "--desc", "d", "--repos", "plainsub")
-    skein_cli(ws, "subtask", "add", tid, "s", "--name", "A", "--desc", "d")
+    skein_cli(ws, "subtask", "add", tid, "s", "--name", "A", "--desc", "d", "--estimate", "1")
     _fill_prd(ws, tid)
     skein_cli(ws, "estimate", tid, "--set", "1")  # estimate 硬门: confirm 前须填实工时
     skein_cli(ws, "confirm", tid)
@@ -189,7 +189,7 @@ def test_repos_deep_nested_git_gets_worktree(skein_cli: SkeinCli, git_cmd: GitCm
     git_cmd(deep, "commit", "-qm", "seed")
     tid, rel = "feat-deep", "a/b/nested-git"
     skein_cli(ws, "create", tid, "--name", tid, "--desc", "d", "--repos", rel)
-    skein_cli(ws, "subtask", "add", tid, "s", "--name", "A", "--desc", "d")
+    skein_cli(ws, "subtask", "add", tid, "s", "--name", "A", "--desc", "d", "--estimate", "1")
     _fill_prd(ws, tid)
     skein_cli(ws, "estimate", tid, "--set", "1")  # estimate 硬门: confirm 前须填实工时
     skein_cli(ws, "confirm", tid)
@@ -213,9 +213,9 @@ def test_cli_create_parse_name_desc_repos(skein_cli: SkeinCli, ws: Path) -> None
 def test_cli_subtask_add_parse_deps_agent_skills_check(skein_cli: SkeinCli, ws: Path) -> None:
     """subtask add 参数解析: --deps/--agent/--skills/--check 落盘正确。"""
     skein_cli(ws, "create", "feat-s", "--name", "n", "--desc", "d")
-    skein_cli(ws, "subtask", "add", "feat-s", "s1", "--name", "S1", "--desc", "d")
+    skein_cli(ws, "subtask", "add", "feat-s", "s1", "--name", "S1", "--desc", "d", "--estimate", "1")
     skein_cli(ws, "subtask", "add", "feat-s", "s2",
-              "--name", "S2", "--desc", "d",
+              "--name", "S2", "--desc", "d", "--estimate", "1",
               "--deps", "s1", "--agent", "skein-executor",
               "--skills", "sk-a,sk-b", "--check", "验收1;验收2")
     t = _task_json(ws, "feat-s")
@@ -259,7 +259,7 @@ def test_cli_no_subcommand_rejected() -> None:
 def test_cli_subtask_add_missing_sid_rejected(skein_cli: SkeinCli, ws: Path) -> None:
     """subtask add 缺 sid → argparse p.error exit 2 (main 内校验, 非逻辑 SystemExit)。"""
     skein_cli(ws, "create", "feat-m", "--name", "n", "--desc", "d")
-    r = skein_cli(ws, "subtask", "add", "feat-m", "--name", "S", "--desc", "d", check=False)
+    r = skein_cli(ws, "subtask", "add", "feat-m", "--name", "S", "--desc", "d", "--estimate", "1", check=False)
     assert r.returncode == 2
 
 

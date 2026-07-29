@@ -2,7 +2,7 @@
   "id": "webapp-design-align",
   "name": "webapp 设计对齐 (board+task 改用 design.css 原语 + 字号上调)",
   "desc": "finish 后发现 board.js (60 内联 class) + task.js (22) 没用 T1 design.css 原语, timeline 自造非 .tl-*, DAG 字号小 viewBox 强缩, 全局文字 10-13px 偏小。对齐 examples 设计稿。",
-  "status": "进行中",
+  "status": "已完成",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -106,8 +106,8 @@
   "created": 1785112007,
   "started": 1785291329,
   "confirmed": 1785291329,
-  "checked": null,
-  "finished": null,
-  "updated": 1785293863,
+  "checked": 1785293863,
+  "finished": 1785295796,
+  "updated": 1785295796,
   "estimate": 3.0
 }

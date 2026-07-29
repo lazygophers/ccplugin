@@ -90,7 +90,7 @@ def test_task_rename_id_sync_parent(skein_cli: SkeinCli, ws: Path) -> None:
 def test_task_rename_id_non_pending_rejected(skein_cli: SkeinCli, ws: Path) -> None:
     """active task 改 --id → 拒 (returncode!=0, stderr 提示仅限 start 前 待处理/就绪)。"""
     skein_cli(ws, "create", "task-a", "--name", "a", "--desc", "d")
-    skein_cli(ws, "subtask", "add", "task-a", "s1", "--name", "x", "--desc", "d",
+    skein_cli(ws, "subtask", "add", "task-a", "s1", "--name", "x", "--desc", "d", "--estimate", "1",
               "--agent", "skein-executor")
     _fill_prd(ws, "task-a")
     skein_cli(ws, "estimate", "task-a", "--set", "1")  # estimate 硬门: confirm 前须填实工时
@@ -113,7 +113,7 @@ def test_task_rename_id_occupied_rejected(skein_cli: SkeinCli, ws: Path) -> None
 def test_subtask_rename_name(skein_cli: SkeinCli, ws: Path) -> None:
     """rename <tid> s1 --name 新子名: subtasks 中 s1 的 name 变。"""
     skein_cli(ws, "create", "task-a", "--name", "a", "--desc", "d")
-    skein_cli(ws, "subtask", "add", "task-a", "s1", "--name", "旧子名", "--desc", "d")
+    skein_cli(ws, "subtask", "add", "task-a", "s1", "--name", "旧子名", "--desc", "d", "--estimate", "1")
     skein_cli(ws, "rename", "task-a", "s1", "--name", "新子名")
     s = _sub(_task(ws, "task-a"), "s1")
     assert s is not None and s["name"] == "新子名", f"子任务 name 未改: {s}"
@@ -123,8 +123,8 @@ def test_subtask_rename_name(skein_cli: SkeinCli, ws: Path) -> None:
 def test_subtask_rename_id_sync_depends(skein_cli: SkeinCli, ws: Path) -> None:
     """s2 depends s1 → rename <tid> s1 --id s1x: s1x 存在, s2.depends_on 含 s1x 不含 s1。"""
     skein_cli(ws, "create", "task-a", "--name", "a", "--desc", "d")
-    skein_cli(ws, "subtask", "add", "task-a", "s1", "--name", "一", "--desc", "d")
-    skein_cli(ws, "subtask", "add", "task-a", "s2", "--name", "二", "--desc", "d", "--deps", "s1")
+    skein_cli(ws, "subtask", "add", "task-a", "s1", "--name", "一", "--desc", "d", "--estimate", "1")
+    skein_cli(ws, "subtask", "add", "task-a", "s2", "--name", "二", "--desc", "d", "--estimate", "1", "--deps", "s1")
     skein_cli(ws, "rename", "task-a", "s1", "--id", "s1x")
     t = _task(ws, "task-a")
     assert _sub(t, "s1x") is not None and _sub(t, "s1") is None, "sid 未改名"

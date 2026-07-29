@@ -29,6 +29,7 @@
 skein subtask add <tid> <sid> \
   --name "<子任务名>" \
   --desc "<一句话描述>" \
+  --estimate <小时数> \
   [--agent <agent-name>] \
   [--deps <sid1>,<sid2>] \
   [--check "验收1;验收2;验收3"] \
@@ -43,6 +44,7 @@ skein subtask add <tid> <sid> \
 | `<sid>` | ✅ | - | subtask id (kebab-case，task 内唯一) |
 | `--name` | ✅ | - | 子任务名称 (简短) |
 | `--desc` | ✅ | - | 子任务描述 (一句话) |
+| `--estimate` | ✅ | - | 预计工时 (小时, 正数)，按本 subtask 实际要做的事估；见 `estimate-gate.md` |
 | `--agent` | ❌ | `skein-executor` | 执行 agent，有更合适的具名 agent 显式填 |
 | `--deps` | ❌ | (空) | 前置依赖 subtask id 列表，逗号分隔 |
 | `--check` | ❌ | (空) | 验收标准 checklist，分号分隔 |
@@ -71,6 +73,7 @@ skein subtask add <tid> <sid> \
 skein subtask add <tid> <fix-sid> \
   --name "修复:<根因简述>" \
   --desc "定点修<失败sid>根因: <具体原因>" \
+  --estimate <小时数> \
   --deps <失败sid的所有前置> \
   [--agent skein-executor]
 ```
@@ -119,6 +122,7 @@ skein subtask add <tid> <fix-sid> \
 skein subtask add <tid> <fix-sid> \
   --name "修复: <失败点简述>" \
   --desc "<报错原文 / file:line>" \
+  --estimate <小时数> \
   --deps <失败源 subtask sid> \
   --agent <合适的修复 agent>
 ```
@@ -130,11 +134,13 @@ skein subtask add <tid> <fix-sid> \
 skein subtask add <tid> <fix-1> \
   --name "修复冲突1: <冲突点>" \
   --desc "<冲突描述 + 涉及文件>" \
+  --estimate <小时数> \
   --deps <源 sid1>,<源 sid2>
 
 skein subtask add <tid> <fix-2> \
   --name "修复冲突2: <冲突点>" \
   --desc "..." \
+  --estimate <小时数> \
   --deps <源 sid3>
 ```
 
@@ -165,6 +171,7 @@ skein subtask add <tid> <fix-2> \
 skein subtask add <tid> <new-sid> \
   --name "<补充任务名>" \
   --desc "<补充描述>" \
+  --estimate <小时数> \
   --deps <合适的前置 sid> \
   [--agent <agent-name>] \
   [--check "验收项"]

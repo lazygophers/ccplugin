@@ -661,7 +661,11 @@ class Skein:
         t = self._load(a.id)
         if a.set is None:
             est = t.get("estimate")
+            subsum = _sub_estimate_sum(t)
             print(f"{est} h" if est else "(未估算)")
+            if subsum:
+                print(f"  subtask 合计 {subsum} h + plan/check 自身开销 "
+                      f"{round((est or 0) - subsum, 2)} h")
             return
         if t["status"] not in (S_PENDING, S_READY):
             raise SystemExit(f"{a.id} 状态 {t['status']}, estimate 只能在 start 前 (待处理/就绪) 设置")
@@ -726,11 +730,18 @@ class Skein:
 
     def _validate_estimate(self, tid: str, t: dict[str, Any]) -> None:
         # confirm 硬门: 预计工时(小时)必须已填且为正数, 缺失/默认空 → 拒绝进就绪。
-        # 规则详见 skein-flow/references/estimate-gate.md。
+        # 且须自下而上累加: task 工时 ≥ Σ subtask 工时 (差额 = plan/check 等 task 自身开销),
+        # 低于合计说明整体拍脑袋而非按实际要做的事逐项估。规则详见 estimate-gate.md。
         est = t.get("estimate")
         if est is None or est == "" or not (isinstance(est, (int, float)) and est > 0):
             raise SystemExit(
                 f"{tid} 预计工时未填 — 先 `skein estimate {tid} --set <小时数>` 填实再 confirm")
+        subsum = _sub_estimate_sum(t)
+        if subsum and est < subsum:
+            raise SystemExit(
+                f"{tid} 预计工时 {est} h 低于 subtask 合计 {subsum} h — "
+                f"task 工时须 ≥ Σ subtask + plan/check 自身开销, "
+                f"`skein estimate {tid} --set <≥{subsum}>`")
 
     def confirm(self, a: argparse.Namespace) -> None:
         # 用户确认门 (待处理→就绪): planning 完成 (prd 填齐 + ≥1 subtask + 预计工时) 且用户评审通过后调用,
@@ -1797,8 +1808,15 @@ class Skein:
             subs = t.setdefault("subtasks", [])
             if any(s["sid"] == a.sid for s in subs):
                 raise SystemExit(f"subtask 已存在: {a.tid}/{a.sid}")
+            try:
+                est = float(a.estimate)
+            except (TypeError, ValueError):
+                raise SystemExit(f"subtask 预计工时须为数字(小时): {a.estimate!r}")
+            if est <= 0:
+                raise SystemExit(f"subtask 预计工时须为正数: {est}")
             subs.append({
                 "sid": a.sid, "name": a.name, "desc": a.desc,
+                "estimate": est,  # 预计工时(小时), add 必填; task estimate 须 ≥ Σ 本字段
                 "depends_on": _split(a.deps),
                 "验收": _split_semi(a.check),  # 验收标准 checklist (字符串数组)
                 "验收done": [],  # 已通过验收标准序号(1-based); 完成百分比 = len/len(验收)
@@ -1810,7 +1828,8 @@ class Skein:
                 "finished": None,   # 完成时刻 (done 时置)
             })
             self._save(t)  # _save 已渲染子任务看板
-            print(f"{a.tid}/{a.sid} 已登记 (共 {len(subs)} subtask)")
+            print(f"{a.tid}/{a.sid} 已登记 ({est} h; 共 {len(subs)} subtask, "
+                  f"合计 {_sub_estimate_sum(t)} h)")
             return
         if a.action == "list":
             t = self._load(a.tid)
@@ -1823,7 +1842,9 @@ class Skein:
                 chk = "; ".join(s.get("验收", [])) or "-"
                 sk = ",".join(s.get("skills", [])) or "-"
                 ag = s.get("agent", "skein-executor")
-                print(f"{s['sid']}\t{s['status']}\t{_sub_pct(s)}%\t{s['name']}\t依赖:{deps}\t验收:{chk}\tagent:{ag}\tskills:{sk}")
+                est = s.get("estimate")
+                print(f"{s['sid']}\t{s['status']}\t{_sub_pct(s)}%\t{est if est else '-'}h\t{s['name']}"
+                      f"\t依赖:{deps}\t验收:{chk}\tagent:{ag}\tskills:{sk}")
             return
         if a.action in ("ready", "claim"):
             t = self._load(a.tid)
@@ -2054,9 +2075,10 @@ class Skein:
             argv = ["create", g("id"), "--name", g("name"), "--desc", g("desc")]
             return base + (argv + ["--deps", g("deps")] if s("deps") else argv)
         if cmd == "subtask-add":
-            if not (s("id") and s("sid") and s("name") and s("desc")):
+            if not (s("id") and s("sid") and s("name") and s("desc") and s("estimate")):
                 return None
-            argv = ["subtask", "add", g("id"), g("sid"), "--name", g("name"), "--desc", g("desc")]
+            argv = ["subtask", "add", g("id"), g("sid"), "--name", g("name"), "--desc", g("desc"),
+                    "--estimate", g("estimate")]
             if s("deps"):
                 argv += ["--deps", g("deps")]
             if s("agent"):
@@ -2467,6 +2489,12 @@ def _split_semi(s: Optional[str]) -> list[str]:
 
 _SUB_PCT_RANGE = {SS_PENDING: (0, 5), SS_RUNNING: (10, 90), SS_FAILED: (10, 90)}
 # ponytail: 失败与运行同区间 — 用户裁定冻结在失败前进度, 重试不回跳。
+
+
+def _sub_estimate_sum(t: dict[str, Any]) -> float:
+    # Σ subtask 预计工时 (小时)。老数据无 estimate 字段的按 0 计, 不阻断历史 task。
+    vals = [s.get("estimate") for s in t.get("subtasks") or []]
+    return round(sum(v for v in vals if isinstance(v, (int, float)) and v > 0), 2)
 
 
 def _sub_pct(s: dict[str, Any]) -> int:
@@ -3512,6 +3540,7 @@ def main() -> None:
     st.add_argument("sid", nargs="?", help="subtask id (add/start/done/fail 必带; add 时 sid/name/desc 必填, agent 默认 skein-executor)")
     st.add_argument("--name", help="[add 必填] subtask 名称")
     st.add_argument("--desc", help="[add 必填] 一句话描述")
+    st.add_argument("--estimate", help="[add 必填] 预计工时(小时, 正数) — 按本 subtask 实际要做的事逐项估")
     st.add_argument("--deps", help="[add] 前置 subtask id, 逗号分隔 (依赖全 done 才就绪; 并行只看此 DAG)")
     st.add_argument("--check", help="[add] 验收标准 checklist, 分号分隔 (每条一个可验断言)")
     st.add_argument("--note", help="[fail] 失败备注")
@@ -3531,9 +3560,10 @@ def main() -> None:
     if getattr(a, "cmd", None) == "subtask" and a.action in ("add", "start", "check", "done", "fail") and not a.sid:
         p.error(f"subtask {a.action} 需要 sid")
     if getattr(a, "cmd", None) == "subtask" and a.action == "add":
-        missing = [f for f, v in (("--name", a.name), ("--desc", a.desc)) if not v]
+        missing = [f for f, v in (("--name", a.name), ("--desc", a.desc),
+                                  ("--estimate", a.estimate)) if not v]
         if missing:
-            p.error(f"subtask add 必填: {', '.join(missing)} (sid/name/desc 缺一不可; agent 省略默认 skein-executor)")
+            p.error(f"subtask add 必填: {', '.join(missing)} (sid/name/desc/estimate 缺一不可; agent 省略默认 skein-executor)")
     if a.cmd == "session-context":
         # hook 在任意仓库每 session 都跑: 非 git 且无 .skein → 方法内静默返回; git 仓无 .skein → 注入 setup 建议
         # env 持久化与 git 无关, 必须先于 Skein() 跑 —— 微服务/前后端分离场景 cwd 无 git (子目录各自是仓)。
