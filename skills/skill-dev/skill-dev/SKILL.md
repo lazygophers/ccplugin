@@ -3,12 +3,11 @@ name: skill-dev
 description: 创建、维护、validation-gated 优化 Claude skills 与 subagents 的方法论框架。流程 A 从零创建 (定位/骨架/frontmatter/调研/验证)，流程 B 优化现有 (9 维评分/单变量爬山/触顶停/成果卡片)。含领域视角蒸馏 (分维度调研+三重验证)。不蒸人物角色。仅手动 /skill-dev。
 disable-model-invocation: true
 argument-hint: "[create|optimize] <skill/agent 路径>"
-arguments: "[create|optimize] <skill/agent 路径>"
 ---
 
 # Skill Dev — Skill / Agent 创建 · 优化方法论
 
-> meta-skill：教如何**编写与打磨其他 skill 与 subagent**。方法论源自 Anthropic 官方规范 + SkillLens 9 维实证（arXiv 2605.23899）+ SkillOpt validation-gated 优化（arXiv 2605.23904）+ 社区反模式，已完整内化——评分 rubric、爬山门、盲评、成果卡片均自包含，**创建线（流程 A）内置分维度并行调研 + 调研审查门 + 三重验证漏斗 + 量化质量门 + 降级表**，无需外链其他 skill。完整调研素材见 `references/research/01-06.md` 与 `references/`。本 skill 管**功能 / 领域 / 主题视角 skill 与 subagent 的创建（流程 A）到深度优化（流程 B：9 维评分 + validation-gated 爬山 + 可视化成果卡片）全生命周期**（人物角色扮演 DNA / 表达语气不在范围——蒸方法论不蒸人物）。
+> meta-skill：方法论源自 Anthropic 官方规范 + SkillLens 9 维实证（arXiv 2605.23899）+ SkillOpt validation-gated 优化（arXiv 2605.23904）+ 社区反模式，全自包含无需外链其他 skill。完整调研素材见 `references/research/01-06.md` 与 `references/`（范围/流程细节见 description 与下方路由表，不重复）。
 
 ## 🔴 硬规（违反即失效）
 
@@ -16,11 +15,7 @@ arguments: "[create|optimize] <skill/agent 路径>"
 2. **产物定位**：造功能 / 领域 / 主题视角 skill 或 subagent（创建方法论已内置流程 A）；不蒸人物角色扮演 DNA（表达语气 / 角色人格不在本 skill 范围）。
 3. **诚实标注**：禁编造引用。无法核实的来源直接弃用；dry_run 比例 > 30% → 评估失效警告，分数不可信，必须显式告知用户。
 4. **独立评分**（优化时）：评分 spawn 子 agent，禁同 context 自评自改（乐观偏差，SkillLens 实证 LLM-as-judge 46.4%）。至少 2 judge 共识或 1 full_test 实测才信。
-5. **改任何 SKILL.md / agent.md 后过质量门**（项目 CLAUDE.md 强制）：
-   ```bash
-   claude -p "<待测内容>" --output-format stream-json | jq -r 'select(.type=="result" and .subtype=="success") | .result'
-   ```
-   端点抖动（400）时重试循环（见记忆 claude-p-endpoint-flaky）；3 次仍败 → 人工验 + 小步可回滚提交，标「待端点恢复补跑」。
+5. **改任何 SKILL.md / agent.md 后过质量门**：带 YAML frontmatter 的文件用 stdin 命令模板（禁 `"$(cat ...)"` 插值，`---` 会被解析成 CLI 选项），单一命令见 [references/skill-quality-checklist.md §质量门验证法](references/skill-quality-checklist.md#质量门验证法-stdin-命令--三跑一致)；端点抖动（400/空返回）时重试循环（见记忆 claude-p-endpoint-flaky），三跑一致才算过；3 次仍败 → 人工验 + 小步可回滚提交，标「待端点恢复补跑」。
 
 ## 路由（先判 create 还是 optimize）
 
@@ -50,6 +45,8 @@ arguments: "[create|optimize] <skill/agent 路径>"
 3. **内容类型？** Reference（约定/模式）→ 内联常驻；Task（部署/生成步骤）→ 常配 `disable-model-invocation`。
 4. **自由度？** 多解皆可 → high（文本指令）；有首选 → medium（参数模板）；操作脆弱 → low（具体脚本禁参数）。
 
+✅ **完成判据**：4 问均有明确落点（skill/subagent 二选一 · 触发方式档位 · Reference/Task 二选一 · 自由度档位），无「视情况再定」空答案。
+
 ### Phase 2: 骨架
 
 ```
@@ -63,6 +60,8 @@ my-skill/
 - **引用只深一层**：禁 a→b→c 嵌套（Claude 对嵌套 `head -100` 预读致信息不全）。
 
 > 🔴 **CHECKPOINT**：骨架定型后展示目录结构给用户确认，再进 frontmatter。骨架方向错，后续全返工。
+
+✅ **完成判据**：目录树已定（含拆 `references/` 的理由，或判定单文件够用）· 用户已在 CHECKPOINT 确认。
 
 ### Phase 3: frontmatter
 
@@ -79,6 +78,8 @@ paths: packages/api/**             # monorepo 按包触发（可选）
 ```
 
 **description 铁律**（P0 反模式）：第三人称（禁「I can」「You can」）· 含 key terms（用户会说的词）· 同时写「做什么」+「何时用」· **key use case 前置**（🔴 底线 < 512 字符，比官方 1024/1536 截断更严；长列表按「最少 invoke 先丢」裁剪）· 超长触发短语/示例分流 `when_to_use`（底线 < 128）· **收窄「何时用」边界**（太泛会误触发；可发现性 ≠ 触发准确性）。
+
+✅ **完成判据**：`name`/`description` 已填且 description 通过「第三人称 + key use case 前置 + < 512 字符」三项自检 · 副作用/背景知识/monorepo 场景对应字段（`disable-model-invocation`/`user-invocable`/`paths`）已按 Phase 1 判定落上。
 
 ### Phase 4: 调研 + 内容（落盘即真值 → 审查门 → 三重验证 → 装配）
 
@@ -112,6 +113,8 @@ paths: packages/api/**             # monorepo 按包触发（可选）
 - **改动范围判断**：行为/触发变更（影响 muscle memory + 下游发现逻辑）→ 评估是否新建 skill 而非原地改；仅 body 优化 → 原地改。
 - **回归**：改后跑原 eval 场景确认未 break。
 - **版本语义**：description 触发词变更 = 破坏性；仅 body 优化 = 兼容。
+
+✅ **完成判据**：改动范围已判定（原地改 / 新建）· 回归 eval 已跑且未 break · 版本语义（破坏性/兼容）已标注告知用户。
 
 > 需要 9 维诊断 + validation-gated 深度优化 → 转**流程 B**。
 
@@ -177,6 +180,8 @@ paths: packages/api/**             # monorepo 按包触发（可选）
 
 > 🔴 **CHECKPOINT**：诊断表展示给用户，确认方向 + 优先级后再设计编辑。方向错后续全返工。
 
+✅ **完成判据**：9 维评分 + runtime 红灯扫描均已跑 · 诊断表（维度/分/短板证据行号/建议编辑类型）已产出 · 用户已在 CHECKPOINT 确认方向。
+
 ### Phase 2: 设计编辑（Design · SkillOpt 编辑词表）
 
 | 操作 | 适用 | 例子 |
@@ -186,6 +191,8 @@ paths: packages/api/**             # monorepo 按包触发（可选）
 | **replace** | dim1 description 太泛 / dim5 软化措辞 / dim2 步骤模糊 | 「建议/可以考虑」→ 具体参数 |
 
 **单变量约束**：一轮只动一维度（或一相关簇），多维同改归因失效。**正向化编辑**：目标 skill 默认正向表述，仅必要场景反例配正例——把「不要做 Y」黑名单改写成目标行为，必要时残留反例必配正例（matt 范式 Negation）。**编辑粒度**：优先最小可验证改动（HL-1：4 行 🔴 CHECKPOINT 撬动 dim4 +3），避免整段重写——除非 Phase 2.5 触发。
+
+✅ **完成判据**：每条编辑已定操作类型（add/delete/replace）+ 命中维度 + 具体改动内容 · 单变量约束已核对（本轮仅 1 维度或 1 相关簇）。
 
 ### Phase 2.5: 探索性重写（按需）
 
@@ -208,12 +215,16 @@ paths: packages/api/**             # monorepo 按包触发（可选）
 - **膨胀护栏**：改后 SKILL.md > 原 ×1.5 → 拒绝提交，回改进步骤精简（删冗余/合并重复）再评。触顶后继续硬改常是「加废话让 LLM 觉得更详细」，膨胀 ×1.5 即警示。
 - **触顶停**（HL-4）：连续 2 轮 Δ < 2 分 → break 进 Phase 5。+0.15 是停手信号非继续信号。
 
+✅ **完成判据**：本轮已 commit（通过）或已 revert（未通过）· 未通过时 `references/optimization-log.md` 已记录（含失败原因）。
+
 ### Phase 5: 回归 + 汇总
 
 1. **回归**：改完跑原 eval 场景。**绝大多数 skill 无 evals.json**（常态）→ 现场编 2-3 test prompt 跑 before/after（复用 Phase 3 held-out 集）。
 2. **变更语义标注**：description 触发词变更 = **破坏性**（下游发现逻辑变）必须显式告知；仅 body 优化 = 兼容。
 3. **汇总**：before/after 9 维分 + Δ + 接受/回滚编辑清单 + judge 共识度 + dry_run 比例。
 4. **可视化成果卡片**（可选，展示战绩）：复制 `templates/result-card.html`，填 skill 名 / before-after-Δ 分 / 9 维雷达 / 爬山轮次 / 改进摘要 / 日期，浏览器打开或截图。模板自带 3 风格（swiss/terminal/newspaper，URL hash 切换），无需外部脚本。
+
+✅ **完成判据**：回归 eval 已跑且未 break · 变更语义（破坏性/兼容）已标注 · 汇总报告四要素（9 维分+Δ / 编辑清单 / judge 共识度 / dry_run 比例）齐。
 
 <optimization-report-template>
 ## Skill 优化报告 — <skill 名>
@@ -354,3 +365,5 @@ subagent 工具继承例外（即使列了也不给）：AskUserQuestion / Enter
 | optimizer-sources.md | 3 论文 + darwin 引用 + 实证数据 | arXiv / GitHub（2026-06-26 curl 核实） |
 
 信息源黑名单（永远排除）：知乎、微信公众号、百度百科。
+
+**三份 checklist 类文件边界**（防重复定义，单一真值源）：`skill-quality-checklist.md` = 写 skill 时的**元方法论**（predictability / 信息分层 / pruning / negation 转正向 / 质量门验证法，回答「怎么想、怎么验」）；`validation-checklist.md` = **发布前**逐项勾选表（回答「上线前查什么」，Phase 5 步骤 2 主入口）；`optimization-log.md` = 流程 B **历史优化轮**记录表（回答「以前改过什么、成/败原因」，Phase 4 rejected-edit buffer，非判据非方法论）。三者定义各自专属互不复述，跨文件只用指针互指（如 `validation-checklist.md` §触发准确性 → `skill-quality-checklist.md` §质量门验证法）。
