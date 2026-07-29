@@ -36,15 +36,18 @@
 对于 commands、skills、agents、agent.md 的优化、简化，必须通过以下命令检查 AI 是否可以正确理解识别，是否符合预期：
 
 ```bash
-claude -p "<待测试的内容>" --output-format stream-json | jq -r 'select(.type == "result" and .subtype == "success") | .result'
+cat <待测文件> | claude -p --bare "<问题>" --output-format stream-json 2>/dev/null \
+  | jq -r 'select(.type == "result" and .subtype == "success") | .result'
 ```
 
 ### 使用说明：
 
-1. 将 `<待测试的内容>` 替换为实际的测试内容
-2. 该命令会返回 AI 对内容的理解和识别结果
-3. 只有当返回结果符合预期时，才认为优化/简化是有效的
-4. 需要确保返回结果非空且有意义
+1. 待测内容走 stdin 管道，**禁用 `claude -p "$(cat ...)"` 插值** —— YAML frontmatter 的 `---` 会被解析成 CLI 选项，报 `error: unknown option '---'`
+2. `--bare` 必带 —— 否则 hook 注入劫持 prompt，或非 Anthropic 路由模型报 `API Error 400`
+3. `2>/dev/null` 必带 —— 否则 stderr 的 connector 警告混进 jq，报 `Invalid numeric literal`
+4. `<问题>` 问该文件的触发场景与主流程；返回需非空且切题，跑题或空返回属端点抖动，重跑而非当结论
+5. predictability 验法：同一 prompt 连跑 3 次，主流程描述一致才算过
+6. macOS 无 `timeout` 命令，别包 `timeout`，超时靠调用方自身机制
 
 ### 适用范围：
 
