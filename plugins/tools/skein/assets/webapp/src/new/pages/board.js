@@ -639,7 +639,7 @@ function nodeCard(node, onClick, dimmed, density = 'compact') {
             ? [h('div.text-xs.text-head.truncate.leading-none', t.title || t.name || t.id)]
             : [
                 h('div.text-xs.font-semibold.text-head.truncate.leading-tight', t.title || t.name || '(未命名)'),
-                h('div.flex.items-center.gap-1\\.5.text-xxs.text-muted.leading-tight', [
+                h('div.flex.items-center.text-xxs.text-muted.leading-tight', [
                   h('span.font-mono.truncate', '#' + t.id),
                   hasSubs ? h('span.flex-shrink-0', `${subStats.done}/${subStats.total}`) : null,
                 ]),
@@ -652,11 +652,11 @@ function nodeCard(node, onClick, dimmed, density = 'compact') {
 
 // ---- 视图切换 ----
 function viewToggle(view, onChange) {
-  return h('div.flex.items-center.gap-1.glass.rounded-lg.p-1.border.border-brd/40', [
-    h(`button.px-3.py-1.5.rounded-md.text-sm.font-medium.transition-all${view === 'dag' ? ' bg-accent/20 text-accent' : ' text-muted hover:text-fg'}`,
+  return h('div.flex.items-center.gap-1.glass.rounded-lg.p-1.border', [
+    h(`button.tab-btn.px-3.py-1.5.rounded-md.text-sm.font-medium${view === 'dag' ? ' active' : ''}`,
       { onclick: () => onChange('dag') },
       [h('i.fa.fa-sitemap.mr-1.5'), 'DAG']),
-    h(`button.px-3.py-1.5.rounded-md.text-sm.font-medium.transition-all${view === 'list' ? ' bg-accent/20 text-accent' : ' text-muted hover:text-fg'}`,
+    h(`button.tab-btn.px-3.py-1.5.rounded-md.text-sm.font-medium${view === 'list' ? ' active' : ''}`,
       { onclick: () => onChange('list') },
       [h('i.fa.fa-list.mr-1.5'), '列表']),
   ]);
@@ -708,7 +708,7 @@ function listView(tasks, onClick, statusSet) {
         h('div.space-y-2',
           list.length
             ? list.slice(0, 15).map(t =>
-                h('div.flex.items-center.gap-2.p-2.rounded-lg.hover\\:bg-card\\/40.transition-colors.cursor-pointer',
+                h('div.subtask-row.flex.items-center.gap-2.p-2.rounded-lg.transition-colors.cursor-pointer',
                   { onclick: () => onClick(t.id) },
                   [
                     h(`i.fa.${ST_ICON[st]}.${ST_COLOR[st]}.text-xs`),
@@ -820,7 +820,7 @@ function renderPrdCard(sec) {
   return h('div.glass-card.p-4', [
     h('div.flex.items-center.gap-2.mb-3', [
       h(`i.fa.${icon}.text-${color}.text-sm`),
-      h('div.eyebrow.text-accent.m-0',
+      h('div.section-title.text-accent.m-0',
         sec.name + (sec.badge ? ` (${sec.badge[0]}/${sec.badge[1]})` : '')
       ),
     ]),
@@ -845,11 +845,11 @@ function contractsView(contracts) {
   return h('div.glass-card.p-4', [
     h('div.flex.items-center.gap-2.mb-3', [
       h('i.fa.fa-handshake-o.text-st-check.text-sm'),
-      h('div.eyebrow.text-accent.m-0', `契约 (${contracts.length})`),
+      h('div.section-title.text-accent.m-0', `契约 (${contracts.length})`),
     ]),
     h('div.space-y-2',
       contracts.map((c, i) =>
-        h('div.p-2.rounded.bg-surface/50.border.border-brd/30', [
+        h('div.p-2.rounded.border', [
           // 契约落盘为字符串 (skein contract --add); 对象形态仅作兼容
           h('div.text-sm.font-medium.text-head.leading-relaxed',
             typeof c === 'string' ? c : (c.name || c.title || `契约 ${i + 1}`)),
@@ -869,9 +869,9 @@ function designView(design) {
   return h('div.glass-card.p-4', [
     h('div.flex.items-center.gap-2.mb-3', [
       h('i.fa.fa-sitemap.text-st-active.text-sm'),
-      h('div.eyebrow.text-accent.m-0', '详细设计'),
+      h('div.section-title.text-accent.m-0', '详细设计'),
     ]),
-    h('pre.text-xs.text-fg.whitespace-pre-wrap.font-mono.bg-surface/30.p-3.rounded.overflow-x-auto', preview),
+    h('pre.text-xs.text-fg.whitespace-pre-wrap.font-mono.p-3.rounded.overflow-x-auto', preview),
   ]);
 }
 
@@ -915,7 +915,7 @@ function detailPanel(task, allTasks, onClose, onSubClick, onOpenDetail, onTaskCl
       h('div.detail-info-row', [
         // 1. 基本信息
         h('div.glass-card.p-4', [
-          h('div.eyebrow.text-accent.mb-3', '基本信息'),
+          h('div.section-title.text-accent.mb-3', '基本信息'),
           infoRow('优先级', prioLabel(task.priority) + ` (${task.priority != null ? Number(task.priority) : 5})`),
           task.assignee ? infoRow('负责人', task.assignee) : null,
           infoRow('预估工时', task.estimate ? task.estimate + ' h' : '—'),
@@ -923,7 +923,7 @@ function detailPanel(task, allTasks, onClose, onSubClick, onOpenDetail, onTaskCl
         ]),
         // 2. 任务描述
         h('div.glass-card.p-4', [
-          h('div.eyebrow.text-accent.mb-2', '任务描述'),
+          h('div.section-title.text-accent.mb-2', '任务描述'),
           h('p.text-sm.text-fg.whitespace-pre-wrap', task.description || task.desc || '暂无描述'),
         ]),
         // 3. 目标
@@ -941,7 +941,7 @@ function detailPanel(task, allTasks, onClose, onSubClick, onOpenDetail, onTaskCl
         return h('div.glass-card.p-4.panel-span-2', [
           h('div.flex.items-center.gap-2.mb-3', [
             h('i.fa.fa-share-alt.text-st-active.text-sm'),
-            h('div.eyebrow.text-accent.m-0', `依赖关系图 (${nodes.length})`),
+            h('div.section-title.text-accent.m-0', `依赖关系图 (${nodes.length})`),
           ]),
           depDAGView(task, allTasks, onTaskClick),
         ]);
@@ -950,7 +950,7 @@ function detailPanel(task, allTasks, onClose, onSubClick, onOpenDetail, onTaskCl
       // 子任务 DAG — 跨全宽
       task.subtasks && task.subtasks.length >= 2
         ? h('div.glass-card.p-4.panel-span-2', [
-            h('div.eyebrow.text-accent.mb-3', `子任务 DAG (${task.subtasks.length})`),
+            h('div.section-title.text-accent.mb-3', `子任务 DAG (${task.subtasks.length})`),
             subDAGView(task.subtasks, onSubClick),
           ])
         : null,
@@ -960,7 +960,7 @@ function detailPanel(task, allTasks, onClose, onSubClick, onOpenDetail, onTaskCl
 
       // 时间线 — 跨全宽
       h('div.glass-card.p-4.panel-span-2', [
-        h('div.eyebrow.text-accent.mb-3', '生命周期时间线'),
+        h('div.section-title.text-accent.mb-3', '生命周期时间线'),
         timelineView(timeline, task),
       ]),
     ]),
@@ -1241,7 +1241,7 @@ export async function render(mount, params, ctx) {
         ]),
         h('div.flex-1.min-w-0', statusFilterBar(statusSet, countBy, setFilter)),
         h('div.flex.items-center.gap-3.flex-shrink-0', [
-          view === 'dag' ? h('div.flex.items-center.gap-1.glass.rounded-lg.p-1.border.border-brd/40', [
+          view === 'dag' ? h('div.flex.items-center.gap-1.glass.rounded-lg.p-1.border', [
             h(`button.px-2.py-1.rounded-md.text-sm.transition-colors.${curDensity === 'mini' ? 'text-accent' : 'text-muted'}.hover\\:text-accent`,
               { onclick: () => setDensity('mini'), title: '切到迷你节点' },
               h('i.fa.fa-th')),
