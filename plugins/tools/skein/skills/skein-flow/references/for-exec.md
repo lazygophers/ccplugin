@@ -32,7 +32,7 @@ main 作调度器编排, 改动落各 subtask 工作目录、每个 agent 完成
 - **🛑 subtask 状态先行 (硬前置)** — 详见 [state-before-action.md](state-before-action.md) 硬门 2。claim 占槽是派 agent 的硬前置, pending/failed 态 subtask 禁直接派 agent。
 - **claim 默认即改态占槽 (整批标 running), 无需额外参数; --dry-run 才只读预览**。**调度** → main 亲跑: `skein claim` (**全局跨 task**, 所有 active task ready subtask 合池竞争同一 `max_active` 槽) 算就绪批 + 标 running, main 逐个真实 `Agent` 调用 dispatch。批量推进用 `claim`; 单 task 场景用 `skein subtask claim <tid>` 兼容; 预览用 `skein claim --dry-run`。
 - **执行** → 派合适 agent (无则 `skein-executor`) 各做 1 subtask, 共享该 task 工作目录, 不调度不递归 (Recursion Guard)。
-- **禁 main 亲改源码** — 实质产出一律派 subagent (仅 ≤3 文件微改等特别情况例外, 且必在该 task 工作目录内)。
+- **禁 main 亲改源码** — 实质产出一律派 subagent (仅上下文密集决策 / 用户显式要求等特别情况例外, 且必在该 task 工作目录内)。
 - **载体 = 单 subagent (禁 team)** — agent-teams 已被 SessionStart 关闭, 需多 agent 协同的活一律拆成独立 subtask 各派单 subagent。
 - **及早退出** — 每个载体只做本 subtask、产出即回传**立即退出**, 禁滞留空转。main 侧 `done` 后即 `claim` 放行下游, 全部 done 立即收束进 check。
 

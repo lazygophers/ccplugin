@@ -25,11 +25,11 @@ SKEIN 的调度完全基于显式依赖边，无隐式依赖推测。
 
 ### 1.3 subtask 命令族 (脚本落盘，非肉眼看 md 文件)
 
-subtask DAG 存 per-task `task.json` 的 `subtasks[]` (guard 硬阻 AI 直读写)，全程经 `skein subtask` 命令维护：
+subtask DAG 存 per-task `task.json` 的 `subtasks[]` (guard 硬阻 AI 直读写)，全程经 `skein subtask` 命令维护。**参数与状态流转以 [subtask-state-machine.md §操作命令](subtask-state-machine.md) 为单一真值源**，本表只列「谁跑 + 调度语义」：
 
 | 命令 | 谁跑 | 作用 |
 |---|---|---|
-| `subtask add <tid> <sid> --name --desc [--agent --deps --check --skills]` | planning/main | 登记 subtask 到 DAG。`sid`/`--name`/`--desc` 必填；`--agent` 省略默认 `skein-executor`；`--check` = 验收 checklist 分号分隔，`--skills` 逗号分隔 0-n |
+| `subtask add` | planning/main | 登记 subtask 到 DAG (参数表见 [subtask-operations.md §2.3](subtask-operations.md)) |
 | `claim` | main (每轮，主路径) | 见 §5.3 |
 | `subtask claim <tid>` | main (单 task 兼容) | 见 §5.3 |
 | `claim --dry-run` | main (查候选) | 见 §5.3 |
@@ -158,6 +158,7 @@ while skein claim 返回非空:       # 全局跨 task 合池竞争
 | `skein subtask start <tid> <sid>` | 单个 subtask | 失败重派 / 定点补派 |
 
 > **claim 默认改态占槽**：调用即把就绪批整批标 running + 占槽，无需额外参数。`--dry-run` 才只读。
+> 各命令的源/目标状态、前置校验、副作用见 [subtask-state-machine.md §操作命令](subtask-state-machine.md)。
 
 ---
 
@@ -224,6 +225,7 @@ skein subtask start <tid> <失败sid>   # 重启 failed 态 subtask
 skein subtask add <tid> <fix-sid> \
   --name "修复<根因>" \
   --desc "定点修<失败sid>根因" \
+  --estimate <小时数> \
   --deps <失败sid的前置>   # 挂到失败 subtask 的前置位置
 ```
 

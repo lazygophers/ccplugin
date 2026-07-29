@@ -45,12 +45,15 @@ SKEIN subtask 的 4 个状态、流转规则、操作命令及与 `max_active` �
 
 ## 操作命令
 
+> 🔒 **本节是 subtask 状态流转的单一真值源** (源/目标状态、前置校验、副作用) — dag-scheduling / dispatch-graph 只引用不另抄。
+> **命令参数表** (必填/选填/默认值) 的单一真值源在 [subtask-operations.md §2.3](subtask-operations.md)。
+
 ### 1. `skein subtask add <tid> <sid>` — 新增
 
 - **源状态**: (无)
 - **目标状态**: 待处理 (pending)
-- **前置校验**: sid 不重复
-- **字段初始化**: `status=pending`、`created=now()`、`started=null`、`finished=null`
+- **前置校验**: sid 不重复; `--estimate` 为正数 (非数字或 ≤0 直接报错退出); task estimate 须 ≥ Σ subtask estimate
+- **字段初始化**: `status=pending`、`created=now()`、`estimate=<--estimate 入参>`、`started=null`、`finished=null`
 
 ### 2. `skein claim` — 全局跨 task 批量认领
 

@@ -45,11 +45,11 @@ skein-spec recall "<任务关键词>"
 
 ## sediment (task finish 阶段, 异步 fire-and-forget) — 判定门 + 自主写盘
 
-task finish 闭环后由 skein-flow finish 阶段异步 fire-and-forget 派 `skein-specer` 跑「判定门 checklist → 分层归类 → `skein-spec sediment` 自主写盘 + reindex」三步 (含升降级)。**异步**: main 派 memorier 即结束回合, 不等回传 (finish 已闭环, 禁为 sediment 阻塞); memorier 自主写盘, 回传到达后 main 只补 output trace 供审阅。**判定门 (语义) 通过即写, 不逐次 AskUserQuestion** —— 记忆积累高频, 每次询问是噪声; 误沉淀后续调层/删文件可逆纠正。完整判定 trace 模板、分层/归类规则、写盘命令详见 [references/sediment-workflow.md](references/sediment-workflow.md)。
+task finish 闭环后由 skein-flow finish 阶段异步 fire-and-forget 派 `skein-specer` 跑「判定门 checklist → 分层归类 → `skein-spec sediment` 自主写盘 + reindex」三步 (含升降级)。**异步**: main 派 skein-specer 即结束回合, 不等回传 (finish 已闭环, 禁为 sediment 阻塞); skein-specer 自主写盘, 回传到达后 main 只补 output trace 供审阅。**判定门 (语义) 通过即写, 不逐次 AskUserQuestion** —— 记忆积累高频, 每次询问是噪声; 误沉淀后续调层/删文件可逆纠正。完整判定 trace 模板、分层/归类规则、写盘命令详见 [references/sediment-workflow.md](references/sediment-workflow.md)。
 
-## prune (sediment 后自动精简, memorier) — 判定门 + 自主归档
+## prune (sediment 后自动精简, skein-specer) — 判定门 + 自主归档
 
-sediment 写盘后, memorier 顺带跑一轮精简: 扫两层规则, 按 maintain 判据检出 candidate, 对命中项自动 archive (可逆) 而非只报告。**异步 fire-and-forget**: 同 sediment, main 派即放手, 不等回传。
+sediment 写盘后, skein-specer 顺带跑一轮精简: 扫两层规则, 按 maintain 判据检出 candidate, 对命中项自动 archive (可逆) 而非只报告。**异步 fire-and-forget**: 同 sediment, main 派即放手, 不等回传。
 
 **精简判定门** (命中任一条即 archive):
 
@@ -69,12 +69,12 @@ sediment 写盘后, memorier 顺带跑一轮精简: 扫两层规则, 按 maintai
 
 ## 写盘参照模板 (软骨架, 非强制)
 
-两类规则 body 各有脊柱, sediment 写盘前 memorier 参照对应模板填:
+两类规则 body 各有脊柱, sediment 写盘前 skein-specer 参照对应模板填:
 
 - **core** 规则 (命令式契约) 参照 [references/templates/core.md.tmpl](references/templates/core.md.tmpl): 铁律/契约 (MUST/禁, 一句一规则) + 反例表 (禁/改为) + 可选关联。
 - **recall** 规则 (ADR/陷阱型) 参照 [references/templates/recall.md.tmpl](references/templates/recall.md.tmpl): 触发场景 / 陷阱-正解 / 反例 / 案例 / 适用 / 关联。
 
-> **参考骨架非强制** — sediment 是 fire-and-forget, 模板仅作 memorier 填 body 的结构引导, **不强校验、不阻塞写盘**; 实际规则按内容取舍段名 (elastic spine), 缺段不报错。
+> **参考骨架非强制** — sediment 是 fire-and-forget, 模板仅作 skein-specer 填 body 的结构引导, **不强校验、不阻塞写盘**; 实际规则按内容取舍段名 (elastic spine), 缺段不报错。
 
 ## 空仓冷启动播种 (一次性, main)
 
@@ -123,7 +123,7 @@ skein-spec restore <ts>                  # 回滚 (撞名不覆盖新规则)
 
 | 场景 | 正确做法 (❌ 反面) |
 |---|---|
-| sediment 写盘 / prune 自动 archive | 逐项输出判定 trace, memorier 回传后 main 补 (❌ 未输出判定 trace) |
+| sediment 写盘 / prune 自动 archive | 逐项输出判定 trace, skein-specer 回传后 main 补 (❌ 未输出判定 trace) |
 | 判定门全否 | 跳过不沉淀 (❌ 无增量硬凑沉淀) |
 | 判定门通过要不要问用户 | 自主写盘, 只输出 trace 不硬停 (❌ 逐次 AskUserQuestion 问用户批不批) |
 | finish 闭环 vs sediment/prune | 异步 fire-and-forget, finish 先 archive (❌ 为等 sediment/prune 阻塞闭环) |

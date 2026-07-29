@@ -25,11 +25,9 @@ exec 完成后、finish 前的**质量门**。**验证与修复分离**: `skein-
    - **契约逐条验证** — checker MUST 先读出本 task 全部契约, **逐条核对是否被满足**, 报告每条 pass/fail: `skein contract <id>`。任一条 fail → 进修复循环。
    - **一致性核查** — checker MUST 检 subtask 产物间 + 与 prd 契约有无冲突: 接口签名对不上 / 重复实现同一职责 / 命名与约定相斥 / 数据流断裂 / 契约互相矛盾。逐条报冲突对 (哪两处 file:line + 冲突点)。
 2. **判定** — 全绿 (含零冲突) → 放行 finish。FAIL 或**检出冲突** → 进修复循环。**本轮验证通过的验收项**, main 经 `skein prd check <id> --type=acceptance --list "<验收项文本>"` 回写勾选态持久化 (脚本写盘, 禁裸 Edit prd.md), 未过项保持 `- [ ]` 留待修复后重验。需反勾用 `skein prd uncheck`。
-3. **回 planning 重确认 (复用现有 `进行中` 态)** — 通用回退流程详见 [rollback-protocol.md](rollback-protocol.md); check 修复 subtask 操作规范详见 [subtask-operations.md](subtask-operations.md) 第 4 节。check FAIL 或检出冲突, **禁改 task 状态** (依旧 `进行中`)。main 先回 planning 思维重审失败, 用 `AskUserQuestion` 或 grill 与用户确认修复方向, **禁跳过确认直接补 subtask 回 exec**。check 阶段特有分档:
-   - **孤立失败** (单点 lint/type/test/契约 fail) → 确认后加 1 个定点修复 subtask (--deps 挂失败源)。
-   - **一致性冲突 / 根因跨 subtask** → 确认后按冲突根因加**多个**修复 subtask (一冲突一 subtask)。**直到全绿且零冲突才放行**。
-   - **方案性 / 设计缺陷** (架构选型不对 / 契约定义有误 / 需求边界漏了) → 回 planning **补充或重设计 design.md** (二次进入才可写), 同步修 prd + 改契约, 再据新设计重拆或补子任务。**新方案经 grill/AskUserQuestion 确认无误, 才回 exec**。
-   - 方向确认=必经门: main 不得凭报原文擅自加 subtask, 必先 grill/AskUserQuestion 让用户对修复方向拍板。
+3. **回 planning 重确认 (复用现有 `进行中` 态)** — 通用回退流程详见 [rollback-protocol.md](rollback-protocol.md); check 修复 subtask 操作规范详见 [subtask-operations.md](subtask-operations.md) 第 4 节。check FAIL 或检出冲突, **禁改 task 状态** (依旧 `进行中`)。main 先回 planning 思维重审失败, 用 `AskUserQuestion` 或 grill 与用户确认修复方向, **禁跳过确认直接补 subtask 回 exec**。分级 (一级孤立 / 二级一致性冲突·方案性缺陷 / 三级架构) 以 [rollback-protocol.md §分级处理](rollback-protocol.md) 为准。check 阶段两条增量约束:
+   - **方向确认=必经门** (含一级孤立失败): main 不得凭 checker 报原文擅自加 subtask, 必先 grill/AskUserQuestion 让用户拍板。
+   - **一致性冲突一冲突一 subtask, 直到全绿且零冲突才放行**; 方案性 / 设计缺陷须回 planning 补充或重设计 design.md (二次进入才可写), 同步修 prd + 改契约, 再据新设计重拆。
 4. **重验** — 修复 subtask 全 done 后重派 `skein-checker` 复跑 (含一致性)。未过回 planning 重确认循环。
 5. **放行** — 全绿且零冲突 → 进 finish 阶段。
 

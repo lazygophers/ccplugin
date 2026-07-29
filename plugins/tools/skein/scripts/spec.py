@@ -60,7 +60,7 @@ AGENT_CATEGORIES: dict[str, list[str]] = {
     "skein-checker": ["script"],
     "skein-researcher": ["script", "skill"],
     "skein-finisher": ["script", "git"],
-    # setup/dedup/memorier 未列 → 默认 fallback 纯索引
+    # setup/dedup/specer 未列 → 默认 fallback 纯索引
 }
 
 # --debug 叙事器 (默认关): main() 按 --debug/SKEIN_DEBUG 重建; 全走 stderr, stdout 保持机器纯净。

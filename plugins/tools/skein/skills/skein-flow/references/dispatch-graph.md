@@ -15,12 +15,12 @@ exec 阶段的 DAG = task.json `subtasks[].depends_on`, **由 `skein subtask add
 落盘 (planning 执行, main 同步跑):
 
 ```bash
-skein subtask add <tid> st1 --name "改 schema"   --desc "加迁移列并回填默认值" --agent skein-executor --skills db-migration --check "迁移可回滚; 新列有默认值"
-skein subtask add <tid> st2 --name "改调用站点" --desc "调用站点透传新字段" --agent skein-executor --deps st1 --check "新字段透传响应; 旧字段不删"
-skein subtask add <tid> st3 --name "加测试"     --desc "覆盖新旧字段两条路径" --agent skein-executor --deps st1 --check "覆盖新旧字段两条路径"
+skein subtask add <tid> st1 --name "改 schema"   --desc "加迁移列并回填默认值" --estimate 2 --agent skein-executor --skills db-migration --check "迁移可回滚; 新列有默认值"
+skein subtask add <tid> st2 --name "改调用站点" --desc "调用站点透传新字段" --estimate 1.5 --agent skein-executor --deps st1 --check "新字段透传响应; 旧字段不删"
+skein subtask add <tid> st3 --name "加测试"     --desc "覆盖新旧字段两条路径" --estimate 1 --agent skein-executor --deps st1 --check "覆盖新旧字段两条路径"
 ```
 
-`sid`/`--name`/`--desc` 三者必填 (缺一 argparse 报错); `--agent`/`--deps`/`--check`/`--skills` 选填 (`--agent` 省略默认 `skein-executor`)。
+`sid`/`--name`/`--desc`/`--estimate` 四者必填 (缺一即报错退出)。字段全表与四场景操作规范详见 [subtask-operations.md](subtask-operations.md)。
 
 - `depends_on` 是唯一显式边源: st2/st3 依赖 st1 → st1 未 done 前不 ready; st2/st3 互不依赖 → 可并行 (并发上限 2)。
 - 并行与否只看这张 DAG, 不靠脚本猜写文件重叠 (拆分时把真正有序的关系写进 `--deps`)。
@@ -36,7 +36,7 @@ SKILL.md 天花板表命中任一即拆多 task。cold-start 维度的细化判�
 
 | 天花板信号 | 判据 | 动作 |
 |---|---|---|
-| 复合嗅味 ("X and Y and Z") / 多独立能力 / subtask 会 >8 | capability 按**用户行为**拆 (非技术层); 阈值 8 与 liza size 门 3-8 **同号合并**, 非新增阈值 | 拆多 task: `skein create <super-id> --kind supertask` + 各 child `--parent <super-id>` |
+| 复合嗅味 ("X and Y and Z") / 多独立能力 / subtask 会 >8 | capability 按**用户行为**拆 (非技术层); 阈值 8 见 SKILL.md 天花板表, 非新增阈值 | 拆多 task: `skein create <super-id> --kind supertask` + 各 child `--parent <super-id>` |
 
 - **capability ≠ 技术模块** — capability 是用户行为 (「下单」「退款」), 非技术层 (「DB层」「API层」)。按技术层拆 = 跨层耦合依旧的假拆; 按用户行为拆 = 真独立可并。
 - **walking skeleton 优先** — 拆完能力域后, 第一个 task 强制**端到端最薄能跑通** (验证数据流 / 契约 / 部署链路假设), 非铺平所有能力域。假设证伪早返工, 比铺平再发现省。

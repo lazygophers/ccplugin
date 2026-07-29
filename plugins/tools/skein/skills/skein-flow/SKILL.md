@@ -133,7 +133,7 @@ check 全绿后的**收尾门**, 只做收尾 (勘察改动+悬挂 → 合并 �
 - [ ] sediment 已异步派出 (不等回传)
 - [ ] `.pending-fix` 标记已检测 (有则 auto-fix bg 已派, 无则跳过)
 
-**完整 finish 阶段作业手册** (流程步骤 / merge 冲突处理 5 步纪律 / auto-fix 双保险) 详见 [references/for-finish.md](references/for-finish.md)。
+**完整 finish 阶段作业手册** (流程步骤 / 失败模式表含 merge 冲突处理 / auto-fix 双保险) 详见 [references/for-finish.md](references/for-finish.md)。
 
 ---
 
