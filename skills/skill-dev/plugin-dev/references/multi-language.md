@@ -109,10 +109,7 @@ rev = "master"
 
 ## 调试
 
-- **`claude --debug`** — 看 plugin 加载顺序 / hook 触发 / 变量替换实况
-- **加载失败二分** — 先 `jq .` 验 manifest → 体检查悬挂 → 只挂 skills 逐个加定位坏组件
-- **hook 不触发** — 查 matcher 拼写 / event 名 / command 路径 / 脚本 `+x`
-- 见 `hooks.md` 调试段
+多语言插件加载失败排查见 [debugging.md](debugging.md)（`claude --debug` / 加载失败二分 / hook 不触发速查）。
 
 ## tests/ 目录（cortex 范式）
 

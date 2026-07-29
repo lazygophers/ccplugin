@@ -1,14 +1,12 @@
 ---
 name: plugin-dev
-description: '创建与优化 Claude Code 插件的方法论框架。流程 A 新建 (plugin.json manifest + 接线 commands/agents/skills/hooks/MCP/LSP + 挂 marketplace)，流程 B 优化现有 (8 维: manifest 合规/接线完整/hook 健壮/marketplace 一致)。单组件路由 /skill-dev。仅手动 /plugin-dev。'
-disable-model-invocation: true
+description: '创建与优化 Claude Code 插件的方法论框架。流程 A 新建 (plugin.json manifest + 接线 commands/agents/skills/hooks/MCP/LSP + 挂 marketplace)，流程 B 优化现有 (8 维: manifest 合规/接线完整/hook 健壮/marketplace 一致)。单组件级编写/评分路由 /skill-dev，本 skill 管插件级。'
 argument-hint: "[create|optimize] <插件路径>"
-arguments: "[create|optimize] <插件路径>"
 ---
 
 # Plugin Dev — Claude Code 插件创建 / 优化方法论
 
-教如何搭建与打磨**整个 Claude Code 插件**（manifest / 组件接线 / hook / 高级组件 / marketplace）。单组件级编写与评分优化归 `/skill-dev`；本 skill 管**插件级**。基于官方 plugins / plugins-reference / plugin-marketplaces 三篇规范 + 本仓库 `docs/` + `plugins/tools/*` 真实插件。
+搭建与打磨**整个 Claude Code 插件**（manifest / 组件接线 / hook / 高级组件 / marketplace）。基于官方 plugins / plugins-reference / plugin-marketplaces 三篇规范 + 本仓库 `docs/` + `plugins/tools/*` 真实插件。
 
 细节分文件（按需读，禁全读）：
 - [references/manifest-and-wiring.md](references/manifest-and-wiring.md) — plugin.json 全字段 + 组件目录 + namespace + version 语义
@@ -90,7 +88,7 @@ mkdir -p plugins/tools/<name>/.claude-plugin
 ### 4. 写组件
 每个组件的具体写法委托 `/skill-dev`，本 skill 只保证接线。
 
-**传递要求：目标插件组件默认正向表述，仅必要硬护栏场景保留反例（命名被拒模式 + 原因 + 正例）。** 组件（command / agent / skill 正文）写成「该做什么」而非「别做什么」。
+**传递要求：目标插件组件默认正向表述，仅必要硬护栏场景保留反例（命名被拒模式 + 原因 + 正例）。**
 
 - **command**：`commands/*.md`，frontmatter `description` / `argument-hint` / `allowed-tools` / `model`；正文用 `$ARGUMENTS` / `$1`。
 - **agent**：`agents/*.md`，frontmatter `name`（必填）/ `description`（必填）/ `tools` / `model` / `skills`。
@@ -179,17 +177,9 @@ claude --plugin-dir ./plugins/tools/<name>              # 开发加载（非安�
 
 **传递要求：本轮若改组件正文（skill/agent/command body），目标组件默认正向表述，仅必要硬护栏场景保留反例（命名被拒模式 + 原因 + 正例）。**
 
-### B-3. validation-gate 循环（6 要素缺一不可）
+### B-3. validation-gate 循环
 
-1. **单变量轮** — 一轮改一维度（或一相关簇：2/3/4 接线）。
-2. **二层 gate 通过才留**：
-   - **gross gate**：总分 Δ>0（体检硬伤数↓ + 接线零悬挂漏挂 + 质量门非空）。
-   - **人审 gate**：破坏性/接线/触发词变更 → `AskUserQuestion` 交用户确认，禁「我觉得更好」直落。
-   - **方向轴校验**：退步维度（方向轴反向走）即使总分涨也标警示，留滚交人审。
-3. **ratchet 回滚** — 不通过 `git revert HEAD`（禁 `git reset --hard`，保留历史可审计）。
-4. **触顶停** — 连续 2 轮 Δ<2 → break。
-5. **膨胀护栏** — 改后体积 > 原×1.5 → 拒提交（优化 ≠ 膨胀，删 > 增）。
-6. **独立验证** — 每轮评分 spawn 独立子 agent，禁同 context 自评。
+一轮改一维度（或一相关簇），过 gross gate（Δ>0）+ 人审 gate（破坏性/接线/触发词变更用 `AskUserQuestion`）才留，不过 `git revert HEAD` 回滚；连续 2 轮 Δ<2 → 触顶 break；改后体积 > 原×1.5 → 拒提交。**6 要素完整流程图 + 独立验证纪律见 [optimize-rubric.md](references/optimize-rubric.md#优化循环validation-gate-纪律6-要素缺一不可)。**
 
 **Done when:** 触顶 break 或所有维度达完成准则底线；填完下面的优化报告交用户。
 
@@ -245,14 +235,11 @@ claude --plugin-dir ./plugins/tools/<name>              # 开发加载（非安�
 | 质量门 `claude -p` 返 400/空 | 重试循环 8 次（端点抖动） | 仍败 → 人工审 + 小步可回滚提交，标「待端点恢复补跑」|
 | 优化后不确定是否更好 | 独立子 agent 重跑体检对比 + 过质量门 | 分数 fine-grained 不可信 → 破坏性/接线变更交用户确认 |
 
-## Rejected framings（被拒命名/框法 + 原因 + 正例）
+## Rejected framings（被拒命名/框法 + 原因 + 正例，与上方硬护栏表互补不重复）
 
-- **「`exit 1` 作 guard 阻断」** — 语义模糊（既非成功也非阻断），Claude Code 不识别为 guard。正例：guard 用 `exit 2`；副作用 hook 失败 `exit 0` 兜底。
-- **「组件放 `.claude-plugin/` 内整齐」** — `.claude-plugin/` 是 manifest 专用，放组件会被忽略。正例：组件在插件根，`.claude-plugin/` 仅 `plugin.json`。
-- **「hook 写绝对路径便于定位」** — 装到别人机器即崩。正例：`${CLAUDE_PLUGIN_ROOT}/scripts/x.sh`。
 - **「`claude plugin add` 会帮我编译/装依赖」** — add 只拷贝不构建。正例：预编译二进制入 bin/，或 uvx/解释型分发，见 multi-language.md。
 - **「建完插件不挂 marketplace 也能用」** — 不挂则无法被市场发现/安装。正例：追加 `marketplace.json` 条目并逐字段对齐。
-- **「拿本 skill 写单个 skill/agent」** — 越界，单组件归 `/skill-dev`。正例：路由 `/skill-dev`。
+- **「拿本 skill 写单个 skill/agent」** — 越界，单组件归 `/skill-dev`。正例：路由 `/skill-dev`（见上路由表）。
 
 ## 资源
 
@@ -265,5 +252,5 @@ claude --plugin-dir ./plugins/tools/<name>              # 开发加载（非安�
 ## Out of scope
 
 - 覆盖 Claude Code 插件系统（官方规范截至 2026-07-17 fetch）；部分新字段标 `{/* min-version: x.y.z */}` 依赖用户 Claude Code 版本。
-- 组件深度质量评估（skill 9 维评分 / agent body 设计）路由 `/skill-dev`，本 skill 维度 5 只做门槛检查。
+- 组件深度质量评估（skill 9 维评分 / agent body 设计）——见上「路由」表，本 skill 维度 5 只做门槛检查。
 - 评分 rubric 权重为经验汇总，fine-grained 不可信，重要决策人审。

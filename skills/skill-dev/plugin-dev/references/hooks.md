@@ -209,8 +209,6 @@ SessionStart 注入内容超 budget 被截 = 静默丢尾部。
 }
 ```
 
-## 调试（详见 debugging.md）
+## 调试
 
-- `claude --debug` — 看 plugin 加载 / hook 触发 / 变量替换实况；hook stderr 进 debug 日志
-- hook 不触发 — 查 matcher 拼写（大小写）/ event 名 / command 路径 / 脚本 `+x`
-- 阻断会话 — 先从 manifest 摘掉该 hook 恢复，再单独调
+hook 不触发 / 阻断会话排查见 [debugging.md](debugging.md)（`claude --debug` 实况 / matcher-event-command-脚本可执行性速查 / 摘除恢复法）。
