@@ -156,7 +156,7 @@ skein-spec maintain --apply   # 同一次扫描自动修可修项 (断链只报�
 | 废弃 (deprecated/superseded) | archive (可逆) |
 | 断链 (`[[slug]]` 目标缺失) | **只报告, 不修** — 需人判断修哪头 (改链or建目标) |
 
-4. **收尾** — reindex → 清 `.pending-fix` 标记。每步追加写 `.audit-log` (7 天轮转, spec.py 实现)。所有动作可逆 (archive 可 `restore <ts>` 回滚, layer 可改回), 误修后续手工纠正。
+4. **收尾** — reindex → 清 `.pending-fix` 标记。每步追加写 `.audit-log` (7 天轮转)。所有动作可逆 (archive 可 `restore <ts>` 回滚, layer 可改回), 误修后续手工纠正。
 
 **双保险**: skein-flow finish 阶段闭环后也检测一次 `.pending-fix` 标记 (防 Stop hook 漏检), 详见 skein-flow finish 阶段流程。
 

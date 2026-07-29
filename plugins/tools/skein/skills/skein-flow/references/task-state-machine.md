@@ -1,7 +1,7 @@
 # Task 状态机
 
 SKEIN task 生命周期的 5 个状态、流转规则、操作命令与合法性约束。
-状态常量定义见 `skein.py:48-54`，落盘值为中文。
+状态落盘值为中文，`skein status <id>` 可查当前态。
 
 ---
 
@@ -15,7 +15,7 @@ SKEIN task 生命周期的 5 个状态、流转规则、操作命令与合法性
 | **检查中** | check | check | 否 | 是 | 全 subtask done，已 `skein check` 进验证阶段，skein-checker 跑 lint/test/契约 |
 | **已完成** | done | finish | 否 | 否 (已销) | 验证全绿 + merge 回主仓 + 销 worktree，闭环结束 |
 
-> **两套语义分离** (skein.py:55-57):
+> **两套语义分离**：
 > - `STATUS_ACTIVE = {进行中}` — 占 `max_active` 并发槽的仅进行中
 > - `STATUS_INFLIGHT = {进行中, 检查中}` — 已 start 有 worktree、可 finish / del 需销 worktree 的含检查中
 
@@ -75,7 +75,7 @@ SKEIN task 生命周期的 5 个状态、流转规则、操作命令与合法性
 
 ## 状态合法性约束 (硬约束，脚本硬拒)
 
-以下约束由 `skein.py` 命令层强制执行，违反直接 `SystemExit(1)`：
+以下约束由 `skein` 命令强制执行，违反直接 `SystemExit(1)`：
 
 ### 1. 不能跳阶段
 
@@ -119,4 +119,4 @@ SKEIN task 生命周期的 5 个状态、流转规则、操作命令与合法性
 ## 看板排序
 
 进行中 > 检查中 > 就绪 > 待处理 > 已完成 (同状态内按 id 稳定排序)
-见 `skein.py:60-61` `STATUS_ORDER`。
+`skein list` / `skein board` 按此序输出。

@@ -27,7 +27,7 @@
 | **禁止行为** | 待处理 / 就绪态 task 禁派 subtask、禁跑 exec |
 | **违反后果** | 流程错误，所做的 inline 改动 / 派发全部无效，必须回退重走 |
 | **回退操作** | 先 `skein confirm` (若还在待处理) + `skein start` 进进行中，再继续 exec |
-| **校验依据** | `skein start` 脚本硬卡：非就绪态直接拒 (skein.py:727-730) |
+| **校验依据** | `skein start` 脚本硬卡：非就绪态直接拒 |
 
 **典型违规场景**:
 - 新建 task 后想「先做起来再说」，跳过 confirm/start 直接派 subtask
@@ -44,7 +44,7 @@
 | **禁止行为** | pending / failed 态 subtask 禁直接派 agent，必须先经 claim / start 占槽 |
 | **违反后果** | 流程错误，已派出的 agent 视为无槽运行，必须回收或补占槽 |
 | **回退操作** | 先把 subtask 标 running 占槽 (`skein subtask start <tid> <sid>` 或 `skein claim` 整批认领)，再派 agent |
-| **校验依据** | `skein subtask start` 脚本硬卡：非 pending/failed 态拒 (skein.py:1826-1827)；满槽也拒 (skein.py:1832-1834) |
+| **校验依据** | `skein subtask start` 脚本硬卡：非 pending/failed 态拒；满槽也拒 |
 
 **典型违规场景**:
 - subtask 还是 pending 就直接说「我派 agent 去做了」
@@ -61,7 +61,7 @@
 | **禁止行为** | 禁 main 在 task 仍「进行中」态自跑验证当 check 结果 |
 | **违反后果** | 流程错误，验证结果无效，必须重新走 check 流程 |
 | **回退操作** | 先 `skein check` 进检查中，再由 skein-checker 跑验证 |
-| **校验依据** | `skein check` 脚本硬卡：非进行中态拒 (skein.py:778-779) |
+| **校验依据** | `skein check` 脚本硬卡：非进行中态拒 |
 
 **验证归属**:
 - 验证归 `skein-checker` agent，在「检查中」态跑

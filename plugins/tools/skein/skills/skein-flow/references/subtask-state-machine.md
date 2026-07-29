@@ -1,7 +1,7 @@
 # Subtask 状态机
 
 SKEIN subtask 的 4 个状态、流转规则、操作命令及与 `max_active` 并发槽的关系。
-状态常量定义见 `skein.py:64-67`，落盘值为中文。
+状态落盘值为中文，`skein subtask list <id>` 可查。
 
 ---
 
@@ -106,8 +106,8 @@ SKEIN subtask 的 4 个状态、流转规则、操作命令及与 `max_active` �
 | **单 task 内 subtask** | 单 task 内同时「运行中」的 subtask 数 ≤ `max_active` | `skein subtask start` 时 |
 | **全局 subtask** | 所有 active task 加起来的 running subtask 数 ≤ `max_active` | `skein claim` 全局认领时 |
 
-> 注：单 task 内 subtask 用 `max_active` 作为并发上限 (见 `skein.py:1833`)，
-> 全局 claim 也用 `max_active` (见 `skein.py:1687`)。两者是同一个配置值。
+> 注：单 task 内 subtask 用 `max_active` 作为并发上限，
+> 全局 claim 也用 `max_active`。两者是同一个配置值。
 
 ### 占槽 / 释槽时机
 

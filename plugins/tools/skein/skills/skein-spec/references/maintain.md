@@ -18,4 +18,4 @@ skein-spec maintain --layer recall  # 仅指定层
 | 归档残留 | `.skein/spec/.archive/` 有未清理的旧归档 | `[归档残留] .archive/1784344973/ 已超 90 天 — 建议 purged` |
 
 - prune 已 archive 的项 maintain 不会再报 stale/废弃/重复/断链 (已移出 active 规则集)。
-- **stale 判据 (180 天) 主观可调** — 项目节奏快可收紧 (`STALE_DAYS` in `spec.py`); `created` 缺字段或非 epoch 容错跳过不报错。无任何 findings → 输出 `全清`。
+- **stale 判据 (180 天) 主观可调** — 项目节奏快可收紧 (`STALE_DAYS` 常量); `created` 缺字段或非 epoch 容错跳过不报错。无任何 findings → 输出 `全清`。
