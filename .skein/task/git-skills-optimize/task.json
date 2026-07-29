@@ -2,7 +2,7 @@
   "id": "git-skills-optimize",
   "name": "按 writing-great-skills 优化 skills/git/ 四个 skill (试点)",
   "desc": "以 Matt Pocock writing-great-skills 方法论诊断并改写 skills/git/ 下 4 个 SKILL.md, 跑 claude -p 质量门, 产出可复用优化 checklist 供其余 9 个 skill 推广",
-  "status": "进行中",
+  "status": "已完成",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -121,12 +121,20 @@
         "非 guardrail 否定句已转正向",
         "质量门答对触发场景与主流程"
       ],
-      "验收done": [],
-      "status": "运行中",
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785317737,
       "started": 1785319278,
-      "finished": null
+      "finished": 1785320018
     },
     {
       "sid": "s5",
@@ -150,12 +158,22 @@
         "含本次实测删除项小节与端点抖动重试踩坑",
         "其余 9 份 subtask 可直接引用本 checklist 执行, 不需重推方法论"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785317737,
-      "started": null,
-      "finished": null
+      "started": 1785320051,
+      "finished": 1785320194
     },
     {
       "sid": "s6",
@@ -176,12 +194,22 @@
         "同一 prompt 连跑 3 次质量门主流程描述一致",
         "四平台 INDEX (app/cli/html/tui) 的公共内容只在一处定义"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785318148,
-      "started": null,
-      "finished": null
+      "started": 1785320226,
+      "finished": 1785320867
     },
     {
       "sid": "s7",
@@ -203,12 +231,23 @@
         "四平台目录 (app/cli/html/tui) 与 ui-ux 通用目录之间无重复定义",
         "25 份 references 逐份跑过 relevance 测"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785318149,
-      "started": null,
-      "finished": null
+      "started": 1785320913,
+      "finished": 1785321643
     },
     {
       "sid": "s8",
@@ -228,12 +267,21 @@
         "references 无重复定义单一真值源",
         "同一 prompt 连跑 3 次质量门主流程描述一致"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785318149,
-      "started": null,
-      "finished": null
+      "started": 1785320913,
+      "finished": 1785321486
     },
     {
       "sid": "s9",
@@ -254,12 +302,22 @@
         "同一 prompt 连跑 3 次质量门主流程描述一致",
         "rules-master-index.md 与 SKILL.md 之间职责边界明确无重复"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785318149,
-      "started": null,
-      "finished": null
+      "started": 1785321513,
+      "finished": 1785321859
     },
     {
       "sid": "s10",
@@ -279,12 +337,21 @@
         "references 无重复定义单一真值源",
         "同一 prompt 连跑 3 次质量门主流程描述一致"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785318149,
-      "started": null,
-      "finished": null
+      "started": 1785321695,
+      "finished": 1785321965
     },
     {
       "sid": "s11",
@@ -304,12 +371,21 @@
         "references 无重复定义单一真值源",
         "同一 prompt 连跑 3 次质量门主流程描述一致"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785318149,
-      "started": null,
-      "finished": null
+      "started": 1785321905,
+      "finished": 1785322176
     },
     {
       "sid": "s12",
@@ -329,12 +405,21 @@
         "references 无重复定义单一真值源",
         "同一 prompt 连跑 3 次质量门主流程描述一致"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785318149,
-      "started": null,
-      "finished": null
+      "started": 1785321997,
+      "finished": 1785322309
     },
     {
       "sid": "s13",
@@ -354,12 +439,21 @@
         "references 无重复定义单一真值源",
         "同一 prompt 连跑 3 次质量门主流程描述一致"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785318149,
-      "started": null,
-      "finished": null
+      "started": 1785320226,
+      "finished": 1785320850
     },
     {
       "sid": "s14",
@@ -382,12 +476,23 @@
         "与 s5 并入 skill-quality-checklist.md 的内容无重复定义",
         "validation-checklist / optimization-log / skill-quality-checklist 三者职责边界明确"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785318149,
-      "started": null,
-      "finished": null
+      "started": 1785322209,
+      "finished": 1785322624
     }
   ],
   "priority": 5,
@@ -401,7 +506,7 @@
   "created": 1785316592,
   "started": 1785318202,
   "confirmed": 1785318202,
-  "checked": null,
-  "finished": null,
-  "updated": 1785319395
+  "checked": 1785322703,
+  "finished": 1785323060,
+  "updated": 1785323060
 }

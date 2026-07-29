@@ -2,7 +2,7 @@
   "tasks": [
     {
       "id": "git-skills-optimize",
-      "status": "待处理",
+      "status": "已完成",
       "deps": [],
       "priority": 5,
       "worktree": null,

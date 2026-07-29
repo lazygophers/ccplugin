@@ -26,19 +26,19 @@
 ## 验收标准
 可执行、可核对的完成断言 (逐条):
 
-- [ ] 13 个 SKILL.md 均已改写并落盘，`git diff --stat skills/` 显示 13 份均有实质改动
-- [ ] 每份 frontmatter `name` 与目录名一致，`arguments:` 数组已删 (与 `argument-hint` 同一信息写两处)，`argument-hint` 保留
-- [ ] 每份 description 中不存在同一 branch 的同义改写 —— 除非 s1 的触发词实测证明中文同义词确实撑触发率，该结论一体适用于 13 份
-- [ ] git-merge 与 git-rebase 之间：`--ours`/`--theirs` 反转表已建且两侧互指；方向无关的共有内容只在一处定义
-- [ ] `recovery.md` 一对保持不合并 (merge 侧 abort/reset/revert/ff 与 rebase 侧 backup/reflog/force-with-lease 是真实差异)
-- [ ] 13 份逐句跑过 no-op 测与 relevance 测，删除记录写入 checklist 的「实测删除项」小节
-- [ ] 每份的 negation 表述已逐条审过：保留的硬 guardrail 均配有正向「改做什么」，非 guardrail 的否定句已改写为正向
-- [ ] 每份每个工作流步骤末有 checkable 且 exhaustive 的完成判据
-- [ ] 每份改写后跑质量门 (stdin 形式，见 design)，返回非空且能正确说出该 skill 的触发场景与主流程
-- [ ] 每份主流程那问**连跑 3 次答案一致**
-- [ ] 质量门对 git-merge 与 git-rebase 的 `--ours` / `--theirs` 方向判定回答正确 (两者语义相反，是最易错项；改写前基线两份均答对，答错即回归)
-- [ ] 方法论已并入 `skills/skill-dev/skill-dev/references/skill-quality-checklist.md`，未新建第四份 checklist，与该文件既有条目冲突处已收敛
-- [ ] `research/` 下调研文档齐备，事实声明均带出处
+- [x] 13 个 SKILL.md 均已改写并落盘，`git diff --stat skills/` 显示 13 份均有实质改动
+- [x] 每份 frontmatter `name` 与目录名一致，`arguments:` 数组已删 (与 `argument-hint` 同一信息写两处)，`argument-hint` 保留
+- [x] 每份 description 中不存在同一 branch 的同义改写 —— 除非 s1 的触发词实测证明中文同义词确实撑触发率，该结论一体适用于 13 份
+- [x] git-merge 与 git-rebase 之间：`--ours`/`--theirs` 反转表已建且两侧互指；方向无关的共有内容只在一处定义
+- [x] `recovery.md` 一对保持不合并 (merge 侧 abort/reset/revert/ff 与 rebase 侧 backup/reflog/force-with-lease 是真实差异)
+- [x] 13 份逐句跑过 no-op 测与 relevance 测，删除记录写入 checklist 的「实测删除项」小节
+- [x] 每份的 negation 表述已逐条审过：保留的硬 guardrail 均配有正向「改做什么」，非 guardrail 的否定句已改写为正向
+- [x] 每份每个工作流步骤末有 checkable 且 exhaustive 的完成判据
+- [x] 每份改写后跑质量门 (stdin 形式，见 design)，返回非空且能正确说出该 skill 的触发场景与主流程
+- [x] 每份主流程那问**连跑 3 次答案一致**
+- [x] 质量门对 git-merge 与 git-rebase 的 `--ours` / `--theirs` 方向判定回答正确 (两者语义相反，是最易错项；改写前基线两份均答对，答错即回归)
+- [x] 方法论已并入 `skills/skill-dev/skill-dev/references/skill-quality-checklist.md`，未新建第四份 checklist，与该文件既有条目冲突处已收敛
+- [x] `research/` 下调研文档齐备，事实声明均带出处
 
 ## 索引
 - [ ] 详细设计: [design.md](design.md)
