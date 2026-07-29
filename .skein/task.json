@@ -10,11 +10,9 @@
       "kind": "task"
     },
     {
-      "id": "spec-broken-links",
-      "status": "就绪",
-      "deps": [
-        "max-parallel-cleanup"
-      ],
+      "id": "test-estimate-gate",
+      "status": "待处理",
+      "deps": [],
       "priority": 5,
       "worktree": null,
       "parent": null,
