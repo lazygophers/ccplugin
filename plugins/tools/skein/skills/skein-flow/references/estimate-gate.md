@@ -11,6 +11,7 @@ SKEIN task 的预计工时 (小时, 浮点数) 是 plan 阶段必填项, `skein 
 - **自下而上累加**: task 工时 ≥ Σ subtask 工时。差额 = task 自身开销 (plan 规划 / grill 审查 / check 验收 / finish 收尾), 不是缓冲余量。
 - **存储**: task 与 subtask 各自 `estimate` 字段 (数字, 单位小时; 未填为 `null`)。
 - **不通过**: `skein confirm` 检出未填或低于 subtask 合计即报错退出, 阻断进就绪。
+- **🔒 纯 AI 估, 禁问用户**: 工期估算归 main 自主完成 — 用户不知实际工作量, 问工期既问不出准数又拖规划。`estimate` 是 AI 对 subtask 实际要做的事 (改哪些文件 / 要不要写测试 / 要不要先调研) 的自行推算, **禁用 `AskUserQuestion` 或任何形式问用户「这要多久 / 预估几小时」**。估不准是可接受的, 把球踢给用户不可接受。
 
 ---
 
