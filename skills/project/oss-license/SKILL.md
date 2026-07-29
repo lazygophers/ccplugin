@@ -1,9 +1,8 @@
 ---
 name: oss-license
-description: '开源协议(License)选择与合规决策框架。覆盖 60+ 协议(MIT/Apache/BSD/ISC/GPL/LGPL/AGPL/MPL/EPL/CDDL/EUPL/CeCILL 及 BSL/SSPL/Elastic/FSL/PolyForm 等 source-available),归为 permissive / 弱copyleft / 强copyleft / 网络copyleft / 源码可见非OSI 五大家族。两类用途: 为自己项目选 License、审查第三方依赖的兼容与合规。给决策树、兼容方向(谁能并入谁)、商业策略(双授权 / AGPL 防 SaaS 白嫖 / BSL 延迟开源)、近年 relicensing 案例。触发词: 开源协议、License 选哪个、MIT 还是 Apache、GPL 传染、copyleft、AGPL、协议兼容、协议冲突、依赖合规、能不能商用闭源、SaaS 白嫖、SPDX、relicensing'
+description: '开源协议(License)选择与合规决策框架。覆盖 60+ 协议(MIT/Apache/BSD/ISC/GPL/LGPL/AGPL/MPL/EPL/CDDL/EUPL/CeCILL 及 BSL/SSPL/Elastic/FSL/PolyForm 等 source-available),归为 permissive / 弱copyleft / 强copyleft / 网络copyleft / 源码可见非OSI 五大家族。两类用途: 为自己项目选 License、审查第三方依赖的兼容与合规。给决策树、兼容方向(谁能并入谁)、商业策略(双授权 / AGPL 防 SaaS 白嫖 / BSL 延迟开源)、近年 relicensing 案例。'
 
 argument-hint: '[要选协议的项目情况, 或待审查的依赖+其协议; 附约束如 商用/闭源/SaaS/分发方式]'
-arguments: '[要选协议的项目情况, 或待审查的依赖+其协议; 附约束如 商用/闭源/SaaS/分发方式]'
 ---
 
 # oss-license — 开源协议选择与合规框架
@@ -31,13 +30,13 @@ $ARGUMENTS
 
 ## 工作流 A: 为自己项目选 License(按序)
 
-| 步 | 动作 | 关键问题 |
-| --- | --- | --- |
-| 1 | **定目标** | 最大化被采用 / 要求衍生回馈 / 防商业白嫖——三选一, 决定大方向 |
-| 2 | **走决策树**(见下) | 据"是否允许闭源商用"逐层收敛到具体协议 |
-| 3 | **查依赖约束** | 你引入的库里若有 copyleft, **你的协议不能比它更宽松**(见工作流 B 红线) |
-| 4 | **落地标识** | 加 `LICENSE` 文件 + 源文件头写 `SPDX-License-Identifier: <id>`; 包管理 `license` 字段填 SPDX |
-| 5 | **多文件项目自检** | 第三方代码的原协议声明必须保留(尤其 Apache NOTICE / BSD 署名); monorepo 勿一刀切单协议, 用 REUSE 规范每文件 `SPDX-License-Identifier` 头标清来源协议 |
+| 步 | 动作 | 关键问题 | 完成判据 |
+| --- | --- | --- | --- |
+| 1 | **定目标** | 最大化被采用 / 要求衍生回馈 / 防商业白嫖——三选一, 决定大方向 | 已选定三选一中的一档, 且能一句话说清理由 |
+| 2 | **走决策树**(见下) | 据"是否允许闭源商用"逐层收敛到具体协议 | 决策树已走到叶子节点, 落地为单个具体 SPDX id(或明确的双授权组合) |
+| 3 | **查依赖约束** | 你引入的库里若有 copyleft, **你的协议不能比它更宽松**(见工作流 B 红线) | 已列出全部强制依赖的协议, 逐条核对无一条比你选定协议更严格 |
+| 4 | **落地标识** | 加 `LICENSE` 文件 + 源文件头写 `SPDX-License-Identifier: <id>`; 包管理 `license` 字段填 SPDX | `LICENSE` 文件已建, 源码头与包管理字段均已填对应 SPDX id |
+| 5 | **多文件项目自检** | 第三方代码的原协议声明必须保留(尤其 Apache NOTICE / BSD 署名); monorepo 勿一刀切单协议, 用 REUSE 规范每文件 `SPDX-License-Identifier` 头标清来源协议 | 每个来源文件的 SPDX 头已核对齐全, monorepo 场景 `reuse lint` 通过(如适用) |
 
 ### 决策树(选自己项目的协议)
 
@@ -64,13 +63,13 @@ $ARGUMENTS
 
 ## 工作流 B: 依赖合规审查(按序)
 
-| 步 | 动作 | 工具 / 方法 |
-| --- | --- | --- |
-| 1 | **列全依赖清单** | 生成 SBOM(SPDX / CycloneDX); 扫描工具 ScanCode(开源)/ FOSSA(商业) |
-| 2 | **给每个依赖归家族** | 对照 `references/registry.md` 标 permissive / copyleft / network / source-available |
-| 3 | **定你的分发方式** | 闭源二进制分发? SaaS? 纯内部? 静态 vs 动态链接?——这决定哪些义务触发 |
-| 4 | **逐条过红线**(见下) | 命中即必须处理: 替换依赖 / 改分发方式 / 履行开源义务 / 买商业授权 |
-| 5 | **持续监控** | relicensing 会让旧版合规、新版违规——锁版本 + 定期重扫(见近年案例) |
+| 步 | 动作 | 工具 / 方法 | 完成判据 |
+| --- | --- | --- | --- |
+| 1 | **列全依赖清单** | 生成 SBOM(SPDX / CycloneDX); 扫描工具 ScanCode(开源)/ FOSSA(商业) | SBOM 已生成且覆盖直接依赖与传递依赖 |
+| 2 | **给每个依赖归家族** | 对照 `references/registry.md` 标 permissive / copyleft / network / source-available | 依赖清单每一项均已标注家族, 无未归类遗漏 |
+| 3 | **定你的分发方式** | 闭源二进制分发? SaaS? 纯内部? 静态 vs 动态链接?——这决定哪些义务触发 | 分发方式已明确到唯一档位(而非"不确定"), 涉 LGPL 时静态/动态链接方式已确认 |
+| 4 | **逐条过红线**(见下) | 命中即必须处理: 替换依赖 / 改分发方式 / 履行开源义务 / 买商业授权 | 每条依赖已逐条核对红线表, 命中项均已给出处理方案(替换/隔离/开源/授权) |
+| 5 | **持续监控** | relicensing 会让旧版合规、新版违规——锁版本 + 定期重扫(见近年案例) | 依赖版本已锁定, 复查周期(如每季度)已排入计划 |
 
 ### 合规红线(命中=必须处理)
 
