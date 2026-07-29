@@ -1,20 +1,17 @@
 ---
 name: git-pr
-description: 创建 PR/MR。自动识别远端是 GitHub(用 gh)还是 GitLab(用 glab),从 commit 与 diff 自动写标题正文,通过 CLI 提交,回传最终 PR/MR 链接;--base/参数指定目标分支;提交后检查 CI action 与合并冲突,有问题则提醒用户并给解决方案。触发词:「创建 pr」「提 mr」「发 pull request」「开合并请求」。
+description: 把当前分支提交为 PR/MR——自动识别远端是 GitHub(用 gh)还是 GitLab(用 glab),据 commit 与 diff 生成标题正文并提交,回传 PR/MR 链接;`--base` 可指定目标分支,缺省取仓库默认分支;提交后自动查 CI 状态与合并冲突,有问题时用 AskUserQuestion 给方案候用户裁决。
 
 argument-hint: "[--base <目标分支>]"
-arguments: [--base (可选, PR/MR 目标分支; 缺省取仓库默认分支)]
 ---
 
 # git-pr — 自动开 PR/MR
 
-识别平台 → 写内容 → 提交 → 回传链接 → 查 CI/冲突并给方案。深表见 references/。
+真正费工夫的在两头:提交前确认已推到远端,提交后必查 CI 与冲突并给方案;中间那句「开 PR」本身只是一行 CLI 调用。gh/glab 平台差异全部下沉 references/,本文件只留分叉指针。
 
-## 🔴 硬规
+## 🔴 硬规(唯一 guardrail)
 
-1. **提交前当前分支必须已推到远端**。未推 → 先 `git push -u origin <branch>`(开 PR 的必要前提,非越权 push)。
-2. **不自动合并 PR/MR**。只创建,merge 归用户决定。
-3. **CI 失败或有冲突 → 必用 AskUserQuestion 问用户是否解决**,不自主改代码。
+**不主动 push**。改做什么:只在提交 PR/MR 前才 `git push -u origin <branch>`(开 PR 的必要前提,非越权 push);此外任何时机、任何其它分支都不推,推送范围以外一律留给用户显式指令。
 
 ## 工作流
 
@@ -32,7 +29,9 @@ git remote get-url origin
 
 - 目标分支优先级:用户 `--base <branch>` 参数 > 仓库默认分支。
 - 工具缺失(`which gh`/`which glab` 空)→ 报安装指引,不硬跑。
-- ⚠️ **自建 GitLab / GH Enterprise 域名识别、`glab` 的 `GITLAB_HOST` 配置、RTK wrapper 拦截 gh/glab 输出**等坑,见 [references/platform-and-content.md](references/platform-and-content.md) §platform。
+- ⚠️ 自建 GitLab / GH Enterprise 域名识别、`glab` 的 `GITLAB_HOST` 配置、RTK wrapper 拦截 gh/glab 输出等坑,唯一真值源见 [references/platform-and-content.md](references/platform-and-content.md) §platform。
+
+✅ **完成判据**:平台已判定为 GitHub/GitLab 之一(或已 STOP 问用户),对应工具 `gh`/`glab` 已确认可用,`$BASE` 已定(用户传参或已取到仓库默认分支)。
 
 ### 2. 生成 PR/MR 内容
 
@@ -42,9 +41,11 @@ git log --oneline "origin/$BASE...HEAD"     # 三点:本分支相对 merge-base 
 git diff --stat "origin/$BASE...HEAD"        # 改动概览
 ```
 
-标题 + 结构化正文(变更/影响范围/验证)的写法、仓库 PR 模板复用,见 [references/platform-and-content.md](references/platform-and-content.md) §content。
+标题 + 结构化正文(变更/影响范围/验证)的写法、仓库 PR 模板复用,唯一真值源见 [references/platform-and-content.md](references/platform-and-content.md) §content。
 
-### 3. 提交
+✅ **完成判据**:已拿到三点 range 的 commit 列表与 diff 概览,据此写出的标题 + 结构化正文已备好(或已套用仓库既有 PR/MR 模板填完对应段)。
+
+### 3. 提交(只创建,不合并)
 
 ```bash
 # GitHub
@@ -53,9 +54,11 @@ gh pr create --base "$BASE" --head "$(git branch --show-current)" --title "<标�
 glab mr create --target-branch "$BASE" --title "<标题>" --description "<正文>"
 ```
 
-回传 CLI 输出的 **PR/MR URL**(必须给到用户)。命令全参数(draft/reviewer/label 等)见 [references/platform-and-content.md](references/platform-and-content.md) §create。
+提交后止步于「已创建」——是否合并、何时合并留给用户在平台上按按钮决定,本 skill 不碰。回传 CLI 输出的 **PR/MR URL**(必须给到用户)。命令全参数(draft/reviewer/label 等)见 [references/platform-and-content.md](references/platform-and-content.md) §create。
 
-### 4. 提交后:查 CI + 冲突 → 🔴 CHECKPOINT
+✅ **完成判据**:`gh pr create`/`glab mr create` 已成功返回退出码 0 且 PR/MR URL 已回传给用户(或已判定同分支已有 PR/MR,转用现有 URL)。
+
+### 4. 查 CI + 冲突 → 🔴 CHECKPOINT
 
 ```bash
 # GitHub
@@ -71,22 +74,21 @@ glab mr view
 | CI 全绿 + 可合并 | 报「PR/MR 已建、CI 通过、无冲突」+ URL,完成 |
 | CI action 失败 | 取失败 job 日志摘要,AskUserQuestion:是否要我修?附诊断+建议方案 |
 | 有合并冲突 | AskUserQuestion:是否把目标分支 merge/rebase 进来解冲突?(指路 git-merge/git-rebase) |
-| `mergeable=UNKNOWN` | GitHub 还在后台算,**稍等重查**一次再判(别当无冲突),见 [references/ci-and-conflict.md](references/ci-and-conflict.md) §mergeable |
+| `mergeable=UNKNOWN` | GitHub 还在后台算,稍等重查一次再判(别当无冲突),见 [references/ci-and-conflict.md](references/ci-and-conflict.md) §mergeable |
 | CI 还在跑 | 报当前 pending,给「稍后 `gh pr checks`/`glab ci status` 复查」提示 |
 
 CI 字段含义、失败日志取法、冲突判定细节见 [references/ci-and-conflict.md](references/ci-and-conflict.md)。
+
+✅ **完成判据**:已按上表逐项判定并给出对应动作;CI 失败或有冲突时已实际发出 AskUserQuestion 让用户裁决(是否修/是否解冲突),未自行改代码或替用户合并。
 
 ## 失败处理(触发条件 → 一线修复 → 仍失败兜底)
 
 | 触发条件 | 一线修复 | 仍失败兜底 |
 | --- | --- | --- |
 | `gh`/`glab` 未登录 | 提示 `gh auth login` / `glab auth login`(用户自己在终端跑) | 未登录不重试,STOP 待用户授权 |
-| 当前分支未推远端 | `git push -u origin <branch>` 后重试 create | push 被拒(需先 pull)→ 指路 git-rebase/git-merge 同步 |
 | PR/MR 已存在(同分支) | 改为回传现有 PR/MR URL,不重复创建 | 列现有 PR 状态供用户决定 |
 | 目标分支不存在 | 列远端分支,AskUserQuestion 让用户选正确 base | 用默认分支并明确告知 |
 | CI 失败但日志取不到 | 给 PR 页 URL 让用户在网页看 checks | 标「CI 失败,日志需网页查」,不瞎猜原因 |
-| 自建 GitLab 域名 | `glab` 已配 `GITLAB_HOST` 则直接用 | 未配 → 提示 `glab auth login --hostname <host>` |
-| gh/glab 输出被 RTK wrapper 改写 | 用原始二进制路径 bypass(见 reference) | 仍乱 → 让用户网页确认 URL |
 
 ## 诚实边界
 
