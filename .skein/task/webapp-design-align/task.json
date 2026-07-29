@@ -2,10 +2,84 @@
   "id": "webapp-design-align",
   "name": "webapp 设计对齐 (board+task 改用 design.css 原语 + 字号上调)",
   "desc": "finish 后发现 board.js (60 内联 class) + task.js (22) 没用 T1 design.css 原语, timeline 自造非 .tl-*, DAG 字号小 viewBox 强缩, 全局文字 10-13px 偏小。对齐 examples 设计稿。",
-  "status": "待处理",
+  "status": "进行中",
   "deps": [],
   "contracts": [],
-  "subtasks": [],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "design.css 字号基线 + px 转 rem",
+      "desc": "新增 html 17px 基线, 大屏两档上调, ~80 处 px 字号转 rem (基数 17)",
+      "depends_on": [],
+      "验收": [
+        "design.css 中 font-size 仅剩 3 条 px (html 基线)",
+        "其余全 rem",
+        "抽查 6 处换算正确"
+      ],
+      "验收done": [],
+      "status": "运行中",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785290920,
+      "started": 1785291329,
+      "finished": null
+    },
+    {
+      "sid": "s2",
+      "name": "board.js 原语替换 + 清死类",
+      "desc": "8 处 eyebrow→section-title, :711→subtask-row, :656→tab-btn, 清 bg-surface/30 与 gap-1.5",
+      "depends_on": [],
+      "验收": [
+        "eyebrow 归零 section-title≥8",
+        "subtask-row/tab-btn 各≥1",
+        "死类零命中",
+        "node --check 过"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785290920,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "s3",
+      "name": "task.js 原语替换 + 清死类 + 全角修正",
+      "desc": ":311→subtask-row, :445→antd-breadcrumb, 清 bg-surface/border-brd/30/antd-btn-primary/w-1.5/h-1.5, 修 :460/462 全角 ·",
+      "depends_on": [],
+      "验收": [
+        "subtask-row/antd-breadcrumb 各≥1",
+        "死类零命中",
+        "全角 · 已修",
+        "node --check 过"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785290920,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "s4",
+      "name": "扫 5 个范围外页面的溢出风险 (只读)",
+      "desc": "dashboard/tasks/queue/spec/archive.js + index.html 的固定尺寸容器与截断点清单, 不改码",
+      "depends_on": [],
+      "验收": [
+        "产出风险清单含 file:line",
+        "零代码改动 (git diff 对这 6 个文件为空)"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785291217,
+      "started": null,
+      "finished": null
+    }
+  ],
   "repos": [],
   "worktree": null,
   "worktrees": [],
@@ -13,9 +87,10 @@
   "parent": null,
   "kind": "task",
   "created": 1785112007,
-  "started": null,
-  "confirmed": null,
+  "started": 1785291329,
+  "confirmed": 1785291329,
   "checked": null,
   "finished": null,
-  "updated": 1785112007
+  "updated": 1785291329,
+  "estimate": 3.0
 }

@@ -262,7 +262,7 @@ def main() -> None:
 
 
 def test_progress_pct() -> None:
-    # 进度 = max(状态机阶段下限, subtask 完成度均值); 覆盖 pending/ready/active/check/done × 有无 subtask
+    # 进度 = 状态区间 + subtask 完成度均值线性插值; 覆盖 pending/ready/active/check/done × 有无 subtask
     m = _load("skein_pct")
 
     def sub(status: str, crit: int = 0, done: int = 0) -> dict[str, Any]:
@@ -272,29 +272,30 @@ def test_progress_pct() -> None:
     def pct(status: str, subs: list[dict[str, Any]] | None = None) -> int:
         return m._task_pct({"status": status, "subtasks": subs or []})
 
-    # 无 subtask: 纯状态机阶段
-    assert pct(m.S_PENDING) == 5, pct(m.S_PENDING)
-    assert pct(m.S_READY) == 8, pct(m.S_READY)
-    assert pct(m.S_ACTIVE) == 10, pct(m.S_ACTIVE)
-    assert pct(m.S_CHECK) == 85, pct(m.S_CHECK)
+    # 无 subtask: 取状态区间中点
+    assert pct(m.S_PENDING) == 2, pct(m.S_PENDING)      # (0,5)
+    assert pct(m.S_READY) == 7, pct(m.S_READY)          # (5,10)
+    assert pct(m.S_ACTIVE) == 47, pct(m.S_ACTIVE)       # (10,85)
+    assert pct(m.S_CHECK) == 91, pct(m.S_CHECK)         # (85,98)
     assert pct(m.S_DONE) == 100, pct(m.S_DONE)
-    # 有 subtask: 阶段下限兜底 (核心 bug — 执行中 + subtask 全待处理 不得为 0%)
-    allpend = [sub(m.SS_PENDING) for _ in range(3)]
-    assert pct(m.S_ACTIVE, allpend) == 10, pct(m.S_ACTIVE, allpend)
-    assert pct(m.S_PENDING, allpend) == 5, pct(m.S_PENDING, allpend)
-    assert pct(m.S_READY, allpend) == 8, pct(m.S_READY, allpend)
-    # subtask 完成度超过下限时以完成度为准 (下限只兜底不封顶)
-    mixed = [sub(m.SS_DONE), sub(m.SS_DONE), sub(m.SS_PENDING)]
-    assert pct(m.S_ACTIVE, mixed) == 66, pct(m.S_ACTIVE, mixed)
+    # 有 subtask: 在状态区间内按 subtask 完成度均值线性插值
+    allpend = [sub(m.SS_PENDING) for _ in range(3)]     # 每个 _sub_pct=2 → 均值 2
+    assert pct(m.S_ACTIVE, allpend) == 11, pct(m.S_ACTIVE, allpend)    # 10+75*.02
+    assert pct(m.S_PENDING, allpend) == 0, pct(m.S_PENDING, allpend)   # 0+5*.02
+    assert pct(m.S_READY, allpend) == 5, pct(m.S_READY, allpend)       # 5+5*.02
+    assert pct(m.S_CHECK, allpend) == 85, pct(m.S_CHECK, allpend)      # 85+13*.02
+    mixed = [sub(m.SS_DONE), sub(m.SS_DONE), sub(m.SS_PENDING)]        # 均值 (100+100+2)/3
+    assert pct(m.S_ACTIVE, mixed) == 60, pct(m.S_ACTIVE, mixed)
+    # subtask 全完成也不给满 — 未走完状态机不封顶到 100
     alldone = [sub(m.SS_DONE) for _ in range(3)]
-    assert pct(m.S_ACTIVE, alldone) == 100, pct(m.S_ACTIVE, alldone)
-    assert pct(m.S_CHECK, alldone) == 100, pct(m.S_CHECK, alldone)
-    assert pct(m.S_CHECK, allpend) == 85, pct(m.S_CHECK, allpend)
+    assert pct(m.S_ACTIVE, alldone) == 85, pct(m.S_ACTIVE, alldone)    # 区间上界
+    assert pct(m.S_CHECK, alldone) == 98, pct(m.S_CHECK, alldone)      # 未验收不给 100
     assert pct(m.S_DONE, allpend) == 100, "done 强制 100"
-    # 验收项粒度: 运行中 subtask 按 验收done/验收 计, 无验收项则记半程
-    assert m._sub_pct(sub(m.SS_RUNNING, crit=4, done=1)) == 25
-    assert m._sub_pct(sub(m.SS_RUNNING)) == 50
-    assert m._sub_pct(sub(m.SS_PENDING)) == 0
+    # 验收项粒度: 在 subtask 状态区间内按 验收done/验收 插值, 无验收项取中点
+    assert m._sub_pct(sub(m.SS_RUNNING, crit=4, done=1)) == 30         # 10+80*.25
+    assert m._sub_pct(sub(m.SS_RUNNING)) == 50                         # (10,90) 中点
+    assert m._sub_pct(sub(m.SS_PENDING)) == 2                          # (0,5) 中点
+    assert m._sub_pct(sub(m.SS_FAILED)) == 50, "失败与运行同区间, 重试不回跳"
     assert m._sub_pct(sub(m.SS_DONE, crit=4, done=1)) == 100, "done 强制 100"
 
 

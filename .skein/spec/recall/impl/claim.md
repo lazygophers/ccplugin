@@ -15,7 +15,7 @@ status: active
 
 | 命令 | 行为 | 占槽 | 用途 |
 | --- | --- | --- | --- |
-| `skein claim` / `skein subtask claim <tid>` | **默认即整批标 running** | 占 `max_parallel` | **执行主路径**, 无需任何额外参数 |
+| `skein claim` / `skein subtask claim <tid>` | **默认即整批标 running** | 占 `max_active` | **执行主路径**, 无需任何额外参数 |
 | `skein claim --dry-run` | 只读预览就绪批, **不改态** | 不占 | 想先看再决定是否执行 |
 | `skein subtask start <tid> <sid>` | 单 sid 标 running | 占 1 槽 | 失败重派 / 定点补派单 subtask |
 

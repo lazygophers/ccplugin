@@ -1,8 +1,8 @@
 {
   "tasks": [
     {
-      "id": "max-parallel-cleanup",
-      "status": "待处理",
+      "id": "webapp-design-align",
+      "status": "进行中",
       "deps": [],
       "priority": 5,
       "worktree": null,
@@ -10,9 +10,11 @@
       "kind": "task"
     },
     {
-      "id": "webapp-design-align",
-      "status": "待处理",
-      "deps": [],
+      "id": "spec-broken-links",
+      "status": "就绪",
+      "deps": [
+        "max-parallel-cleanup"
+      ],
       "priority": 5,
       "worktree": null,
       "parent": null,
@@ -83,6 +85,15 @@
     },
     {
       "id": "examples-timeline-antd",
+      "status": "已完成",
+      "deps": [],
+      "priority": 5,
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    },
+    {
+      "id": "max-parallel-cleanup",
       "status": "已完成",
       "deps": [],
       "priority": 5,

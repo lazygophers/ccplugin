@@ -1,0 +1,44 @@
+{
+  "id": "spec-broken-links",
+  "name": "修 spec 6 条断链",
+  "desc": "recall/impl/claim + recall/impl/writing-style + recall/test/strategy 的 wiki 链接锚点已失效, 逐条查真实标题修",
+  "status": "就绪",
+  "deps": [
+    "max-parallel-cleanup"
+  ],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "逐条查真实锚点修断链",
+      "desc": "读三个目标文件的实际标题, 对上的改链接, 对不上的报回",
+      "depends_on": [],
+      "验收": [
+        "maintain 输出 broken-link=0",
+        "每条给出目标标题 file:line 证据",
+        "spec 正文规则零改动"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785255677,
+      "started": null,
+      "finished": null
+    }
+  ],
+  "priority": 5,
+  "estimate": 0.5,
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/spec-broken-links",
+  "parent": null,
+  "kind": "task",
+  "created": 1785255677,
+  "started": null,
+  "confirmed": 1785255677,
+  "checked": null,
+  "finished": null,
+  "updated": 1785255677
+}
