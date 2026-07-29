@@ -16,13 +16,17 @@
         "其余全 rem",
         "抽查 6 处换算正确"
       ],
-      "验收done": [],
-      "status": "运行中",
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785290920,
       "started": 1785291329,
-      "finished": null
+      "finished": 1785293321
     },
     {
       "sid": "s2",
@@ -91,6 +95,6 @@
   "confirmed": 1785291329,
   "checked": null,
   "finished": null,
-  "updated": 1785291329,
+  "updated": 1785293321,
   "estimate": 3.0
 }
