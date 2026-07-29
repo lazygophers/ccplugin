@@ -1956,3 +1956,30 @@ dialog.antd-modal::backdrop { background: rgba(15,32,51,0.45); backdrop-filter: 
   from { transform: translateX(20px); opacity: 0; }
   to   { transform: translateX(0); opacity: 1; }
 }
+
+/* ═══════════ ID 点击复制 chip (taskId / subtaskId) ═══════════ */
+/* 整块 id 可点, hover 淡出复制图标; 点后原地变「已复制」800ms 后还原 (见 app.js copyChip) */
+.copy-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 0 3px;
+  margin: 0 -3px;   /* 负 margin 抵消 padding, 不撑动原有排版 */
+  max-width: 100%;
+  transition: background-color .15s ease, color .15s ease;
+}
+.copy-chip:hover  { background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); }
+.copy-chip:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
+.copy-chip-text   { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.copy-chip-icon   { opacity: 0; font-size: .75em; transition: opacity .15s ease; flex-shrink: 0; }
+.copy-chip:hover .copy-chip-icon,
+.copy-chip:focus-visible .copy-chip-icon { opacity: .65; }
+.copy-chip.is-copied { color: var(--st-done); background: color-mix(in srgb, var(--st-done) 14%, transparent); }
+.copy-chip.is-failed { color: var(--st-failed); background: color-mix(in srgb, var(--st-failed) 14%, transparent); }
+.copy-chip.is-copied .copy-chip-icon,
+.copy-chip.is-failed .copy-chip-icon { opacity: 0; }
+/* subtask chip: 挤在标题右侧, 不抢空间 */
+.copy-chip-sub { flex-shrink: 0; opacity: .7; }
+.copy-chip-sub:hover { opacity: 1; }

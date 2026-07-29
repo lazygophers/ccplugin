@@ -5,7 +5,8 @@
 // ============================================================
 
 import { h, api, fmtRelative, fmtTime, normalizeTasks, normalizeTask, prioLabel, prioTextColor,
-         confirmDialog, alertDialog, buildTimeline, subTimelineView, etaText, fmtHours, etaOf, actualOf } from '../app.js';
+         confirmDialog, alertDialog, buildTimeline, subTimelineView, etaText, fmtHours, etaOf, actualOf,
+         copyChip, subIdChip } from '../app.js';
 import { EDGE_KIND, edgeKinds, edgeLegend, drawEdges, buildDepDAG, depDAGView } from '../lib/depdag.js';
 
 const ST_COLOR = {
@@ -768,14 +769,14 @@ function timelineView(stages, task) {
           extraInfo ? h('span.tl-dur', extraInfo) : null,
         ]),
         h('div.tl-desc', s.desc),
-        s.key === 'started' && subs.length ? subTimelineView(subs) : null,
+        s.key === 'started' && subs.length ? subTimelineView(subs, task && task.id) : null,
       ]);
     })
   )]);
 }
 
 // ---- 子任务 DAG 迷你视图 ----
-function subDAGView(subs, onSubClick) {
+function subDAGView(subs, onSubClick, taskId) {
   const { nodes, edges, width, height } = layoutSubDAG(subs);
   if (!nodes.length) return h('div.py-4.text-center.text-xs.text-muted', '暂无子任务');
 
@@ -797,6 +798,7 @@ function subDAGView(subs, onSubClick) {
             [
               h(`span.w-2.h-2.rounded-full.flex-shrink-0.bg-${ST_COLOR[sst]}`),
               h('span.text-xs.text-fg.truncate.flex-1', n.sub.title || n.sub.name || n.id),
+              subIdChip(taskId, n.sub),
             ]
           );
         }),
@@ -896,7 +898,7 @@ function detailPanel(task, allTasks, onClose, onSubClick, onOpenDetail, onTaskCl
       h('div.flex-1.min-w-0', [
         h('div.flex.items-center.gap-2.mb-1', [
           h(`span.badge.badge-sm.${ST_COLOR[st]}`, ST_LABEL[st] || st),
-          h('span.text-xs.text-muted.font-mono', '#' + task.id),
+          copyChip(task.id, { cls: 'text-xs text-muted font-mono' }),
         ]),
         h('h3.text-lg.font-semibold.text-head.truncate', task.title || task.name || '(未命名)'),
       ]),
@@ -972,7 +974,7 @@ function detailPanel(task, allTasks, onClose, onSubClick, onOpenDetail, onTaskCl
       task.subtasks && task.subtasks.length >= 2
         ? h('div.glass-card.p-4.panel-span-2', [
             h('div.section-title.text-accent.mb-3', `子任务 DAG (${task.subtasks.length})`),
-            subDAGView(task.subtasks, onSubClick),
+            subDAGView(task.subtasks, onSubClick, task.id),
           ])
         : null,
 

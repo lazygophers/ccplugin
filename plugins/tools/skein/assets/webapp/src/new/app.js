@@ -243,7 +243,7 @@ const TL_SUB_LABEL = {
   active:   '执行中', check: '验收中',
   done:     '已完成', failed: '失败',
 };
-export function subTimelineView(subs) {
+export function subTimelineView(subs, taskId) {
   const ordered = [...subs].sort((a, b) => (a.startedAt || Infinity) - (b.startedAt || Infinity));
   return h('details.tl-sub', [
     h('summary.tl-sub-sum', `子任务执行过程 (${subs.length})`),
@@ -264,7 +264,10 @@ export function subTimelineView(subs) {
         return h('div.tl-sub-item', [
           h(`span.w-1.5.h-1.5.rounded-full.flex-shrink-0.mt-1.5.bg-${TL_SUB_COLOR[st]}`),
           h('div.min-w-0.flex-1', [
-            h('div.text-xs.text-fg', s.title || s.name || s.sid),
+            h('div.flex.items-center.gap-2.min-w-0', [
+              h('span.text-xs.text-fg.truncate', s.title || s.name || s.sid),
+              subIdChip(taskId, s),
+            ]),
             h('div.text-xs.text-muted.mt-0.5',
               [TL_SUB_LABEL[st] || st,
                s.startedAt ? `起 ${fmtTime(s.startedAt)}` : null,
@@ -443,6 +446,65 @@ export function h(tag, props, ...children) {
     else el.appendChild(document.createTextNode(String(c)));
   }
   return el;
+}
+
+// ── ID 点击复制 (taskId / subtaskId) ──
+// ponytail: 原地文案反馈 800ms 后还原, 不加 toast 组件
+// opts: { label 显示文本(默认 '#'+text) / copy 实际写剪贴板内容(默认 text) / cls 附加 class }
+export function copyChip(text, opts) {
+  const o = opts || {};
+  const label = o.label != null ? o.label : ('#' + text);
+  const copyText = o.copy != null ? o.copy : text;
+  const txt = h('span.copy-chip-text', label);
+  const el = h('span.copy-chip',
+    { class: o.cls || null, title: '点击复制: ' + copyText, role: 'button', tabindex: '0' },
+    [txt, h('i.fa.fa-square-o.copy-chip-icon')]);   // fa 子集无 fa-clone/fa-copy, 用已有 square-o
+  let timer = null;
+  const fire = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();   // 卡片/DAG 节点父级带 click 导航, 复制不该顺带跳转
+    const ok = await writeClipboard(copyText);
+    el.classList.add(ok ? 'is-copied' : 'is-failed');
+    txt.textContent = ok ? '已复制' : '复制失败';
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      el.classList.remove('is-copied', 'is-failed');
+      txt.textContent = label;
+    }, 800);
+  };
+  el.addEventListener('click', fire);
+  el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') fire(e); });
+  return el;
+}
+
+// subtask 的 id chip: 显示裸 sid, 复制 `<taskId> <sid>` (可整段粘进 skein subtask 命令)
+export function subIdChip(taskId, sub) {
+  const sid = sub && (sub.sid || sub.id);
+  if (!sid) return null;
+  return copyChip(sid, {
+    label: sid,
+    copy: taskId ? taskId + ' ' + sid : sid,
+    cls: 'copy-chip-sub font-mono text-xs text-muted',
+  });
+}
+
+async function writeClipboard(text) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch { /* 落 execCommand 兜底 */ }
+  // skein serve 走 http://localhost, 非 secure context 时 clipboard API 不可用
+  try {
+    const ta = h('textarea', { style: { position: 'fixed', left: '-9999px', opacity: '0' } });
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    ta.remove();
+    return ok;
+  } catch { return false; }
 }
 
 // ── 确认 / 提示弹窗 (替 window.confirm/alert, 走站内样式) ──

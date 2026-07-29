@@ -6,7 +6,8 @@
 // ============================================================
 
 import { h, api, md, fmtRelative, fmtTime, normalizeTask, normalizeTasks,
-         confirmDialog, alertDialog, buildTimeline, subTimelineView, etaText, fmtHours, etaOf, actualOf } from '../app.js';
+         confirmDialog, alertDialog, buildTimeline, subTimelineView, etaText, fmtHours, etaOf, actualOf,
+         copyChip, subIdChip } from '../app.js';
 import { depDAGView } from '../lib/depdag.js';
 
 const ST_LABEL = {
@@ -75,7 +76,7 @@ function timelineView(stages, task) {
           extraInfo ? h('span.tl-dur', extraInfo) : null,
         ]),
         h('div.tl-desc', s.desc),
-        s.key === 'started' && subs.length ? subTimelineView(subs) : null,
+        s.key === 'started' && subs.length ? subTimelineView(subs, task && task.id) : null,
       ]);
     })
   )]);
@@ -307,7 +308,7 @@ function researchView(findings, research) {
 }
 
 // ---- 子任务列表 ----
-function subtaskListView(subs) {
+function subtaskListView(subs, taskId) {
   if (!subs || !subs.length) return null;
   const done = subs.filter(s => s.status === 'done').length;
   return h('div.glass-card.p-5', [
@@ -323,7 +324,10 @@ function subtaskListView(subs) {
         return h('div.subtask-row.flex.items-start.gap-3.p-3.rounded-lg.transition-colors', [
           h(`span.w-2.5.h-2.5.mt-1.5.rounded-full.flex-shrink-0.bg-${ST_COLOR[st]}`),
           h('div.flex-1.min-w-0', [
-            h('div.text-sm.text-fg', s.title || s.name || s.sid || s.id),
+            h('div.flex.items-center.gap-2.min-w-0', [
+              h('span.text-sm.text-fg.truncate', s.title || s.name || s.sid || s.id),
+              subIdChip(taskId, s),
+            ]),
             // desc 落盘在 task.json 的 subtask 里 (skein subtask add --desc), 原文直出不截断
             desc ? h('div.text-xs.text-fg.mt-1.whitespace-pre-wrap.leading-relaxed', desc) : null,
             h('div.text-xs.text-muted.mt-1', ST_LABEL[st] || st),
@@ -461,7 +465,7 @@ export async function render(mount, params, ctx) {
       const tlEl = document.getElementById('task-timeline-card');
       if (tlEl) tlEl.replaceWith(timelineCard());
       const subWrap = document.getElementById('task-subtask-wrap');
-      if (subWrap) subWrap.replaceChildren(subtaskListView(task.subtasks) || document.createTextNode(''));
+      if (subWrap) subWrap.replaceChildren(subtaskListView(task.subtasks, task.id) || document.createTextNode(''));
     });
   }
 
@@ -482,7 +486,7 @@ export async function render(mount, params, ctx) {
             h('h1.text-3xl.font-bold.text-head', task.title || task.name || '(未命名)'),
           ]),
           h('div.flex.items-center.gap-3.text-sm.text-muted', [
-            h('span.font-mono', '#' + task.id),
+            copyChip(task.id, { cls: 'font-mono' }),
             h('span.opacity-40', '·'),
             h('span', task.createdAt ? '创建于 ' + fmtRelative(task.createdAt) : ''),
             h('span.opacity-40', '·'),
@@ -505,7 +509,7 @@ export async function render(mount, params, ctx) {
         timelineCard(),
 
         // 子任务列表 — 常驻壳 (id 稳定), 增量态可能 null↔非空 (子任务数变), 内容包一层可替换
-        h('div', { id: 'task-subtask-wrap' }, [subtaskListView(task.subtasks)]),
+        h('div', { id: 'task-subtask-wrap' }, [subtaskListView(task.subtasks, task.id)]),
 
         // 前置依赖 (空则整卡不渲染, 与「被依赖」一致)
         depTasks.length
