@@ -127,7 +127,7 @@
 
 | 本文件提供 | 交叉参考 |
 |-----------|---------|
-| 原生/移动 app 润色规则（图标/交互/对比/布局） | [[layout]] — App 布局骨架 |
-| 预交付清单（canonical） | [[components]] — 组件状态完整性 |
-| 触摸目标/手势/安全区 | [[scenes]] — 多场景适配 |
-| WCAG / 明暗对比 | [[../ui-ux/可用性-a11y]] — 跨媒介无障碍原则 |
+| 原生/移动 app 润色规则（图标/交互/对比/布局） | [layout.md](layout.md) — App 布局骨架 |
+| 预交付清单（canonical） | [components.md](components.md) — 组件状态完整性 |
+| 触摸目标/手势/安全区 | [scenes.md](scenes.md) — 多场景适配 |
+| WCAG / 明暗对比 | [../ui-ux/usability-a11y.md](../ui-ux/usability-a11y.md) — 跨媒介无障碍原则 |

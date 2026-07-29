@@ -24,14 +24,7 @@
 
 ## 状态完整性
 
-每个交互组件覆盖：
-
-```
-default → pressed → focused → disabled
-                       ↘ loading / error / empty / selected
-```
-
-漏状态 = 半成品。设计组件时列全状态再实现。
+通用状态模型见 [../ui-ux/interaction-design.md](../ui-ux/interaction-design.md) §状态完整性（单一真值源）。App 命名映射：`hover`→`pressed`（触屏无 hover）、`focus`→`focused`；`loading / error / empty / selected` 与通用模型一致。完成判据：交互组件已按映射表逐个覆盖，无缺态。
 
 ## 手势设计
 

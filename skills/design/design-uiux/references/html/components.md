@@ -97,14 +97,7 @@
 
 ## 状态完整性
 
-每个交互组件至少覆盖：
-
-```
-default → hover → focus → active → disabled
-                                    ↘ loading / error / checked
-```
-
-漏状态 = 半成品。设计组件时列全状态再写。
+通用状态模型见 [../ui-ux/interaction-design.md](../ui-ux/interaction-design.md) §状态完整性（单一真值源）。HTML 补充：`checkbox`/`radio` 类组件另需 `checked` 态。完成判据：组件状态已对照通用模型逐项覆盖，含 HTML 专属 `checked`。
 
 ## 组件 Token 化
 

@@ -19,9 +19,7 @@ TUI 组件是字符格栅上的控件。焦点流转是 TUI 可用性核心。�
 
 ## 状态完整性
 
-default / focused / selected / disabled / loading / empty / error。
-
-（终端无鼠标 hover 态可不覆盖；focus 是主交互态。）
+通用状态模型见 [../ui-ux/interaction-design.md](../ui-ux/interaction-design.md) §状态完整性（单一真值源）。TUI 差异：终端无鼠标 `hover` 态可不覆盖，`focus` 是主交互态；`default / focused / selected / disabled / loading / empty / error` 均需覆盖。完成判据：组件状态已对照通用模型逐项覆盖（不含 hover）。
 
 ## 焦点流转（TUI 核心）
 

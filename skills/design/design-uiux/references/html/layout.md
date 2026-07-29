@@ -52,48 +52,11 @@
 
 每个断点改的是「布局结构」，不是「换个颜色」。结构变化：列数 / 导航形态 / 侧栏显隐 / 密度切换。
 
-## 场景自适应（同一产物的多语境切换）
-
-### 亮 / 暗模式
-
-```css
-:root { --bg:#fff; --text:#111; --card:#f5f5f5; }
-[data-theme="dark"] { --bg:#0d1117; --text:#e6e6e6; --card:#161b22; }
-body { background:var(--bg); color:var(--text); }
-```
-
-暗模式要点：降饱和、提文字对比、阴影改柔（暗底上硬阴影看不见，用亮边框 / 微亮区分层）。
-
-### 密度切换（紧凑 / 舒适）
-
-```css
-[data-density="compact"] { --space-unit: 0.75; }  /* 所有间距 ×0.75 */
-[data-density="cozy"]     { --space-unit: 1; }
-[data-density="comfortable"] { --space-unit: 1.25; }
-```
-
-数据密集型后台给「紧凑」选项；消费 App 默认「舒适」。
-
-### 容器查询（组件级自适应）
-
-组件比视口更适合用容器查询自适应——同一个卡片在侧栏窄、主区宽，应自动改形态：
-
-```css
-.card { container-type: inline-size; }
-@container (min-width: 400px) { .card .media { display:block; } }
-@container (max-width: 200px) { .card .meta { display:none; } }
-```
+场景自适应（亮暗模式 / 密度切换 / 容器查询）单一真值源见 [scenes.md](scenes.md)，本文件不重复。
 
 ## 视觉层级（布局的灵魂）
 
-布局的目的是引导视线。层级工具（从强到弱）：
-
-1. **尺寸**：大 > 小，差距要明显（1.5× 以上才读得出）
-2. **留白**：相关元素贴近，不相关拉开（格式塔接近性）
-3. **对比**：色 / 重 / 背景差异
-4. **位置**：左上 > 右下（阅读起点 > 终点）
-
-自检：眯眼看布局，焦点是否落在你想要的位置？多个等权元素会互相打架——让一个赢。
+通用视觉层级工具（尺寸 / 留白 / 对比 / 位置）单一真值源见 [../ui-ux/principles.md](../ui-ux/principles.md) §层级（Hierarchy），本文件不重复。
 
 ## 常见布局模式
 
