@@ -34,18 +34,24 @@ grill 后用户裁定 scope 扩到全部 13 个，但**不打平**：`skills/git
 
 | 动作 | 判据 |
 | --- | --- |
-| description 剪枝 | 一 branch 一 trigger；leading word 前置；删掉 body 已复述的身份句 |
-| frontmatter 清标 | 只留官方字段；`name` 与目录名一致；非标 `arguments:` 删（`argument-hint` 官方支持，保留） |
+| description 剪枝 | leading word 前置；删掉 body 已复述的身份句；中文同义触发词按下方「取舍 5」实测定夺 |
+| frontmatter 清标 | `name` 与目录名一致；删 `arguments:` 数组（与 `argument-hint` 同一信息写两处，single source of truth 直接判它），保留 `argument-hint` |
 | 步骤补完成判据 | 每步末尾一句 checkable 且 exhaustive 的完成条件，防 premature completion |
 | negation 转正向 | 见取舍 4 |
 | 逐句 no-op + relevance 测 | 整句删，不修词；删除项记入 checklist |
 
 | skill | 主要病灶 | 改写动作 |
 | --- | --- | --- |
-| `git-commit` | frontmatter 带非标 `arguments:` 数组；四条硬规全是否定式；「高频噪声速判表」与 `references/noise-and-ignore.md` 有 duplication | 删非标字段；硬规转正向（保留「不主动 push」「疑似密钥即停」两条 guardrail 并配正向配方）；速判表收敛到 references 单一真值源，SKILL.md 只留 context pointer |
+| `git-commit` | 四条硬规全是否定式；「高频噪声速判表」与 `references/noise-and-ignore.md` 有 duplication | 删非标字段；硬规转正向（保留「不主动 push」「疑似密钥即停」两条 guardrail 并配正向配方）；速判表收敛到 references 单一真值源，SKILL.md 只留 context pointer |
 | `git-merge` | 与 rebase 的冲突处理段 duplication；`--ours` 语义只在本地说清，未指认反转 | 引入**反转**表并指向 rebase 侧；「用户说都以当前为准 ≠ 全盘 `--ours`」这条是真 guardrail，保留但配正向做法；共有冲突骨架收敛 |
 | `git-pr` | 四步工作流里「识别平台」与「生成内容」两块可 branch 化（gh vs glab 是两条 branch，各自只需自己那半）；失败处理表 7 行有 no-op 行 | 平台差异下沉 `references/platform-and-content.md`，SKILL.md 留分叉指针；失败表逐行跑 no-op 测 |
 | `git-rebase` | 同 merge 的 duplication；「不可逆」概念散在三条硬规里 | 引入**不可逆** leading word 统摄备份/远端最新/拿不准即停；**反转**表本侧半 + 指回 merge |
+
+**取舍 5 · 中文同义触发词「实测定夺」而非照方法论删（用户定）** — 现有 description 末尾都挂着「触发词:「提交」「commit」「把改动交了」」这类列表。Matt 判同义改写为 duplication 该 collapse，但中文口语触发是否真靠这些同义词撑着，没数据。做法：**拿 `git-commit` 当实验组**，删同义词后用「把改动交了」这类口语跑质量门，看还触不触发；降了就把同义词还回去，不降才对其余 12 份照删。方法论服从实测，不拿触发率赌。
+
+**取舍 6 · predictability 用「三跑一致」证（用户定）** — PRD 原写「predictability 可观察地提升」不可测。改为可执行基准：每份改写后**同一 prompt 连跑 3 次质量门，主流程描述一致**才算过。代价是质量门调用量 x3，而端点本就抖（见下），需重试循环兜。
+
+**取舍 7 · checklist 并入既有文件，不新建** — 用户选的落点是 skill-dev。但 `skills/skill-dev/references/` 这个路径不存在（`skill-dev/` 是组目录，下辖 `plugin-dev/` 与 `skill-dev/`），且 `skills/skill-dev/skill-dev/references/` 下已有 `skill-quality-checklist.md` / `validation-checklist.md` / `optimization-log.md` 三份 checklist 类文件。再落第四份就是本 task 正在消灭的那个 duplication。做法：**并入 `skill-quality-checklist.md`**，新增一节承载 writing-great-skills 维度与实测踩坑，与既有内容对不上的地方一并收敛。
 
 ## 质量门
 
@@ -56,12 +62,11 @@ cat <SKILL.md> | claude -p "<问题>" --output-format stream-json 2>/dev/null \
   | jq -r 'select(.type=="result" and .subtype=="success") | .result'
 ```
 
-端点抖动，需重试循环。每份至少问两问：**触发场景 + 主流程**；merge/rebase 额外问 **`--ours`/`--theirs` 指哪个分支**（改写前基线：两份均答对，这是回归红线，答错即改写失败）。
-
-## checklist 落点
-
-`skills/skill-dev/references/skill-optimization-checklist.md` —— 与既有 skill 开发方法论同目录，后续 9 个 skill 直接引用，不必重推方法论。含：诊断维度、逐项判据、改写动作、质量门命令模板、本次实测踩坑（含上述命令修正与 frontmatter 陷阱）。
+端点抖动，需重试循环。每份至少问两问：**触发场景 + 主流程**，且主流程那问**连跑 3 次要答得一致**（取舍 6）；merge/rebase 额外问 **`--ours`/`--theirs` 指哪个分支**（改写前基线：两份均答对，这是回归红线，答错即改写失败）。
 
 ## 并行安全
 
-四份 SKILL.md 各自独立目录，零重叠，可并发。checklist 依赖四份的实测删除记录，必须**串在四份之后**（`depends_on` 全部四个）。
+14 个 subtask 各自独立目录，零文件重叠。DAG 两处收束：
+- `s5`（checklist）`depends_on` git 四份 —— 它要汇的是四份的实测记录。
+- `s6..s14`（其余九份）全部 `depends_on s5` —— 拿 checklist 当输入，不各自重推方法论。
+- `s14`（skill-dev）额外 `depends_on s13`，且它改的正是 s5 写入的那个文件所在的 skill，防两边对同一份 checklist 各写各的。
