@@ -60,12 +60,12 @@
 | **门规** | 全 subtask done 后必须先 `skein check` (进行中→检查中) 才能跑验证 / lint / test / 契约核对 |
 | **禁止行为** | 禁 main 在 task 仍「进行中」态自跑验证当 check 结果 |
 | **违反后果** | 流程错误，验证结果无效，必须重新走 check 流程 |
-| **回退操作** | 先 `skein check` 进检查中，再由 skein-checker 跑验证 |
+| **回退操作** | 派 `skein-checker`；checker 自身工作流第一步会自跑 `skein check` 进检查中，main 不代跑 |
 | **校验依据** | `skein check` 脚本硬卡：非进行中态拒 |
 
 **验证归属**:
-- 验证归 `skein-checker` agent，在「检查中」态跑
-- main 不跑验证、不判通过、不宣告全绿
+- 状态切换 + 验证均归 `skein-checker` agent 自跑, 在「检查中」态跑
+- main 只确认派发前 task 处于「进行中」态, 不代跑 `skein check`、不跑验证、不判通过、不宣告全绿
 - check 未过 → task 保持进行中，加修复 subtask 回 exec，不是「回退状态」
 
 **典型违规场景**:
@@ -81,7 +81,7 @@
 |---|---|---|
 | 想派 subtask 执行 | `skein confirm` + `skein start` 进进行中 | `skein claim` 占槽 → 派 agent |
 | 想派单个 subtask | `skein subtask start <tid> <sid>` 标 running | 派 agent |
-| 想跑验证 / lint / test | `skein check` 进检查中 | 派 skein-checker |
+| 想跑验证 / lint / test | 确认 task 处于「进行中」态 | 派 skein-checker (checker 自跑 `skein check` 进检查中) |
 | 想直接改代码 | 先建 task + 走 plan → confirm → start | 再走 exec |
 
 ---

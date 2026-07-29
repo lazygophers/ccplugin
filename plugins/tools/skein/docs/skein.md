@@ -83,7 +83,7 @@
 | 就绪 → 进行中 | `skein start` | 验 deps + 空槽, 创建 worktree, 占槽, 启动 exec |
 | 进行中 → 检查中 | 全部 subtask 完成 | 启动 check (独立阶段, 释放 active 槽) |
 | 检查中 → 已完成 | `skein finish` (全部检查通过) | merge → 销wt → 标记完成 + 异步 spec sediment |
-| 已完成 → (归档) | retain_days 到期 / =0 立即 | 目录迁移 task/archive/…, 非状态值 |
+| 已完成 → (归档) | retain_days 到期 / =0 立即, **且关联链全完成** | 目录迁移 task/archive/…, 非状态值 |
 | 任意 → (丢弃) | `skein archive` | 删 worktree, 不合并 |
 
 ### Phase 1: Plan
@@ -94,7 +94,7 @@
 | Brainstorm | skein-flow plan 阶段 + 你 | 需求/方案/验收标准 |
 | Research | skein-researcher | `research/<topic>.md` |
 | Grill | skein-grill (hard gate) | 对抗审查通过 |
-| Subtask DAG | skein-flow plan 阶段 | subtask + depends_on + agent + skills |
+| Subtask DAG | skein-flow plan 阶段 | subtask + depends_on + skills |
 | Contract | skein-flow plan 阶段 | contracts[] 不变量 |
 
 ### Phase 2: Exec
@@ -102,7 +102,7 @@
 | 步骤 | 说明 |
 | --- | --- |
 | claim | DAG → 就绪 subtask → 拓扑排序 → dispatch |
-| dispatch | 按 subtask.agent 派发, 并发 ≤ max_active |
+| dispatch | 一律派 `skein-executor`, 并发 ≤ max_active |
 | 完成判定 | 每 subtask 回 done/fail; fail 重派 ≤2 轮 (质量验收全归 check) |
 | 完成即派 | 1 subtask 完 → 释放槽 → claim 下一个 |
 

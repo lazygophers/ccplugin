@@ -90,8 +90,7 @@ def test_task_rename_id_sync_parent(skein_cli: SkeinCli, ws: Path) -> None:
 def test_task_rename_id_non_pending_rejected(skein_cli: SkeinCli, ws: Path) -> None:
     """active task 改 --id → 拒 (returncode!=0, stderr 提示仅限 start 前 待处理/就绪)。"""
     skein_cli(ws, "create", "task-a", "--name", "a", "--desc", "d")
-    skein_cli(ws, "subtask", "add", "task-a", "s1", "--name", "x", "--desc", "d", "--estimate", "1",
-              "--agent", "skein-executor")
+    skein_cli(ws, "subtask", "add", "task-a", "s1", "--name", "x", "--desc", "d", "--estimate", "1")
     _fill_prd(ws, "task-a")
     skein_cli(ws, "estimate", "task-a", "--set", "1")  # estimate 硬门: confirm 前须填实工时
     skein_cli(ws, "confirm", "task-a")  # 待处理→就绪

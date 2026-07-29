@@ -130,7 +130,6 @@
         "subtable": [
           {
             "acc": [],
-            "agent": "skein-executor",
             "created": 1999991000,
             "depNames": [],
             "dependsOn": [],
@@ -145,7 +144,6 @@
           },
           {
             "acc": [],
-            "agent": "skein-executor",
             "created": 1999991000,
             "depNames": [],
             "dependsOn": [],
@@ -160,7 +158,6 @@
           },
           {
             "acc": [],
-            "agent": "skein-executor",
             "created": 1999991000,
             "depNames": [
               "子-s1"
@@ -179,7 +176,6 @@
           },
           {
             "acc": [],
-            "agent": "skein-executor",
             "created": 1999991000,
             "depNames": [
               "子-s2"
@@ -260,7 +256,6 @@
         "subtable": [
           {
             "acc": [],
-            "agent": "skein-executor",
             "created": 1999991000,
             "depNames": [],
             "dependsOn": [],
@@ -311,7 +306,6 @@
         "subtable": [
           {
             "acc": [],
-            "agent": "skein-executor",
             "created": 1999991000,
             "depNames": [],
             "dependsOn": [],
@@ -366,7 +360,6 @@
         "subtable": [
           {
             "acc": [],
-            "agent": "skein-executor",
             "created": 1999991000,
             "depNames": [],
             "dependsOn": [],
@@ -417,7 +410,6 @@
         "subtable": [
           {
             "acc": [],
-            "agent": "skein-executor",
             "created": 1999991000,
             "depNames": [],
             "dependsOn": [],
@@ -494,7 +486,6 @@
         "subtable": [
           {
             "acc": [],
-            "agent": "skein-executor",
             "created": 1999991000,
             "depNames": [],
             "dependsOn": [],
@@ -566,7 +557,6 @@
     "proj": "TESTPROJ",
     "readySubs": [
       {
-        "agent": "skein-executor",
         "depends_on": [
           "s1"
         ],
@@ -661,7 +651,6 @@
     ],
     "runningSubs": [
       {
-        "agent": "skein-executor",
         "elapsed": 50,
         "name": "子-s2",
         "sid": "s2",
@@ -722,7 +711,6 @@
     ],
     "pendingQueue": [
       {
-        "agent": "skein-executor",
         "crit": 1,
         "depends_on": [
           "s1"
@@ -738,7 +726,6 @@
         "trank": 0
       },
       {
-        "agent": "skein-executor",
         "crit": 1,
         "depends_on": [
           "s2"
@@ -754,7 +741,6 @@
         "trank": 0
       },
       {
-        "agent": "skein-executor",
         "crit": 1,
         "depends_on": [],
         "desc": "desc-g1",
@@ -768,7 +754,6 @@
         "trank": 1
       },
       {
-        "agent": "skein-executor",
         "crit": 1,
         "depends_on": [],
         "desc": "desc-d1",
@@ -782,7 +767,6 @@
         "trank": 1
       },
       {
-        "agent": "skein-executor",
         "crit": 1,
         "depends_on": [],
         "desc": "desc-z1",
@@ -870,7 +854,6 @@
     ],
     "readySubtasks": [
       {
-        "agent": "skein-executor",
         "depends_on": [
           "s1"
         ],
@@ -893,7 +876,6 @@
     ],
     "runningSubs": [
       {
-        "agent": "skein-executor",
         "elapsed": 50,
         "name": "子-s2",
         "sid": "s2",
@@ -1021,7 +1003,6 @@
     "stage": "exec",
     "subtasks": [
       {
-        "agent": "skein-executor",
         "created": 1999991000,
         "depends_on": [],
         "desc": "desc-s1",
@@ -1034,7 +1015,6 @@
         "验收": []
       },
       {
-        "agent": "skein-executor",
         "created": 1999991000,
         "depends_on": [],
         "desc": "desc-s2",
@@ -1046,7 +1026,6 @@
         "验收": []
       },
       {
-        "agent": "skein-executor",
         "created": 1999991000,
         "depends_on": [
           "s1"
@@ -1059,7 +1038,6 @@
         "验收": []
       },
       {
-        "agent": "skein-executor",
         "created": 1999991000,
         "depends_on": [
           "s2"
@@ -1086,7 +1064,6 @@
       "status": "进行中",
       "subtasks": [
         {
-          "agent": "skein-executor",
           "created": 1999991000,
           "depends_on": [],
           "desc": "desc-s1",
@@ -1099,7 +1076,6 @@
           "验收": []
         },
         {
-          "agent": "skein-executor",
           "created": 1999991000,
           "depends_on": [],
           "desc": "desc-s2",
@@ -1111,7 +1087,6 @@
           "验收": []
         },
         {
-          "agent": "skein-executor",
           "created": 1999991000,
           "depends_on": [
             "s1"
@@ -1124,7 +1099,6 @@
           "验收": []
         },
         {
-          "agent": "skein-executor",
           "created": 1999991000,
           "depends_on": [
             "s2"
@@ -1159,7 +1133,6 @@
     "stage": "done",
     "subtasks": [
       {
-        "agent": "skein-executor",
         "created": 1999991000,
         "depends_on": [],
         "desc": "desc-o1",
@@ -1181,7 +1154,6 @@
       "status": "已完成",
       "subtasks": [
         {
-          "agent": "skein-executor",
           "created": 1999991000,
           "depends_on": [],
           "desc": "desc-o1",

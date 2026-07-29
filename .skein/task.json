@@ -1,6 +1,15 @@
 {
   "tasks": [
     {
+      "id": "agent-sink",
+      "status": "进行中",
+      "deps": [],
+      "priority": 5,
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    },
+    {
       "id": "board-card-timeline",
       "status": "已完成",
       "deps": [],

@@ -15,5 +15,5 @@ skein-flow 的作用域判定 (何时建 task / 归一 vs 分立 / worktree 豁�
 ## 完成判定
 
 - 走完 plan→exec→check→finish — **未 finish 闭环(标记完成) = 未完成, 禁宣告 Done**。
-- finish 前清理悬挂 subagent / 后台任务 (`TaskList`/`TaskStop`), 未关 = 未闭环。
+- finish 阶段清理悬挂 subagent / 后台任务 (`TaskList`/`TaskStop`, 由 `skein-finisher` 自跑), 未关 = 未闭环。
 - sediment: 有可复用 learning 才沉淀, 无则跳过 (判定见 `skein-spec`)。

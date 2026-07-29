@@ -99,7 +99,7 @@ exec 完成后、finish 前的**质量门**。**验证与修复分离**: `skein-
 
 ## 🛑 硬门
 
-见状态先行硬门 3 (未 `skein check` 禁跑验证/宣告结果, 禁 main 在「进行中」态自跑验证当 check 结果)。
+见状态先行硬门 3 (`skein check` 状态切换归 `skein-checker` 自跑, main 只确认派发前 task 处于「进行中」态, 禁 main 在「进行中」态自跑验证当 check 结果)。
 
 ## ✅ check 阶段完成判据 (放行 finish 前勾满)
 
@@ -123,13 +123,12 @@ check 全绿后的**收尾门**, 只做收尾 (勘察改动+悬挂 → 合并 �
 
 ## 载体分工
 
-派 `skein-finisher` 只读勘察 (diff 摘要 + 悬挂清单, 不做验收核对) → main 同步清悬挂 + `skein finish` (commit→merge→销 worktree→标记完成) → 异步派 `skein-specer` 做 sediment (finish 先闭环, main 不等回传)。
+派 `skein-finisher` 自主完成勘察改动 + 清悬挂后台 task (`TaskList`/`TaskStop`) + 仓库根跑 `skein finish` (commit→merge→销 worktree→标记完成) → main 只读结果按 verdict 分流 (需处理时兜底) → 异步派 `skein-specer` 做 sediment (finish 先闭环, main 不等回传)。
 
 ## ✅ finish 阶段完成判据 (勾满才算闭环)
 
-- [ ] finisher 勘察回传, 悬挂残留已清 (调试码/临时文件)
-- [ ] 悬挂 subagent 全 `TaskStop` 关闭
-- [ ] `skein finish` 成功 (commit→merge→销 worktree→标记完成)
+- [ ] finisher 回传 verdict=收尾干净 (或「需处理」已按失败模式表处理完并重派确认干净)
+- [ ] `skein finish` 已成功 (finisher 自跑, commit→merge→销 worktree→标记完成)
 - [ ] sediment 已异步派出 (不等回传)
 - [ ] `.pending-fix` 标记已检测 (有则 auto-fix bg 已派, 无则跳过)
 

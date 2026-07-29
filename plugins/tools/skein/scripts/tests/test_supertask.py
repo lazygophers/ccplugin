@@ -135,8 +135,7 @@ def test_finish_aggregate_guard(skein_cli: SkeinCli, ws: Path) -> None:
     # child 带 subtask (start 前置要求), 先 start/finish 两个 child
     for cid in ("child-a", "child-b"):
         skein_cli(ws, "create", cid, "--name", cid, "--desc", "d", "--parent", "epic-1")
-        skein_cli(ws, "subtask", "add", cid, "s1", "--name", "x", "--desc", "d", "--estimate", "1",
-                  "--agent", "skein-executor")
+        skein_cli(ws, "subtask", "add", cid, "s1", "--name", "x", "--desc", "d", "--estimate", "1")
         _fill_prd(ws, cid)
         skein_cli(ws, "estimate", cid, "--set", "1")  # estimate 硬门: confirm 前须填实工时
         skein_cli(ws, "confirm", cid)  # 待处理→就绪

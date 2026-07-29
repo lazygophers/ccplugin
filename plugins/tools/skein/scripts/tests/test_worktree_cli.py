@@ -210,18 +210,18 @@ def test_cli_create_parse_name_desc_repos(skein_cli: SkeinCli, ws: Path) -> None
     assert t["repos"] == ["x", "y"]
 
 
-def test_cli_subtask_add_parse_deps_agent_skills_check(skein_cli: SkeinCli, ws: Path) -> None:
-    """subtask add 参数解析: --deps/--agent/--skills/--check 落盘正确。"""
+def test_cli_subtask_add_parse_deps_skills_check(skein_cli: SkeinCli, ws: Path) -> None:
+    """subtask add 参数解析: --deps/--skills/--check 落盘正确 (无 agent 字段)。"""
     skein_cli(ws, "create", "feat-s", "--name", "n", "--desc", "d")
     skein_cli(ws, "subtask", "add", "feat-s", "s1", "--name", "S1", "--desc", "d", "--estimate", "1")
     skein_cli(ws, "subtask", "add", "feat-s", "s2",
               "--name", "S2", "--desc", "d", "--estimate", "1",
-              "--deps", "s1", "--agent", "skein-executor",
+              "--deps", "s1",
               "--skills", "sk-a,sk-b", "--check", "验收1;验收2")
     t = _task_json(ws, "feat-s")
     s2 = next(s for s in t["subtasks"] if s["sid"] == "s2")
     assert s2["depends_on"] == ["s1"]
-    assert s2["agent"] == "skein-executor"
+    assert "agent" not in s2
     assert s2["skills"] == ["sk-a", "sk-b"]
     assert s2["验收"] == ["验收1", "验收2"]
 

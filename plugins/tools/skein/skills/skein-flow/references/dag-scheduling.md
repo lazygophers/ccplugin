@@ -236,9 +236,9 @@ skein subtask add <tid> <fix-sid> \
 
 ### 7.3 自愈前置要求 (tight feedback loop)
 
-自愈重派前 dispatch prompt **MUST 含「先复现」指令**：
+自愈重派前, 修复 subtask 的 `--desc`/`--check` **MUST 含「先复现」指令** (exec dispatch 已简化为 tid+sid+workdir 三参数, 不再自包含 prompt, 该要求改落在 `subtask add` 的 desc/check 文本里, executor 自读 `subtask show` 时自会看到)：
 
-- subagent 回传必须含**一条就红的复现命令** (one command that goes red on this bug)
+- executor 回传必须含**一条就红的复现命令** (one command that goes red on this bug)
 - 修复后该命令转绿
 - 无复现 = 修了也无法验证，是猜
 
@@ -278,33 +278,10 @@ skein subtask add <tid> <fix-sid> \
 
 ---
 
-## 9. dispatch prompt 模板 (6 字段自包含，缺字段不派)
+## 9. dispatch 参数 (exec 统一 3 参数, 不再自包含 prompt)
 
-**执行者 = main 为该 subtask 选的合适 agent** (按任务性质挑现有 agent，无合适的用默认 `skein-executor`)。默认 `skein-executor` 工具面已剔除 Agent/Task，递归护栏在工具层强制；但若选中的具名 agent **有** Agent/Task 工具，靠工具面兜住的执行纪律 (递归护栏 + 读后写硬门) 就得靠 dispatch prompt 补上 — 故无论选中哪个 agent，6 字段 prompt 都显式带上下面这套纪律：
+**执行者一律 `skein-executor`** — exec 不再按 subtask 挑 agent。dispatch 只给 **tid + sid + 工作目录** 三参数, executor 自读 `skein subtask show <tid> <sid>` 拿全字段 (验收/deps/skills)、自跑 `subtask done/fail` 收尾。递归护栏 (Recursion Guard) 靠 `skein-executor` 工具面本身剔除 Agent/Task 强制, 不再靠 dispatch prompt 文字禁止。6 字段自包含 prompt 规则 (见 [carrier-rules.md](carrier-rules.md)) 对 exec 派发**例外**, 其余阶段 (check/finish) 不受影响, 详见对应 agent md。
 
-```
-目标: <这个 subtask 要产出什么>
-已知: Active task <id>, 工作目录=<task 的 worktree 字段值; 非 null=该 worktree 路径 (多子 git 时写对应子 git 的 worktree); null=原地在仓库根>, 相关文件/上文, 召回的 recall 规则
-工作目录与范围: <上述工作目录路径>; worktree 态 (非 null) → 只在此 worktree 内改、禁碰主工作区; 原地态 (worktree=null, 即 use_worktree=false/非 git) → 在仓库根改、无隔离。具体改哪些文件你按目标自主定 (给了自主权, 别越出本 subtask 目标)。
-执行纪律 (硬性, 逐条照做):
-  - Recursion Guard: 你只做派给你的这一个 subtask, 禁再派 subagent (禁调 Agent/Task), 自己动手做完。
-  - 改前查上游: 改函数/类/契约前先 grep 调用站点, 避免半改。
-  - 缺信息不硬猜: 缺关键输入时在返回里标 `需要: <问题>` 交 main 转达用户 (你不能 AskUserQuestion)。
-  - spec 优先, 别凭记忆重推: 动手前相关约定先 `skein-spec recall <关键词>` 拉 recall 层; SubagentStart 已注入的 core 全文即硬约束。踩到「后续同类任务会再犯」的坑 / 定下可复用约定, 在回传给 main 的摘要里标一行 `SPEC:` 供 finish sediment 落盘。
-  - 写前硬门 — 读后写: 改任何文件前先 Read 全文 (禁凭摘要/记忆动手) → 复述适用契约 (来源 `skein contract <id>`) 无矛盾才 Edit/Write。文件现状与契约矛盾 (契约已满足 / 该文件按契约不该改) → 停手, 标 `需要: <文件 path + 矛盾点>` 回传 main, 禁硬改。
-验收标准 (完成前逐条自检, 全过才回 done):
-  - <planning 登记的 --check 验收条 1>
-  - <验收条 2>
-输出格式 (回传 main, 压缩摘要非流水账):
-  subtask <id>: <done | 需要: 问题 | 失败: 原因>
-  改动文件: <path 列表>
-  关键决策: <一两句, 为何这么改>
-  自测: <跑过的验证 + 结果; 无则写 未测>
-  验收: <逐条对照验收标准的自检结果>
-  遗留: <后续 subtask 需知的信息 / 无>
-失败处理: 缺信息在返回标 `需要: <问题>`; 报错读原因缩范围重试
-```
-
-- **验收标准来自 planning 的 `--check`** — 每个 subtask 登记时带一份可验断言 checklist (存 per-task task.json 的 `验收[]`)，dispatch 时原样带给执行 agent，agent 完成前逐条自检、回传时对照。这份 checklist 的正式核对归 skein-flow check 阶段 checkpoint 核对，exec 只把它带给 agent 自检。
-- **exec 只 done/fail，验收勾选归 check** — exec 阶段 agent 回传后 main 只 `subtask done/fail`，不 `subtask check` 勾验收。看板 (task.md/task.html) 逐 subtask 渲染进度条，task 综合完成率 = 各 subtask 百分比均值。
+- **验收标准来自 planning 的 `--check`** — 每个 subtask 登记时带一份可验断言 checklist (存 per-task task.json 的 `验收[]`)，executor 自读后逐条自检、回传时对照。这份 checklist 的正式核对归 skein-flow check 阶段 checkpoint 核对，exec 只是 agent 自检用。
+- **exec 只 done/fail，验收勾选归 check** — executor 自跑 `subtask done/fail`，不跑 `subtask check` 勾验收。看板 (task.md/task.html) 逐 subtask 渲染进度条，task 综合完成率 = 各 subtask 百分比均值。
 - **Recursion Guard 靠 dispatch prompt 硬性禁止** — 通用 agent 有 Agent/Task 工具，故不靠工具面而靠上面 prompt 的硬性指令挡住递归：执行 agent 只做这一个 subtask，禁再派 subagent，自己动手做完；也不能 `AskUserQuestion` — 缺信息标 `需要:` 由 main 转达用户。

@@ -1,33 +1,25 @@
 # for-finish — finish 阶段作业手册
 
-check 全绿后的**收尾门**。验收/完成度核对已在 check 阶段做完, **finish 只做收尾** (勘察改动+悬挂 → 合并 → 销 worktree → 标记完成 → 异步 spec), 不重做验收。**未 finish 闭环 (标记完成) = 未闭环, 禁宣告 Done。** 归档 = 保留期 (默认 7 天) 到期后 `_autoclean` 自动目录迁移, 非 finish 步、非 Done 门。
+check 全绿后的**收尾门**。验收/完成度核对已在 check 阶段做完, **finish 只做收尾**, 不重做验收。`skein-finisher` 自主完成勘察改动+清悬挂+跑 `skein finish` 全套, main 只负责派发+读结果+失败兜底+异步 sediment。**未 finish 闭环 (标记完成) = 未闭环, 禁宣告 Done。** 归档 = 保留期 (默认 7 天) 到期后 `_autoclean` 自动目录迁移, 非 finish 步、非 Done 门。
 
 ## 触发与前置硬门
 
-- **触发**: SKILL.md 参数路由 `$1=finish` (check 全绿后, 派 skein-finisher 勘察 + skein finish 闭环 + 异步 sediment), 或 flow 全闭环内 check 放行后自动进入。
+- **触发**: SKILL.md 参数路由 `$1=finish` (check 全绿后, 派 skein-finisher 收尾闭环 + 异步 sediment), 或 flow 全闭环内 check 放行后自动进入。
 - **前置硬门 = check 全绿** — check 阶段完成判据未勾满禁进 finish, 详见 [for-check.md](for-check.md) 完成判据。
 
-## 载体分工
+## 流程步骤 (main 保留项)
 
-| 动作 | 谁 | 产出 |
-|---|---|---|
-| 收尾勘察 | 派 `skein-finisher` (只读, 合并前清障) | diff 摘要 + 悬挂清单 (不做验收核对) |
-| 清悬挂 + 生命周期 | main 同步跑 (不算实质工作) | `TaskList`/`TaskStop` + `skein finish` (commit→merge→销 worktree→标记完成) |
-| sediment 沉淀 | **异步 fire-and-forget** 派 `skein-specer` (finish 闭环后) | specer 自主跑判定门 + `skein-spec sediment` 写盘 + reindex (main 不等回传) |
-
-## 流程步骤
-
-1. **收尾勘察 (合并前清障)** — 输入 `task id + 工作目录` → 派 `skein-finisher` → 出口: diff 摘要 + 悬挂清单。**只勘察改动+悬挂残留供干净合并, 不做验收/subtask 完成度核对 (那是 check 的职责, 到此已全绿)**。悬挂残留 (调试码/临时文件) 由 main 清理后再合并。
-2. **清悬挂** — `TaskList` 查残留 subagent / 后台任务 → `TaskStop` 关闭。未关 = 未闭环, 禁 finish。
-3. **标记完成 (闭环)** — `skein finish <id>` (commit→merge→销 worktree→标记完成, status=已完成)。**finish 到此即闭环, 禁为 sediment 阻塞**。归档不在此步 (保留期后自动)。
-4. **sediment (异步 fire-and-forget)** — finish 闭环后异步派 `skein-specer`, main 不等回传即结束回合。细节见 [sediment-protocol.md](sediment-protocol.md)。
-5. **auto-fix 双保险 (异步 fire-and-forget)** — sediment 派出后, main 检测 `.skein/spec/.pending-fix` 标记 (Stop hook 回合结束若检出 spec 问题所写, 详见 skein-spec auto-fix 模式)。标记存在 → 异步 bg 派 `skein-specer` 跑 `skein-spec maintain --apply` 全自动修, 与 sediment 同批 fire-and-forget。标记不存在 → 跳过。
+1. **派发** — 传 `task id + 工作目录` (task 的 `worktree` 字段; null=原地仓库根) → 派 `skein-finisher`。finisher 自主完成勘察改动 (git diff/status) + 清悬挂后台 task (`TaskList`/`TaskStop`) + 在仓库根跑 `skein finish <tid>` (commit→merge→销 worktree→标记完成), 全流程权威定义见 `skein-finisher.md` (agents/), 本文件不重复。
+2. **读结果, 按 verdict 分流** — finisher 回传 `收尾干净 | 需处理`:
+   - **收尾干净** → 已闭环 (finish 已由 finisher 自跑成功), 直接进第 3 步。
+   - **需处理** → 按 `needs_main`/`dangling`/`tool_failures` 定位问题 (悬挂残留清不掉 / `skein finish` 报错 / 无改动异常), 处理后视情况重派 finisher 或人工介入, 见下方失败模式表。
+3. **sediment (main 保留项, 异步 fire-and-forget)** — finish 闭环后异步派 `skein-specer`, main 不等回传即结束回合。细节见 [sediment-protocol.md](sediment-protocol.md)。
+4. **auto-fix 双保险 (main 保留项, 异步 fire-and-forget)** — sediment 派出后, main 检测 `.skein/spec/.pending-fix` 标记 (Stop hook 回合结束若检出 spec 问题所写, 详见 skein-spec auto-fix 模式)。标记存在 → 异步 bg 派 `skein-specer` 跑 `skein-spec maintain --apply` 全自动修, 与 sediment 同批 fire-and-forget。标记不存在 → 跳过。
 
 ## 完成判据
 
-- [ ] finisher 勘察回传, 悬挂残留已清 (调试码/临时文件)
-- [ ] 悬挂 subagent 全 `TaskStop` 关闭
-- [ ] `skein finish` 成功 (commit→merge→销 worktree→标记完成)
+- [ ] finisher 回传 verdict=收尾干净 (或「需处理」已按失败模式表处理完并重派确认干净)
+- [ ] `skein finish` 已成功 (finisher 自跑, commit→merge→销 worktree→标记完成)
 - [ ] sediment 已异步派出 (不等回传)
 - [ ] `.pending-fix` 标记已检测 (有则 auto-fix bg 已派, 无则跳过)
 
@@ -35,12 +27,14 @@ check 全绿后的**收尾门**。验收/完成度核对已在 check 阶段做�
 
 | 触发 | 一线修复 | 仍失败兜底 |
 |---|---|---|
-| finisher 报悬挂残留 | main 清理后再合并 | 清不掉 → 停手, 报用户裁 |
-| `skein finish` merge 冲突 | `git status` 列冲突文件 → 读冲突双方 commit 理解各自 intent → 逐文件手动解 → 重跑 finish | 解不开 → 停手, 保留 worktree, 报用户裁 |
-| auto_commit=false 且有未提交改动 → finish 拒绝 | 提示用户手动 `git commit` 后重跑 finish | 用户不提交 → 停手, 禁 --force 强删 (会丢改动) |
-| 悬挂 subagent `TaskStop` 关不掉 | 重试 `TaskStop` | 仍在 → 停手, 禁 finish (未闭环) |
+| finisher 报悬挂残留清不掉 (无 Write/Edit, 只能列不能删) | main 直接清理 (git clean/rm 该文件) 后重派 finisher | 清不掉 → 停手, 报用户裁 |
+| finisher 报 `skein finish` merge 冲突 | `git status` 列冲突文件 → 读冲突双方 commit 理解各自 intent → 逐文件手动解 → 重派 finisher 重跑 | 解不开 → 停手, 保留 worktree, 报用户裁 |
+| finisher 报 auto_commit=false 且有未提交改动 → finish 拒绝 | 提示用户手动 `git commit` 后重派 finisher | 用户不提交 → 停手, 禁 --force 强删 (会丢改动) |
+| finisher 报悬挂 subagent `TaskStop` 关不掉 | 重派 finisher 重试 | 仍在 → 停手, 禁 finish (未闭环) |
+| finisher 报「无改动, 疑误派 finish」 | main 核实 task 是否真无产出 | 确认误派 → 停手排查上游, 不强行 finish |
 
 ## 延伸引用
 
+- `skein-finisher.md` (agents/) — 收尾 agent 自身工作流权威定义 (勘察/清悬挂/跑 finish), 本文件不重复
 - [sediment-protocol.md](sediment-protocol.md) — sediment 异步派出细节
 - [worktree-convention.md](worktree-convention.md) — 工作目录约定 (task worktree 字段真值)

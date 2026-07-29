@@ -96,7 +96,15 @@ def main() -> None:
         assert "输出必须幂等" in sk(d, "contract", "task-1").stdout, "contract 未列出"
 
         # start 前须登记 ≥1 subtask (planning 拆分产物)
-        sk(d, "subtask", "add", "task-1", "s1", "--name", "核心逻辑", "--desc", "描述", "--estimate", "1", "--agent", "skein-executor")
+        sk(d, "subtask", "add", "task-1", "s1", "--name", "核心逻辑", "--desc", "描述", "--estimate", "1")
+        s1 = json.loads((d / ".skein/task/task-1/task.json").read_text())["subtasks"][0]
+        assert "agent" not in s1, f"subtask 不应再有 agent 字段: {s1}"
+
+        # subtask show: 存在 sid → 0 且含 name; 不存在 sid → 非 0 退出
+        r_show = sk(d, "subtask", "show", "task-1", "s1")
+        assert r_show.returncode == 0 and "核心逻辑" in r_show.stdout, f"subtask show 未含 name: {r_show.stdout!r}"
+        r_show_bad = sk(d, "subtask", "show", "task-1", "nosuch", check=False)
+        assert r_show_bad.returncode != 0, "subtask show 不存在 sid 应非 0 退出"
 
         # start task-1 → worktree 建出
         rdy("task-1")
@@ -127,11 +135,11 @@ def main() -> None:
 
         # 并发上限: create+start task-2, task-3 应被拒
         sk(d, "create", "task-2", "--name", "第二个", "--desc", "描述")
-        sk(d, "subtask", "add", "task-2", "s1", "--name", "x", "--desc", "描述", "--estimate", "1", "--agent", "skein-executor")
+        sk(d, "subtask", "add", "task-2", "s1", "--name", "x", "--desc", "描述", "--estimate", "1")
         rdy("task-2")
         sk(d, "start", "task-2")
         sk(d, "create", "task-3", "--name", "第三个", "--desc", "描述")
-        sk(d, "subtask", "add", "task-3", "s1", "--name", "x", "--desc", "描述", "--estimate", "1", "--agent", "skein-executor")
+        sk(d, "subtask", "add", "task-3", "s1", "--name", "x", "--desc", "描述", "--estimate", "1")
         rdy("task-3")
         r = sk(d, "start", "task-3", check=False)
         assert r.returncode != 0 and "并发上限" in r.stderr, "并发上限未生效"
@@ -180,7 +188,7 @@ def main() -> None:
         # 多 active 并行: task-3 (dep task-2 已归档→视完成) 与 task-4 可同时 active
         sk(d, "start", "task-3")
         sk(d, "create", "task-4", "--name", "第四个", "--desc", "描述")
-        sk(d, "subtask", "add", "task-4", "s1", "--name", "x", "--desc", "描述", "--estimate", "1", "--agent", "skein-executor")
+        sk(d, "subtask", "add", "task-4", "s1", "--name", "x", "--desc", "描述", "--estimate", "1")
         rdy("task-4")
         sk(d, "start", "task-4")
         top = json.loads((d / ".skein/task.json").read_text())
@@ -192,9 +200,9 @@ def main() -> None:
 
         # ---- subtask DAG 调度 ----
         sk(d, "create", "task-5", "--name", "编排任务", "--desc", "描述")
-        sk(d, "subtask", "add", "task-5", "s1", "--name", "x", "--desc", "描述", "--estimate", "1", "--agent", "skein-executor")
-        sk(d, "subtask", "add", "task-5", "s2", "--name", "y", "--desc", "描述", "--estimate", "1", "--agent", "skein-executor")
-        sk(d, "subtask", "add", "task-5", "s3", "--deps", "s1,s2", "--name", "z", "--desc", "描述", "--estimate", "1", "--agent", "skein-executor")
+        sk(d, "subtask", "add", "task-5", "s1", "--name", "x", "--desc", "描述", "--estimate", "1")
+        sk(d, "subtask", "add", "task-5", "s2", "--name", "y", "--desc", "描述", "--estimate", "1")
+        sk(d, "subtask", "add", "task-5", "s3", "--deps", "s1,s2", "--name", "z", "--desc", "描述", "--estimate", "1")
         rdy("task-5")  # 过 confirm 门 → 就绪 (供后续 "就绪 task 待启动" 提示)
         assert (d / ".skein/task/task-5/task.md").exists(), "per-task 看板缺失"
         rdy = sk(d, "subtask", "ready", "task-5").stdout
@@ -236,8 +244,7 @@ def main() -> None:
         # ---- DAG 节点框: 长 name/desc 不截断 + 限宽 [208,272] + 多行换行 (高随行数增长, 不加宽避横滚) ----
         longnm = "改造dag_html节点宽自适应不截断完整展示信息"
         sk(d, "subtask", "add", "task-5", "s4", "--name", longnm,
-           "--desc", "估文本像素宽全框统一取最大列对齐保底208像素", "--estimate", "1",
-           "--agent", "skein-executor")
+           "--desc", "估文本像素宽全框统一取最大列对齐保底208像素", "--estimate", "1")
         sk(d, "board")  # task.md 落盘 (task.html 演进为 serve 实时渲染, 不再 persist)
         import os
         cwd0 = os.getcwd(); os.chdir(d)
@@ -363,7 +370,7 @@ def test_multirepo() -> None:
         sk(d, "create", "feat", "--name", "跨仓", "--desc", "改两仓", "--repos", "repoA,repoB")
         rl = sk(d, "repos", "feat").stdout
         assert "repoA" in rl and "repoB" in rl, rl
-        sk(d, "subtask", "add", "feat", "s1", "--name", "改A", "--desc", "d", "--estimate", "1", "--agent", "skein-executor")
+        sk(d, "subtask", "add", "feat", "s1", "--name", "改A", "--desc", "d", "--estimate", "1")
         (d / ".skein/task/feat/prd.md").write_text(
             "# feat — PRD\n\n## 目标\n- 改两仓\n\n## 边界\n- 范围内: a\n\n"
             "## 验收标准\n- 用例通过\n\n## 索引\n- design.md\n")

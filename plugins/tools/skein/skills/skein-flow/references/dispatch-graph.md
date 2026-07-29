@@ -2,22 +2,22 @@
 
 exec 阶段的 DAG = task.json `subtasks[].depends_on`, **由 `skein subtask add` 登记, 不写 mermaid 图文件**。planning 未登记任何 subtask → `skein start` 硬拒。
 
-拆分时先用一张表理清 subtask + 依赖 + 验收 + agent (agent 省略默认 `skein-executor`, skills 0-n 逗号分隔), 再逐行落盘:
+拆分时先用一张表理清 subtask + 依赖 + 验收 + skills (exec 一律派 `skein-executor`, 不再按 subtask 挑 agent; skills 0-n 逗号分隔), 再逐行落盘:
 
-| subtask | depends_on | 验收标准 (checklist) | agent | skills |
-|---|---|---|---|---|
-| st1 | - | 迁移可回滚; 新列有默认值 | skein-executor | db-migration |
-| st2 | st1 | 新字段透传响应; 旧字段不删 | skein-executor | - |
-| st3 | st1 | 覆盖新旧字段两条路径 | skein-executor | - |
+| subtask | depends_on | 验收标准 (checklist) | skills |
+|---|---|---|---|
+| st1 | - | 迁移可回滚; 新列有默认值 | db-migration |
+| st2 | st1 | 新字段透传响应; 旧字段不删 | - |
+| st3 | st1 | 覆盖新旧字段两条路径 | - |
 
 > 上表 st1 = **契约 subtask** (定 schema): st2/st3 只依赖它、互不依赖 → st1 done 即并行, 是「协议先行, 后并行」的落地形。
 
 落盘 (planning 执行, main 同步跑):
 
 ```bash
-skein subtask add <tid> st1 --name "改 schema"   --desc "加迁移列并回填默认值" --estimate 2 --agent skein-executor --skills db-migration --check "迁移可回滚; 新列有默认值"
-skein subtask add <tid> st2 --name "改调用站点" --desc "调用站点透传新字段" --estimate 1.5 --agent skein-executor --deps st1 --check "新字段透传响应; 旧字段不删"
-skein subtask add <tid> st3 --name "加测试"     --desc "覆盖新旧字段两条路径" --estimate 1 --agent skein-executor --deps st1 --check "覆盖新旧字段两条路径"
+skein subtask add <tid> st1 --name "改 schema"   --desc "加迁移列并回填默认值" --estimate 2 --skills db-migration --check "迁移可回滚; 新列有默认值"
+skein subtask add <tid> st2 --name "改调用站点" --desc "调用站点透传新字段" --estimate 1.5 --deps st1 --check "新字段透传响应; 旧字段不删"
+skein subtask add <tid> st3 --name "加测试"     --desc "覆盖新旧字段两条路径" --estimate 1 --deps st1 --check "覆盖新旧字段两条路径"
 ```
 
 `sid`/`--name`/`--desc`/`--estimate` 四者必填 (缺一即报错退出)。字段全表与四场景操作规范详见 [subtask-operations.md](subtask-operations.md)。

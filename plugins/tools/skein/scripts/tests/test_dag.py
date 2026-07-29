@@ -39,14 +39,12 @@ def _set_max_active(ws: Path, n: int) -> None:
 
 
 def _add(skein_cli: SkeinCli, ws: Path, tid: str, sid: str, *, deps: str = "",
-         check: str = "", agent: str | None = None) -> None:
+         check: str = "") -> None:
     args = ["subtask", "add", tid, sid, "--name", f"N{sid}", "--desc", "d", "--estimate", "1"]
     if deps:
         args += ["--deps", deps]
     if check:
         args += ["--check", check]
-    if agent:
-        args += ["--agent", agent]
     skein_cli(ws, *args)
 
 
@@ -75,13 +73,12 @@ def _claim_sids(skein_cli: SkeinCli, ws: Path, tid: str) -> list[str]:
 
 
 def test_subtask_add_registers_and_list_visible(skein_cli: SkeinCli, ws: Path) -> None:
-    """add 登记: 全字段 (含 deps/check/agent), list 可见且字段正确。"""
+    """add 登记: 全字段 (含 deps/check), list 可见且字段正确。"""
     _create(skein_cli, ws)
-    _add(skein_cli, ws, TID, "s1", check="c1;c2", agent="code-reviewer")
+    _add(skein_cli, ws, TID, "s1", check="c1;c2")
     _add(skein_cli, ws, TID, "s2", deps="s1", check="ca")
     out = skein_cli(ws, "subtask", "list", TID).stdout
     assert "s1" in out and "s2" in out
-    assert "code-reviewer" in out          # agent 落库
     assert "依赖:s1" in out                 # deps 落库
     st = _status_map(skein_cli, ws, TID)
     assert st["s1"] == "待处理" and st["s2"] == "待处理"

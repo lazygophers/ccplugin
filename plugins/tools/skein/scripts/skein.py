@@ -276,12 +276,44 @@ class Skein:
         if d is None or int(d) < 0:
             return []
         cutoff = now() - int(d) * 86400
+        snapshot = self._all()
+        blocked = self._unfinished_related(snapshot)  # 关联链上有未完成 → 整条链不归档
         archived = []
-        for t in self._all():
+        for t in snapshot:
+            if t["id"] in blocked:
+                continue
             if t["status"] == S_DONE and t.get("finished", t.get("done_at", 0)) <= cutoff:
                 self._archive(t["id"])
                 archived.append(t["id"])
         return archived
+
+    @staticmethod
+    def _unfinished_related(tasks: list[dict[str, Any]]) -> set[str]:
+        # 关联 = deps 双向 + parent/child 双向。任一连通分量内有非已完成 task, 该分量整体禁归档
+        # (归档走了会切断上下文链: 未完成的兄弟/后继再回头查前置产物时目录已迁走)。
+        adj: dict[str, set[str]] = {t["id"]: set() for t in tasks}
+        for t in tasks:
+            for other in list(t.get("deps") or []) + ([t["parent"]] if t.get("parent") else []):
+                if other in adj:
+                    adj[t["id"]].add(other)
+                    adj[other].add(t["id"])
+        status = {t["id"]: t["status"] for t in tasks}
+        blocked: set[str] = set()
+        seen: set[str] = set()
+        for tid in adj:
+            if tid in seen:
+                continue
+            comp, stack = set(), [tid]
+            while stack:  # 连通分量整取
+                cur = stack.pop()
+                if cur in comp:
+                    continue
+                comp.add(cur)
+                stack.extend(adj[cur] - comp)
+            seen |= comp
+            if any(status[c] != S_DONE for c in comp):
+                blocked |= comp
+        return blocked
 
     def _sync(self) -> None:
         # 顶层 task.json 唯一写入口: tasks 是未归档 task 的去规范化状态镜像 (per-task task.json 仍单一真值源),
@@ -1070,6 +1102,11 @@ class Skein:
             print(f"已归档 {len(archived)} 个完成 task (超 {d} 天保留期): {', '.join(archived)}")
         else:
             print(f"无超 {d} 天保留期的完成 task 可归档")
+        rest = self._all()
+        blocked = self._unfinished_related(rest)
+        held = sorted(t["id"] for t in rest if t["id"] in blocked and t["status"] == S_DONE)
+        if held:
+            print(f"跳过 {len(held)} 个完成 task (关联链上仍有未完成): {', '.join(held)}")
 
     def current(self, a: argparse.Namespace) -> None:
         active = self._active()
@@ -1126,7 +1163,7 @@ class Skein:
             print(f"task\t{t['id']}\t{t['status']}\t{t['name']}")
             print(f"subtask\t{s['sid']}\t{s['status']}\t{_sub_pct(s)}%\t{s['name']}")
             print(f"desc\t{s.get('desc') or '-'}")
-            print(f"依赖\t{deps}\tagent:{s.get('agent', 'skein-executor')}\tskills:{sk}")
+            print(f"依赖\t{deps}\tskills:{sk}")
             print(f"验收\t{chk}")
             print(f"时间\tcreated:{_fmt_ts(s.get('created'))}\t"
                   f"started:{_fmt_ts(s.get('started'))}\tfinished:{_fmt_ts(s.get('finished'))}")
@@ -1147,8 +1184,7 @@ class Skein:
         print(f"subtask ({len(subs)}):")
         for s in subs:
             sdeps = ",".join(s.get("depends_on", [])) or "-"
-            ag = s.get("agent", "skein-executor")
-            print(f"  {s['sid']}\t{s['status']}\t{_sub_pct(s)}%\t{s['name']}\t依赖:{sdeps}\tagent:{ag}")
+            print(f"  {s['sid']}\t{s['status']}\t{_sub_pct(s)}%\t{s['name']}\t依赖:{sdeps}")
 
     def _brief(self, t: dict[str, Any]) -> dict[str, Any]:
         # 压缩任务摘要 (exec 取未完成任务用, 省 token): 仅调度所需字段, 不含全量 subtask 明细。
@@ -1435,9 +1471,9 @@ class Skein:
                 sid = s.get("sid", "?")
                 if s.get("status") not in {SS_PENDING, SS_RUNNING, SS_DONE, SS_FAILED}:
                     errs.append(f"{tid}/{sid}: 非法 subtask status {s.get('status')!r}")
-                for f in ("name", "agent"):
+                for f in ("sid", "name", "desc", "estimate"):
                     if not s.get(f):
-                        errs.append(f"{tid}/{sid}: subtask 缺 {f} (sid/name/agent 必填)")
+                        errs.append(f"{tid}/{sid}: subtask 缺 {f} (sid/name/desc/estimate 必填)")
                 for d in s.get("depends_on", []):
                     if d == sid:
                         errs.append(f"{tid}/{sid}: depends_on 自引用")
@@ -1775,8 +1811,7 @@ class Skein:
             for t, s in batch:
                 sk = ",".join(s.get("skills", [])) or "-"
                 chk = "; ".join(s.get("验收", [])) or "-"
-                print(f"{t['id']}/{s['sid']}\t{s['name']}\tagent: {s.get('agent', 'skein-executor')}"
-                      f"\tskills: {sk}\t验收: {chk}")
+                print(f"{t['id']}/{s['sid']}\t{s['name']}\tskills: {sk}\t验收: {chk}")
             print("— 认领整批: `skein.py claim`  或只占单个: `skein.py subtask start <tid> <sid>`")
             return
         if not batch:
@@ -1795,12 +1830,11 @@ class Skein:
         # 跨 task 改态: 每个 task 各 _save 一次 (按 id 去重, _write_if_changed 自身增量)
         for t in {id(c[0]): c[0] for c in batch}.values():
             self._save(t)
-        print("已全局认领 (running) — main 按各 subtask 关联 agent + skills 逐个 dispatch, 完成即 subtask done/fail:")
+        print("已全局认领 (running) — main 逐个派 skein-executor（dispatch 只给 tid + sid + 工作目录）, 完成即 subtask done/fail:")
         for tid, s in claimed:
             sk = ",".join(s.get("skills", [])) or "-"
             chk = "; ".join(s.get("验收", [])) or "-"
-            print(f"{tid}/{s['sid']}\t{s['name']}\tagent: {s.get('agent', 'skein-executor')}"
-                  f"\tskills: {sk}\t验收: {chk}")
+            print(f"{tid}/{s['sid']}\t{s['name']}\tskills: {sk}\t验收: {chk}")
 
     def subtask(self, a: argparse.Namespace) -> None:
         if a.action == "add":
@@ -1821,7 +1855,6 @@ class Skein:
                 "验收": _split_semi(a.check),  # 验收标准 checklist (字符串数组)
                 "验收done": [],  # 已通过验收标准序号(1-based); 完成百分比 = len/len(验收)
                 "status": SS_PENDING,
-                "agent": a.agent or "skein-executor",  # 执行 agent (省略默认 skein-executor)
                 "skills": _split(a.skills),  # 关联 skills (0-n)
                 "created": now(),   # 创建时刻
                 "started": None,    # exec 时刻 (claim/start →运行中 时置)
@@ -1841,10 +1874,38 @@ class Skein:
                 deps = ",".join(s.get("depends_on", [])) or "-"
                 chk = "; ".join(s.get("验收", [])) or "-"
                 sk = ",".join(s.get("skills", [])) or "-"
-                ag = s.get("agent", "skein-executor")
                 est = s.get("estimate")
                 print(f"{s['sid']}\t{s['status']}\t{_sub_pct(s)}%\t{est if est else '-'}h\t{s['name']}"
-                      f"\t依赖:{deps}\t验收:{chk}\tagent:{ag}\tskills:{sk}")
+                      f"\t依赖:{deps}\t验收:{chk}\tskills:{sk}")
+            return
+        if a.action == "show":
+            t = self._load(a.tid)
+            s = self._sub(t, a.sid)
+            crit = s.get("验收", [])
+            doneidx = set(s.get("验收done", []))
+            est = s.get("estimate")
+            elapsed = None
+            if s.get("started") and s.get("finished"):
+                elapsed = round((s["finished"] - s["started"]) / 60, 1)  # 分钟
+            print(f"sid: {s['sid']}")
+            print(f"name: {s['name']}")
+            print(f"desc: {s.get('desc') or '-'}")
+            print(f"status: {s['status']}")
+            print(f"estimate: {est if est else '-'} h")
+            print(f"实际耗时: {elapsed if elapsed is not None else '-'} min")
+            print(f"depends_on: {','.join(s.get('depends_on', [])) or '-'}")
+            print(f"skills: {','.join(s.get('skills', [])) or '-'}")
+            if crit:
+                print("验收:")
+                for i, c in enumerate(crit, 1):
+                    mark = "x" if i in doneidx else " "
+                    print(f"  [{mark}] {i}. {c}")
+            else:
+                print("验收: -")
+            print(f"note: {s.get('note') or '-'}")
+            print(f"created: {_fmt_ts(s.get('created'))}")
+            print(f"started: {_fmt_ts(s.get('started'))}")
+            print(f"finished: {_fmt_ts(s.get('finished'))}")
             return
         if a.action in ("ready", "claim"):
             t = self._load(a.tid)
@@ -1862,14 +1923,13 @@ class Skein:
                     if not s.get("started"):
                         s["started"] = now()  # exec 时刻 (首次认领, 重认领不覆盖)
                 self._save(t)  # _save 已渲染子任务看板
-                print("已认领 (running) — main 按各 subtask 关联 agent + skills 逐个 dispatch, 完成即 subtask done/fail:")
+                print("已认领 (running) — main 逐个派 skein-executor（dispatch 只给 tid + sid + 工作目录）, 完成即 subtask done/fail:")
             else:
                 print("就绪 (只读预览, 认领用 `subtask claim`):")
             for s in batch:
                 sk = ",".join(s.get("skills", [])) or "-"
                 chk = "; ".join(s.get("验收", [])) or "-"
-                print(f"{s['sid']}\t{s['name']}\tagent: {s.get('agent', 'skein-executor')}\tskills: {sk}"
-                      f"\t验收: {chk}")
+                print(f"{s['sid']}\t{s['name']}\tskills: {sk}\t验收: {chk}")
             return
         # start / done / fail 均针对单 sid
         t = self._load(a.tid)
@@ -1921,14 +1981,13 @@ class Skein:
             deps = ",".join(s.get("depends_on", [])) or "-"
             chk = "; ".join(s.get("验收", [])) or "-"
             sk = ",".join(s.get("skills", [])) or "-"
-            ag = s.get("agent", "skein-executor")
-            rows.append(f"| {s['sid']} | {s['name']} | {s['status']} | {_sub_pct(s)}% | {ag} | {sk} | {deps} | {chk} |")
-        body = "\n".join(rows) if rows else "| - | - | - | - | - | - | - | - |"
+            rows.append(f"| {s['sid']} | {s['name']} | {s['status']} | {_sub_pct(s)}% | {sk} | {deps} | {chk} |")
+        body = "\n".join(rows) if rows else "| - | - | - | - | - | - | - |"
         md = (
             f"# SKEIN 子任务看板 — {t['id']} {t['name']}\n\n"
             "> 经 `skein.py subtask` 渲染, 禁直接读写; 取态用 `skein.py subtask list <id>`。\n\n"
-            "| sid | 名称 | 状态 | 进度 | agent | skills | 依赖 | 验收标准 |\n"
-            "|---|---|---|---|---|---|---|---|\n"
+            "| sid | 名称 | 状态 | 进度 | skills | 依赖 | 验收标准 |\n"
+            "|---|---|---|---|---|---|---|\n"
             f"{body}\n\n"
             f"并发上限: {self.config()['max_active']}\n"
         )
@@ -2081,8 +2140,6 @@ class Skein:
                     "--estimate", g("estimate")]
             if s("deps"):
                 argv += ["--deps", g("deps")]
-            if s("agent"):
-                argv += ["--agent", g("agent")]
             return base + argv
         if cmd == "clean":  # 看板「清理已完成」: 归档超 days 天的完成 task (days 仅认非负整数, 缺省 0)
             days = body.get("days", 0)
@@ -2581,7 +2638,7 @@ def _pending_queue(tasks: list[dict[str, Any]], dep_unfinished: Any) -> list[dic
             ready = active and all(d in done for d in s.get("depends_on", []))
             q.append({
                 "tid": t["id"], "sid": s["sid"], "name": s.get("name", s["sid"]),
-                "agent": s.get("agent", "skein-executor"), "ready": ready,
+                "ready": ready,
                 "trank": trank, "ti": ti, "crit": crit.get(s["sid"], 0),
                 "i": i,
                 "desc": s.get("desc", ""), "status": s["status"],
@@ -2796,7 +2853,6 @@ def _view_board_data(snap: Snapshot) -> dict[str, Any]:
         subtable = [{
             "sid": s["sid"], "name": s["name"], "status": s["status"], "pct": _sub_pct(s),
             "estimate": s.get("estimate"),  # 预计工时(小时); 前端 ETA 逐项累加用
-            "agent": s.get("agent", "skein-executor"),
             "skills": s.get("skills", []),
             "dependsOn": s.get("depends_on", []),
             "depNames": [sname_of.get(d, d) for d in s.get("depends_on", [])],
@@ -2936,7 +2992,6 @@ def _view_dashboard(snap: Snapshot) -> dict[str, Any]:
             started = s.get("started")
             running_subs.append({
                 "tid": t["id"], "sid": s["sid"], "name": s.get("name", s["sid"]),
-                "agent": s.get("agent", "skein-executor"),
                 "elapsed": round((tnow - started) / 60) if started else None,
             })
     # 就绪 subtask: active task 内 pending 且依赖全 done (不受空闲槽限, 展示全量就绪)
@@ -2950,7 +3005,6 @@ def _view_dashboard(snap: Snapshot) -> dict[str, Any]:
                 continue
             ready_subs.append({
                 "tid": t["id"], "sid": s["sid"], "name": s.get("name", s["sid"]),
-                "agent": s.get("agent", "skein-executor"),
                 "depends_on": s.get("depends_on", [])})
     # 就绪 task: status=就绪 (已过 confirm 门) + 前置全 done → 可 skein start
     ready_tasks = [{"id": t["id"], "name": t.get("name", t["id"]),
@@ -3013,7 +3067,6 @@ def _view_queue(snap: Snapshot) -> dict[str, Any]:
                 continue
             ready_subs.append({"tid": t["id"], "sid": s["sid"],
                                "name": s.get("name", s["sid"]),
-                               "agent": s.get("agent", "skein-executor"),
                                "desc": s.get("desc", ""), "status": s["status"],
                                "depends_on": s.get("depends_on", [])})
     # 执行中 task / running sub: 复用 tasks (已 _render_tasks) + active 内 SS_RUNNING
@@ -3025,7 +3078,6 @@ def _view_queue(snap: Snapshot) -> dict[str, Any]:
                 continue
             started = s.get("started")
             running_subs.append({"tid": t["id"], "sid": s["sid"], "name": s.get("name", s["sid"]),
-                                 "agent": s.get("agent", "skein-executor"),
                                  "elapsed": round((tnow - started) / 60) if started else None})
     # ponytail: active_tasks 自算, 复用 tasks 避免二次扫描 (字段对齐 board_data.cards)
     active_tasks: list[dict[str, Any]] = []
@@ -3538,12 +3590,12 @@ def main() -> None:
     stt.add_argument("sid", nargs="?", help="subtask id (省略出整 task 汇总)")
     stt.add_argument("--json", action="store_true", help="压缩 JSON 输出")
     st = sub.add_parser(
-        "subtask", help="单 task 内 subtask DAG 调度 (add/claim/ready/start/done/fail/list)",
-        epilog="调度环: claim 认领就绪批 (整批标 running) → 逐个派 agent → 完成即 done/fail → 再 claim (并发 max_active)")
-    st.add_argument("action", choices=["add", "claim", "ready", "start", "check", "done", "fail", "list"],
-                    help="add 登记 / claim 认领就绪批(整批标running) / ready 只读预览 / start 单个占槽 / check 勾验收(算百分比) / done 完成 / fail 失败 / list 列态")
+        "subtask", help="单 task 内 subtask DAG 调度 (add/claim/ready/start/show/done/fail/list)",
+        epilog="调度环: claim 认领就绪批 (整批标 running) → main 逐个派 skein-executor → 完成即 done/fail → 再 claim (并发 max_active)")
+    st.add_argument("action", choices=["add", "claim", "ready", "start", "check", "show", "done", "fail", "list"],
+                    help="add 登记 / claim 认领就绪批(整批标running) / ready 只读预览 / start 单个占槽 / check 勾验收(算百分比) / show 查全字段 / done 完成 / fail 失败 / list 列态")
     st.add_argument("tid", help="所属 task id")
-    st.add_argument("sid", nargs="?", help="subtask id (add/start/done/fail 必带; add 时 sid/name/desc 必填, agent 默认 skein-executor)")
+    st.add_argument("sid", nargs="?", help="subtask id (add/start/show/done/fail 必带; add 时 sid/name/desc 必填)")
     st.add_argument("--name", help="[add 必填] subtask 名称")
     st.add_argument("--desc", help="[add 必填] 一句话描述")
     st.add_argument("--estimate", help="[add 必填] 预计工时(小时, 正数) — 按本 subtask 实际要做的事逐项估")
@@ -3551,7 +3603,6 @@ def main() -> None:
     st.add_argument("--check", help="[add] 验收标准 checklist, 分号分隔 (每条一个可验断言)")
     st.add_argument("--note", help="[fail] 失败备注")
     st.add_argument("--passed", help="[check] 已通过验收标准序号(1-based), 逗号分隔; all=全过, none=清空")
-    st.add_argument("--agent", help="关联执行 agent (省略默认 skein-executor; 有更合适的显式填)")
     st.add_argument("--skills", help="[add] 关联 skills, 逗号分隔 (0-n, 省略即无)")
 
     # --debug 可置子命令前后任意位置: 预剥离 argv (argparse 子解析器不认父级 flag), 再据此建 DBG
@@ -3563,13 +3614,13 @@ def main() -> None:
     DBG.rule(f"skein {a.cmd}")
     DBG.kv({k: v for k, v in vars(a).items() if k not in ("cmd", "debug") and v not in (None, False)},
            title="参数")
-    if getattr(a, "cmd", None) == "subtask" and a.action in ("add", "start", "check", "done", "fail") and not a.sid:
+    if getattr(a, "cmd", None) == "subtask" and a.action in ("add", "start", "check", "show", "done", "fail") and not a.sid:
         p.error(f"subtask {a.action} 需要 sid")
     if getattr(a, "cmd", None) == "subtask" and a.action == "add":
         missing = [f for f, v in (("--name", a.name), ("--desc", a.desc),
                                   ("--estimate", a.estimate)) if not v]
         if missing:
-            p.error(f"subtask add 必填: {', '.join(missing)} (sid/name/desc/estimate 缺一不可; agent 省略默认 skein-executor)")
+            p.error(f"subtask add 必填: {', '.join(missing)} (sid/name/desc/estimate 缺一不可)")
     if a.cmd == "session-context":
         # hook 在任意仓库每 session 都跑: 非 git 且无 .skein → 方法内静默返回; git 仓无 .skein → 注入 setup 建议
         # env 持久化与 git 无关, 必须先于 Skein() 跑 —— 微服务/前后端分离场景 cwd 无 git (子目录各自是仓)。

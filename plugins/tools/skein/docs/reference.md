@@ -20,7 +20,7 @@
 | `skein board` | 文本看板 |
 | `skein view` | 可视化看板 |
 | `skein deps <id> [--tree] [--reverse]` | 查看依赖 |
-| `skein subtask list/create/start/done/fail/claim <task-id>` | subtask 管理 |
+| `skein subtask add/claim/ready/start/check/show/done/fail/list <task-id> [sid]` | subtask 管理 (add 登记 / claim 整批认领就绪 / ready 只读预览 / start 单个占槽 / check 勾验收 / show 查全字段 / done 完成 / fail 失败 / list 列态) |
 | `skein claim` | 全局跨 task claim |
 | `skein contract list/add <task-id>` | 契约管理 |
 | `skein prd read/write/add/check/uncheck <task-id>` | PRD 章节管理 |
@@ -142,7 +142,7 @@ skein create <child2> --parent <id>
 | 进行中 | 正在 worktree 中执行 | 是 |
 | 检查中 | subtask 全完成, 质量门验证 | 否 |
 | 已完成 | 检查通过, 等待归档 | 否 |
-| (已归档) | 完成后 _autoclean 目录迁移到 archive/, 非状态值·不在看板 | — |
+| (已归档) | 完成后 _autoclean 目录迁移到 archive/, 非状态值·不在看板; 关联链 (deps + parent/child) 上有未完成 task 时整链不归档 | — |
 | 运行中 (subtask) | 正在执行 | — |
 | 失败 (subtask) | 执行失败, 可重试 | — |
 

@@ -270,7 +270,6 @@ export function subTimelineView(subs) {
                s.startedAt ? `起 ${fmtTime(s.startedAt)}` : null,
                s.finishedAt ? `止 ${fmtTime(s.finishedAt)}` : null,
                dur || null,
-               s.agent || null,
               ].filter(Boolean).join(' · ')),
           ]),
         ]);
@@ -360,7 +359,6 @@ function normalizeSubtask(s) {
     depNames: s.depNames || [],
     progress: s.pct != null ? s.pct : s.progress,
     estimate: s.estimate != null ? Number(s.estimate) : null,
-    agent: s.agent || '',
     skills: s.skills || [],
     acc: s.acc || [],
     createdAt: s.created ? s.created * 1000 : null,

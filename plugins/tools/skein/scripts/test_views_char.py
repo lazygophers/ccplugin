@@ -50,7 +50,7 @@ def _task_json(**kw: Any) -> dict[str, Any]:
 def _sub(sid: str, status: str, **kw: Any) -> dict[str, Any]:
     s: dict[str, Any] = {
         "sid": sid, "name": f"子-{sid}", "desc": f"desc-{sid}", "status": status,
-        "agent": "skein-executor", "skills": [], "depends_on": [], "验收": [],
+        "skills": [], "depends_on": [], "验收": [],
         "created": TNOW - 9000,
     }
     s.update(kw)

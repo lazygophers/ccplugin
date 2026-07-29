@@ -15,13 +15,13 @@
 | **两层×类目规则记忆** | `skein-spec` + `skein-spec` | **差异化核心** (见下) |
 | 对抗式审查 | `skein-grill` | 需求/工件对抗校对 (planning 硬门) |
 | 破坏式重构 | `skein-flow plan 阶段` (heavy 档) | 不保兼容、全站点一次改齐的重构模式, 须任务显式授权 |
-| 质量门 + 一致性核查 | `skein-flow check 阶段` | 派 `skein-checker` 验证 (lint/type/test/契约 + subtask 产物一致性核查), 未过派合适 agent (无则 `skein-executor`) 修复重检; **孤立失败定点修, 跨 subtask 冲突/check 失败 → 深化拆分 (回 plan 拆新 subtask 逐条覆盖直到零冲突)** |
+| 质量门 + 一致性核查 | `skein-flow check 阶段` | 派 `skein-checker` 验证 (lint/type/test/契约 + subtask 产物一致性核查), 未过派 `skein-executor` 修复重检; **孤立失败定点修, 跨 subtask 冲突/check 失败 → 深化拆分 (回 plan 拆新 subtask 逐条覆盖直到零冲突)** |
 | 第 3 轮根因复盘 | `skein-flow check 阶段` (`references/root-cause-protocol.md`) | check 第 3 轮仍 FAIL 时跨维度结构化根因复盘 (需求/设计/实现/环境/测试 5 维 + 预防措施), 出口回 exec 定向重修或停手转人工 |
 | finish 收尾编排门 | `skein-flow finish 阶段` | check 全绿后被 flow 委托: 派 `skein-finisher` 收尾勘察 + 委托 `skein-spec` sediment + 清理悬挂 + `skein finish` (commit→merge→销 worktree→标记完成, 异步 spec) |
 | 冷启动播种 | `skein-spec` (`references/bootstrap-seeding.md`) | 空仓首次接入时扫既有代码库约定 (命名/错误处理/测试/架构边界/构建) 播种规则基线 (一次性, 默认多归 recall) |
 | 主动清理 | `skein-clean` | [仅用户主动] 归档完成 task (保留期外) + 清孤儿 worktree / 悬挂分支 |
 
-**执行 subtask 不用具名 agent** — main 为每个 subtask 选合适的现有 agent (无则 `skein-executor`) 执行 1 subtask (改哪些文件自主决定, 完成前对照验收标准逐条自检, 每文件过写前硬门); 执行纪律 (递归护栏 + 读后写硬门 + 验收标准自检 + 输出格式) 经 dispatch prompt 硬性注入。共 9 个注册 agent = 1 执行器 + 8 工具受限具名 (均无 Agent/Task 工具, 递归护栏, 各绑定对应 skill): `skein-executor` (默认执行器, 兜底执行任意 subtask) / `skein-checker` (只读验证 + 一致性核查) / `skein-researcher` (planning 调研 + bootstrap 扫描模式) / `skein-setup` (trellis→skein 语义迁移) / `skein-finisher` (finish 收尾勘察) / `skein-specer` (记忆写盘员: sediment 落盘 + reconstruct·maintain 重组 + prune 降索引) / `skein-recaller` (记忆召回员: recall 检索, 只读同步) / `skein-dedup` (查重 + DAG 编排, 异步后台) / `skein-clean` (主动清理, 仅用户经 `/skein-clean` 显式调用)。
+**exec 一律派 `skein-executor`** — main 对每个 subtask 派 `skein-executor`, dispatch 只给 tid + sid + 工作目录, 不再逐个挑选执行器 (改哪些文件自主决定, 完成前对照验收标准逐条自检, 每文件过写前硬门); 执行纪律 (递归护栏 + 读后写硬门 + 验收标准自检 + 输出格式) 经 dispatch prompt 硬性注入。共 9 个注册 agent = 1 执行器 + 8 工具受限具名 (均无 Agent/Task 工具, 递归护栏, 各绑定对应 skill): `skein-executor` (唯一 exec 执行器) / `skein-checker` (只读验证 + 一致性核查) / `skein-researcher` (planning 调研 + bootstrap 扫描模式) / `skein-setup` (trellis→skein 语义迁移) / `skein-finisher` (finish 收尾勘察) / `skein-specer` (记忆写盘员: sediment 落盘 + reconstruct·maintain 重组 + prune 降索引) / `skein-recaller` (记忆召回员: recall 检索, 只读同步) / `skein-dedup` (查重 + DAG 编排, 异步后台) / `skein-clean` (主动清理, 仅用户经 `/skein-clean` 显式调用)。
 
 ## 差异化核心: 两层规则记忆 (基于 `.skein/spec`)
 
