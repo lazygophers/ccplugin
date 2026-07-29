@@ -1,6 +1,6 @@
 # 冲突解决 · ours/theirs 方向 —— git-merge 详表
 
-主流程见 [../SKILL.md](../SKILL.md)。**merge 的方向与 rebase 相反,跨 skill 操作勿混。**
+主流程见 [../SKILL.md](../SKILL.md)。**反转 (inversion)**:merge 与 rebase 下 `--ours`/`--theirs` 指向相反的分支,是两个 skill 间最易错的判定,查表别凭记忆,rebase 侧方向见 [git-rebase 详表](../../git-rebase/references/conflict-resolution.md)。
 
 ## §direction ours/theirs 方向(merge 语境)
 
@@ -24,14 +24,22 @@ git log origin/$SRC..HEAD -- <file>
 
 checkout 后必查无残留冲突标记再 `git add <file>`;全部解完 `git commit --no-edit`。
 
-## §poison `-s ours` vs `-X ours`
+## §core 方向无关共有骨架(merge/rebase 单一真值源)
+
+以下判定逻辑 merge/rebase 完全一致,只是「哪个标记指哪个分支」按各自 direction 表反转,git-rebase 侧同名判定引用本节,不重复定义:
+
+- **前置检查**:工作区必须干净(`git status --porcelain` 空);脏则先 `git-commit` 或 `git stash`,操作完成后再继续(needed 时 pop)。
+- **实质改动判据**:`git log <base>..<head> -- <file>` 有输出 = 该侧对文件有实质提交,空 = 未动;`<base>`/`<head>` 取值因方向而异,merge 用 `origin/$SRC..HEAD`,rebase 用 `origin/$SRC..<backup 分支>`。
+- **冲突循环骨架**:① 逐个冲突文件按 direction 表判单边/双边 → ② 单边改动用对应 `checkout --ours`/`--theirs` 自动解(方向查表,别凭记忆) → ③ 双边实质改同一逻辑 🔴 STOP + AskUserQuestion,禁自主猜 → ④ `add`/`--continue` 前用 `git diff --check` 确认无残留冲突标记(`<<<<<<<`/`=======`/`>>>>>>>`) → ⑤ 全部解完跑收尾命令(merge: `git commit --no-edit`;rebase: `git rebase --continue`)。
+
+## §poison `-s ours` vs `-X ours`(merge/rebase 通用,危害因方向而异)
 
 | 写法 | 行为 | 用于本 skill? |
 | --- | --- | --- |
 | `-X ours` / `-X theirs` | **仅冲突 hunk** 自动选一边,非冲突改动正常合入 | ✅ 可用(等价批量 checkout) |
-| `-s ours` | 用 `ours` 整个策略:**完全丢弃源分支所有改动**,只产生一个「假装合并了」的提交 | 🔴 禁用 |
+| `-s ours` | 用 `ours` 整个策略:**完全丢弃另一边所有改动**,只产生一个「假装合并了」的提交 | 🔴 禁用 |
 
-⚠️ `git merge -s ours <源>` 常被误用为「以我为准解冲突」,实际是**记录一次合并但一行源分支改动都不要**——源分支后续再 merge 会以为已合过而跳过,造成永久丢失。要「冲突处以某边为准」永远用 `-X`,不用 `-s`。
+merge 语境 `git merge -s ours <源>` 常被误用为「以我为准解冲突」,实际是**记录一次合并但一行源分支改动都不要**——源分支后续再 merge 会以为已合过而跳过,造成永久丢失。rebase 语境更致命——逐 commit replay 下 `-s ours` 等于清空当前分支的全部改动,静默数据丢失。两种语境要「冲突处以某边为准」永远用 `-X`,不用 `-s`。
 
 ## §markers 冲突标记
 
