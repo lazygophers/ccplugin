@@ -23,16 +23,16 @@
 ## 验收标准
 可执行、可核对的完成断言 (逐条):
 
-- [ ] `grep -rn -E 'TaskCreate|TaskList|TaskStop|TaskUpdate|TaskGet|TaskOutput|TodoWrite' plugins/tools/skein --include='*.md' --include='*.py' --include='*.json'` 零命中 (排除 `.mypy_cache` / `.ruff_cache`)
-- [ ] `skein-finisher.md` frontmatter `tools:` 为 `Read, Bash, Grep, Glob`，工作流步骤连续重编号无断号
-- [ ] `skein-finisher.md` 的返回 JSON 结构与 `dangling` 语义保持可用，仅去掉后台 agent 一项的自清描述
-- [ ] `skein-flow` 的 finish 阶段文档中，「清悬挂后台 agent」已标为 main 职责且措辞不含任何内置工具名
-- [ ] `hooks.py` 中 `cmd_task_created` 函数、`DISPATCH` 里的 `task-created` 键、模块 docstring 对应行、`_CTX` 上方注释里的相关句全部删除
-- [ ] `plugin.json` 中 `TaskCreated` 钩子块已删除，且文件仍是合法 JSON (`python3 -m json.tool` 通过)
-- [ ] `docs/skein.md` 的 hook 表与 Guards 表、`docs/reference.md` 的 hook 表中相关行已删除
-- [ ] `python3 plugins/tools/skein/scripts/hooks.py` 无参运行时用法行不再列出 `task-created`
-- [ ] `skein doctor` 通过 (exit 0)
-- [ ] 改动已 commit (不 push)
+- [x] `grep -rn -E 'TaskCreate|TaskList|TaskStop|TaskUpdate|TaskGet|TaskOutput|TodoWrite' plugins/tools/skein --include='*.md' --include='*.py' --include='*.json'` 零命中 (排除 `.mypy_cache` / `.ruff_cache`)
+- [x] `skein-finisher.md` frontmatter `tools:` 为 `Read, Bash, Grep, Glob`，工作流步骤连续重编号无断号
+- [x] `skein-finisher.md` 的返回 JSON 结构与 `dangling` 语义保持可用，仅去掉后台 agent 一项的自清描述
+- [x] `skein-flow` 的 finish 阶段文档中，「清悬挂后台 agent」已标为 main 职责且措辞不含任何内置工具名
+- [x] `hooks.py` 中 `cmd_task_created` 函数、`DISPATCH` 里的 `task-created` 键、模块 docstring 对应行、`_CTX` 上方注释里的相关句全部删除
+- [x] `plugin.json` 中 `TaskCreated` 钩子块已删除，且文件仍是合法 JSON (`python3 -m json.tool` 通过)
+- [x] `docs/skein.md` 的 hook 表与 Guards 表、`docs/reference.md` 的 hook 表中相关行已删除
+- [x] `python3 plugins/tools/skein/scripts/hooks.py` 无参运行时用法行不再列出 `task-created`
+- [x] `skein doctor` 通过 (exit 0)
+- [x] 改动已 commit (不 push)
 
 ## 索引
 - [ ] 详细设计: [design.md](design.md)

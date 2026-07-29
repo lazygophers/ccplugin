@@ -2,7 +2,7 @@
   "id": "skein-drop-builtin-task-tools",
   "name": "移除 skein 插件对 harness 内置 task 工具的用法与拦截",
   "desc": "A: skein-finisher 去掉 TaskList/TaskStop 调用, 清悬挂后台 agent 职责上移 main 且文档不具名内置工具; B: 删除 TaskCreate 拦截 hook (hooks.py cmd_task_created + plugin.json TaskCreated + docs)",
-  "status": "进行中",
+  "status": "已完成",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -46,12 +46,19 @@
         "hooks.py 无参运行用法行不含 task-created",
         "scripts/ 与 .claude-plugin/ 与 docs/ 下 grep 七个内置 task 工具名零命中"
       ],
-      "验收done": [],
-      "status": "运行中",
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785317298,
       "started": 1785317316,
-      "finished": null
+      "finished": 1785317467
     }
   ],
   "priority": 5,
@@ -65,7 +72,7 @@
   "created": 1785317195,
   "started": 1785317312,
   "confirmed": 1785317312,
-  "checked": null,
-  "finished": null,
-  "updated": 1785317448
+  "checked": 1785317544,
+  "finished": 1785318053,
+  "updated": 1785318053
 }

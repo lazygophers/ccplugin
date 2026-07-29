@@ -5,9 +5,131 @@
   "status": "待处理",
   "deps": [],
   "contracts": [],
-  "subtasks": [],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "改写 git-commit",
+      "desc": "按 design 的共有五动作 + git-commit 专属病灶改写 SKILL.md 与 references",
+      "estimate": 1.0,
+      "depends_on": [],
+      "验收": [
+        "frontmatter 无非标 arguments 字段且 name=git-commit",
+        "description 每 branch 仅一 trigger 无同义改写",
+        "四条硬规中非 guardrail 的否定句已转正向配方",
+        "高频噪声速判表收敛到 references 单一真值源 SKILL.md 只留 context pointer",
+        "每个工作流步骤末有 checkable 完成判据",
+        "逐句 no-op+relevance 测已跑且删除项已记录",
+        "质量门问触发场景与主流程均答对"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "skills": [],
+      "created": 1785317736,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "s2",
+      "name": "改写 git-merge",
+      "desc": "改写 SKILL.md 与 references, 引入反转 leading word, 收敛与 rebase 共有的冲突骨架",
+      "estimate": 1.2,
+      "depends_on": [],
+      "验收": [
+        "frontmatter 合规且 name=git-merge",
+        "description 一 branch 一 trigger",
+        "反转表已建并 context pointer 指向 git-rebase 侧",
+        "与 rebase 共有的方向无关内容 (前置检查/实质改动判据/冲突循环骨架) 只在一处定义",
+        "recovery.md 保持不合并",
+        "用户说都以当前为准≠全盘 --ours 这条 guardrail 保留且配正向做法",
+        "每步有完成判据",
+        "no-op+relevance 逐句测已跑",
+        "质量门答对触发场景+主流程+--ours 指当前分支"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "skills": [],
+      "created": 1785317736,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "s3",
+      "name": "改写 git-rebase",
+      "desc": "改写 SKILL.md 与 references, 引入不可逆 leading word, 建反转表本侧半",
+      "estimate": 1.2,
+      "depends_on": [
+        "s2"
+      ],
+      "验收": [
+        "frontmatter 合规且 name=git-rebase",
+        "description 一 branch 一 trigger",
+        "不可逆 leading word 统摄备份分支/远端最新/拿不准即停三条硬规",
+        "反转表本侧半已建并指回 git-merge",
+        "共有内容经 context pointer 引用不重复定义",
+        "备份分支 guardrail 保留且配正向做法",
+        "每步有完成判据",
+        "no-op+relevance 逐句测已跑",
+        "质量门答对触发场景+主流程+--theirs 指当前分支"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "skills": [],
+      "created": 1785317737,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "s4",
+      "name": "改写 git-pr",
+      "desc": "改写 SKILL.md 与 references, 平台差异 branch 化下沉",
+      "estimate": 1.0,
+      "depends_on": [],
+      "验收": [
+        "frontmatter 合规且 name=git-pr",
+        "description 一 branch 一 trigger",
+        "gh 与 glab 平台差异下沉 references/platform-and-content.md SKILL.md 只留分叉指针",
+        "失败处理表 7 行逐行跑过 no-op 测且失败行已整句删",
+        "每步有完成判据",
+        "非 guardrail 否定句已转正向",
+        "质量门答对触发场景与主流程"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "skills": [],
+      "created": 1785317737,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "s5",
+      "name": "产出可复用 checklist",
+      "desc": "汇四份实测产出 skills/skill-dev/references/skill-optimization-checklist.md",
+      "estimate": 0.8,
+      "depends_on": [
+        "s1",
+        "s2",
+        "s3",
+        "s4"
+      ],
+      "验收": [
+        "文件落在 skills/skill-dev/references/skill-optimization-checklist.md",
+        "含诊断维度与逐项判据",
+        "含改写动作清单",
+        "含质量门 stdin 形式命令模板并注明 CLAUDE.md 原命令对带 frontmatter 文件跑不通",
+        "含本次四份的实测删除项小节",
+        "含端点抖动需重试的踩坑记录",
+        "可直接用于 skills/ 下另外 9 个 skill 不需重推方法论"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "skills": [],
+      "created": 1785317737,
+      "started": null,
+      "finished": null
+    }
+  ],
   "priority": 5,
-  "estimate": null,
+  "estimate": 5.2,
   "repos": [],
   "worktree": null,
   "worktrees": [],
@@ -19,5 +141,5 @@
   "confirmed": null,
   "checked": null,
   "finished": null,
-  "updated": 1785316592
+  "updated": 1785317737
 }
