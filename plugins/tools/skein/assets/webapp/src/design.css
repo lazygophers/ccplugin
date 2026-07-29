@@ -1222,6 +1222,17 @@ html { font-size: 17px; }
 .tl-dot.custom { background: var(--tl-c, var(--ocean-mid)); border-color: var(--tl-c, var(--ocean-mid)); color: #fff; }
 .tl-dot.custom::after { content: var(--tl-icon, "\2713"); font-size: 0.412rem; line-height: 1; }
 .tl-time { font-variant-numeric: tabular-nums; font-size: 0.647rem; color: #94a3b8; letter-spacing: 0.02em; }
+/* ETA 摘要条: 贴在时间轴上方, 主文案高亮 + 次级拆解小字 */
+.tl-axis-wrap { position: relative; }
+.tl-eta {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: .353rem;
+  margin-bottom: .471rem; padding: .294rem .588rem; border-radius: 6px;
+  background: var(--tl-c-bg, rgba(66,156,209,0.1));
+}
+.tl-eta-main { font-size: 0.765rem; font-weight: 600; color: var(--tl-c, var(--ocean-deep)); font-variant-numeric: tabular-nums; }
+.tl-eta-detail { font-size: 0.647rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+[data-theme="skein-dark"] .tl-eta { background: var(--tl-c-bg, rgba(116,185,232,0.14)); }
+[data-theme="skein-dark"] .tl-eta-main { color: var(--ocean-shallow); }
 .tl-name { font-weight: 600; color: var(--fg); font-size: 0.824rem; }
 .tl-desc { font-size: 0.706rem; color: var(--muted); margin-top: .118rem; line-height: 1.5; }
 .tl-dur  { font-variant-numeric: tabular-nums; font-size: 0.647rem; color: #94a3b8; }

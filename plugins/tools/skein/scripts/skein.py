@@ -1965,7 +1965,7 @@ class Skein:
             proj=self.proj, wt_shown=self._wt_shown(),
             tasks_fn=self._render_tasks, all_tasks_fn=self._all,
             tasks_dir=self.tasks, archive_dir=self.archive_dir,
-            spec_root=self._spec_root())
+            spec_root=self._spec_root(), max_active=self.config()["max_active"])
 
     def _board_data(self) -> dict[str, Any]:
         return _view_board_data(self._snapshot())
@@ -2600,9 +2600,11 @@ class Snapshot:
     def __init__(self, *, proj: str, wt_shown: bool,
                  tasks_fn: Callable[[], list[dict[str, Any]]],
                  all_tasks_fn: Callable[[], list[dict[str, Any]]],
-                 tasks_dir: Path, archive_dir: Path, spec_root: Path) -> None:
+                 tasks_dir: Path, archive_dir: Path, spec_root: Path,
+                 max_active: int = 2) -> None:
         self.proj = proj
         self.wt_shown = wt_shown
+        self.max_active = max_active  # 并发上限; 前端 ETA 按此折算并行墙钟
         self._tasks_fn = tasks_fn      # _render_tasks(): 顶层索引 ∪ per-task 明细 (含幽灵骨架)
         self._all_fn = all_tasks_fn    # _all(): per-task 严格真值 (无幽灵骨架)
         self._tasks_dir = tasks_dir
@@ -2832,6 +2834,7 @@ def _view_board_data(snap: Snapshot) -> dict[str, Any]:
                       S_CHECK: cnt.get(S_CHECK, 0), S_READY: cnt.get(S_READY, 0),
                       S_PENDING: cnt.get(S_PENDING, 0)},
             "estMeta": est_meta,
+            "maxActive": snap.max_active,
             "combinedPct": combined_pct,
             "hasSub": has_sub,
         },
@@ -2877,6 +2880,7 @@ def _view_task_detail(snap: Snapshot, tid: str) -> Optional[dict[str, Any]]:
             dependents.append(brief)
     return {"task": data, "docs": docs, "research": research, "archived": archived,
             "subtasks": data.get("subtasks", []), "contracts": data.get("contracts", []),
+            "maxActive": snap.max_active,  # 前端 ETA 折算并行墙钟用
             "prd": _prd_parse(docs.get("prd")), "progress": _task_pct(data),
             "stage": _task_stage(data), "depTasks": dep_tasks, "dependents": dependents}
 

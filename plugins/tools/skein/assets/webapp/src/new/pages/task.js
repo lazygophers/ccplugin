@@ -6,7 +6,7 @@
 // ============================================================
 
 import { h, api, md, fmtRelative, fmtTime, normalizeTask, normalizeTasks,
-         confirmDialog, alertDialog, buildTimeline, subTimelineView } from '../app.js';
+         confirmDialog, alertDialog, buildTimeline, subTimelineView, etaText, fmtHours, etaOf, actualOf } from '../app.js';
 import { depDAGView } from '../lib/depdag.js';
 
 const ST_LABEL = {
@@ -39,14 +39,22 @@ function timelineView(stages, task) {
   if (!stages || !stages.length) {
     return h('div.py-8.text-center.text-muted.text-sm', '暂无活动记录');
   }
-  return h('div.tl-axis',
+  const eta = etaText(task, task && task.maxActive);
+  return h('div.tl-axis-wrap', [
+    eta ? h('div.tl-eta', [
+      h('span.tl-eta-main', eta.main),
+      eta.detail ? h('span.tl-eta-detail', eta.detail) : null,
+    ]) : null,
+    h('div.tl-axis',
     stages.map((s, i) => {
       const stateClass = s.done ? 'done' : s.current ? 'cur' : '';
       const stClass = s.done ? 'done' : s.current ? 'cur' : 'pending';
       const stLabel = s.done ? '已完成' : s.current ? '当前' : '待执行';
       const dotStyle = (s.done || s.current) ? `--tl-c:${s.color}` : '';
       const stStyle = s.current ? `--tl-c:${s.color};--tl-c-bg:${s.color}26` : '';
-      const timeStr = s.time ? fmtTime(s.time) : '—';
+      // 未达成的「完成」节点: 时间位改出 ETA 预估 (综合工时/进度/DAG/并发/实测校准)
+      const timeStr = s.time ? fmtTime(s.time)
+        : (s.key === 'finished' && eta ? eta.main : '—');
 
       // 子任务计数
       const subs = task && task.subtasks ? task.subtasks : [];
@@ -70,7 +78,7 @@ function timelineView(stages, task) {
         s.key === 'started' && subs.length ? subTimelineView(subs) : null,
       ]);
     })
-  );
+  )]);
 }
 
 // ---- 子任务 DAG 布局 ----
@@ -343,6 +351,7 @@ export async function render(mount, params, ctx) {
             ...taskResp.task,
             docs: taskResp.docs, research: taskResp.research,
             prd: taskResp.prd, progress: taskResp.progress, stage: taskResp.stage,
+            maxActive: taskResp.maxActive,  // ETA 折算并行墙钟
           }
         : (taskResp.card || taskResp))
     : null;
@@ -407,6 +416,19 @@ export async function render(mount, params, ctx) {
       infoItem('负责人', task.assignee || '未分配'),
       infoItem('预估工时', task.estimate ? task.estimate + ' 小时' : '—'),
       infoItem('进度', task.progress != null ? task.progress + '%' : '—'),
+      // 已完成出实际耗时 (对比预估), 未完成出剩余预估
+      task.status === 'done'
+        ? infoItem('实际耗时', (() => {
+            const a = actualOf(task);
+            if (!a) return '—';
+            const dt = a.delta != null && Math.abs(a.delta) >= 0.05
+              ? ` (${a.delta > 0 ? '超出 +' : '提前 '}${Math.round(Math.abs(a.delta) * 100)}%)` : '';
+            return fmtHours(a.hours) + dt;
+          })())
+        : infoItem('预计剩余', (() => {
+            const e = etaOf(task, task.maxActive);
+            return e ? fmtHours(e.hours) : '—';
+          })()),
     ]);
   }
   function timelineCard() {

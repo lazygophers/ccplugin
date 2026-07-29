@@ -105,6 +105,132 @@ export function buildTimeline(task) {
   ];
 }
 
+// ---- 剩余工时预估 (ETA) ----
+// 综合五路输入: ① subtask 逐项预估工时 ② 各 subtask 当前百分比 ③ subtask DAG 排序 (关键路径)
+//   ④ 并发上限 (并行墙钟下界) ⑤ 已完成 subtask 的实际耗时 / 预估比 (校准因子)。
+// 口径 = 工时 (人时经并发折算后的墙钟), 非日历时间 — 不含等待/空档。
+//
+// task 自身开销 = task.estimate - Σ subtask.estimate (即 plan/grill/check/finish),
+// 按阶段剩余系数折算: 越靠后剩得越少。
+const OWN_LEFT = { planning: 1, ready: 0.85, active: 0.6, check: 0.25, done: 0, failed: 0.6 };
+
+function subRemain(s, fallbackEst) {
+  if (s.status === 'done') return 0;
+  const est = (typeof s.estimate === 'number' && s.estimate > 0) ? s.estimate : fallbackEst;
+  if (!est) return 0;
+  const pct = Math.min(100, Math.max(0, Number(s.progress ?? s.pct ?? 0)));
+  return est * (1 - pct / 100);
+}
+
+// DAG 最长加权路径 (权 = 该 subtask 剩余工时)。成环时退化为总和, 不死循环。
+function criticalPath(subs, remOf) {
+  const byId = new Map(subs.map(s => [s.sid || s.id, s]));
+  const memo = new Map(), inStack = new Set();
+  const walk = (id) => {
+    if (memo.has(id)) return memo.get(id);
+    if (inStack.has(id)) return 0;               // 成环: 断掉这条边
+    const s = byId.get(id);
+    if (!s) return 0;
+    inStack.add(id);
+    const deps = s.dependsOn || s.deps || [];
+    const best = deps.reduce((m, d) => Math.max(m, walk(d)), 0);
+    inStack.delete(id);
+    const v = best + remOf(s);
+    memo.set(id, v);
+    return v;
+  };
+  return subs.reduce((m, s) => Math.max(m, walk(s.sid || s.id)), 0);
+}
+
+// 校准因子: 已完成 subtask 的 Σ实际耗时 / Σ预估。样本不足或离谱 (超 [0.25,4]) 则不校准。
+function calibration(subs) {
+  let act = 0, est = 0;
+  for (const s of subs) {
+    if (s.status !== 'done' || !s.startedAt || !s.finishedAt) continue;
+    if (!(typeof s.estimate === 'number' && s.estimate > 0)) continue;
+    act += (s.finishedAt - s.startedAt) / 3600000;
+    est += s.estimate;
+  }
+  if (!est || !act) return 1;
+  const r = act / est;
+  return (r < 0.25 || r > 4) ? 1 : r;
+}
+
+// 返回 {hours, calib, own, work, critical} 或 null (已完成 / 无任何工时数据)。
+export function etaOf(task, maxActive) {
+  const st = task.status || 'planning';
+  if (st === 'done' || st === 'archived' || st === 'cancelled') return null;
+  const subs = task.subtasks || [];
+  const withEst = subs.filter(s => typeof s.estimate === 'number' && s.estimate > 0);
+  // 老数据无 subtask 工时: 用同 task 已填项均值兜底; 全无则整体退回 task.estimate 按进度折算
+  const fallbackEst = withEst.length
+    ? withEst.reduce((a, s) => a + s.estimate, 0) / withEst.length : 0;
+  const remOf = (s) => subRemain(s, fallbackEst);
+  const work = subs.reduce((a, s) => a + remOf(s), 0);
+
+  const subSum = subs.reduce((a, s) => a + (Number(s.estimate) || 0), 0);
+  const taskEst = Number(task.estimate) || 0;
+  const own = Math.max(0, taskEst - subSum) * (OWN_LEFT[st] ?? 0.6);
+
+  if (!work && !own) {
+    if (!taskEst) return null;
+    const pct = Math.min(100, Math.max(0, Number(task.progress) || 0));
+    return { hours: taskEst * (1 - pct / 100), calib: 1, own: 0, work: 0, critical: 0 };
+  }
+  const calib = calibration(subs);
+  const n = Math.max(1, Number(maxActive) || 1);
+  const critical = criticalPath(subs, remOf);
+  // 并行墙钟下界: 关键路径压不动, 其余按并发摊
+  const wall = Math.max(critical, work / n);
+  return { hours: (wall + own) * calib, calib, own, work, critical };
+}
+
+// 工时 → 人话。<1h 出分钟, <16h 出小时, 否则按 8h/人日 出天。
+export function fmtHours(h) {
+  if (h == null || !isFinite(h) || h <= 0) return '—';
+  if (h < 1) return Math.max(1, Math.round(h * 60)) + ' 分钟';
+  if (h < 16) return (h < 10 ? h.toFixed(1) : Math.round(h)) + ' 小时';
+  const d = h / 8;
+  return (d < 10 ? d.toFixed(1) : Math.round(d)) + ' 人日';
+}
+
+// 已完成的实际耗时 (墙钟: 起始→完成)。返回 {hours, est, delta} 或 null。
+// 起始优先 startedAt (真正开工), 缺则退回 createdAt。delta = 实际/预估 - 1。
+export function actualOf(task) {
+  const end = task.finishedAt, start = task.startedAt || task.createdAt;
+  if (!end || !start || end <= start) return null;
+  const hours = (end - start) / 3600000;
+  const est = Number(task.estimate) || 0;
+  return { hours, est, delta: est ? hours / est - 1 : null };
+}
+
+// 偏差人话: "+35%" / "-12%"; 5% 以内算准, 返回 null。
+function deltaText(d) {
+  if (d == null || Math.abs(d) < 0.05) return null;
+  return (d > 0 ? '超出 +' : '提前 ') + Math.round(Math.abs(d) * 100) + '%';
+}
+
+// 一行摘要: 未完成出 "剩余约 3.5 小时 (关键路径 2h · ...)"; 已完成出 "实际耗时 X (预估 Y · 超出 +30%)"
+export function etaText(task, maxActive) {
+  const st = task.status || 'planning';
+  if (st === 'done' || st === 'archived') {
+    const a = actualOf(task);
+    if (!a) return null;
+    const parts = [];
+    if (a.est) parts.push(`预估 ${fmtHours(a.est)}`);
+    const dt = deltaText(a.delta);
+    if (dt) parts.push(dt);
+    return { main: `实际耗时 ${fmtHours(a.hours)}`, detail: parts.join(' · '), actual: a };
+  }
+  const e = etaOf(task, maxActive);
+  if (!e) return null;
+  const parts = [];
+  if (e.critical) parts.push(`关键路径 ${fmtHours(e.critical)}`);
+  if (e.own) parts.push(`自身开销 ${fmtHours(e.own)}`);
+  if (Math.abs(e.calib - 1) > 0.05) parts.push(`实测校准 ×${e.calib.toFixed(2)}`);
+  return { main: `剩余约 ${fmtHours(e.hours)}`, detail: parts.join(' · '), eta: e };
+}
+
 // ---- 执行阶段子时间线: 每个 subtask 的执行过程 (默认折叠) ----
 // board 详情面板 / task 详情页共用 (与 buildTimeline 同模式, 挂在时间线「执行」节点下)
 const TL_SUB_COLOR = {
@@ -124,8 +250,17 @@ export function subTimelineView(subs) {
     h('div.tl-sub-list',
       ordered.map(s => {
         const st = s.status || 'planning';
-        const dur = s.startedAt && s.finishedAt
-          ? `耗时 ${Math.max(1, Math.round((s.finishedAt - s.startedAt) / 60000))} 分钟` : '';
+        // 已完成: 实际耗时 + 与预估的对比; 未完成: 只出预估
+        const est = (typeof s.estimate === 'number' && s.estimate > 0) ? s.estimate : 0;
+        let dur = '';
+        if (s.startedAt && s.finishedAt) {
+          const act = (s.finishedAt - s.startedAt) / 3600000;
+          const dt = est ? deltaText(act / est - 1) : null;
+          dur = `实际 ${fmtHours(act)}` + (est ? ` / 预估 ${fmtHours(est)}` : '')
+              + (dt ? ` (${dt})` : '');
+        } else if (est) {
+          dur = `预估 ${fmtHours(est)}`;
+        }
         return h('div.tl-sub-item', [
           h(`span.w-1.5.h-1.5.rounded-full.flex-shrink-0.mt-1.5.bg-${TL_SUB_COLOR[st]}`),
           h('div.min-w-0.flex-1', [
@@ -224,6 +359,7 @@ function normalizeSubtask(s) {
     deps: s.dependsOn || s.depends_on || s.deps || [],
     depNames: s.depNames || [],
     progress: s.pct != null ? s.pct : s.progress,
+    estimate: s.estimate != null ? Number(s.estimate) : null,
     agent: s.agent || '',
     skills: s.skills || [],
     acc: s.acc || [],

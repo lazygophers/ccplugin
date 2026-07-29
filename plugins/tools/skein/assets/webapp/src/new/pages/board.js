@@ -5,7 +5,7 @@
 // ============================================================
 
 import { h, api, fmtRelative, fmtTime, normalizeTasks, normalizeTask, prioLabel, prioTextColor,
-         confirmDialog, alertDialog, buildTimeline, subTimelineView } from '../app.js';
+         confirmDialog, alertDialog, buildTimeline, subTimelineView, etaText, fmtHours, etaOf, actualOf } from '../app.js';
 import { EDGE_KIND, edgeKinds, edgeLegend, drawEdges, buildDepDAG, depDAGView } from '../lib/depdag.js';
 
 const ST_COLOR = {
@@ -732,14 +732,22 @@ function timelineView(stages, task) {
   if (!stages || !stages.length) {
     return h('div.py-6.text-center.text-muted.text-sm', '暂无活动记录');
   }
-  return h('div.tl-axis',
+  const eta = etaText(task, task && task.maxActive);
+  return h('div.tl-axis-wrap', [
+    eta ? h('div.tl-eta', [
+      h('span.tl-eta-main', eta.main),
+      eta.detail ? h('span.tl-eta-detail', eta.detail) : null,
+    ]) : null,
+    h('div.tl-axis',
     stages.map((s, i) => {
       const stateClass = s.done ? 'done' : s.current ? 'cur' : '';
       const stClass = s.done ? 'done' : s.current ? 'cur' : 'pending';
       const stLabel = s.done ? '已完成' : s.current ? '当前' : '待执行';
       const dotStyle = (s.done || s.current) ? `--tl-c:${s.color}` : '';
       const stStyle = s.current ? `--tl-c:${s.color};--tl-c-bg:${s.color}26` : '';
-      const timeStr = s.time ? fmtTime(s.time) : '—';
+      // 未达成的「完成」节点: 时间位改出 ETA 预估 (综合工时/进度/DAG/并发/实测校准)
+      const timeStr = s.time ? fmtTime(s.time)
+        : (s.key === 'finished' && eta ? eta.main : '—');
 
       // 子任务计数
       const subs = task && task.subtasks ? task.subtasks : [];
@@ -763,7 +771,7 @@ function timelineView(stages, task) {
         s.key === 'started' && subs.length ? subTimelineView(subs) : null,
       ]);
     })
-  );
+  )]);
 }
 
 // ---- 子任务 DAG 迷你视图 ----
@@ -920,6 +928,19 @@ function detailPanel(task, allTasks, onClose, onSubClick, onOpenDetail, onTaskCl
           task.assignee ? infoRow('负责人', task.assignee) : null,
           infoRow('预估工时', task.estimate ? task.estimate + ' h' : '—'),
           infoRow('进度', task.progress != null ? task.progress + '%' : (st === 'done' ? '100%' : '—')),
+          // 已完成出实际耗时 (对比预估), 未完成出剩余预估
+          st === 'done'
+            ? infoRow('实际耗时', (() => {
+                const a = actualOf(task);
+                if (!a) return '—';
+                const dt = a.delta != null && Math.abs(a.delta) >= 0.05
+                  ? ` (${a.delta > 0 ? '超出 +' : '提前 '}${Math.round(Math.abs(a.delta) * 100)}%)` : '';
+                return fmtHours(a.hours) + dt;
+              })())
+            : infoRow('预计剩余', (() => {
+                const e = etaOf(task, task.maxActive);
+                return e ? fmtHours(e.hours) : '—';
+              })()),
         ]),
         // 2. 任务描述
         h('div.glass-card.p-4', [
@@ -990,7 +1011,9 @@ function focusActive(wrap, nodes) {
 // ---- 主渲染 ----
 export async function render(mount, params, ctx) {
   const resp = await api.data().catch(() => null);
-  const allTasks = normalizeTasks((resp && resp.cards) || []);
+  // ETA 需并发上限折算并行墙钟 — overview 级配置下发到每个 card
+  const maxActive = (resp && resp.overview && resp.overview.maxActive) || 2;
+  const allTasks = normalizeTasks((resp && resp.cards) || []).map(t => (t.maxActive = maxActive, t));
 
   const q = params.query || {};
 
