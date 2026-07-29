@@ -14,7 +14,7 @@
 
 ## 触发准确性（≠ 可发现性）
 
-- [ ] `claude -p` 可发现性通过（能列出 + 说明何时触发）
+- [ ] `claude -p` 可发现性通过（能列出 + 说明何时触发）；带 YAML frontmatter 的文件用 stdin 命令模板 + 三跑一致验法，见 [skill-quality-checklist.md §质量门验证法](skill-quality-checklist.md#质量门验证法-stdin-命令--三跑一致)
 - [ ] should-trigger 测试通过（该触发的 prompt 命中）
 - [ ] should-not-trigger 测试通过（不该触发的 prompt 不命中）
 

@@ -60,6 +60,79 @@ description 项目底线 < 512 字符 (dimensions.md dim1), 前置 = 把最稀�
 
 前 5 个 (premature completion / duplication / sediment / sprawl / no-op) 是 skill **演化期**退化模式; negation 是**编写期**红线。
 
+## negation 转正向 (仅真 guardrail 留否定式)
+
+默认改正向表述: 「不要做 Y」把被禁行为命名得更可及 (negation 死法本身)。改法是**说正向配方**——把「禁 X」换成「做 Z, Z 来自哪一步产出」这种可执行动作句, 而非停在「别做 X」。
+
+只有真正的 **硬 guardrail** (破坏性 / 不可逆 / 安全类) 才保留否定式, 且**必须配正向配方**, 不能只留一句禁令收尾。判据: 拿掉这句禁令, 后果是否不可逆/不可挽回——是则留, 否则转正向。
+
+## 改写动作清单 (git 试点共有动作, 供其余 9 份直接套用)
+
+四个 git skill (git-commit/git-merge/git-pr/git-rebase) 改写时反复用到的 5 个动作, 每份改写逐条过一遍:
+
+| 动作 | 判据 | 操作 |
+|---|---|---|
+| description 剪枝 | leading word (触发词) 前置; body 已有的身份复述句删掉 | 一 branch 一 trigger, 中文同义触发词列表照删 (见下方实测) |
+| frontmatter 清标 | `name` 与目录名一致 | 删非标 `arguments:` 数组 (与 `argument-hint` 同一信息写两处), 保留 `argument-hint` |
+| 步骤补完成判据 | 每个工作流步骤末尾有 checkable 且 exhaustive 的完成条件 | 防 premature completion, 缺则补一句「何时算这步做完」 |
+| negation 转正向 | 逐条硬规过一遍 | 非真 guardrail 全部转正向配方; 真 guardrail 保留但补「改做什么」 |
+| 逐句 no-op + relevance 测 | 整句问「删掉它, skill 行为会变差吗」 | 答「不会」→ **整句删, 不修词**; 删除记录写入下方「实测删除项」 |
+
+保持语义不变的前提: 触发场景/硬规/失败兜底的**实际效果**改写前后一致, 只改表达与结构 (剪枝不是删功能)。
+
+## 质量门验证法 (stdin 命令 + 三跑一致)
+
+项目 CLAUDE.md 记的质量门命令对带 YAML frontmatter 的 SKILL.md **跑不通**, 改写后验证一律用以下 stdin 形式:
+
+```bash
+cat <SKILL.md 路径> | claude -p --bare "<问题>" --output-format stream-json 2>/dev/null \
+  | jq -r 'select(.type=="result" and .subtype=="success") | .result'
+```
+
+跑不通的三个原因 (CLAUDE.md 原命令 `claude -p "$(cat ...)" ...` 踩的坑):
+
+| 缺哪部分 | 后果 |
+|---|---|
+| 用 `"$(cat ...)"` 插值而非管道 | frontmatter 的 `---` 被解析成 CLI 选项, 报 `error: unknown option '---'` |
+| 缺 `2>/dev/null` | stderr 的 connector 警告混进 jq, 报 `Invalid numeric literal` |
+| 缺 `--bare` | skein hook 注入把 prompt 劫持成 exec mode, 或非 Anthropic 路由报 `API Error 400` |
+
+端点仍会抖动 (偶发空返回/超时), 需**重试循环**兜底; 空返回不等于「改写失败」的结论, 重试后有正常返回才能下判断。
+
+**predictability 验法 = 三跑一致**: 每份改写后, 同一个「主流程是什么」的 prompt **连跑 3 次质量门**, 三次的主流程描述必须一致才算过 (代价是调用量 ×3, 靠上面的重试循环兜端点抖动)。merge/rebase 额外必答对 `--ours`/`--theirs` 方向判定题 (两者语义相反, 改写前基线均答对, 答错即回归)。
+
+## 实测记录 (git 试点 s1-s4, 直接引用不重跑)
+
+### 中文同义触发词实测 (git-commit, s1)
+
+结论已定, 其余 skill **照删不重推**: description 里的中文同义触发词列表整段删, 只留一 branch 一 trigger。
+
+| 版本 | prompt | 调用次数 | 命中次数 |
+|---|---|---|---|
+| baseline (含同义词列表) | 把改动交了 | 3 | 3 |
+| baseline (含同义词列表) | 暂存并提交 | 3 | 3 |
+| deleted (删同义词列表) | 把改动交了 | 3 | 3 |
+| deleted (删同义词列表) | 暂存并提交 | 3 | 3 |
+
+6/6 → 6/6, **触发率未下降**——同义词列表是 no-op, 按上方「逐句 no-op 测」整段删。
+
+### 实测删除项样本
+
+| skill | 删的是什么 | 为什么删 (no-op/duplication) |
+|---|---|---|
+| git-commit | 非标 `arguments:` 数组 + 中文同义触发词列表 | 前者与 `argument-hint` 重复信息两处写; 后者见上方实测 6/6→6/6 |
+| git-commit | 「高频噪声速判表」内联 | 与 `references/noise-and-ignore.md` duplication, 收敛到 references 单一真值源, SKILL.md 只留 context pointer |
+| git-merge | 「比 rebase 安全」等比较句 | 与新引入的反转 (inversion) leading word 冗余, 方向说明已被反转表统一承载 |
+| git-merge | 「诚实边界」段内与 step3 重复的方向警告 | no-op (信息已在 step3 说过一遍) |
+| git-merge | `references/conflict-resolution.md` §poison 表内的重复条目 | 合并去重, §core 收敛前置检查/实质改动判据/冲突循环骨架为单一真值源, 供 git-rebase 引用 |
+| git-rebase | `references/conflict-resolution.md` 内 §poison 表整段 | 改指 git-merge 单一真值源, 本侧只留 §direction 反转表 + §rerere (真实差异不去重) |
+| git-pr | 失败处理表 3 行 (未推远端/自建 GitLab 域名/RTK wrapper 改写) | 与硬规或 references 逐句重复, no-op 测判定后整行删 |
+| git-pr | body 内对 description 的身份复述句 | duplication, 改为核心矛盾陈述 |
+
+**禁合并的反例** (真实差异, 不去重):
+- `git-merge`/`git-rebase` 的 `references/recovery.md` 一对不合并——merge 侧 abort/reset/revert/ff 与 rebase 侧 backup/reflog/force-with-lease 是真实差异, 不是 duplication。
+- 两份 `conflict-resolution.md` 的方向判定 (`--ours`/`--theirs`) 不合并成共享文件——merge 与 rebase 语义相反, 合并等于把 footgun 藏进 progressive disclosure 后面。做法是显式**反转 (inversion)** 表 + 两侧互指 pointer, 而非共享一份带条件分支的文件。
+
 ---
 
-调用时机: 流程 A Phase 4 (装配) 对照「信息分层 / leading words / 6 failure modes 编写期项」自检; 流程 B Phase 2 (诊断) 对照「6 failure modes 演化期项 + pruning」找退化根因。
+调用时机: 流程 A Phase 4 (装配) 对照「信息分层 / leading words / 6 failure modes 编写期项 / negation 转正向 / 改写动作清单」自检; 流程 B Phase 2 (诊断) 对照「6 failure modes 演化期项 + pruning」找退化根因; 改写后验证走「质量门验证法」跑 stdin 命令 + 三跑一致。
