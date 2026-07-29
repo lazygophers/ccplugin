@@ -65,15 +65,23 @@
   --popover-brd:     rgba(116, 185, 232, 0.30);
   --popover-shadow:  rgba(212, 176, 102, 0.18);     /* 暖金 popover 投影 */
 
-  /* ── 状态色 (--st-*, 替代 oklch status 派生, 保名兼容) ──
-     5 态: planning(规划紫) / ready(就绪青) / active(执行金) / check(验收蓝) / done(完成绿) / failed(失败红) */
-  --st-planning: #a78bfa;
-  --st-ready:    #38bdf8;
-  --st-pending:  var(--ocean-mid);
-  --st-active:   var(--goldSand-sunset);
-  --st-check:    var(--ocean-shallow);
-  --st-done:     var(--success);
-  --st-failed:   var(--danger);
+  /* ── 状态色 (--st-*) · 蓝金明度阶梯 ──
+     旧版 ready/pending/check 三态同为中蓝且明度接近, 小色块与 DAG 描边上肉眼分不开。
+     改为: 蓝系四阶按明度单调递减 (推进越深 = 颜色越重), 三个关键节点跳色。
+     明模 (白底 L99): 越推进越深, 每级 ≥14 L, 灰度打印也可分
+       planning L74 → pending L60 → ready L40 → check L23  (对比底 25/39/59/76)
+     跳色 (金/绿/红) 与蓝系色相分离, 不参与阶梯, 明度尽量插进蓝阶空档:
+       failed L51 落 ready39–pending60 之间; done L67 / active L73 落 pending 之上。
+     注: 7 色塞不进白底可用区间 (L24–74, 每色需 ≥10 L 间距 → 需 70 L)，
+     done/active 与 active/planning 灰度必撞。彩屏下靠色相区分, 无碍。
+     代价: active 浅金在白底对比仅 26 — 已知取舍 */
+  --st-planning: #7dd3fc;
+  --st-pending:  #38bdf8;
+  --st-ready:    #0284c7;
+  --st-active:   #e8c78a;
+  --st-check:    #0c4a6e;
+  --st-done:     #6ee7a8;
+  --st-failed:   #dc2626;
 
   /* ── UI 令牌 ── */
   --font: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;  /* examples:47-49 */
@@ -126,7 +134,15 @@
   --sel-bg: rgba(116, 185, 232, 0.20);
   --sel-fg: var(--ocean-shallow);
 
-  /* 状态色暗模: 同 hex, 用法靠 opacity 叠 (badge 类按需 background-blend) */
+  /* ── 状态色暗模 · 阶梯反向 ──
+     明模那套 (L74→L23) 直接套暗底会翻车: check #0c4a6e (L23) 压在 --bg #0f2033 (L13) 上
+     只差 10 L, 1px 描边基本隐形。暗底改为「越推进越亮」, 语义仍是「推进越深对比越强」。
+       planning L40 → pending L60 → ready L74 → check L86  (对比底 27/47/61/73)
+     跳色三色不覆盖: 在暗底对比 active 60 / done 54 / failed 38, 均 ≥38。 */
+  --st-planning: #0284c7;
+  --st-pending:  #38bdf8;
+  --st-ready:    #7dd3fc;
+  --st-check:    #bae6fd;
 }
 
 /* ponytail: 暗模系统跟随兜底 — 无 data-theme 时若 prefers-color-scheme=dark 走暗 */
@@ -157,5 +173,10 @@
     --surface-bg-3: #091420;
     --sel-bg: rgba(116, 185, 232, 0.20);
     --sel-fg: var(--ocean-shallow);
+    /* 状态色阶梯反向 — 同 [data-theme="skein-dark"], 理由见那里 */
+    --st-planning: #0284c7;
+    --st-pending:  #38bdf8;
+    --st-ready:    #7dd3fc;
+    --st-check:    #bae6fd;
   }
 }
