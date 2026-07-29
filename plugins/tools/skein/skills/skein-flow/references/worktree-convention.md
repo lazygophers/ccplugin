@@ -163,7 +163,7 @@ worktree 态 → 只在此 worktree 内改、禁碰主工作区;
    ↓
 2. 清悬挂残留
    ↓
-3. git add -A + commit (在 worktree 内，auto_commit=true 时自动)
+3. git add -A + commit (在 worktree 内，强制自动，不看 auto_commit)
    ↓
 4. merge 回主仓 (切到主分支)
    ↓
@@ -174,11 +174,15 @@ worktree 态 → 只在此 worktree 内改、禁碰主工作区;
 
 #### auto_commit 自适应
 
-- 配置名：`auto_commit`
-- 默认值：`true`
-- `true` → `skein finish` 自动 `git add -A` + commit 再 merge
-- `false` → finish 不自动 commit，worktree/原地有未提交改动即**拒绝 finish 报错**
-- 探测：`skein config --json 2>/dev/null | jq -r '.auto_commit' || echo unknown`
+**worktree 与 auto_commit 相互独立，判定分两条路：**
+
+| use_worktree | commit 行为 | 理由 |
+|---|---|---|
+| `true` | **强制** `git add -A` + commit 再 merge，`auto_commit` 不参与判定 | 未提交改动 merge 不进主干，且 finish 收尾 `worktree remove --force` 会连同丢弃 |
+| `false` (原地) | 才看 `auto_commit`：`true` → finish 时自动 commit；`false` → 改动留工作区，由用户自行提交 | 原地无强删风险，交用户自管 |
+
+- 配置名：`auto_commit`，默认 `true`
+- 探测：`skein config --json 2>/dev/null | jq -r '.use_worktree, .auto_commit'`
 
 ---
 

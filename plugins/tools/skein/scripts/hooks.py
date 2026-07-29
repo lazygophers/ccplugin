@@ -402,7 +402,9 @@ def cmd_user_prompt(d: dict[str, Any]) -> int:
         ctx += "\n\n" + _PREFIX_RULE + _task_phase_hints(dir_)
         uw, ma, ac = _run_config(dir_)
         wt_txt = "启用 (task 各开 worktree 隔离)" if uw else "禁用 (原地执行, 无 worktree)"
-        ac_txt = "启用 (finish/阶段切换自动 commit)" if ac else "禁用 (改动需手动 commit)"
+        # worktree 模式下 finish 必 commit (不提交则 merge 丢改动), auto_commit 只对原地模式生效
+        ac_txt = ("强制 (worktree 模式必自动 commit, 本配置不生效)" if uw
+                  else ("启用 (finish 时自动 commit)" if ac else "禁用 (改动需手动 commit)"))
         ctx += f"\n\n# SKEIN 运行配置\n- worktree: {wt_txt}\n- 最大并行 subtask: {ma}\n- auto_commit: {ac_txt}"
     print(json.dumps({"hookSpecificOutput": {
         "hookEventName": "UserPromptSubmit", "additionalContext": ctx}}))

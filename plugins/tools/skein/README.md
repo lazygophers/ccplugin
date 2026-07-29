@@ -43,7 +43,7 @@
 ├── task.md            # 顶层看板 (task.json 渲染, git 忽略, 禁直接编辑)
 ├── task.html          # 静态可视化看板 (title/标题带项目名; task.json 渲染, git 忽略, `skein view` 打开)
 ├── board/             # 主题/配色 CSS (从插件 assets 拷贝, git 忽略, html link 引入)
-├── config.yaml        # max_active:2 / retain_days:7 / auto_commit:true / worktree_root:.worktrees / board_theme / board_palette / board_mode
+├── config.yaml        # max_active:2 / retain_days:7 / auto_commit:true (仅原地模式生效) / worktree_root:.worktrees / board_theme / board_palette / board_mode
 └── task/
     ├── <id>/          # 活跃 + 完成保留期内 task: prd.md(主入口) / design.md(详细设计) / findings.md(调研收敛) / research/ + task.json/task.md(脚本渲染)
     └── archive/<年>/<月-日>/<id>/   # 按完成日期分层归档 (完成超 retain_days 天自动移入)

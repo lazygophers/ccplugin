@@ -29,7 +29,7 @@ check 全绿后的**收尾门**。验收/完成度核对已在 check 阶段做�
 |---|---|---|
 | finisher 报悬挂残留清不掉 (无 Write/Edit, 只能列不能删) | main 直接清理 (git clean/rm 该文件) 后重派 finisher | 清不掉 → 停手, 报用户裁 |
 | finisher 报 `skein finish` merge 冲突 | `git status` 列冲突文件 → 读冲突双方 commit 理解各自 intent → 逐文件手动解 → 重派 finisher 重跑 | 解不开 → 停手, 保留 worktree, 报用户裁 |
-| finisher 报 auto_commit=false 且有未提交改动 → finish 拒绝 | 提示用户手动 `git commit` 后重派 finisher | 用户不提交 → 停手, 禁 --force 强删 (会丢改动) |
+| 原地模式 (use_worktree=false) + auto_commit=false, finish 后改动仍在工作区 | 这是设计行为 (交用户自管), 汇报时提示用户自行 `git commit` | — (worktree 模式必自动 commit, 不会走到这) |
 | finisher 报悬挂 subagent `TaskStop` 关不掉 | 重派 finisher 重试 | 仍在 → 停手, 禁 finish (未闭环) |
 | finisher 报「无改动, 疑误派 finish」 | main 核实 task 是否真无产出 | 确认误派 → 停手排查上游, 不强行 finish |
 

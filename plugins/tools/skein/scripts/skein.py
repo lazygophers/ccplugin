@@ -165,7 +165,7 @@ def _yaml_dump(d: dict[str, Any]) -> str:
 # config.yaml 全部键的默认值 — init 写入 + config() 缺键自动回填的唯一真值源。
 CONFIG_DEFAULTS = {
     "max_active": 2,
-    "auto_commit": True,
+    "auto_commit": True,  # 仅原地模式 (use_worktree=false) 生效; worktree 模式 finish 必 commit, 本键不参与判定
     "use_worktree": True,  # False→禁用 worktree 隔离 (原地执行, 同非 git); start 不建、doctor 不查 worktree
     "worktree_root": ".worktrees",
     "retain_days": 7,  # 完成 task 保留天数; 0=finish 即归档, 负=永不自动
@@ -635,6 +635,14 @@ class Skein:
             return [{"repo": ".", "wt": rel, "branch": t.get("branch"), "merged": False}]
         return []
 
+    @staticmethod
+    def _commit_all(cwd: Path, msg: str) -> None:
+        # git add -A + commit; 无改动时静默 (nothing to commit 不算错)
+        git("add", "-A", cwd=cwd)
+        r = git("commit", "-m", msg, cwd=cwd, check=False)
+        if r.returncode != 0 and "nothing to commit" not in (r.stdout + r.stderr):
+            sys.stderr.write(r.stdout + r.stderr)
+
     def _ignore_wt(self, repo_dir: Path) -> None:
         # 把 worktree_root 写进该 git 仓 .gitignore (缺则补), 免 worktree 目录污染该仓 status。
         # 子仓是独立 git/submodule, root .gitignore 管不到, 故各子仓自补。
@@ -892,18 +900,9 @@ class Skein:
                     f"{tid} worktree 缺失 ({w['wt']}) — 跳过, 分支 {w['branch']} 若有提交未并入\n")
                 w["merged"] = True  # 缺失即无从合并, 标记免卡住
                 continue
-            if cfg.get("auto_commit"):
-                git("add", "-A", cwd=wt)
-                r = git("commit", "-m", f"skein({tid}): {t['name']}", cwd=wt, check=False)
-                if r.returncode != 0 and "nothing to commit" not in (r.stdout + r.stderr):
-                    sys.stderr.write(r.stdout + r.stderr)
-            else:
-                # auto_commit 关: 用户须自行提交; 有未提交改动则拒绝 (下面 --force 会强删丢失)
-                st = git("status", "--porcelain", cwd=wt, check=False)
-                if st.stdout.strip():
-                    raise SystemExit(
-                        f"{tid} worktree 有未提交改动且 auto_commit=false — "
-                        f"先手动提交再 finish (禁强删丢失):\n{wt}")
+            # worktree 场景强制 commit, 不看 auto_commit — 未提交改动 merge 不进主干,
+            # 且下面 worktree remove --force 会连同丢弃 (auto_commit 只管原地模式, 见 finish 末尾)
+            self._commit_all(wt, f"skein({tid}): {t['name']}")
             # 合并回该子 git 的主工作区
             m = git("merge", "--no-ff", w["branch"], "-m",
                     f"skein: merge {tid} {t['name']}", cwd=sub, check=False)
@@ -930,6 +929,10 @@ class Skein:
         self._save(t)
         self._sync()  # 重写顶层索引 (完成 task 仍留看板; retain_days=0 时 _autoclean 即归档)
         archived = not (self.tasks / tid).exists()  # retain_days<=0 → 已被 _autoclean 归档
+        # 原地模式 (无 worktree): 此时才轮到 auto_commit 决定提不提交; 关则改动留工作区由用户自管。
+        # 放在 _save/_sync 之后 — 连同 .skein 状态一起提交, 免留下脏索引
+        if not wts and self.git and cfg.get("auto_commit", True):
+            self._commit_all(self.root, f"skein({tid}): {t['name']}")
         cfg = self.config()
         rest = self._active()
         tail = (f", 剩余 active: {', '.join(x['id'] for x in rest)}" if rest else ", 无剩余 active")
@@ -1656,8 +1659,12 @@ class Skein:
         if hint:
             lines.append(hint)
         cfg = self.config()
-        wt_txt = "启用 (task 各开 worktree 隔离)" if cfg.get("use_worktree", True) else "禁用 (原地执行, 无 worktree)"
-        ac_txt = "启用 (finish/阶段切换自动 commit)" if cfg.get("auto_commit", True) else "禁用 (改动需手动 commit)"
+        wt_on = cfg.get("use_worktree", True)
+        wt_txt = "启用 (task 各开 worktree 隔离)" if wt_on else "禁用 (原地执行, 无 worktree)"
+        # worktree 模式下 finish 必 commit (不提交则 merge 丢改动), auto_commit 配置只对原地模式生效
+        ac_txt = ("强制 (worktree 模式必自动 commit, 本配置不生效)" if wt_on
+                  else ("启用 (finish 时自动 commit)" if cfg.get("auto_commit", True)
+                        else "禁用 (改动需手动 commit)"))
         lines += ["", "# SKEIN 运行配置", f"- worktree: {wt_txt}", f"- 最大并行 subtask: {cfg['max_active']}", f"- auto_commit: {ac_txt}"]
         prefix_tasks = ", ".join(f"{t['id']}({PHASE_OF.get(t['status'], '')})" for t in active)
         lines += ["", "# 回复前缀 (强制)",

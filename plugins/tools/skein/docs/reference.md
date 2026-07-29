@@ -61,7 +61,7 @@
 | --- | --- | --- |
 | max_active | 2 | 同时活跃 task 数 (subtask 并发复用同一键) |
 | retain_days | 7 | 归档保留天数 |
-| auto_commit | true | 自动 git commit |
+| auto_commit | true | 原地模式 finish 时自动 git commit; worktree 模式恒强制 commit, 本键不参与判定 |
 | worktree_root | `.worktrees` | worktree 路径 |
 | spec_core_budget | 8000 | core 注入预算 (char) |
 | board_theme/palette/mode | default/blue/light | 看板样式 |
