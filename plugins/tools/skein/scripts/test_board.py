@@ -225,6 +225,11 @@ def test_serve_config_post() -> None:
             # 非法 POST: 兜底为 CONFIG_DEFAULTS (retain_days=7), 不落 "not-a-number"
             assert post({"retain_days": "not-a-number"}) == 200, "非法值兜底应仍 200"
             assert "not-a-number" not in (d / ".skein/config.yaml").read_text(), "非法值误落盘"
+            # hooks 键刻意不进 CONFIG_DEFAULTS (config-hooks/c3b) — 端点只回填已知叶, 天然拒绝写入
+            # 任意 shell 命令, 免专门写排除逻辑 (安全副产品, 防远程写 shell = RCE, 见 design.md §4)
+            assert post({"hooks": {"agent": {"*": {"start": [{"command": "touch pwned"}]}}}}) == 200
+            assert "hooks" not in (d / ".skein/config.yaml").read_text(), "hooks 键不该被写端点接受"
+            assert not (d / "pwned").exists()
         finally:
             proc.terminate()
             try:

@@ -12,14 +12,19 @@ skills:
 
 ## 工作流
 
-### 0. 状态切换: 进行中 → 检查中
+### 0. 开工钩子 (第一步, 失败不阻断)
+```
+python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-start --agent skein-checker --tid <id>
+```
+
+### 1. 状态切换: 进行中 → 检查中
 ```
 skein check <id>
 ```
 - 仅「进行中」态可执行; 非法状态 CLI 会 `SystemExit` 报错 → `[工具失败: check 状态切换失败, 当前态 <status>]`, 中止后续验证, needs_main 标「task 未处于进行中, 无法进检查中」。
 - 已是「检查中」(重跑/断点续) → 跳过此步, 视为已切换。
 
-### 1. checkpoint 核对 (task + subtask 双层)
+### 2. checkpoint 核对 (task + subtask 双层)
 task 级验收标准 + 各 subtask `--check` checklist 全核对 (exec 只 `done`, 不勾验收; 验收在此统一做):
 ```
 skein prd read <id> --type=验收标准       # task 级验收标准 (中英均可: acceptance)
@@ -35,7 +40,7 @@ skein subtask show <id> <sid>             # 单 subtask 全字段, 含 --check c
   `--list` 为子串匹配, 文本须与 prd.md 原文一致才能勾中; CLI 报错或未命中 → `[工具失败: prd check 未匹配]`, 该项仍按未勾状态入 acceptance 数组上报。
 - 读不到 → `[工具失败: prd 无 acceptance 章节]`, 全项标 MANUAL。
 
-### 2. 场景自适应内置 check
+### 3. 场景自适应内置 check
 按项目特征探测跑对应内置检查 (多特征并存跑命中的**多类**):
 - **编程类** (有 `pyproject.toml`/`package.json`/`Makefile`) — lint / type-check / test / build + 架构一致性:
   - `pyproject.toml` → `ruff check` / `mypy` / `pytest`
@@ -50,7 +55,7 @@ skein subtask show <id> <sid>             # 单 subtask 全字段, 含 --check c
 
 每条命令/核查记: 命令 + exit code + 结果摘要 + 失败原文 (file:line)。
 
-### 3. 契约逐条核对
+### 4. 契约逐条核对
 ```
 skein contract <id>
 ```
@@ -58,7 +63,7 @@ skein contract <id>
 - 任一 fail → 上报 (main 派修复), 禁放过。
 - CLI 报错 → `[工具失败: 契约读取失败]`。
 
-### 4. 一致性核查 (subtask 产物间冲突)
+### 5. 一致性核查 (subtask 产物间冲突)
 逐条报冲突对:
 - 接口签名对不上 (A 调 B 参数/返回类型不符)
 - 重复实现同一职责
@@ -68,8 +73,14 @@ skein contract <id>
 
 冲突记: 哪两处 `file:line` + 冲突点。
 
+### 6. 收工钩子
+```
+python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-stop --agent skein-checker --tid <id>
+```
+
 ## Checkpoints
 
+🛑 **开工/收工钩子必跑** — 与状态切换/回传同级的固定动作。钩子失败只记 note 不阻断本次验证 (用户钩子挂了不该让检查失败)。无 hooks 配置时命令 no-op 立即返回, 不构成负担。
 🛑 **硬门全跑完才回传** — 状态切换 / checkpoint 核对 (task+subtask 验收) / 场景内置 check (按项目自适应命中类: 编程/小说/数据ETL/文档知识/配置基建/设计前端) / 契约 / 一致性 缺一回传 = 漏检, main 会据不全报告误放行。
 🛑 **工具失败必标 `[工具失败: <原因>]`** — Bash 超时/Read 不存在/CLI 报错, 禁把错误输出当结果返回 (main 消费错误摘要当有效数据 → 静默降级)。
 🛑 **只验证不修复, 修复循环归 main** — 无 Write/Edit, 全部写盘经 `skein prd check` CLI 完成 (仅限勾选验收项, 不改内容); 查出代码/文本问题原样上报, 禁就地改、禁自行加 subtask、禁绕过 main 重派 executor。FAIL/冲突 → needs_main 写清方向供 main 走 grill/AskUserQuestion 定夺。

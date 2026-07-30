@@ -396,16 +396,17 @@ def _task_phase_hints(skein_dir: str) -> str:
 
 
 def _run_config(dir_: str) -> tuple[bool, int, bool]:
-    """读 config.yaml 的 use_worktree + max_active + auto_commit; 默认从 skein.CONFIG_DEFAULTS (hook 不硬编码)。"""
-    from skein import CONFIG_DEFAULTS, _yaml_load  # lazy: 仅已初始化热路径需要; 默认真值唯一来源
+    """读 config.yaml 的 worktree.enabled + max_active + auto_commit (旧扁平键 deprecated fallback 仍生效);
+    默认从 skein.CONFIG_DEFAULTS (hook 不硬编码)。"""
+    from skein import CONFIG_DEFAULTS, _cfg_effective, _yaml_load  # lazy: 仅已初始化热路径需要; 默认真值唯一来源
     try:
         with open(os.path.join(dir_, "config.yaml"), encoding="utf-8") as f:
-            cfg = _yaml_load(f.read())
+            cfg = _cfg_effective(_yaml_load(f.read()))
     except (OSError, ValueError):
-        cfg = {}
-    uw = bool(cfg.get("use_worktree", CONFIG_DEFAULTS["use_worktree"]))
-    ac = bool(cfg.get("auto_commit", CONFIG_DEFAULTS["auto_commit"]))
-    ma = cfg.get("max_active", CONFIG_DEFAULTS["max_active"])
+        cfg = CONFIG_DEFAULTS
+    uw = bool(cfg["worktree"]["enabled"])
+    ac = bool(cfg["auto_commit"])
+    ma = cfg["max_active"]
     env = os.environ.get("CLAUDE_PLUGIN_OPTION_MAX_ACTIVE")
     if env and env.strip().isdigit():
         ma = int(env)
@@ -493,7 +494,9 @@ def cmd_flow_gate(d: dict[str, Any]) -> int:
         if len(seen) < 2:
             return 0
         open(warned, "w").close()
-    except OSError:
+    except (OSError, ValueError):
+        # ValueError 覆盖 UnicodeDecodeError (tally 被写坏成二进制) — PostToolUse 永不该失败,
+        # 一个坏掉的计数文件不值得打断用户的 Edit/Write。
         return 0
     print(json.dumps({"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": (
         f"⚠️ 已改动 {len(seen)} 个源码文件但**无 active task** — 跨 ≥2 文件正是 flow 的判据线。\n"
@@ -503,16 +506,69 @@ def cmd_flow_gate(d: dict[str, Any]) -> int:
     return 0
 
 
+# ── agent-start / agent-stop (agent 生命周期钩子入口) ───────────────────────
+def _agent_hook(when: str) -> int:
+    """agent start/stop 钩子: 查 hooks.agent.<name>.<when> (+ "*"), 无配置即 no-op;
+    命中则经 hooklib._run_hooks 真正执行 (具名先跑, "*" 后跑)。
+
+    永不返回非零 —— agent 钩子失败不该影响 subtask 成败 (design.md §3 阻断语义,
+    与阶段钩子 before 阻断相反; _run_hooks 对 scope=="agent" 已内建只告警不抛)。
+    """
+    argv = sys.argv[2:]
+    opts: dict[str, str] = {}
+    for i in range(0, len(argv) - 1, 2):
+        if argv[i].startswith("--"):
+            opts[argv[i][2:]] = argv[i + 1]
+    agent = opts.get("agent", "")
+    tid = opts.get("tid", "")
+    sid = opts.get("sid", "")
+    root = _git_root(opts.get("cwd") or os.getcwd())
+    try:
+        from skein import _yaml_load  # lazy: 仅本门需要
+        with open(os.path.join(root, ".skein", "config.yaml"), encoding="utf-8") as f:
+            cfg = _yaml_load(f.read())
+    except (OSError, ValueError, ImportError):
+        return 0  # 未初始化 / 配置语法错 / 导入失败 → 静默放行 (钩子永不阻断 agent)
+    spec = cfg.get("hooks")
+    if not isinstance(spec, dict):
+        return 0  # 无 hooks 键: 零开销直返, 不解析深层不 fork
+    agents = spec.get("agent")
+    if not isinstance(agents, dict):
+        return 0
+    # 具名先, 通配 "*" 后 (具体优先于通配)
+    todo = [c for key in (agent, "*")
+            if isinstance(agents.get(key), dict)
+            for c in (agents[key].get(when) or [])]
+    if not todo:
+        return 0
+    from hooklib import _run_hooks  # lazy: 仅命中时才 fork 子进程
+    _run_hooks("agent", when, {"hooks": todo, "agent": agent, "tid": tid, "sid": sid, "repo_root": root})
+    try:  # 审计: 供 c7 doctor 检查「配了 agent 钩子但从未触发」; 写失败不影响钩子已执行的事实
+        from spec import Spec
+        Spec()._write_audit("agent-hook", f"agent.{agent}", when, f"{len(todo)} hooks", f"tid={tid} sid={sid}")
+    except (OSError, ValueError):
+        pass
+    return 0
+
+
 DISPATCH: dict[str, Any] = {"permission": cmd_permission, "guard": cmd_guard,
             "batch": cmd_batch, "report": cmd_report, "fmt": cmd_fmt,
             "spec-meta": cmd_spec_meta, "stop-check": cmd_stop_check,
-            "user-prompt": cmd_user_prompt, "flow-gate": cmd_flow_gate}
+            "user-prompt": cmd_user_prompt, "flow-gate": cmd_flow_gate,
+            "agent-start": lambda _d: _agent_hook("start"),
+            "agent-stop": lambda _d: _agent_hook("stop")}
+
+
+_ARGV_DISPATCH = {"agent-start", "agent-stop"}  # dispatch 参数式子命令 (design.md §1): 用户/agent 显式调用,
+# 参数走 --flag argv (非 harness PreToolUse/PostToolUse 那套 stdin JSON 协议) —— 不读 stdin, 免无输入时空等
 
 
 def main() -> int:
     if len(sys.argv) < 2 or sys.argv[1] not in DISPATCH:
         sys.stderr.write(f"用法: hooks.py {{{'|'.join(DISPATCH)}}}\n")
         return 2
+    if sys.argv[1] in _ARGV_DISPATCH:
+        return cast(int, DISPATCH[sys.argv[1]]({}))
     d = _load_stdin()
     if d is None:
         return 0  # stdin 非法 JSON: 静默放行

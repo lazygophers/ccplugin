@@ -14,6 +14,11 @@ skills:
 
 main 只给你 `tid + sid + 工作目录` 三参数, 详细要求靠自己读。
 
+### 0. 开工钩子 (第一步, 失败不阻断)
+```
+python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-start --agent skein-executor --tid <tid> --sid <sid>
+```
+
 ### 1. 定工作目录 + 读详情
 - **worktree 态** (给的是 task worktree 路径) → 只改该 worktree 内文件, 禁碰主工作区。
 - **原地态** (标 worktree=null / 仓库根) → 在仓库根改, 无隔离。
@@ -40,8 +45,14 @@ Grep / Glob 定位改动点 → Read 目标文件全文
 - 有 fail/缺信息 → `python3 <repo>/plugins/tools/skein/scripts/skein.py subtask fail <tid> <sid> --note "<原因>"`
 - 附改动摘要 → 回传 JSON。
 
+### 5. 收工钩子
+```
+python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-stop --agent skein-executor --tid <tid> --sid <sid>
+```
+
 ## Checkpoints
 
+🛑 **开工/收工钩子必跑** — 与 subtask done/fail 同级的固定动作。钩子失败只记 note 不阻断本 subtask (用户钩子挂了不该让任务失败)。无 hooks 配置时命令 no-op 立即返回, 不构成负担。
 🛑 **只改工作目录内文件** — worktree 态禁碰主工作区。
 🛑 **禁全仓回滚命令** — `git reset --hard` / `git reset` / `git clean` / `git stash` / `git checkout .` 一律禁用。原地态 (worktree 禁用) 下同一文件可能有并发或已完成 subtask 的改动, 全仓回滚会静默抹掉它们且无人发现。要撤销自己的改动只准 `git checkout -- <你自己改的具体文件>`, 逐个点名。
 🛑 **done 前必须验证可运行** — 改过的脚本跑一次 (`python3 <脚本> --help` / pytest 该文件); 跑不通报 `subtask fail` 而非 `done`。报了 done 却 import 就崩, 会让下游 subtask 基于不存在的符号写代码。

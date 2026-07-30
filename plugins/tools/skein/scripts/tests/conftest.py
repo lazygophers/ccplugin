@@ -14,10 +14,12 @@ import pytest  # type: ignore[import-not-found]
 SCRIPTS: Path = Path(__file__).resolve().parent.parent
 SKEIN: Path = SCRIPTS / "skein.py"
 MEM: Path = SCRIPTS / "spec.py"
+HOOKS: Path = SCRIPTS / "hooks.py"
 
 GitCmd = Callable[..., None]
 SkeinCli = Callable[..., subprocess.CompletedProcess[str]]
 MemCli = Callable[..., subprocess.CompletedProcess[str]]
+HooksCli = Callable[..., subprocess.CompletedProcess[str]]
 
 
 @pytest.fixture  # type: ignore[untyped-decorator]
@@ -44,6 +46,17 @@ def mem_cli() -> MemCli:
         return subprocess.run([sys.executable, str(MEM), *args], cwd=cwd,
                               capture_output=True, text=True, check=True, input=inp)
     return _mem
+
+
+@pytest.fixture  # type: ignore[untyped-decorator]
+def hooks_cli() -> HooksCli:
+    """hooks.py CLI 封装: hooks_cli(cwd, *args) → CompletedProcess。stdin 显式喂空串 —
+    agent-start/agent-stop 走 dispatch 参数(不读 stdin), 其余 harness 风格子命令读 stdin JSON,
+    不喂会阻塞等待终端输入(而非直接报错), 统一空串最安全。"""
+    def _hooks(cwd: Path, *args: str, check: bool = False) -> subprocess.CompletedProcess[str]:
+        return subprocess.run([sys.executable, str(HOOKS), *args], cwd=cwd,
+                              capture_output=True, text=True, check=check, input="")
+    return _hooks
 
 
 @pytest.fixture  # type: ignore[untyped-decorator]

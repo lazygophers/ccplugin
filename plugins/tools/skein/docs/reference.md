@@ -51,8 +51,8 @@
 | `spec-meta` | 检查 spec frontmatter |
 | `stop-check` | 扫描 spec → .pending-fix |
 | `user-prompt` | 信号路由 |
-| `subagent-start` | 注入 core 规则 |
-| `session-context` | 注入活跃 task + core |
+| `flow-gate` | 跨文件改动无 active task 时提示补建 |
+| `agent-start` / `agent-stop` | agent 生命周期钩子入口, 跑 `config.yaml` 的 `hooks.agent.*` (详见 [hooks.md](hooks.md)) |
 
 ### Config
 
@@ -64,6 +64,9 @@
 | worktree_root | `.worktrees` | worktree 路径 |
 | spec_core_budget | 8000 | core 注入预算 (char) |
 | board_theme/palette/mode | default/blue/light | 看板样式 |
+
+`hooks` (阶段钩子 + agent 钩子) 是可选特性, 不在 `CONFIG_DEFAULTS` 里 (无默认值, `init`/展示均不含),
+需手写进 `config.yaml`, 详见 [hooks.md](hooks.md)。
 
 ---
 

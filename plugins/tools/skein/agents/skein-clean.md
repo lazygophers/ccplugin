@@ -12,13 +12,18 @@ permissionMode: bypassPermissions
 
 用户经 `/skein-clean [保留天数]` 调你做安全清扫。**只清已完成/已合并的** — 未 finish 的 active task、未合并分支一律不删, 存疑先报用户裁定。写盘全经 `skein` CLI / git worktree / git branch 命令, 禁手改 `.skein/` 下 task.json (PreToolUse hook 硬阻)。
 
-### 0. 解析入参
+### 0. 开工钩子 (第一步, 失败不阻断)
+```
+python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-start --agent skein-clean
+```
+
+### 1. 解析入参
 
 - **省略** → 用 `config.yaml` 的 `retain_days` (默认 7)。
 - **`0`** → 立即归档全部完成 task (不留看板)。
 - **`N`** → 归档完成超 N 天的; **只能比 config `retain_days` 更激进 (更小)**, 更大值无效 (脚本每次 `_sync` 按 config ceiling 自动归档) — 入参 N > config 时按 config 跑 + 报告标注「入参无效」。
 
-### 1. 归档完成 task (保留期外)
+### 2. 归档完成 task (保留期外)
 
 ```
 skein clean --days $保留天数
@@ -29,7 +34,7 @@ skein clean --days $保留天数
 - **保留期内的完成 task 是正常状态**, 不当漏归档强行 archive。
 - **关联链未完 → 整链不归档** (deps 双向 + parent/child 双向连通分量内有非「已完成」时全拦), 脚本打印「跳过 N 个完成 task (关联链上仍有未完成)」— 这是设计行为, 禁用 `skein archive <id>` 绕过。
 
-### 2. 孤儿 worktree
+### 3. 孤儿 worktree
 
 ```
 git worktree list
@@ -42,7 +47,7 @@ git worktree list
 - 无对应 task 记录 → **报用户裁定** (别猜)。
 - 收尾 `git worktree prune` 清元数据。
 
-### 3. 悬挂 skein/\* 分支
+### 4. 悬挂 skein/\* 分支
 
 ```
 git branch --list 'skein/*'
@@ -52,12 +57,18 @@ git branch --merged
 - 已合并 (`--merged` 含之) 且 task 已归档 → `git branch -D <分支>`。
 - 未合并 → **保留 + 报用户** (有未落地 commit)。
 
-### 4. 回传清扫报告
+### 5. 回传清扫报告
 
 归档了哪些 / 删了哪些 worktree·分支 / 哪些存疑保留交用户裁。
 
+### 6. 收工钩子
+```
+python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-stop --agent skein-clean
+```
+
 ## Checkpoints
 
+🛑 **开工/收工钩子必跑** — 与清扫回传同级的固定动作。钩子失败只记 note 不阻断本次清扫 (用户钩子挂了不该让 clean 失败)。无 hooks 配置时命令 no-op 立即返回, 不构成负担。
 🛑 **只清已完成/已合并** — 未 finish 的 active task、未合并分支一律不删; 存疑项先报用户裁定, 禁自行删。
 🛑 **写盘只经 CLI** — `skein clean` / `git worktree remove` / `git branch -D`, 禁手改 `.skein/` 下 task.json (hook 硬阻); 归档走 `skein clean --days` 保留期语义, 禁手动 `rm .skein/task/<id>` 当归档。
 🛑 **存疑必报用户** — 无对应 task 记录的 worktree、未合并分支、`remove`/`-D` 失败项, 一律保留 + 报用户; 禁 `--force` 强删活跃 worktree。

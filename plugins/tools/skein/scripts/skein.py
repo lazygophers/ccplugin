@@ -5,8 +5,8 @@
 skein.py 自身就是引擎, 无外部 hook 层 — start/finish 直接干活。
 
 工作区布局 (git 根下):
-  .skein/.gitignore               init 生成: 忽略 task.md (从 task.json 无损重建); 另补 worktree_root 到根 .gitignore
-  .skein/config.yaml              设置 (max_active / auto_commit / worktree_root)
+  .skein/.gitignore               init 生成: 忽略 task.md (从 task.json 无损重建); 另补 worktree.root 到根 .gitignore
+  .skein/config.yaml              设置 (max_active / auto_commit / worktree.root)
   .skein/task.json                {tasks:[{id,status,deps,worktree,parent,kind}]}  顶层状态汇总 — 脚本维护, AI 禁读写
   .skein/task.md                  顶层看板 (task.json 渲染, git 忽略) — 脚本维护, AI 禁读写
   .skein/task/<id>/task.json      单 task 记录 + subtask DAG — 脚本维护, AI 禁读写
@@ -37,7 +37,7 @@ from pathlib import Path
 from typing import Any, AsyncIterator, Callable, Iterable, Iterator, Optional, Protocol, cast
 
 sys.path.insert(0, str(Path(__file__).parent))  # 同目录 hooklib 可导入 (hook 环境非 Bash PATH)
-from hooklib import budget_guard, Debug, debug_enabled  # noqa: E402
+from hooklib import budget_guard, Debug, debug_enabled, HookBlocked, _run_hooks  # noqa: E402
 
 SESSION_CTX_BUDGET_TOKENS = 400  # session-context 注入 token 硬预算 (active task ≤2, 正常远低于)
 
@@ -121,6 +121,12 @@ def _workspace_lock(lock_path: Path, timeout: float = 10.0, poll: float = 0.05) 
     # 工作区级排他写锁 (fcntl.flock): 防多 skein 进程并发 read-modify-write 破坏 task.json。
     # 阻塞等待锁释放, 超 timeout 秒仍拿不到 → SystemExit (非死等)。CLI 短命, 全局锁足够。
     # ponytail: global lock, per-task locks if throughput matters.
+    # config-hooks: SKEIN_IN_HOOK 已置位 = 本进程是钩子(before/after)里派生的嵌套 skein 调用,
+    # 其父进程正是本锁的持有者且仍在临界区内(阶段命令body含钩子执行)——同进程链单写者,
+    # 再抢同一把锁必死锁到 timeout。跳过加锁(整个 with 块变 no-op), 写序仍由外层锁串行化。
+    if os.environ.get("SKEIN_IN_HOOK"):
+        yield
+        return
     lock_path.parent.mkdir(parents=True, exist_ok=True)
     f = open(lock_path, "w")
     deadline = time.monotonic() + timeout
@@ -141,48 +147,546 @@ def _workspace_lock(lock_path: Path, timeout: float = 10.0, poll: float = 0.05) 
         DBG.log("🔓 释放工作区写锁", style="dim")
 
 
-# ponytail: config 只有 4 个扁平标量键 → 手写 mini YAML 读写, 免 PyYAML 依赖。
-# ceiling: 只认 `key: value` + `#` 注释, 不支持嵌套/列表/多行。够 config 用即止。
-def _yaml_load(text: str) -> dict[str, Any]:
-    out: dict[str, Any] = {}
-    for line in text.splitlines():
-        line = line.split("#", 1)[0].strip()
-        if not line or ":" not in line:
+# ponytail: 手写 mini YAML 读写, 免 PyYAML 依赖。
+# ceiling: 支持子集 — 2 空格缩进嵌套 dict(不限层数) + `- ` 列表(含 list of dict) + 标量(str/int/bool)
+# + `#` 注释(引号内不截断) + 带引号的键/值。不支持: 锚点`&`/引用`*` · 多行标量`|`/`>` · 流式`{}`/`[]` ·
+# 多文档`---` · tab 缩进 — 一律报错指行号, 禁静默降级(配置无声失效是最难查的一类故障)。
+def _yaml_first_unquoted(s: str, chars: str) -> int:
+    """s 中首个不落在引号(单/双)内的 chars 字符下标, 无则 -1。双引号内 `\\` 转义生效。"""
+    q: Optional[str] = None
+    i, n = 0, len(s)
+    while i < n:
+        c = s[i]
+        if q:
+            if q == '"' and c == "\\" and i + 1 < n:
+                i += 2
+                continue
+            if c == q:
+                q = None
+            i += 1
             continue
-        kv = line.split(":", 1)
-        k = kv[0]
-        v: Any = kv[1].strip().strip("'\"")
-        if v in ("true", "false"):
-            v = v == "true"
-        elif v.lstrip("-").isdigit():
-            v = int(v)
-        out[k.strip()] = v
-    return out
+        if c in ("'", '"'):
+            q = c
+            i += 1
+            continue
+        if c in chars:
+            return i
+        i += 1
+    return -1
 
 
-def _yaml_dump(d: dict[str, Any]) -> str:
-    def fmt(v: Any) -> str:
-        return "true" if v is True else "false" if v is False else str(v)
-    return "".join(f"{k}: {fmt(v)}\n" for k, v in d.items())
+def _yaml_unquote(raw: str, lineno: int) -> str:
+    """去掉一对引号。双引号走 json 解码(拿标准转义); 单引号无转义, 仅去壳。
+    未闭合引号(结尾非同引号字符) → 报错指行号, 不静默丢引号 —
+    否则 `command: "echo 'a b'` 漏个引号会让 hook 命令被静默改写 (安全相关)。"""
+    q = raw[0]
+    if len(raw) < 2 or raw[-1] != q:
+        raise _yaml_bad(lineno, f"未闭合引号 ({raw!r})")
+    inner = raw[1:-1]
+    if q == '"':
+        try:
+            return cast(str, json.loads(raw))
+        except (ValueError, json.JSONDecodeError):
+            raise _yaml_bad(lineno, f"非法转义序列 ({raw!r})")
+    return inner
 
+
+def _yaml_bad(lineno: int, what: str) -> ValueError:
+    """配置语法错 → ValueError (非 SystemExit)。
+
+    ponytail: 刻意用 ValueError —— hook 热路径 (hooks.py `_run_config` / spec.py `always_budget`)
+    的既有 `except (OSError, ValueError)` 就能自动兜住, 一个 config.yaml 笔误不会让每个 prompt
+    的 hook 都 exit 1。CLI 侧的友好报错由 main() 顶层统一转 SystemExit。
+    """
+    return ValueError(f"config.yaml 第 {lineno} 行: 不支持的语法: {what}")
+
+
+def _yaml_check_reserved(raw: str, lineno: int) -> None:
+    """裸(未加引号)token 打头字符命中保留语法即报错指行号。"""
+    if not raw:
+        return
+    c0 = raw[0]
+    if c0 in "&*":
+        raise _yaml_bad(lineno, f"锚点/引用 ({c0})")
+    if c0 in "|>":
+        raise _yaml_bad(lineno, f"多行标量 ({c0})")
+    if c0 in "{[":
+        raise _yaml_bad(lineno, "流式语法")
+
+
+def _yaml_parse_key(raw: str, lineno: int) -> str:
+    if raw and raw[0] in ("'", '"'):
+        return _yaml_unquote(raw, lineno)
+    _yaml_check_reserved(raw, lineno)
+    if not raw:
+        raise _yaml_bad(lineno, "空键")
+    return raw
+
+
+def _yaml_parse_scalar(raw: str, lineno: int) -> Any:
+    if raw == "":
+        return None
+    # 空映射/空列表是唯一支持的流式语法 —— CONFIG_DEFAULTS 里 `hooks: {}` 这类空骨架要能往返
+    # (_yaml_dump 写出 `{}`, 读回须仍是 dict 而非字符串, 否则 isinstance 判定失效)。
+    # 有内容的流式写法 (`{a: 1}` / `[1, 2]`) 仍由 _yaml_check_reserved 拒掉, ceiling 不变。
+    if raw in ("{}", '"{}"', "'{}'"):
+        return {}
+    if raw in ("[]", '"[]"', "'[]'"):
+        return []
+    if raw[0] in ("'", '"'):
+        return _yaml_unquote(raw, lineno)
+    _yaml_check_reserved(raw, lineno)
+    if raw == "true":
+        return True
+    if raw == "false":
+        return False
+    if re.fullmatch(r"-?\d+", raw):
+        return int(raw)
+    return raw
+
+
+def _yaml_split_kv(text: str, lineno: int) -> tuple[str, str]:
+    idx = _yaml_first_unquoted(text, ":")
+    if idx == -1:
+        raise _yaml_bad(lineno, f"缺少 ':' 无法解析 ({text!r})")
+    return text[:idx].strip(), text[idx + 1:].strip()
+
+
+def _yaml_tokenize(text: str) -> list[tuple[int, str, int]]:
+    """预处理成 (缩进列数, 内容, 行号) 流。`- ` 列表项若同行带内容, 拆成 marker + 内容两个 token
+    (内容视作缩进+2 的独立行), 令后续解析统一走 dict/list 递归, 免专写列表内联分支。"""
+    tokens: list[tuple[int, str, int]] = []
+    for lineno, raw in enumerate(text.splitlines(), 1):
+        if raw.strip() == "":
+            continue
+        lead = raw[:len(raw) - len(raw.lstrip(" \t"))]
+        if "\t" in lead:
+            raise _yaml_bad(lineno, "tab 缩进")
+        ci = _yaml_first_unquoted(raw, "#")
+        line = raw[:ci] if ci != -1 else raw
+        if line.strip() == "":
+            continue  # 整行是注释
+        content = line.rstrip()
+        indent = len(content) - len(content.lstrip(" "))
+        body = content.strip()
+        if body == "---":
+            raise _yaml_bad(lineno, "多文档标记 ---")
+        if body == "-":
+            tokens.append((indent, "-", lineno))
+        elif body.startswith("- "):
+            tokens.append((indent, "-", lineno))
+            rest = body[2:].strip()
+            if rest:
+                tokens.append((indent + 2, rest, lineno))
+        else:
+            tokens.append((indent, body, lineno))
+    return tokens
+
+
+def _yaml_parse_dict(tokens: list[tuple[int, str, int]], pos: list[int], indent: int) -> dict[str, Any]:
+    d: dict[str, Any] = {}
+    while pos[0] < len(tokens) and tokens[pos[0]][0] == indent and tokens[pos[0]][1] != "-":
+        _, text, lineno = tokens[pos[0]]
+        key_raw, val_raw = _yaml_split_kv(text, lineno)
+        key = _yaml_parse_key(key_raw, lineno)
+        pos[0] += 1
+        if val_raw != "":
+            d[key] = _yaml_parse_scalar(val_raw, lineno)
+            continue
+        if pos[0] < len(tokens) and tokens[pos[0]][0] > indent:
+            child_indent = tokens[pos[0]][0]
+            d[key] = _yaml_parse_list(tokens, pos, child_indent) if tokens[pos[0]][1] == "-" \
+                else _yaml_parse_dict(tokens, pos, child_indent)
+        else:
+            d[key] = None
+    return d
+
+
+def _yaml_parse_list(tokens: list[tuple[int, str, int]], pos: list[int], indent: int) -> list[Any]:
+    lst: list[Any] = []
+    while pos[0] < len(tokens) and tokens[pos[0]][0] == indent and tokens[pos[0]][1] == "-":
+        pos[0] += 1
+        if pos[0] < len(tokens) and tokens[pos[0]][0] == indent + 2:
+            nxt_indent, nxt_text, nxt_lineno = tokens[pos[0]]
+            if nxt_text == "-":
+                lst.append(_yaml_parse_list(tokens, pos, nxt_indent))
+            elif _yaml_first_unquoted(nxt_text, ":") != -1:
+                lst.append(_yaml_parse_dict(tokens, pos, nxt_indent))
+            else:
+                lst.append(_yaml_parse_scalar(nxt_text, nxt_lineno))
+                pos[0] += 1
+        else:
+            lst.append(None)
+    return lst
+
+
+def _yaml_load(text: str) -> dict[str, Any]:
+    text = text.lstrip("﻿")  # 剥 UTF-8 BOM (Windows 编辑器保存常带; 不剥则首个键读不到)
+    tokens = _yaml_tokenize(text)
+    pos = [0]
+    result = _yaml_parse_dict(tokens, pos, 0)
+    if pos[0] < len(tokens):
+        _, bad_text, bad_lineno = tokens[pos[0]]
+        raise _yaml_bad(bad_lineno, f"缩进/结构不合法 ({bad_text!r})")
+    return result
+
+
+def _yaml_dump_key(k: str) -> str:
+    if (k == "" or k[0] in "&*{}[]|>\"'" or ":" in k or "#" in k or k.strip() != k
+            or k in ("true", "false") or re.fullmatch(r"-?\d+", k)):
+        return json.dumps(k, ensure_ascii=False)
+    return k
+
+
+def _yaml_dump_scalar(v: Any) -> str:
+    if v is None:
+        return ""
+    # 空容器走流式空写法, 不加引号 —— 否则 `[]` 被 json.dumps 成 `"[]"` 字符串, 读回不再是 list
+    # (_yaml_parse_scalar 有对应的空映射/空列表特例, 两端配对才能往返一致)。
+    if isinstance(v, dict) and not v:
+        return "{}"
+    if isinstance(v, list) and not v:
+        return "[]"
+    if v is True:
+        return "true"
+    if v is False:
+        return "false"
+    if isinstance(v, int):
+        return str(v)
+    s = str(v)
+    if (s == "" or s in ("true", "false") or re.fullmatch(r"-?\d+", s)
+            or s.strip() != s or s[:1] in "\"'&*{}[]|>" or ":" in s or "#" in s):
+        return json.dumps(s, ensure_ascii=False)
+    return s
+
+
+def _yaml_dump_list(lst: list[Any], level: int) -> str:
+    pad = "  " * level
+    child_pad = "  " * (level + 1)
+    out: list[str] = []
+    for item in lst:
+        if isinstance(item, dict) and item:
+            block = _yaml_dump(item, level + 1).rstrip("\n")
+            item_lines = block.split("\n")
+            out.append(pad + "- " + item_lines[0][len(child_pad):])
+            out.extend(item_lines[1:])
+        elif isinstance(item, list) and item:
+            out.append(pad + "-")
+            out.append(_yaml_dump_list(item, level + 1).rstrip("\n"))
+        else:
+            out.append(pad + "- " + _yaml_dump_scalar(item))
+    return "\n".join(out) + "\n"
+
+
+def _yaml_dump(d: dict[str, Any], _indent: int = 0) -> str:
+    pad = "  " * _indent
+    lines: list[str] = []
+    for k, v in d.items():
+        key_str = _yaml_dump_key(k)
+        if isinstance(v, dict) and v:
+            lines.append(f"{pad}{key_str}:")
+            lines.append(_yaml_dump(v, _indent + 1).rstrip("\n"))
+        elif isinstance(v, list) and v:
+            lines.append(f"{pad}{key_str}:")
+            lines.append(_yaml_dump_list(v, _indent + 1).rstrip("\n"))
+        else:
+            lines.append(f"{pad}{key_str}: {_yaml_dump_scalar(v)}")
+    return "\n".join(lines) + "\n"
+
+
+# config-hooks/c4: 9 个阶段命令的合法阶段名 — hooks.stage.<name> 的 <name> 唯一真值源, 校验/报错消息共用。
+# exec 无同名 CLI 命令 (skein 没有 `exec` 子命令) — 它是 flow 四阶段之一, 边界由 start/check
+# 两个命令夹出来: exec.before 在 start 成功后 (task 进 进行中), exec.after 在 check 前 (全 subtask
+# done, 退出 exec)。接入见 config-hooks/c12。
+STAGE_NAMES = ("create", "confirm", "start", "exec", "check", "finish", "archive",
+               "subtask.start", "subtask.done", "subtask.fail")
 
 # config.yaml 全部键的默认值 — init 写入 + config() 缺键自动回填的唯一真值源。
-CONFIG_DEFAULTS = {
+# 带前缀的旧扁平键 (use_worktree/worktree_root/web_serve/board_open/spec_core_budget/spec_always_budget)
+# 已层级化分组; max_active/auto_commit/retain_days 本就无前缀, 保持扁平不分组。
+CONFIG_DEFAULTS: dict[str, Any] = {
     "max_active": 2,
-    "auto_commit": True,  # 仅原地模式 (use_worktree=false) 生效; worktree 模式 finish 必 commit, 本键不参与判定
-    "use_worktree": True,  # False→禁用 worktree 隔离 (原地执行, 同非 git); start 不建、doctor 不查 worktree
-    "worktree_root": ".worktrees",
+    "auto_commit": True,  # 仅原地模式 (worktree.enabled=false) 生效; worktree 模式 finish 必 commit, 本键不参与判定
     "retain_days": 7,  # 完成 task 保留天数; 0=finish 即归档, 负=永不自动
-    "web_serve": True,  # 看板 http 服务总开关: True→monitor 每 session 起持久服务 + view 起 http 服务; False→monitor no-op + view 仅打印路径 (不主动开)
-    "board_open": True,  # 仅 view 命令生效 (monitor serve 从不开浏览器): True→view 起服务后自动开浏览器; False→只打印 URL 不开
-    "spec_core_budget": 1000,  # deprecated: 旧键, spec.py always_budget() 缺 spec_always_budget 时 fallback 读它; 新配置写 spec_always_budget
-    "spec_always_budget": 8000,  # spec always(原core) 全文软预算 (字符); 超 → spec.py maintain/degrade 告警并自动降级
+    "worktree": {
+        "enabled": True,  # False→禁用 worktree 隔离 (原地执行, 同非 git); start 不建、doctor 不查 worktree
+        "root": ".worktrees",
+    },
+    "web": {
+        "serve": True,  # 看板 http 服务总开关: True→monitor 每 session 起持久服务 + view 起 http 服务; False→monitor no-op + view 仅打印路径 (不主动开)
+        "board_open": True,  # 仅 view 命令生效 (monitor serve 从不开浏览器): True→view 起服务后自动开浏览器; False→只打印 URL 不开
+    },
+    "spec": {
+        "core_budget": 1000,  # deprecated: 旧字段, spec.py always_budget() 缺 always_budget 时 fallback 读它; 新配置写 always_budget
+        "always_budget": 8000,  # spec always(原core) 全文软预算 (字符); 超 → spec.py maintain/degrade 告警并自动降级
+    },
+    # 自定义钩子 — **完整结构**, 全部 scope × 时机都列出, 只有执行列表是空的。这样 init 写出的
+    # config.yaml 自带完整可配面, 用户不查文档就知道能配什么, 只需往对应列表里加条目。
+    # 阶段部分由 STAGE_NAMES 生成而非手写 9 遍 (阶段名单一真值源, 增删阶段自动跟随)。
+    # 结构校验走 hooks_schema_errors(); 合法时机/字段见下方 HOOK_* 常量。
+    # 🔒 两处特殊待遇: CFG_REMOTE_DENY (值是 shell 命令, 远程可写 = RCE, /__skein__/config 拒写)
+    #    + CFG_NO_PATH (阶段名自带点号且叶是列表, 不参与 config set 的点号路径体系)。
+    "hooks": {
+        # ── task 级阶段 (钩子挂同名 CLI 命令的边界) ──
+        "create": {
+            "before": [],
+            "after": []
+        },
+        "confirm": {
+            "before": [],
+            "after": []
+        },
+        "start": {
+            "before": [],
+            "after": []
+        },
+        "exec": {
+            "before": [],
+            "after": []
+        },
+        "check": {
+            "before": [],
+            "after": []
+        },
+        "finish": {
+            "before": [],
+            "after": []
+        },
+        "archive": {
+            "before": [],
+            "after": []
+        },
+        # ── subtask 级阶段 (exec 阶段内每个 subtask 的边界) ──
+        "subtask.start": {
+            "before": [],
+            "after": []
+        },
+        "subtask.done": {
+            "before": [],
+            "after": []
+        },
+        "subtask.fail": {
+            "before": [],
+            "after": []
+        },
+        # ── agent 生命周期 ("*" = 全部 agent; 也可写具名如 skein-executor) ──
+        "agent": {
+            "*": {
+                "start": [],
+                "stop": []
+            }
+        },
+    },
+}
+
+# CONFIG_DEFAULTS 中禁止经 http 写端点修改的键 — 值会被当 shell 命令执行, 远程可写 = RCE。
+CFG_REMOTE_DENY = ("hooks",)
+# 不参与点号路径体系的键 (config set / 展示 / 路径校验一律跳过) — 见 _cfg_paths() docstring:
+# hooks 的阶段名自带点号且叶是列表, 只能手改 config.yaml。
+CFG_NO_PATH = ("hooks",)
+# config-hooks/c3b: `hooks` 键刻意不进 CONFIG_DEFAULTS —— 可选特性, init 不写、config 展示不含,
+# 代码一律 cfg.get("hooks") 缺失即 no-op (见 hooks.py _agent_hook)。安全副产品: /__skein__/config
+# 写端点(下方 _cfg_save)只回填本字典已列举的叶, hooks 键天然被忽略, 免专写排除逻辑防「远程写 shell = RCE」。
+
+# hooks 结构骨架 — `hooks` 不进 CONFIG_DEFAULTS (无默认值可回填), 但其**结构**仍需单一真值源,
+# 否则字段名写错 (timout / continue-on-error) 会被 spec.get() 静默当默认值处理: 钩子照跑但行为
+# 与用户预期不符, 且全程不报错。静默失效是本特性最难查的一类故障, 故白名单化。
+HOOK_SCOPES = ("agent",) + STAGE_NAMES      # hooks 下的一级键: 9 个阶段名 + agent
+HOOK_WHENS_STAGE = ("before", "after")      # 阶段钩子的时机
+HOOK_WHENS_AGENT = ("start", "stop")        # agent 钩子的时机
+HOOK_ENTRY_TYPES = ("command",)             # 条目 type: 目前仅 command
+HOOK_ENTRY_FIELDS = ("type", "command", "timeout", "continue_on_error", "cwd")
+HOOK_ENTRY_REQUIRED = ("type", "command")
+
+
+# init 写进 config.yaml 尾部的**注释骨架** — 让用户看得到这个能力并能直接取消注释使用。
+# 刻意用注释而非真实空结构 (`hooks: {}`): 空结构要进 CONFIG_DEFAULTS 才会被 _yaml_dump 写出,
+# 而一旦进了 CONFIG_DEFAULTS, /__skein__/config 写端点 (只认 CONFIG_DEFAULTS 路径) 就会重新接受
+# hooks 键 —— 远程可写 shell 命令的 RCE 缺口又开了。注释既可见又不参与解析 (_yaml_load 跳过 # 行)。
+HOOKS_SKELETON = """
+# ── hooks (可选; 取消注释即用, 全量说明见 plugins/tools/skein/docs/hooks.md) ──
+# 阶段钩子: <阶段>.before 失败会阻断该阶段; .after 失败只告警。
+#   合法阶段: create confirm start check finish archive subtask.start subtask.done subtask.fail
+# agent 钩子: <agent 名或 "*">.start / .stop, 失败一律只告警不阻断 subtask。
+# 条目字段: type(必填, 目前仅 command) command(必填) timeout(秒, 缺省 60)
+#           continue_on_error(true/false) cwd(缺省 = task 工作目录)
+# 上下文经 env 注入: SKEIN_SCOPE SKEIN_WHEN SKEIN_AGENT SKEIN_TID SKEIN_SID
+#                   SKEIN_TASK_DIR SKEIN_WORKTREE SKEIN_REPO_ROOT
+# ⚠️ 钩子里禁调 skein 的写命令 (撞工作区写锁会等到超时); 只读命令如 skein list 可以。
+#
+# hooks:
+#   check:
+#     before:
+#       - type: command
+#         command: "npm run lint"
+#         timeout: 120
+#   finish:
+#     after:
+#       - type: command
+#         command: "echo \\"$SKEIN_TID 已完成\\""
+#   agent:
+#     skein-executor:
+#       stop:
+#         - type: command
+#           command: "npm run format"
+#     "*":
+#       start:
+#         - type: command
+#           command: "echo \\"$SKEIN_AGENT 开工\\""
+"""
+
+
+def hooks_schema_errors(hooks: Any) -> list[str]:
+    """校验 hooks 结构, 返回错误清单 (空 = 合法)。未知键/字段一律报错而非静默忽略。
+
+    只校验结构不校验语义 (命令内容是用户的事, 见 docs/hooks.md 信任模型)。
+    """
+    errs: list[str] = []
+    if not isinstance(hooks, dict):
+        return [f"hooks 应为映射, 得 {type(hooks).__name__}"]
+    for scope, whens in hooks.items():
+        if scope not in HOOK_SCOPES:
+            errs.append(f"hooks.{scope}: 未知 scope — 合法值: {', '.join(HOOK_SCOPES)}")
+            continue
+        if not isinstance(whens, dict):
+            errs.append(f"hooks.{scope}: 应为映射, 得 {type(whens).__name__}")
+            continue
+        if scope == "agent":
+            # hooks.agent.<agent-name>.<start|stop>; agent 名自由 (含通配 "*"), 不校验
+            for agent, ws in whens.items():
+                if not isinstance(ws, dict):
+                    errs.append(f"hooks.agent.{agent}: 应为映射, 得 {type(ws).__name__}")
+                    continue
+                errs += _hook_when_errors(f"hooks.agent.{agent}", ws, HOOK_WHENS_AGENT)
+        else:
+            errs += _hook_when_errors(f"hooks.{scope}", whens, HOOK_WHENS_STAGE)
+    return errs
+
+
+def _hook_when_errors(path: str, whens: dict[str, Any], legal: tuple[str, ...]) -> list[str]:
+    """校验某 scope 下的 when 键与其条目列表。"""
+    errs: list[str] = []
+    for when, entries in whens.items():
+        if when not in legal:
+            errs.append(f"{path}.{when}: 未知时机 — 合法值: {', '.join(legal)}")
+            continue
+        if not isinstance(entries, list):
+            errs.append(f"{path}.{when}: 应为列表, 得 {type(entries).__name__}")
+            continue
+        for i, e in enumerate(entries, 1):
+            p = f"{path}.{when}#{i}"
+            if not isinstance(e, dict):
+                errs.append(f"{p}: 条目应为映射, 得 {type(e).__name__}")
+                continue
+            for k in e:
+                if k not in HOOK_ENTRY_FIELDS:
+                    errs.append(f"{p}: 未知字段 {k!r} — 合法字段: {', '.join(HOOK_ENTRY_FIELDS)}")
+            for k in HOOK_ENTRY_REQUIRED:
+                if not e.get(k):
+                    errs.append(f"{p}: 缺必填字段 {k!r}")
+            t = e.get("type")
+            if t and t not in HOOK_ENTRY_TYPES:
+                errs.append(f"{p}: type={t!r} 不支持 — 合法值: {', '.join(HOOK_ENTRY_TYPES)}")
+            to = e.get("timeout")
+            if to is not None and not (isinstance(to, int) and to > 0):
+                errs.append(f"{p}: timeout 须正整数, 得 {to!r}")
+            ce = e.get("continue_on_error")
+            if ce is not None and not isinstance(ce, bool):
+                errs.append(f"{p}: continue_on_error 须 true/false, 得 {ce!r}")
+    return errs
+
+# 旧扁平键 → 新嵌套 (组, 叶) 路径映射; 仅曾带前缀的 6 键层级化。config() 读取时旧键仍生效 (deprecated fallback,
+# 优先级低于同名新嵌套键), 既有仓的扁平 config.yaml 零破坏, 层级化迁移由用户自己决定, 脚本不代劳改写。
+_CFG_LEGACY: dict[str, tuple[str, str]] = {
+    "use_worktree": ("worktree", "enabled"),
+    "worktree_root": ("worktree", "root"),
+    "web_serve": ("web", "serve"),
+    "board_open": ("web", "board_open"),
+    "spec_core_budget": ("spec", "core_budget"),
+    "spec_always_budget": ("spec", "always_budget"),
 }
 
 
-def _coerce_config(k: str, v: Any) -> Any:
-    """按 CONFIG_DEFAULTS[k] 类型 coerce v。bool→str判真; int→int(); 否则 str。CLI set 与 web _cfg_save 共用。"""
-    d = CONFIG_DEFAULTS[k]
+def _cfg_paths() -> list[str]:
+    """CONFIG_DEFAULTS 全部合法路径 (分组键点号展开, 如 worktree.enabled), config set/展示/校验共用。
+
+    刻意排除 CFG_NO_PATH (hooks): ① 阶段名自带点号 (`subtask.start`) 与点号路径语法直接冲突 —
+    `hooks.subtask.start.before` 无法区分是三层还是「hooks → "subtask.start" → before」;
+    ② hooks 的叶是**列表**, `config set` 只处理标量, 本来就改不了。hooks 只能手改 config.yaml。
+    """
+    paths: list[str] = []
+    for k, v in CONFIG_DEFAULTS.items():
+        if k in CFG_NO_PATH:
+            continue
+        paths.extend(f"{k}.{gk}" for gk in v) if isinstance(v, dict) else paths.append(k)
+    return paths
+
+
+def _cfg_effective(raw: dict[str, Any]) -> dict[str, Any]:
+    """把磁盘 raw(新嵌套/旧扁平/混合皆可) 合并成 CONFIG_DEFAULTS 结构的生效值 (每叶必存在, 调用点可直接索引)。
+    优先级: 嵌套新键 > 旧扁平键(deprecated fallback) > 默认值。"""
+    cfg: dict[str, Any] = {}
+    for k, dv in CONFIG_DEFAULTS.items():
+        if not isinstance(dv, dict):
+            cfg[k] = raw.get(k, dv)
+            continue
+        group = dict(dv)
+        for flat_key, (gk, leaf) in _CFG_LEGACY.items():
+            if gk == k and flat_key in raw and not isinstance(raw[flat_key], dict):
+                group[leaf] = raw[flat_key]
+        raw_group = raw.get(k)
+        if isinstance(raw_group, dict):
+            group.update(raw_group)  # 嵌套新键最高优先
+        cfg[k] = group
+    return cfg
+
+
+def _cfg_backfill(raw: dict[str, Any]) -> dict[str, Any]:
+    """回填 raw 中真正缺失的叶 (新旧键皆无) 用于写盘; 已有旧扁平键的叶不重复加嵌套键, 保留用户原始风格。"""
+    out = dict(raw)
+    for k, dv in CONFIG_DEFAULTS.items():
+        # CFG_NO_PATH (hooks) 不回填 —— 它装的是**用户内容** (钩子列表) 而非可默认化的配置叶。
+        # 回填它会把 30 行空骨架塞进既有仓的 config.yaml, 违反「既有配置零破坏, 不代劳迁移」。
+        # 新仓由 init 直接 _yaml_dump(CONFIG_DEFAULTS) 写出完整骨架, 不经本函数。
+        if k in CFG_NO_PATH:
+            continue
+        if not isinstance(dv, dict):
+            out.setdefault(k, dv)
+            continue
+        raw_group = dict(raw[k]) if isinstance(raw.get(k), dict) else {}
+        for leaf, lv in dv.items():
+            flat_key = next((fk for fk, (gk2, lk2) in _CFG_LEGACY.items() if gk2 == k and lk2 == leaf), None)
+            if flat_key and flat_key in raw:
+                continue  # 旧扁平键已存在, 不重复加嵌套键
+            raw_group.setdefault(leaf, lv)
+        if raw_group:
+            out[k] = raw_group
+    return out
+
+
+def _cfg_get_path(cfg: dict[str, Any], path: str) -> Any:
+    node: Any = cfg
+    for p in path.split("."):
+        node = node[p]
+    return node
+
+
+def _cfg_set_path(raw: dict[str, Any], path: str, val: Any) -> dict[str, Any]:
+    """按点号 path 把 val 写入 raw 的嵌套结构 (返回新 dict, 不改动其余既有键)。"""
+    parts = path.split(".")
+    out = dict(raw)
+    node = out
+    for p in parts[:-1]:
+        nxt = dict(node[p]) if isinstance(node.get(p), dict) else {}
+        node[p] = nxt
+        node = nxt
+    node[parts[-1]] = val
+    return out
+
+
+def _coerce_config(path: str, v: Any) -> Any:
+    """按 CONFIG_DEFAULTS 对应叶的类型 coerce v。bool→str判真; int→int(); 否则 str。CLI set 与 web _cfg_save 共用。"""
+    d = _cfg_get_path(CONFIG_DEFAULTS, path)
     if isinstance(d, bool):
         return str(v).strip().lower() in ("true", "1", "yes", "on")
     if isinstance(d, int):
@@ -221,15 +725,18 @@ class Skein:
 
     # ---- 存取 ----
     def config(self) -> dict[str, Any]:
+        """返回生效配置, 结构固定同 CONFIG_DEFAULTS (每叶必存在, 调用点可直接索引 cfg["worktree"]["enabled"])。
+        磁盘可以是新嵌套/旧扁平/混合, 读取优先级: 嵌套新键 > 旧扁平键(deprecated) > 默认值。"""
         f = self.dir / "config.yaml"
         if not f.exists():
             raise SystemExit("未初始化 — 先跑 `skein.py init`")
-        cfg: dict[str, Any] = _yaml_load(f.read_text())
-        # 缺键自动回填默认值 (旧 config.yaml 补新增键), 有变更才回写省磁盘
-        missing = {k: v for k, v in CONFIG_DEFAULTS.items() if k not in cfg}
-        if missing:
-            cfg = {**CONFIG_DEFAULTS, **cfg}  # 保留用户值, 仅补缺键
-            f.write_text(_yaml_dump(cfg))
+        raw: dict[str, Any] = _yaml_load(f.read_text())
+        # 缺键回填 (新增默认键时旧盘既无新嵌套键也无旧扁平键才补), 有变更才回写省磁盘; 已有旧扁平键的仓不被强制迁移
+        filled = _cfg_backfill(raw)
+        if filled != raw:
+            f.write_text(_yaml_dump(filled))
+            raw = filled
+        cfg = _cfg_effective(raw)
         # 用户在插件启用时确认的 userConfig 优先于 config.yaml (经 CLAUDE_PLUGIN_OPTION_* 传入)
         for k in ("max_active",):
             v = os.environ.get(f"CLAUDE_PLUGIN_OPTION_{k.upper()}")
@@ -237,42 +744,102 @@ class Skein:
                 cfg[k] = int(v)
         return cfg
 
+    def _hooks_cfg(self) -> dict[str, Any]:
+        """读 config.yaml 原始 `hooks` 键 (不入 CONFIG_DEFAULTS, self.config() 不含; 见 c3b)。
+        缺失/非法语法 → {} 静默 (钩子是可选特性, 不该拖垮主命令)。顺带校验 hooks.stage 下的
+        阶段名合法性 — 拼错的阶段名等于钩子无声失效, 是最难查的一类故障, 故报错列出合法值清单。"""
+        f = self.dir / "config.yaml"
+        if not f.exists():
+            return {}
+        try:
+            raw = _yaml_load(f.read_text())
+        except ValueError:
+            return {}  # 配置语法错误归 config()/doctor 报, 本处不重复阻断
+        spec = raw.get("hooks")
+        if not isinstance(spec, dict):
+            return {}
+        stages = spec.get("stage")
+        if isinstance(stages, dict):
+            bad = [k for k in stages if k not in STAGE_NAMES]
+            if bad:
+                raise SystemExit(
+                    f"config.yaml hooks.stage 含非法阶段名: {', '.join(bad)} — "
+                    f"合法值: {', '.join(STAGE_NAMES)}")
+        return spec
+
+    def _hook_ctx(self, tid: str, sid: str = "", t: Optional[dict[str, Any]] = None) -> dict[str, Any]:
+        """阶段钩子 ctx: tid/sid/task_dir/worktree/repo_root, 供 hooklib._run_hooks 注入 env。"""
+        worktree = ""
+        if t:
+            wts = self._wts(t)
+            if wts:
+                worktree = str(self.root / wts[0]["wt"])  # 单/首个 worktree; 多子git场景取首个
+        return {"tid": tid, "sid": sid, "task_dir": str(self.tasks / tid) if tid else "",
+                "worktree": worktree, "repo_root": str(self.root)}
+
+    def _stage_hooks(self, stage: str, when: str, ctx: dict[str, Any]) -> None:
+        """阶段 before/after 钩子入口 — create/confirm/start/check/finish/archive/subtask.* 共用。
+        before 失败阻断该阶段 (SystemExit); after 失败仅告警, 阶段结果不变 (阻断语义见 hooklib._run_hooks)。
+        无 hooks.stage.<stage>.<when> 配置 → 零开销直返, 不构造 env/不 fork (design.md §5)。"""
+        stages = self._hooks_cfg().get("stage")
+        todo = stages.get(stage, {}).get(when) if isinstance(stages, dict) else None
+        if not isinstance(todo, list) or not todo:
+            return
+        try:
+            _run_hooks(stage, when, dict(ctx, hooks=todo))
+        except HookBlocked as e:
+            raise SystemExit(str(e))
+
     def _wt_shown(self) -> bool:
-        # 禁用态 (use_worktree=false) 各出口不展示 worktree 段/列
-        return bool(self.config().get("use_worktree", True))
+        # 禁用态 (worktree.enabled=false) 各出口不展示 worktree 段/列
+        return bool(self.config()["worktree"]["enabled"])
 
     def config_cmd(self, a: argparse.Namespace) -> None:
-        cfg = self.config()  # 生效值 (含 ENV override + 缺键回填)
+        cfg = self.config()  # 生效值 (含 ENV override + 缺键回填), 结构固定同 CONFIG_DEFAULTS
         action = getattr(a, "action", None)
         if action is None:  # 无参 → 展示全部生效配置
-            if getattr(a, "json", False):  # --json: 机器可解析 (skein config --json | jq -r .use_worktree)
-                print(json.dumps({k: cfg[k] for k in CONFIG_DEFAULTS}, ensure_ascii=False))
+            if getattr(a, "json", False):  # --json: 机器可解析嵌套结构 (skein config --json | jq -r .worktree.enabled)
+                print(json.dumps(cfg, ensure_ascii=False))
                 return
-            for k in CONFIG_DEFAULTS:
-                print(f"{k}={cfg[k]}")
+            for path in _cfg_paths():  # 扁平化点号展示, 如 spec.always_budget=8000
+                print(f"{path}={_cfg_get_path(cfg, path)}")
             return
-        if action == "reset":  # 全部重置为默认值 (覆写 config.yaml)
+        if action == "reset":  # 全部重置为默认值 (覆写 config.yaml, 统一写回新嵌套格式)
             (self.dir / "config.yaml").write_text(_yaml_dump(dict(CONFIG_DEFAULTS)))
             print("已重置全部配置为默认值:")
-            for k in CONFIG_DEFAULTS:
-                print(f"{k}={CONFIG_DEFAULTS[k]}")
-                if os.environ.get(f"CLAUDE_PLUGIN_OPTION_{k.upper()}"):
-                    print(f"注意: {k} 有 ENV override 生效, 实际读取仍为环境值 (写盘已重置)")
+            for path in _cfg_paths():
+                print(f"{path}={_cfg_get_path(CONFIG_DEFAULTS, path)}")
+                flat_key = next((fk for fk, (gk, lk) in _CFG_LEGACY.items() if f"{gk}.{lk}" == path), None)
+                env_key = flat_key or path
+                if os.environ.get(f"CLAUDE_PLUGIN_OPTION_{env_key.upper()}"):
+                    print(f"注意: {path} 有 ENV override 生效, 实际读取仍为环境值 (写盘已重置)")
             return
-        # set
-        if a.key not in CONFIG_DEFAULTS:
-            raise SystemExit(f"未知配置键: {a.key} — 可用: {', '.join(CONFIG_DEFAULTS)}")
+        # set — 接受新点号路径 (如 worktree.enabled) 或旧扁平键 (如 use_worktree, deprecated 但仍生效)。
+        # 写盘策略: 纯扁平旧仓 (盘上无同组嵌套叶) 原样写回扁平, 不代劳迁移; 但若盘上已有同组嵌套叶
+        # (如 init 默认就写嵌套), 改写该嵌套叶而非另加扁平键 —— 否则嵌套读取优先级更高, 扁平 set 会被
+        # 遮蔽变相失效 (见 _cfg_effective 优先级: 嵌套新键 > 旧扁平键)。
+        key = a.key
+        path = _CFG_LEGACY.get(key)
+        path_str = f"{path[0]}.{path[1]}" if path else key
+        if path_str not in _cfg_paths():
+            raise SystemExit(f"未知配置键: {key} — 可用: {', '.join(_cfg_paths())}")
         try:
-            val = _coerce_config(a.key, a.value)
+            val = _coerce_config(path_str, a.value)
         except (TypeError, ValueError):
-            raise SystemExit(f"值类型不合: {a.key} 需 {type(CONFIG_DEFAULTS[a.key]).__name__}, 得 {a.value!r}")
+            expect = type(_cfg_get_path(CONFIG_DEFAULTS, path_str)).__name__
+            raise SystemExit(f"值类型不合: {key} 需 {expect}, 得 {a.value!r}")
         f = self.dir / "config.yaml"
         raw = _yaml_load(f.read_text()) if f.exists() else {}
-        full = {**CONFIG_DEFAULTS, **raw, a.key: val}  # 保留其他用户值, 仅改目标键
-        f.write_text(_yaml_dump(full))
-        print(f"{a.key} = {val}")
-        if os.environ.get(f"CLAUDE_PLUGIN_OPTION_{a.key.upper()}"):
-            print(f"注意: {a.key} 有 ENV override 生效, 实际读取仍为环境值 (写盘已更新)")
+        if key in _CFG_LEGACY and not (isinstance(raw.get(path[0]), dict) and path[1] in raw[path[0]]):
+            # 旧扁平键 且 盘上尚无同名嵌套叶: 原样写回扁平 (纯扁平旧仓零破坏, 不代劳迁移)。
+            raw[key] = val
+        else:
+            # 新点号路径, 或旧扁平键但盘上已有同组嵌套叶 (嵌套读取优先级更高, 不改嵌套则 set 会被遮蔽变相失效): 写嵌套结构。
+            raw = _cfg_set_path(raw, path_str, val)
+        f.write_text(_yaml_dump(raw))
+        print(f"{key} = {val}")
+        if os.environ.get(f"CLAUDE_PLUGIN_OPTION_{key.upper()}"):
+            print(f"注意: {key} 有 ENV override 生效, 实际读取仍为环境值 (写盘已更新)")
 
     def _autoclean(self, days: Optional[int] = None) -> list[str]:
         # 惰性归档: 已完成且超保留期的 task 移入 archive (保留期内留看板)。days 省略用 config retain_days。
@@ -581,7 +1148,7 @@ class Skein:
         self.archive_dir.mkdir(parents=True, exist_ok=True)
         cfg = self.dir / "config.yaml"
         if not cfg.exists():
-            cfg.write_text(_yaml_dump(dict(CONFIG_DEFAULTS)))
+            cfg.write_text(_yaml_dump(dict(CONFIG_DEFAULTS)) + HOOKS_SKELETON)
         # .skein/.gitignore — 忽略自动渲染看板 (task.md 从 task.json 无损重建, 且 AI 禁读写)
         # + spec/.archive/ (完全重构可逆归档转储) + 衍生/临时 (hook 标记/审计日志/FTS 索引/软删转储)
         gi = self.dir / ".gitignore"
@@ -602,7 +1169,7 @@ class Skein:
                         fh.write("\n")
                     fh.write("# skein 衍生/临时文件 (init 自动补缺)\n")
                     fh.write("\n".join(missing) + "\n")
-        # worktree 目录在 git 根 (worktree_root), .skein/.gitignore 管不到 → 补到根 .gitignore
+        # worktree 目录在 git 根 (worktree.root), .skein/.gitignore 管不到 → 补到根 .gitignore
         # (仅 git 仓库需要; 非 git 无 worktree, 不制造多余 .gitignore)。子仓的忽略由 _mkwt 各自补。
         if self.git:
             self._ignore_wt(self.root)
@@ -645,8 +1212,9 @@ class Skein:
             else:
                 raise SystemExit(f"parent {parent_id} kind={p.get('kind')!r} 非法 — 仅允许 task|supertask")
         repos = self._parse_repos(getattr(a, "repos", None))
-        if repos and not self.config().get("use_worktree", True):
-            raise SystemExit(f"{tid} 声明 --repos 但 config use_worktree=false — 多子 git 隔离需启用 worktree")
+        if repos and not self.config()["worktree"]["enabled"]:
+            raise SystemExit(f"{tid} 声明 --repos 但 config worktree.enabled=false — 多子 git 隔离需启用 worktree")
+        self._stage_hooks("create", "before", self._hook_ctx(tid))
         (self.tasks / tid).mkdir(parents=True)
         self._scaffold(tid, a.name)  # 落 prd/design/findings 脚手架 (planning 填)
         deps = [d.strip() for d in (a.deps or "").split(",") if d.strip()]
@@ -668,6 +1236,7 @@ class Skein:
         }
         self._save(t)  # _save 已渲染子任务看板
         self._sync()  # 刷新顶层 tasks 索引 + 看板 + html
+        self._stage_hooks("create", "after", self._hook_ctx(tid, t=t))
         print(f"{tid}\t{self.tasks / tid}")
 
     @staticmethod
@@ -694,9 +1263,9 @@ class Skein:
             sys.stderr.write(r.stdout + r.stderr)
 
     def _ignore_wt(self, repo_dir: Path) -> None:
-        # 把 worktree_root 写进该 git 仓 .gitignore (缺则补), 免 worktree 目录污染该仓 status。
+        # 把 worktree.root 写进该 git 仓 .gitignore (缺则补), 免 worktree 目录污染该仓 status。
         # 子仓是独立 git/submodule, root .gitignore 管不到, 故各子仓自补。
-        wt = self.config()["worktree_root"].rstrip("/") + "/"
+        wt = self.config()["worktree"]["root"].rstrip("/") + "/"
         gi = repo_dir / ".gitignore"
         existing = gi.read_text() if gi.exists() else ""
         if wt in existing:
@@ -720,8 +1289,8 @@ class Skein:
             raise SystemExit(
                 f"{repo} 不是 git 顶层 — repos 只能声明 git 仓顶层 (根/submodule/嵌套独立 git); "
                 f"普通子目录不可声明 (worktree 会错落到外层仓)")
-        wt_root = cfg["worktree_root"].strip("/")
-        # worktree 落在**该子 git 内部** (<repo>/<worktree_root>/skein-<id>), 相对 root 存盘免绝对路径入库。
+        wt_root = cfg["worktree"]["root"].strip("/")
+        # worktree 落在**该子 git 内部** (<repo>/<worktree.root>/skein-<id>), 相对 root 存盘免绝对路径入库。
         # 每子仓各自 .worktrees 目录, 天然无碰撞 (旧版全塞 root, 现落各仓内)。
         base = wt_root if repo == "." else f"{repo}/{wt_root}"
         wt_rel = f"{base}/skein-{t['id']}"
@@ -736,8 +1305,8 @@ class Skein:
         if a.set is None:
             print("\n".join(t.get("repos") or []) or "(未声明子 git — 单根/原地模式)")
             return
-        if not self.config().get("use_worktree", True):
-            raise SystemExit(f"{a.id} config use_worktree=false — worktree 禁用, 不可声明 repos")
+        if not self.config()["worktree"]["enabled"]:
+            raise SystemExit(f"{a.id} config worktree.enabled=false — worktree 禁用, 不可声明 repos")
         if t["status"] not in (S_PENDING, S_READY):
             raise SystemExit(f"{a.id} 状态 {t['status']}, repos 只能在 start 前 (待处理/就绪) 声明")
         t["repos"] = self._parse_repos(a.set)
@@ -846,10 +1415,12 @@ class Skein:
         self._validate_prd(a.id)
         self._validate_seam(a.id)
         self._validate_estimate(a.id, t)
+        self._stage_hooks("confirm", "before", self._hook_ctx(a.id, t=t))
         t["status"] = S_READY
         t["confirmed"] = now()
         self._save(t)
         self._sync()
+        self._stage_hooks("confirm", "after", self._hook_ctx(a.id, t=t))
         print(f"{a.id} 就绪 (规划完成, 待 skein start 启动)")
 
     def start(self, a: argparse.Namespace) -> None:
@@ -872,21 +1443,22 @@ class Skein:
             raise SystemExit(f"前置未完成: {', '.join(undone)} — 先 finish 它们")
         # planning 完成门 (subtask + prd) 已在 confirm 时校验; 此处 double-check prd 防 confirm 后被改空
         self._validate_prd(a.id)
+        self._stage_hooks("start", "before", self._hook_ctx(a.id, t=t))
         t["status"] = S_ACTIVE
         repos = t.get("repos") or []
-        wt_cfg = cfg.get("use_worktree", True)
+        wt_cfg = cfg["worktree"]["enabled"]
         wt_on = self.git and wt_cfg  # 单根 worktree: 需根仓是 git; 配置禁用→原地执行
         # --repos 的 git 性由 _mkwt 逐子仓校验 (worktree 落各子仓内), 与父目录是否 git 无关 —
         # 故只在 config 显式禁用时挡, 不吃 self.git (支持非 git 父 + 多 git 子的微服务布局)。
         if repos and not wt_cfg:
             raise SystemExit(
-                f"{a.id} 声明了 --repos 但 config use_worktree=false — 多子 git 隔离需启用 worktree")
+                f"{a.id} 声明了 --repos 但 config worktree.enabled=false — 多子 git 隔离需启用 worktree")
         if repos:
             # 多子 git: planning 声明的每个子 git 各开 worktree+branch (并列 repo / submodule 同理)
             t["worktrees"] = [self._mkwt(t, r, cfg) for r in repos]
             t["worktree"] = ", ".join(w["wt"] for w in t["worktrees"])  # 显示汇总
         elif wt_on:
-            rel = f"{cfg['worktree_root']}/skein-{a.id}"  # 相对 project root 存盘, 免机器绝对路径入库  # type: ignore[attr-defined]
+            rel = f"{cfg['worktree']['root']}/skein-{a.id}"  # 相对 project root 存盘, 免机器绝对路径入库
             git("worktree", "add", "-b", t["branch"], str(self.root / rel), "HEAD", cwd=self.root)
             t["worktree"] = rel
             t["worktrees"] = [{"repo": ".", "wt": rel, "branch": t["branch"], "merged": False}]
@@ -901,8 +1473,9 @@ class Skein:
             loc = "\n".join(f"worktree: {w['wt']} (子 git: {w['repo']}, branch: {w['branch']})"
                             for w in t["worktrees"])
         else:
-            reason = "config use_worktree=false" if self.git else "非 git 仓库"
+            reason = "config worktree.enabled=false" if self.git else "非 git 仓库"
             loc = f"{reason}: 原地执行 (无 worktree 隔离)"
+        self._stage_hooks("start", "after", self._hook_ctx(a.id, t=t))
         print(f"{a.id} started\n{loc}")
 
     def check(self, a: argparse.Namespace) -> None:
@@ -910,10 +1483,12 @@ class Skein:
         t = self._load(a.id)
         if t["status"] != S_ACTIVE:
             raise SystemExit(f"{a.id} 状态 {t['status']}, 只有进行中 task 能进检查")
+        self._stage_hooks("check", "before", self._hook_ctx(a.id, t=t))
         t["status"] = S_CHECK
         t["checked"] = now()
         self._save(t)
         self._sync()
+        self._stage_hooks("check", "after", self._hook_ctx(a.id, t=t))
         print(f"{a.id} checked")
 
     def _dep_unfinished(self, dep: str) -> bool:
@@ -940,6 +1515,7 @@ class Skein:
                     f"先 finish 全部 child 再 finish super (聚合归档要求 child 全 done)")
         cfg = self.config()
         wts = self._wts(t)
+        self._stage_hooks("finish", "before", self._hook_ctx(tid, t=t))
         conflicts: list[tuple[str, str]] = []  # [(repo, 冲突输出)] — 部分子 git 冲突时保留已合并进度, task 留 active 供幂等重跑
         for w in wts:
             if w.get("merged"):
@@ -988,13 +1564,15 @@ class Skein:
         rest = self._active()
         tail = (f", 剩余 active: {', '.join(x['id'] for x in rest)}" if rest else ", 无剩余 active")
         keep = "已归档" if archived else f"保留 {cfg.get('retain_days', 7)} 天后自动归档"
+        self._stage_hooks("finish", "after", self._hook_ctx(tid, t=t))
         print(f"{tid} finished ({keep})" + tail)
 
     def archive(self, a: argparse.Namespace) -> None:
         # 归档 = 丢弃 (不 merge): 先销 worktree/branch, 免残留悬挂
         f = self.tasks / a.id / "task.json"
-        if f.exists():
-            t = json.loads(f.read_text())
+        t = json.loads(f.read_text()) if f.exists() else None
+        self._stage_hooks("archive", "before", self._hook_ctx(a.id, t=t))
+        if t is not None:
             for w in self._wts(t):
                 sub = self.root if w["repo"] == "." else self.root / w["repo"]
                 wt = self.root / w["wt"]
@@ -1003,6 +1581,7 @@ class Skein:
                 git("branch", "-D", w["branch"], cwd=sub, check=False)
         self._archive(a.id)
         self._sync()  # 重写顶层 tasks 索引 (去掉已归档 task)
+        self._stage_hooks("archive", "after", self._hook_ctx(a.id, t=t))
         print(f"{a.id} archived")
 
     def _destroy_worktrees(self, t: dict[str, Any]) -> None:
@@ -1448,7 +2027,7 @@ class Skein:
         tasks = self._all()
         used = self._used_ids()  # 含已归档, dep 指向归档 task 合法
         ids = {t["id"] for t in tasks}
-        wt_on = self.git and self.config().get("use_worktree", True)  # 遵守配置: 禁用则不查 worktree
+        wt_on = self.git and self.config()["worktree"]["enabled"]  # 遵守配置: 禁用则不查 worktree
         errs: list[str] = []
         warns: list[str] = []
 
@@ -1500,7 +2079,7 @@ class Skein:
                 elif d not in used:
                     errs.append(f"{tid}: deps 指向不存在 task {d!r}")
             # worktree 硬性 (仅执行中 + worktree 启用): 名在 start 定义并物理创建 (exec 前一步); pending 尚未创建、
-            # done 已销毁, 故只对执行中 (进行中/检查中) 校验。worktree 禁用时 (非 git / config use_worktree=false)
+            # done 已销毁, 故只对执行中 (进行中/检查中) 校验。worktree 禁用时 (非 git / config worktree.enabled=false)
             # 原地执行本就无 worktree, 遵守配置不查存在性。
             wts = self._wts(t)
             if t.get("status") in STATUS_ACTIVE:
@@ -1577,6 +2156,23 @@ class Skein:
         na = len(self._active())
         if na > maxa:
             errs.append(f"active task 数 {na} 超上限 {maxa}")
+
+        # agent 钩子配了但从未触发 (design.md §7 已知风险「agent 漏跑钩子」的唯一发现手段):
+        # agent 钩子靠 agent 自己在工作流里调 dispatch (agent-start/agent-stop), 不像 harness
+        # hook 有强制性 — 配了却漏调不会报错, 只能靠 .audit-log 里有无 action=agent-hook 行反推。
+        # 判「配了」看**有无实际条目**, 不看键是否存在 —— CONFIG_DEFAULTS 的 hooks 是完整骨架
+        # (全部 scope × 时机都列出, 列表为空), 键必然存在; 只有非空列表才代表用户真配了钩子。
+        agents = self._hooks_cfg().get("agent")
+        has_entry = isinstance(agents, dict) and any(
+            isinstance(ws, dict) and any(isinstance(v, list) and v for v in ws.values())
+            for ws in agents.values())
+        if has_entry:
+            audit = self.dir / "spec" / ".audit-log"
+            triggered = audit.exists() and "|agent-hook|" in audit.read_text()
+            if not triggered:
+                warns.append(
+                    "配了 hooks.agent.* 但 .audit-log 从未出现 action=agent-hook — "
+                    "agent 钩子疑似从未触发 (agent-start/agent-stop 靠 agent 自己在工作流里调, 漏跑不报错)")
 
         for m in errs:
             print(f"✗ {m}")
@@ -1710,17 +2306,17 @@ class Skein:
         if hint:
             lines.append(hint)
         cfg = self.config()
-        wt_on = cfg.get("use_worktree", True)
+        wt_on = cfg["worktree"]["enabled"]
         wt_txt = "启用 (task 各开 worktree 隔离)" if wt_on else "禁用 (原地执行, 无 worktree)"
         # worktree 模式下 finish 必 commit (不提交则 merge 丢改动), auto_commit 配置只对原地模式生效
         ac_txt = ("强制 (worktree 模式必自动 commit, 本配置不生效)" if wt_on
-                  else ("启用 (finish 时自动 commit)" if cfg.get("auto_commit", True)
+                  else ("启用 (finish 时自动 commit)" if cfg["auto_commit"]
                         else "禁用 (改动需手动 commit)"))
         lines += ["", "# SKEIN 运行配置", f"- worktree: {wt_txt}", f"- 最大并行 subtask: {cfg['max_active']}", f"- auto_commit: {ac_txt}"]
         prefix_tasks = ", ".join(f"{t['id']}({PHASE_OF.get(t['status'], '')})" for t in active)
         lines += ["", "# 回复前缀 (强制)",
                   "- 每条回复以 `[skein]` 开头",
-                  "- 处理某 task 时用 `[skein|<taskId>|<阶段>]`",
+                  "- 处理某 task 时用 `[skein|<tid，必须是已经注册的>|<阶段>]`",
                   "- 阶段取值: plan / exec / check / research"]
         if prefix_tasks:
             lines.append(f"当前 active task: {prefix_tasks}")
@@ -2004,6 +2600,7 @@ class Skein:
             run = [x for x in t["subtasks"] if x["status"] == SS_RUNNING]
             if len(run) >= self.config()["max_active"]:
                 raise SystemExit(f"并发已满 ({len(run)}) — 先 done 一个再 start")
+            self._stage_hooks("subtask.start", "before", self._hook_ctx(a.tid, a.sid, t=t))
             s["status"] = SS_RUNNING
             if not s.get("started"):
                 s["started"] = now()  # exec 时刻 (首次 start, 重启不覆盖)
@@ -2024,15 +2621,19 @@ class Skein:
             print(f"{a.tid}/{a.sid} 验收 {len(idx)}/{len(crit)} ({_sub_pct(s)}%)")
             return
         elif a.action == "done":
+            self._stage_hooks("subtask.done", "before", self._hook_ctx(a.tid, a.sid, t=t))
             s["status"] = SS_DONE
             s["finished"] = now()  # 完成时刻
             s["验收done"] = list(range(1, len(s.get("验收", [])) + 1))  # 完成即全过 → 100%
         elif a.action == "fail":
+            self._stage_hooks("subtask.fail", "before", self._hook_ctx(a.tid, a.sid, t=t))
             s["status"] = SS_FAILED
             s["finished"] = now()  # 失败时刻 (与 done 对称)
             if a.note:
                 s["note"] = a.note  # 失败备注 (运行时, 非 planning schema)
         self._save(t)  # _save 已渲染子任务看板
+        if a.action in ("start", "done", "fail"):
+            self._stage_hooks(f"subtask.{a.action}", "after", self._hook_ctx(a.tid, a.sid, t=t))
         print(f"{a.tid}/{a.sid} → {s['status']}")
 
     def _board_task(self, t: dict[str, Any]) -> None:
@@ -2228,28 +2829,28 @@ class Skein:
 
     def view(self, _: argparse.Namespace) -> None:
         cfg = self.config()
-        if not cfg.get("web_serve", CONFIG_DEFAULTS["web_serve"]):
-            print("看板 http 服务已在 config.yaml 关闭 (web_serve=false), 无法打开。", file=sys.stderr)
+        if not cfg["web"]["serve"]:
+            print("看板 http 服务已在 config.yaml 关闭 (web.serve=false), 无法打开。", file=sys.stderr)
             return
-        self._run_server(open_browser=cfg.get("board_open", CONFIG_DEFAULTS["board_open"]))
+        self._run_server(open_browser=cfg["web"]["board_open"])
 
     def serve(self, a: argparse.Namespace) -> None:
         # 持久看板 http 服务入口, 由 experimental.monitors (personal-scope, session 启动) + 用户手动跑维护。lock 去重: 同项目只跑一个。
-        # --auto: monitor 自动起模式, 遵 config web_serve 开关 (关则 no-op)。手动跑省略 → 用户显式意图, 无视开关强起。
+        # --auto: monitor 自动起模式, 遵 config web.serve 开关 (关则 no-op)。手动跑省略 → 用户显式意图, 无视开关强起。
         auto = getattr(a, "auto", False)
         f = self.dir / "config.yaml"
         if not f.exists():
             DBG.log(f"无 .skein 工作区 ({f} 不存在) — serve 空跑退出", style="yellow")
             return  # 无 .skein 工作区 — 无 task 项目里空跑 (手动/monitor 皆退, 无盘可服务)
-        cfg = _yaml_load(f.read_text())
-        if auto and not cfg.get("web_serve", CONFIG_DEFAULTS["web_serve"]):
-            DBG.log("config.yaml web_serve=false — monitor 自动起已关闭 (手动 `serve` 仍可强起)", style="yellow")
+        cfg = _cfg_effective(_yaml_load(f.read_text()))  # 独立 argv 入口, 不走 self.config() (免其未初始化即报错的前置)
+        if auto and not cfg["web"]["serve"]:
+            DBG.log("config.yaml web.serve=false — monitor 自动起已关闭 (手动 `serve` 仍可强起)", style="yellow")
             return  # 仅 monitor 自动起遵此开关; 手动 serve 无视
         # 看板不落盘 — 页面每请求实时从 task.json 渲染 (do_GET)。
         # tty 区分: 手动终端跑 (tty) 印启动 URL 且遵 board_open 自动开浏览器; monitor 管道 (非 tty) 静默且绝不弹窗 (每 session when:always, 弹窗会骚扰)。
         # --debug 强制打印启动 URL: 非 tty 手动调试 (管道/被捕获) 也能看到服务地址, 否则误判"无法启动"; 浏览器仍只 tty 开 (非 tty 弹窗骚扰)。
         manual = sys.stdout.isatty()
-        self._run_server(open_browser=manual and cfg.get("board_open", CONFIG_DEFAULTS["board_open"]), quiet=not (manual or DBG.enabled))
+        self._run_server(open_browser=manual and cfg["web"]["board_open"], quiet=not (manual or DBG.enabled))
 
     _LOCK_ID_PATH = "/__skein__/id"  # 身份探测端点: 返回本服务的项目标识 (.skein 绝对路径)
     _REV_PATH = "/__skein__/rev"  # 版本探测端点: rev 变则 reload (WS 推送为主, 轮询兜底)
@@ -2571,12 +3172,12 @@ class Skein:
         trellis_removed = False
         if a.full and trellis.is_dir():
             shutil.rmtree(trellis); removed.append(".trellis/"); trellis_removed = True
-        # web 看板服务: 缺省启用 (init 已写 web_serve=true); --no-web 关闭。启用则打开看板一次 (监听服务由 monitor 起)。
+        # web 看板服务: 缺省启用 (init 已写 web.serve=true); --no-web 关闭。启用则打开看板一次 (监听服务由 monitor 起)。
         web_enabled = not getattr(a, "no_web", False)
         if not web_enabled:
             cfgf = self.dir / "config.yaml"
             cfg = _yaml_load(cfgf.read_text())
-            cfg["web_serve"] = False
+            cfg = _cfg_set_path(cfg, "web.serve", False)
             cfgf.write_text(_yaml_dump(cfg))
         else:
             print("可视化看板: 运行 `skein view` 起 http 服务打开 (常驻服务由 monitor 起)。", file=sys.stderr)
@@ -3474,21 +4075,32 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
         return JSONResponse(board.config())
 
     @app.post("/__skein__/config")
-    async def _cfg_save(request: Request) -> JSONResponse:  # 写 config.yaml (只认 CONFIG_DEFAULTS 键; 前端全量提交)
-        # input 提交多为 str → 按 CONFIG_DEFAULTS[key] 类型 coerce; 未知键忽略 (防注入); 缺键补默认。
+    async def _cfg_save(request: Request) -> JSONResponse:  # 写 config.yaml (只认 CONFIG_DEFAULTS 路径; 前端全量提交嵌套结构)
+        # input 提交多为 str → 按叶的类型 coerce; 未知键/分组忽略 (防注入); 缺键补默认。
         try:
             body = json.loads(request.scope.get("skein_body") or b"{}")
         except Exception:
             return JSONResponse({"error": "bad request"}, status_code=400)
 
-        def _coerce(k: str, v: Any) -> Any:  # str→int/bool; 类型不合 → 默认值兜底 (不报错, 前端 debounce 全量提交)
+        def _coerce(path: str, v: Any) -> Any:  # str→int/bool; 类型不合 → 默认值兜底 (不报错, 前端 debounce 全量提交)
             try:
-                return _coerce_config(k, v)
+                return _coerce_config(path, v)
             except (TypeError, ValueError):
-                return CONFIG_DEFAULTS[k]
+                return _cfg_get_path(CONFIG_DEFAULTS, path)
 
-        cfg = {k: _coerce(k, body[k]) for k in CONFIG_DEFAULTS if k in body}
-        full = {**CONFIG_DEFAULTS, **cfg}  # 未提交键补默认 (前端应全量, 容错)
+        full: dict[str, Any] = {}
+        raw_disk = _yaml_load((board.dir / "config.yaml").read_text()) if (board.dir / "config.yaml").exists() else {}
+        for k, dv in CONFIG_DEFAULTS.items():
+            if k in CFG_REMOTE_DENY:  # 值是 shell 命令 → 远程一律不可写, 保留盘上原值
+                if k in raw_disk:
+                    full[k] = raw_disk[k]
+                continue
+            if isinstance(dv, dict):
+                group_body = body.get(k) if isinstance(body.get(k), dict) else {}
+                full[k] = {gk: (_coerce(f"{k}.{gk}", group_body[gk]) if gk in group_body else gv)
+                           for gk, gv in dv.items()}
+            else:
+                full[k] = _coerce(k, body[k]) if k in body else dv
         (board.dir / "config.yaml").write_text(_yaml_dump(full))
         return JSONResponse({"ok": True, "config": board.config()})  # 返回读回值 (含 ENV override)
 
@@ -3556,7 +4168,7 @@ def main() -> None:
     sub.add_parser("init", help="初始化 .skein/ 工作区 (幂等)")
     su = sub.add_parser("setup", help="初始化 + trellis 迁移 (默认兼容: 拷 spec/task + 删接线, 留 .trellis 数据; --full 再整删 .trellis)")
     su.add_argument("--full", action="store_true", help="完全迁移+移除: 兼容操作 + 整删 .trellis/ (spec/task 已拷入 .skein)")
-    su.add_argument("--no-web", action="store_true", help="关闭持久看板 web 服务 (写 config.yaml web_serve=false; 缺省启用并打开看板)")
+    su.add_argument("--no-web", action="store_true", help="关闭持久看板 web 服务 (写 config.yaml web.serve=false; 缺省启用并打开看板)")
     c = sub.add_parser("create", help="登记新 task (id/--name/--desc 必填)")
     c.add_argument("id", help="可读 id (kebab-case slug, 如 order-create-api; 兼作分支/目录名)")
     c.add_argument("--name", required=True, help="[必填] task 标题")
@@ -3600,7 +4212,7 @@ def main() -> None:
     rn.add_argument("--id", dest="id", help="新 id/sid (task id 仅 pending 可改, 同步跨引用)")
     rn.add_argument("--name", help="新显示名")
     cfg_p = sub.add_parser("config", help="读写 .skein/config.yaml 配置 (无参=展示全部 | --json 机器可解析 | set <key> <value> | reset)")
-    cfg_p.add_argument("--json", action="store_true", help="无参展示时输出 JSON (供 jq 解析, 如 skein config --json | jq -r .use_worktree)")
+    cfg_p.add_argument("--json", action="store_true", help="无参展示时输出嵌套 JSON (供 jq 解析, 如 skein config --json | jq -r .worktree.enabled)")
     cfg_sub = cfg_p.add_subparsers(dest="action")
     cs = cfg_sub.add_parser("set", help="写单个配置键")
     cs.add_argument("key")
@@ -3621,8 +4233,8 @@ def main() -> None:
                       help="体检后再跑质量门: mypy --strict 全源码 0 错 + pytest 全 suite pass (慢, CI/hook 按需调)")
     sub.add_parser("board", help="渲染 .skein/task.md 看板")
     sub.add_parser("view", help="起 http 服务并打开可视化看板 (仅此命令主动打开)")
-    _sp_serve = sub.add_parser("serve", help="持久看板 http 服务 (手动跑无视 web_serve 强起; --auto 为 monitor 自动起入口, 遵 web_serve 开关)")
-    _sp_serve.add_argument("--auto", action="store_true", help="monitor 自动起模式: 遵 config web_serve (=false 则 no-op 退出); 省略=手动, 无视开关强起")
+    _sp_serve = sub.add_parser("serve", help="持久看板 http 服务 (手动跑无视 web.serve 强起; --auto 为 monitor 自动起入口, 遵 web.serve 开关)")
+    _sp_serve.add_argument("--auto", action="store_true", help="monitor 自动起模式: 遵 config web.serve (=false 则 no-op 退出); 省略=手动, 无视开关强起")
     sub.add_parser("session-context", help="[hook 用] 注入活跃 task 状态")
     co = sub.add_parser("contract", help="查/加 task 契约 (check 逐条验)")
     co.add_argument("id", help="task id")
@@ -3715,4 +4327,11 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    # 配置语法错在 CLI 侧要友好报错退出 (库侧是 ValueError, 供 hook 热路径 catch — 见 _yaml_bad)。
+    # 退出码策略 (c9 理清): 凡读配置的命令 (调过 self.config()/_yaml_load(config.yaml)) 在配置语法错时
+    # 一律 exit 1 — 配置错会让后续行为不可预期, 静默带病运行比报错更危险。不读配置的命令 (如 list/contract,
+    # 只碰 task.json) 不受影响, 仍正常 exit 0 —— 这不是遗漏, 是同一策略下的自然结果 (没读的东西没法因它错)。
+    try:
+        main()
+    except ValueError as e:
+        raise SystemExit(str(e)) from None

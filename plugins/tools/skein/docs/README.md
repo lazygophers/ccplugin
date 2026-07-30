@@ -78,4 +78,5 @@ skein view       # 可视化 HTML 看板
 
 - [skein.md](skein.md) — 架构 / 生命周期 / 调度 / 规则记忆
 - [reference.md](reference.md) — CLI / skill / agent / config / 场景 / 术语
+- [hooks.md](hooks.md) — `config.yaml` 自定义 hooks (阶段钩子 + agent 钩子): schema / env 变量 / 阻断语义 / 信任模型
 - [examples/](examples) — 完整样例 .skein/

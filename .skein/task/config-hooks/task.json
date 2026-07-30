@@ -1,0 +1,398 @@
+{
+  "id": "config-hooks",
+  "name": "config.yaml 自定义 hooks (阶段钩子 + agent start/stop)",
+  "desc": "config.yaml 支持声明式 hooks: 阶段级 before/after 挂 skein 状态迁移命令 + agent start/stop 由 agent 经 dispatch 参数自调; 需先升级 _yaml_load 支持嵌套",
+  "status": "进行中",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "c1",
+      "name": "_yaml_load 嵌套支持",
+      "desc": "升级为支持 2 空格缩进嵌套 dict(≥4层) + '- ' list of dict + 标量 + 注释 + 带引号键('*'解析为*); 不支持语法(锚点/多行/流式/多文档)报错指行号禁静默降级; _yaml_dump 对应支持且往返一致",
+      "estimate": 1.5,
+      "depends_on": [],
+      "验收": [
+        "4 层嵌套与 list of dict 解析正确",
+        "\"*\" 键解析为 * 无引号",
+        "锚点/多行/流式/多文档均报错且含行号",
+        "_yaml_load(_yaml_dump(d))==d",
+        "现有扁平配置行为零变化且 test_config_cli.py 全绿"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785398601,
+      "started": 1785398607,
+      "finished": 1785399101
+    },
+    {
+      "sid": "c2",
+      "name": "统一钩子执行器",
+      "desc": "_run_hooks(scope,when,ctx): 串行执行/失败即停/timeout 默认60s/cwd 默认task工作目录可覆盖/env 注入9个变量/[hook scope.when#N] 前缀输出/before阻断after告警的阻断语义/continue_on_error覆盖/SKEIN_IN_HOOK 递归护栏/无hooks键零开销直返",
+      "estimate": 1.5,
+      "depends_on": [
+        "c1"
+      ],
+      "验收": [
+        "before失败阻断阶段(退出非零)",
+        "after失败仅告警",
+        "continue_on_error双向覆盖生效",
+        "串行且失败即停",
+        "timeout超时按失败且信息含秒数",
+        "env九变量齐全",
+        "输出带定位前缀",
+        "SKEIN_IN_HOOK=1时跳过嵌套钩子",
+        "无hooks键不fork进程"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785398601,
+      "started": 1785404262,
+      "finished": 1785404665
+    },
+    {
+      "sid": "c3",
+      "name": "hooks 键接入配置面 + 端点排除",
+      "desc": "hooks 进 CONFIG_DEFAULTS 默认{}; config 无参与--json 正确呈现嵌套; config set 拒嵌套结构并给清楚错误; http 配置写端点硬排除 hooks 键(安全必做, 否则远程写shell=RCE)",
+      "estimate": 0.7,
+      "depends_on": [
+        "c1"
+      ],
+      "验收": [
+        "config 展示与--json 呈现嵌套 hooks 正确",
+        "config set hooks 被拒且错误说明清楚",
+        "http 写端点拒 hooks 键并返回明确错误",
+        "无 hooks 键时展示不报错"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785398601,
+      "started": 1785404677,
+      "finished": 1785405657
+    },
+    {
+      "sid": "c4",
+      "name": "9 个阶段命令接入",
+      "desc": "create/confirm/start/check/finish/archive/subtask.start/subtask.done/subtask.fail 各接 before+after; 非法阶段名报错并列合法值清单",
+      "estimate": 1.0,
+      "depends_on": [
+        "c2"
+      ],
+      "验收": [
+        "9 个阶段的 before/after 均能触发",
+        "check.before 失败使 check 不发生",
+        "非法阶段名报错且列出全部合法值",
+        "未配钩子的阶段行为零变化"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785398601,
+      "started": 1785405753,
+      "finished": 1785406519
+    },
+    {
+      "sid": "c5",
+      "name": "agent-start/agent-stop 子命令",
+      "desc": "hooks.py 加两子命令收 --agent/--tid/--sid; 查 hooks.agent.<name> 与 hooks.agent.'*'; 具名先跑通配后跑; 失败只告警返回0不阻断; 无配置 no-op 直返; 每次执行追加 .audit-log",
+      "estimate": 0.8,
+      "depends_on": [
+        "c2"
+      ],
+      "验收": [
+        "指定 agent 的 start/stop 正确执行",
+        "\"*\" 通配生效",
+        "具名先于通配",
+        "钩子失败仍返回0",
+        "无配置时 no-op 不 fork",
+        ".audit-log 有记录"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785398601,
+      "started": 1785404677,
+      "finished": 1785405665
+    },
+    {
+      "sid": "c6",
+      "name": "9 个 agent 工作流加钩子步",
+      "desc": "各 agent 工作流加 step 0 (agent-start) 与收尾步 (agent-stop, 在 subtask done/fail 之后) + Checkpoints 一条铁律; 明确不写 hooks: frontmatter 字段(被 harness 忽略, 写了是误导)",
+      "estimate": 0.6,
+      "depends_on": [
+        "c5"
+      ],
+      "验收": [
+        "9 个 agent 均含两步且 agent-stop 在 done/fail 之后",
+        "Checkpoints 有对应铁律且说明失败不阻断",
+        "无任何 agent 的 frontmatter 含 hooks: 字段",
+        "过 claude -p 质量门"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785398601,
+      "started": 1785405753,
+      "finished": 1785407134
+    },
+    {
+      "sid": "c7",
+      "name": "doctor 检查 + 文档",
+      "desc": "doctor 报「配了 agent 钩子但 .audit-log 从未触发」; 文档写 schema/阶段表/env表/信任模型(含端点排除理由)/解析器 ceiling",
+      "estimate": 0.5,
+      "depends_on": [
+        "c4",
+        "c5"
+      ],
+      "验收": [
+        "doctor 能报未触发",
+        "文档五项齐备",
+        "信任模型明确写出 config.yaml 可信而网络输入不可信的边界差异"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785398601,
+      "started": 1785406550,
+      "finished": 1785407377
+    },
+    {
+      "sid": "c8",
+      "name": "测试套件",
+      "desc": "_yaml_load 独立测试文件(嵌套/报错行号/往返); 经 conftest skein_cli+ws fixture 跑 CLI 子进程断言退出码+输出+钩子标记文件副作用; 钩子命令只用 echo/touch/exit 1 零外部依赖",
+      "estimate": 1.0,
+      "depends_on": [
+        "c1",
+        "c2",
+        "c3",
+        "c4",
+        "c5"
+      ],
+      "验收": [
+        "_yaml_load 有独立测试文件且覆盖嵌套/报错/往返",
+        "阻断语义与通配顺序均有用例",
+        "零开销用例断言无hooks键时标记文件不存在",
+        "全套相对基线不新增失败"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785398601,
+      "started": 1785406550,
+      "finished": 1785407383
+    },
+    {
+      "sid": "c2b",
+      "name": "执行器落位 hooklib (架构修正)",
+      "desc": "_run_hooks 必须放共享模块 hooklib.py(或新建 hookrun.py), 禁塞进 skein.py 或 hooks.py — 它被两方共用(skein.py 阶段钩子 + hooks.py agent 钩子), 塞进任一方会让另一方反向依赖。_yaml_load 留 skein.py 不动(既有设计, 与 CONFIG_DEFAULTS 同居)",
+      "estimate": 0.2,
+      "depends_on": [
+        "c1"
+      ],
+      "验收": [
+        "_run_hooks 在 hooklib.py 或 hookrun.py 内",
+        "skein.py 与 hooks.py 均为单向 import 该模块, 二者之间不因钩子产生新的相互 import",
+        "_yaml_load 仍在 skein.py"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785400261,
+      "started": 1785404263,
+      "finished": 1785404665
+    },
+    {
+      "sid": "c9",
+      "name": "补修 2 个静默错 + 行为一致性",
+      "desc": "_yaml_load: ①剥离 UTF-8 BOM(否则首个键读不到, Windows 编辑器常带) ②未闭合引号报错而非静默丢引号(会静默改变 hook 命令, 安全相关) ③理清 config 损坏时各命令退出码一致性(现 list exit0 而 config exit1)",
+      "estimate": 0.4,
+      "depends_on": [
+        "c1"
+      ],
+      "验收": [
+        "BOM 开头的 config 首键正常读到",
+        "未闭合引号报错且含行号",
+        "各 CLI 命令在配置损坏时退出码策略一致且文档说明",
+        "hook 路径仍不因配置错而崩"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785400261,
+      "started": 1785402710,
+      "finished": 1785404191
+    },
+    {
+      "sid": "c3b",
+      "name": "修正 c3: hooks 刻意不进 CONFIG_DEFAULTS",
+      "desc": "推翻 c3 原描述(原写「hooks 进 CONFIG_DEFAULTS 默认{}」+「端点排除 hooks 键」)。改为: hooks 是可选特性, 默认 config.yaml 无该键, init 不写 config 不展示键数不变; 代码一律 cfg.get('hooks') 缺失即 no-op。安全副产品: 不进 CONFIG_DEFAULTS 则 http 配置写端点(仅认 CONFIG_DEFAULTS 键)天然拒绝 hooks, 原 RCE 风险点自动消失, c3 原本要写的排除逻辑不需要了",
+      "estimate": 0.2,
+      "depends_on": [
+        "c1"
+      ],
+      "验收": [
+        "init 后 config.yaml 无 hooks 键",
+        "config 与 --json 键数不含 hooks",
+        "手加 hooks 键后功能正常",
+        "http 写端点拒 hooks(因非 CONFIG_DEFAULTS 键)",
+        "无需额外排除代码"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785402064,
+      "started": 1785404677,
+      "finished": 1785405654
+    },
+    {
+      "sid": "c10",
+      "name": "配置键层级化 (spec./worktree./web.)",
+      "desc": "既然 _yaml_load 已支持嵌套(c1), 扁平前缀键改层级: spec_always_budget/spec_core_budget→spec.always_budget/spec.core_budget; use_worktree/worktree_root→worktree.enabled/worktree.root; web_serve/board_open→web.serve/web.board_open。CONFIG_DEFAULTS 改嵌套; 旧扁平键保留读作 deprecated fallback(既有仓 config.yaml 不破); config set 支持点号路径; config 展示扁平化为 a.b=v",
+      "estimate": 1.2,
+      "depends_on": [
+        "c1"
+      ],
+      "验收": [
+        "嵌套键读写正常",
+        "旧扁平键仍可读且有 deprecated 提示",
+        "config set spec.always_budget 9000 生效",
+        "config 展示为点号形式",
+        "既有扁平 config.yaml 零破坏",
+        "全部读配置调用点已改(grep 无遗漏)",
+        "test_config_cli 与 test_yaml_load 全绿"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785402064,
+      "started": 1785402710,
+      "finished": 1785404191
+    },
+    {
+      "sid": "c11",
+      "name": "修 _cfg_backfill 遮蔽用户配置",
+      "desc": "c10 引入: _cfg_backfill 在旧扁平键已存在时仍写入同组嵌套默认值, 而读取时嵌套优先 → 用户设的 use_worktree:false 被回填的 worktree.enabled:true 遮蔽, spec_core_budget:12000 被 spec.core_budget:1000 遮蔽。已实际改变本仓行为(worktree 从禁用变启用), 由 doctor 的「执行中但无 worktree」抓到。修: 回填时若同组已有旧扁平键, 要么不写该嵌套叶, 要么用旧扁平键的值写入(而非默认值); 并补测试覆盖「旧扁平键 + 回填」组合",
+      "estimate": 0.5,
+      "depends_on": [],
+      "验收": [
+        "已有旧扁平键的仓回填后生效值仍等于旧扁平键的值",
+        "纯新仓回填写默认值不变",
+        "混合态(部分扁平部分嵌套)读取优先级明确且有用例",
+        "doctor 不再因此报错"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "skills": [],
+      "created": 1785407782,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "c12",
+      "name": "exec 阶段钩子接入",
+      "desc": "exec 是 flow 四阶段之一但无同名 CLI 命令, 边界由 start/check 夹出: exec.before 在 skein start 成功后(task 进进行中)触发, exec.after 在 skein check 前(全 subtask done 退出 exec)触发。需与 start.after / check.before 的触发顺序定清: start.after → exec.before; exec.after → check.before",
+      "estimate": 0.4,
+      "depends_on": [],
+      "验收": [
+        "exec.before 在 start 成功后触发且晚于 start.after",
+        "exec.after 在 check 前触发且早于 check.before",
+        "exec 钩子失败的阻断语义与其他阶段一致(before 阻断/after 告警)",
+        "未配 exec 钩子时 start/check 行为零变化",
+        "有用例覆盖触发顺序"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "skills": [],
+      "created": 1785410753,
+      "started": null,
+      "finished": null
+    }
+  ],
+  "priority": 5,
+  "estimate": 9.0,
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/config-hooks",
+  "parent": null,
+  "kind": "task",
+  "created": 1785398457,
+  "started": 1785398636,
+  "confirmed": 1785398615,
+  "checked": null,
+  "finished": null,
+  "updated": 1785410753
+}

@@ -32,7 +32,7 @@
                                                   无 --apply 只报告; --apply 自动修复可修项 (断链/配置问题/report类只报告)
   spec.py degrade <file|--auto>                   always→auto 单文件降级 (仅改 frontmatter inclusion 一行 + reindex + 审计,
                                                   不移动文件); --auto 循环降 top-1 最大 always 页到总字符 < always_budget()
-                                                  (config.yaml spec_always_budget, 默认 8000; 旧键 spec_core_budget fallback) 即停
+                                                  (config.yaml spec.always_budget, 默认 8000; 旧扁平键 spec_always_budget fallback) 即停
 """
 from __future__ import annotations
 
@@ -123,17 +123,21 @@ def spec_root() -> Path:
 
 
 def always_budget() -> int:
-    """always 全文软预算 (字符): 读 .skein/config.yaml spec_always_budget (复用 skein._yaml_load);
-    缺该键时 fallback 读旧键 spec_core_budget (deprecated); 两键皆缺/非正整数 → 默认 8000。
-    懒求值, 每次调读盘, 支持热改。"""
+    """always 全文软预算 (字符): 读 .skein/config.yaml spec.always_budget (复用 skein._yaml_load);
+    旧扁平键 spec_always_budget 仍生效 deprecated fallback; 缺该键时再 fallback 读
+    spec.core_budget (新嵌套) / spec_core_budget (旧扁平, deprecated); 两键皆缺/非正整数 → 默认 8000。
+    ponytail: 不用 skein._cfg_effective — 那个会给缺失叶回填默认值 8000, 会吃掉「always_budget 本就
+    未设」这个信号, 令 core_budget 旧键 fallback 永远失效; 这里要保留「缺失」而非「已知默认」的区别,
+    故直读 raw 按 (嵌套>扁平) 取值, 取不到才是真缺失。懒求值, 每次调读盘, 支持热改。"""
     try:
         from skein import _yaml_load  # 局部 import 免循环依赖
         cfg_path = spec_root().parent / "config.yaml"
         if cfg_path.exists():
-            cfg = _yaml_load(cfg_path.read_text())
-            v = cfg.get("spec_always_budget")
+            raw = _yaml_load(cfg_path.read_text())
+            spec_raw = raw.get("spec") if isinstance(raw.get("spec"), dict) else {}
+            v = spec_raw.get("always_budget", raw.get("spec_always_budget"))
             if not isinstance(v, int) or v <= 0:
-                v = cfg.get("spec_core_budget")  # deprecated 旧键 fallback
+                v = spec_raw.get("core_budget", raw.get("spec_core_budget"))  # deprecated fallback
             if isinstance(v, int) and v > 0:
                 return v
     except Exception:

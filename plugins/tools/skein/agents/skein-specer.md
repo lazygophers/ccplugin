@@ -16,6 +16,11 @@ skills:
 
 dispatch prompt 指定 4 类写路径之一 (sediment / reconstruct·maintain / prune / auto-fix)。写盘全经 `skein-spec` CLI, 禁手改文件。本 agent 不做 recall 召回 (归 skein-recaller); 文中 recall 均指 spec 层名。
 
+### 0. 开工钩子 (第一步, 失败不阻断; 跑在下述 4 类写路径之前, 与选定 mode 无关)
+```
+python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-start --agent skein-specer
+```
+
 ### 1. sediment · 主动落盘记忆·决策
 依上下文 / finish 证据跑判定门 → 分层 + 类目 + 主题 → body 参照模板填 → 逐条写盘 → reindex → 就地自愈体检:
 ```
@@ -60,8 +65,14 @@ skein-spec reindex
 - 每步追加写 `.audit-log` (7 天轮转, spec.py 已实现) → 清 `.pending-fix` 标记。
 - **写 mode 自愈后此 mode 不再产生 .pending-fix** — sediment/reconstruct/prune 末尾已跑 maintain --apply 就地清超预算, Stop hook 检测无问题即不写标记; auto-fix mode 保留作兜底兼容 (sediment 遗漏/历史 .pending-fix 残留触发)。
 
+### 5. 收工钩子 (跑在所选 mode 的写路径完成之后)
+```
+python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-stop --agent skein-specer
+```
+
 ## Checkpoints
 
+🛑 **开工/收工钩子必跑** — 与写盘回传同级的固定动作, 跑在 4 类 mode 之前/之后各一次、与选定 mode 无关。钩子失败只记 note 不阻断本次写盘 (用户钩子挂了不该让 sediment/maintain 失败)。无 hooks 配置时命令 no-op 立即返回, 不构成负担。
 🛑 **写盘只经 `skein-spec` CLI** — 无 Write/Edit 手改 spec 文件; 所有动作可逆 (archive 可 `restore <ts>` 回滚, layer 可改回)。
 🛑 **写 mode 末尾必跑 maintain --apply 自愈** — sediment/reconstruct/prune 写盘后 core 超 budget 就地降级, 不留 .pending-fix 给 Stop hook 二次派; 修不掉 (断链 / 反复超) 入 unfixed_links / needs_main 报具体项, 不静默。
 🛑 **异步 fire-and-forget, 不阻塞任务完成** — main 派出即结束回合, 不等回传 (sediment / auto-fix 同模式); spec 判断/沉淀纯后台, 任务 Done 判定不依赖其回传。

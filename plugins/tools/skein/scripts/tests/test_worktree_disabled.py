@@ -50,7 +50,7 @@ def test_create_repos_rejected_when_disabled(skein_cli: SkeinCli, git_cmd: GitCm
     r = skein_cli(ws, "create", "feat-x", "--name", "x", "--desc", "d",
                   "--repos", "sub-a", check=False)
     assert r.returncode != 0, f"禁用态 create --repos 未拒: rc={r.returncode}"
-    assert "use_worktree=false" in r.stdout + r.stderr, f"文案不符: {r.stdout + r.stderr!r}"
+    assert "worktree.enabled=false" in r.stdout + r.stderr, f"文案不符: {r.stdout + r.stderr!r}"
     # 拒后不落 task
     assert not (ws / ".skein" / "task" / "feat-x").exists(), "拒后不应残留 task"
 
@@ -61,7 +61,7 @@ def test_repos_set_rejected_when_disabled(skein_cli: SkeinCli, ws: Path) -> None
     _disable(skein_cli, ws)
     r = skein_cli(ws, "repos", "feat-y", "--set", "sub-a", check=False)
     assert r.returncode != 0, f"禁用态 repos --set 未拒: rc={r.returncode}"
-    assert "use_worktree=false" in r.stdout + r.stderr, f"文案不符: {r.stdout + r.stderr!r}"
+    assert "worktree.enabled=false" in r.stdout + r.stderr, f"文案不符: {r.stdout + r.stderr!r}"
 
 
 def test_create_repos_allowed_when_enabled(skein_cli: SkeinCli, git_cmd: GitCmd,

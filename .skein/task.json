@@ -1,6 +1,15 @@
 {
   "tasks": [
     {
+      "id": "config-hooks",
+      "status": "进行中",
+      "deps": [],
+      "priority": 5,
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    },
+    {
       "id": "spec-model-core",
       "status": "进行中",
       "deps": [],
