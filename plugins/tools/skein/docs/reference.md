@@ -32,7 +32,7 @@
 | `init` | 初始化 spec 目录 |
 | `recall <query>` | 按关键词召回规则 |
 | `recall free <text>` | 全文模糊匹配 |
-| `sediment <task-id> [--layer] [--category]` | 沉淀规则 |
+| `sediment --namespace <ns> [--inclusion] [--category]` | 沉淀规则 |
 | `prune [--dry-run]` | 清理 stale/重复规则 |
 | `maintain` | 全量健康检查 |
 | `reconstruct` | 按项目类型重建 |
@@ -129,10 +129,10 @@ skein create <child2> --parent <id>
 | worktree | git worktree, 1 task 1 物理隔离 |
 | board | task.md + task.html, 从 task.json 渲染 |
 | contract | planning 锁不变量, check 逐条验证 |
-| spec | 两层规则记忆库 |
+| spec | 规则记忆库 (namespace × inclusion) |
 | core | 违反即错, 每 session 自动注入 |
 | recall | 值得参考, 按关键词召回 |
-| sediment | finish 判 learning → core/recall/drop |
+| sediment | finish 判 learning → namespace×inclusion / drop |
 | compaction | SessionStart 对活跃 task 状态压缩重注入 |
 
 ### 状态

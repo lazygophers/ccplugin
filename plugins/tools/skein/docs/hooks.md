@@ -5,7 +5,7 @@
 
 | 类型 | 触发点 | 配置路径 |
 | --- | --- | --- |
-| 阶段钩子 | `skein.py` 的 9 个状态迁移命令 (create/confirm/start/check/finish/archive/subtask.start/done/fail) 前后 | `hooks.stage.<阶段名>.<before\|after>` |
+| 阶段钩子 | `skein.py` 的 9 个状态迁移命令 (create/confirm/start/check/finish/archive/subtask.start/done/fail) 前后 | `hooks.<阶段名>.<before\|after>` |
 | agent 钩子 | agent 生命周期起止 (由 agent 工作流自己在 dispatch 时调用) | `hooks.agent.<agent名\|"*">.<start\|stop>` |
 
 `hooks` 键整体可选 —— 不配则零开销 (不解析、不构造 env、不 fork 子进程), 详见 [§ 零开销路径](#零开销路径)。
@@ -14,18 +14,17 @@
 
 ```yaml
 hooks:
-  # 阶段钩子: key 是 STAGE_NAMES 里的合法阶段名 (见下表)
-  stage:
-    check:
-      before:
-        - command: "npm run lint"      # 必填, shell 字符串
-          timeout: 120                 # 秒, 缺省 60
-          continue_on_error: false     # 缺省: before=false / after=true
-      after:
-        - command: "echo checked"
-    subtask.done:
-      after:
-        - command: "curl -s https://example.com/notify -d stage=done"
+  # 阶段钩子: key 直接是 STAGE_NAMES 里的合法阶段名 (见下表), hooks 下无中间层
+  check:
+    before:
+      - command: "npm run lint"        # 必填, shell 字符串
+        timeout: 120                   # 秒, 缺省 60
+        continue_on_error: false       # 缺省: before=false / after=true
+    after:
+      - command: "echo checked"
+  subtask.done:
+    after:
+      - command: "curl -s https://example.com/notify -d stage=done"
 
   # agent 钩子: key 是 agent 名 (如 skein-executor) 或通配 "*" (须加引号, 见解析器 ceiling)
   agent:
@@ -50,14 +49,16 @@ hooks:
 
 ## 2. 阶段名全表
 
-`hooks.stage.<name>` 的 `<name>` 仅接受以下 9 个 (常量 `STAGE_NAMES`, `skein.py`):
+`hooks.<name>` 的 `<name>` 仅接受以下 10 个 (常量 `STAGE_NAMES`, `skein.py`):
 
 ```
-create  confirm  start  check  finish  archive
+create  confirm  start  exec  check  finish  archive
 subtask.start  subtask.done  subtask.fail
 ```
 
-拼错的阶段名不会静默失效 —— 命令执行时报错并列出以上合法值清单 (拼错等于钩子无声失效, 是最难查的一类故障)。
+拼错的阶段名不会静默失效 —— 读配置时 stderr 告警并列出以上合法值清单, `skein doctor` 判为 `✗` error
+(拼错等于钩子无声失效, 是最难查的一类故障)。告警而非阻断是刻意的: 读配置在钩子热路径上, 一个笔误不该让
+每条 skein 命令都退非零。同款校验也覆盖未知 scope、未知条目字段、`timeout` 非正整数等结构错。
 
 ## 3. env 变量表
 
@@ -134,13 +135,18 @@ hooks:
 `shell=True` 执行钩子命令, **不违反**「exec 端点禁 shell 注入」那条 core 规则 —— 那条规则约束的
 是网络输入 (http 端点收到的 body), 本特性的输入源从未经过网络。
 
-**正因如此**: `hooks` 键被**刻意排除在 `CONFIG_DEFAULTS` 之外** (`skein.py` 里 `CONFIG_DEFAULTS`
-字典未列 `hooks`)。`POST /__skein__/config` 写端点只回填 `CONFIG_DEFAULTS` 已列举的叶子键
-(见 core 规则「配置写端点防注入」), `hooks` 天然不在其中, 于是该端点**结构性地**拒绝写入 `hooks`
-键 —— 不需要专门加一条排除逻辑, 少一处可能被绕过的判断分支。已实测: 向该端点 POST 一个
-带 `hooks.stage.create.before[0].command = "touch pwned"` 的 body, 回填后 `hooks` 键不出现在落盘的
-`config.yaml` 里, 注入不生效。若日后 `hooks` 被误加进 `CONFIG_DEFAULTS`, 该端点会立刻变成
-**远程可写 shell 命令 = RCE** —— 这是本特性唯一的真实安全风险点, 改 `CONFIG_DEFAULTS` 时须警惕。
+**正因如此**: `hooks` 键在写端点侧被**显式拒写** —— `skein.py` 的 `CFG_REMOTE_DENY = ("hooks",)`,
+`POST /__skein__/config` 命中该元组的键一律跳过, 保留盘上原值。
+
+⚠️ 这里曾靠「`hooks` 不进 `CONFIG_DEFAULTS`, 于是回填时天然被忽略」来防护。那条路已经作废:
+`CONFIG_DEFAULTS` 现在**含完整 hooks 骨架** (全部 scope × 时机都列出, 执行列表为空), 于是
+「不在默认字典里」这个结构性保护消失了, 必须靠 `CFG_REMOTE_DENY` 这条显式排除撑住。
+**改 `CONFIG_DEFAULTS` 或改写端点回填逻辑时须重新验证这条**, 漏了就是**远程可写 shell 命令 = RCE**,
+这是本特性唯一的真实安全风险点。
+
+已实测: 向该端点 POST 带 `hooks.agent."*".start[0].command = "touch pwned"` 的 body, 返回 200,
+但落盘 `config.yaml` 的 hooks 段逐字未变, `pwned` 文件未生成 (回归测试
+`tests/test_board.py::test_serve_config_post`)。
 
 ## 6. `_yaml_load` 解析器 ceiling
 

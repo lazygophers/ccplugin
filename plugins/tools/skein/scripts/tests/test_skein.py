@@ -9,22 +9,20 @@ import importlib.util
 import json
 import re
 import subprocess
-import sys
 import tempfile
 from pathlib import Path
 from types import ModuleType
 from typing import Any
 
-SKEIN = Path(__file__).parent / "skein.py"
-
-
-def sk(cwd: Path, *args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
-    return subprocess.run([sys.executable, str(SKEIN), *args], cwd=cwd,
-                          capture_output=True, text=True, check=check)
-
-
-def git(cwd: Path, *args: str) -> None:
-    subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True, check=True)
+from conftest import (SKEIN, make_git_repo, make_ws,  # 单一实现, 见 conftest 顶部说明
+                      run_git as git, run_skein as sk)
+from skeinlib.commands import Skein, _workspace_lock
+from skeinlib.config import _yaml_dump, _yaml_load
+from skeinlib.dag import _sub_pct, _task_pct
+from skeinlib.errors import SkeinError
+from skeinlib.model import (SS_DONE, SS_FAILED, SS_PENDING, SS_RUNNING,
+                            S_ACTIVE, S_CHECK, S_DONE, S_PENDING, S_READY)
+from skeinlib.views import _view_board_data
 
 
 def _load(mod_name: str) -> ModuleType:
@@ -40,21 +38,16 @@ def _load(mod_name: str) -> ModuleType:
 def main() -> None:
     with tempfile.TemporaryDirectory() as td:
         d: Path = Path(td)
-        git(d, "init", "-q")
-        git(d, "config", "user.email", "t@t.dev")
-        git(d, "config", "user.name", "t")
-        (d / "seed.txt").write_text("seed\n")
-        git(d, "add", "-A"); git(d, "commit", "-q", "-m", "seed")
+        make_git_repo(d)
 
         # init
         sk(d, "init")
         assert (d / ".skein" / "config.yaml").exists(), "config 缺失"
         # mini YAML 解析器往返: 类型 (int/bool/str) + # 注释
-        sk_mod = _load("skein")
-        rt = sk_mod._yaml_load(sk_mod._yaml_dump(
+        rt = _yaml_load(_yaml_dump(
             {"max_active": 2, "auto_commit": True, "worktree_root": ".worktrees"}))
         assert rt == {"max_active": 2, "auto_commit": True, "worktree_root": ".worktrees"}, rt
-        assert sk_mod._yaml_load("max_active: 2  # 注释\nfoo: bar")["max_active"] == 2, "注释未剥离"
+        assert _yaml_load("max_active: 2  # 注释\nfoo: bar")["max_active"] == 2, "注释未剥离"
         assert (d / ".skein" / "task.md").exists(), "看板缺失"
         # .gitignore: .skein/ 忽略 task.md, 根 .gitignore 补 worktree_root
         assert "task.md" in (d / ".skein" / ".gitignore").read_text(), ".skein/.gitignore 未忽略 task.md"
@@ -253,8 +246,8 @@ def main() -> None:
         import os
         cwd0 = os.getcwd(); os.chdir(d)
         try:
-            sk_obj = _load("skein_dag").Skein()
-            data = sk_obj._board_data()
+            sk_obj = Skein()
+            data = _view_board_data(sk_obj._snapshot())
         finally:
             os.chdir(cwd0)
         # DAG 全由前端从 cards[].subNodes 推 (节点 = [id,name,status,deps,pct,desc]);
@@ -276,51 +269,46 @@ def main() -> None:
 
 def test_progress_pct() -> None:
     # 进度 = 状态区间 + subtask 完成度均值线性插值; 覆盖 pending/ready/active/check/done × 有无 subtask
-    m = _load("skein_pct")
 
     def sub(status: str, crit: int = 0, done: int = 0) -> dict[str, Any]:
         return {"status": status, "验收": [f"c{i}" for i in range(crit)],
                 "验收done": [f"c{i}" for i in range(done)]}
 
     def pct(status: str, subs: list[dict[str, Any]] | None = None) -> int:
-        return m._task_pct({"status": status, "subtasks": subs or []})
+        return _task_pct({"status": status, "subtasks": subs or []})
 
     # 无 subtask: 取状态区间中点
-    assert pct(m.S_PENDING) == 2, pct(m.S_PENDING)      # (0,5)
-    assert pct(m.S_READY) == 7, pct(m.S_READY)          # (5,10)
-    assert pct(m.S_ACTIVE) == 47, pct(m.S_ACTIVE)       # (10,85)
-    assert pct(m.S_CHECK) == 91, pct(m.S_CHECK)         # (85,98)
-    assert pct(m.S_DONE) == 100, pct(m.S_DONE)
+    assert pct(S_PENDING) == 2, pct(S_PENDING)      # (0,5)
+    assert pct(S_READY) == 7, pct(S_READY)          # (5,10)
+    assert pct(S_ACTIVE) == 47, pct(S_ACTIVE)       # (10,85)
+    assert pct(S_CHECK) == 91, pct(S_CHECK)         # (85,98)
+    assert pct(S_DONE) == 100, pct(S_DONE)
     # 有 subtask: 在状态区间内按 subtask 完成度均值线性插值
-    allpend = [sub(m.SS_PENDING) for _ in range(3)]     # 每个 _sub_pct=2 → 均值 2
-    assert pct(m.S_ACTIVE, allpend) == 11, pct(m.S_ACTIVE, allpend)    # 10+75*.02
-    assert pct(m.S_PENDING, allpend) == 0, pct(m.S_PENDING, allpend)   # 0+5*.02
-    assert pct(m.S_READY, allpend) == 5, pct(m.S_READY, allpend)       # 5+5*.02
-    assert pct(m.S_CHECK, allpend) == 85, pct(m.S_CHECK, allpend)      # 85+13*.02
-    mixed = [sub(m.SS_DONE), sub(m.SS_DONE), sub(m.SS_PENDING)]        # 均值 (100+100+2)/3
-    assert pct(m.S_ACTIVE, mixed) == 60, pct(m.S_ACTIVE, mixed)
+    allpend = [sub(SS_PENDING) for _ in range(3)]     # 每个 _sub_pct=2 → 均值 2
+    assert pct(S_ACTIVE, allpend) == 11, pct(S_ACTIVE, allpend)    # 10+75*.02
+    assert pct(S_PENDING, allpend) == 0, pct(S_PENDING, allpend)   # 0+5*.02
+    assert pct(S_READY, allpend) == 5, pct(S_READY, allpend)       # 5+5*.02
+    assert pct(S_CHECK, allpend) == 85, pct(S_CHECK, allpend)      # 85+13*.02
+    mixed = [sub(SS_DONE), sub(SS_DONE), sub(SS_PENDING)]        # 均值 (100+100+2)/3
+    assert pct(S_ACTIVE, mixed) == 60, pct(S_ACTIVE, mixed)
     # subtask 全完成也不给满 — 未走完状态机不封顶到 100
-    alldone = [sub(m.SS_DONE) for _ in range(3)]
-    assert pct(m.S_ACTIVE, alldone) == 85, pct(m.S_ACTIVE, alldone)    # 区间上界
-    assert pct(m.S_CHECK, alldone) == 98, pct(m.S_CHECK, alldone)      # 未验收不给 100
-    assert pct(m.S_DONE, allpend) == 100, "done 强制 100"
+    alldone = [sub(SS_DONE) for _ in range(3)]
+    assert pct(S_ACTIVE, alldone) == 85, pct(S_ACTIVE, alldone)    # 区间上界
+    assert pct(S_CHECK, alldone) == 98, pct(S_CHECK, alldone)      # 未验收不给 100
+    assert pct(S_DONE, allpend) == 100, "done 强制 100"
     # 验收项粒度: 在 subtask 状态区间内按 验收done/验收 插值, 无验收项取中点
-    assert m._sub_pct(sub(m.SS_RUNNING, crit=4, done=1)) == 30         # 10+80*.25
-    assert m._sub_pct(sub(m.SS_RUNNING)) == 50                         # (10,90) 中点
-    assert m._sub_pct(sub(m.SS_PENDING)) == 2                          # (0,5) 中点
-    assert m._sub_pct(sub(m.SS_FAILED)) == 50, "失败与运行同区间, 重试不回跳"
-    assert m._sub_pct(sub(m.SS_DONE, crit=4, done=1)) == 100, "done 强制 100"
+    assert _sub_pct(sub(SS_RUNNING, crit=4, done=1)) == 30         # 10+80*.25
+    assert _sub_pct(sub(SS_RUNNING)) == 50                         # (10,90) 中点
+    assert _sub_pct(sub(SS_PENDING)) == 2                          # (0,5) 中点
+    assert _sub_pct(sub(SS_FAILED)) == 50, "失败与运行同区间, 重试不回跳"
+    assert _sub_pct(sub(SS_DONE, crit=4, done=1)) == 100, "done 强制 100"
 
 
 def test_deps_ordering() -> None:
     # deps 命令 (dedup 补序织 DAG): pending+空deps 可写; 已有 deps/自引用/不存在/成环 全拒
     with tempfile.TemporaryDirectory() as td:
         d = Path(td)
-        git(d, "init", "-q")
-        git(d, "config", "user.email", "t@t.dev")
-        git(d, "config", "user.name", "t")
-        (d / "seed.txt").write_text("seed\n")
-        git(d, "add", "-A"); git(d, "commit", "-q", "-m", "seed")
+        make_git_repo(d)
         sk(d, "init")
         sk(d, "create", "schema-x", "--name", "s", "--desc", "d")
         sk(d, "create", "api-x", "--name", "a", "--desc", "d")
@@ -344,18 +332,17 @@ def test_deps_ordering() -> None:
 
 
 def test_lock() -> None:
-    # 写锁: 持锁时另一获取者应阻塞到超时 → SystemExit
-    m = _load("skein_l")
+    # 写锁: 持锁时另一获取者应阻塞到超时 → SkeinError (库侧不再抛 SystemExit, 见 skeinlib/errors.py)
     with tempfile.TemporaryDirectory() as d:
         lp = Path(d) / ".lock"
-        with m._workspace_lock(lp, timeout=1.0):
+        with _workspace_lock(lp, timeout=1.0):
             try:
-                with m._workspace_lock(lp, timeout=0.2):
+                with _workspace_lock(lp, timeout=0.2):
                     raise AssertionError("持锁时不应拿到第二把锁")
-            except SystemExit:
-                pass  # 预期: 超时 SystemExit
+            except SkeinError:
+                pass  # 预期: 超时抛领域异常, 进程内就能断言 (从前只能起子进程看退出码)
         # 释放后可重新获取
-        with m._workspace_lock(lp, timeout=0.2):
+        with _workspace_lock(lp, timeout=0.2):
             pass
 
 
@@ -404,44 +391,48 @@ def test_multirepo() -> None:
 
 
 def test_seam_gate() -> None:
-    # confirm 硬门: design.md「测试接缝」段占位未填 → 拒; 填实 → 放行; 旧 task 全无该段 → 只 warning 不阻断
+    """confirm 的测试接缝门 = **软门**: 占位未填 / 全无该段都只 stderr 告警, 一律不阻断; 填实则无告警。
+
+    曾是硬门 (raise SystemExit), 但存量 task 的 design.md 普遍无该段 → 一上线 44 个测试连带整个
+    confirm 全锁死, 故降级为告警。本 test 守的是「告警到位且**不阻断**」—— 若哪天有人把它改回硬门,
+    这里会立刻红, 而不是等到存量 task 再次全线卡住。
+    """
     with tempfile.TemporaryDirectory() as td:
         d: Path = Path(td)
-        git(d, "init", "-q")
-        git(d, "config", "user.email", "t@t.dev")
-        git(d, "config", "user.name", "t")
-        (d / "seed.txt").write_text("seed\n")
-        git(d, "add", "-A"); git(d, "commit", "-q", "-m", "seed")
-        sk(d, "init")
+        make_ws(d)
 
         def _prd(tid: str) -> None:
             (d / ".skein/task" / tid / "prd.md").write_text(
                 f"# {tid} — PRD\n\n## 目标\n- 解决 X\n\n## 边界\n- 范围内: a\n\n"
                 "## 验收标准\n- 用例通过\n\n## 索引\n- design.md\n")
 
-        # 新 task: scaffold 落的测试接缝段仍是占位 → confirm 拒
-        sk(d, "create", "task-one", "--name", "任务一", "--desc", "d")
-        sk(d, "subtask", "add", "task-one", "s1", "--name", "n", "--desc", "d", "--estimate", "1")
-        _prd("task-one")
-        sk(d, "estimate", "task-one", "--set", "4")
-        r = sk(d, "confirm", "task-one", check=False)
-        assert r.returncode != 0 and "测试接缝段仍是占位未填" in r.stderr, f"占位未拦: {r.stderr}"
+        def _ready(tid: str) -> None:
+            sk(d, "create", tid, "--name", tid, "--desc", "d")
+            sk(d, "subtask", "add", tid, "s1", "--name", "n", "--desc", "d", "--estimate", "1")
+            _prd(tid)
+            sk(d, "estimate", tid, "--set", "4")
 
-        # 填实测试接缝段 → confirm 放行
-        design = d / ".skein/task/task-one/design.md"
+        # 三个场景各用独立 task —— confirm 是单向状态迁移 (待处理→就绪), 同一 task 只能 confirm 一次
+        # 场景 1: scaffold 落的测试接缝段仍是占位 → 告警但放行
+        _ready("task-one")
+        r = sk(d, "confirm", "task-one", check=False)
+        assert r.returncode == 0, f"占位未填不该阻断 confirm: {r.stderr}"
+        assert "测试接缝段仍是占位未填" in r.stderr, f"占位未告警: {r.stderr}"
+
+        # 场景 2: 填实测试接缝段 → 放行且告警消失 (告警确实由该段驱动, 不是恒定噪音)
+        _ready("task-two")
+        design = d / ".skein/task/task-two/design.md"
         design.write_text(re.sub(
             r"- \[ \] TODO: 填测试接缝", "- [x] 复用 `test_x.py::test_y` 现有单测", design.read_text()))
-        r = sk(d, "confirm", "task-one", check=False)
-        assert r.returncode == 0, f"填实后仍拒: {r.stderr}"
-
-        # 旧 task: design.md 全无测试接缝段 (早于本轮脚手架) → 只 warning, 不阻断 confirm
-        sk(d, "create", "task-two", "--name", "任务二", "--desc", "d")
-        sk(d, "subtask", "add", "task-two", "s1", "--name", "n", "--desc", "d", "--estimate", "1")
-        _prd("task-two")
-        (d / ".skein/task/task-two/design.md").write_text("# task-two — 详细设计\n\n无接缝段 (旧 task)\n")
-        sk(d, "estimate", "task-two", "--set", "4")
         r = sk(d, "confirm", "task-two", check=False)
-        assert r.returncode == 0 and "缺测试接缝段" in r.stderr, f"旧 task 未 warning 或被阻断: {r}"
+        assert r.returncode == 0, f"填实后仍拒: {r.stderr}"
+        assert "测试接缝" not in r.stderr, f"填实后告警未消: {r.stderr}"
+
+        # 场景 3: 旧 task design.md 全无该段 (早于本轮脚手架) → 另一条告警文案, 同样不阻断
+        _ready("task-three")
+        (d / ".skein/task/task-three/design.md").write_text("# task-three — 详细设计\n\n无接缝段 (旧 task)\n")
+        r = sk(d, "confirm", "task-three", check=False)
+        assert r.returncode == 0 and "缺测试接缝段" in r.stderr, f"旧 task 未告警或被阻断: {r}"
 
 
 def test_setup() -> None:

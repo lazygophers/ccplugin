@@ -219,7 +219,7 @@ repo/.worktrees/
 
 ---
 
-## 两层规则记忆
+## 规则记忆库 (namespace × inclusion)
 
 差异化核心: 每 task 踩过的坑自动落盘, 后续 task 自动带上。
 
@@ -255,8 +255,8 @@ created: 2026-07-11
 | 路径 | 触发 | 执行者 | 流程 |
 | --- | --- | --- | --- |
 | Recall | plan | skein-recaller | `skein-spec recall <query>` → FTS5 → 注入 |
-| Sediment | finish | skein-specer | learning → core/recall/drop |
-| Bootstrap | 首次空仓 | skein-researcher | 扫 5 维约定 → 判 core/recall → 落盘 |
+| Sediment | finish | skein-specer | learning → namespace×inclusion / drop |
+| Bootstrap | 首次空仓 | skein-researcher | 扫 5 维约定 → 定 namespace×inclusion → 落盘 |
 | Maintain | 定期 | skein-specer | `skein-spec maintain` 全量健康检查 |
 | Prune | 定期 | skein-specer | `skein-spec prune` 归档 stale/重复 |
 | Reconstruct | 按需 | skein-specer | `skein-spec reconstruct` 按项目类型重建 |

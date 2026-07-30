@@ -1,6 +1,6 @@
 ---
 name: skein-spec
-description: 两层规则记忆 (基于 .skein/spec)。planning 时 recall 召回相关规则、task finish 后 sediment 沉淀学习 + prune 自动精简过期/重复/断链规则。core 常驻硬规 + recall 按需召回, 经判定门自动写盘 (不逐次问用户)。产出 .skein/spec 下 core/recall 规则文件 + index。另支持空仓 bootstrap 播种规则基线、记忆大面积失效 (大重构/换栈) 时 reconstruct 可逆归档后按项目类型分型重建、maintain 手动体检 (超预算/stale/断链/重复/废弃, --apply 自动修复)、auto-fix (Stop hook 写 .pending-fix 标记 → main 派 skein-specer bg 跑 maintain --apply 全自动修, 断链只报告)。
+description: 规则记忆库 (基于 .skein/spec)。planning 时 recall 召回相关规则、task finish 后 sediment 沉淀学习 + prune 自动精简过期/重复/断链规则。加载策略由 frontmatter `inclusion` 定 (always 常驻注入 / auto 按需召回 / fileMatch 按 globs / manual 纯手动), 与所在 namespace 目录正交; 经判定门自动写盘 (不逐次问用户)。产出 .skein/spec 下 <namespace>/<类目>/<主题>.md + index。另支持空仓 bootstrap 播种规则基线、记忆大面积失效 (大重构/换栈) 时 reconstruct 可逆归档后按项目类型分型重建、maintain 手动体检 (超预算/stale/断链/重复/废弃, --apply 自动修复)、auto-fix (Stop hook 写 .pending-fix 标记 → main 派 skein-specer bg 跑 maintain --apply 全自动修, 断链只报告)。
 user-invocable: true
 argument-hint: "[模式: recall/召回, sediment/沉淀, prune/精简, bootstrap/播种, reconstruct/重构, maintain/维护 (加 --apply 自动修)] [--deep=recall/low/full/deep/max/high (reconstruct 模式可选)]"
 arguments: "[模式: recall/召回, sediment/沉淀, prune/精简, bootstrap/播种, reconstruct/重构] [--deep=recall/low/full/deep/max/high]"
@@ -8,11 +8,11 @@ model: inherit
 effort: medium
 ---
 
-# skein-spec — 两层规则记忆
+# skein-spec — 规则记忆库 (namespace × inclusion)
 
 > 🔒 全局流程规则（状态机/调度/优先级等）以 skein-flow/references/ 为单一真值源。
 
-**差异化核心**。不同于「按需沉淀单一 spec 文件」, SKEIN 记忆分两层, 基于 `.skein/spec`:
+**差异化核心**。不同于「按需沉淀单一 spec 文件」, SKEIN 记忆按两个正交维度组织, 基于 `.skein/spec`:
 
 > **绑定 agent (按读/写拆两个, 均 frontmatter `skills: skein:skein-spec`)**:
 > - **读路径 → `skein-recaller`** (只读同步召回员, 单一 recall 职责): recall 检索 (planning) 派它, **main 等召回结果进 planning** (dispatch prompt「已知」段带上)。
@@ -23,12 +23,12 @@ effort: medium
 | **core** | `.skein/spec/core/<类目>/*.md` | 每 session 常驻 (SessionStart hook 注入正文) | 硬约束 / 命令式契约 (后续必再踩) |
 | **recall** | `.skein/spec/recall/<类目>/*.md` | 按需语义召回 (planning 时 grep index → model 读全文) | 长尾、上下文密集经验 |
 
-**两层 × 类目**: 层内按类目 (category) 分子目录 —— git / test / arch / build / style / domain / ops... 自由取名、按需建。索引三份: 每层 `<layer>/index.md` (层内全规则, 带 category 列) + 顶层 `index.md` (两层聚合概览)。core 常驻有软预算 (8000 字符, 超则告警降级, 契合「常驻只放最小硬规」)。
+**namespace × 类目**: namespace 内按类目 (category) 分子目录 —— git / test / arch / build / style / domain / ops... 自由取名、按需建。索引: 每个 `<namespace>/index.md` (该 namespace 全规则, 带 category / inclusion / anchors 列) + 顶层 `index.md` 聚合概览。`inclusion: always` 的页有软预算 (8000 字符, 超则告警降级, 契合「常驻只放最小硬规」) —— 预算算的是 **inclusion 值**, 与规则放哪个 namespace 目录无关。
 
 ## 寻找纪律 (planning/调研/找方案时)
 
 **动手前优先跑 `skein-spec recall "<关键词>"`** — 现有规则沉淀比凭记忆重推快且准, core 已常驻无需 recall。
-顺序: recall spec (recall + external 两层, FTS5 BM25 排序) → vault → 项目本地 (Read/Grep) → 外部搜索。
+顺序: recall spec (全 namespace, FTS5 BM25 排序) → vault → 项目本地 (Read/Grep) → 外部搜索。
 recall 命中 → model 读全文判相关 → 相关的注入当前 task 上下文 (dispatch prompt「已知」段带上)。
 external 层 (不入 hook, 纯手动) 存长文档/外部资料, 同经 `recall` 跨层检索。
 
@@ -49,7 +49,7 @@ task finish 闭环后由 skein-flow finish 阶段异步 fire-and-forget 派 `ske
 
 ## prune (sediment 后自动精简, skein-specer) — 判定门 + 自主归档
 
-sediment 写盘后, skein-specer 顺带跑一轮精简: 扫两层规则, 按 maintain 判据检出 candidate, 对命中项自动 archive (可逆) 而非只报告。**异步 fire-and-forget**: 同 sediment, main 派即放手, 不等回传。
+sediment 写盘后, skein-specer 顺带跑一轮精简: 扫全 namespace 规则, 按 maintain 判据检出 candidate, 对命中项自动 archive (可逆) 而非只报告。**异步 fire-and-forget**: 同 sediment, main 派即放手, 不等回传。
 
 **精简判定门** (命中任一条即 archive):
 
@@ -78,35 +78,35 @@ sediment 写盘后, skein-specer 顺带跑一轮精简: 扫两层规则, 按 mai
 
 ## 空仓冷启动播种 (一次性, main)
 
-新仓 `.skein/spec` 为空时前几十轮 planning 无规则可召回。此时 main **可**提议从既有代码库提炼约定作冷启动基线 —— 派 skein-researcher 扫五维 (命名/错误处理/测试/架构边界/构建), 候选逐条判 core/recall/drop, 复用上文 sediment 写盘流程落盘 (bootstrap 跑前一次征同意覆盖整轮, 内部候选自动写)。
+新仓 `.skein/spec` 为空时前几十轮 planning 无规则可召回。此时 main **可**提议从既有代码库提炼约定作冷启动基线 —— 派 skein-researcher 扫五维 (命名/错误处理/测试/架构边界/构建), 候选逐条定 namespace×inclusion 或 drop, 复用上文 sediment 写盘流程落盘 (bootstrap 跑前一次征同意覆盖整轮, 内部候选自动写)。
 
-一次性动作, `AskUserQuestion` 征同意再跑 (禁自动); 用户拒 → 走正常 planning, 规则随 finish sediment 增量积累。完整流程 (触发条件 / 五维明细 / 判层表 / 落盘) 见 [references/bootstrap-seeding.md](references/bootstrap-seeding.md)。
+一次性动作, `AskUserQuestion` 征同意再跑 (禁自动); 用户拒 → 走正常 planning, 规则随 finish sediment 增量积累。完整流程 (触发条件 / 五维明细 / ns×inclusion 判定表 / 落盘) 见 [references/bootstrap-seeding.md](references/bootstrap-seeding.md)。
 
 ## 完全重构 (reconstruct, main) — 依代码/项目内容重建整库
 
-既有记忆大面积失效 (大重构 / 换技术栈 / 记忆漂移 / 接手可疑旧库) 时, 把两层规则**可逆归档**后依当前代码 + 项目内容从零重建。区别于 bootstrap (仅空仓、纯增量): 重构多 `skein-spec archive` 前置 (可逆清库) + **按项目类型分型扫描**。
+既有记忆大面积失效 (大重构 / 换技术栈 / 记忆漂移 / 接手可疑旧库) 时, 把全库规则**可逆归档**后依当前代码 + 项目内容从零重建。区别于 bootstrap (仅空仓、纯增量): 重构多 `skein-spec archive` 前置 (可逆清库) + **按项目类型分型扫描**。
 
 **六档深度** (`reconstruct --deep=<recall|low|full|deep|max|high>`, 对应 ②archive 范围 + ④扫描深度):
 
 | 档 | archive 范围 | 扫描 | 适用 |
 |---|---|---|---|
-| **recall** | `archive --layer recall` (保留手工 core) | 五维基线 + 主类型侧重 | 漂移/污染集中长尾, core 仍可信 |
-| **low** | `archive --layer recall` (保留手工 core) | 五维基线 | 轻量核查, 仅验证 recall 层完整性 |
-| **full** | `archive` 两层全归档 | 五维基线 + 主类型侧重 | 换栈/架构翻新, core 也过期 |
-| **deep** | `archive` 两层全归档 | 五维 + **全 8 型探针深扫** | 全面重建, 深挖长尾规则 |
-| **max** | `archive` 两层全归档 | 五维 + 全 8 型 + 旧规则逐条比对 | 彻底重建, 交叉验证新旧规则 |
-| **high** | `archive` 两层全归档 | 五维 + 全 8 型 + 旧规则逐条比对 + 交叉验证 | 接手可疑成熟仓/来源不明, 从零核 |
+| **recall** | `archive --namespace <长尾 ns>` (其余 namespace 保留) | 五维基线 + 主类型侧重 | 漂移/污染集中长尾, always 页仍可信 |
+| **low** | `archive --namespace <长尾 ns>` (其余 namespace 保留) | 五维基线 | 轻量核查, 仅验证该 namespace 完整性 |
+| **full** | `archive` 全 namespace 归档 | 五维基线 + 主类型侧重 | 换栈/架构翻新, always 页也过期 |
+| **deep** | `archive` 全 namespace 归档 | 五维 + **全 8 型探针深扫** | 全面重建, 深挖长尾规则 |
+| **max** | `archive` 全 namespace 归档 | 五维 + 全 8 型 + 旧规则逐条比对 | 彻底重建, 交叉验证新旧规则 |
+| **high** | `archive` 全 namespace 归档 | 五维 + 全 8 型 + 旧规则逐条比对 + 交叉验证 | 接手可疑成熟仓/来源不明, 从零核 |
 
 ```
-skein-spec archive --deep=recall|low    # 只归档 recall 层 (recall/low 档)
-skein-spec archive --deep=full|deep|max|high  # 两层全归档 (full/deep/max/high 档)
+skein-spec archive --namespace <ns>     # 只归档指定 namespace (recall/low 档)
+skein-spec archive                      # 全 namespace 归档 (full/deep/max/high 档)
 skein-spec archive --deep=high           # 最重档 (full + 交叉验证)
-skein-spec archive --layer recall        # 只归档 recall (兼容旧式)
+skein-spec archive --namespace recall    # 只归档 recall namespace
 skein-spec archive                       # 全归档 (兼容旧式, 等效 --deep=full)
 skein-spec restore <ts>                  # 回滚 (撞名不覆盖新规则)
 ```
 
-流程: 快照 → 归档 → 识别项目类型 → 分型扫描 (researcher bootstrap 模式 + 类型侧重) → 逐条判层 → sediment 自动写盘 → 验证 + 保留归档。🛑 `AskUserQuestion` 征同意再跑 (归档全库虽可逆仍是全局动作 · STOP, 禁自动)。**事无巨细设计 + 8 类项目 (backend/frontend/cli/monorepo/data-ml/infra/mobile/docs) 分型扫描侧重、探针、core 倾向、规则示例、陷阱** 见 [references/reconstruct-memory.md](references/reconstruct-memory.md)。
+流程: 快照 → 归档 → 识别项目类型 → 分型扫描 (researcher bootstrap 模式 + 类型侧重) → 逐条定 ns×inclusion → sediment 自动写盘 → 验证 + 保留归档。🛑 `AskUserQuestion` 征同意再跑 (归档全库虽可逆仍是全局动作 · STOP, 禁自动)。**事无巨细设计 + 8 类项目 (backend/frontend/cli/monorepo/data-ml/infra/mobile/docs) 分型扫描侧重、探针、always 倾向、规则示例、陷阱** 见 [references/reconstruct-memory.md](references/reconstruct-memory.md)。
 
 ## 失败模式 (if-then 三段式: 触发 → 一线修复 → 仍失败兜底)
 
@@ -132,7 +132,7 @@ skein-spec restore <ts>                  # 回滚 (撞名不覆盖新规则)
 
 ## maintain (手动体检, main)
 
-规则库漂移时的**手动全量体检** (供 user 在 sediment+prune 之外独立审查, 只报告不动手): `skein-spec maintain [--layer recall]`。5 判据 (超预算 / stale / 断链 / keywords 重复 / 归档残留) + 输出格式详见 [references/maintain.md](references/maintain.md)。加 `--apply` 则同一扫描自动修复可修项 (超预算→循环降级 core→recall / stale→归档 / keywords 重复→归档保留最新 / 废弃→归档; 断链仍只报告), 每步写 `.audit-log` (7 天轮转), 详见 auto-fix 模式与 [references/maintain.md](references/maintain.md)。
+规则库漂移时的**手动全量体检** (供 user 在 sediment+prune 之外独立审查, 只报告不动手): `skein-spec maintain [--namespace <ns>]`。5 判据 (超预算 / stale / 断链 / keywords 重复 / 归档残留) + 输出格式详见 [references/maintain.md](references/maintain.md)。加 `--apply` 则同一扫描自动修复可修项 (超预算→循环降级 always→auto / stale→归档 / keywords 重复→归档保留最新 / 废弃→归档; 断链仍只报告), 每步写 `.audit-log` (7 天轮转), 详见 auto-fix 模式与 [references/maintain.md](references/maintain.md)。
 
 ## auto-fix (Stop hook 触发, 异步 fire-and-forget) — 全自动 spec 修复
 

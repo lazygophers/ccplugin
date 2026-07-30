@@ -1,4 +1,4 @@
-"""hooklib._run_hooks 单测 — 纯函数级直调 (design.md 测试接缝段的既定例外)。
+"""hooks.runner._run_hooks 单测 — 纯函数级直调 (design.md 测试接缝段的既定例外)。
 
 _run_hooks 未被任何 CLI 命令接线 (阶段接线归 c4 / agent 接线归 c5, 均未落地), 此刻唯一
 可测接缝就是直调本体, 用临时文件断言副作用证明串行失败即停 / 阻断语义正确。
@@ -8,7 +8,6 @@ SKEIN_IN_HOOK 递归护栏 / 无 hooks 键零开销(不 fork)。
 """
 from __future__ import annotations
 
-import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -16,7 +15,7 @@ from typing import Any
 import pytest  # type: ignore[import-not-found]
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from hooklib import HookBlocked, _run_hooks  # noqa: E402
+from skeinlib.hooks.runner import HookBlocked, _run_hooks  # noqa: E402
 
 
 def _touch_cmd(marker: Path) -> str:

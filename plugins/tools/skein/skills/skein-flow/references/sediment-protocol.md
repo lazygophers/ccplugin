@@ -14,7 +14,7 @@ finish 闭环后, main **异步**派 `skein-specer` 跑 sediment 判定门:
 
 skein-specer 读 diff + 各 subagent 回传摘要 (含 `SPEC:` 标记), **自主**判定是否沉淀:
 
-- 跑 `skein-spec sediment` 判定门 (判定 → 分层 → 自动写盘), 命中即写, **不逐次询问用户**。
+- 跑 `skein-spec sediment` 判定门 (判定 → 定 ns×inclusion → 自动写盘), 命中即写, **不逐次询问用户**。
 - **自主写盘** — 判定通过后 skein-specer 自主 `skein-spec sediment` 写盘 + reindex, 无需 main 介入。
 - **无增量 → 自判跳过 (禁硬凑)** — 若本次 task 无可沉淀增量 (一次性 bug / 私有细节 / 已有规则覆盖), skein-specer 自判 drop 跳过, 禁硬凑成沉淀契约。
 - 详见 `skein-spec` skill。

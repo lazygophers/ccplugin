@@ -2,12 +2,13 @@
 
 通过 subprocess 跑 spec.py + hooks.py CLI (conftest 的 mem_ws fixture 造隔离 .skein/spec/ 仓),
 覆盖四条已实现路径:
-  1. degrade 单文件降级 (layer 改 core→recall + git mv + reindex + audit-log)。
-  2. degrade --auto 循环降到 core < CORE_BUDGET 即停。
+  1. degrade 单文件降级 (frontmatter inclusion always→auto + reindex + audit-log; 不搬文件)。
+  2. degrade --auto 循环降到 always 页总字符 < always_budget() 即停。
   3. maintain --apply 四类修复 (stale→归档 / keywords重复→归档保留最新 / 废弃→归档 / 断链只报告)
      + 无 --apply 只报告不改文件。
   4. .audit-log 写入格式 + 7 天轮转 (注入 10d/30d 旧行被清, 2d + 非 iso 头保留)。
   5. cmd_stop_check (Stop hook): 有问题写 .pending-fix JSON / 无问题删标记 / exit 0 不阻塞。
+  6. degrade 裸路径解析: 扫全部 namespace, 不硬默认某一个; 撞名报错不猜。
 
 已知断点 (本 test 不覆盖, 待对应代码实现后补):
   - [main 检测 .pending-fix] stop-check 写出标记后, 「main 检测标记 → 派 skein-specer bg 跑
@@ -70,7 +71,10 @@ def _reindex(mem_ws: Path, mem_cli: MemCli) -> None:
 
 # ── 1. degrade 单文件降级 ──────────────────────────────────────────────────────
 def test_degrade_single_file(mem_ws: Path, mem_cli: MemCli) -> None:
-    """degrade core/<cat>/<name>: layer→recall + 文件移动到 recall/<cat>/ + reindex + audit-log 写入。"""
+    """degrade <cat>/<name>: frontmatter inclusion always→auto + reindex + audit-log 写入。
+
+    inclusion 已脱离目录 (spec.py:816 _degrade_one), 故文件**不搬**, 只改一行 frontmatter —
+    可观测面是 inclusion 值 + 索引 inclusion 列 + audit-log, 不是文件位置。"""
     ts = int(time.time())
     _write_rule(mem_ws, "core", "git", "t01-00", title="合并处理",
                 keywords="merge,conflict", created=ts, updated=ts, body="finish 合并必 abort。")
@@ -78,15 +82,17 @@ def test_degrade_single_file(mem_ws: Path, mem_cli: MemCli) -> None:
 
     out = mem_cli(mem_ws, "degrade", "git/t01-00").stdout
     root = _ws_root(mem_ws)
-    assert "recall/git/t01-00.md" in out, f"degrade 未报 recall 路径: {out}"
-    assert not (root / "core/git/t01-00.md").exists(), "原 core 文件未移走"
-    moved = root / "recall/git/t01-00.md"
-    assert moved.exists(), "recall 端文件未落盘"
-    assert "layer: recall" in moved.read_text(), "frontmatter layer 未改 recall"
-    assert "git/t01-00.md" in (root / "recall/index.md").read_text(), "recall index 未同步"
-    assert "git/t01-00.md" not in (root / "core/index.md").read_text(), "core index 未剔旧条目"
+    f = root / "core/git/t01-00.md"
+    assert "always→auto" in out and "core/git/t01-00.md" in out, f"degrade 未报降级摘要: {out}"
+    assert f.exists(), "degrade 不该搬文件 (inclusion 已脱离目录)"
+    assert not (root / "recall/git/t01-00.md").exists(), "degrade 误搬文件到 recall/"
+    assert "inclusion: auto" in f.read_text(), "frontmatter inclusion 未改 auto"
+    # 索引 inclusion 列跟着变 (index 行第 5 列, 见 spec.py:533 _reindex_dir)
+    idx = (root / "core/index.md").read_text()
+    row = next(ln for ln in idx.splitlines() if "t01-00.md#" in ln)
+    assert "| auto |" in row, f"core/index.md inclusion 列未更新: {row}"
     audit = (root / ".audit-log").read_text()
-    assert "degrade|core/git/t01-00.md|core/git/t01-00.md->(recall/git/t01-00.md)|手动降级" in audit, \
+    assert "degrade|core/git/t01-00.md|always->(auto)|手动降级" in audit, \
         f"audit-log 格式/内容错: {audit}"
 
 
@@ -106,10 +112,13 @@ def test_degrade_auto_loop_to_budget(mem_ws: Path, mem_cli: MemCli) -> None:
     after = len(mem_cli(mem_ws, "inject-core").stdout)
     assert after <= 8000, f"循环后 core 仍超预算: {before}→{after}"
     assert "自动降级" in out and "→" in out, f"--auto 未报降级摘要: {out}"
-    # 移到 recall 的条数 = before-after 涉及的文件数 (>0); core 端剩 ≤ 8000 字符的条目
-    core_left = [p for p in (_ws_root(mem_ws) / "core").rglob("*.md") if p.name != "index.md"]
-    recall_got = [p for p in (_ws_root(mem_ws) / "recall").rglob("*.md") if p.name != "index.md"]
-    assert core_left and recall_got, "降级后 core/recall 均该有文件"
+    # 文件一个不搬 (只改 frontmatter inclusion), 5 条全在原地; 其中至少 1 条已成 auto、至少 1 条仍 always
+    files = [p for p in (_ws_root(mem_ws) / "core").rglob("*.md")
+             if p.name not in ("index.md", "backlinks.md")]  # 衍生索引非规则 (spec.py:175 同款排除)
+    assert len(files) == 5, f"degrade 不该搬/删文件, 应仍 5 条: {[p.name for p in files]}"
+    texts = [p.read_text() for p in files]
+    assert any("inclusion: auto" in t for t in texts), "无任何文件被降级"
+    assert any("inclusion: auto" not in t for t in texts), "全降完了 — 该降到刚够预算即停"
 
 
 def test_degrade_auto_under_budget_noop(mem_ws: Path, mem_cli: MemCli) -> None:
@@ -195,7 +204,7 @@ def test_maintain_apply_clean_noop(mem_ws: Path, mem_cli: MemCli) -> None:
     assert "无自动可修项" in out, f"干净库该报无可修: {out}"
 
 
-# ── 3b. maintain --apply 超预算+stale 同文件 (degrade 先移走 → archive 跳过) ──────
+# ── 3b. maintain --apply 超预算+stale 同文件 (两类修复叠在同一文件上不互踩) ──────
 def _make_overbudget_stale(mem_ws: Path, mem_cli: MemCli) -> None:
     """造一个 core 大文件同时超预算 + stale (created 老)。"""
     old = int(time.time()) - 200 * 86400
@@ -205,22 +214,65 @@ def _make_overbudget_stale(mem_ws: Path, mem_cli: MemCli) -> None:
 
 
 def test_maintain_apply_overbudget_stale_crash(mem_ws: Path, mem_cli: MemCli) -> None:
-    """overbudget + stale 同一最大文件 → degrade 先移到 recall/, archive 跳过 (文件已成 recall 层)。
+    """overbudget + stale 落在同一文件 → 两类修复依次生效且不互踩 (degrade 后 archive)。
 
-    修复前: _archive_batch 跑已被 degrade 移走的旧 core/ 路径 → FileNotFoundError 崩溃 (非零退出)。
-    修复后: archive_reasons 过滤掉不存在的 Path, 文件留 recall 层 (下轮 maintain 再扫到)。
-    独立 overbudget (新文件不 stale) 或独立 stale (在 recall 层) 均正常。
+    历史: degrade 曾物理搬文件到 recall/, 于是 _archive_batch 拿旧 core/ 路径 → FileNotFoundError
+    崩溃。degrade 改为只改 frontmatter inclusion 不搬文件后 (spec.py:816), 路径失效这个成因结构性
+    消失 —— 本 test 现在守的是「两类修复叠加仍 exit 0, 且 degrade→archive 顺序与审计完整」。
     """
     _make_overbudget_stale(mem_ws, mem_cli)
-    out = mem_cli(mem_ws, "maintain", "--apply").stdout  # check=True; 不再崩溃 = exit 0
+    out = mem_cli(mem_ws, "maintain", "--apply").stdout  # check=True; 不崩溃 = exit 0
     root = _ws_root(mem_ws)
-    assert not (root / "core/git/big-00.md").exists(), "overbudget 文件未从 core 移走"
-    assert (root / "recall/git/big-00.md").exists(), "degrade 后文件该在 recall 层"
-    assert "降级" in out, f"maintain --apply 未报降级动作: {out}"
-    # 已被 degrade 处理的文件不再进 archive (留 recall 层待下轮)
-    archive_dir = root / ".archive"
-    assert not (archive_dir.exists() and list(archive_dir.rglob("big-00.md"))), \
-        "已被 degrade 移走的文件不该再被归档"
+    assert "降级 always→auto" in out and "归档 (prune-stale)" in out, \
+        f"两类修复未都报出: {out}"
+    # degrade 不搬文件, 故 archive 拿得到路径 → 最终落 .archive/, core/ 原位清空
+    assert not (root / "core/git/big-00.md").exists(), "stale 文件未被归档移走"
+    assert list((root / ".archive").rglob("big-00.md")), "stale 文件未落 .archive/"
+    # 审计两行且 degrade 在前 (顺序错 = archive 先跑, 又会踩回旧 crash 那条路)
+    acts = [ln.split("|")[1] for ln in (root / ".audit-log").read_text().splitlines()
+            if "big-00" in ln]
+    assert acts == ["degrade", "prune-stale"], f"审计动作/顺序错: {acts}"
+
+
+# ── 5. degrade 的裸路径解析 (扫全 namespace, 不硬默认某一个) ──────────────────
+def test_degrade_bare_path_scans_all_namespaces(mem_ws: Path, mem_cli: MemCli) -> None:
+    """裸 `<cat>/<name>` 要扫全部 namespace 找, 不默认 core/。
+
+    回归: 这里曾硬默认 `core/` (layer 时代 always 页惯居该目录的残留), 于是 sediment 明明写进
+    `rules/`, 对同一条 degrade 却报「文件不存在 → core/...」—— 同一个库两个命令默认值不一致。
+    """
+    # 用 sediment 造 (而非 _write_rule): 这条 bug 的真实场景就是「sediment 写进 rules/,
+    # degrade 却去 core/ 找」, 且只有 sediment 会写出真正的 `inclusion: always` frontmatter。
+    body = mem_ws / "b.md"
+    body.write_text("禁 force push。\n")
+    mem_cli(mem_ws, "sediment", "--namespace", "rules", "--inclusion", "always",
+            "--category", "git", "--topic", "merge", "--title", "合并规则",
+            "--keywords", "merge", "--body-file", str(body))
+    out = mem_cli(mem_ws, "degrade", "git/merge").stdout
+    assert "rules/git/merge.md" in out, f"未在 rules/ 下找到: {out}"
+    assert "inclusion: auto" in (_ws_root(mem_ws) / "rules/git/merge.md").read_text()
+
+
+def test_degrade_ambiguous_bare_path_refuses_to_guess(mem_ws: Path, mem_cli: MemCli) -> None:
+    """同名文件落在多个 namespace → 报错列出候选, 不猜一个降了。"""
+    body = mem_ws / "b.md"
+    body.write_text("禁 force push。\n")
+    for ns in ("rules", "product"):
+        mem_cli(mem_ws, "sediment", "--namespace", ns, "--inclusion", "always",
+                "--category", "git", "--topic", "merge", "--title", "合并规则",
+                "--keywords", "merge", "--body-file", str(body))
+    r = subprocess.run([sys.executable, str(MEM), "degrade", "git/merge"],
+                       cwd=mem_ws, capture_output=True, text=True)
+    assert r.returncode != 0, f"撞名不该静默降级: {r.stdout}"
+    assert "多个 namespace" in r.stderr and "product/git/merge.md" in r.stderr, r.stderr
+
+
+def test_degrade_missing_file_lists_scanned_namespaces(mem_ws: Path, mem_cli: MemCli) -> None:
+    """找不到时报出扫过哪些 namespace —— 免用户对着「文件不存在」猜是不是路径写法错了。"""
+    r = subprocess.run([sys.executable, str(MEM), "degrade", "nope/x"],
+                       cwd=mem_ws, capture_output=True, text=True)
+    assert r.returncode != 0
+    assert "已扫全部 namespace" in r.stderr, r.stderr
 
 
 # ── 4. .audit-log 格式 + 7 天轮转 ──────────────────────────────────────────────

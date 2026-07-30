@@ -1,20 +1,12 @@
 """归档护栏 — 关联链 (deps + parent/child) 上有未完成 task 时, 整条链禁归档。"""
 from __future__ import annotations
 
-import importlib.util
-import sys
-from pathlib import Path
 from typing import Any
 
-SKEIN = Path(__file__).resolve().parent.parent / "skein.py"
-_spec = importlib.util.spec_from_file_location("skein_mod", SKEIN)
-assert _spec and _spec.loader
-skein_mod = importlib.util.module_from_spec(_spec)
-sys.modules["skein_mod"] = skein_mod
-_spec.loader.exec_module(skein_mod)
+from skeinlib.model import S_DONE as DONE
+from skeinlib.store import TaskStore
 
-DONE = skein_mod.S_DONE
-BLOCKED = skein_mod.Skein._unfinished_related
+BLOCKED = TaskStore._unfinished_related  # 关联链护栏在落盘层 (skeinlib/store.py)
 
 
 def _t(tid: str, status: str, deps: list[str] | None = None,

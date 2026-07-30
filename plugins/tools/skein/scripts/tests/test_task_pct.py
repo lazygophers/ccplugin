@@ -1,8 +1,9 @@
 """_task_pct / _sub_pct 单元测试 — task 进度算法回归。
 
-直接 import skein.py 模块级纯函数 (顶层仅 stdlib + hooklib, 无重依赖, 安全 import)。
+直接 import 纯函数所在模块 —— 进度算法在 `skeinlib.dag`, 状态常量在 `skeinlib.model`,
+两者都只依赖 stdlib, import 无副作用。
 
-新公式 (阶段区间 + 完成度线性插值, skein.py:2468-2495):
+新公式 (阶段区间 + 完成度线性插值, 见 skeinlib/dag.py):
   _sub_pct  = done→100；否则按 status 取区间 (pending=0-5 / running=失败=10-90)，
               有验收按 done/total 线性插值 (floor)，无验收取区间中点。
   _task_pct = done→100；否则按 status 取区间 (pending=0-5 / ready=5-10 /
@@ -21,23 +22,11 @@
 """
 from __future__ import annotations
 
-import importlib.util
-from pathlib import Path
 from typing import Any
 
-_SKEIN = Path(__file__).resolve().parent.parent / "skein.py"
-_spec = importlib.util.spec_from_file_location("skein_pct", _SKEIN)
-assert _spec is not None and _spec.loader is not None
-sk = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(sk)
-
-S_PENDING, S_READY, S_ACTIVE, S_CHECK, S_DONE = (
-    sk.S_PENDING, sk.S_READY, sk.S_ACTIVE, sk.S_CHECK, sk.S_DONE,
-)
-SS_PENDING, SS_RUNNING, SS_FAILED, SS_DONE = (
-    sk.SS_PENDING, sk.SS_RUNNING, sk.SS_FAILED, sk.SS_DONE,
-)
-_task_pct, _sub_pct = sk._task_pct, sk._sub_pct
+from skeinlib.dag import _sub_pct, _task_pct
+from skeinlib.model import (SS_DONE, SS_FAILED, SS_PENDING, SS_RUNNING,
+                            S_ACTIVE, S_CHECK, S_DONE, S_PENDING, S_READY)
 
 
 def _sub(status: str = SS_PENDING, crit: int = 0, done: int = 0) -> dict[str, Any]:

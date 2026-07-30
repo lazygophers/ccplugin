@@ -33,10 +33,10 @@ def test_init_sediment_index(mem_ws: Path, mem_cli: MemCli) -> None:
     assert (rules / "index.md").exists(), "顶层总索引缺失"
 
     body = _write_body(mem_ws, "b1.md", "finish 合并冲突必 abort, 禁强解。")
-    mem_cli(mem_ws, "sediment", "--layer", "core", "--category", "git", "--topic", "merge",
+    mem_cli(mem_ws, "sediment", "--namespace", "core", "--inclusion", "always", "--category", "git", "--topic", "merge",
             "--title", "合并冲突处理", "--keywords", "merge,conflict", "--body-file", str(body))
     body2 = _write_body(mem_ws, "b2.md", "共享分支禁 rebase。")
-    mem_cli(mem_ws, "sediment", "--layer", "core", "--category", "git", "--topic", "merge",
+    mem_cli(mem_ws, "sediment", "--namespace", "core", "--inclusion", "always", "--category", "git", "--topic", "merge",
             "--title", "rebase 策略", "--keywords", "rebase", "--body-file", str(body2))
 
     core_files = [p.relative_to(rules / "core").as_posix()
@@ -61,7 +61,7 @@ def test_init_sediment_index(mem_ws: Path, mem_cli: MemCli) -> None:
     assert len(_rule_rows(rules / "core/index.md")) == 2, "reindex 后行数变了"
 
     # --topic 缺省 → 落到类目同名主题文件
-    mem_cli(mem_ws, "sediment", "--layer", "core", "--category", "style",
+    mem_cli(mem_ws, "sediment", "--namespace", "core", "--inclusion", "always", "--category", "style",
             "--title", "命名规范", "--keywords", "naming", "--body-file", str(body))
     assert (rules / "core/style/style.md").exists(), "--topic 缺省未回落类目同名主题"
 
@@ -69,10 +69,10 @@ def test_init_sediment_index(mem_ws: Path, mem_cli: MemCli) -> None:
 def test_recall_and_inject_core(mem_ws: Path, mem_cli: MemCli) -> None:
     """recall 粗筛命中/无命中; inject-core 输出 core 全文, 去 frontmatter, 不混 recall。"""
     body_c = _write_body(mem_ws, "b1.md", "finish 合并冲突必 abort, 禁强解。")
-    mem_cli(mem_ws, "sediment", "--layer", "core", "--category", "git", "--topic", "merge",
+    mem_cli(mem_ws, "sediment", "--namespace", "core", "--inclusion", "always", "--category", "git", "--topic", "merge",
             "--title", "合并冲突处理", "--keywords", "merge,conflict", "--body-file", str(body_c))
     body_r = _write_body(mem_ws, "b2.md", "pnpm workspace 加包后必跑 install。")
-    mem_cli(mem_ws, "sediment", "--layer", "recall", "--category", "build", "--topic", "pnpm",
+    mem_cli(mem_ws, "sediment", "--namespace", "recall", "--inclusion", "auto", "--category", "build", "--topic", "pnpm",
             "--title", "pnpm workspace 装包", "--keywords", "pnpm,workspace,install",
             "--body-file", str(body_r))
 
@@ -90,7 +90,7 @@ def test_hook_inject_session_and_subagent(mem_ws: Path, mem_cli: MemCli) -> None
     """session-start 只注入极简索引 (标题+主题, 无正文) + 合法 hook JSON;
     subagent-start 注 core 全文 + spec 纪律指令。"""
     body = _write_body(mem_ws, "b1.md", "finish 合并冲突必 abort, 禁强解。")
-    mem_cli(mem_ws, "sediment", "--layer", "core", "--category", "git", "--topic", "merge",
+    mem_cli(mem_ws, "sediment", "--namespace", "core", "--inclusion", "always", "--category", "git", "--topic", "merge",
             "--title", "合并冲突处理", "--keywords", "merge,conflict", "--body-file", str(body))
 
     ss = json.loads(mem_cli(mem_ws, "session-start").stdout)
@@ -110,7 +110,7 @@ def test_hook_inject_session_and_subagent(mem_ws: Path, mem_cli: MemCli) -> None
 def test_recall_fts5_and_grep_fallback(mem_ws: Path, mem_cli: MemCli) -> None:
     """recall 优先 FTS5 BM25 (reindex 生成 .recall.db); 删 db → grep fallback 仍命中不崩。"""
     body = _write_body(mem_ws, "b1.md", "pnpm workspace 装包后必跑 install。")
-    mem_cli(mem_ws, "sediment", "--layer", "recall", "--category", "build", "--topic", "pnpm",
+    mem_cli(mem_ws, "sediment", "--namespace", "recall", "--inclusion", "auto", "--category", "build", "--topic", "pnpm",
             "--title", "pnpm workspace 装包", "--keywords", "pnpm,workspace",
             "--body-file", str(body))
 
@@ -136,10 +136,10 @@ def test_recall_fts5_and_grep_fallback(mem_ws: Path, mem_cli: MemCli) -> None:
 def test_backlinks_rebuild(mem_ws: Path, mem_cli: MemCli) -> None:
     """A-MEM-lite 正反链: A body 写 [[主题#规则标题]] → backlinks.md 里 B 记 ← 入链, A 记 → 出链。"""
     body_b = _write_body(mem_ws, "b.md", "pnpm workspace 装包后必跑 install。")
-    mem_cli(mem_ws, "sediment", "--layer", "recall", "--category", "build", "--topic", "pnpm",
+    mem_cli(mem_ws, "sediment", "--namespace", "recall", "--inclusion", "auto", "--category", "build", "--topic", "pnpm",
             "--title", "pnpm 装包", "--keywords", "pnpm", "--body-file", str(body_b))
     body_a = _write_body(mem_ws, "a.md", "装依赖见 [[pnpm#pnpm 装包]]。")
-    mem_cli(mem_ws, "sediment", "--layer", "recall", "--category", "build", "--topic", "deps",
+    mem_cli(mem_ws, "sediment", "--namespace", "recall", "--inclusion", "auto", "--category", "build", "--topic", "deps",
             "--title", "依赖流程", "--keywords", "deps", "--body-file", str(body_a))
 
     bl = mem_ws / ".skein" / "spec" / "recall" / "backlinks.md"
@@ -173,7 +173,7 @@ def test_backlinks_rebuild_all_namespaces(mem_ws: Path, mem_cli: MemCli) -> None
 def test_orphan_detection(mem_ws: Path, mem_cli: MemCli) -> None:
     """孤立判据: 无入度 + active + 最近修改超 STALE_DAYS (走文件 mtime) → maintain 报 [孤立], --apply 归档。"""
     body = _write_body(mem_ws, "b.md", "孤立规则正文, 无 wikilink 入度。")
-    mem_cli(mem_ws, "sediment", "--layer", "core", "--category", "git", "--topic", "orphan",
+    mem_cli(mem_ws, "sediment", "--namespace", "core", "--inclusion", "always", "--category", "git", "--topic", "orphan",
             "--title", "孤立规则", "--keywords", "orphan", "--body-file", str(body))
     # frontmatter 已无时间字段 → 改文件 mtime 造老规则 (> STALE_DAYS=180)
     rule = mem_ws / ".skein" / "spec" / "core" / "git" / "orphan.md"
@@ -194,7 +194,7 @@ def test_restructure_merge(mem_ws: Path, mem_cli: MemCli) -> None:
     for i, (title, text) in enumerate([("变量命名", "# 小写下划线\n\n禁驼峰。"),
                                        ("函数命名", "动词开头。")]):
         b = _write_body(mem_ws, f"s{i}.md", text)
-        mem_cli(mem_ws, "sediment", "--layer", "recall", "--category", "style",
+        mem_cli(mem_ws, "sediment", "--namespace", "recall", "--inclusion", "auto", "--category", "style",
                 "--topic", f"frag-{i}", "--title", title, "--keywords", "naming",
                 "--body-file", str(b))
 
@@ -218,14 +218,14 @@ def test_restructure_merge(mem_ws: Path, mem_cli: MemCli) -> None:
 
 
 def test_external_layer(mem_ws: Path, mem_cli: MemCli) -> None:
-    """external 层: sediment --layer external 写盘; recall 跨层 FTS5 命中带 [external];
+    """external namespace: sediment --namespace external --inclusion manual 写盘; recall 跨层 FTS5 命中带 [external];
     顶层 index 含 external 行; maintain 扫 external (MAINTAIN_POLICY: 仅 deprecated 判据, 无 stale — design.md §4);
     degrade external/... 拒 (终点层)。"""
     rules = mem_ws / ".skein" / "spec"
 
-    # 1. sediment --layer external 写盘
+    # 1. sediment --namespace external --inclusion manual 写盘
     body = _write_body(mem_ws, "ext.md", "外部依赖: vue3 组合式 API 用 setup。")
-    mem_cli(mem_ws, "sediment", "--layer", "external", "--category", "docs", "--topic", "vue",
+    mem_cli(mem_ws, "sediment", "--namespace", "external", "--inclusion", "manual", "--category", "docs", "--topic", "vue",
             "--title", "vue3 setup", "--keywords", "vue,setup", "--body-file", str(body))
     ext_file = rules / "external" / "docs" / "vue.md"
     assert ext_file.exists(), f"external 写盘失败: {ext_file}"
@@ -250,11 +250,12 @@ def test_external_layer(mem_ws: Path, mem_cli: MemCli) -> None:
     mout2 = mem_cli(mem_ws, "maintain").stdout
     assert "[废弃]" in mout2 and "external/docs/vue" in mout2, f"maintain 未扫 external deprecated: {mout2}"
 
-    # 6. degrade external/<cat>/<topic> 拒 (终点层) — 直跑 subprocess 取 returncode (fixture 强 check=True)
+    # 6. degrade external/<cat>/<topic> 拒 (external 是终点, 不参与降级) — 直跑 subprocess 取
+    #    returncode (fixture 强 check=True)
     dgr = subprocess.run([sys.executable, str(MEM), "degrade", "external/docs/vue"],
                          cwd=mem_ws, capture_output=True, text=True)
     assert dgr.returncode != 0, f"degrade external 不该成功: {dgr.stdout}"
-    assert "终点层" in dgr.stderr, f"degrade 拒绝提示缺终点层: {dgr.stderr}"
+    assert "终点" in dgr.stderr, f"degrade 拒绝提示缺「终点」说明: {dgr.stderr}"
 
 
 def test_always_budget_fallback(mem_ws: Path) -> None:
@@ -266,7 +267,7 @@ def test_always_budget_fallback(mem_ws: Path) -> None:
         r = subprocess.run(
             [sys.executable, "-c",
              f"import sys; sys.path.insert(0, {script_dir!r}); "
-             "from spec import always_budget; print(always_budget())"],
+             "from skeinlib.spec.model import always_budget; print(always_budget())"],
             cwd=mem_ws, capture_output=True, text=True, check=True)
         return int(r.stdout.strip())
 

@@ -35,7 +35,7 @@ status: active
 **写 mode 三步闭环骨架** (本铁律的可复用模板):
 
 ```
-skein-spec sediment --layer=<core|recall> --category=<类目>
+skein-spec sediment --namespace=<ns> [--inclusion=always|auto] --category=<类目>
 skein-spec reindex
 python3 scripts/spec.py maintain --apply   # 写盘后必跑, core 超 budget 就地降级
 ```

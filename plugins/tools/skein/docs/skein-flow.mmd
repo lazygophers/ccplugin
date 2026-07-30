@@ -19,7 +19,7 @@ graph TB
   subgraph Workspace["工作区初始化 (一次性, 幂等)"]
     INIT{skein init / setup} --> CONFIG[config.yaml]
     INIT --> TASK_DIR[.skein/task/]
-    INIT --> SPEC_DIR[".skein/spec/ (core+recall 两层)"]
+    INIT --> SPEC_DIR[".skein/spec/ (namespace × 类目)"]
     INIT --> WORKTREE_ROOT[".worktrees/ (use_worktree=true 时)"]
     INIT -.->|检测到 .trellis/| TRELLIS_MIG["skein setup<br/>兼容(留数据) / --full(整删)<br/>派 skein-setup agent 语义迁移"]
   end
@@ -146,11 +146,11 @@ graph TB
     SPEC_INIT[SessionStart hook] --> CORE_INJECT["注入 core 极简索引 (仅标题)<br/>~400 token (INDEX_BUDGET_TOKENS)<br/>超 budget 提示跑 maintain"]
     SUBAGENT_INIT[SubagentStart hook] --> SUBAGENT_INJECT["注入 core 全文 (按 agent 类目过滤)<br/>~2000 token (SUBAGENT_BUDGET_TOKENS)<br/>+ spec 纪律提示"]
     PLAN_MEM[plan 阶段] --> RECALLER["skein-recaller<br/>skein-spec recall &lt;query&gt;<br/>main 等结果进 planning"]
-    RECALLER --> FTS5["FTS5 BM25 检索<br/>(recall + external 两层)"]
+    RECALLER --> FTS5["FTS5 BM25 检索<br/>(全 namespace, 跳 inclusion=always)"]
     FTS5 --> INJECT_R[注入 planning dispatch 已知段]
-    EMPTY[首次空仓 + 代码有体量] --> BOOTSTRAP["skein-spec bootstrap<br/>main 提议 + AskUserQuestion 征同意<br/>派 skein-researcher 扫 5 维约定<br/>候选判层 + sediment 写盘"]
+    EMPTY[首次空仓 + 代码有体量] --> BOOTSTRAP["skein-spec bootstrap<br/>main 提议 + AskUserQuestion 征同意<br/>派 skein-researcher 扫 5 维约定<br/>候选定 ns×inclusion + sediment 写盘"]
     DRIFT[大重构/换栈/记忆漂移/接手可疑仓] --> RECONSTRUCT["skein-spec reconstruct<br/>6 档深度 (recall/low/full/deep/max/high)<br/>archive (可逆) + 分型扫描 + 重建"]
-    BOOTSTRAP --> WRITE[写盘 + 自动 reindex<br/>skein-spec sediment --layer --category<br/>--title --keywords --source --body-file]
+    BOOTSTRAP --> WRITE[写盘 + 自动 reindex<br/>skein-spec sediment --namespace --inclusion<br/>--category --title --keywords --body-file]
     RECONSTRUCT --> WRITE
     CORE --> WRITE
     RECALL --> WRITE

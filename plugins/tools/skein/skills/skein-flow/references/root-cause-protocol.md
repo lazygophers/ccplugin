@@ -48,7 +48,7 @@ check 反复不过时的跨维度定位。逐维度问「是不是这里」, 从
 
 复盘完的根因**不自动沉淀**, 走既有判定门:
 
-- 判定 → 分层 → 自动写盘三步, 完全复用 [skein-spec](../../skein-spec/SKILL.md) 的 [sediment-workflow](../../skein-spec/references/sediment-workflow.md), 命令是同一个 `skein-spec sediment`。判定门 (语义) 通过即写, 不逐次询问用户。
+- 判定 → 定 ns×inclusion → 自动写盘三步, 完全复用 [skein-spec](../../skein-spec/SKILL.md) 的 [sediment-workflow](../../skein-spec/references/sediment-workflow.md), 命令是同一个 `skein-spec sediment`。判定门 (语义) 通过即写, 不逐次询问用户。
 - **不新造沉淀机制**。命中判定门正向项②「踩坑 ≥2 轮 (根因可写可验证契约)」正是本场景 —— 反复不过 ≥2 轮本身就是踩坑证据, 但仍须过「排除」项 (一次性 bug / 本 task 私有细节 / 已有规则覆盖 → 跳过)。
 - 沉淀正文写**根因契约** (可验证的 MUST/禁), 非流水账。
 

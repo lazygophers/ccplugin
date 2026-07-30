@@ -9,7 +9,7 @@ import importlib.util
 import os
 from pathlib import Path
 
-import pytest  # type: ignore[import-not-found]
+from skeinlib.views import _view_task_detail
 
 _SKEIN = Path(__file__).resolve().parent.parent / "skein.py"
 _spec = importlib.util.spec_from_file_location("skein_detail", _SKEIN)
@@ -36,7 +36,7 @@ def test_research_dict_has_multi_notes(ws: Path) -> None:
     for nm in ("00-summary.md", "01-a.md", "05-e.md"):
         (rdir / nm).write_text("# %s\nbody" % nm, encoding="utf-8")
     board = sk.Skein()
-    d = board._task_detail("spec-memory-extend")
+    d = _view_task_detail(board._snapshot(), "spec-memory-extend")
     assert d is not None
     assert d["research"] == {
         "00-summary.md": "# 00-summary.md\nbody",
@@ -49,6 +49,6 @@ def test_research_empty_when_no_dir(ws: Path) -> None:
     os.chdir(ws)
     _new_task(ws, "no-research")
     board = sk.Skein()
-    d = board._task_detail("no-research")
+    d = _view_task_detail(board._snapshot(), "no-research")
     assert d is not None
     assert d["research"] == {}

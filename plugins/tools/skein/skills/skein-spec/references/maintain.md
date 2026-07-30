@@ -3,8 +3,8 @@
 规则库积累后会漂移。prune 负责自动精简 (sediment 后顺跑), maintain 是**手动全量体检**, 供 user 在 sediment+prune 之外独立审查:
 
 ```
-skein-spec maintain                 # 全量体检两层
-skein-spec maintain --layer recall  # 仅指定层
+skein-spec maintain                 # 全量体检 (全 namespace)
+skein-spec maintain --namespace recall  # 仅指定 namespace
 ```
 
 **5 判据 + 2 补充发现** (同 prune 判定门, maintain 只报告不动手):

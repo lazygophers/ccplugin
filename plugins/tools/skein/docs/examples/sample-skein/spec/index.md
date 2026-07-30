@@ -1,6 +1,6 @@
 # SKEIN 规则库总索引
 
-两层: **core** 常驻注入 (SessionStart) · **recall** 按需召回 (planning `recall <query>`)。
+加载策略由 frontmatter `inclusion` 定: **always** 常驻注入 (SessionStart) · **auto** 按需召回 (planning `recall <query>`) · **fileMatch** 按 globs 命中注入 · **manual** 纯手动检索。目录名 = namespace (内容类型), 与加载策略正交。
 
 | layer | 条数 | 类目分布 | 索引 |
 |---|---|---|---|

@@ -1,6 +1,6 @@
 # 空仓冷启动播种 (一次性) — bootstrap seeding
 
-**一次性动作**。两层记忆 (core/recall) 空仓时前几十轮 planning 无规则可召回。bootstrap 从**既有代码库**提炼约定作冷启动基线, 让第一个 task 就有规则可用。
+**一次性动作**。空仓时前几十轮 planning 无规则可召回。bootstrap 从**既有代码库**提炼约定作冷启动基线, 让第一个 task 就有规则可用。
 
 > **不新造引擎**: 完全复用 `skein-researcher` (扫描) + sediment (自动写盘)。bootstrap 只是把二者串成一次性流程, 不改 `scripts/`, 不加机器/字段。
 
@@ -9,7 +9,7 @@
 满足**全部**才提议跑一次:
 
 1. 仓库**首次**用 SKEIN (无 task 历史) 或明确要冷启动播种。
-2. `.skein/spec` 为空/近空 — 验: `skein-spec list` 两层规则数近 0。
+2. `.skein/spec` 为空/近空 — 验: `skein-spec list` 各 namespace 规则数近 0。
 3. 代码库**已有一定体量** (空/脚手架仓库无约定可提, 跳过)。
 
 **跑前硬停: 用 `AskUserQuestion` 征得同意再跑**, 禁自动强制。用户拒 → 跳过, 走正常 planning (规则随 finish sediment 增量积累)。
@@ -34,7 +34,7 @@ researcher bootstrap 模式扫以下五维, 每维产 0..N 条候选 (无信号�
 | **架构边界** | 分层/模块依赖方向, 禁止的跨层访问, 目录职责 |
 | **构建** | 构建/依赖/发布命令, lint/format 工具, CI 约定 |
 
-### ② main 读回候选, 逐条判层
+### ② main 读回候选, 逐条定 namespace × inclusion
 
 读 researcher 回传 + 落盘全量, 每条判 **core / recall / drop** (分层判据同 [sediment-workflow §2](sediment-workflow.md))。bootstrap 证据来自静态扫描 (非踩坑实证), **从严控 core**: 默认全归 recall, 仅"违反必炸"硬约束 (如 DB 层禁裸 SQL) 进 core; 弱信号/一次性/语言通识 drop。
 
@@ -43,7 +43,7 @@ researcher bootstrap 模式扫以下五维, 每维产 0..N 条候选 (无信号�
 保留下来的候选**逐条**走 sediment 写盘 (**复用** [sediment-workflow.md](sediment-workflow.md))。冷启动跑前 (①) 已一次 `AskUserQuestion` 征同意, 覆盖整轮 —— 内部候选**自动写盘, 不逐条再问用户**:
 
 - main 逐项输出 trace (层 + 类目 + 标题 + 触发项) 供审阅, 不硬停。
-- 写盘: `skein-spec sediment --layer core|recall --category <类目> --topic <主题> --title T --keywords "a,b" --body-file <正文.md>` (追加为主题文件章节 + 自动 reindex)。
+- 写盘: `skein-spec sediment --namespace <ns> --inclusion always|auto|fileMatch|manual --category <类目> --topic <主题> --title T --keywords "a,b" --body-file <正文.md>` (追加为主题文件章节 + 自动 reindex)。
 - 同主题规则并入同一 `<类目>/<主题>.md`, 禁一规则一文件; 关联写 `[[主题#规则标题]]`。
 
 ## 一次性边界
@@ -66,7 +66,7 @@ researcher bootstrap 模式扫以下五维, 每维产 0..N 条候选 (无信号�
 | 禁 | 改为 |
 |---|---|
 | 自动跑 bootstrap 不问用户 | `AskUserQuestion` 征同意 |
-| 无约定硬凑规则填满两层 | 播空/少量, 老实说明 |
+| 无约定硬凑规则填满库 | 播空/少量, 老实说明 |
 | 候选跳过判定门盲写 | 逐条走 sediment 判定门 (通过即自动写) |
 | 什么都塞 core 常驻 | 默认 recall, 仅硬约束进 core |
 | 为 bootstrap 改 skein-spec / 加新脚本 | 复用现有 researcher + sediment |

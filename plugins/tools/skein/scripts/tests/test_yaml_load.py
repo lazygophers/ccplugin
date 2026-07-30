@@ -16,7 +16,7 @@ from pathlib import Path
 import pytest  # type: ignore[import-not-found]
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from skein import _yaml_load, _yaml_dump  # noqa: E402
+from skeinlib.config import _yaml_load, _yaml_dump  # noqa: E402
 
 
 # ---------- 现有扁平结构零变化 ----------

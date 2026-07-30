@@ -61,12 +61,11 @@ def _find(ws: Path, name: str) -> bool:
 def test_create_before_and_after_fire(skein_cli: SkeinCli, ws: Path) -> None:
     _append_hooks_yaml(ws, """
 hooks:
-  stage:
-    create:
-      before:
-        - command: "touch create-before.marker"
-      after:
-        - command: "touch create-after.marker"
+  create:
+    before:
+      - command: "touch create-before.marker"
+    after:
+      - command: "touch create-after.marker"
 """)
     r = skein_cli(ws, "create", "feat-a", "--name", "feat-a", "--desc", "d")
     assert r.returncode == 0
@@ -79,12 +78,11 @@ def test_confirm_before_and_after_fire(skein_cli: SkeinCli, ws: Path) -> None:
     skein_cli(ws, "estimate", tid, "--set", "1")
     _append_hooks_yaml(ws, """
 hooks:
-  stage:
-    confirm:
-      before:
-        - command: "touch confirm-before.marker"
-      after:
-        - command: "touch confirm-after.marker"
+  confirm:
+    before:
+      - command: "touch confirm-before.marker"
+    after:
+      - command: "touch confirm-after.marker"
 """)
     r = skein_cli(ws, "confirm", tid)
     assert r.returncode == 0
@@ -96,12 +94,11 @@ def test_start_before_and_after_fire(skein_cli: SkeinCli, ws: Path) -> None:
     tid = _mk(skein_cli, ws, "feat-c", ready=True)
     _append_hooks_yaml(ws, """
 hooks:
-  stage:
-    start:
-      before:
-        - command: "touch start-before.marker"
-      after:
-        - command: "touch start-after.marker"
+  start:
+    before:
+      - command: "touch start-before.marker"
+    after:
+      - command: "touch start-after.marker"
 """)
     r = skein_cli(ws, "start", tid)
     assert r.returncode == 0, r.stderr
@@ -114,12 +111,11 @@ def test_check_before_and_after_fire(skein_cli: SkeinCli, ws: Path) -> None:
     skein_cli(ws, "start", tid)
     _append_hooks_yaml(ws, """
 hooks:
-  stage:
-    check:
-      before:
-        - command: "touch check-before.marker"
-      after:
-        - command: "touch check-after.marker"
+  check:
+    before:
+      - command: "touch check-before.marker"
+    after:
+      - command: "touch check-after.marker"
 """)
     r = skein_cli(ws, "check", tid)
     assert r.returncode == 0
@@ -132,12 +128,11 @@ def test_finish_before_and_after_fire(skein_cli: SkeinCli, ws: Path) -> None:
     skein_cli(ws, "start", tid)
     _append_hooks_yaml(ws, """
 hooks:
-  stage:
-    finish:
-      before:
-        - command: "touch finish-before.marker"
-      after:
-        - command: "touch finish-after.marker"
+  finish:
+    before:
+      - command: "touch finish-before.marker"
+    after:
+      - command: "touch finish-after.marker"
 """)
     r = skein_cli(ws, "finish", tid)
     assert r.returncode == 0, r.stderr
@@ -151,12 +146,11 @@ def test_archive_before_and_after_fire(skein_cli: SkeinCli, ws: Path) -> None:
     skein_cli(ws, "finish", tid)
     _append_hooks_yaml(ws, """
 hooks:
-  stage:
-    archive:
-      before:
-        - command: "touch archive-before.marker"
-      after:
-        - command: "touch archive-after.marker"
+  archive:
+    before:
+      - command: "touch archive-before.marker"
+    after:
+      - command: "touch archive-after.marker"
 """)
     r = skein_cli(ws, "archive", tid)
     assert r.returncode == 0
@@ -169,12 +163,11 @@ def test_subtask_start_before_and_after_fire(skein_cli: SkeinCli, ws: Path) -> N
     skein_cli(ws, "start", tid)
     _append_hooks_yaml(ws, """
 hooks:
-  stage:
-    subtask.start:
-      before:
-        - command: "touch sub-start-before.marker"
-      after:
-        - command: "touch sub-start-after.marker"
+  subtask.start:
+    before:
+      - command: "touch sub-start-before.marker"
+    after:
+      - command: "touch sub-start-after.marker"
 """)
     r = skein_cli(ws, "subtask", "start", tid, SID)
     assert r.returncode == 0, r.stderr
@@ -188,12 +181,11 @@ def test_subtask_done_before_and_after_fire(skein_cli: SkeinCli, ws: Path) -> No
     skein_cli(ws, "subtask", "start", tid, SID)
     _append_hooks_yaml(ws, """
 hooks:
-  stage:
-    subtask.done:
-      before:
-        - command: "touch sub-done-before.marker"
-      after:
-        - command: "touch sub-done-after.marker"
+  subtask.done:
+    before:
+      - command: "touch sub-done-before.marker"
+    after:
+      - command: "touch sub-done-after.marker"
 """)
     r = skein_cli(ws, "subtask", "done", tid, SID)
     assert r.returncode == 0, r.stderr
@@ -207,12 +199,11 @@ def test_subtask_fail_before_and_after_fire(skein_cli: SkeinCli, ws: Path) -> No
     skein_cli(ws, "subtask", "start", tid, SID)
     _append_hooks_yaml(ws, """
 hooks:
-  stage:
-    subtask.fail:
-      before:
-        - command: "touch sub-fail-before.marker"
-      after:
-        - command: "touch sub-fail-after.marker"
+  subtask.fail:
+    before:
+      - command: "touch sub-fail-before.marker"
+    after:
+      - command: "touch sub-fail-after.marker"
 """)
     r = skein_cli(ws, "subtask", "fail", tid, SID)
     assert r.returncode == 0, r.stderr
@@ -228,10 +219,9 @@ def test_check_before_failure_blocks_stage(skein_cli: SkeinCli, ws: Path) -> Non
     skein_cli(ws, "start", tid)
     _append_hooks_yaml(ws, """
 hooks:
-  stage:
-    check:
-      before:
-        - command: "exit 1"
+  check:
+    before:
+      - command: "exit 1"
 """)
     r = skein_cli(ws, "check", tid, check=False)
     assert r.returncode != 0
@@ -246,11 +236,10 @@ def test_before_continue_on_error_overrides_default_block(skein_cli: SkeinCli, w
     skein_cli(ws, "start", tid)
     _append_hooks_yaml(ws, """
 hooks:
-  stage:
-    check:
-      before:
-        - command: "exit 1"
-          continue_on_error: true
+  check:
+    before:
+      - command: "exit 1"
+        continue_on_error: true
 """)
     r = skein_cli(ws, "check", tid)
     assert r.returncode == 0, r.stderr
@@ -262,10 +251,9 @@ def test_after_failure_only_warns_stage_result_unchanged(skein_cli: SkeinCli, ws
     skein_cli(ws, "start", tid)
     _append_hooks_yaml(ws, """
 hooks:
-  stage:
-    check:
-      after:
-        - command: "exit 1"
+  check:
+    after:
+      - command: "exit 1"
 """)
     r = skein_cli(ws, "check", tid)
     assert r.returncode == 0, r.stderr
@@ -275,21 +263,52 @@ hooks:
 
 # ---------- 验收3: 非法阶段名报错 + 列全部合法值 ----------
 
-def test_illegal_stage_name_errors_and_lists_valid_names(skein_cli: SkeinCli, ws: Path) -> None:
-    _append_hooks_yaml(ws, """
+_BAD_STAGE = """
 hooks:
-  stage:
-    chekc:
-      before:
-        - command: "touch never.marker"
-""")
+  chekc:
+    before:
+      - command: "touch never.marker"
+"""
+
+
+def test_illegal_stage_name_warns_but_does_not_block(skein_cli: SkeinCli, ws: Path) -> None:
+    """拼错的阶段名: stderr 告警 + 列全部合法值, 但**不阻断**普通命令。
+
+    告警不阻断是刻意的 —— _hooks_cfg 在钩子热路径上, 一个配置笔误不该让每条 skein 命令都退非零
+    (与 _yaml_bad 同策略)。硬判定归 doctor, 见下一条测试。
+    """
+    _append_hooks_yaml(ws, _BAD_STAGE)
     r = skein_cli(ws, "create", "feat-m", "--name", "feat-m", "--desc", "d", check=False)
-    assert r.returncode != 0
-    assert "chekc" in r.stderr
-    for legal in ("create", "confirm", "start", "check", "finish", "archive",
+    assert r.returncode == 0, f"配置笔误不该阻断 create: {r.stderr}"
+    assert "chekc" in r.stderr, f"未告警拼错的阶段名: {r.stderr}"
+    for legal in ("create", "confirm", "start", "exec", "check", "finish", "archive",
                   "subtask.start", "subtask.done", "subtask.fail"):
         assert legal in r.stderr, f"合法阶段名清单缺 {legal}"
     assert not _find(ws, "never.marker"), "非法阶段名不该被静默执行"
+
+
+def test_illegal_stage_name_is_doctor_error(skein_cli: SkeinCli, ws: Path) -> None:
+    """doctor 把同一笔误判为 ✗ error (非 ⚠ warning) — 用户主动跑、看得见的地方才硬报。"""
+    _append_hooks_yaml(ws, _BAD_STAGE)
+    r = skein_cli(ws, "doctor", check=False)
+    out = r.stdout + r.stderr
+    assert "chekc" in out, f"doctor 未报拼错的阶段名: {out}"
+    assert any(ln.startswith("✗") and "chekc" in ln for ln in out.splitlines()), \
+        f"doctor 该判 error(✗) 而非 warning: {out}"
+
+
+def test_unknown_entry_field_is_reported(skein_cli: SkeinCli, ws: Path) -> None:
+    """条目里的未知字段不静默忽略 (静默降级 = 配置无声失效, design.md §3)。"""
+    _append_hooks_yaml(ws, """
+hooks:
+  create:
+    before:
+      - command: "touch fieldtest.marker"
+        tiemout: 5
+""")
+    r = skein_cli(ws, "doctor", check=False)
+    out = r.stdout + r.stderr
+    assert "tiemout" in out, f"未知字段未报出: {out}"
 
 
 # ---------- 验收4: 未配钩子零行为变化 ----------
@@ -307,10 +326,9 @@ def test_hooks_key_present_but_other_stage_unconfigured_zero_overhead(skein_cli:
     只断言副作用 (标记文件不存在), 不做性能计时 (c8 铁律: 计时不稳定)。"""
     _append_hooks_yaml(ws, """
 hooks:
-  stage:
-    confirm:
-      before:
-        - command: "touch confirm-only.marker"
+  confirm:
+    before:
+      - command: "touch confirm-only.marker"
 """)
     r = skein_cli(ws, "create", "feat-o", "--name", "feat-o", "--desc", "d")
     assert r.returncode == 0

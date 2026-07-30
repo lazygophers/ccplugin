@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """看板视图 characterization 安全网 — 锚定 6 个 board 视图方法当前 JSON 输出, 供 Snapshot/view 重构证明字节级不变。
 
-覆盖视图: _board_data / _dashboard / _queue / _task_detail / _archive_list / _search。
+覆盖视图: 全部 _view_* 纯函数 (board_data / dashboard / queue / task_detail / archive_list / search)。
 
 手法: 手工造固定时间戳 fixture (.skein/task/<id>/task.json 直写, 非走 CLI) + 冻结 now() → 输出全确定, 与 golden JSON 逐字段比对。
   - golden 缺失时首跑自举写盘并 skip (bootstrap); 存在则严格比对。
@@ -21,7 +21,20 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any
 
-SKEIN: Path = Path(__file__).parent / "skein.py"
+from conftest import SKEIN, run_git as git  # 单一实现, 见 conftest 顶部说明
+import skeinlib.migrate as _mig_mod
+import skeinlib.model as _model_mod
+import skeinlib.store as _store_mod
+import skeinlib.views as views_mod
+
+
+def _now_holders() -> list[Any]:
+    """所有可能持有 `now` 名字的模块 (model 定义它, 其余 `from ... import now` 各存一份)。"""
+    return [_model_mod, views_mod, _store_mod, _mig_mod]
+
+from skeinlib.views import (_view_archive_list, _view_board_data, _view_dashboard,
+                            _view_queue, _view_search, _view_task_detail)
+
 GOLDEN: Path = Path(__file__).parent / "views_golden.json"
 TNOW: int = 2_000_000_000  # 冻结 now() 返回值 (fixture 时间戳皆相对此)
 
@@ -32,10 +45,6 @@ def _load() -> ModuleType:
     m = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(m)
     return m
-
-
-def git(cwd: Path, *args: str) -> None:
-    subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True, check=True)
 
 
 def _task_json(**kw: Any) -> dict[str, Any]:
@@ -161,25 +170,31 @@ def _capture(m: ModuleType, d: Path) -> dict[str, Any]:
     os.chdir(d)
     # 清 ENV override 保配置确定
     saved = {k: os.environ.pop(k) for k in list(os.environ) if k.startswith("CLAUDE_PLUGIN_OPTION_")}
-    orig_now = m.now
-    m.now = lambda: TNOW  # type: ignore[assignment]
+    # 冻结时间: 各模块都是 `from skeinlib.model import now`, 名字在 import 时就绑死了 ——
+    # 只 patch model.now 不生效, 必须逐个 patch **实际持有该名字的模块**。少 patch 一个的表现是
+    # golden 里冒出真实时间戳, 所以这里按 `hasattr` 扫一遍, 新增模块不用回来改这里。
+    frozen = [mod for mod in _now_holders() if hasattr(mod, "now")]
+    saved_now = [(mod, mod.now) for mod in frozen]
+    for mod in frozen:
+        mod.now = lambda: TNOW  # type: ignore[assignment]
     try:
         sk = m.Skein()
         sk.proj = "TESTPROJ"  # 固定项目名 (否则=临时目录 basename, 随机)
         return {
-            "board_data": sk._board_data(),
-            "dashboard": sk._dashboard(),
-            "queue": sk._queue(),
-            "archive_list": sk._archive_list(),
-            "task_detail_alpha": sk._task_detail("alpha"),
-            "task_detail_old1": sk._task_detail("old1"),  # 走归档回落
-            "task_detail_ghost1": sk._task_detail("ghost1"),  # 幽灵骨架 → None
-            "search_alpha": sk._search("alpha"),
-            "search_snapshot": sk._search("视图"),
-            "search_empty": sk._search(""),
+            "board_data": _view_board_data(sk._snapshot()),
+            "dashboard": _view_dashboard(sk._snapshot()),
+            "queue": _view_queue(sk._snapshot()),
+            "archive_list": _view_archive_list(sk._snapshot()),
+            "task_detail_alpha": _view_task_detail(sk._snapshot(), "alpha"),
+            "task_detail_old1": _view_task_detail(sk._snapshot(), "old1"),  # 走归档回落
+            "task_detail_ghost1": _view_task_detail(sk._snapshot(), "ghost1"),  # 幽灵骨架 → None
+            "search_alpha": _view_search(sk._snapshot(), "alpha"),
+            "search_snapshot": _view_search(sk._snapshot(), "视图"),
+            "search_empty": _view_search(sk._snapshot(), ""),
         }
     finally:
-        m.now = orig_now  # type: ignore[assignment]
+        for mod, fn in saved_now:
+            mod.now = fn  # type: ignore[assignment]
         os.environ.update(saved)
         os.chdir(cwd0)
 

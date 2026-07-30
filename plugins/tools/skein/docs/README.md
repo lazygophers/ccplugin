@@ -60,8 +60,8 @@ skein view       # 可视化 HTML 看板
 | 闭环 | plan→exec→check→finish, 不可跳步 |
 | worktree 隔离 | 每 task 一个 git worktree, 主工作区零改动 |
 | 双层 DAG | task + subtask 同构 DAG, 完成即派 |
-| 两层规则记忆 | core (常驻注入) + recall (按需召回) |
-| sediment 判定门 | finish 时判 learning → core/recall/drop |
+| 规则记忆库 | namespace (内容类型目录) × inclusion (加载策略: always 常驻 / auto 召回 / fileMatch / manual) |
+| sediment 判定门 | finish 时判 learning → namespace×inclusion / drop |
 | contract | planning 锁不变量, check 逐条验证 |
 
 ## 请求路由

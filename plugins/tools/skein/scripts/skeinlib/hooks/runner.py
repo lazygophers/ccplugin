@@ -5,10 +5,12 @@
 内容超预算 → stderr 警告 "简化内容", 且截断到硬上限, 免不可控 token 膨胀。
 token 估算 = 字符数 // 4 (英混中的粗略常数, 宁可高估)。
 
-_run_hooks() 是 config.yaml `hooks:` 自定义钩子的统一执行器 — skein.py 阶段钩子
-(before/after) 与 hooks.py agent 钩子(start/stop) 共用, 故落共享模块 hooklib.py
-(而非二者之一), 免相互反向 import。config 解析/阶段名校验/具名+通配排序均归调用方
-(skein.py/hooks.py), 本模块只管"给定一串已排好序的钩子, 怎么串行执行"。
+_run_hooks() 是 config.yaml `hooks:` 自定义钩子的统一执行器 — 引擎侧的阶段钩子(before/after)
+与 harness 侧的 agent 钩子(start/stop) 共用, 故落这个共享模块而非二者之一, 免相互反向 import。
+config 解析 / 阶段名校验 / 具名+通配排序均归调用方, 本模块只管"给定一串已排好序的钩子, 怎么串行执行"。
+
+叙事器 `DBG` 也在这儿: 它得是**稳定单例** (`DBG.enable(on)` 原地翻状态), 从前 `global DBG` 重绑
+模块变量, 拆包后各模块 `from ... import DBG` 会各拿一份重绑前的旧对象, --debug 静默失效。
 """
 from __future__ import annotations
 
@@ -35,9 +37,16 @@ class Debug:
     rich 污染即破契约), 所以一切叙事只走 stderr。rich 不可用则纯文本降级; 未启用则全 no-op。
     """
     def __init__(self, enabled: bool) -> None:
-        self.enabled = enabled
+        self.enabled = False
         self.c: Optional[Any] = None
-        if enabled:
+        self.enable(enabled)
+
+    def enable(self, on: bool) -> None:
+        """开关叙事。**存在的理由**: 从前是 `global DBG; DBG = Debug(...)` 重绑模块变量, 于是
+        `from ... import DBG` 拿到的是重绑前那个 —— 引擎一拆包就会各模块各拿一份, 静默失效。
+        改成原地翻状态后 DBG 是稳定单例, 谁 import 都是同一个对象。"""
+        self.enabled = on
+        if on and self.c is None:
             try:
                 from rich.console import Console
                 self.c = Console(stderr=True)
@@ -78,6 +87,11 @@ class Debug:
                 sys.stderr.write(f"{title}\n")
             for k, v in mapping.items():
                 sys.stderr.write(f"  {k}: {v}\n")
+
+
+# 全局叙事器单例 — skein.py / spec.py 及 skeinlib 各模块共用同一个对象 (禁再各自 `DBG = Debug(...)`,
+# 那会退回重绑模块变量的老坑)。默认关, 入口 main() 解析 --debug/SKEIN_DEBUG 后调 DBG.enable(True)。
+DBG = Debug(False)
 
 
 def est_tokens(text: str) -> int:
@@ -222,4 +236,4 @@ if __name__ == "__main__":
     _run_hooks("check", "before", {"hooks": [{"command": "exit 1"}]})  # 若未跳过会抛, 不抛即通过
     del os.environ["SKEIN_IN_HOOK"]
 
-    print("hooklib 自检过")
+    print("hooks.runner 自检过")

@@ -26,9 +26,9 @@ skein setup [--full]
 - 脚本建 `.skein/` 骨架; 报错 → `[工具失败: setup 脚本报错]`, 停并上报。
 
 ### 2. 重组 spec (语义判断)
-逐条判 core/recall + 类目 + 主题, 写入后删扁平旧文件:
+逐条定 namespace + inclusion + 类目 + 主题, 写入后删扁平旧文件:
 ```
-skein-spec sediment --layer=<core|recall> --category=<类目> --topic=<主题>
+skein-spec sediment --namespace=<ns> [--inclusion=always|auto] --category=<类目> --topic=<主题>
 ```
 - core 放硬约束, recall 放长尾。旧扁平文件迁完即删, 不留双份。
 - 粒度: 文件夹 = 类目, 文件 = 主题, `## <规则标题>` = 一条规则; 同主题并入同一文件 (禁一规则一文件)。

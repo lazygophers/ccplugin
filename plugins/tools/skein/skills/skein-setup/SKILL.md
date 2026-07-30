@@ -1,6 +1,6 @@
 ---
 name: skein-setup
-description: SKEIN 工作区初始化 + 结构维护。未初始化仓库 (无 .skein/ 或 SessionStart 提示) 一键 scaffold; 已初始化时按需手动优化 .skein 结构 (spec 类目重组 / core↔recall 层调 / config 调参), 改盘后 reindex。既有 trellis 仓迁移见 references/trellis-migration.md。幂等可重跑。
+description: SKEIN 工作区初始化 + 结构维护。未初始化仓库 (无 .skein/ 或 SessionStart 提示) 一键 scaffold; 已初始化时按需手动优化 .skein 结构 (spec 类目重组 / 调规则 inclusion 加载策略 / config 调参), 改盘后 reindex。既有 trellis 仓迁移见 references/trellis-migration.md。幂等可重跑。
 argument-hint: "[trellis 迁移模式: 缺省=兼容保留 .trellis 数据, 完全删除 .trellis]"
 arguments: "[trellis 迁移模式: 缺省=兼容保留 .trellis 数据, 完全删除 .trellis]"
 model: sonnet
@@ -41,8 +41,8 @@ skein setup   # 幂等 scaffold + 输出 manifest JSON
 |---|---|---|
 | 并发上限 (max_active) | 直接 Edit `.skein/config.yaml` | 无 |
 | spec 类目重组 (类目 = 层内子目录, 自由取名 git/test/arch/build/style/domain/ops...) | 移动 / 改名 `.skein/spec/<layer>/<category>/*.md` | `skein-spec reindex` |
-| core↔recall 层调 (core 常驻过重, >8000 字符会告警) | 把规则文件从 `spec/core/` 移到 `spec/recall/` (或反向) | `skein-spec reindex` |
-| 新增一条规则 | `skein-spec sediment --layer <core\|recall> --category <cat> --topic <主题> --title <T>` | 追加为主题文件章节 + 自动 reindex |
+| 调加载策略 (always 页过重, >8000 字符会告警) | 改规则文件 frontmatter 的 `inclusion:` (always↔auto), **不要搬文件** — 目录 = namespace(内容类型), 与加载策略无关; 或跑 `skein-spec degrade <cat>/<name>` 自动改 | `skein-spec reindex` |
+| 新增一条规则 | `skein-spec sediment --namespace <ns> [--inclusion always\|auto] --category <cat> --topic <主题> --title <T>` | 追加为主题文件章节 + 自动 reindex |
 
 - **改 spec 盘后必 `reindex`** — 索引 (三份 index.md) 落后于实际盘面 = 召回失效。
 - **task.json / task.md 禁手改** — 经 `skein create/start/...` 命令维护, PreToolUse hook 硬阻直接写。

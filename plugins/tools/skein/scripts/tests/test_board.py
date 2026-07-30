@@ -30,17 +30,11 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any
 
-SKEIN: Path = Path(__file__).parent / "skein.py"
+from conftest import SKEIN, make_ws as _init_ws, run_skein as sk  # 单一实现, 见 conftest 顶部说明
+from skeinlib.views import _view_board_data
+from skeinlib.store import TaskStore
+
 _STANDALONE: bool = False  # python3 test_board.py 直跑时置 True (免 _import_pytest skip 崩 __main__)
-
-
-def sk(cwd: Path, *args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
-    return subprocess.run([sys.executable, str(SKEIN), *args], cwd=cwd,
-                          capture_output=True, text=True, check=check)
-
-
-def git(cwd: Path, *args: str) -> None:
-    subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True, check=True)
 
 
 def _load() -> ModuleType:
@@ -49,16 +43,6 @@ def _load() -> ModuleType:
     m = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(m)
     return m
-
-
-def _init_ws(d: Path) -> None:
-    git(d, "init", "-q")
-    git(d, "config", "user.email", "t@t.dev")
-    git(d, "config", "user.name", "t")
-    (d / "seed.txt").write_text("s\n")
-    git(d, "add", "-A")
-    git(d, "commit", "-qm", "seed")
-    sk(d, "init")
 
 
 PRD: str = ("# PRD\n\n"
@@ -84,7 +68,7 @@ def test_prd_and_efficiency() -> None:
             assert '<main id="view"' in html, "_webapp_html 应出 SPA 挂载点"
 
             # --- prd 数据 (前端渲染, 校验 __SKEIN__ JSON 结构而非 HTML) ---
-            data = sk_obj._board_data()
+            data = _view_board_data(sk_obj._snapshot())
             card = next(c for c in data["cards"] if c["id"] == "prd-demo")
             prd = {s["name"]: s for s in card["prd"]}
             assert set(prd) == {"目标", "验收标准"}, "prd 只应含 目标/验收标准 (边界节泄漏?)"
@@ -108,12 +92,12 @@ def test_prd_and_efficiency() -> None:
 
             # --- 效率: _write_if_changed 同内容不写 ---
             tp = d / ".skein/probe.txt"
-            m.Skein._write_if_changed(tp, "x")
+            TaskStore.write_if_changed(tp, "x")
             t0 = tp.stat().st_mtime_ns
             time.sleep(0.01)
-            m.Skein._write_if_changed(tp, "x")
+            TaskStore.write_if_changed(tp, "x")
             assert tp.stat().st_mtime_ns == t0, "_write_if_changed 同内容仍写"
-            m.Skein._write_if_changed(tp, "y")
+            TaskStore.write_if_changed(tp, "y")
             assert tp.read_text() == "y" and tp.stat().st_mtime_ns != t0, "_write_if_changed 变更未写"
 
             # --- 效率: config() 键完整时不回写 ---
@@ -126,7 +110,7 @@ def test_prd_and_efficiency() -> None:
 
             # --- name 为空回退 id (禁止隐藏已存在 task); 置于末尾避免 create 重落盘干扰零写断言 ---
             sk(d, "create", "no-name-task", "--name", "", "--desc", "d")
-            nn = next(c for c in sk_obj._board_data()["cards"] if c["id"] == "no-name-task")
+            nn = next(c for c in _view_board_data(sk_obj._snapshot())["cards"] if c["id"] == "no-name-task")
             assert nn["name"] == "no-name-task", "空 name 未回退为 id"
         finally:
             os.chdir(cwd0)
@@ -225,10 +209,15 @@ def test_serve_config_post() -> None:
             # 非法 POST: 兜底为 CONFIG_DEFAULTS (retain_days=7), 不落 "not-a-number"
             assert post({"retain_days": "not-a-number"}) == 200, "非法值兜底应仍 200"
             assert "not-a-number" not in (d / ".skein/config.yaml").read_text(), "非法值误落盘"
-            # hooks 键刻意不进 CONFIG_DEFAULTS (config-hooks/c3b) — 端点只回填已知叶, 天然拒绝写入
-            # 任意 shell 命令, 免专门写排除逻辑 (安全副产品, 防远程写 shell = RCE, 见 design.md §4)
-            assert post({"hooks": {"agent": {"*": {"start": [{"command": "touch pwned"}]}}}}) == 200
-            assert "hooks" not in (d / ".skein/config.yaml").read_text(), "hooks 键不该被写端点接受"
+            # 🔒 hooks 键在写端点侧硬排除 (skein.py CFG_REMOTE_DENY, 见 design.md §4): 值是 shell
+            # 命令, 远程可写 = RCE。骨架本身在 CONFIG_DEFAULTS 里 (空列表), 故 "hooks" 这个串**会**
+            # 出现在盘上 —— 该断言的是「POST 来的命令串一个字都不落盘」, 断言键名不出现是查错了东西。
+            cfg_before = (d / ".skein/config.yaml").read_text()
+            assert post({"hooks": {"agent": {"*": {"start": [
+                {"type": "command", "command": "touch pwned"}]}}}}) == 200
+            cfg_after = (d / ".skein/config.yaml").read_text()
+            assert "touch pwned" not in cfg_after, "远程 POST 的 shell 命令落盘了 — RCE"
+            assert cfg_after == cfg_before, f"hooks 段被远程改动:\n{cfg_before}\n---\n{cfg_after}"
             assert not (d / "pwned").exists()
         finally:
             proc.terminate()

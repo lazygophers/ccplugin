@@ -30,7 +30,7 @@ from conftest import SkeinCli
 import sys as _sys  # noqa: E402
 
 _sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from skein import STAGE_NAMES as _STAGES  # noqa: E402  单一真值源, 禁在测试里硬编码阶段名
+from skeinlib.config import STAGE_NAMES as _STAGES  # noqa: E402  单一真值源, 禁在测试里硬编码阶段名
 
 
 def _readback(skein_cli: SkeinCli, ws: Path, path: str) -> str | None:
@@ -58,9 +58,9 @@ def test_hooks_skeleton_present_but_remote_denied(skein_cli: SkeinCli, ws: Path)
     但它在 CFG_REMOTE_DENY 里 —— 值是 shell 命令, 允许远程写入等于开 RCE。"""
     import sys
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-    from skein import CFG_REMOTE_DENY, CONFIG_DEFAULTS  # noqa: E402
+    from skeinlib.config import CFG_REMOTE_DENY, CONFIG_DEFAULTS  # noqa: E402
 
-    from skein import STAGE_NAMES  # noqa: E402
+    from skeinlib.config import STAGE_NAMES  # noqa: E402
 
     assert "hooks" in CONFIG_DEFAULTS, "CONFIG_DEFAULTS 应含 hooks 完整骨架"
     h = CONFIG_DEFAULTS["hooks"]

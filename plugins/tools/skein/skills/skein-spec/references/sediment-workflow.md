@@ -28,14 +28,14 @@
 ## 4. 写盘命令
 
 ```
-skein-spec sediment --layer core|recall --category git --topic merge \
+skein-spec sediment --namespace rules --inclusion always|auto --category git --topic merge \
   --title "契约标题" --keywords "worktree,merge" --body-file <正文.md>
 ```
 
-把规则作为 `## <title>` 章节**追加**进 `<layer>/<category>/<topic>.md` (不存在则建; frontmatter 只留 title/layer/category/keywords/status, 无时间字段) + **自动 reindex** (重建两层 index + 顶层 index + 正反链, 否则新规则漏检)。
+把规则作为 `## <title>` 章节**追加**进 `<namespace>/<category>/<topic>.md` (不存在则建; frontmatter 只留 title/category/keywords/status/inclusion, fileMatch 另加 globs, 可选 anchors, 无时间字段) + **自动 reindex** (重建各 namespace index + 顶层 index + 正反链, 否则新规则漏检)。
 
 粒度硬规: 文件夹 = 类目, 文件 = 主题 (文件名即主题), `## <规则标题>` = 一条规则。同主题规则并入同一文件, **禁一条规则一个文件**。`--topic` 缺省回落类目同名主题。关联写 `[[主题#规则标题]]` wikilink → `backlinks.md` 自动出正链 (→) 与反链 (←)。
 
 ## 升降级 (可选, 按需再加)
 
-core↔recall 频率驱动升降级暂不实现 (YAGNI)。手动: 移动文件到目标层/类目子目录 + `skein-spec reindex` 重建索引。
+always↔auto 频率驱动自动升降级暂不实现 (YAGNI)。手动改: 编辑规则文件 frontmatter 的 `inclusion:` 一行 + `skein-spec reindex`; 或 `skein-spec degrade <cat>/<name>` (always→auto)。**搬文件不改加载策略** — 目录 = namespace(内容类型), inclusion 是 frontmatter 字段, 两者正交。换类目/namespace 才需要移动文件。
