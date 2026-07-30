@@ -35,14 +35,16 @@ Grep / Glob 定位改动点 → Read 目标文件全文
 - 踩到可复用约定 → `python3 <repo>/plugins/tools/skein/scripts/spec.py sediment ...` 落盘 (先 `spec.py sediment --help` 核实参数)。
 
 ### 4. 自跑收尾 + 回传
-按验收标准逐条对照 pass/fail:
-- 全 pass → `python3 <repo>/plugins/tools/skein/scripts/skein.py subtask done <tid> <sid>`
+按验收标准逐条对照 pass/fail。**改过的脚本必须先验证可运行才准报 done** (改 py 就跑 `python3 <改过的脚本> --help`; 改测试就跑 pytest 该文件), 跑不通一律 `subtask fail` 而非 `done`:
+- 全 pass 且可运行 → `python3 <repo>/plugins/tools/skein/scripts/skein.py subtask done <tid> <sid>`
 - 有 fail/缺信息 → `python3 <repo>/plugins/tools/skein/scripts/skein.py subtask fail <tid> <sid> --note "<原因>"`
 - 附改动摘要 → 回传 JSON。
 
 ## Checkpoints
 
 🛑 **只改工作目录内文件** — worktree 态禁碰主工作区。
+🛑 **禁全仓回滚命令** — `git reset --hard` / `git reset` / `git clean` / `git stash` / `git checkout .` 一律禁用。原地态 (worktree 禁用) 下同一文件可能有并发或已完成 subtask 的改动, 全仓回滚会静默抹掉它们且无人发现。要撤销自己的改动只准 `git checkout -- <你自己改的具体文件>`, 逐个点名。
+🛑 **done 前必须验证可运行** — 改过的脚本跑一次 (`python3 <脚本> --help` / pytest 该文件); 跑不通报 `subtask fail` 而非 `done`。报了 done 却 import 就崩, 会让下游 subtask 基于不存在的符号写代码。
 🛑 **读后写硬门** — 改前先 Read 目标文件。
 🛑 **允许自跑 `subtask done/fail`, 仍禁 `create/start/check/finish/archive`** — 后者归 main。
 🛑 **缺信息标 `需要:` 回传 main 转达, 禁直接问用户** — 无 AskUserQuestion 权限。

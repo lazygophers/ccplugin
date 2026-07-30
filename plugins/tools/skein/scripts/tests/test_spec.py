@@ -26,7 +26,10 @@ MemCli = Callable[..., subprocess.CompletedProcess[str]]
 def test_init_sediment_index(mem_ws: Path, mem_cli: MemCli) -> None:
     """init 建 spec 骨架; sediment 追加为主题文件章节 — 同主题合并成一个文件, 不再一规则一文件。"""
     rules = mem_ws / ".skein" / "spec"
-    assert (rules / "core/index.md").exists() and (rules / "recall/index.md").exists()
+    dirs = sorted(p.name for p in rules.iterdir() if p.is_dir() and not p.name.startswith("."))
+    assert dirs == ["external", "map", "product", "rules"], (
+        f"init 应恰建四 namespace (rules/product/map/external), 不建旧 core/recall: {dirs}"
+    )
     assert (rules / "index.md").exists(), "顶层总索引缺失"
 
     body = _write_body(mem_ws, "b1.md", "finish 合并冲突必 abort, 禁强解。")
@@ -147,6 +150,26 @@ def test_backlinks_rebuild(mem_ws: Path, mem_cli: MemCli) -> None:
     assert "→ [[pnpm#pnpm 装包]]" in txt, f"backlinks 缺 A 的出链: {txt}"
 
 
+def test_backlinks_rebuild_all_namespaces(mem_ws: Path, mem_cli: MemCli) -> None:
+    """backlinks.md 须按实扫 namespace 生成, 非硬编码旧三层 (s4 namespace 全改造漏项回归):
+    --namespace rules (LAYERS 之外的 namespace) 也要出 backlinks.md 且入/出链正确。"""
+    body_b = _write_body(mem_ws, "b.md", "pnpm workspace 装包后必跑 install。")
+    mem_cli(mem_ws, "sediment", "--namespace", "rules", "--inclusion", "auto",
+            "--category", "build", "--topic", "pnpm", "--title", "pnpm 装包",
+            "--keywords", "pnpm", "--body-file", str(body_b))
+    body_a = _write_body(mem_ws, "a.md", "装依赖见 [[pnpm#pnpm 装包]]。")
+    mem_cli(mem_ws, "sediment", "--namespace", "rules", "--inclusion", "auto",
+            "--category", "build", "--topic", "deps", "--title", "依赖流程",
+            "--keywords", "deps", "--body-file", str(body_a))
+
+    bl = mem_ws / ".skein" / "spec" / "rules" / "backlinks.md"
+    assert bl.exists(), "reindex 未产 rules/backlinks.md (namespace 未按 _scan_namespaces 遍历)"
+    txt = bl.read_text()
+    assert "## build/pnpm.md#pnpm 装包" in txt, f"backlinks 缺 B 章节 (反链目标): {txt}"
+    assert "← rules/build/deps.md#依赖流程" in txt, f"backlinks 缺 B 的入链: {txt}"
+    assert "→ [[pnpm#pnpm 装包]]" in txt, f"backlinks 缺 A 的出链: {txt}"
+
+
 def test_orphan_detection(mem_ws: Path, mem_cli: MemCli) -> None:
     """孤立判据: 无入度 + active + 最近修改超 STALE_DAYS (走文件 mtime) → maintain 报 [孤立], --apply 归档。"""
     body = _write_body(mem_ws, "b.md", "孤立规则正文, 无 wikilink 入度。")
@@ -196,7 +219,7 @@ def test_restructure_merge(mem_ws: Path, mem_cli: MemCli) -> None:
 
 def test_external_layer(mem_ws: Path, mem_cli: MemCli) -> None:
     """external 层: sediment --layer external 写盘; recall 跨层 FTS5 命中带 [external];
-    顶层 index 含 external 行; maintain 扫 external (stale 走 mtime);
+    顶层 index 含 external 行; maintain 扫 external (MAINTAIN_POLICY: 仅 deprecated 判据, 无 stale — design.md §4);
     degrade external/... 拒 (终点层)。"""
     rules = mem_ws / ".skein" / "spec"
 
@@ -219,10 +242,13 @@ def test_external_layer(mem_ws: Path, mem_cli: MemCli) -> None:
     list_out = mem_cli(mem_ws, "list").stdout
     assert "[external]" in list_out and "vue.md#vue3 setup" in list_out, f"list 缺 external: {list_out}"
 
-    # 5. maintain 对 external 生效: 改老 mtime → 报 [stale] external/...
-    _age(ext_file, 200)
+    # 5. maintain 对 external 生效, 但判据仅 deprecated (design.md §4: external 无 stale/dup/orphan 判据)
+    _age(ext_file, 200)  # 老 mtime — external namespace 无 stale 判据, 不该被报
     mout = mem_cli(mem_ws, "maintain").stdout
-    assert "[stale]" in mout and "external/docs/vue" in mout, f"maintain 未扫 external stale: {mout}"
+    assert "[stale]" not in mout, f"external 不该有 stale 判据 (仅 deprecated): {mout}"
+    ext_file.write_text(ext_file.read_text().replace("status: active", "status: deprecated"))
+    mout2 = mem_cli(mem_ws, "maintain").stdout
+    assert "[废弃]" in mout2 and "external/docs/vue" in mout2, f"maintain 未扫 external deprecated: {mout2}"
 
     # 6. degrade external/<cat>/<topic> 拒 (终点层) — 直跑 subprocess 取 returncode (fixture 强 check=True)
     dgr = subprocess.run([sys.executable, str(MEM), "degrade", "external/docs/vue"],
@@ -231,28 +257,113 @@ def test_external_layer(mem_ws: Path, mem_cli: MemCli) -> None:
     assert "终点层" in dgr.stderr, f"degrade 拒绝提示缺终点层: {dgr.stderr}"
 
 
-def test_core_budget_from_config(mem_ws: Path) -> None:
-    """core_budget() 读 .skein/config.yaml spec_core_budget (热改); 缺失/非正整数 → 默认 1000。"""
+def test_always_budget_fallback(mem_ws: Path) -> None:
+    """always_budget() 读 .skein/config.yaml spec_always_budget (新键, 热改); 缺该键时
+    fallback 旧键 spec_core_budget (deprecated); 两键皆缺/非正整数 → 默认 8000 (design.md §2)。"""
     script_dir = str(MEM.parent)
 
     def _budget() -> int:
         r = subprocess.run(
             [sys.executable, "-c",
              f"import sys; sys.path.insert(0, {script_dir!r}); "
-             "from spec import core_budget; print(core_budget())"],
+             "from spec import always_budget; print(always_budget())"],
             cwd=mem_ws, capture_output=True, text=True, check=True)
         return int(r.stdout.strip())
 
-    # 缺 config → 默认 1000
-    assert _budget() == 1000, "无 config 未返默认 1000"
+    cfg = mem_ws / ".skein" / "config.yaml"
 
-    # 写 config.yaml → 读 500 (热改, 懒求值每次读盘)
-    (mem_ws / ".skein" / "config.yaml").write_text("spec_core_budget: 500\n")
-    assert _budget() == 500, "config spec_core_budget 未生效"
+    # 两键皆缺 → 默认 8000
+    assert _budget() == 8000, "无 config 未返默认 8000"
 
-    # 非正整数 → 回落默认
-    (mem_ws / ".skein" / "config.yaml").write_text("spec_core_budget: not-a-num\n")
-    assert _budget() == 1000, "非数字值未回落默认 1000"
+    # 仅旧键 → fallback 读旧键生效
+    cfg.write_text("spec_core_budget: 500\n")
+    assert _budget() == 500, "仅旧键 spec_core_budget 未 fallback 生效"
+
+    # 新键存在 (即便旧键也在) → 新键优先
+    cfg.write_text("spec_always_budget: 3000\nspec_core_budget: 500\n")
+    assert _budget() == 3000, "新键 spec_always_budget 未优先于旧键"
+
+    # 新键非正整数 → fallback 旧键
+    cfg.write_text("spec_always_budget: not-a-num\nspec_core_budget: 500\n")
+    assert _budget() == 500, "新键非法值未 fallback 到旧键"
+
+    # 两键皆非法/缺 → 回落默认 8000
+    cfg.write_text("spec_always_budget: not-a-num\n")
+    assert _budget() == 8000, "两键皆缺/非法未回落默认 8000"
+
+
+def test_namespace_free_extension(mem_ws: Path, mem_cli: MemCli) -> None:
+    """namespace 自由扩展: 手建 spec/foo/bar/x.md (非 CLI/NAMESPACES 白名单途径) → reindex 后
+    仍被目录扫描识别, 产 spec/foo/index.md (design.md §2: namespace 由目录扫描而非白名单决定)。"""
+    rules = mem_ws / ".skein" / "spec"
+    foo_dir = rules / "foo" / "bar"
+    foo_dir.mkdir(parents=True)
+    (foo_dir / "x.md").write_text(
+        "---\n"
+        "title: x\n"
+        "category: bar\n"
+        "keywords: [foo]\n"
+        "status: active\n"
+        "inclusion: auto\n"
+        "---\n\n"
+        "## 手建规则\n\n正文内容。\n")
+
+    mem_cli(mem_ws, "reindex")
+
+    idx = rules / "foo" / "index.md"
+    assert idx.exists(), "手建 namespace 目录 reindex 后未产 index.md"
+    assert "手建规则" in idx.read_text(), f"foo/index.md 未收录手建规则: {idx.read_text()}"
+    assert "| foo |" in (rules / "index.md").read_text(), "顶层总索引未含手建 namespace foo"
+
+
+def test_inclusion_injection_namespace_agnostic(mem_ws: Path, mem_cli: MemCli) -> None:
+    """inclusion 筛选与 namespace 无关: product/ 下的 inclusion=always 页同样被 session-start/
+    inject-core 注入 (design.md: 加载路径只看 frontmatter inclusion, 与所在目录/namespace 无关)。"""
+    body = _write_body(mem_ws, "p.md", "产品现状: 支持多租户。")
+    mem_cli(mem_ws, "sediment", "--namespace", "product", "--inclusion", "always",
+            "--category", "wiki", "--topic", "tenant", "--title", "多租户支持",
+            "--keywords", "tenant", "--body-file", str(body))
+
+    ss = json.loads(mem_cli(mem_ws, "session-start").stdout)
+    ctx = ss["hookSpecificOutput"]["additionalContext"]
+    assert "[wiki/tenant] 多租户支持" in ctx, f"product 下 always 页未被 session-start 注入索引: {ctx}"
+
+    inj = mem_cli(mem_ws, "inject-core").stdout
+    assert "支持多租户" in inj, f"product 下 always 页未被 inject-core 注入全文: {inj}"
+
+
+def test_degrade_no_file_move(mem_ws: Path, mem_cli: MemCli) -> None:
+    """degrade 只改 frontmatter inclusion 字段, 不移动文件 (design.md §2: inclusion 脱离目录后
+    跨层 git mv 已无意义)。"""
+    body = _write_body(mem_ws, "d.md", "降级测试正文。")
+    mem_cli(mem_ws, "sediment", "--namespace", "rules", "--inclusion", "always",
+            "--category", "git", "--topic", "deg", "--title", "降级规则",
+            "--keywords", "deg", "--body-file", str(body))
+
+    f = mem_ws / ".skein" / "spec" / "rules" / "git" / "deg.md"
+    assert f.exists() and "inclusion: always" in f.read_text()
+
+    out = mem_cli(mem_ws, "degrade", "rules/git/deg").stdout
+    assert f.exists(), "degrade 后文件路径不该变 (不移动文件)"
+    assert "inclusion: auto" in f.read_text(), f"degrade 未把 inclusion 改为 auto: {f.read_text()}"
+    assert "已降级" in out
+
+
+def test_maintain_product_no_auto_archive(mem_ws: Path, mem_cli: MemCli) -> None:
+    """product namespace 不自动 archive (design.md §4 回归重点): 即便 anchors 失效 + 长期未改,
+    maintain --apply 也只报告不删文件 — 需求真值不能自动丢。"""
+    body = _write_body(mem_ws, "prod.md", "产品现状描述。")
+    mem_cli(mem_ws, "sediment", "--namespace", "product", "--category", "wiki",
+            "--topic", "feat", "--title", "某功能现状", "--keywords", "feat",
+            "--anchors", "no/such/path.py", "--body-file", str(body))
+
+    f = mem_ws / ".skein" / "spec" / "product" / "wiki" / "feat.md"
+    assert f.exists()
+    _age(f, 400)  # 远超 STALE_DAYS — 若误走 rules 判据会被 archive
+
+    out = mem_cli(mem_ws, "maintain", "--apply").stdout
+    assert f.exists(), f"product 页被自动 archive 了 (回归!): {out}"
+    assert "wiki/feat" in out, f"product anchors 失效未报告: {out}"
 
 
 def _age(f: Path, days: int) -> None:
@@ -300,9 +411,13 @@ if __name__ == "__main__":
 
     mem_cli = _MemCli()
     for fn in (test_init_sediment_index, test_recall_and_inject_core, test_hook_inject_session_and_subagent,
-               test_recall_fts5_and_grep_fallback, test_backlinks_rebuild, test_orphan_detection,
+               test_recall_fts5_and_grep_fallback, test_backlinks_rebuild,
+               test_backlinks_rebuild_all_namespaces, test_orphan_detection,
                test_restructure_merge, test_external_layer,
-               lambda ws, _cli: test_core_budget_from_config(ws)):  # 只收 ws, 无 cli
+               lambda ws, _cli: test_always_budget_fallback(ws),  # 只收 ws, 无 cli
+               test_namespace_free_extension, test_inclusion_injection_namespace_agnostic,
+               test_degrade_no_file_move, test_maintain_product_no_auto_archive):
         fn(_mk_ws(), mem_cli)
     print("spec.py 测试全过 (init/sediment主题合并/recall FTS5+grep fallback/inject-core隔离层/"
-          "hook注入/正反链/孤立/restructure/external层/core_budget config)")
+          "hook注入/正反链(含非LAYERS namespace)/孤立/restructure/external层/always_budget fallback/"
+          "namespace自由扩展/inclusion筛选/degrade不移文件/product不自动archive)")

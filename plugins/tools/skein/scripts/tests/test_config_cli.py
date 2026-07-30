@@ -1,11 +1,11 @@
 """config 命令测试 — skein.py config [set <key> <value> | reset]。
 
 经 conftest 的 skein_cli/ws fixture 跑真实 skein.py CLI 子进程 (tmp_path 隔离)。
-CONFIG_DEFAULTS 8 键 (max_active/auto_commit/use_worktree/worktree_root/retain_days/
-web_serve/board_open/spec_core_budget)。报错用例传 check=False 断 returncode + stderr 文案。
+CONFIG_DEFAULTS 9 键 (max_active/auto_commit/use_worktree/worktree_root/retain_days/
+web_serve/board_open/spec_core_budget/spec_always_budget)。报错用例传 check=False 断 returncode + stderr 文案。
 无参 `config` 展示全部生效配置 (每行 key=value); 单键回读经无参输出按行 grep。
 覆盖:
-  1. 无参展示: 8 行 key=val, 含 max_active=2。
+  1. 无参展示: 9 行 key=val, 含 max_active=2。
   2. set + 回读: set max_active 3 → 无参回读含 max_active=3。
   3. set bool coerce: set auto_commit false → 回读含 auto_commit=False。
   4. set 未知键: 拒 (returncode!=0, stderr 含「未知配置键」)。
@@ -13,7 +13,7 @@ web_serve/board_open/spec_core_budget)。报错用例传 check=False 断 returnc
   6. set 保留其他键: set max_active 5 后 retain_days 仍默认值。
   7. reset: set 非默认值后 reset → 回读为默认值。
   8. get 已删: config get → 拒 (invalid choice)。
-  9. --json: 无参 config --json → 合法 JSON dict, 含 8 键, use_worktree 为 bool。
+  9. --json: 无参 config --json → 合法 JSON dict, 含 9 键, use_worktree 为 bool。
 """
 from __future__ import annotations
 
@@ -34,10 +34,10 @@ def _readback(skein_cli: SkeinCli, ws: Path, key: str) -> str | None:
 
 # ---------- 1. 无参展示全部 ----------
 def test_show_all(skein_cli: SkeinCli, ws: Path) -> None:
-    """config 无参 → 8 行 key=val, 含 max_active=2。"""
+    """config 无参 → 9 行 key=val, 含 max_active=2。"""
     r = skein_cli(ws, "config")
     lines = [ln for ln in r.stdout.strip().splitlines() if "=" in ln]
-    assert len(lines) == 8, f"应 8 行 key=val, 得 {len(lines)}: {lines}"
+    assert len(lines) == 9, f"应 9 行 key=val, 得 {len(lines)}: {lines}"
     assert "max_active=2" in lines, f"缺 max_active=2: {lines}"
 
 
@@ -96,10 +96,10 @@ def test_get_removed(skein_cli: SkeinCli, ws: Path) -> None:
 
 # ---------- 9. --json 输出 ----------
 def test_show_json(skein_cli: SkeinCli, ws: Path) -> None:
-    """config --json → 合法 JSON dict, 含 8 键, use_worktree 为 bool (供 jq 解析)。"""
+    """config --json → 合法 JSON dict, 含 9 键, use_worktree 为 bool (供 jq 解析)。"""
     r = skein_cli(ws, "config", "--json")
     data = json.loads(r.stdout.strip())
-    assert len(data) == 8, f"应 8 键, 得 {len(data)}: {list(data)}"
+    assert len(data) == 9, f"应 9 键, 得 {len(data)}: {list(data)}"
     assert isinstance(data["use_worktree"], bool), f"use_worktree 非 bool: {data['use_worktree']!r}"
     assert data["max_active"] == 2, f"max_active 非默认 2: {data['max_active']}"
 

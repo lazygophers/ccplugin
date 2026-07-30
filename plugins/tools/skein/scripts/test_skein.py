@@ -70,6 +70,10 @@ def main() -> None:
             (d / ".skein/task" / tid / "prd.md").write_text(
                 f"# {tid} — PRD\n\n## 目标\n- 解决 X\n\n## 边界\n- 范围内: a\n\n"
                 "## 验收标准\n- 用例通过\n\n## 索引\n- design.md\n")
+            # 填实测试接缝段 (confirm 硬门): scaffold 落的是占位, 不填会被 _validate_seam 挡在工时门之前
+            design = d / ".skein/task" / tid / "design.md"
+            design.write_text(re.sub(
+                r"- \[ \] TODO: 填测试接缝", "- [x] 复用 `test_x.py::test_y` 现有单测", design.read_text()))
             # 工时门: prd 填实但没预计工时 → confirm 拒
             r = sk(d, "confirm", tid, check=False)
             assert r.returncode != 0 and "预计工时" in r.stderr, f"缺 estimate 未拒: {r.stderr}"
@@ -266,6 +270,7 @@ def main() -> None:
     test_multirepo()
     test_deps_ordering()
     test_progress_pct()
+    test_seam_gate()
     print("skein.py 冒烟测试全过 (init/create/start/finish/并发上限/deps门/看板/archive清理/多active并行/subtask-DAG/setup迁移/多子git worktree)")
 
 
@@ -374,6 +379,9 @@ def test_multirepo() -> None:
         (d / ".skein/task/feat/prd.md").write_text(
             "# feat — PRD\n\n## 目标\n- 改两仓\n\n## 边界\n- 范围内: a\n\n"
             "## 验收标准\n- 用例通过\n\n## 索引\n- design.md\n")
+        design = d / ".skein/task/feat/design.md"
+        design.write_text(re.sub(
+            r"- \[ \] TODO: 填测试接缝", "- [x] 复用 `test_x.py::test_y` 现有单测", design.read_text()))
         sk(d, "estimate", "feat", "--set", "4")
         sk(d, "confirm", "feat")  # 待处理→就绪 用户确认门
         sk(d, "start", "feat")
@@ -393,6 +401,47 @@ def test_multirepo() -> None:
             br = subprocess.run(["git", "branch", "--list", "skein/feat"], cwd=d / r,
                                 capture_output=True, text=True).stdout
             assert "skein/feat" not in br, f"{r} 分支未删"
+
+
+def test_seam_gate() -> None:
+    # confirm 硬门: design.md「测试接缝」段占位未填 → 拒; 填实 → 放行; 旧 task 全无该段 → 只 warning 不阻断
+    with tempfile.TemporaryDirectory() as td:
+        d: Path = Path(td)
+        git(d, "init", "-q")
+        git(d, "config", "user.email", "t@t.dev")
+        git(d, "config", "user.name", "t")
+        (d / "seed.txt").write_text("seed\n")
+        git(d, "add", "-A"); git(d, "commit", "-q", "-m", "seed")
+        sk(d, "init")
+
+        def _prd(tid: str) -> None:
+            (d / ".skein/task" / tid / "prd.md").write_text(
+                f"# {tid} — PRD\n\n## 目标\n- 解决 X\n\n## 边界\n- 范围内: a\n\n"
+                "## 验收标准\n- 用例通过\n\n## 索引\n- design.md\n")
+
+        # 新 task: scaffold 落的测试接缝段仍是占位 → confirm 拒
+        sk(d, "create", "task-one", "--name", "任务一", "--desc", "d")
+        sk(d, "subtask", "add", "task-one", "s1", "--name", "n", "--desc", "d", "--estimate", "1")
+        _prd("task-one")
+        sk(d, "estimate", "task-one", "--set", "4")
+        r = sk(d, "confirm", "task-one", check=False)
+        assert r.returncode != 0 and "测试接缝段仍是占位未填" in r.stderr, f"占位未拦: {r.stderr}"
+
+        # 填实测试接缝段 → confirm 放行
+        design = d / ".skein/task/task-one/design.md"
+        design.write_text(re.sub(
+            r"- \[ \] TODO: 填测试接缝", "- [x] 复用 `test_x.py::test_y` 现有单测", design.read_text()))
+        r = sk(d, "confirm", "task-one", check=False)
+        assert r.returncode == 0, f"填实后仍拒: {r.stderr}"
+
+        # 旧 task: design.md 全无测试接缝段 (早于本轮脚手架) → 只 warning, 不阻断 confirm
+        sk(d, "create", "task-two", "--name", "任务二", "--desc", "d")
+        sk(d, "subtask", "add", "task-two", "s1", "--name", "n", "--desc", "d", "--estimate", "1")
+        _prd("task-two")
+        (d / ".skein/task/task-two/design.md").write_text("# task-two — 详细设计\n\n无接缝段 (旧 task)\n")
+        sk(d, "estimate", "task-two", "--set", "4")
+        r = sk(d, "confirm", "task-two", check=False)
+        assert r.returncode == 0 and "缺测试接缝段" in r.stderr, f"旧 task 未 warning 或被阻断: {r}"
 
 
 def test_setup() -> None:

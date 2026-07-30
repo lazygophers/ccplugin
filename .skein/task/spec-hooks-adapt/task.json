@@ -1,0 +1,107 @@
+{
+  "id": "spec-hooks-adapt",
+  "name": "hooks.py 适配 + fileMatch 注入 + 修两现存 bug",
+  "desc": "SPEC_REQUIRED 去 created 改 namespace/inclusion, SPEC_LAYERS→SPEC_INCLUSIONS 补 external, guard 加 globs 匹配注入, stop-check 判据跟随分表",
+  "status": "待处理",
+  "deps": [
+    "spec-model-core"
+  ],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "h1",
+      "name": "spec_meta 校验表适配 + 修两 bug",
+      "desc": "SPEC_REQUIRED 去 created 改 title/namespace/inclusion/keywords; SPEC_LAYERS→SPEC_INCLUSIONS 四值; namespace 只校非空不校白名单; fileMatch 缺 globs 与 product/map 缺 anchors 告警; 两处留互指注释防再漂移",
+      "estimate": 0.6,
+      "depends_on": [],
+      "验收": [
+        "无 created 字段的页不告警",
+        "inclusion:manual 的 external 页不报非法",
+        "自建 namespace 不告警",
+        "fileMatch 缺 globs 告警",
+        "product 缺 anchors 告警",
+        "全部非阻塞"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "skills": [],
+      "created": 1785382380,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "h2",
+      "name": "cmd_guard fileMatch 注入",
+      "desc": "在保留原 task.json 硬阻职责前提下新增: file_path 与 fileMatch 页 globs 匹配则注入正文; globs 从 index.md 索引行读不逐个开 md; fnmatch 相对工作区根; 仅工作区级不做用户级",
+      "estimate": 0.8,
+      "depends_on": [],
+      "验收": [
+        "命中 glob 注入该页正文",
+        "未命中不注入",
+        "无 fileMatch 页时输出与改前一致",
+        "task.json 硬阻行为不变",
+        "50 页规模 <1s"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "skills": [],
+      "created": 1785382381,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "h3",
+      "name": "stop_check 判据跟随分表",
+      "desc": "product namespace 的失效项过滤掉不写 .pending-fix(需求真值不自动改), 按 namespace 过滤不重复判据逻辑",
+      "estimate": 0.3,
+      "depends_on": [],
+      "验收": [
+        "product 失效项不写标记",
+        "rules/map 失效项仍写标记",
+        "不重复实现判据"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "skills": [],
+      "created": 1785382381,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "h4",
+      "name": "hooks 测试套件",
+      "desc": "喂构造 hook 输入 dict 断言返回码与 stdout JSON; 覆盖两 bug 回归/fileMatch 命中未命中/缺 globs 告警/product 不写标记/guard 原职责零回归/50 页性能",
+      "estimate": 0.3,
+      "depends_on": [
+        "h1",
+        "h2",
+        "h3"
+      ],
+      "验收": [
+        "6 类用例齐备全绿",
+        "零回归用例断言 guard 输出与改前一致",
+        "doctor --quality 通过"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "skills": [],
+      "created": 1785382382,
+      "started": null,
+      "finished": null
+    }
+  ],
+  "priority": 5,
+  "estimate": 2.0,
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/spec-hooks-adapt",
+  "parent": "spec-wiki-v2",
+  "kind": "task",
+  "created": 1785381913,
+  "started": null,
+  "confirmed": null,
+  "checked": null,
+  "finished": null,
+  "updated": 1785382382
+}

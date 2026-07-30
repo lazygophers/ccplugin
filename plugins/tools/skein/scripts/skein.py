@@ -80,6 +80,10 @@ PRD_TYPE_ALIAS: dict[str, str] = {
 PRD_SECTIONS: tuple[str, ...] = ("目标", "边界", "验收标准")
 # 写入时补 `- [ ]` checkbox 的章节 (验收条目都该可勾); 边界只补 `- ` list marker 不补 checkbox
 PRD_TODO_SECTIONS: set[str] = {"目标", "验收标准"}
+# prd 标准六段 (对齐 `/to-spec`: 目标/边界 承接 Problem+Solution, User Stories/Testing Decisions 新增, 索引脚本维护)
+PRD_SECTIONS_V6: list[str] = ["目标", "边界", "User Stories", "验收标准", "Testing Decisions", "索引"]
+# 旧四段 (存量 task 兼容态) — 校验只 warning 不阻断, 新建 task 一律走 V6
+PRD_SECTIONS_V4: list[str] = ["目标", "边界", "验收标准", "索引"]
 
 
 def now() -> int:
@@ -171,7 +175,8 @@ CONFIG_DEFAULTS = {
     "retain_days": 7,  # 完成 task 保留天数; 0=finish 即归档, 负=永不自动
     "web_serve": True,  # 看板 http 服务总开关: True→monitor 每 session 起持久服务 + view 起 http 服务; False→monitor no-op + view 仅打印路径 (不主动开)
     "board_open": True,  # 仅 view 命令生效 (monitor serve 从不开浏览器): True→view 起服务后自动开浏览器; False→只打印 URL 不开
-    "spec_core_budget": 1000,  # spec core 全文软预算 (字符); 超 → spec.py maintain/degrade 告警并自动降级
+    "spec_core_budget": 1000,  # deprecated: 旧键, spec.py always_budget() 缺 spec_always_budget 时 fallback 读它; 新配置写 spec_always_budget
+    "spec_always_budget": 8000,  # spec always(原core) 全文软预算 (字符); 超 → spec.py maintain/degrade 告警并自动降级
 }
 
 
@@ -443,15 +448,29 @@ class Skein:
         files = {
             "prd.md": (
                 f"# {name} — PRD (主入口)\n\n"
+                "> 禁写具体文件路径与代码片段 (会很快过期) —— 例外: prototype 产出的能精确编码决策的片段 "
+                "(状态机/schema/type shape) 可内联, 且须注明来自 prototype。\n\n"
                 "## 目标\n要解决什么 / 用户价值 / 成功长什么样:\n- [ ] TODO: 填目标\n\n"
                 "## 边界\n范围内 / 范围外 (非目标) / 已知约束:\n- [ ] TODO: 填边界\n\n"
+                "## User Stories\n"
+                "极其详尽地穷举, 覆盖功能各方面 (含边界情况) —— 穷举本身就是逼出边界情况的机械手段:\n"
+                "1. As a <actor>, I want <feature>, so that <benefit>\n\n"
                 "## 验收标准\n可执行、可核对的完成断言 (逐条):\n- [ ] TODO: 填验收标准\n\n"
+                "## Testing Decisions\n"
+                "什么算好测试 (只测外部行为不测实现细节) / 测哪些模块 / codebase 内的同类测试先例:\n"
+                "- [ ] TODO: 填 Testing Decisions\n\n"
                 "## 索引\n- 详细设计: [design.md](design.md)\n"
                 "- 调研收敛: [findings.md](findings.md) (仅真调研时生)\n"
                 "- 任务/子任务/调度: task.json (脚本真值, `skein.py subtask list " + tid + "`)\n"),
             "design.md": (
                 f"# {name} — 详细设计\n\n"
-                "架构 / 数据流 / 关键取舍 / 技术选型 (不含调度图, 调度归 task.json):\n"),
+                "架构 / 数据流 / 关键取舍 / 技术选型 (不含调度图, 调度归 task.json):\n\n"
+                "## 测试接缝 (seam)\n"
+                "check 阶段验证的是`行为对不对`而非`跑没跑起来`, 全靠这里选对接缝。三条规则:\n"
+                "1. 优先复用现有接缝, 不新建\n"
+                "2. 取最高接缝 (越靠外部行为越好)\n"
+                "3. 越少越好, 理想 = 1 个\n\n"
+                "- [ ] TODO: 填测试接缝\n"),
         }
         for fn, body in files.items():
             p = d / fn
@@ -461,26 +480,30 @@ class Skein:
     # ---- 命令 ----
     def fmt(self, a: argparse.Namespace) -> None:
         # 规范化 .skein/task/<id>/prd.md: 各章节内一级 `- ` list 项补 `- [ ]` todo (已勾选态保留),
-        # 校验四标准章节齐备且顺序正确, 不规范报错非零退出; 仅内容变化才写 (天然幂等 + 防 hook 循环)。
+        # 校验六标准章节齐备且顺序正确 (旧四段兼容 task 仅 warning), 不规范报错非零退出;
+        # 仅内容变化才写 (天然幂等 + 防 hook 循环)。
         tid = a.id.strip()
         prd = self.tasks / tid / "prd.md"
         if not prd.exists():
             raise SystemExit(f"prd 不存在: {prd}")
         orig = prd.read_text()
         lines = orig.split("\n")
-        # 校验: 至少一个一级标题 (# ...) + 四标准章节齐备且顺序正确
+        # 校验: 至少一个一级标题 (# ...) + 六标准章节齐备且顺序正确 (旧四段兼容态只 warning)
         if not any(re.match(r"^#\s+\S", ln) for ln in lines):
             raise SystemExit(f"prd 不规范: 缺一级标题 (# ...) — {prd}")
         sections = [m.group(1).strip() for ln in lines
                     if (m := re.match(r"^##\s+(.+?)\s*$", ln))]
-        expected = ["目标", "边界", "验收标准", "索引"]
-        if sections != expected:
+        if sections == PRD_SECTIONS_V4:
+            print(f"prd 章节为旧四段 (兼容态, 建议迁六段模板: {PRD_SECTIONS_V6}) — {prd}", file=sys.stderr)
+        elif sections != PRD_SECTIONS_V6:
             raise SystemExit(
-                f"prd 不规范: 二级章节须为 {expected} (齐备且顺序一致), 实际 {sections} — {prd}")
+                f"prd 不规范: 二级章节须为 {PRD_SECTIONS_V6} (齐备且顺序一致), "
+                f"实际 {sections} — {prd}")
         # 规范化 (行首非缩进; 缩进子 list / 已勾选态不动):
         #   (a) 所有章节: `- ` 且非 checkbox → 补 `- [ ] `
-        #   (b) 仅「目标」「验收标准」章节: 有序列表 `N. ` → `- [ ] ` (逐条可勾选)
-        todo_sections = {"目标", "验收标准"}
+        #   (b) 仅「目标」「验收标准」「Testing Decisions」章节: 有序列表 `N. ` → `- [ ] ` (逐条可勾选)
+        #       User Stories 不在此列 —— 其 `1. As a ...` 编号格式是 to-spec 固定格式, 不折成 checkbox
+        todo_sections = {"目标", "验收标准", "Testing Decisions"}
         out: list[str] = []
         changed, cur = 0, None
         for ln in lines:
@@ -505,8 +528,9 @@ class Skein:
 
     def _validate_prd(self, tid: str) -> None:
         """start 前只读校验 prd.md 就绪 (不写盘, 区别于 fmt 的规范化写盘):
-        (1) prd.md 存在; (2) 四标准章节齐备且顺序为 目标/边界/验收标准/索引;
-        (3) 无 `- [ ] TODO` 占位 (模板初始态, 说明该节未填实)。不通过 raise SystemExit 阻断。"""
+        (1) prd.md 存在; (2) 六标准章节齐备且顺序为 目标/边界/User Stories/验收标准/Testing Decisions/索引
+        (旧四段 目标/边界/验收标准/索引 兼容态只 warning 不阻断 — 存量 task 迁移期保护);
+        (3) 无 `- [ ] TODO` 占位 (模板初始态, 说明该节未填实)。结构不通过 raise SystemExit 阻断。"""
         prd = self.tasks / tid / "prd.md"
         if not prd.exists():
             raise SystemExit(f"{tid} prd 未就绪: 无 prd.md — 先 skein create + 填 prd 再 start")
@@ -515,10 +539,12 @@ class Skein:
             raise SystemExit(f"{tid} prd 未就绪: 缺一级标题 — 先填 prd 再 start")
         sections = [m.group(1).strip() for ln in lines
                     if (m := re.match(r"^##\s+(.+?)\s*$", ln))]
-        expected = ["目标", "边界", "验收标准", "索引"]
-        if sections != expected:
+        if sections == PRD_SECTIONS_V4:
+            print(f"{tid} prd 章节为旧四段 (兼容态, 建议迁六段模板: {PRD_SECTIONS_V6})", file=sys.stderr)
+        elif sections != PRD_SECTIONS_V6:
             raise SystemExit(
-                f"{tid} prd 未就绪: 二级章节须为 {expected} (齐备且顺序一致), 实际 {sections} — 先填 prd 再 start")
+                f"{tid} prd 未就绪: 二级章节须为 {PRD_SECTIONS_V6} (齐备且顺序一致), "
+                f"实际 {sections} — 先填 prd 再 start")
         # 占位检查: 模板各节初始即 `- [ ] TODO: 填X`, 填实后会被替换为真实内容 → 仍含即判未填。
         # 勾选态一并拒: 把占位勾成 `- [x] TODO` 不是填写, 只是把占位藏起来
         todos = [ln for ln in lines if re.match(r"^- \[[ xX]\]\s+TODO\b", ln)]
@@ -526,6 +552,28 @@ class Skein:
             raise SystemExit(
                 f"{tid} prd 未就绪: 检出 {len(todos)} 处 `TODO` 占位未填实 (勾成 `- [x]` 不算填) — "
                 f"把占位整行替换为真实内容再 start")
+
+    def _validate_seam(self, tid: str) -> None:
+        """confirm 前校验 design.md「测试接缝 (seam)」段非占位 (对齐 `/to-spec` 全流程唯一的用户确认点)。
+        旧 task (design.md 不存在 / 无此段 / 段落仍是模板占位) 一律只 warning 不阻断 — 存量 task 迁移期保护,
+        同 _validate_prd 的 V4 兼容态。接缝质量靠 grill 门与 analyze 兜, 不靠 confirm 硬拦。"""
+        design = self.tasks / tid / "design.md"
+        if not design.exists():
+            print(f"{tid} design.md 不存在 — 无法校验测试接缝段", file=sys.stderr)
+            return
+        text = design.read_text()
+        m = re.search(r"^##\s+测试接缝\b.*$", text, re.MULTILINE)
+        if not m:
+            print(
+                f"{tid} design.md 缺测试接缝段 (旧 task 兼容态, 建议补齐: 优先复用现有接缝/取最高接缝/越少越好) — {design}",
+                file=sys.stderr)
+            return
+        nxt = re.search(r"^##\s+", text[m.end():], re.MULTILINE)
+        body = text[m.end():m.end() + nxt.start()] if nxt else text[m.end():]
+        if re.search(r"-\s*\[[ xX]\]\s*TODO\b", body):
+            print(
+                f"{tid} design.md 测试接缝段仍是占位未填 (旧 task 兼容态, 建议先填实测试接缝) — {design}",
+                file=sys.stderr)
 
     def init(self, _: argparse.Namespace) -> None:
         self.dir.mkdir(exist_ok=True)
@@ -796,6 +844,7 @@ class Skein:
         if len(subs) == 0:
             raise SystemExit(f"{a.id} 无 subtask 登记 — 先 skein subtask add 拆分再 confirm")
         self._validate_prd(a.id)
+        self._validate_seam(a.id)
         self._validate_estimate(a.id, t)
         t["status"] = S_READY
         t["confirmed"] = now()
@@ -3535,7 +3584,7 @@ def main() -> None:
     ck.add_argument("id", help="task id")
     f = sub.add_parser("finish", help="收束 task: commit→merge→销 worktree→标记完成 (归档=保留期后自动)")
     f.add_argument("id", help="task id")
-    fm = sub.add_parser("fmt", help="规范化 prd.md: 章节内一级 list 补 - [ ] todo + 校验四标准章节 (幂等)")
+    fm = sub.add_parser("fmt", help="规范化 prd.md: 章节内一级 list 补 - [ ] todo + 校验六标准章节 (旧四段兼容态 warning; 幂等)")
     fm.add_argument("id", help="task id")
     ar = sub.add_parser("archive", help="归档 task (不合并, 仅移入 archived)")
     ar.add_argument("id", help="task id")

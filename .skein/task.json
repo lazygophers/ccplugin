@@ -1,6 +1,104 @@
 {
   "tasks": [
     {
+      "id": "spec-model-core",
+      "status": "进行中",
+      "deps": [],
+      "priority": 5,
+      "worktree": null,
+      "parent": "spec-wiki-v2",
+      "kind": "task"
+    },
+    {
+      "id": "spec-prd-analyze",
+      "status": "进行中",
+      "deps": [],
+      "priority": 5,
+      "worktree": null,
+      "parent": "spec-wiki-v2",
+      "kind": "task"
+    },
+    {
+      "id": "spec-docs-examples",
+      "status": "待处理",
+      "deps": [
+        "spec-skills-agents-adapt"
+      ],
+      "priority": 5,
+      "worktree": null,
+      "parent": "spec-wiki-v2",
+      "kind": "task"
+    },
+    {
+      "id": "spec-hooks-adapt",
+      "status": "待处理",
+      "deps": [
+        "spec-model-core"
+      ],
+      "priority": 5,
+      "worktree": null,
+      "parent": "spec-wiki-v2",
+      "kind": "task"
+    },
+    {
+      "id": "spec-map-namespace",
+      "status": "待处理",
+      "deps": [
+        "spec-model-core"
+      ],
+      "priority": 5,
+      "worktree": null,
+      "parent": "spec-wiki-v2",
+      "kind": "task"
+    },
+    {
+      "id": "spec-migrate",
+      "status": "待处理",
+      "deps": [
+        "spec-model-core"
+      ],
+      "priority": 5,
+      "worktree": null,
+      "parent": "spec-wiki-v2",
+      "kind": "task"
+    },
+    {
+      "id": "spec-product-wiki",
+      "status": "待处理",
+      "deps": [
+        "spec-model-core"
+      ],
+      "priority": 5,
+      "worktree": null,
+      "parent": "spec-wiki-v2",
+      "kind": "task"
+    },
+    {
+      "id": "spec-skills-agents-adapt",
+      "status": "待处理",
+      "deps": [
+        "spec-model-core",
+        "spec-migrate",
+        "spec-hooks-adapt",
+        "spec-product-wiki",
+        "spec-map-namespace",
+        "spec-prd-analyze"
+      ],
+      "priority": 5,
+      "worktree": null,
+      "parent": "spec-wiki-v2",
+      "kind": "task"
+    },
+    {
+      "id": "spec-wiki-v2",
+      "status": "待处理",
+      "deps": [],
+      "priority": 5,
+      "worktree": null,
+      "parent": null,
+      "kind": "supertask"
+    },
+    {
       "id": "git-skills-optimize",
       "status": "已完成",
       "deps": [],

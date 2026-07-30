@@ -1,0 +1,134 @@
+{
+  "id": "spec-skills-agents-adapt",
+  "name": "skills + agents 全量适配",
+  "desc": "skein-spec SKILL 重写 + 5 references 改判据/模板 + 补 prune-workflow 断链 + 新增 product/map 模板与 migration-v2 + skein-flow 4 references + 9 个 agent 措辞与职责 + plugin.json description; 过 claude -p 质量门",
+  "status": "待处理",
+  "deps": [
+    "spec-model-core",
+    "spec-migrate",
+    "spec-hooks-adapt",
+    "spec-product-wiki",
+    "spec-map-namespace",
+    "spec-prd-analyze"
+  ],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "d1",
+      "name": "skein-spec SKILL.md 模型重写",
+      "desc": "description frontmatter 与正文: 两层→四 namespace×四 inclusion 正交两维表; 新增 product wiki(delta vs state + 按功能域切页)/amend/map/analyze/migrate 章节; 判据表按 namespace 分表; 正向配方加 wiki 条目; 预算措辞改引用键名 spec_always_budget 不写死数字",
+      "estimate": 1.0,
+      "depends_on": [],
+      "验收": [
+        "description 含新触发词",
+        "正交两维表替代层表",
+        "五个新章节齐备",
+        "判据按 namespace 分表",
+        "配方表含 amend 找不到章节报错条目",
+        "全文无写死的 8000"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "skills": [],
+      "created": 1785382888,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "d2",
+      "name": "skein-spec references 与 templates",
+      "desc": "sediment-workflow 加 namespace+inclusion 判定与 amend vs sediment 抉择树; maintain 判据按 namespace 分表; reconstruct-memory 六档改 --namespace 且 8 型产物加 product; bootstrap-seeding 五维加 product overview; 补建 prune-workflow.md(现存断链); core/recall tmpl 重命名为 rules-always/rules-auto 并跟改引用; 新增 product.md.tmpl 与 map.md.tmpl 与 migration-v2.md",
+      "estimate": 1.2,
+      "depends_on": [],
+      "验收": [
+        "5 个 references 均已改",
+        "prune-workflow.md 已建且 SKILL.md 引用可达",
+        "两模板已重命名且无旧名残留",
+        "3 个新文件齐备",
+        "无断链"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "skills": [],
+      "created": 1785382888,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "d3",
+      "name": "skein-flow + skein-setup 流程注入",
+      "desc": "for-plan 加 --src product 与 prd 六段与 seam 门; for-finish 改 sediment+amend 双动作含 finish-candidates 三路降级与无候选禁硬凑; for-check 改调 analyze; sediment-protocol 加 proposed→active/superseded 转态; skein-setup SKILL 建四 namespace 且检出旧结构提示 migrate; trellis-migration 目标结构更新",
+      "estimate": 0.8,
+      "depends_on": [],
+      "验收": [
+        "4 个 flow references 均已注入新步骤",
+        "for-finish 含三路降级与禁硬凑",
+        "setup 能检出 spec/core 存在并提示 migrate",
+        "trellis 目标结构为四 namespace"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "skills": [],
+      "created": 1785382888,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "d4",
+      "name": "9 个 agent + plugin.json 措辞",
+      "desc": "specer 四类写路径→五类加 amend 且 JSON 加 amended[]; recaller 改召 inclusion:auto 全 namespace 加 --src; finisher 加 finish-candidates 勘察; checker 改调 analyze; dedup 加一句可选 --src product 增强(主体不动); researcher 五维加 product; setup 旧结构识别调 migrate; clean 保护最近 migrate 快照; executor 措辞; plugin.json description 更新且 hooks 段零改动",
+      "estimate": 1.0,
+      "depends_on": [],
+      "验收": [
+        "9 个 agent 均已改且职责表述与新能力一致",
+        "specer JSON 含 amended[]",
+        "plugin.json description 已更新",
+        "git diff 确认 hooks 键未出现在 diff 中"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "skills": [],
+      "created": 1785382888,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "d5",
+      "name": "质量门 + 结构性验证",
+      "desc": "每个改动文件跑 claude -p 质量门(stdin 管道+--bare+2>/dev/null, 禁插值禁 timeout, 同 prompt 连跑 3 次一致); 结构性 grep 验证无残留 --layer(除 alias 说明)/无残留两层措辞/无写死 8000/references 引用零断链",
+      "estimate": 0.6,
+      "depends_on": [
+        "d1",
+        "d2",
+        "d3",
+        "d4"
+      ],
+      "验收": [
+        "全部改动文件过质量门且 3 次描述一致",
+        "抖动已重跑非当结论",
+        "四类 grep 验证全部零残留",
+        "引用零断链"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "skills": [],
+      "created": 1785382888,
+      "started": null,
+      "finished": null
+    }
+  ],
+  "priority": 5,
+  "estimate": 4.0,
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/spec-skills-agents-adapt",
+  "parent": "spec-wiki-v2",
+  "kind": "task",
+  "created": 1785381925,
+  "started": null,
+  "confirmed": null,
+  "checked": null,
+  "finished": null,
+  "updated": 1785382888
+}
