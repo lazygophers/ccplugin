@@ -29,7 +29,7 @@
 
 - **🛑 subtask 状态先行 (硬前置)** — 详见 [state-before-action.md](state-before-action.md) 硬门 2。claim 占槽是派 agent 的硬前置, pending/failed 态 subtask 禁直接派 agent。
 - **claim 默认即改态占槽 (整批标 running), 无需额外参数; --dry-run 才只读预览**。**调度** → main 亲跑: `skein claim` (**全局跨 task**, 所有 active task ready subtask 合池竞争同一 `max_active` 槽) 算就绪批 + 标 running, main 逐个真实 `Agent` 调用 dispatch。批量推进用 `claim`; 单 task 场景用 `skein subtask claim <tid>` 兼容; 预览用 `skein claim --dry-run`。
-- **执行 → 一律经 `Agent` 工具派具名 subagent `skein-executor` (禁 teammate / team)**, dispatch 只给 **tid + sid + 工作目录** 三参数 (executor 自读 `subtask show <tid> <sid>` 补全字段+自跑 done/fail, 见 [dag-scheduling.md](dag-scheduling.md) §9)。载体铁律 (单 subagent 禁 team / main 禁写源码 / Recursion Guard 靠工具面强制) 权威定义见 [carrier-rules.md](carrier-rules.md), 不重复。
+- **执行 → 一律 `Agent(subagent_type="skein:skein-executor", description=..., prompt=...)`** (禁 teammate / team, 禁传 `team_name`; 照抄形式见 [carrier-rules.md 派发调用形式](carrier-rules.md#派发调用形式-照抄-禁自由发挥)), prompt 只给 **tid + sid + 工作目录** 三参数 (executor 自读 `subtask show <tid> <sid>` 补全字段+自跑 done/fail, 见 [dag-scheduling.md](dag-scheduling.md) §9)。载体铁律 (单 subagent 禁 team / main 禁写源码 / Recursion Guard 靠工具面强制) 权威定义见 [carrier-rules.md](carrier-rules.md), 不重复。
 
 ### 调度循环 (动态, 完成即派)
 

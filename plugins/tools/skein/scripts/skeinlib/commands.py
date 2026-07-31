@@ -41,7 +41,7 @@ from skeinlib.doctor import DoctorMixin
 from skeinlib.errors import SkeinError
 from skeinlib.migrate import (disable_trellisx_plugin, migrate_trellis_tasks,
                               purge_trellis_hooks, purge_wiring, settings_trellis_notes)
-from skeinlib.prd import (section_add, section_check, section_read,
+from skeinlib.prd import (review_summary, section_add, section_check, section_read,
                           section_write, validate_prd, validate_seam)
 from skeinlib.store import TaskStore
 from skeinlib.model import (CODE_ID_RE, PRD_SECTIONS_V4,
@@ -628,13 +628,45 @@ class Skein(DoctorMixin, BoardSourceMixin):
         validate_prd(self.tasks, a.id)
         validate_seam(self.tasks, a.id)
         self._validate_estimate(a.id, t)
+        self._require_user_review(a.id, t)  # ← 人审门, 见下方方法
         self._stage_hooks("confirm", "before", self._hook_ctx(a.id, t=t))
         t["status"] = S_READY
         t["confirmed"] = now()
+        t["confirmed_by"] = "user-tty"  # 审核渠道留痕 (目前只有终端一条路)
         self.store.save(t)
         self.store.sync()
         self._stage_hooks("confirm", "after", self._hook_ctx(a.id, t=t))
         print(f"{a.id} 就绪 (规划完成, 待 skein start 启动)")
+
+    # ---- 人审门 (待处理→就绪 的最后一道) ----
+    def _require_user_review(self, tid: str, t: dict[str, Any]) -> None:
+        """PRD 必须由**用户本人**在终端过目并确认, 才允许进就绪。
+
+        ## 为什么卡在这里而不是靠提示词
+        `confirm` 之前的三道门 (prd 填齐 / ≥1 subtask / 工时) 校验的都是**结构**, AI 自己就能
+        填满然后自己跑 confirm —— 于是「用户确认门」名存实亡, 一个没人看过的 PRD 直接进了就绪。
+        真正的门必须要一个 **AI 拿不到的信号**: 这里用「stdin 是不是 TTY」。AI 经工具跑命令时
+        stdin 是管道, 永远不是 TTY; 用户在终端敲才是。
+
+        ## 这不是防对抗, 是防顺手
+        本地任何机制都挡不住一个铁了心绕路的 agent (它可以设环境变量)。目标是让**默认路径**走不通,
+        逼 AI 停下来把 PRD 交给人看 —— 那一步才是这道门真正买到的东西。
+
+        ## 测试怎么过
+        `SKEIN_CONFIRM_ASSUME_TTY=1` 只绕过 isatty 判定, **仍要求从 stdin 读到正确的 task id**,
+        所以确认逻辑本身照测 (输错 id 一样拒)。禁把它当成跳过审核的开关用。
+        """
+        if os.environ.get("SKEIN_CONFIRM_ASSUME_TTY") != "1" and not sys.stdin.isatty():
+            raise SkeinError(
+                f"{tid} 需用户亲自审核 PRD 后才能进就绪 — 请**用户**在终端执行:\n"
+                f"    ! skein confirm {tid}\n"
+                f"  (当前 stdin 非 TTY, 说明是 AI 或脚本在跑; 审核这一步不可代劳)")
+        sys.stderr.write(review_summary(self.tasks, tid, t) + "\n")
+        sys.stderr.write(f"\n确认以上规划无误、可进就绪? 输入 task id ({tid}) 确认, 其余任意键取消> ")
+        sys.stderr.flush()
+        answer = sys.stdin.readline().strip()
+        if answer != tid:
+            raise SkeinError(f"已取消 — 输入 {answer!r} 与 {tid!r} 不符, {tid} 保持待处理")
 
     def start(self, a: argparse.Namespace) -> None:
         # start 前置体检: 跑 doctor 结构不变量检查, 有 ✗ 错误 → doctor 内 raise SkeinError 阻止 start

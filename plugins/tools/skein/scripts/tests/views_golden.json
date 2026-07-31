@@ -554,6 +554,166 @@
     "combinedPct": 37,
     "doneRate": 12,
     "estMeta": "已耗 8h59m",
+    "etaCards": [
+      {
+        "deps": [],
+        "estimate": null,
+        "id": "alpha",
+        "spct": 38,
+        "status": "进行中",
+        "subtable": [
+          {
+            "dependsOn": [],
+            "estimate": null,
+            "finished": 1999994000,
+            "pct": 100,
+            "sid": "s1",
+            "started": 1999993000,
+            "status": "已完成"
+          },
+          {
+            "dependsOn": [],
+            "estimate": null,
+            "finished": null,
+            "pct": 50,
+            "sid": "s2",
+            "started": 1999997000,
+            "status": "运行中"
+          },
+          {
+            "dependsOn": [
+              "s1"
+            ],
+            "estimate": null,
+            "finished": null,
+            "pct": 2,
+            "sid": "s3",
+            "started": null,
+            "status": "待处理"
+          },
+          {
+            "dependsOn": [
+              "s2"
+            ],
+            "estimate": null,
+            "finished": null,
+            "pct": 2,
+            "sid": "s4",
+            "started": null,
+            "status": "待处理"
+          }
+        ]
+      },
+      {
+        "deps": [],
+        "estimate": null,
+        "id": "super1",
+        "spct": 47,
+        "status": "进行中",
+        "subtable": []
+      },
+      {
+        "deps": [],
+        "estimate": null,
+        "id": "beta",
+        "spct": 98,
+        "status": "检查中",
+        "subtable": [
+          {
+            "dependsOn": [],
+            "estimate": null,
+            "finished": 1999994000,
+            "pct": 100,
+            "sid": "b1",
+            "started": 1999993500,
+            "status": "已完成"
+          }
+        ]
+      },
+      {
+        "deps": [],
+        "estimate": null,
+        "id": "gamma",
+        "spct": 5,
+        "status": "就绪",
+        "subtable": [
+          {
+            "dependsOn": [],
+            "estimate": null,
+            "finished": null,
+            "pct": 2,
+            "sid": "g1",
+            "started": null,
+            "status": "待处理"
+          }
+        ]
+      },
+      {
+        "deps": [
+          "alpha"
+        ],
+        "estimate": null,
+        "id": "zeta",
+        "spct": 5,
+        "status": "就绪",
+        "subtable": [
+          {
+            "dependsOn": [],
+            "estimate": null,
+            "finished": null,
+            "pct": 2,
+            "sid": "z1",
+            "started": null,
+            "status": "待处理"
+          }
+        ]
+      },
+      {
+        "deps": [],
+        "estimate": null,
+        "id": "delta",
+        "spct": 0,
+        "status": "待处理",
+        "subtable": [
+          {
+            "dependsOn": [],
+            "estimate": null,
+            "finished": null,
+            "pct": 2,
+            "sid": "d1",
+            "started": null,
+            "status": "待处理"
+          }
+        ]
+      },
+      {
+        "deps": [],
+        "estimate": null,
+        "id": "ghost1",
+        "spct": 2,
+        "status": "待处理",
+        "subtable": []
+      },
+      {
+        "deps": [],
+        "estimate": null,
+        "id": "epsilon",
+        "spct": 100,
+        "status": "已完成",
+        "subtable": [
+          {
+            "dependsOn": [],
+            "estimate": null,
+            "finished": 1999993000,
+            "pct": 100,
+            "sid": "e1",
+            "started": 1999992000,
+            "status": "已完成"
+          }
+        ]
+      }
+    ],
+    "maxActive": 2,
     "proj": "TESTPROJ",
     "readySubs": [
       {

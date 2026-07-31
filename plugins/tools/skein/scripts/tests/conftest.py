@@ -7,6 +7,7 @@
 """
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 import sys
@@ -36,10 +37,25 @@ def run_git(cwd: Path, *args: str) -> None:
     subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True, check=True)
 
 
-def run_skein(cwd: Path, *args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
-    """skein.py CLI → CompletedProcess。"""
-    return subprocess.run([sys.executable, str(SKEIN), *args], cwd=cwd,
-                          capture_output=True, text=True, check=check)
+def run_skein(cwd: Path, *args: str, check: bool = True,
+              inp: Optional[str] = None) -> subprocess.CompletedProcess[str]:
+    """skein.py CLI → CompletedProcess。
+
+    `confirm` 特殊照顾: 它有**人审门** (stdin 非 TTY 直接拒, TTY 下要求输入 task id 确认,
+    见 commands._require_user_review)。测试跑在管道里必然非 TTY, 所以这里注入
+    `SKEIN_CONFIRM_ASSUME_TTY=1` 绕过 isatty 判定, 并把 task id 喂到 stdin —— **确认逻辑本身
+    照走**, 输错 id 一样会被拒。
+
+    绕过的只是「是不是真人」这一层, 所以这道门必须另有专测直接跑 CLI 验证 (见
+    tests/test_confirm_gate.py), 否则门变成 no-op 时这里的 28 个调用点全都发现不了。
+    """
+    env = dict(os.environ)
+    if args and args[0] == "confirm":
+        env["SKEIN_CONFIRM_ASSUME_TTY"] = "1"
+        if inp is None and len(args) > 1:
+            inp = args[1] + "\n"   # 喂 task id = 确认
+    return subprocess.run([sys.executable, str(SKEIN), *args], cwd=cwd, env=env,
+                          capture_output=True, text=True, check=check, input=inp)
 
 
 def run_spec(cwd: Path, *args: str, inp: Optional[str] = None,

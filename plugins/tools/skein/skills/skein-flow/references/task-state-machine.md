@@ -63,7 +63,7 @@ SKEIN task 生命周期的 5 个状态、流转规则、操作命令与合法性
 | 命令 | 源状态 | 目标状态 | 前置校验 | 副作用 |
 |---|---|---|---|---|
 | `skein create <id>` | (无) | 待处理 | id 合法 (kebab-case slug)、未占用 | 建 task 目录 + prd/design 脚手架 |
-| `skein confirm <id>` | 待处理 | 就绪 | ≥1 subtask 登记 + prd 三章节齐 + 无 TODO 占位 | 置 `confirmed` 时间戳 |
+| `skein confirm <id>` | 待处理 | 就绪 | ≥1 subtask 登记 + prd 三章节齐 + 无 TODO 占位 + 预计工时 + **用户本人在终端审核确认** (非 TTY 直接拒) | 置 `confirmed` 时间戳 + `confirmed_by` |
 | `skein start <id>` | 就绪 | 进行中 | doctor 体检过 + 非满槽 (`max_active`) + deps 全完成 + prd 二次校验 | 建 worktree + 置 `started` 时间戳 |
 | `skein check <id>` | 进行中 | 检查中 | (无额外校验，只要状态对) | 置 `checked` 时间戳 |
 | `skein finish <id>` | 进行中 / 检查中 | 已完成 | (无 subtask 完成校验，脚本不卡) | merge 回主仓 + 销 worktree + 置 `finished` 时间戳 |

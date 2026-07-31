@@ -390,7 +390,21 @@ def _view_dashboard(snap: Snapshot) -> dict[str, Any]:
     recent_active = [brief(t) for t in recent
                      if t["status"] in (S_PENDING, S_READY, S_ACTIVE, S_CHECK)][:8]
     recent_done = [brief(t) for t in recent if t["status"] == S_DONE][:5]
+    # 总览 ETA 的输入: 只挑 etaOf 真正要读的字段下发 (前端 normalizeTask 会把 subtable→subtasks、
+    # spct→progress 适配好)。**不在 Python 侧算 ETA** —— 关键路径/并发折算/实测校准那套算法在
+    # assets/webapp/src/new/eta.js 已有一份, 再写一份必然漂移。
+    eta_cards = [{
+        "id": c["id"], "status": c["status"], "estimate": c["estimate"],
+        "spct": c["spct"], "deps": c["deps"],
+        "subtable": [{"sid": s["sid"], "status": s["status"], "pct": s["pct"],
+                      "estimate": s["estimate"], "dependsOn": s["dependsOn"],
+                      "started": s["started"], "finished": s["finished"]}
+                     for s in c["subtable"]],
+    } for c in data["cards"]]
+
     return {"proj": snap.proj, "taskCount": total,
+            "maxActive": snap.max_active,   # 前端折算并行墙钟用
+            "etaCards": eta_cards,
             "recentActive": recent_active, "recentDone": recent_done,
             "doneRate": round(done / total * 100) if total else 0,
             "activeCount": ov["stats"].get(S_ACTIVE, 0) + ov["stats"].get(S_CHECK, 0),

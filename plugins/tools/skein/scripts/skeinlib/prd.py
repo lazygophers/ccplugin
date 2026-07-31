@@ -186,3 +186,33 @@ def validate_seam(tasks_dir: Path, tid: str) -> None:
         print(
             f"{tid} design.md 测试接缝段仍是占位未填 (旧 task 兼容态, 建议先填实测试接缝) — {design}",
             file=sys.stderr)
+
+
+def review_summary(tasks_dir: Path, tid: str, t: dict) -> str:
+    """给用户人眼审核用的 PRD 摘要 — 纯函数, 吃 task dict 返字符串。
+
+    只摘**够判断该不该放行**的东西: 目标 / 验收标准 / 边界三章正文 + subtask 拆解 + 工时。
+    刻意不摘全文: 全文用户可以自己开 prd.md 看, 终端里滚三屏反而没人读。
+    """
+    def sec(name: str) -> list[str]:
+        try:
+            raw = section_read(tasks_dir, tid, name)
+        except SkeinError:
+            return []
+        return [ln.strip() for ln in raw.splitlines() if ln.strip()]
+
+    subs = t.get("subtasks") or []
+    sub_est = sum(float(s.get("estimate") or 0) for s in subs)
+    out = [f"── {tid}  {t.get('name') or tid} ──", f"   {t.get('desc') or ''}", ""]
+    for name in ("目标", "边界", "验收标准"):
+        items = sec(name)
+        out.append(f"## {name} ({len(items)} 条)")
+        out += [f"   {ln}" for ln in items] or ["   (空)"]
+        out.append("")
+    out.append(f"## subtask ({len(subs)} 个, Σ工时 {sub_est:g}h)")
+    for s in subs:
+        dep = f" ← {','.join(s.get('depends_on') or [])}" if s.get("depends_on") else ""
+        out.append(f"   [{s['sid']}] {s.get('name', '')} ({s.get('estimate') or '?'}h){dep}")
+    out.append("")
+    out.append(f"## 预计工时  task {t.get('estimate')}h  (Σsubtask {sub_est:g}h)")
+    return "\n".join(out)
