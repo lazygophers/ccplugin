@@ -29,7 +29,23 @@ _UNINIT_PLAIN = """# SKEIN 未初始化 — 先初始化再处理任务
 _CTX = """# 任务判定
 - **flow** (建 task 走 skein-flow): 跨≥2文件 / 多步骤 / 改动类动词 / 新建类 / 复杂调研
 - **inline** (直接做): 纯查询 / 问答 / 单文件单处且 ≤20 行
+- **补充** (并入现有 task): 与某在途 task 同目标 / 同模块 / 共享改动面 / 互为前置
 - 倾向序: 补充现有 task → flow → inline
+
+## 🛑 判定结果必须写出来 (每轮第一句)
+回复的**第一行**就是判定行, 三选一, 照抄格式:
+
+    [skein] 判定: flow → 新建 task <可读 slug>
+    [skein] 判定: 补充 → <已有 taskId>
+    [skein] 判定: inline (<一句话理由, 如「纯查询」「单文件 8 行」>)
+
+处理某 task 时前缀带上它: `[skein|<taskId>|<阶段>] 判定: …`
+
+**为什么强制写出来**: 判定不写出来就等于没判 —— 事后没人能分辨「AI 判了 inline」和「AI 压根
+没想这件事直接开干」。写出来才让越界当场可见 (判了 flow 却在 Edit / 判了 inline 却在改五个
+文件), 用户也能立刻纠偏而不是等改完才发现。
+
+判定错了不算大事, 不判才是。拿不准就按倾向序往上取 (补充 > flow > inline)。
 
 ## 判定归 AI, 不问用户
 走 flow 还是 inline 是 AI 自己该判的, 判不准时**默认建 task**。禁问「要不要走流程 / 要不要建 task」。
@@ -100,8 +116,11 @@ def _judge_signal(prompt: str) -> list[str]:
     return ev
 _PHASE = {"待处理": "plan", "就绪": "ready", "进行中": "exec", "检查中": "check"}
 _PREFIX_RULE = """# 回复前缀 (强制)
-- 每条回复以 `[skein]` 开头
-- 正在处理某 task 时改用 `[skein|<taskId>]`
+- 每条回复以 `[skein]` 开头; 正在处理某 task 时改用 `[skein|<taskId>|<阶段>]`
+- **本轮第一行必须是判定行**, 三选一 (判据见上方「任务判定」):
+    [skein] 判定: flow → 新建 task <可读 slug>
+    [skein] 判定: 补充 → <已有 taskId>
+    [skein] 判定: inline (<一句话理由>)
 """
 def _task_phase_hints(skein_dir: str) -> str:
     """读 .skein/task.json 顶层索引, 列非完成 task + 阶段, 供回复前缀选 taskId。"""

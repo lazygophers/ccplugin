@@ -86,6 +86,41 @@ def test_signals_accumulate() -> None:
     assert {"改动类动词", "具体文件路径", "跨文件连接词"} <= ev, ev
 
 
+# ── 注入文案的硬性要求 (改 _CTX / _PREFIX_RULE 时这些不能丢) ──────────────────
+def test_ctx_demands_an_explicit_verdict_line() -> None:
+    """必须要求 AI 把判定结果写出来, 且三档齐全。
+
+    判定不写出来就等于没判 —— 事后分不清「判了 inline」和「压根没想直接开干」。
+    写出来才让越界当场可见 (判了 flow 却在 Edit / 判了 inline 却改了五个文件)。
+    """
+    from skeinlib.hooks.judge import _CTX, _PREFIX_RULE
+    for text, where in ((_CTX, "_CTX"), (_PREFIX_RULE, "_PREFIX_RULE")):
+        assert "判定:" in text, f"{where} 没给出判定行格式"
+        for verdict in ("flow", "补充", "inline"):
+            assert verdict in text, f"{where} 的判定档缺 {verdict}"
+    assert "第一行" in _PREFIX_RULE, "_PREFIX_RULE 没说明判定行要放第一行"
+
+
+def test_ctx_has_no_escaped_backticks() -> None:
+    """注入文案里不得出现 `\\``  —— 那是 Python 字符串转义漏出来的字面反斜杠。
+
+    踩过一次: 前缀规则里写 \\` 想表示反引号, 注入到 prompt 后用户看到的是带反斜杠的怪字符串。
+    示例格式改用缩进代码块, 不靠反引号包裹。
+    """
+    from skeinlib.hooks.judge import _CTX, _PREFIX_RULE, _UNINIT_PLAIN, _UNINIT_TRELLIS
+    for text, where in ((_CTX, "_CTX"), (_PREFIX_RULE, "_PREFIX_RULE"),
+                        (_UNINIT_PLAIN, "_UNINIT_PLAIN"), (_UNINIT_TRELLIS, "_UNINIT_TRELLIS")):
+        assert "\\`" not in text, f"{where} 有转义漏出的反斜杠+反引号"
+
+
+def test_three_verdicts_are_defined_in_criteria() -> None:
+    """判据段要把三档各自的判定条件都写明, 不能只给格式不给依据。"""
+    from skeinlib.hooks.judge import _CTX
+    head = _CTX[:_CTX.index("## 🛑")]
+    for token in ("flow", "inline", "补充", "倾向序"):
+        assert token in head, f"判据段缺 {token}"
+
+
 if __name__ == "__main__":
     for name, fn in sorted(globals().items()):
         if name.startswith("test_") and callable(fn):
