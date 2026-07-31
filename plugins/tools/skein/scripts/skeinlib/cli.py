@@ -45,8 +45,13 @@ def main() -> None:
     dp = sub.add_parser("deps", help="查/补 task 级前置 DAG (dedup 排序用; 仅 pending 且无既有 deps 可写)")
     dp.add_argument("id", help="task id")
     dp.add_argument("--set", help="设置前置 task id (逗号分隔; 仅当该 task 现无 deps 时允许); 省略则列出")
-    cf = sub.add_parser("confirm", help="用户确认门 (待处理→就绪): planning 完成 (prd+≥1 subtask) 且评审通过后调用, 推到就绪待启动")
+    cf = sub.add_parser("confirm", help="用户确认门 (待处理→就绪): 须**用户本人**审核 PRD 后才放行, 两条通道见 --approved / 终端交互")
     cf.add_argument("id", help="task id")
+    cf.add_argument("--summary", action="store_true",
+                    help="只打印 PRD 审核摘要到 stdout 后退出, 不改状态 — 供 main 塞进 AskUserQuestion 给用户看")
+    cf.add_argument("--approved", action="store_true",
+                    help="用户已在 AskUserQuestion 里批准 (main 专用)。🛑 只准在真拿到用户批准后传, "
+                         "自己传 = 伪造用户审核, 属流程错误")
     s = sub.add_parser("start", help="激活就绪 task: 建 worktree + 进行中 (就绪须先经 confirm; 就绪即可并行, 无 focus)")
     s.add_argument("id", help="task id")
     ck = sub.add_parser("check", help="标记 task 进入检查阶段 (进行中→检查中, 记 checked 时刻)")

@@ -9,17 +9,17 @@
 | `skein init` | 初始化 .skein/ 工作区 |
 | `skein doctor` | 健康检查 |
 | `skein create <id> [--name] [--desc] [--deps] [--kind] [--parent] [--repos]` | 创建 task |
-| `skein confirm <id>` | 用户确认门: 验 prd + ≥1 subtask, 待处理→就绪 |
+| `skein confirm <id> [--summary\|--approved]` | 用户确认门 (待处理→就绪)。裸跑非 TTY 会拒。`--summary` 只打印 PRD 审核摘要不改状态; `--approved` = 已在 `AskUserQuestion` 拿到用户批准 |
 | `skein start <id>` | 激活 (占 active 槽 + 创建 worktree), 就绪→进行中 |
-| `skein finish <id> [--force]` | 完成 (合并 + sediment + archive) |
+| `skein finish <id>` | 收束: commit→merge→销 worktree→标记完成 (归档=保留期后自动, 非 finish 步) |
 | `skein archive <id>` | 归档 (丢弃 worktree, 不合并) |
 | `skein rename <id> <new-id>` | 重命名 |
-| `skein cancel <id>` | 取消 |
+| `skein del <id> [<sid>]` `[--dry-run]` | 软删: 整 task 移入 `.skein/trash/`; 给 sid 则只删该 subtask。`--dry-run` 只打印将删什么 |
 | `skein current` | 活跃 task |
-| `skein list [--all]` | 列 task |
+| `skein list [--status <态>] [--json]` | 列 task。`--status` 取 待处理/就绪/进行中/检查中/已完成 (或 pending/ready/active/check/done), `open`=全部未完成, 逗号多选 |
 | `skein board` | 文本看板 |
 | `skein view` | 可视化看板 |
-| `skein deps <id> [--tree] [--reverse]` | 查看依赖 |
+| `skein deps <id> [--set <id1,id2>]` | 无 `--set` 只查; 带则设前置 (仅 pending 且无既有 deps 可写, 脚本查自引用/不存在/成环) |
 | `skein subtask add/claim/ready/start/check/show/done/fail/list <task-id> [sid]` | subtask 管理 (add 登记 / claim 整批认领就绪 / ready 只读预览 / start 单个占槽 / check 勾验收 / show 查全字段 / done 完成 / fail 失败 / list 列态) |
 | `skein claim` | 全局跨 task claim |
 | `skein contract list/add <task-id>` | 契约管理 |

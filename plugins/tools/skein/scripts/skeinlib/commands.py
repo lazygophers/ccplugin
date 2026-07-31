@@ -628,45 +628,59 @@ class Skein(DoctorMixin, BoardSourceMixin):
         validate_prd(self.tasks, a.id)
         validate_seam(self.tasks, a.id)
         self._validate_estimate(a.id, t)
-        self._require_user_review(a.id, t)  # ← 人审门, 见下方方法
+        if getattr(a, "summary", False):
+            # 只出摘要不改状态 — main 拿它塞进 AskUserQuestion。放在结构门之后: 结构不全时
+            # 该先报缺什么, 而不是让用户去审一份残缺的 PRD。
+            print(review_summary(self.tasks, a.id, t))
+            return
+        channel = self._require_user_review(a.id, t, approved=getattr(a, "approved", False))
         self._stage_hooks("confirm", "before", self._hook_ctx(a.id, t=t))
         t["status"] = S_READY
         t["confirmed"] = now()
-        t["confirmed_by"] = "user-tty"  # 审核渠道留痕 (目前只有终端一条路)
+        t["confirmed_by"] = channel  # 审核渠道留痕: ask (AskUserQuestion) / user-tty (终端交互)
         self.store.save(t)
         self.store.sync()
         self._stage_hooks("confirm", "after", self._hook_ctx(a.id, t=t))
         print(f"{a.id} 就绪 (规划完成, 待 skein start 启动)")
 
     # ---- 人审门 (待处理→就绪 的最后一道) ----
-    def _require_user_review(self, tid: str, t: dict[str, Any]) -> None:
-        """PRD 必须由**用户本人**在终端过目并确认, 才允许进就绪。
+    def _require_user_review(self, tid: str, t: dict[str, Any], *, approved: bool = False) -> str:
+        """PRD 必须由**用户本人**过目确认才允许进就绪。返回审核渠道 (写进 confirmed_by)。
 
-        ## 为什么卡在这里而不是靠提示词
-        `confirm` 之前的三道门 (prd 填齐 / ≥1 subtask / 工时) 校验的都是**结构**, AI 自己就能
-        填满然后自己跑 confirm —— 于是「用户确认门」名存实亡, 一个没人看过的 PRD 直接进了就绪。
-        真正的门必须要一个 **AI 拿不到的信号**: 这里用「stdin 是不是 TTY」。AI 经工具跑命令时
-        stdin 是管道, 永远不是 TTY; 用户在终端敲才是。
+        ## 为什么要有这道门
+        前面三道 (prd 填齐 / ≥1 subtask / 预计工时) 校验的都是**结构**, AI 自己就能填满然后
+        自己跑 confirm —— 于是「用户确认门」名存实亡, 一个没人看过的 PRD 直接进了就绪。
 
-        ## 这不是防对抗, 是防顺手
-        本地任何机制都挡不住一个铁了心绕路的 agent (它可以设环境变量)。目标是让**默认路径**走不通,
-        逼 AI 停下来把 PRD 交给人看 —— 那一步才是这道门真正买到的东西。
+        ## 两条通道, 强制力不同 (选型时要知道差别)
+        | 通道 | 怎么走 | 谁在挡 |
+        |---|---|---|
+        | `--approved` | main 先 `confirm --summary` 取摘要 → `AskUserQuestion` 请用户批准 → 带此参数 | **流程纪律**: 参数 AI 自己能传, 脚本看不到 AskUserQuestion 的结果 |
+        | 终端交互 | 用户自己敲 `skein confirm <id>`, 读摘要后输入 task id | **脚本强制**: stdin 非 TTY 直接拒, AI 物理上过不去 |
+
+        默认用 `--approved` 那条 —— `AskUserQuestion` 的答案是真实用户输入 (AI 伪造不了), 且
+        用户不用离开对话去开终端。代价是「有没有真的问」这一步靠 main 守规矩, 与「有没有真的
+        建 task」同级。终端那条留着, 给要绝对强制的场合 (CI / 不信任的 agent)。
 
         ## 测试怎么过
         `SKEIN_CONFIRM_ASSUME_TTY=1` 只绕过 isatty 判定, **仍要求从 stdin 读到正确的 task id**,
-        所以确认逻辑本身照测 (输错 id 一样拒)。禁把它当成跳过审核的开关用。
+        确认逻辑本身照测 (输错一样拒)。禁把它当跳过审核的开关用。
         """
+        if approved:
+            return "ask"   # main 已在 AskUserQuestion 拿到用户批准
         if os.environ.get("SKEIN_CONFIRM_ASSUME_TTY") != "1" and not sys.stdin.isatty():
             raise SkeinError(
-                f"{tid} 需用户亲自审核 PRD 后才能进就绪 — 请**用户**在终端执行:\n"
-                f"    ! skein confirm {tid}\n"
-                f"  (当前 stdin 非 TTY, 说明是 AI 或脚本在跑; 审核这一步不可代劳)")
+                f"{tid} 需用户审核 PRD 后才能进就绪 (当前 stdin 非 TTY = AI 或脚本在跑)。两条路:\n"
+                f"  ① main 走对话确认 (推荐): `skein confirm {tid} --summary` 取摘要 → "
+                f"`AskUserQuestion` 请用户批准 → `skein confirm {tid} --approved`\n"
+                f"  ② 用户自己在终端敲: `! skein confirm {tid}`\n"
+                f"  🛑 未真正问过用户就传 --approved = 伪造审核, 属流程错误")
         sys.stderr.write(review_summary(self.tasks, tid, t) + "\n")
         sys.stderr.write(f"\n确认以上规划无误、可进就绪? 输入 task id ({tid}) 确认, 其余任意键取消> ")
         sys.stderr.flush()
         answer = sys.stdin.readline().strip()
         if answer != tid:
             raise SkeinError(f"已取消 — 输入 {answer!r} 与 {tid!r} 不符, {tid} 保持待处理")
+        return "user-tty"
 
     def start(self, a: argparse.Namespace) -> None:
         # start 前置体检: 跑 doctor 结构不变量检查, 有 ✗ 错误 → doctor 内 raise SkeinError 阻止 start

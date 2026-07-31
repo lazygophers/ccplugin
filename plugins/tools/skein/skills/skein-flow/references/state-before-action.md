@@ -26,7 +26,7 @@
 | **门规** | task 必须先 `skein confirm` (待处理→就绪) + `skein start` (就绪→进行中) 才能进 exec 调度门 |
 | **禁止行为** | 待处理 / 就绪态 task 禁派 subtask、禁跑 exec |
 | **违反后果** | 流程错误，所做的 inline 改动 / 派发全部无效，必须回退重走 |
-| **回退操作** | 先 `skein confirm` (若还在待处理; **须用户本人在终端跑**, main 跑会被拒) + `skein start` 进进行中，再继续 exec |
+| **回退操作** | 先 `skein confirm` (若还在待处理; **须先 `--summary` + `AskUserQuestion` 拿用户批准再 `--approved`**, 裸跑会被拒) + `skein start` 进进行中，再继续 exec |
 | **校验依据** | `skein start` 脚本硬卡：非就绪态直接拒 |
 
 **典型违规场景**:

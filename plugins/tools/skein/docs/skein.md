@@ -168,7 +168,8 @@ order-create-api                  s1 参数校验
 ```bash
 # task 级
 skein create order-pay --deps "order-create-api,user-auth"
-skein deps order-pay [--tree] [--reverse]
+skein deps order-pay                      # 只查前置
+skein deps order-pay --set "a,b"          # 设前置 (仅 pending 且无既有 deps 可写)
 ```
 
 ```yaml
@@ -258,8 +259,8 @@ created: 2026-07-11
 | Sediment | finish | skein-specer | learning → namespace×inclusion / drop |
 | Bootstrap | 首次空仓 | skein-researcher | 扫 5 维约定 → 定 namespace×inclusion → 落盘 |
 | Maintain | 定期 | skein-specer | `skein-spec maintain` 全量健康检查 |
-| Prune | 定期 | skein-specer | `skein-spec prune` 归档 stale/重复 |
-| Reconstruct | 按需 | skein-specer | `skein-spec reconstruct` 按项目类型重建 |
+| Prune | 定期 | skein-specer | `/skein-spec prune` (skill 模式) 归档 stale/重复 |
+| Reconstruct | 按需 | skein-specer | `/skein-spec reconstruct` (skill 模式) 按项目类型重建 |
 | Auto-fix | stop-check hook | skein-specer | `.pending-fix` → 启动修复 |
 
 ### 注入路径

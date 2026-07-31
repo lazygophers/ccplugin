@@ -101,7 +101,7 @@ skein start 为每个声明子 git 各建 worktree:
 skein list --status open --json | jq '.[] | {id, worktree}'
 
 # 方式二：单 task 取
-skein task show <tid> --json | jq -r '.worktree'
+skein status <tid> --json | jq -r '.worktree'
 ```
 
 ### 3.3 定位规则 (优先级)

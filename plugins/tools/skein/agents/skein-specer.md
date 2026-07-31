@@ -38,7 +38,9 @@ python3 scripts/spec.py maintain --apply
 
 ### 2. reconstruct·maintain · 重组·重建 spec
 ```
-skein-spec reconstruct    # 依当前代码分型重建整库
+# reconstruct 是 skill 模式不是 CLI 子命令: 由 main 经 `/skein-spec reconstruct` 驱动,
+# 落到本 agent 就是「archive 清库 → 逐条 sediment 重建」两步 CLI:
+skein-spec archive [--namespace <ns>]   # 可逆清库 (旧规则进 .archive/<ts>/)
 skein-spec maintain       # 全量体检: 超预算/stale/断链/重复/废弃
 # reconstruct/maintain 收尾显式 --apply 一次, 确保写盘后 spec 不超预算
 python3 scripts/spec.py maintain --apply

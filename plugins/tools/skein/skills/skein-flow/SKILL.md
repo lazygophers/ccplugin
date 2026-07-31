@@ -35,7 +35,7 @@ effort: medium
 
 | 硬门 | 门规 | 违反后果 |
 |---|---|---|
-| 1. task 级 | 未 `skein confirm`(**用户本人跑**)+`skein start` (就绪→进行中) 禁进 exec | 流程错误, 回退补状态命令 |
+| 1. task 级 | 未 `skein confirm`(**须先 AskUserQuestion 拿用户批准**)+`skein start` (就绪→进行中) 禁进 exec | 流程错误, 回退补状态命令 |
 | 2. subtask 级 | 未 `skein claim`/`subtask start` 占槽禁派 agent | 已派视为无槽, 需回收补占槽 |
 | 3. check 级 | 未 `skein check` (进行中→检查中) 禁跑验证/宣告结果 | 验证无效, 需重走 check |
 
@@ -65,11 +65,28 @@ effort: medium
 
 未勾满 = planning 未收敛, 禁 `skein start` / 禁转 exec。`skein confirm` 亦会逐项硬拒 (subtask/prd/预计工时任一缺失即报错阻断)。
 
-🛑 **`skein confirm` 只能由用户本人跑, main 跑不过去** — 结构门过完还有一道**人审门**: PRD 必须
-用户过目确认才进就绪, **每个 task 各审一次**。AI 经工具跑时 stdin 是管道 (非 TTY), 命令直接拒并
-提示用户执行。所以 plan 收敛后 main 的正确动作是: 把 PRD 摘要交给用户, 请其在终端敲
-`! skein confirm <id>`, 等其确认后再续 exec。**禁想办法绕过** (设 `SKEIN_CONFIRM_ASSUME_TTY`
-只为测试存在, 用它跳审核 = 流程错误)。
+### 🛑 人审门: PRD 必须用户确认才进就绪 (每个 task 各审一次)
+
+结构门 (prd / subtask / 工时) 过完还有一道**人审门** —— 那三道校验的都是结构, main 自己就能
+填满再自己 confirm, 没有这道门「用户确认」名存实亡。**裸 `skein confirm <id>` 会被拒。**
+
+plan 收敛后 main 走这三步, 一个 task 一轮:
+
+```
+1. skein confirm <id> --summary        # 取 PRD 审核摘要 (只打印, 不改状态)
+2. AskUserQuestion                     # 把摘要给用户, 问「批准进就绪 / 要改」
+3. skein confirm <id> --approved       # ← 仅在用户选了批准之后
+```
+
+- 用户选「要改」→ 回 planning 改 prd/subtask/工时, 改完重走这三步, **禁跳过**。
+- 多个 task **逐个各问一轮**, 禁一次 AskUserQuestion 打包批准多个 (用户没法逐份看)。
+- `AskUserQuestion` 的选项要给真选择 (批准 / 要改哪里), 禁只给「确认」一个选项当走过场。
+
+🛑 **没真问过用户就传 `--approved` = 伪造用户审核**, 与「宣称派了 agent 但无 tool_use」同级的
+流程错误。同理 `SKEIN_CONFIRM_ASSUME_TTY` 只为测试存在, 拿它跳审核 = 流程错误。
+
+另一条通道: 用户自己在终端敲 `! skein confirm <id>` (读摘要后输入 task id 确认)。那条是**脚本
+强制**的 (非 TTY 物理上过不去), 适合 CI 或不信任的 agent; 日常走上面的对话确认即可。
 
 **完整 plan 阶段作业手册** (research 判定门 / 策略分档 / 复杂度天花板 / 判新旧登记 / brainstorm / 愿景翻译 / grill 契约锁定 / prd+design+subtask 产出 / dedup / 出口分流 / 失败模式) 详见 [references/for-plan.md](references/for-plan.md)。
 

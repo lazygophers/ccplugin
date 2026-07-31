@@ -5,9 +5,13 @@
 退化成 no-op, 那 28 个调用点一个都发现不了。所以这里直接起子进程跑真 CLI。
 
 门的设计意图 (详见 commands._require_user_review): confirm 之前的三道门校验的都是**结构**
-(prd 填齐 / ≥1 subtask / 工时), AI 自己就能填满再自己 confirm。真正的门需要一个 AI 拿不到的
-信号, 这里用「stdin 是不是 TTY」。这不是防对抗 (设个环境变量就绕过了), 是让**默认路径**走不通,
-逼 AI 停下来把 PRD 交给人看。
+(prd 填齐 / ≥1 subtask / 工时), AI 自己就能填满再自己 confirm。所以需要一道要人参与的门。
+
+**两条通道, 强制力不同, 两条都测**:
+- `--summary` → `AskUserQuestion` → `--approved`: 日常走这条 (用户不用离开对话)。
+  参数 AI 自己能传, 脚本看不到 AskUserQuestion 的结果 —— 靠**流程纪律**, 与「有没有真的派
+  agent」同级。
+- 用户自己在终端敲: stdin 非 TTY 直接拒, **脚本强制**, AI 物理上过不去。
 """
 from __future__ import annotations
 
@@ -47,15 +51,15 @@ def _ready_task(ws: Path, tid: str = "feat-x") -> str:
     return tid
 
 
-def _raw_confirm(ws: Path, tid: str, *, assume_tty: bool = False,
+def _raw_confirm(ws: Path, tid: str, *, assume_tty: bool = False, extra: list[str] | None = None,
                  answer: str | None = None) -> subprocess.CompletedProcess[str]:
     """直跑 CLI, 不经 conftest 的 confirm 特判。"""
     env = dict(os.environ)
     env.pop("SKEIN_CONFIRM_ASSUME_TTY", None)
     if assume_tty:
         env["SKEIN_CONFIRM_ASSUME_TTY"] = "1"
-    return subprocess.run([sys.executable, str(SKEIN), "confirm", tid], cwd=ws, env=env,
-                          capture_output=True, text=True, input=answer)
+    return subprocess.run([sys.executable, str(SKEIN), "confirm", tid, *(extra or [])],
+                          cwd=ws, env=env, capture_output=True, text=True, input=answer)
 
 
 def _status(ws: Path, tid: str) -> str:
@@ -63,14 +67,39 @@ def _status(ws: Path, tid: str) -> str:
     return str(json.loads((ws / ".skein/task" / tid / "task.json").read_text())["status"])
 
 
-def test_non_tty_is_refused(ws: Path) -> None:
-    """AI 经工具跑命令时 stdin 是管道 → 必须拒, 且告诉用户该自己敲什么。"""
+def test_bare_confirm_is_refused_and_names_both_channels(ws: Path) -> None:
+    """裸 confirm (AI 经工具跑, stdin 是管道) → 拒, 并把两条合法通道都说清楚。
+
+    报错文案本身是给 AI 读的操作指引 —— 只说「被拒」而不说怎么过, AI 会自己瞎试。
+    """
     tid = _ready_task(ws)
     r = _raw_confirm(ws, tid, answer="")
     assert r.returncode != 0, f"非 TTY 竟放行了: {r.stdout}"
-    assert "需用户亲自审核" in r.stderr, r.stderr
-    assert f"! skein confirm {tid}" in r.stderr, "未给出用户该执行的命令"
+    assert "需用户审核" in r.stderr, r.stderr
+    assert "--summary" in r.stderr and "AskUserQuestion" in r.stderr and "--approved" in r.stderr, \
+        f"未给出对话确认那条路: {r.stderr}"
+    assert f"! skein confirm {tid}" in r.stderr, "未给出终端那条路"
     assert _status(ws, tid) == "待处理", "被拒后状态不该变"
+
+
+def test_summary_prints_and_does_not_change_state(ws: Path) -> None:
+    """`--summary` 只出摘要给 main 塞进 AskUserQuestion, 不动状态。"""
+    tid = _ready_task(ws)
+    r = _raw_confirm(ws, tid, extra=["--summary"], answer="")
+    assert r.returncode == 0, r.stderr
+    assert "## 目标" in r.stdout and "## subtask" in r.stdout, f"摘要不完整: {r.stdout}"
+    assert _status(ws, tid) == "待处理", "--summary 不该改状态"
+
+
+def test_approved_passes_and_records_ask_channel(ws: Path) -> None:
+    """`--approved` = 用户已在 AskUserQuestion 里批准 → 放行并记 confirmed_by=ask。"""
+    import json
+    tid = _ready_task(ws)
+    r = _raw_confirm(ws, tid, extra=["--approved"], answer="")
+    assert r.returncode == 0, f"--approved 仍被拒: {r.stderr}"
+    assert _status(ws, tid) == "就绪"
+    t = json.loads((ws / ".skein/task" / tid / "task.json").read_text())
+    assert t.get("confirmed_by") == "ask", f"审核渠道记错: {t.get('confirmed_by')}"
 
 
 def test_wrong_answer_is_refused(ws: Path) -> None:
@@ -90,7 +119,7 @@ def test_correct_answer_passes_and_records_channel(ws: Path) -> None:
     assert r.returncode == 0, f"确认后仍被拒: {r.stderr}"
     assert _status(ws, tid) == "就绪"
     t = json.loads((ws / ".skein/task" / tid / "task.json").read_text())
-    assert t.get("confirmed_by") == "user-tty", "未记录审核渠道"
+    assert t.get("confirmed_by") == "user-tty", f"终端通道应记 user-tty: {t.get('confirmed_by')}"
     assert t.get("confirmed"), "未记录审核时间"
 
 
@@ -109,17 +138,16 @@ def test_structural_gates_still_run_before_review(ws: Path) -> None:
     run_skein(ws, "create", "bare", "--name", "空", "--desc", "d")
     r = _raw_confirm(ws, "bare", answer="")
     assert "无 subtask 登记" in r.stderr, r.stderr
-    assert "需用户亲自审核" not in r.stderr, "结构不全就不该惊动用户"
+    assert "需用户审核" not in r.stderr, "结构不全就不该惊动用户"
 
 
 if __name__ == "__main__":
     import tempfile
 
     from conftest import make_ws
-    for fn in (test_non_tty_is_refused, test_wrong_answer_is_refused,
-               test_correct_answer_passes_and_records_channel,
-               test_summary_shows_what_user_needs_to_judge,
-               test_structural_gates_still_run_before_review):
+    for name, fn in sorted(globals().items()):
+        if not (name.startswith("test_") and callable(fn)):
+            continue
         with tempfile.TemporaryDirectory() as td:
             d = Path(td) / "w"
             d.mkdir()

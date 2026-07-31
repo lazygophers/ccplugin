@@ -14,7 +14,7 @@ check 全绿后的**收尾门**。验收/完成度核对已在 check 阶段做�
    - **收尾干净** → 已闭环 (finish 已由 finisher 自跑成功), 直接进第 3 步。
    - **需处理** → 按 `needs_main`/`dangling`/`tool_failures` 定位问题 (悬挂残留清不掉 / `skein finish` 报错 / 无改动异常), 处理后视情况重派 finisher 或人工介入, 见下方失败模式表。
 3. **sediment (main 保留项, 异步 fire-and-forget)** — finish 闭环后异步派 `skein-specer`, main 不等回传即结束回合。细节见 [sediment-protocol.md](sediment-protocol.md)。
-4. **auto-fix 双保险 (main 保留项, 异步 fire-and-forget)** — sediment 派出后, main 检测 `.skein/spec/.pending-fix` 标记 (Stop hook 回合结束若检出 spec 问题所写, 详见 skein-spec auto-fix 模式)。标记存在 → 异步 bg 派 `skein-specer` 跑 `skein-spec maintain --apply` 全自动修, 与 sediment 同批 fire-and-forget。标记不存在 → 跳过。
+4. **auto-fix 双保险 (main 保留项, 异步 fire-and-forget)** — sediment 派出后, main 检测 `.skein/spec/.pending-fix` 标记 (Stop hook 回合结束若检出 spec 问题所写, 详见 `/skein-spec` skill 的 auto-fix 模式)。标记存在 → 异步 bg 派 `skein-specer` 跑 `skein-spec maintain --apply` 全自动修, 与 sediment 同批 fire-and-forget。标记不存在 → 跳过。
 
 ## 完成判据
 

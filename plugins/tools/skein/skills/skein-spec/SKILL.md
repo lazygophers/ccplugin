@@ -98,12 +98,11 @@ sediment 写盘后, skein-specer 顺带跑一轮精简: 扫全 namespace 规则,
 | **high** | `archive` 全 namespace 归档 | 五维 + 全 8 型 + 旧规则逐条比对 + 交叉验证 | 接手可疑成熟仓/来源不明, 从零核 |
 
 ```
-skein-spec archive --namespace <ns>     # 只归档指定 namespace (recall/low 档)
-skein-spec archive                      # 全 namespace 归档 (full/deep/max/high 档)
-skein-spec archive --deep=high           # 最重档 (full + 交叉验证)
-skein-spec archive --namespace recall    # 只归档 recall namespace
-skein-spec archive                       # 全归档 (兼容旧式, 等效 --deep=full)
-skein-spec restore <ts>                  # 回滚 (撞名不覆盖新规则)
+skein-spec archive --namespace <ns>   # 只归档指定 namespace (recall/low 档)
+skein-spec archive                    # 全 namespace 归档 (full/deep/max/high 档)
+skein-spec restore <ts>               # 回滚 (撞名不覆盖新规则, 加 restored- 前缀并存)
+# 注: 深度档 (recall/low/full/deep/max/high) 是本 skill 的参数, 决定「归档多大范围 + 扫多深」,
+#     不是 CLI 参数 —— archive 只认 --namespace。
 ```
 
 流程: 快照 → 归档 → 识别项目类型 → 分型扫描 (researcher bootstrap 模式 + 类型侧重) → 逐条定 ns×inclusion → sediment 自动写盘 → 验证 + 保留归档。🛑 `AskUserQuestion` 征同意再跑 (归档全库虽可逆仍是全局动作 · STOP, 禁自动)。**事无巨细设计 + 8 类项目 (backend/frontend/cli/monorepo/data-ml/infra/mobile/docs) 分型扫描侧重、探针、always 倾向、规则示例、陷阱** 见 [references/reconstruct-memory.md](references/reconstruct-memory.md)。
