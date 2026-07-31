@@ -11,7 +11,7 @@ skein-spec maintain --namespace recall  # 仅指定 namespace
 
 | 判据 | 触发 | 输出示例 |
 |---|---|---|
-| 超预算 | core 全文 > 8000 字符 | `[超预算] core 8200 > 8000 字符 — 考虑降级: git/big-00(2100)` |
+| 超预算 | always 页全文超 `spec.always_budget` (默认 1000 字符) | `[超预算] core 1200 > 1000 字符 — 考虑降级: git/big-00(600)` |
 | stale | created 年龄 > 180 天 (~6 月) 且 updated 也老 | `[stale] recall/ops/old-00 (created 14月,420天前, updated 14月,420天前, status active)` |
 | 断链 | body 的 `[[slug]]` 目标 stem 库内无匹配 | `[断链] recall/ops/old-00: [[nonexistent]] ✗ 目标缺失` |
 | keywords 重复 | 同 keywords 组 ≥ 3 条 | `[重复 keywords] "merge,worktree" ×3: recall/arch/a, recall/ops/b, recall/ops/c` |

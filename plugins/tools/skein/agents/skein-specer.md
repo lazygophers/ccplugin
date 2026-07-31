@@ -55,7 +55,7 @@ skein-spec archive <slug>    # stale/keywords 重复/废弃/断链, 可逆不删
 # 归档后确认 always 页不超预算 (prune 已减量, 跑一次收尾确认)
 python3 scripts/spec.py maintain --apply
 ```
-- always 页总字符超 8000 → 把最少复用的规则 `inclusion` 降 always→auto (只改 frontmatter 一行, 文件不搬)。
+- always 页总字符超预算 (默认 1000 字符, 见 config.yaml `spec.always_budget`) → 把最少复用的规则 `inclusion` 降 always→auto (只改 frontmatter 一行, 文件不搬)。
 
 ### 4. auto-fix · Stop hook 触发全自动修复
 main 检测到 `.skein/spec/.pending-fix` 标记 (Stop hook 回合末检测 spec 问题后写) 异步 bg 派本 agent, fire-and-forget:
@@ -63,7 +63,7 @@ main 检测到 `.skein/spec/.pending-fix` 标记 (Stop hook 回合末检测 spec
 skein-spec maintain --apply    # 一次性自动修可修项
 skein-spec reindex
 ```
-- 自动修: 超预算循环降级 always→auto 到总字符<8000 / stale 归档 / keywords 重复归档保留最新 / 废弃归档 (全走可逆 archive)。
+- 自动修: 超预算循环降级 always→auto 到总字符 < always_budget / stale 归档 / keywords 重复归档保留最新 / 废弃归档 (全走可逆 archive)。
 - 断链 (`[[slug]]` 目标缺失) **只报告不修** — 修哪头需人判断, 无从自动决断, 入 unfixed_links。
 - 每步追加写 `.audit-log` (7 天轮转, spec.py 已实现) → 清 `.pending-fix` 标记。
 - **写 mode 自愈后此 mode 不再产生 .pending-fix** — sediment/reconstruct/prune 末尾已跑 maintain --apply 就地清超预算, Stop hook 检测无问题即不写标记; auto-fix mode 保留作兜底兼容 (sediment 遗漏/历史 .pending-fix 残留触发)。
@@ -104,5 +104,5 @@ python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-stop --agent skein-spe
 | `skein-spec` CLI 报错 | 重试 1 次 | `[工具失败: <原因>]` 入 tool_failures + 报已写条数 |
 | maintain --apply 修不掉 (断链 / 降级后仍超) | 入 unfixed_links / needs_main 报具体项 | 不静默, 报告待人判 |
 | auto-fix 遇断链 | 入 unfixed_links 只报告 | 禁自动改任一头, needs_main 标「断链需人判」 |
-| 降级后 always 页仍超 8000 | 继续把次高复用规则降 always→auto | 仍超 → needs_main 标「always 页超预算需人工重组」 |
+| 降级后 always 页仍超预算 | 继续把次高复用规则降 always→auto | 仍超 → needs_main 标「always 页超预算需人工重组」 |
 | 全库动作 (reconstruct) 未获同意 | needs_main 标「待用户同意」, 不执行 | 只出体检报告, 不动盘 |

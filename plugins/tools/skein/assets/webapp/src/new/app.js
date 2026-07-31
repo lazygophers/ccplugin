@@ -97,7 +97,7 @@ export function buildTimeline(task) {
 // ⚠️ `export { X } from './y.js'` 是**纯转发**, 不在本模块建立局部绑定 —— app.js 自己的代码
 // 调 X 会 ReferenceError。踩过一次: subTimelineView 里的 fmtHours 当场炸。
 // 故写成 import + export 两行: 前者给本文件用, 后者维持对外的再导出契约 (各 page 从 app.js 拿)。
-import { aggregateEta, criticalPath, etaOf, etaText, fmtHours, actualOf, overallProgress } from './eta.js';
+import { aggregateEta, criticalPath, deltaText, etaOf, etaText, fmtHours, actualOf, overallProgress } from './eta.js';
 export { aggregateEta, criticalPath, etaOf, etaText, fmtHours, actualOf, overallProgress };
 
 // ---- 执行阶段子时间线: 每个 subtask 的执行过程 (默认折叠) ----

@@ -160,7 +160,7 @@ def test_show_json(skein_cli: SkeinCli, ws: Path) -> None:
     data = json.loads(r.stdout.strip())
     assert isinstance(data["worktree"]["enabled"], bool), f"worktree.enabled 非 bool: {data['worktree']!r}"
     assert data["max_active"] == 2, f"max_active 非默认 2: {data['max_active']}"
-    assert data["spec"]["always_budget"] == 8000, f"spec.always_budget 非默认: {data['spec']}"
+    assert data["spec"]["always_budget"] == 1000, f"spec.always_budget 非默认: {data['spec']}"
 
 
 def test_json_reflects_set(skein_cli: SkeinCli, ws: Path) -> None:

@@ -23,7 +23,7 @@ effort: medium
 | **core** | `.skein/spec/core/<类目>/*.md` | 每 session 常驻 (SessionStart hook 注入正文) | 硬约束 / 命令式契约 (后续必再踩) |
 | **recall** | `.skein/spec/recall/<类目>/*.md` | 按需语义召回 (planning 时 grep index → model 读全文) | 长尾、上下文密集经验 |
 
-**namespace × 类目**: namespace 内按类目 (category) 分子目录 —— git / test / arch / build / style / domain / ops... 自由取名、按需建。索引: 每个 `<namespace>/index.md` (该 namespace 全规则, 带 category / inclusion / anchors 列) + 顶层 `index.md` 聚合概览。`inclusion: always` 的页有软预算 (8000 字符, 超则告警降级, 契合「常驻只放最小硬规」) —— 预算算的是 **inclusion 值**, 与规则放哪个 namespace 目录无关。
+**namespace × 类目**: namespace 内按类目 (category) 分子目录 —— git / test / arch / build / style / domain / ops... 自由取名、按需建。索引: 每个 `<namespace>/index.md` (该 namespace 全规则, 带 category / inclusion / anchors 列) + 顶层 `index.md` 聚合概览。`inclusion: always` 的页有软预算 (默认 1000 字符, 可改 config.yaml `spec.always_budget`; 超则告警降级, 契合「常驻只放最小硬规」) —— 预算算的是 **inclusion 值**, 与规则放哪个 namespace 目录无关。
 
 ## 寻找纪律 (planning/调研/找方案时)
 
@@ -59,7 +59,7 @@ sediment 写盘后, skein-specer 顺带跑一轮精简: 扫全 namespace 规则,
 | keywords 重复 | 同 keywords 组 ≥ 3 条 | 保留最新 (按 updated), 其余 archive |
 | 废弃 | status=deprecated / superseded | `skein-spec archive <path>` |
 | 断链 | `[[slug]]` 目标 stem 库内无匹配 | `skein-spec archive <path>` |
-| core 超预算 | core 全文 > 8000 字符 | 降级最少复用的 core 规则到 recall (`sediment` 调层) |
+| core 超预算 | always 页全文超 `spec.always_budget` | 降级最少复用的 core 规则到 recall (`sediment` 调层) |
 
 - **archive 即可逆, 不删文件** — 全走 `skein-spec archive` 可逆归档到 `.skein/spec/.archive/<ts>/`, 如需恢复 `restore <ts>`。
 - **保护标记**: 规则头 `protected: true` 的跳过不精简 (手工核验后标记, 禁自动 archive)。
@@ -113,7 +113,7 @@ skein-spec restore <ts>               # 回滚 (撞名不覆盖新规则, 加 re
 |---|---|---|
 | recall grep 无命中 | 放宽 / 换关键词重 grep 一次 (同义词 / 上位类目) | 仍无 → planning 走无规则路径, 不阻塞; 靠 finish sediment 增量补 |
 | `skein-spec sediment/reindex` 报错 | 读脚本 stderr 定位 (路径 / 权限 / 类目名非法) | 仍失败 → 该候选暂存草案不落盘, 记 `需要: 手工核对`, 禁半写坏盘 |
-| core 常驻超 8000 字符告警 | prune 自动降级最少复用的 core 到 recall (`sediment` 调层) | 仍超 → 停手, 提示用户 core 膨胀, 需人工裁剪硬规集 |
+| core 常驻超预算告警 | prune 自动降级最少复用的 core 到 recall (`sediment` 调层) | 仍超 → 停手, 提示用户 core 膨胀, 需人工裁剪硬规集 |
 | reconstruct 重建不满意 | `skein-spec restore <ts>` 从归档恢复 (撞名加 restored- 前缀并存) | 仍失败 → 归档目录仍在 `.skein/spec/.archive/<ts>/`, 手动核对取舍 |
 
 ## ✅ 正向配方 (命中反面=流程错误)
@@ -135,7 +135,7 @@ skein-spec restore <ts>               # 回滚 (撞名不覆盖新规则, 加 re
 
 ## auto-fix (Stop hook 触发, 异步 fire-and-forget) — 全自动 spec 修复
 
-sediment+prune 是 finish 后顺跑一轮, 仍可能漏 (如 session 中途 core 膨胀超 8000 / 新增断链)。auto-fix 用 **Stop hook + .pending-fix 标记** 做异步兜底修复, 全程无需用户介入。
+sediment+prune 是 finish 后顺跑一轮, 仍可能漏 (如 session 中途 core 膨胀超预算 / 新增断链)。auto-fix 用 **Stop hook + .pending-fix 标记** 做异步兜底修复, 全程无需用户介入。
 
 ```
 skein-spec maintain --apply   # 同一次扫描自动修可修项 (断链只报告)
@@ -149,7 +149,7 @@ skein-spec maintain --apply   # 同一次扫描自动修可修项 (断链只报�
 
 | 问题 | 处置 |
 |---|---|
-| 超预算 (core > 8000) | 循环降级 top-1 最大 core 规则 → recall, 直到 core < 8000 |
+| 超预算 (always 页超 `spec.always_budget`) | 循环降级 top-1 最大 always 页 → auto, 直到不超 |
 | stale (created > 180 天) | archive (可逆) |
 | keywords 重复 (同组 ≥ 3) | 保留最新, 余 archive (可逆) |
 | 废弃 (deprecated/superseded) | archive (可逆) |

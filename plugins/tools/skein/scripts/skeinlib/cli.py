@@ -161,18 +161,29 @@ def main() -> None:
         Skein().session_context()
         return
     sk = Skein()
+    # 命令 → 负责它的协作对象 (见 commands.Skein 的装配图)。门面上刻意没有转发方法 ——
+    # 这张表就是「谁负责什么」的唯一声明, 加命令只改这一处。
     dispatch = {
-        "init": sk.init, "setup": sk.setup, "create": sk.create,
-        "confirm": sk.confirm, "start": sk.start,
-        "check": sk.check,
-        "finish": sk.finish, "fmt": sk.fmt, "archive": sk.archive, "clean": sk.clean, "current": sk.current,
-        "ready": sk.ready, "claim": sk.claim,
-        "list": sk.list_, "board": sk.board, "view": sk.view, "serve": sk.serve,
-        "doctor": sk.doctor, "contract": sk.contract, "repos": sk.repos, "deps": sk.deps, "estimate": sk.estimate,
-        "status": sk.status, "subtask": sk.subtask, "prd": sk.prd,
-        "del": sk.del_, "delete": sk.del_, "rm": sk.del_, "remove": sk.del_,
-        "rename": sk.rename,
-        "config": sk.config_cmd,
+        # Admin: 工作区级 (不带 task id)
+        "init": sk.admin.init, "setup": sk.admin.setup, "config": sk.admin.config_cmd,
+        "clean": sk.admin.clean, "board": sk.admin.board,
+        # Lifecycle: 单 task 状态机 + 计划字段
+        "create": sk.lifecycle.create, "confirm": sk.lifecycle.confirm,
+        "start": sk.lifecycle.start, "check": sk.lifecycle.check,
+        "finish": sk.lifecycle.finish, "archive": sk.lifecycle.archive,
+        "repos": sk.lifecycle.repos, "deps": sk.lifecycle.deps,
+        "estimate": sk.lifecycle.estimate, "rename": sk.lifecycle.rename,
+        "del": sk.lifecycle.del_, "delete": sk.lifecycle.del_,
+        "rm": sk.lifecycle.del_, "remove": sk.lifecycle.del_,
+        # Scheduler: subtask DAG 调度
+        "claim": sk.scheduler.claim, "subtask": sk.scheduler.subtask,
+        # Query: 只读投影 (故不在 MUTATING 里)
+        "current": sk.query.current, "ready": sk.query.ready,
+        "status": sk.query.status, "list": sk.query.list_,
+        # Artifacts: task 工件读写
+        "fmt": sk.artifacts.fmt, "prd": sk.artifacts.prd, "contract": sk.artifacts.contract,
+        # 门面自带 (两个 mixin)
+        "view": sk.view, "serve": sk.serve, "doctor": sk.doctor,
     }
     # 会写 task.json / task.md 的命令加工作区写锁 (防多 skein 进程并发 read-modify-write)。
     # 纯读命令 (current/ready/list/board/view) 免锁。subtask 含读 action 但整体加锁最省事。

@@ -19,11 +19,20 @@ prd         prd.md 章节读写                                 → errors
 serve       http 端点 + server 生命周期                      → views, store, config
 doctor      体检 + 质量门 + session 上下文注入                → 全部
 migrate     trellis 一次性迁移 (与 task 生命周期无关, 单独放)  → store, config
-commands    状态迁移命令 (Skein 类)                          → 全部
+workspace   Workspace: 路径/配置/store/阶段钩子 + 工作区写锁  → config, store, worktree
+  ├ admin      init / setup / config / clean / board         → workspace, migrate
+  ├ lifecycle  create→confirm→start→check→finish + del/rename → workspace, prd, worktree
+  ├ scheduling claim / subtask (DAG 调度)                     → workspace, lifecycle, dag
+  ├ query      current / ready / status / list (只读)         → workspace, dag, views
+  └ artifacts  prd / fmt / contract (task 工件)               → workspace, prd
+commands    Skein 门面: 继承 Workspace, 装配上面五个 + 两 mixin → 全部
 cli         argparse + dispatch + 工作区锁                   → commands
 hooks/      钩子执行器 + 复杂度判定 + harness 子命令           → config
 spec/       规则记忆库 (namespace × inclusion)               → errors
 ```
+
+五个协作对象的依赖**只走构造入参** —— `Scheduler(ws, lifecycle)` 这一行就是完整依赖清单。
+门面上刻意没有转发方法, `cli.py` 的 dispatch 直接指到 `sk.lifecycle.create` 这一级。
 
 ## 入口
 `scripts/skein.py` / `spec.py` / `hooks.py` 三个薄壳, 只做 sys.path 接线 + 调 main。

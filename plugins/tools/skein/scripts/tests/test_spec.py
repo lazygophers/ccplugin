@@ -14,6 +14,7 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 from typing import Callable
@@ -260,7 +261,7 @@ def test_external_layer(mem_ws: Path, mem_cli: MemCli) -> None:
 
 def test_always_budget_fallback(mem_ws: Path) -> None:
     """always_budget() 读 .skein/config.yaml spec_always_budget (新键, 热改); 缺该键时
-    fallback 旧键 spec_core_budget (deprecated); 两键皆缺/非正整数 → 默认 8000 (design.md §2)。"""
+    fallback 旧键 spec_core_budget (deprecated); 两键皆缺/非正整数 → 默认 1000 (design.md §2)。"""
     script_dir = str(MEM.parent)
 
     def _budget() -> int:
@@ -273,8 +274,8 @@ def test_always_budget_fallback(mem_ws: Path) -> None:
 
     cfg = mem_ws / ".skein" / "config.yaml"
 
-    # 两键皆缺 → 默认 8000
-    assert _budget() == 8000, "无 config 未返默认 8000"
+    # 两键皆缺 → 默认 1000
+    assert _budget() == 1000, "无 config 未返默认 1000"
 
     # 仅旧键 → fallback 读旧键生效
     cfg.write_text("spec_core_budget: 500\n")
@@ -288,9 +289,27 @@ def test_always_budget_fallback(mem_ws: Path) -> None:
     cfg.write_text("spec_always_budget: not-a-num\nspec_core_budget: 500\n")
     assert _budget() == 500, "新键非法值未 fallback 到旧键"
 
-    # 两键皆非法/缺 → 回落默认 8000
+    # 两键皆非法/缺 → 回落默认 1000
     cfg.write_text("spec_always_budget: not-a-num\n")
-    assert _budget() == 8000, "两键皆缺/非法未回落默认 8000"
+    assert _budget() == 1000, "两键皆缺/非法未回落默认 1000"
+
+
+def test_default_budget_is_same_on_both_paths() -> None:
+    """无 config.yaml 走 model.always_budget() 的兜底, 刚 init 的走 CONFIG_DEFAULTS —— 两处
+    必须同值。不同 = 同一份 spec 在两个工作区一个报超预算一个不报, 而两边看着都"是默认"。"""
+    script_dir = str(MEM.parent)
+    sys.path.insert(0, script_dir)
+    from skeinlib.config import CONFIG_DEFAULTS
+    with tempfile.TemporaryDirectory() as td:   # 无 .skein/config.yaml 的干净工作区
+        r = subprocess.run(
+            [sys.executable, "-c",
+             f"import sys; sys.path.insert(0, {script_dir!r}); "
+             "from skeinlib.spec.model import always_budget; print(always_budget())"],
+            cwd=td, capture_output=True, text=True, check=True)
+    fallback = int(r.stdout.strip())
+    assert fallback == CONFIG_DEFAULTS["spec"]["always_budget"], (
+        f"两条默认路径不同步: 无 config 时 always_budget()={fallback}, "
+        f'CONFIG_DEFAULTS={CONFIG_DEFAULTS["spec"]["always_budget"]}')
 
 
 def test_namespace_free_extension(mem_ws: Path, mem_cli: MemCli) -> None:

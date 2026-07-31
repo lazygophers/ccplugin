@@ -26,8 +26,18 @@ import ast
 import inspect
 
 import conftest  # noqa: F401  模块体把 scripts/ 塞进 sys.path
+from skeinlib.admin import Admin  # noqa: E402
+from skeinlib.artifacts import Artifacts  # noqa: E402
 from skeinlib.commands import Skein  # noqa: E402
+from skeinlib.lifecycle import Lifecycle  # noqa: E402
+from skeinlib.query import Query  # noqa: E402
+from skeinlib.scheduling import Scheduler  # noqa: E402
 from skeinlib.spec.facade import Spec  # noqa: E402
+from skeinlib.workspace import Workspace  # noqa: E402
+
+# 五个协作对象 (commands.Skein 的装配图)。它们不再共享一个 self, 而是持有 self.ws ——
+# 于是同一类故障换了个马甲: `self.ws.<搬走的方法>`。下面第二条检查专治这个。
+COLLABORATORS = (Admin, Lifecycle, Scheduler, Query, Artifacts)
 
 
 def _self_attrs(cls: type) -> tuple[set[str], set[str]]:
@@ -70,6 +80,73 @@ def test_skein_has_no_dangling_self_reference() -> None:
     assert not missing, (
         f"Skein 上有 {len(missing)} 个悬空引用 {missing} — 方法搬去模块函数后忘了改调用点。"
         f"这类故障只在真跑到那条分支时才炸 (如 `skein serve` 复用已有服务那一支)。")
+
+
+def test_collaborators_have_no_dangling_self_reference() -> None:
+    """五个协作对象各自的 self.X 也要解析得到 (它们不在 Skein 的 MRO 上, 上面那条盖不到)。"""
+    for cls in COLLABORATORS:
+        missing = _dangling(cls)
+        assert not missing, f"{cls.__name__} 上有悬空引用 {missing}"
+
+
+def _ws_members() -> set[str]:
+    """Workspace 上真实存在的名字: 类上的方法/属性 + `__init__` 里 `self.X =` 赋过的。
+
+    只用 `hasattr` 不够 —— `store` / `root` / `tasks` 这些是实例属性, 类上查不到。
+    """
+    _, assigned = _self_attrs(Workspace)
+    return {n for n in dir(Workspace) if not n.startswith("__")} | assigned
+
+
+def _dangling_ws(cls: type, members: set[str] | None = None) -> list[str]:
+    """`self.ws.<name>` 里 name 在 Workspace 上不存在的那些。"""
+    known = _ws_members() if members is None else members
+    missing: list[str] = []
+    try:
+        tree = ast.parse(_dedent(inspect.getsource(cls)))
+    except (OSError, TypeError):
+        return missing
+    for node in ast.walk(tree):
+        # 形状: Attribute(value=Attribute(value=Name('self'), attr='ws'), attr=<name>)
+        if not isinstance(node, ast.Attribute):
+            continue
+        inner = node.value
+        if not (isinstance(inner, ast.Attribute) and inner.attr == "ws"
+                and isinstance(inner.value, ast.Name) and inner.value.id == "self"):
+            continue
+        if node.attr not in known:
+            missing.append(node.attr)
+    return sorted(set(missing))
+
+
+def test_collaborators_only_touch_real_workspace_members() -> None:
+    """协作对象经 `self.ws.X` 摸到的东西必须真在 `Workspace` 上。
+
+    这是分包后**新出现**的悬空形态: 把某个方法从 Workspace 挪走 (或改名), 五个协作对象里的
+    `self.ws.那个名字` 一个都不会报错, 直到真跑到那条分支。和当初 `_probe_same_project` 同一
+    个坑, 只是多了一跳。
+    """
+    members = _ws_members()
+    bad = {cls.__name__: d for cls in COLLABORATORS if (d := _dangling_ws(cls, members))}
+    assert not bad, (
+        f"这些协作对象引用了 Workspace 上不存在的成员: {bad} — "
+        f"Workspace 现有: {sorted(members)}")
+
+
+def test_ws_probe_catches_a_planted_case() -> None:
+    """自检: 造一个 `self.ws.不存在的东西`, 必须被抓到。"""
+    class Fake:
+        def __init__(self, ws: object) -> None:
+            self.ws = ws
+
+        def ok(self) -> object:
+            return self.ws.store          # Workspace 上真有
+
+        def broken(self) -> object:
+            return self.ws.gone_away()    # ← 没有
+
+    got = _dangling_ws(Fake)
+    assert got == ["gone_away"], f"自检失败, 实际 {got}"
 
 
 def test_spec_has_no_dangling_self_reference() -> None:

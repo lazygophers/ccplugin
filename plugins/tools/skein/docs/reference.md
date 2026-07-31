@@ -62,7 +62,7 @@
 | retain_days | 7 | 归档保留天数 |
 | auto_commit | true | 原地模式 finish 时自动 git commit; worktree 模式恒强制 commit, 本键不参与判定 |
 | worktree_root | `.worktrees` | worktree 路径 |
-| spec_core_budget | 8000 | core 注入预算 (char) |
+| spec.always_budget | 1000 | always 页常驻注入软预算 (char); 旧键 spec_core_budget 仍作 fallback |
 | board_theme/palette/mode | default/blue/light | 看板样式 |
 
 `hooks` (阶段钩子 + agent 钩子) 是可选特性, 不在 `CONFIG_DEFAULTS` 里 (无默认值, `init`/展示均不含),

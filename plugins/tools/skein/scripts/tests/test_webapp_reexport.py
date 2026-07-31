@@ -73,6 +73,78 @@ def _scan(files: list[Path]) -> list[str]:
     return problems
 
 
+DECL_RE = re.compile(r"^\s*(?:export\s+)?(?:async\s+)?function\s+([A-Za-z_$][\w$]*)", re.M)
+EXPORT_FN_RE = re.compile(r"^\s*export\s+(?:async\s+)?function\s+([A-Za-z_$][\w$]*)", re.M)
+IMPORT_RE = re.compile(r"^\s*import\s*\{([^}]*)\}\s*from\s*['\"]([^'\"]+)['\"]", re.M)
+CALL_RE = re.compile(r"(?<![\w$.])([A-Za-z_$][\w$]*)\s*\(")
+# 字符串字面量 / 注释里的 `xxx()` 不是调用 (router.js 的报错文案里就写着 "page 未导出 render()")
+LITERAL_RE = re.compile(r"'[^'\n]*'|\"[^\"\n]*\"|`[^`]*`|//[^\n]*|/\*.*?\*/", re.S)
+
+
+def _blank_literals(src: str) -> str:
+    """把字符串/注释内容抹成空格, **保留换行**以维持行号。"""
+    return LITERAL_RE.sub(lambda m: re.sub(r"[^\n]", " ", m.group(0)), src)
+
+
+def _bound_names(src: str) -> set[str]:
+    """本模块内**能解析到**的名字: 自己声明的 + import 进来的 (含默认/命名空间导入)。"""
+    names = set(DECL_RE.findall(src))
+    names |= set(re.findall(r"^\s*(?:export\s+)?(?:const|let|var)\s+([A-Za-z_$][\w$]*)", src, re.M))
+    names |= set(re.findall(r"^\s*import\s+\*\s*as\s+([A-Za-z_$][\w$]*)", src, re.M))
+    names |= set(re.findall(r"^\s*import\s+([A-Za-z_$][\w$]*)\s*(?:,|from)", src, re.M))
+    for m in IMPORT_RE.finditer(src):
+        for part in m.group(1).split(","):
+            part = part.strip()
+            if part:
+                names.add(part.split(" as ")[-1].strip())
+    return names
+
+
+def _scan_unbound(files: list[Path]) -> list[str]:
+    """调用了**兄弟模块导出的函数**却没 import 它 = 运行到那行必 ReferenceError。
+
+    只拿「同目录树里某个模块 export 了这个名字」当证据, 避免把浏览器全局 / 局部变量误报成
+    未绑定 —— 宁可漏报也不制造噪音。fmtHours / deltaText 两次事故都落在这个判据里。
+    """
+    exported: dict[str, Path] = {}
+    for f in files:
+        for name in EXPORT_FN_RE.findall(f.read_text(errors="ignore")):
+            exported.setdefault(name, f)
+    problems: list[str] = []
+    for f in files:
+        src = f.read_text(errors="ignore")
+        bound = _bound_names(src)
+        seen: set[str] = set()
+        for i, ln in enumerate(_blank_literals(src).splitlines(), 1):
+            if ln.lstrip().startswith(("import ", "export ", "//", "*")):
+                continue
+            for name in CALL_RE.findall(ln):
+                if (name in exported and exported[name] != f
+                        and name not in bound and name not in seen):
+                    seen.add(name)
+                    problems.append(
+                        f"{f.name}:{i}: 调用了 `{name}()`, 但本模块没 import 它 "
+                        f"(它 export 在 {exported[name].name}) — 运行到这行会 ReferenceError。")
+    return problems
+
+
+def test_no_call_to_unimported_sibling_export() -> None:
+    problems = _scan_unbound(_js_files())
+    assert not problems, "前端有跨模块调用却没 import:\n  " + "\n  ".join(problems)
+
+
+def test_unbound_scanner_catches_a_planted_case(tmp_path: Path) -> None:
+    """自检: 造「A export / B 直接调用不 import」, 必须被抓到; 补上 import 后不再报。"""
+    (tmp_path / "eta.js").write_text("export function deltaText(d) { return d; }\n")
+    bad = tmp_path / "view.js"
+    bad.write_text("function row(d) { return deltaText(d); }\n")
+    files = [tmp_path / "eta.js", bad]
+    assert _scan_unbound(files), "自检失败: 未 import 的跨模块调用没被抓到"
+    bad.write_text("import { deltaText } from './eta.js';\n"
+                   "function row(d) { return deltaText(d); }\n")
+    assert not _scan_unbound(files), "补了 import 仍被误报"
+
+
 def test_no_reexport_used_locally() -> None:
     problems = _scan(_js_files())
     assert not problems, "前端有纯转发再导出被本文件使用:\n  " + "\n  ".join(problems)

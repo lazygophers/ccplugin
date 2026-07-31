@@ -154,7 +154,7 @@ export function actualOf(task) {
 }
 
 // 偏差人话: "+35%" / "-12%"; 5% 以内算准, 返回 null。
-function deltaText(d) {
+export function deltaText(d) {
   if (d == null || Math.abs(d) < 0.05) return null;
   return (d > 0 ? '超出 +' : '提前 ') + Math.round(Math.abs(d) * 100) + '%';
 }

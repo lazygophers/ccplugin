@@ -17,7 +17,7 @@ from typing import Any, Optional, cast
 
 
 INDEX_BUDGET_TOKENS = 400  # SessionStart 注入的极简索引 token 硬预算 (每条 1 行, 只 title+类目)
-SUBAGENT_BUDGET_TOKENS = 2000  # SubagentStart 注入 core 全文 token 硬预算 (≈always_budget() 字符)
+SUBAGENT_BUDGET_TOKENS = 2000  # SubagentStart 注入 core 全文 token 硬预算 (兜底截断; 正常由 always_budget() 字符预算先兜住)
 NAMESPACES = ("rules", "product", "map", "external")  # namespace 默认清单 (仅 init 建目录用); 实际可用 namespace 由 Spec._scan_namespaces() 目录扫描得, 非白名单
 INCLUSIONS = ("always", "auto", "fileMatch", "manual")  # inclusion 封闭四值 (加载策略, frontmatter 级); 对齐 Cursor .cursor/rules 与 Kiro .kiro/steering 收敛结论
 STALE_DAYS = 180  # maintain stale 判据: created 年龄超此天数且无近期 updated → 候选
@@ -66,8 +66,10 @@ def spec_root() -> Path:
 def always_budget() -> int:
     """always 全文软预算 (字符): 读 .skein/config.yaml spec.always_budget (复用 skein._yaml_load);
     旧扁平键 spec_always_budget 仍生效 deprecated fallback; 缺该键时再 fallback 读
-    spec.core_budget (新嵌套) / spec_core_budget (旧扁平, deprecated); 两键皆缺/非正整数 → 默认 8000。
-    ponytail: 不用 skein._cfg_effective — 那个会给缺失叶回填默认值 8000, 会吃掉「always_budget 本就
+    spec.core_budget (新嵌套) / spec_core_budget (旧扁平, deprecated); 两键皆缺/非正整数 → 默认 1000。
+    ⚠️ 这个默认值必须与 skeinlib.config.CONFIG_DEFAULTS["spec"]["always_budget"] 同步 —— 无
+    config.yaml 的工作区走这里, 刚 init 的走那边, 两处不一致 = 同一份 spec 一会儿超预算一会儿不超。
+    ponytail: 不用 skein._cfg_effective — 那个会给缺失叶回填默认值, 会吃掉「always_budget 本就
     未设」这个信号, 令 core_budget 旧键 fallback 永远失效; 这里要保留「缺失」而非「已知默认」的区别,
     故直读 raw 按 (嵌套>扁平) 取值, 取不到才是真缺失。懒求值, 每次调读盘, 支持热改。"""
     try:
@@ -83,4 +85,4 @@ def always_budget() -> int:
                 return v
     except Exception:
         pass
-    return 8000
+    return 1000

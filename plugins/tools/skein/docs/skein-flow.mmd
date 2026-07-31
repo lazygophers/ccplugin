@@ -13,7 +13,7 @@ graph TB
     CFG -.->|max_active| CFG_CC["task + subtask 共用并发上限<br/>(task: 仅 进行中 占槽, 就绪/检查中 不占;<br/>subtask: claim 标 running 占同一池)"]
     CFG -.->|auto_commit| CFG_AC[仅原地模式生效<br/>true: finish 自动 commit<br/>false: 改动留工作区交用户<br/>worktree 模式: 恒强制 commit]
     CFG -.->|retain_days| CFG_RD[归档保留期 默认7天]
-    CFG -.->|spec_core_budget| CFG_CB["core 全文软预算字符数<br/>默认1000 (doc 提8000), 超 → maintain 降级"]
+    CFG -.->|spec.always_budget| CFG_CB["always 页全文软预算字符数<br/>默认 1000, 超 → maintain 降级"]
   end
 
   subgraph Workspace["工作区初始化 (一次性, 幂等)"]

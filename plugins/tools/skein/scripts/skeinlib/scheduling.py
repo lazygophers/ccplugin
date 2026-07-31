@@ -1,0 +1,324 @@
+"""`Scheduler` — subtask DAG 调度: 谁就绪、谁先派、认领即占槽。
+
+## 两级调度
+`subtask claim <tid>` 是单 task 内的就绪批; `claim` (无 tid) 是**全局跨 task** 的就绪批 ——
+所有可调度 task 的 ready subtask 合池竞争同一个 `max_active`。两者共用 `_crit_weight`
+关键路径权重排序: 最长下游链先派, 最小化 makespan。
+
+## 为什么要拿着 Lifecycle
+「就绪」task 的 subtask 被认领时要**就地启动**该 task, 而启动必须走与手工 `skein start`
+完全相同的那条路 (`Lifecycle._start_task`) —— doctor 体检、并发上限、prd double-check、
+worktree、started 时间戳、阶段钩子一个不少。少任何一样, 自动启动出来的 task 就和手工启动的
+不是同一种状态, 那类差异极难查。所以这里注入 `Lifecycle` 而不是自己复制一份启动逻辑。
+"""
+from __future__ import annotations
+
+import argparse
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from skeinlib.workspace import Workspace
+
+from skeinlib.dag import _crit_weight, _split, _split_semi, _sub_estimate_sum, _sub_pct
+from skeinlib.errors import SkeinError
+from skeinlib.model import (SS_DONE, SS_FAILED, SS_PENDING, SS_RUNNING, S_READY, now)
+from skeinlib.views import _fmt_ts
+
+from typing import TYPE_CHECKING as _TC
+
+if _TC:
+    from skeinlib.lifecycle import Lifecycle
+
+
+class Scheduler:
+    """subtask DAG 就绪判定 + 认领。"""
+
+    def __init__(self, ws: "Workspace", lifecycle: "Lifecycle") -> None:
+        self.ws = ws
+        self.lifecycle = lifecycle
+
+    def _ready(self, t: dict[str, Any]) -> list[dict[str, Any]]:
+        """就绪批: pending + 依赖全 done, 按统筹学关键路径权重降序排序后截到空闲槽位
+        (关键路径优先 = 最长下游链先派, 最小化 makespan; 并行只看 depends_on DAG, 无写文件冲突自算)。"""
+        subs = t.get("subtasks", [])
+        done = {s["sid"] for s in subs if s["status"] == SS_DONE}
+        running = [s for s in subs if s["status"] == SS_RUNNING]
+        slots = self.ws.config()["max_active"] - len(running)
+        if slots <= 0:
+            return []  # 并发满 → 阻塞
+        crit = _crit_weight(subs)
+        cand = [(i, s) for i, s in enumerate(subs)
+                if s["status"] == SS_PENDING
+                and all(d in done for d in s.get("depends_on", []))]
+        # 关键路径优先: 权重降序, 同权重按登记序稳定 (i 升序)
+        cand.sort(key=lambda p: (-crit.get(p[1]["sid"], 0), p[0]))
+        return [s for _, s in cand[:slots]]
+
+    def _schedulable(self) -> list[dict[str, Any]]:
+        """可被调度的 task: **进行中 + 就绪(前置已清)**, 按登记序。
+
+        「就绪」也算可调度是刻意的 —— 就绪 = 已过人审门、规划完成、只差开工。要求先手工
+        `skein start` 再派 subtask, 等于在已经确认过的东西上再要一次仪式, 而那一步没有任何
+        新信息进来。改为**首个 subtask 被认领时自动启动**该 task (见 `_ensure_task_active`)。
+
+        前置未完成的就绪 task 不进池 —— 与 `start` 的 deps 门同一判据, 免得自动启动绕过它。
+        """
+        active = self.ws.store.active()
+        active_ids = {t["id"] for t in active}
+        ready = [t for t in self.ws.store.all_tasks()
+                 if t["status"] == S_READY and t["id"] not in active_ids
+                 and not any(self.ws._dep_unfinished(d) for d in t.get("deps", []))]
+        return active + ready
+
+    def _ensure_task_active(self, t: dict[str, Any], a: argparse.Namespace) -> dict[str, Any]:
+        """若 task 还在「就绪」, 就地把它启动 (进行中 + worktree)。已是进行中则原样返回。
+
+        走的是与手工 `skein start` **完全相同**的 `_start_task`, 所以 doctor 体检、task 级
+        max_active、prd double-check、worktree、started 时间戳、start 阶段钩子一个不少。
+        task 级并发满时 `_start_task` 会抛 —— 自动启动**不得**绕过那道上限, 抛出来是对的。
+        """
+        if t["status"] != S_READY:
+            return t
+        return self.lifecycle._start_task(t["id"], a, quiet=True)
+
+    def _global_ready(self) -> list[tuple[dict[str, Any], dict[str, Any]]]:
+        """全局跨 task 就绪批: 所有**可调度** task (进行中 + 就绪) 的 ready subtask 合池,
+        按 (拓扑深度降序, task 登记序, subtask 登记序) 排序, 截到全局 max_active - 全局 running 槽。
+        返回 [(task_obj, subtask_obj), ...]。"""
+        tasks = self._schedulable()
+        global_running = sum(
+            1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SS_RUNNING)
+        slots = self.ws.config()["max_active"] - global_running
+        if slots <= 0:
+            return []
+        cand: list[tuple[dict[str, Any], dict[str, Any], int, int, int]] = []
+        for ti, t in enumerate(tasks):
+            subs = t.get("subtasks", [])
+            done = {s["sid"] for s in subs if s["status"] == SS_DONE}
+            crit = _crit_weight(subs)
+            for i, s in enumerate(subs):
+                if s["status"] != SS_PENDING:
+                    continue
+                if not all(d in done for d in s.get("depends_on", [])):
+                    continue  # 依赖未全 done 不入池
+                cand.append((t, s, ti, i, crit.get(s["sid"], 0)))
+        # 拓扑深度降序 → task 登记序 → subtask 登记序 (active task 同级, 不再分 task 优先级)
+        cand.sort(key=lambda x: (-x[4], x[2], x[3]))
+        return [(c[0], c[1]) for c in cand[:slots]]
+
+    def claim(self, a: argparse.Namespace) -> None:
+        """全局跨 task 认领就绪批: 所有 active task ready subtask 竞争全局 max_active 槽。
+        整批标 running + 各 task 各 _save。无 tid (对照 `subtask claim <tid>` 单 task)。
+        `--dry-run`: 只读预览整批 (与默认认领同源排序), 不改状态 (旧 pop)。"""
+        batch = self._global_ready()
+        if getattr(a, "dry_run", False):
+            if not batch:
+                tasks = self.ws.store.active()
+                grun = sum(1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SS_RUNNING)
+                gpend = sum(1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SS_PENDING)
+                mp = self.ws.config()["max_active"]
+                print(f"无全局就绪 subtask (全局 running: {grun}/{mp}, pending: {gpend}) — 满槽或依赖未完成")
+                if mp - len(tasks) > 0:
+                    for t in self.ws.store.all_tasks():
+                        if t["status"] != S_READY or any(self.ws._dep_unfinished(d) for d in t["deps"]):
+                            continue
+                        print(f"有就绪 task 待启动: {t['id']} ({t['name']})")
+                        print(f"— 直接启动执行: `skein.py start {t['id']}` (待处理 task 须先 skein confirm 过确认门)")
+                        break
+                return
+            print("全局就绪批 (只读预览, 不改状态) — 决定执行后去掉 --dry-run 认领:")
+            for t, s in batch:
+                sk = ",".join(s.get("skills", [])) or "-"
+                chk = "; ".join(s.get("验收", [])) or "-"
+                print(f"{t['id']}/{s['sid']}\t{s['name']}\tskills: {sk}\t验收: {chk}")
+            print("— 认领整批: `skein.py claim`  或只占单个: `skein.py subtask start <tid> <sid>`")
+            return
+        if not batch:
+            tasks = self._schedulable()
+            grun = sum(1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SS_RUNNING)
+            gpend = sum(1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SS_PENDING)
+            mp = self.ws.config()["max_active"]
+            print(f"无全局就绪 subtask (全局 running: {grun}/{mp}, pending: {gpend}) — 满槽或依赖未完成")
+            return
+        # 按 task 分组认领: 属于「就绪」task 的, 先把该 task 就地启动 (进行中 + worktree),
+        # 再标 subtask running。启动会重写 task.json, 所以必须拿**启动后**的对象再找 subtask,
+        # 否则改的是一份马上被覆盖掉的旧副本 (改了等于没改, 且不报错)。
+        by_tid: dict[str, list[str]] = {}
+        order: list[str] = []
+        for t, s in batch:
+            if t["id"] not in by_tid:
+                by_tid[t["id"]] = []
+                order.append(t["id"])
+            by_tid[t["id"]].append(s["sid"])
+        claimed: list[tuple[str, dict[str, Any]]] = []
+        started_now: list[str] = []
+        for tid in order:
+            t = next(x for x, _ in batch if x["id"] == tid)
+            if t["status"] == S_READY:
+                t = self._ensure_task_active(t, a)   # 满槽会抛 — 自动启动不绕并发上限
+                started_now.append(tid)
+            subs = {s["sid"]: s for s in t.get("subtasks", [])}
+            for sid in by_tid[tid]:
+                s = subs[sid]
+                s["status"] = SS_RUNNING
+                if not s.get("started"):
+                    s["started"] = now()  # exec 时刻 (首次认领, 重认领不覆盖)
+                claimed.append((tid, s))
+            self.ws.store.save(t)
+        if started_now:
+            print(f"自动启动就绪 task (首个 subtask 被认领): {', '.join(started_now)}")
+        print("已全局认领 (running) — main 逐个派 skein-executor（dispatch 只给 tid + sid + 工作目录）, 完成即 subtask done/fail:")
+        for tid, s in claimed:
+            sk = ",".join(s.get("skills", [])) or "-"
+            chk = "; ".join(s.get("验收", [])) or "-"
+            print(f"{tid}/{s['sid']}\t{s['name']}\tskills: {sk}\t验收: {chk}")
+
+    def subtask(self, a: argparse.Namespace) -> None:
+        if a.action == "add":
+            t = self.ws.store.load(a.tid)
+            subs = t.setdefault("subtasks", [])
+            if any(s["sid"] == a.sid for s in subs):
+                raise SkeinError(f"subtask 已存在: {a.tid}/{a.sid}")
+            try:
+                est = float(a.estimate)
+            except (TypeError, ValueError):
+                raise SkeinError(f"subtask 预计工时须为数字(小时): {a.estimate!r}")
+            if est <= 0:
+                raise SkeinError(f"subtask 预计工时须为正数: {est}")
+            subs.append({
+                "sid": a.sid, "name": a.name, "desc": a.desc,
+                "estimate": est,  # 预计工时(小时), add 必填; task estimate 须 ≥ Σ 本字段
+                "depends_on": _split(a.deps),
+                "验收": _split_semi(a.check),  # 验收标准 checklist (字符串数组)
+                "验收done": [],  # 已通过验收标准序号(1-based); 完成百分比 = len/len(验收)
+                "status": SS_PENDING,
+                "skills": _split(a.skills),  # 关联 skills (0-n)
+                "created": now(),   # 创建时刻
+                "started": None,    # exec 时刻 (claim/start →运行中 时置)
+                "finished": None,   # 完成时刻 (done 时置)
+            })
+            self.ws.store.save(t)  # _save 已渲染子任务看板
+            print(f"{a.tid}/{a.sid} 已登记 ({est} h; 共 {len(subs)} subtask, "
+                  f"合计 {_sub_estimate_sum(t)} h)")
+            return
+        if a.action == "list":
+            t = self.ws.store.load(a.tid)
+            subs = t.get("subtasks", [])
+            if not subs:
+                print("无 subtask")
+                return
+            for s in subs:
+                deps = ",".join(s.get("depends_on", [])) or "-"
+                chk = "; ".join(s.get("验收", [])) or "-"
+                sk = ",".join(s.get("skills", [])) or "-"
+                est = s.get("estimate")
+                print(f"{s['sid']}\t{s['status']}\t{_sub_pct(s)}%\t{est if est else '-'}h\t{s['name']}"
+                      f"\t依赖:{deps}\t验收:{chk}\tskills:{sk}")
+            return
+        if a.action == "show":
+            t = self.ws.store.load(a.tid)
+            s = self.ws._sub(t, a.sid)
+            crit = s.get("验收", [])
+            doneidx = set(s.get("验收done", []))
+            est = s.get("estimate")
+            elapsed = None
+            if s.get("started") and s.get("finished"):
+                elapsed = round((s["finished"] - s["started"]) / 60, 1)  # 分钟
+            print(f"sid: {s['sid']}")
+            print(f"name: {s['name']}")
+            print(f"desc: {s.get('desc') or '-'}")
+            print(f"status: {s['status']}")
+            print(f"estimate: {est if est else '-'} h")
+            print(f"实际耗时: {elapsed if elapsed is not None else '-'} min")
+            print(f"depends_on: {','.join(s.get('depends_on', [])) or '-'}")
+            print(f"skills: {','.join(s.get('skills', [])) or '-'}")
+            if crit:
+                print("验收:")
+                for i, c in enumerate(crit, 1):
+                    mark = "x" if i in doneidx else " "
+                    print(f"  [{mark}] {i}. {c}")
+            else:
+                print("验收: -")
+            print(f"note: {s.get('note') or '-'}")
+            print(f"created: {_fmt_ts(s.get('created'))}")
+            print(f"started: {_fmt_ts(s.get('started'))}")
+            print(f"finished: {_fmt_ts(s.get('finished'))}")
+            return
+        if a.action in ("ready", "claim"):
+            t = self.ws.store.load(a.tid)
+            batch = self._ready(t)
+            if not batch:
+                run = [s["sid"] for s in t.get("subtasks", []) if s["status"] == SS_RUNNING]
+                pend = [s for s in t.get("subtasks", []) if s["status"] == SS_PENDING]
+                print(f"无就绪 subtask (running: {','.join(run) or '-'}, "
+                      f"pending: {len(pend)}) — 满槽或依赖未完成")
+                return
+            if a.action == "claim":
+                # 一次性认领: 就绪批整体标 running, 免 main 逐个 start (少一轮往返 + 无竞态窗口)
+                for s in batch:
+                    s["status"] = SS_RUNNING
+                    if not s.get("started"):
+                        s["started"] = now()  # exec 时刻 (首次认领, 重认领不覆盖)
+                self.ws.store.save(t)  # _save 已渲染子任务看板
+                print("已认领 (running) — main 逐个派 skein-executor（dispatch 只给 tid + sid + 工作目录）, 完成即 subtask done/fail:")
+            else:
+                print("就绪 (只读预览, 认领用 `subtask claim`):")
+            for s in batch:
+                sk = ",".join(s.get("skills", [])) or "-"
+                chk = "; ".join(s.get("验收", [])) or "-"
+                print(f"{s['sid']}\t{s['name']}\tskills: {sk}\t验收: {chk}")
+            return
+        # start / done / fail 均针对单 sid
+        t = self.ws.store.load(a.tid)
+        s = self.ws._sub(t, a.sid)
+        if a.action == "start":
+            if s["status"] not in (SS_PENDING, SS_FAILED):
+                raise SkeinError(f"{a.sid} 状态 {s['status']}, 只能 start 待处理/失败")
+            done = {x["sid"] for x in t["subtasks"] if x["status"] == SS_DONE}
+            undone = [d for d in s.get("depends_on", []) if d not in done]
+            if undone:
+                raise SkeinError(f"依赖未完成: {', '.join(undone)} — 先 done 它们")
+            run = [x for x in t["subtasks"] if x["status"] == SS_RUNNING]
+            if len(run) >= self.ws.config()["max_active"]:
+                raise SkeinError(f"并发已满 ({len(run)}) — 先 done 一个再 start")
+            # task 还在「就绪」→ 就地启动 (与 claim 同一条路, 见 _ensure_task_active)。
+            # 启动会重写 task.json, 所以要拿启动后的对象重新定位 subtask, 否则改的是旧副本。
+            if t["status"] == S_READY:
+                t = self._ensure_task_active(t, a)
+                s = self.ws._sub(t, a.sid)
+                print(f"自动启动就绪 task: {a.tid}")
+            self.ws._stage_hooks("subtask.start", "before", self.ws._hook_ctx(a.tid, a.sid, t=t))
+            s["status"] = SS_RUNNING
+            if not s.get("started"):
+                s["started"] = now()  # exec 时刻 (首次 start, 重启不覆盖)
+        elif a.action == "check":
+            crit = s.get("验收", [])
+            val = (a.passed or "").strip()
+            if val == "all":
+                idx = list(range(1, len(crit) + 1))
+            elif val in ("none", ""):
+                idx = []
+            else:
+                idx = sorted({int(x) for x in _split(val)})
+                bad = [i for i in idx if i < 1 or i > len(crit)]
+                if bad:
+                    raise SkeinError(f"验收序号越界: {bad} (共 {len(crit)} 条)")
+            s["验收done"] = idx
+            self.ws.store.save(t)  # _save 已渲染子任务看板
+            print(f"{a.tid}/{a.sid} 验收 {len(idx)}/{len(crit)} ({_sub_pct(s)}%)")
+            return
+        elif a.action == "done":
+            self.ws._stage_hooks("subtask.done", "before", self.ws._hook_ctx(a.tid, a.sid, t=t))
+            s["status"] = SS_DONE
+            s["finished"] = now()  # 完成时刻
+            s["验收done"] = list(range(1, len(s.get("验收", [])) + 1))  # 完成即全过 → 100%
+        elif a.action == "fail":
+            self.ws._stage_hooks("subtask.fail", "before", self.ws._hook_ctx(a.tid, a.sid, t=t))
+            s["status"] = SS_FAILED
+            s["finished"] = now()  # 失败时刻 (与 done 对称)
+            if a.note:
+                s["note"] = a.note  # 失败备注 (运行时, 非 planning schema)
+        self.ws.store.save(t)  # _save 已渲染子任务看板
+        if a.action in ("start", "done", "fail"):
+            self.ws._stage_hooks(f"subtask.{a.action}", "after", self.ws._hook_ctx(a.tid, a.sid, t=t))
+        print(f"{a.tid}/{a.sid} → {s['status']}")

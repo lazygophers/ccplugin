@@ -99,8 +99,10 @@ def test_degrade_single_file(mem_ws: Path, mem_cli: MemCli) -> None:
 # ── 2. degrade --auto 循环降级 ─────────────────────────────────────────────────
 def test_degrade_auto_loop_to_budget(mem_ws: Path, mem_cli: MemCli) -> None:
     """core 超 CORE_BUDGET → --auto 循环降 top-1 最大文件, 直到 core ≤ BUDGET 即停。"""
+    # ponytail: 显式写 config 钉死预算, 不耦合全局默认 (默认已从 8000 降到 1000)
+    (_ws_root(mem_ws).parent / "config.yaml").write_text("spec_always_budget: 8000\n")
     ts = int(time.time())
-    chunk = "x" * 2000  # 5 条 × ~2000 ≈ 10000 字符 > CORE_BUDGET(8000)
+    chunk = "x" * 2000  # 5 条 × ~2000 ≈ 10000 字符 > 预算 8000
     for i in range(1, 6):
         _write_rule(mem_ws, "core", "big", f"t{i}-{i-1:02d}", title=f"big{i}",
                     keywords="k", source=f"t{i}", created=ts, updated=ts, body=chunk)
