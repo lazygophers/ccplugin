@@ -984,7 +984,7 @@ class Skein(DoctorMixin, BoardSourceMixin):
         else:
             print(f"无超 {d} 天保留期的完成 task 可归档")
         rest = self.store.all_tasks()
-        blocked = self._unfinished_related(rest)
+        blocked = self.store._unfinished_related(rest)  # 关联链护栏在落盘层 (store.py)
         held = sorted(t["id"] for t in rest if t["id"] in blocked and t["status"] == S_DONE)
         if held:
             print(f"跳过 {len(held)} 个完成 task (关联链上仍有未完成): {', '.join(held)}")

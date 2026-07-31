@@ -33,9 +33,23 @@ from __future__ import annotations
 import os
 import sys
 
-# hook 环境不走 Bash PATH 也不保证 cwd —— 显式接 sys.path 才能 import skeinlib
-# (bin/ wrapper 用 runpy.run_path, 不像直调脚本那样自动加 sys.path[0], 见 test_bin_wrappers)。
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# 入口接线: 把**本文件真实所在目录**放到 sys.path 最前, 才能 import skeinlib。
+#
+# 为什么必须显式写这行 (Python 不会替你做):
+# ① `bin/` wrapper 走 `runpy.run_path()`, 它**根本不设 sys.path[0]** —— 直接 `python3 x.py`
+#    才会自动加脚本目录。生产环境 (plugin.json) 走的正是 wrapper, 漏了这行整套 hook 全崩。
+# ② 插到**最前**: 一台机器上 skein 常同时存在多份 (开发仓 / marketplace / plugin cache 按
+#    commit 各一份), serve 的 reload 子进程还会往 PYTHONPATH 塞脚本目录。插 0 位保证 import
+#    到的是**跟本入口同一份**的 skeinlib —— 串副本的症状是新版入口配旧版实现, 极难查。
+# ③ 靠 `__file__` 而非 cwd: 调用方的工作目录是用户仓库根, 不是插件目录; harness 起 hook 时
+#    既不走 Bash PATH 也不保证 cwd。
+#
+# 用 `realpath` 而非 `abspath` 是防御性的: Python 3.11+ 对直接跑的脚本已会解析 sys.path[0]
+# 的软链, 目录软链的遍历也本就透明 —— 实测两者当前无差别。但 runpy 那条路径不享受前者,
+# 且成本为零, 所以按更严的写。
+_HERE = os.path.dirname(os.path.realpath(__file__))
+if _HERE not in sys.path:
+    sys.path.insert(0, _HERE)
 
 from skeinlib.errors import SkeinError  # noqa: E402
 from skeinlib.spec.cli import main  # noqa: E402

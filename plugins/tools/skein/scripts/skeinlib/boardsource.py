@@ -21,7 +21,8 @@ from typing import Any, Callable, Optional, cast
 
 from skeinlib.hooks.runner import DBG
 from skeinlib.config import _cfg_effective, _yaml_load
-from skeinlib.serve import (build_app, install_serve_deps, max_mtime, serve_deps_present, webapp_dir)
+from skeinlib.serve import (build_app, install_serve_deps, max_mtime, probe_same_project,
+                            serve_deps_present, webapp_dir)
 from skeinlib.views import Snapshot
 from skeinlib.paths import SCRIPTS_DIR, SKEIN_ENTRY
 
@@ -215,7 +216,7 @@ class BoardSourceMixin:
                 existing_port = json.loads(lock.read_text()).get("port")
             except Exception:
                 existing_port = None
-            if existing_port and self._probe_same_project(existing_port, proj_id):
+            if existing_port and probe_same_project(existing_port, proj_id, self._LOCK_ID_PATH):
                 url = f"http://127.0.0.1:{existing_port}/"
                 if not quiet:
                     print(f"SKEIN 看板服务已在运行: {url}", flush=True)

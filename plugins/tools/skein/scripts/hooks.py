@@ -22,10 +22,24 @@ import re
 import sys
 from typing import Any, Optional, cast
 
-# harness 起 hook 时既不走 Bash PATH 也不保证 cwd —— 必须显式接 sys.path 才能 import skeinlib
-# (bin/ wrapper 用 runpy.run_path, 它不像直调脚本那样自动加 sys.path[0], 见 test_bin_wrappers)。
-# 刻意用 os.path 而非 pathlib: pathlib 要 2.5ms, 而这是每个 prompt 都跑的路径, os 本来就已导入。
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# 入口接线: 把**本文件真实所在目录**放到 sys.path 最前, 才能 import skeinlib。
+#
+# 为什么必须显式写这行 (Python 不会替你做):
+# ① `bin/` wrapper 走 `runpy.run_path()`, 它**根本不设 sys.path[0]** —— 直接 `python3 x.py`
+#    才会自动加脚本目录。生产环境 (plugin.json) 走的正是 wrapper, 漏了这行整套 hook 全崩。
+# ② 插到**最前**: 一台机器上 skein 常同时存在多份 (开发仓 / marketplace / plugin cache 按
+#    commit 各一份), serve 的 reload 子进程还会往 PYTHONPATH 塞脚本目录。插 0 位保证 import
+#    到的是**跟本入口同一份**的 skeinlib —— 串副本的症状是新版入口配旧版实现, 极难查。
+# ③ 靠 `__file__` 而非 cwd: 调用方的工作目录是用户仓库根, 不是插件目录; harness 起 hook 时
+#    既不走 Bash PATH 也不保证 cwd。
+#
+# 用 `realpath` 而非 `abspath` 是防御性的: Python 3.11+ 对直接跑的脚本已会解析 sys.path[0]
+# 的软链, 目录软链的遍历也本就透明 —— 实测两者当前无差别。但 runpy 那条路径不享受前者,
+# 且成本为零, 所以按更严的写。
+_HERE = os.path.dirname(os.path.realpath(__file__))
+if _HERE not in sys.path:
+    sys.path.insert(0, _HERE)
+# 刻意用 os.path 而非 pathlib: pathlib 要 2.5ms, 而这是每个 prompt 都跑的路径, os 本就已导入。
 from skeinlib.hooks.judge import (_CTX, _PREFIX_RULE, _UNINIT_PLAIN,  # noqa: E402
                                   _UNINIT_TRELLIS, _judge_signal, _task_phase_hints)
 # subprocess / datetime 改局部 import (仅 cmd_fmt / cmd_stop_check 用), 不拖 user-prompt 等热路径 (perf-research §6.2)
@@ -169,7 +183,7 @@ def cmd_fmt(d: dict[str, Any]) -> int:
         return 0  # 非 prd.md 放行
     tid = m.group(1)
     root = norm[:m.start()] or (d.get("cwd") or os.getcwd())  # .skein 所在仓库根作 cwd
-    skein_py = os.path.join(os.path.dirname(os.path.abspath(__file__)), "skein.py")
+    skein_py = os.path.join(_HERE, "skein.py")  # _HERE 已解析软链, 见顶部接线
     import subprocess  # 局部: 仅 fmt 子命令用, 不拖 user-prompt 等热路径
     try:
         subprocess.run([sys.executable, skein_py, "fmt", tid], cwd=root,
@@ -248,9 +262,7 @@ def cmd_stop_check(_: dict[str, Any]) -> int:
 
     返回 0 永不阻塞 (问题归 specer agent 异步修)。无 .skein/spec → 静默; 无问题 → 删旧标记防已修复后误触发。
     """
-    here = os.path.dirname(os.path.abspath(__file__))
-    if here not in sys.path:
-        sys.path.insert(0, here)
+    # sys.path 已在模块顶部接好, 此处不再重复
     from skeinlib.spec.facade import Spec  # 局部 import: 仅 stop-check 加载, 不拖其他子命令启动
     from skeinlib.spec.model import always_budget
     from datetime import datetime  # 局部: 仅 stop-check 用 (ts 落盘)
