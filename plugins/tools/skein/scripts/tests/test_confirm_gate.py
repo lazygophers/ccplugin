@@ -152,8 +152,9 @@ def test_board_whitelist_maps_confirm_to_fixed_argv() -> None:
     assert argv is not None and argv[-3:] == ["confirm", "feat-x", "--approved"], argv
     assert "--force" not in argv and "-rf" not in argv, f"前端传的 flag 泄进 argv: {argv}"
 
-    summ = sk._exec_argv({"cmd": "confirm-summary", "id": "feat-x"})
-    assert summ is not None and summ[-3:] == ["confirm", "feat-x", "--summary"], summ
+    # 看板不开 --summary 端点: 用户点按钮时 PRD 就在眼前, 不必再弹一遍摘要
+    assert sk._exec_argv({"cmd": "confirm-summary", "id": "feat-x"}) is None, \
+        "confirm-summary 不该在白名单里 (看板无二次确认框)"
 
     assert sk._exec_argv({"cmd": "confirm"}) is None, "缺 id 应拒"
     assert sk._exec_argv({"cmd": "confirm", "id": "  "}) is None, "空白 id 应拒"

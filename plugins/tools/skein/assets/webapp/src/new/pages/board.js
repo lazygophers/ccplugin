@@ -1092,23 +1092,9 @@ export async function render(mount, params, ctx) {
   }
 
   // 人审门: 规划中 task 的「确认规划」→ 就绪。
-  // 先取 PRD 审核摘要给用户看, 用户点「确认」才真放行 —— 不看就批等于没有这道门。
+  // 不弹二次确认框 —— 用户就在 task 详情里看着 PRD 点的这个按钮, 再弹一遍摘要是多余一步。
+  // 失败才提示 (那是错误上报, 不是确认门)。
   async function confirmPlan(t) {
-    let summary = '';
-    try {
-      const r = await api.exec('confirm-summary', { id: t.id });
-      if (!r || !r.ok) throw new Error((r && (r.stderr || r.error)) || '取摘要失败');
-      summary = (r.stdout || '').trim();
-    } catch (e) {
-      await alertDialog('取 PRD 摘要失败: ' + (e && e.message ? e.message : e), '确认规划');
-      return;
-    }
-    const yes = await confirmDialog({
-      title: `确认规划 · ${t.id}`,
-      message: summary + '\n\n确认以上规划无误? 确认后 task 进「就绪」, 可被调度执行。',
-      ok: '确认进就绪',
-    });
-    if (!yes) return;
     try {
       const r = await api.exec('confirm', { id: t.id });
       if (!r || !r.ok) throw new Error((r && (r.stderr || r.error)) || '确认失败');
