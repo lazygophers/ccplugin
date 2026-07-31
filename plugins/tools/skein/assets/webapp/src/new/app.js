@@ -43,7 +43,8 @@ export function fmtTime(ts) {
 }
 
 // 数据规范化已移入 model.js (app.js 自启动, 那些纯适配在浏览器外没法测)。
-export { normalizeStatus, normalizeTask, normalizeTasks } from './model.js';
+import { normalizeStatus, normalizeTask, normalizeTasks } from './model.js';
+export { normalizeStatus, normalizeTask, normalizeTasks };
 
 // ---- 生命周期时间线 (board 详情面板 / task 详情页共用) ----
 // 阶段序: 已过的阶段=done, 正处的阶段=current, 之后=pending。
@@ -93,7 +94,11 @@ export function buildTimeline(task) {
 }
 
 // ETA 纯函数已移入 eta.js (app.js 自启动, 那段数学在浏览器外没法测)。
-export { aggregateEta, criticalPath, etaOf, etaText, fmtHours, actualOf, overallProgress } from './eta.js';
+// ⚠️ `export { X } from './y.js'` 是**纯转发**, 不在本模块建立局部绑定 —— app.js 自己的代码
+// 调 X 会 ReferenceError。踩过一次: subTimelineView 里的 fmtHours 当场炸。
+// 故写成 import + export 两行: 前者给本文件用, 后者维持对外的再导出契约 (各 page 从 app.js 拿)。
+import { aggregateEta, criticalPath, etaOf, etaText, fmtHours, actualOf, overallProgress } from './eta.js';
+export { aggregateEta, criticalPath, etaOf, etaText, fmtHours, actualOf, overallProgress };
 
 // ---- 执行阶段子时间线: 每个 subtask 的执行过程 (默认折叠) ----
 // board 详情面板 / task 详情页共用 (与 buildTimeline 同模式, 挂在时间线「执行」节点下)
