@@ -101,6 +101,21 @@ def test_ctx_demands_an_explicit_verdict_line() -> None:
     assert "第一行" in _PREFIX_RULE, "_PREFIX_RULE 没说明判定行要放第一行"
 
 
+def test_every_verdict_line_demands_a_reason() -> None:
+    """三档判定行**都**要带 (原因: …) —— 曾经只有 inline 那档带理由。
+
+    只写结论不写原因, 越界看不见: 「判定: inline」后面改了五个文件, 到底是判据用错还是判据
+    没读, 事后分不出来, 用户也没法纠偏到点上。原因把判据摊开, 判错才当场可反驳。
+    """
+    from skeinlib.hooks.judge import _CTX, _PREFIX_RULE
+    for text, where in ((_CTX, "_CTX"), (_PREFIX_RULE, "_PREFIX_RULE")):
+        # 只看格式模板行 (缩进的 `[skein] 判定: …`), 不看散文里提判定行的句子
+        lines = [ln for ln in text.splitlines() if ln.strip().startswith("[skein] 判定:")]
+        assert len(lines) >= 3, f"{where} 判定行不足三档: {lines}"
+        for ln in lines:
+            assert "原因" in ln, f"{where} 这档判定行没要求写原因: {ln.strip()!r}"
+
+
 def test_ctx_has_no_escaped_backticks() -> None:
     """注入文案里不得出现 `\\``  —— 那是 Python 字符串转义漏出来的字面反斜杠。
 
