@@ -390,6 +390,34 @@ export async function render(mount, params, ctx) {
     else window.location.href = `/task/detail?id=${id}`;
   }
 
+  // 人审门: 规划中 task 的「确认规划」→ 就绪。
+  // 先取 PRD 审核摘要给用户看, 用户点确认才真放行 —— 不看就批等于没有这道门。
+  async function confirmPlan() {
+    let summary = '';
+    try {
+      const r = await api.exec('confirm-summary', { id: task.id });
+      if (!r || !r.ok) throw new Error((r && (r.stderr || r.error)) || '取摘要失败');
+      summary = (r.stdout || '').trim();
+    } catch (e) {
+      await alertDialog('取 PRD 摘要失败: ' + (e && e.message ? e.message : e), '确认规划');
+      return;
+    }
+    const yes = await confirmDialog({
+      title: `确认规划 · ${task.id}`,
+      message: summary + '\n\n确认以上规划无误? 确认后 task 进「就绪」, 可被调度执行。',
+      ok: '确认进就绪',
+    });
+    if (!yes) return;
+    try {
+      const r = await api.exec('confirm', { id: task.id });
+      if (!r || !r.ok) throw new Error((r && (r.stderr || r.error)) || '确认失败');
+    } catch (e) {
+      await alertDialog('确认失败: ' + (e && e.message ? e.message : e), '确认规划');
+      return;
+    }
+    await render(mount, params, ctx);
+  }
+
   // 删除任务: 软删进 .skein/trash/ (skein del), 删完回看板
   async function deleteTask() {
     const yes = await confirmDialog({
@@ -566,6 +594,13 @@ export async function render(mount, params, ctx) {
               ? h('button.antd-btn.antd-btn-default',
                   { onclick: () => alertDialog('状态变更开发中') },
                   [h('i.fa.fa-play.mr-1.5'), '开始'])
+              : null,
+            // 人审门: 规划中才给「确认规划」。点它 = 真实用户批准 → 后端跑 confirm --approved。
+            // main 没有浏览器点不了这个按钮, 所以这是审核门最硬的一条通道。
+            st === 'planning'
+              ? h('button.antd-btn.antd-btn-primary.w-full',
+                  { onclick: confirmPlan, title: '审核 PRD 后放行进「就绪」, 之后才可被调度' },
+                  [h('i.fa.fa-check.mr-1.5'), '确认规划 → 就绪'])
               : null,
             st === 'active'
               ? h('button.antd-btn.antd-btn-default',

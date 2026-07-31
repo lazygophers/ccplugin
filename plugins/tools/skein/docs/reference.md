@@ -10,7 +10,7 @@
 | `skein doctor` | 健康检查 |
 | `skein create <id> [--name] [--desc] [--deps] [--kind] [--parent] [--repos]` | 创建 task |
 | `skein confirm <id> [--summary\|--approved]` | 用户确认门 (待处理→就绪)。裸跑非 TTY 会拒。`--summary` 只打印 PRD 审核摘要不改状态; `--approved` = 已在 `AskUserQuestion` 拿到用户批准 |
-| `skein start <id>` | 激活 (占 active 槽 + 创建 worktree), 就绪→进行中 |
+| `skein start <id>` | 激活 (占 active 槽 + 创建 worktree), 就绪→进行中。通常不必手工跑 — `claim` 认领就绪 task 的 subtask 时自动触发 |
 | `skein finish <id>` | 收束: commit→merge→销 worktree→标记完成 (归档=保留期后自动, 非 finish 步) |
 | `skein archive <id>` | 归档 (丢弃 worktree, 不合并) |
 | `skein rename <id> <new-id>` | 重命名 |

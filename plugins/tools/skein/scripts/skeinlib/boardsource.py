@@ -145,6 +145,13 @@ class BoardSourceMixin:
             except ValueError:
                 return None
             return base + ["clean", "--days", str(d)] if d >= 0 else None
+        if cmd == "confirm-summary":  # 看板「确认规划」对话框: 先取 PRD 审核摘要给用户看
+            return base + ["confirm", g("id"), "--summary"] if s("id") else None
+        if cmd == "confirm":
+            # 看板「确认规划」按钮 = **真实用户动作**, 所以这里可以带 --approved。
+            # 这是人审门最硬的一条通道: main 没有浏览器, 物理上点不了这个按钮 (对比另一条
+            # 「AskUserQuestion + --approved」只靠流程纪律)。argv 固定, 不接受前端传 flag。
+            return base + ["confirm", g("id"), "--approved"] if s("id") else None
         if cmd == "del":  # 看板「删除任务」: 软删进 .skein/trash/ 可恢复 (仅整 task, 不开放 sid 级)
             return base + ["del", g("id")] if s("id") else None
         if cmd == "prd":  # 网页端 prd 章节编辑: read/write/add/check/uncheck (复用 CLI 同一写盘逻辑)

@@ -120,7 +120,7 @@ layer N: 最下游节点
 |---|---|---|
 | **task 级** | 同时「进行中」的 task 数 ≤ max_active | `skein start` 时硬拒 |
 | **单 task 内 subtask** | 单 task 内同时「运行中」的 subtask 数 ≤ max_active | `skein subtask start` 时硬拒 |
-| **全局 subtask** | 所有 active task 加起来的 running subtask 数 ≤ max_active | `skein claim` 全局认领时截断 |
+| **全局 subtask** | 所有可调度 task (进行中 + 就绪) 加起来的 running subtask 数 ≤ max_active | `skein claim` 全局认领时截断 |
 
 ### 4.3 两套独立槽
 
@@ -152,7 +152,7 @@ while skein claim 返回非空:       # 全局跨 task 合池竞争
 
 | 命令 | 范围 | 用途 |
 |---|---|---|
-| `skein claim` | 全局跨 task | **主路径**：所有 active task 的 ready subtask 合池竞争 |
+| `skein claim` | 全局跨 task | **主路径**：所有可调度 task (进行中 + 就绪, 前置已清) 的 ready subtask 合池竞争; 就绪 task 首个 subtask 被认领时自动启动 |
 | `skein subtask claim <tid>` | 单 task 内 | 兼容模式：仅指定 task 内截断，不跨 task 竞争 |
 | `skein claim --dry-run` | 全局只读 | 预览就绪批，不改态不占槽 |
 | `skein subtask start <tid> <sid>` | 单个 subtask | 失败重派 / 定点补派 |
@@ -265,7 +265,7 @@ skein subtask add <tid> <fix-sid> \
 
 ### 8.1 跨 task 合池
 
-所有 active task 的 ready subtask 竞争**同一 `max_active` 槽**，不是 per-task 各占 max_active。
+所有可调度 task (进行中 + 就绪) 的 ready subtask 竞争**同一 `max_active` 槽**，不是 per-task 各占 max_active。task 级 max_active 同时限制能有多少个 task 处于进行中 —— 满槽时就绪 task 不会被自动启动。
 
 ```
 总并发 = task1.running + task2.running + ... ≤ max_active

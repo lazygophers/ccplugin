@@ -633,7 +633,7 @@ class Skein(DoctorMixin, BoardSourceMixin):
             # 该先报缺什么, 而不是让用户去审一份残缺的 PRD。
             print(review_summary(self.tasks, a.id, t))
             return
-        channel = self._require_user_review(a.id, t, approved=getattr(a, "approved", False))
+        channel = self._require_user_review(a.id, bool(getattr(a, "approved", False)))
         self._stage_hooks("confirm", "before", self._hook_ctx(a.id, t=t))
         t["status"] = S_READY
         t["confirmed"] = now()
@@ -644,52 +644,58 @@ class Skein(DoctorMixin, BoardSourceMixin):
         print(f"{a.id} 就绪 (规划完成, 待 skein start 启动)")
 
     # ---- 人审门 (待处理→就绪 的最后一道) ----
-    def _require_user_review(self, tid: str, t: dict[str, Any], *, approved: bool = False) -> str:
-        """PRD 必须由**用户本人**过目确认才允许进就绪。返回审核渠道 (写进 confirmed_by)。
+    def _require_user_review(self, tid: str, approved: bool) -> str:
+        """PRD 必须经用户过目才允许进就绪。返回审核渠道 (写进 `confirmed_by`)。
 
         ## 为什么要有这道门
         前面三道 (prd 填齐 / ≥1 subtask / 预计工时) 校验的都是**结构**, AI 自己就能填满然后
         自己跑 confirm —— 于是「用户确认门」名存实亡, 一个没人看过的 PRD 直接进了就绪。
 
-        ## 两条通道, 强制力不同 (选型时要知道差别)
-        | 通道 | 怎么走 | 谁在挡 |
-        |---|---|---|
-        | `--approved` | main 先 `confirm --summary` 取摘要 → `AskUserQuestion` 请用户批准 → 带此参数 | **流程纪律**: 参数 AI 自己能传, 脚本看不到 AskUserQuestion 的结果 |
-        | 终端交互 | 用户自己敲 `skein confirm <id>`, 读摘要后输入 task id | **脚本强制**: stdin 非 TTY 直接拒, AI 物理上过不去 |
+        ## 🛑 本方法禁读 stdin
+        CLI 的定位是被 skill / agent 调用的, **任何交互都会把调用方挂住** (等一个永远不来的
+        输入)。曾经这里有一段 TTY 交互 (打印摘要 + 等用户敲 task id), 已整段删除。审核结果只
+        以 `--approved` 这一个布尔量进来, 怎么拿到批准是调用方的事。
 
-        默认用 `--approved` 那条 —— `AskUserQuestion` 的答案是真实用户输入 (AI 伪造不了), 且
-        用户不用离开对话去开终端。代价是「有没有真的问」这一步靠 main 守规矩, 与「有没有真的
-        建 task」同级。终端那条留着, 给要绝对强制的场合 (CI / 不信任的 agent)。
+        ## 两条合法来源 (都是真实用户动作)
+        | 来源 | 怎么走 |
+        |---|---|
+        | 看板点击 | 用户在 task 详情面板/详情页点「确认规划」→ `POST /__skein__/exec` 白名单转 `confirm <id> --approved`。**AI 没有浏览器, 点不了** |
+        | 对话确认 | main 先 `confirm <id> --summary` 取摘要 → `AskUserQuestion` 请用户批准 → 带 `--approved` 再跑 |
 
-        ## 测试怎么过
-        `SKEIN_CONFIRM_ASSUME_TTY=1` 只绕过 isatty 判定, **仍要求从 stdin 读到正确的 task id**,
-        确认逻辑本身照测 (输错一样拒)。禁把它当跳过审核的开关用。
+        前者 AI 物理上做不到, 后者靠流程纪律 (`AskUserQuestion` 的答案 AI 伪造不了, 但"有没有
+        真的问"这一步得 main 自觉) —— 与「有没有真的派 agent」同级。
         """
         if approved:
-            return "ask"   # main 已在 AskUserQuestion 拿到用户批准
-        if os.environ.get("SKEIN_CONFIRM_ASSUME_TTY") != "1" and not sys.stdin.isatty():
-            raise SkeinError(
-                f"{tid} 需用户审核 PRD 后才能进就绪 (当前 stdin 非 TTY = AI 或脚本在跑)。两条路:\n"
-                f"  ① main 走对话确认 (推荐): `skein confirm {tid} --summary` 取摘要 → "
-                f"`AskUserQuestion` 请用户批准 → `skein confirm {tid} --approved`\n"
-                f"  ② 用户自己在终端敲: `! skein confirm {tid}`\n"
-                f"  🛑 未真正问过用户就传 --approved = 伪造审核, 属流程错误")
-        sys.stderr.write(review_summary(self.tasks, tid, t) + "\n")
-        sys.stderr.write(f"\n确认以上规划无误、可进就绪? 输入 task id ({tid}) 确认, 其余任意键取消> ")
-        sys.stderr.flush()
-        answer = sys.stdin.readline().strip()
-        if answer != tid:
-            raise SkeinError(f"已取消 — 输入 {answer!r} 与 {tid!r} 不符, {tid} 保持待处理")
-        return "user-tty"
+            return "user"
+        raise SkeinError(
+            f"{tid} 需用户审核 PRD 后才能进就绪。两条路 (都要真实用户动作):\n"
+            f"  ① 看板点击 (最稳): 打开 task 详情, 点「确认规划」按钮\n"
+            f"  ② 对话确认: `skein confirm {tid} --summary` 取摘要 → `AskUserQuestion` 请用户"
+            f"批准 → `skein confirm {tid} --approved`\n"
+            f"  🛑 没真问过用户就传 --approved = 伪造审核, 属流程错误")
 
     def start(self, a: argparse.Namespace) -> None:
+        self._start_task(a.id, a)
+
+    def _start_task(self, tid: str, a: argparse.Namespace, *, quiet: bool = False) -> dict[str, Any]:
+        """就绪 → 进行中: 体检 + 并发校验 + 建 worktree + 打时间戳。返回启动后的 task。
+
+        抽成方法是为了给**自动启动**复用 —— `claim` / `subtask start` 认领到一个属于「就绪」
+        task 的 subtask 时会调它 (见 `_ensure_task_active`), 那条路必须走**完全相同**的副作用:
+        doctor 前置体检、task 级 max_active 校验、prd double-check、worktree 建立、started
+        时间戳、start 的 before/after 阶段钩子。少任何一样, 自动启动的 task 就与手工 start 的
+        不是同一种状态 —— 那类差异极难查 (表现是「有的 task 没 worktree」)。
+
+        `quiet=True` 只压掉给人看的输出, 不跳过任何校验。
+        """
         # start 前置体检: 跑 doctor 结构不变量检查, 有 ✗ 错误 → doctor 内 raise SkeinError 阻止 start
-        print("start 前置体检 (doctor):")
+        if not quiet:
+            print("start 前置体检 (doctor):")
         self.doctor(a)
-        t = self.store.load(a.id)
+        t = self.store.load(tid)
         if t["status"] != S_READY:
             raise SkeinError(
-                f"{a.id} 状态为 {t['status']}, 只能 start 就绪 task — "
+                f"{tid} 状态为 {t['status']}, 只能 start 就绪 task — "
                 f"待处理(规划中) 须先 skein confirm 过用户确认门")
         cfg = self.config()
         active = self.store.active()
@@ -701,8 +707,8 @@ class Skein(DoctorMixin, BoardSourceMixin):
         if undone:
             raise SkeinError(f"前置未完成: {', '.join(undone)} — 先 finish 它们")
         # planning 完成门 (subtask + prd) 已在 confirm 时校验; 此处 double-check prd 防 confirm 后被改空
-        validate_prd(self.tasks, a.id)
-        self._stage_hooks("start", "before", self._hook_ctx(a.id, t=t))
+        validate_prd(self.tasks, tid)
+        self._stage_hooks("start", "before", self._hook_ctx(tid, t=t))
         t["status"] = S_ACTIVE
         repos = t.get("repos") or []
         wt_cfg = cfg["worktree"]["enabled"]
@@ -711,13 +717,13 @@ class Skein(DoctorMixin, BoardSourceMixin):
         # 故只在 config 显式禁用时挡, 不吃 self.git (支持非 git 父 + 多 git 子的微服务布局)。
         if repos and not wt_cfg:
             raise SkeinError(
-                f"{a.id} 声明了 --repos 但 config worktree.enabled=false — 多子 git 隔离需启用 worktree")
+                f"{tid} 声明了 --repos 但 config worktree.enabled=false — 多子 git 隔离需启用 worktree")
         if repos:
             # 多子 git: planning 声明的每个子 git 各开 worktree+branch (并列 repo / submodule 同理)
             t["worktrees"] = [make_worktree(t, r, cfg, self.root) for r in repos]
             t["worktree"] = ", ".join(w["wt"] for w in t["worktrees"])  # 显示汇总
         elif wt_on:
-            rel = f"{cfg['worktree']['root']}/skein-{a.id}"  # 相对 project root 存盘, 免机器绝对路径入库
+            rel = f"{cfg['worktree']['root']}/skein-{tid}"  # 相对 project root 存盘, 免机器绝对路径入库
             git("worktree", "add", "-b", t["branch"], str(self.root / rel), "HEAD", cwd=self.root)
             t["worktree"] = rel
             t["worktrees"] = [{"repo": ".", "wt": rel, "branch": t["branch"], "merged": False}]
@@ -734,8 +740,10 @@ class Skein(DoctorMixin, BoardSourceMixin):
         else:
             reason = "config worktree.enabled=false" if self.git else "非 git 仓库"
             loc = f"{reason}: 原地执行 (无 worktree 隔离)"
-        self._stage_hooks("start", "after", self._hook_ctx(a.id, t=t))
-        print(f"{a.id} started\n{loc}")
+        self._stage_hooks("start", "after", self._hook_ctx(tid, t=t))
+        if not quiet:
+            print(f"{tid} started\n{loc}")
+        return t
 
     def check(self, a: argparse.Namespace) -> None:
         # 进行中→检查中: 记 checked 时刻 (board 展示等待/执行时间用)。仅 active 可进检查。
@@ -1182,11 +1190,38 @@ class Skein(DoctorMixin, BoardSourceMixin):
         cand.sort(key=lambda p: (-crit.get(p[1]["sid"], 0), p[0]))
         return [s for _, s in cand[:slots]]
 
+    def _schedulable(self) -> list[dict[str, Any]]:
+        """可被调度的 task: **进行中 + 就绪(前置已清)**, 按登记序。
+
+        「就绪」也算可调度是刻意的 —— 就绪 = 已过人审门、规划完成、只差开工。要求先手工
+        `skein start` 再派 subtask, 等于在已经确认过的东西上再要一次仪式, 而那一步没有任何
+        新信息进来。改为**首个 subtask 被认领时自动启动**该 task (见 `_ensure_task_active`)。
+
+        前置未完成的就绪 task 不进池 —— 与 `start` 的 deps 门同一判据, 免得自动启动绕过它。
+        """
+        active = self.store.active()
+        active_ids = {t["id"] for t in active}
+        ready = [t for t in self.store.all_tasks()
+                 if t["status"] == S_READY and t["id"] not in active_ids
+                 and not any(self._dep_unfinished(d) for d in t.get("deps", []))]
+        return active + ready
+
+    def _ensure_task_active(self, t: dict[str, Any], a: argparse.Namespace) -> dict[str, Any]:
+        """若 task 还在「就绪」, 就地把它启动 (进行中 + worktree)。已是进行中则原样返回。
+
+        走的是与手工 `skein start` **完全相同**的 `_start_task`, 所以 doctor 体检、task 级
+        max_active、prd double-check、worktree、started 时间戳、start 阶段钩子一个不少。
+        task 级并发满时 `_start_task` 会抛 —— 自动启动**不得**绕过那道上限, 抛出来是对的。
+        """
+        if t["status"] != S_READY:
+            return t
+        return self._start_task(t["id"], a, quiet=True)
+
     def _global_ready(self) -> list[tuple[dict[str, Any], dict[str, Any]]]:
-        """全局跨 task 就绪批: 所有 active task 的 ready subtask 合池,
+        """全局跨 task 就绪批: 所有**可调度** task (进行中 + 就绪) 的 ready subtask 合池,
         按 (拓扑深度降序, task 登记序, subtask 登记序) 排序, 截到全局 max_active - 全局 running 槽。
         返回 [(task_obj, subtask_obj), ...]。"""
-        tasks = self.store.active()  # 已按 STATUS_ACTIVE 过滤 + 登记序
+        tasks = self._schedulable()
         global_running = sum(
             1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SS_RUNNING)
         slots = self.config()["max_active"] - global_running
@@ -1241,21 +1276,39 @@ class Skein(DoctorMixin, BoardSourceMixin):
             print("— 认领整批: `skein.py claim`  或只占单个: `skein.py subtask start <tid> <sid>`")
             return
         if not batch:
-            tasks = self.store.active()
+            tasks = self._schedulable()
             grun = sum(1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SS_RUNNING)
             gpend = sum(1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SS_PENDING)
             mp = self.config()["max_active"]
             print(f"无全局就绪 subtask (全局 running: {grun}/{mp}, pending: {gpend}) — 满槽或依赖未完成")
             return
-        claimed: list[tuple[str, dict[str, Any]]] = []
+        # 按 task 分组认领: 属于「就绪」task 的, 先把该 task 就地启动 (进行中 + worktree),
+        # 再标 subtask running。启动会重写 task.json, 所以必须拿**启动后**的对象再找 subtask,
+        # 否则改的是一份马上被覆盖掉的旧副本 (改了等于没改, 且不报错)。
+        by_tid: dict[str, list[str]] = {}
+        order: list[str] = []
         for t, s in batch:
-            s["status"] = SS_RUNNING
-            if not s.get("started"):
-                s["started"] = now()  # exec 时刻 (首次认领, 重认领不覆盖)
-            claimed.append((t["id"], s))
-        # 跨 task 改态: 每个 task 各 _save 一次 (按 id 去重, _write_if_changed 自身增量)
-        for t in {id(c[0]): c[0] for c in batch}.values():
+            if t["id"] not in by_tid:
+                by_tid[t["id"]] = []
+                order.append(t["id"])
+            by_tid[t["id"]].append(s["sid"])
+        claimed: list[tuple[str, dict[str, Any]]] = []
+        started_now: list[str] = []
+        for tid in order:
+            t = next(x for x, _ in batch if x["id"] == tid)
+            if t["status"] == S_READY:
+                t = self._ensure_task_active(t, a)   # 满槽会抛 — 自动启动不绕并发上限
+                started_now.append(tid)
+            subs = {s["sid"]: s for s in t.get("subtasks", [])}
+            for sid in by_tid[tid]:
+                s = subs[sid]
+                s["status"] = SS_RUNNING
+                if not s.get("started"):
+                    s["started"] = now()  # exec 时刻 (首次认领, 重认领不覆盖)
+                claimed.append((tid, s))
             self.store.save(t)
+        if started_now:
+            print(f"自动启动就绪 task (首个 subtask 被认领): {', '.join(started_now)}")
         print("已全局认领 (running) — main 逐个派 skein-executor（dispatch 只给 tid + sid + 工作目录）, 完成即 subtask done/fail:")
         for tid, s in claimed:
             sk = ",".join(s.get("skills", [])) or "-"
@@ -1370,6 +1423,12 @@ class Skein(DoctorMixin, BoardSourceMixin):
             run = [x for x in t["subtasks"] if x["status"] == SS_RUNNING]
             if len(run) >= self.config()["max_active"]:
                 raise SkeinError(f"并发已满 ({len(run)}) — 先 done 一个再 start")
+            # task 还在「就绪」→ 就地启动 (与 claim 同一条路, 见 _ensure_task_active)。
+            # 启动会重写 task.json, 所以要拿启动后的对象重新定位 subtask, 否则改的是旧副本。
+            if t["status"] == S_READY:
+                t = self._ensure_task_active(t, a)
+                s = self._sub(t, a.sid)
+                print(f"自动启动就绪 task: {a.tid}")
             self._stage_hooks("subtask.start", "before", self._hook_ctx(a.tid, a.sid, t=t))
             s["status"] = SS_RUNNING
             if not s.get("started"):

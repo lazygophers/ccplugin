@@ -886,7 +886,7 @@ function designView(design) {
 }
 
 // ---- 右侧详情面板 (仅当有选中任务时显示) ----
-function detailPanel(task, allTasks, onClose, onSubClick, onOpenDetail, onTaskClick, onDelete) {
+function detailPanel(task, allTasks, onClose, onSubClick, onOpenDetail, onTaskClick, onDelete, onConfirm) {
   if (!task) return null;
 
   const st = task.status || 'planning';
@@ -903,6 +903,14 @@ function detailPanel(task, allTasks, onClose, onSubClick, onOpenDetail, onTaskCl
         h('h3.text-lg.font-semibold.text-head.truncate', task.title || task.name || '(未命名)'),
       ]),
       h('div.flex.items-center.gap-1', [
+        // 人审门: 规划中 task 才给「确认规划」。点它 = 真实用户批准 → 后端跑 confirm --approved。
+        // main 没有浏览器点不了这个按钮, 所以这是审核门最硬的一条通道。
+        st === 'planning'
+          ? h('button.detail-panel-close.is-ok',
+              { onclick: () => { if (onConfirm) onConfirm(task); },
+                title: '确认规划 → 进就绪 (审核 PRD 后放行)' },
+              h('i.fa.fa-check'))
+          : null,
         h('button.detail-panel-close',
           { onclick: () => { if (onOpenDetail) onOpenDetail(task.id); },
             title: '打开详情页' },
@@ -1081,6 +1089,34 @@ export async function render(mount, params, ctx) {
       return;
     }
     await render(mount, params, ctx);  // 重拉 /data 重绘 (计数/DAG 全变)
+  }
+
+  // 人审门: 规划中 task 的「确认规划」→ 就绪。
+  // 先取 PRD 审核摘要给用户看, 用户点「确认」才真放行 —— 不看就批等于没有这道门。
+  async function confirmPlan(t) {
+    let summary = '';
+    try {
+      const r = await api.exec('confirm-summary', { id: t.id });
+      if (!r || !r.ok) throw new Error((r && (r.stderr || r.error)) || '取摘要失败');
+      summary = (r.stdout || '').trim();
+    } catch (e) {
+      await alertDialog('取 PRD 摘要失败: ' + (e && e.message ? e.message : e), '确认规划');
+      return;
+    }
+    const yes = await confirmDialog({
+      title: `确认规划 · ${t.id}`,
+      message: summary + '\n\n确认以上规划无误? 确认后 task 进「就绪」, 可被调度执行。',
+      ok: '确认进就绪',
+    });
+    if (!yes) return;
+    try {
+      const r = await api.exec('confirm', { id: t.id });
+      if (!r || !r.ok) throw new Error((r && (r.stderr || r.error)) || '确认失败');
+    } catch (e) {
+      await alertDialog('确认失败: ' + (e && e.message ? e.message : e), '确认规划');
+      return;
+    }
+    await render(mount, params, ctx);
   }
 
   // 删除任务: 软删进 .skein/trash/ (skein del), 可从 trash 恢复
@@ -1328,7 +1364,7 @@ export async function render(mount, params, ctx) {
             : [listView(allTasks, selectTask, statusSet)]
         ),
         // 右侧: 详情面板 (仅选中时显示)
-        hasPanel ? detailPanel(selectedTask, allTasks, closePanel, onSubClick, openDetailPage, selectTask, deleteTask) : null,
+        hasPanel ? detailPanel(selectedTask, allTasks, closePanel, onSubClick, openDetailPage, selectTask, deleteTask, confirmPlan) : null,
         // 连线图例 (浮在画布区左下角, 不随画布滚动)
         view === 'dag' ? edgeLegend() : null,
       ]),
@@ -1395,7 +1431,7 @@ export async function render(mount, params, ctx) {
     const body = aside.querySelector('.detail-panel-body');
     const scrollTop = body ? body.scrollTop : 0;
     const t = allTasks.find(x => x.id === id);
-    const fresh = detailPanel(t, allTasks, closePanel, onSubClick, openDetailPage, selectTask, deleteTask);
+    const fresh = detailPanel(t, allTasks, closePanel, onSubClick, openDetailPage, selectTask, deleteTask, confirmPlan);
     aside.replaceWith(fresh);
     const freshBody = fresh.querySelector('.detail-panel-body');
     if (freshBody) freshBody.scrollTop = scrollTop;

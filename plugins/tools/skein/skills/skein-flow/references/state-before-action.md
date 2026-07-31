@@ -23,15 +23,15 @@
 
 | 项 | 内容 |
 |---|---|
-| **门规** | task 必须先 `skein confirm` (待处理→就绪) + `skein start` (就绪→进行中) 才能进 exec 调度门 |
-| **禁止行为** | 待处理 / 就绪态 task 禁派 subtask、禁跑 exec |
+| **门规** | task 必须先 `skein confirm` (待处理→就绪, **须用户批准**) 才能进 exec 调度门。**就绪即可调度** — `skein start` 不必手工跑, `claim` / `subtask start` 认领到就绪 task 的 subtask 时会自动启动它 (走与手工 start 完全相同的副作用: doctor 体检 / 并发上限 / worktree / 时间戳 / 阶段钩子) |
+| **禁止行为** | **待处理**态 task 禁派 subtask、禁跑 exec (未过人审门)。就绪态可派 |
 | **违反后果** | 流程错误，所做的 inline 改动 / 派发全部无效，必须回退重走 |
-| **回退操作** | 先 `skein confirm` (若还在待处理; **须先 `--summary` + `AskUserQuestion` 拿用户批准再 `--approved`**, 裸跑会被拒) + `skein start` 进进行中，再继续 exec |
-| **校验依据** | `skein start` 脚本硬卡：非就绪态直接拒 |
+| **回退操作** | 先 `skein confirm` (**须先拿用户批准**: 看板点击, 或 `--summary` + `AskUserQuestion` + `--approved`; 裸跑会被拒), 之后直接 `skein claim` 即可 — 无需手工 `start` |
+| **校验依据** | `skein confirm` 无用户批准直接拒; `_schedulable()` 只收「进行中 + 就绪(前置已清)」, 待处理态永远进不了候选池 |
 
 **典型违规场景**:
 - 新建 task 后想「先做起来再说」，跳过 confirm/start 直接派 subtask
-- 把就绪态 task 当 active 用，直接走 exec 调度
+- 把**待处理**态 task 当就绪用，跳过人审门直接走 exec 调度
 - 以「这个 task 很简单」为由跳过 start
 
 ---

@@ -5,7 +5,7 @@
 ## 触发与前置硬门
 
 - **触发**: SKILL.md 参数路由 `$1=exec` (驱动就绪/在途 task 走完整闭环到 finish) 或 `$1` 缺省/flow (plan 收敛后自动续)。
-- **入口硬门 = task 级状态先行** — 未 `skein start` (占槽建 worktree) 禁进 exec 调度门, 详见 [state-before-action.md](state-before-action.md) 硬门 1。
+- **入口硬门 = task 级状态先行** — 未 `skein confirm` (过人审门) 禁进 exec 调度门。**就绪即可调度**: 不必手工 `skein start`, `claim` 认领到就绪 task 的 subtask 时会自动启动它 (建 worktree + 进行中)。详见 [state-before-action.md](state-before-action.md) 硬门 1。
 - **出口硬门 = subtask 全 done** — 全部 subtask done 才自动收束进 check, 半途禁跨阶段推进。
 
 ## 流程步骤
@@ -28,7 +28,7 @@
 > **工作目录 (worktree 态自适应)** — 详见 [worktree-convention.md](worktree-convention.md)。真值一律以 task 的 `worktree` 字段为准 (null=原地)。
 
 - **🛑 subtask 状态先行 (硬前置)** — 详见 [state-before-action.md](state-before-action.md) 硬门 2。claim 占槽是派 agent 的硬前置, pending/failed 态 subtask 禁直接派 agent。
-- **claim 默认即改态占槽 (整批标 running), 无需额外参数; --dry-run 才只读预览**。**调度** → main 亲跑: `skein claim` (**全局跨 task**, 所有 active task ready subtask 合池竞争同一 `max_active` 槽) 算就绪批 + 标 running, main 逐个真实 `Agent` 调用 dispatch。批量推进用 `claim`; 单 task 场景用 `skein subtask claim <tid>` 兼容; 预览用 `skein claim --dry-run`。
+- **claim 默认即改态占槽 (整批标 running), 无需额外参数; --dry-run 才只读预览**。**调度** → main 亲跑: `skein claim` (**全局跨 task**, 所有**可调度** task 即 进行中 + 就绪(前置已清) 的 ready subtask 合池竞争同一 `max_active` 槽) 算就绪批 + 标 running, main 逐个真实 `Agent` 调用 dispatch。批量推进用 `claim`; 单 task 场景用 `skein subtask claim <tid>` 兼容; 预览用 `skein claim --dry-run`。
 - **执行 → 一律 `Agent(subagent_type="skein:skein-executor", description=..., prompt=...)`** (禁 teammate / team, 禁传 `team_name`; 照抄形式见 [carrier-rules.md 派发调用形式](carrier-rules.md#派发调用形式-照抄-禁自由发挥)), prompt 只给 **tid + sid + 工作目录** 三参数 (executor 自读 `subtask show <tid> <sid>` 补全字段+自跑 done/fail, 见 [dag-scheduling.md](dag-scheduling.md) §9)。载体铁律 (单 subagent 禁 team / main 禁写源码 / Recursion Guard 靠工具面强制) 权威定义见 [carrier-rules.md](carrier-rules.md), 不重复。
 
 ### 调度循环 (动态, 完成即派)

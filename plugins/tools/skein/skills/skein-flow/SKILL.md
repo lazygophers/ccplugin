@@ -35,7 +35,7 @@ effort: medium
 
 | 硬门 | 门规 | 违反后果 |
 |---|---|---|
-| 1. task 级 | 未 `skein confirm`(**须先 AskUserQuestion 拿用户批准**)+`skein start` (就绪→进行中) 禁进 exec | 流程错误, 回退补状态命令 |
+| 1. task 级 | 未 `skein confirm` (**须先拿到用户批准**) 禁进 exec。**就绪即可调度** — `claim` 会在首个 subtask 被认领时自动 `start` (建 worktree + 进行中), 不必手工先 start | 流程错误, 回退补 confirm |
 | 2. subtask 级 | 未 `skein claim`/`subtask start` 占槽禁派 agent | 已派视为无槽, 需回收补占槽 |
 | 3. check 级 | 未 `skein check` (进行中→检查中) 禁跑验证/宣告结果 | 验证无效, 需重走 check |
 
@@ -70,7 +70,12 @@ effort: medium
 结构门 (prd / subtask / 工时) 过完还有一道**人审门** —— 那三道校验的都是结构, main 自己就能
 填满再自己 confirm, 没有这道门「用户确认」名存实亡。**裸 `skein confirm <id>` 会被拒。**
 
-plan 收敛后 main 走这三步, 一个 task 一轮:
+两条合法来源, 都要真实用户动作:
+
+| 来源 | 怎么走 | 强制力 |
+|---|---|---|
+| **看板点击** | 用户在 task 详情面板 / 详情页点「确认规划」 | 最强 — main 没有浏览器, 物理上点不了 |
+| **对话确认** | main 走下面三步 | 靠流程纪律 (与「有没有真的派 agent」同级) |
 
 ```
 1. skein confirm <id> --summary        # 取 PRD 审核摘要 (只打印, 不改状态)
@@ -78,15 +83,13 @@ plan 收敛后 main 走这三步, 一个 task 一轮:
 3. skein confirm <id> --approved       # ← 仅在用户选了批准之后
 ```
 
-- 用户选「要改」→ 回 planning 改 prd/subtask/工时, 改完重走这三步, **禁跳过**。
-- 多个 task **逐个各问一轮**, 禁一次 AskUserQuestion 打包批准多个 (用户没法逐份看)。
-- `AskUserQuestion` 的选项要给真选择 (批准 / 要改哪里), 禁只给「确认」一个选项当走过场。
+- 用户选「要改」→ 回 planning 改 prd/subtask/工时, 改完重走, **禁跳过**。
+- 多个 task **逐个各问一轮**, 禁一次 `AskUserQuestion` 打包批准多个 (用户没法逐份看)。
+- `AskUserQuestion` 要给真选择 (批准 / 要改哪里), 禁只给「确认」一个选项当走过场。
+- 看板已开着时, 也可以直接把 task 详情页链接给用户让其点 —— 比走对话更省事且更硬。
 
 🛑 **没真问过用户就传 `--approved` = 伪造用户审核**, 与「宣称派了 agent 但无 tool_use」同级的
-流程错误。同理 `SKEIN_CONFIRM_ASSUME_TTY` 只为测试存在, 拿它跳审核 = 流程错误。
-
-另一条通道: 用户自己在终端敲 `! skein confirm <id>` (读摘要后输入 task id 确认)。那条是**脚本
-强制**的 (非 TTY 物理上过不去), 适合 CI 或不信任的 agent; 日常走上面的对话确认即可。
+流程错误。
 
 **完整 plan 阶段作业手册** (research 判定门 / 策略分档 / 复杂度天花板 / 判新旧登记 / brainstorm / 愿景翻译 / grill 契约锁定 / prd+design+subtask 产出 / dedup / 出口分流 / 失败模式) 详见 [references/for-plan.md](references/for-plan.md)。
 
@@ -102,7 +105,7 @@ plan 收敛后 main 走这三步, 一个 task 一轮:
 
 ## 🛑 硬门
 
-见状态先行硬门 1 (未 `skein start` 禁进 exec 调度门) + 硬门 2 (未 `claim` 占槽禁派 agent)。**exec 无验收** — subagent 回传即执行完成, main 只 `done`/`fail`, 验收全归 check。
+见状态先行硬门 1 (未 `skein confirm` 过人审门禁进 exec) + 硬门 2 (未 `claim` 占槽禁派 agent)。就绪态 task 直接 `claim` 即可, 首个 subtask 被认领时脚本自动启动该 task。**exec 无验收** — subagent 回传即执行完成, main 只 `done`/`fail`, 验收全归 check。
 
 ## ✅ exec 阶段完成判据
 

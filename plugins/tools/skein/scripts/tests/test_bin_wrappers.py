@@ -94,6 +94,45 @@ def test_hook_import_stays_lean() -> None:
         f"改成函数内局部 import (见 skeinlib/hooks/__init__.py 的热路径纪律)。")
 
 
+# skein / spec 的**只读**子命令 (跑一遍不改盘)。写命令另有各自的测试, 这里只验「不挂住」。
+NON_BLOCKING_PROBE = [
+    ("skein", ["list"]), ("skein", ["current"]), ("skein", ["ready"]), ("skein", ["board"]),
+    ("skein", ["doctor"]), ("skein", ["status", "nope"]), ("skein", ["claim", "--dry-run"]),
+    ("spec", ["list"]), ("spec", ["inject-core"]), ("spec", ["maintain"]),
+    ("spec", ["recall", "x"]), ("spec", ["session-start"]),
+]
+
+
+def test_no_cli_command_blocks_on_stdin(tmp_path: Path) -> None:
+    """🛑 CLI 是被 skill / agent 调用的 —— 任何 stdin 交互都会把调用方永久挂住。
+
+    **stdin 必须是一个开着不关的管道**。两个坑都踩过: 用 `DEVNULL` 的话 `input()` 立刻
+    EOFError 返回; 用 `PIPE` 但调 `communicate()` 的话它会把 stdin 关掉, 同样立刻 EOF。
+    只有 `Popen(stdin=PIPE)` + `wait()`(不碰 communicate) 才真的把管道留着, 精确复现
+    「调用方是 agent, stdin 开着但没人敲」的现场。
+
+    退出码不限 —— 未初始化/参数不全时合法地退非零; 这条只管「有没有返回」。
+    """
+    from conftest import MEM, SKEIN, make_ws
+    make_ws(tmp_path)
+    scripts = {"skein": SKEIN, "spec": MEM}
+    for tool, args in NON_BLOCKING_PROBE:
+        proc = subprocess.Popen(
+            [sys.executable, str(scripts[tool]), *args], cwd=tmp_path,
+            stdin=subprocess.PIPE,                    # 开着不写不关 = 模拟 agent 调用
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        try:
+            # 只 wait, **禁用 communicate** —— 后者会把 stdin 关掉, 于是 input() 拿到 EOF
+            # 立刻返回, 测试就抓不到了 (踩过一次)。输出丢 DEVNULL 免 PIPE 写满自成死锁。
+            proc.wait(timeout=20)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.wait()
+            raise AssertionError(
+                f"`{tool} {' '.join(args)}` 在 stdin 开着时不返回 — 它在等输入。"
+                f"CLI 禁交互 (调用方是 agent, 没人能敲那个输入)。") from None
+
+
 if __name__ == "__main__":
     import tempfile
     test_wrappers_exist()
@@ -103,4 +142,6 @@ if __name__ == "__main__":
         test_every_hook_subcommand_survives_wrapper(Path(td))
         test_agent_hooks_survive_wrapper(Path(td))
     test_hook_import_stays_lean()
+    with tempfile.TemporaryDirectory() as td:
+        test_no_cli_command_blocks_on_stdin(Path(td))
     print("bin wrapper 冒烟过")
