@@ -385,7 +385,7 @@ class IndexMixin:
 
         # 汇总 anchors (按频次排序)
         from collections import Counter
-        anchor_counter = Counter()
+        anchor_counter: Counter[str] = Counter()
         for (anchors_str,) in rows:
             if anchors_str:
                 # anchors 字段格式: "path1,path2,path3"

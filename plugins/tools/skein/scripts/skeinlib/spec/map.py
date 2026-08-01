@@ -65,10 +65,10 @@ class MapMixin:
         import json
         print(json.dumps(merged_data, ensure_ascii=False, indent=2))
 
-    def _compute_skeleton(self, paths_inject: str) -> dict:
+    def _compute_skeleton(self, paths_inject: str) -> dict[str, object]:
         """计算骨架数据：目录树+符号+行数。"""
         # 1. 取文件清单: 参数注入 > git ls-files > rglob(非git降级)
-        repo_root = self.root.parent.parent  # type: ignore[attr-defined]  # .skein/spec → 仓库根
+        repo_root = self.root.parent.parent  # .skein/spec → 仓库根
         files: list[Path] = []
 
         if paths_inject:
@@ -96,7 +96,7 @@ class MapMixin:
             return {"total_files": 0, "total_lines": 0, "files": []}
 
         # 2. 现算目录树+符号+行数 (不写盘)
-        results: list[dict] = []
+        results: list[dict[str, object]] = []
         for f in files:
             if not f.is_file():
                 continue
@@ -122,7 +122,7 @@ class MapMixin:
 
         return {
             "total_files": len(results),
-            "total_lines": sum(r["lines"] for r in results),
+            "total_lines": sum(cast(int, r["lines"]) for r in results),
             "files": results,
         }
 
@@ -138,56 +138,52 @@ class MapMixin:
                 return True
         return False
 
-    def _merge_with_map_semantic(self, skeleton_data: dict) -> dict:
+    def _merge_with_map_semantic(self, skeleton_data: dict[str, object]) -> dict[str, object]:
         """合并骨架数据和 map namespace 语义页。
 
         语义页格式: spec/map/<category>/<topic>.md
         frontmatter 包含 anchors 列表 (失效即 maintain 断链候选)
         """
-        merged = {
-            "skeleton": skeleton_data,
-            "semantic": {},
-            "merged": True,
-        }
+        semantic: dict[str, list[dict[str, object]]] = {}
 
         # 扫描 map namespace 所有语义页
         map_dir = self.root / "map"
-        if not map_dir.exists():
-            return merged
+        if map_dir.exists():
+            for md_file in map_dir.rglob("*.md"):
+                if not md_file.is_file() or md_file.name in ("index.md", "backlinks.md"):
+                    continue
 
-        for md_file in map_dir.rglob("*.md"):
-            if not md_file.is_file() or md_file.name in ("index.md", "backlinks.md"):
-                continue
+                try:
+                    content = md_file.read_text()
+                    meta = self._parse_frontmatter(content)
+                    rel_path = str(md_file.relative_to(map_dir))
 
-            try:
-                content = md_file.read_text()
-                meta = self._parse_frontmatter(content)
-                rel_path = str(md_file.relative_to(map_dir))
+                    # 提取语义信息
+                    semantic_info: dict[str, object] = {
+                        "path": rel_path,
+                        "title": meta.get("title", ""),
+                        "category": meta.get("category", ""),
+                        "keywords": meta.get("keywords", []),
+                        "anchors": meta.get("anchors", []),
+                        "inclusion": meta.get("inclusion", "auto"),
+                    }
 
-                # 提取语义信息
-                semantic_info = {
-                    "path": rel_path,
-                    "title": meta.get("title", ""),
-                    "category": meta.get("category", ""),
-                    "keywords": meta.get("keywords", []),
-                    "anchors": meta.get("anchors", []),
-                    "inclusion": meta.get("inclusion", "auto"),
-                }
+                    # 按类目组织
+                    category = str(semantic_info["category"])
+                    semantic.setdefault(category, []).append(semantic_info)
 
-                # 按类目组织
-                category = semantic_info["category"]
-                if category not in merged["semantic"]:
-                    merged["semantic"][category] = []
-                merged["semantic"][category].append(semantic_info)
+                except (OSError, UnicodeDecodeError):
+                    continue  # 跳过读不出的文件
 
-            except (OSError, UnicodeDecodeError):
-                continue  # 跳过读不出的文件
+        return {
+            "skeleton": skeleton_data,
+            "semantic": semantic,
+            "merged": True,
+        }
 
-        return merged
-
-    def _parse_frontmatter(self, content: str) -> dict:
+    def _parse_frontmatter(self, content: str) -> dict[str, str | list[str]]:
         """解析 YAML frontmatter，返回元数据字典。"""
-        meta = {}
+        meta: dict[str, str | list[str]] = {}
         lines = content.split("\n")
         in_fm = False
         current_list = None  # 当前正在解析的列表字段
@@ -227,8 +223,9 @@ class MapMixin:
                 elif s.startswith("- ") and current_list:
                     # 流式数组的元素
                     value = s[2:].strip().strip("\"\'")
-                    if current_list in meta:
-                        meta[current_list].append(value)
+                    existing = meta.get(current_list)
+                    if isinstance(existing, list):
+                        existing.append(value)
         return meta
 
     def _rglob_exclude(self, root: Path) -> list[Path]:
