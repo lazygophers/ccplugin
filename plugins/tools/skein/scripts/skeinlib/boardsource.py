@@ -92,97 +92,128 @@ class BoardSourceMixin:
             tree[ns.name] = cats
         return tree
 
-    # ---- spec 搜索缓存 ----
-    # serve 启动时建缓存, filewatch spec rev 变化时重建; 避免每次搜索都 glob+read 几十个 .md
-    _spec_search_cache: list[dict[str, Any]] = []
 
-    def _spec_build_cache(self) -> None:
-        """扫描 .skein/spec/**/*.md, 读 frontmatter (title/category/keywords) + 正文, 建搜索索引。"""
-        root = self._spec_root()
-        cache: list[dict[str, Any]] = []
-        if not root.is_dir():
-            self._spec_search_cache = cache
-            return
-        for p in sorted(root.rglob("*.md")):
-            if not p.is_file() or p.name in ("index.md", "backlinks.md"):
-                continue
-            try:
-                txt = p.read_text(encoding="utf-8", errors="replace")
-            except Exception:
-                continue
-            rel = str(p.relative_to(root))
-            # 解析 frontmatter: title, category, keywords
-            fm_title, category, keywords = "", "", []
-            in_fm = False
-            lines = txt.split("\n")
-            fm_end = 0
-            for li, line in enumerate(lines):
-                s = line.strip()
-                if s == "---" and not in_fm:
-                    in_fm = True
-                    continue
-                if s == "---" and in_fm:
-                    fm_end = li + 1
-                    break
-                if in_fm:
-                    if s.startswith("title:"):
-                        fm_title = s[6:].strip().strip("\"\'")
-                    elif s.startswith("category:"):
-                        category = s[9:].strip().strip("\"\'")
-                    elif s.startswith("keywords:"):
-                        raw = s[9:].strip()
-                        if raw.startswith("["):
-                            keywords = [k.strip().strip("\"\'") for k in raw.strip("[]").split(",") if k.strip()]
-            # title 优先级: 正文首个 # H1 > frontmatter title > 文件名
-            h1_title = ""
-            for line in lines[fm_end:]:
-                s = line.strip()
-                if s.startswith("# ") and not s.startswith("## "):
-                    h1_title = s[2:].strip()
-                    break
-            title = h1_title or fm_title or p.stem
-            cache.append({"path": rel, "title": title, "category": category,
-                          "keywords": keywords, "preview": txt[:500], "full": txt})
-        self._spec_search_cache = cache
 
-    def _spec_meta(self) -> list[dict[str, Any]]:
-        """返回 spec 元数据扁平列表 (path/title/namespace/category/keywords), 供前端筛选。"""
-        if not self._spec_search_cache:
-            self._spec_build_cache()
-        out: list[dict[str, Any]] = []
-        for i in self._spec_search_cache:
-            parts = i["path"].split("/")
-            out.append({"path": i["path"], "title": i["title"],
-                        "namespace": parts[0] if parts else "",
-                        "category": i.get("category", ""), "keywords": i.get("keywords", [])})
-        return out
+    def _spec_meta(self, page: int = 1, page_size: int = 20, namespace: str = "",
+                   category: str = "", keyword: str = "") -> dict[str, Any]:
+        """从 SQLite 查询 spec 元数据, 支持分页和筛选。
+
+        Args:
+            page: 页码 (从 1 开始)
+            page_size: 每页条数
+            namespace: 按 namespace 筛选
+            category: 按 category 筛选
+            keyword: 按 keyword 模糊筛选
+
+        Returns:
+            dict with items (list) and total (int)
+        """
+        import sqlite3
+        import json
+
+        db = self._spec_root() / ".recall.db"
+        if not db.exists():
+            return {"items": [], "total": 0}
+
+        con = sqlite3.connect(db)
+        try:
+            # 构建 WHERE 子句
+            where_parts: list[str] = []
+            params: list[Any] = []
+
+            if namespace:
+                where_parts.append("namespace = ?")
+                params.append(namespace)
+            if category:
+                where_parts.append("category = ?")
+                params.append(category)
+            if keyword:
+                where_parts.append("(title LIKE ? OR keywords LIKE ? OR path LIKE ?)")
+                kw_pattern = f"%{keyword}%"
+                params.extend([kw_pattern, kw_pattern, kw_pattern])
+
+            where_clause = " AND ".join(where_parts) if where_parts else "1=1"
+
+            # 查询总数
+            count_query = f"SELECT COUNT(*) FROM spec_meta WHERE {where_clause}"
+            total = con.execute(count_query, params).fetchone()[0]
+
+            # 查询分页数据
+            offset = (page - 1) * page_size
+            data_query = (
+                f"SELECT path, title, namespace, category, keywords FROM spec_meta "
+                f"WHERE {where_clause} ORDER BY path LIMIT ? OFFSET ?"
+            )
+            params.extend([page_size, offset])
+
+            rows = con.execute(data_query, params).fetchall()
+
+            items: list[dict[str, Any]] = []
+            for path, title, ns, cat, keywords_json in rows:
+                try:
+                    keywords = json.loads(keywords_json) if keywords_json else []
+                except json.JSONDecodeError:
+                    keywords = []
+                items.append({
+                    "path": path,
+                    "title": title,
+                    "namespace": ns,
+                    "category": cat or "",
+                    "keywords": keywords
+                })
+
+            return {"items": items, "total": total}
+        finally:
+            con.close()
 
     def _spec_search(self, q: str) -> list[dict[str, Any]]:
-        """全文本搜索 spec 缓存 (含 metadata: path/category/keywords), 返回匹配项。"""
-        if not self._spec_search_cache:
-            self._spec_build_cache()
-        ql = q.lower()
-        results: list[dict[str, Any]] = []
-        for item in self._spec_search_cache:
-            # path 含 namespace/category; keywords 是 frontmatter 标签; 全部纳入搜索
-            haystack = (item["path"] + " " + item["title"] + " "
-                        + item.get("category", "") + " "
-                        + " ".join(item.get("keywords", [])) + " "
-                        + item["full"]).lower()
-            if ql in haystack:
-                idx = item["full"].lower().find(ql)
-                if idx < 0:
-                    # metadata 命中但正文没有 — 用 title 或 keywords 做提示
-                    kw_hit = next((k for k in item.get("keywords", []) if ql in k.lower()), None)
-                    snippet = kw_hit or item.get("category", "") or item["title"]
-                else:
-                    start = max(0, idx - 40)
-                    snippet = item["full"][start:start + 120].replace("\n", " ").strip()
-                results.append({"path": item["path"], "title": item["title"],
-                                "snippet": snippet,
-                                "category": item.get("category", ""),
-                                "keywords": item.get("keywords", [])})
-        return results
+        """从 SQLite 全文搜索 spec, 返回匹配项。
+
+        搜索范围: path/title/category/keywords (不含正文, 正文搜索由 FTS5 表 rules 提供)。
+        """
+        import sqlite3
+        import json
+
+        db = self._spec_root() / ".recall.db"
+        if not db.exists():
+            return []
+
+        con = sqlite3.connect(db)
+        try:
+            ql = f"%{q.lower()}%"
+            # 搜索 path/title/category/keywords 四个字段
+            query = (
+                "SELECT path, title, category, keywords FROM spec_meta "
+                "WHERE LOWER(path) LIKE ? OR LOWER(title) LIKE ? OR "
+                "LOWER(category) LIKE ? OR LOWER(keywords) LIKE ? "
+                "ORDER BY path LIMIT 50"
+            )
+            rows = con.execute(query, [ql, ql, ql, ql]).fetchall()
+
+            results: list[dict[str, Any]] = []
+            for path, title, category, keywords_json in rows:
+                try:
+                    keywords = json.loads(keywords_json) if keywords_json else []
+                except json.JSONDecodeError:
+                    keywords = []
+
+                # 生成 snippet (优先 title/keywords/category, 其次 path)
+                snippet = title or " ".join(keywords) or category or path
+                # 截断到 120 字符
+                if len(snippet) > 120:
+                    snippet = snippet[:120] + "..."
+
+                results.append({
+                    "path": path,
+                    "title": title,
+                    "snippet": snippet,
+                    "category": category or "",
+                    "keywords": keywords
+                })
+
+            return results
+        finally:
+            con.close()
     def _spec_resolve(self, rel: Any) -> Optional[Path]:
         # realpath 校验: 解析后必须在 .skein/spec/ 内, 越界返回 None (防路径穿越)
         root = self._spec_root()

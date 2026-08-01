@@ -135,7 +135,7 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
                     msgs.append("data")  # 旧字符串协议兜底 (无差异但 rev 变, 全订阅软刷)
                 last_cards = new_cards
             elif cur_s != last_s:
-                board._spec_build_cache()  # spec 文件变 → 重建搜索缓存
+                # spec 文件变 → 推送 spec-changed 通知 (无需重建缓存, 由 spec/index.py 维护)
                 msgs.append(json.dumps({"type": "spec-changed", "path": ""}))
             if msgs:
                 last_a, last_d, last_s = cur_a, cur_d, cur_s
@@ -149,7 +149,7 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
 
     @asynccontextmanager
     async def lifespan(_app: Any) -> AsyncIterator[None]:
-        board._spec_build_cache()  # serve 启动时建 spec 搜索缓存
+        # serve 启动时无需建缓存, 数据已由 spec/index.py 的 _rebuild_spec_meta() 维护
         task = asyncio.create_task(_watch_loop())
         if on_ready:
             on_ready()  # 已 bind, 落 lock (保证 lock 在 = 端口可连)
@@ -229,8 +229,20 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
         return JSONResponse(board._spec_tree())
 
     @app.get("/__skein__/spec/meta")
-    async def _spec_meta() -> JSONResponse:  # 扁平元数据列表 (path/title/category/keywords), 供前端筛选
-        return JSONResponse(board._spec_meta())
+    async def _spec_meta(page: int = 1, page_size: int = 20, namespace: str = "",
+                         category: str = "", keyword: str = "") -> JSONResponse:
+        """spec 元数据查询, 支持分页和筛选。
+
+        Args:
+            page: 页码 (从 1 开始, 默认 1)
+            page_size: 每页条数 (默认 20)
+            namespace: 按 namespace 筛选
+            category: 按 category 筛选
+            keyword: 按 keyword 模糊筛选
+        """
+        result = board._spec_meta(page=page, page_size=page_size,
+                                  namespace=namespace, category=category, keyword=keyword)
+        return JSONResponse(result)
 
     @app.get("/__skein__/spec/file")
     async def _spec_file(path: str) -> Any:  # 单 spec 原文 (realpath 校验限 .skein/spec/)
@@ -244,13 +256,15 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
         return {"path": path, "content": txt, "meta": meta, "body": body}
 
     def _spec_reindex() -> None:
-        """spec 变更后重建索引 (index.md/backlinks.md) + 搜索缓存。"""
+        """spec 变更后重建索引 (index.md/backlinks.md) + spec_meta 表。
+
+        reindex 命令会自动调用 _rebuild_spec_meta() 重建 SQLite 表, 无需额外缓存。
+        """
         try:
             subprocess.run([sys.executable, str(SPEC_ENTRY), "reindex"],
                            cwd=str(board.root), capture_output=True, text=True, timeout=30)
         except Exception:
-            pass  # reindex 失败不阻塞保存; watch loop 下次 tick 也会重建缓存
-        board._spec_build_cache()
+            pass  # reindex 失败不阻塞保存; watch loop 下次 tick 也会重建
 
     @app.post("/__skein__/spec/save")
     async def _spec_save(request: Request) -> Any:  # 写 spec (realpath 校验越界拒; 仅 .md)
