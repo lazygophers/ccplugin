@@ -44,7 +44,7 @@ class Scheduler:
         subs = t.get("subtasks", [])
         done = {s["sid"] for s in subs if s["status"] == SS_DONE}
         running = [s for s in subs if s["status"] == SS_RUNNING]
-        slots = self.ws.config()["max_active"] - len(running)
+        slots = self.ws.config()["pools"]["work"] - len(running)
         if slots <= 0:
             return []  # 并发满 → 阻塞
         crit = _crit_weight(subs)
@@ -89,7 +89,7 @@ class Scheduler:
         tasks = self._schedulable()
         global_running = sum(
             1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SS_RUNNING)
-        slots = self.ws.config()["max_active"] - global_running
+        slots = self.ws.config()["pools"]["work"] - global_running
         if slots <= 0:
             return []
         cand: list[tuple[dict[str, Any], dict[str, Any], int, int, int]] = []
@@ -126,7 +126,7 @@ class Scheduler:
                 tasks = self.ws.store.active()
                 grun = sum(1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SS_RUNNING)
                 gpend = sum(1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SS_PENDING)
-                mp = self.ws.config()["max_active"]
+                mp = self.ws.config()["pools"]["work"]
                 print(f"无全局就绪 subtask (全局 running: {grun}/{mp}, pending: {gpend}) — 满槽或依赖未完成")
                 if mp - len(tasks) > 0:
                     for t in self.ws.store.all_tasks():
@@ -147,7 +147,7 @@ class Scheduler:
             tasks = self._schedulable()
             grun = sum(1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SS_RUNNING)
             gpend = sum(1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SS_PENDING)
-            mp = self.ws.config()["max_active"]
+            mp = self.ws.config()["pools"]["work"]
             print(f"无全局就绪 subtask (全局 running: {grun}/{mp}, pending: {gpend}) — 满槽或依赖未完成")
             return
         # 按 task 分组认领: 属于「就绪」task 的, 先把该 task 就地启动 (进行中 + worktree),
@@ -348,7 +348,7 @@ class Scheduler:
             if undone:
                 raise SkeinError(f"依赖未完成: {', '.join(undone)} — 先 done 它们")
             run = [x for x in t["subtasks"] if x["status"] == SS_RUNNING]
-            if len(run) >= self.ws.config()["max_active"]:
+            if len(run) >= self.ws.config()["pools"]["work"]:
                 raise SkeinError(f"并发已满 ({len(run)}) — 先 done 一个再 start")
             # task 还在「就绪」→ 就地启动 (与 claim 同一条路, 见 _ensure_task_active)。
             # 启动会重写 task.json, 所以要拿启动后的对象重新定位 subtask, 否则改的是旧副本。

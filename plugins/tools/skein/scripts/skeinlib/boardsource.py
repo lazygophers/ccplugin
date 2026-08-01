@@ -55,7 +55,7 @@ class BoardSourceMixin:
             proj=self.proj, wt_shown=self._wt_shown(),
             tasks_fn=self.store.render_tasks, all_tasks_fn=self.store.all_tasks,
             tasks_dir=self.tasks, archive_dir=self.archive_dir,
-            spec_root=self._spec_root(), max_active=self.config()["max_active"])
+            spec_root=self._spec_root(), max_active=self.config()["pools"]["work"])
     def _webapp_html(self) -> str:
         # Next.js static export: 直接读 dist/index.html
         return (dist_dir() / "index.html").read_text(encoding="utf-8")

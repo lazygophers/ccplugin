@@ -88,7 +88,7 @@ def test_subtask_start_also_auto_starts(ws: Path) -> None:
 
 def test_auto_start_does_not_bypass_task_concurrency_cap(ws: Path) -> None:
     """满槽时**不**自动启动 —— 自动化不得成为绕过并发上限的后门。"""
-    run_skein(ws, "config", "set", "max_active", "2")
+    run_skein(ws, "config", "set", "pools.work", "2")
     for name in ("one-task", "two-task"):
         _ready(ws, name)
     run_skein(ws, "claim", "exec")                # 占满 2 个槽

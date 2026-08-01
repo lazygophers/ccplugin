@@ -182,7 +182,7 @@ class DoctorMixin:
                             f"— 真值源丢失, 从含该目录的分支 checkout 恢复, 或删索引行清理")
 
         # 全局并发上限
-        maxa = self.config()["max_active"]
+        maxa = self.config()["pools"]["work"]
         na = len(self.store.active())
         if na > maxa:
             errs.append(f"active task 数 {na} 超上限 {maxa}")
@@ -344,7 +344,7 @@ class DoctorMixin:
         ac_txt = ("强制 (worktree 模式必自动 commit, 本配置不生效)" if wt_on
                   else ("启用 (finish 时自动 commit)" if cfg["auto_commit"]
                         else "禁用 (改动需手动 commit)"))
-        lines += ["", "# SKEIN 运行配置", f"- worktree: {wt_txt}", f"- 最大并行 subtask: {cfg['max_active']}", f"- auto_commit: {ac_txt}"]
+        lines += ["", "# SKEIN 运行配置", f"- worktree: {wt_txt}", f"- 最大并行 subtask: {cfg['pools']['work']}", f"- auto_commit: {ac_txt}"]
         prefix_tasks = ", ".join(f"{t['id']}({PHASE_OF.get(t['status'], '')})" for t in active)
         lines += ["", "# 回复前缀 (强制)",
                   "- 每条回复以 `[skein]` 开头",

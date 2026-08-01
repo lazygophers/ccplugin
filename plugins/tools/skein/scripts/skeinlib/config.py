@@ -244,11 +244,14 @@ STAGE_NAMES = ("create", "confirm", "start", "exec", "check", "finish", "archive
                "subtask.start", "subtask.done", "subtask.fail")
 # config.yaml 全部键的默认值 — init 写入 + config() 缺键自动回填的唯一真值源。
 # 带前缀的旧扁平键 (use_worktree/worktree_root/web_serve/board_open/spec_core_budget/spec_always_budget)
-# 已层级化分组; max_active/auto_commit/retain_days 本就无前缀, 保持扁平不分组。
+# 已层级化分组; auto_commit/retain_days 本就无前缀, 保持扁平不分组。
 CONFIG_DEFAULTS: dict[str, Any] = {
-    "max_active": 2,
     "auto_commit": True,  # 仅原地模式 (worktree.enabled=false) 生效; worktree 模式 finish 必 commit, 本键不参与判定
     "retain_days": 7,  # 完成 task 保留天数; 0=finish 即归档, 负=永不自动
+    "pools": {
+        "work": 2,  # exec + research 共享的工作池上限
+        "gate": 3,  # check + finish 共享的验证/收尾池上限
+    },
     "worktree": {
         "enabled": True,  # False→禁用 worktree 隔离 (原地执行, 同非 git); start 不建、doctor 不查 worktree
         "root": ".worktrees",

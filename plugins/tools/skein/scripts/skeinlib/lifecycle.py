@@ -322,9 +322,9 @@ class Lifecycle:
                 f"待处理(规划中) 须先 skein confirm 过用户确认门")
         cfg = self.ws.config()
         active = self.ws.store.active()
-        if len(active) >= cfg["max_active"]:
+        if len(active) >= cfg["pools"]["work"]:
             raise SkeinError(
-                f"task 级并发上限 {cfg['max_active']} (当前 active: "
+                f"task 级并发上限 {cfg['pools']['work']} (当前 active: "
                 f"{', '.join(x['id'] for x in active)}), 先 finish 一个再 start")
         undone = [d for d in t["deps"] if self.ws._dep_unfinished(d)]
         if undone:

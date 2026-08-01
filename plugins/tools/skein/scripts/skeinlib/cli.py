@@ -86,7 +86,7 @@ def main() -> None:
     sub.add_parser("ready", help="脚本算可启动 task 批 (就绪态+前置全done+有空闲槽, 只读预览)")
     cm = sub.add_parser("claim", help="全局跨 task 认领批; phase 必填区分阶段")
     cm.add_argument("phase", choices=["exec", "check"],
-                    help="exec=认领 ready subtask → running (所有可调度 task 的 ready subtask 竞争 max_active 槽); check=认领 全 subtask done 的 进行中 task → 检查中 + 认领 检查通过的 检查中 task → 已完成")
+                    help="exec=认领 ready subtask → running (所有可调度 task 的 ready subtask 竞争 pools.work 槽); check=认领 全 subtask done 的 进行中 task → 检查中 + 认领 检查通过的 检查中 task → 已完成")
     cm.add_argument("--dry-run", action="store_true", help="只读预览认领批, 不改状态")
     li = sub.add_parser("list", help="列所有 task (含状态); --status 过滤 + --json 压缩输出")
     li.add_argument("--status", help="过滤: 待处理/就绪/进行中/检查中/已完成 (或 pending/ready/active/check/done), open=全部未完成; 逗号多选")
@@ -127,7 +127,7 @@ def main() -> None:
     stt.add_argument("--json", action="store_true", help="压缩 JSON 输出")
     st = sub.add_parser(
         "subtask", help="单 task 内 subtask DAG 调度 (add/claim/ready/start/show/done/fail/list)",
-        epilog="调度环: claim 认领就绪批 (整批标 running) → main 逐个派 skein-executor → 完成即 done/fail → 再 claim (并发 max_active)")
+        epilog="调度环: claim 认领就绪批 (整批标 running) → main 逐个派 skein-executor → 完成即 done/fail → 再 claim (并发 pools.work)")
     st.add_argument("action", choices=["add", "claim", "ready", "start", "check", "show", "done", "fail", "list"],
                     help="add 登记 / claim 认领就绪批(整批标running) / ready 只读预览 / start 单个占槽 / check 勾验收(算百分比) / show 查全字段 / done 完成 / fail 失败 / list 列态")
     st.add_argument("tid", help="所属 task id")

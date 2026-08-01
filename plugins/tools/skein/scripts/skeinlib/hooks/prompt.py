@@ -32,7 +32,7 @@ def _run_config(dir_: str) -> tuple[bool, int, bool]:
         cfg = CONFIG_DEFAULTS
     uw = bool(cfg["worktree"]["enabled"])
     ac = bool(cfg["auto_commit"])
-    ma = cfg["max_active"]
+    ma = cfg["pools"]["work"]
     env = os.environ.get("CLAUDE_PLUGIN_OPTION_MAX_ACTIVE")
     if env and env.strip().isdigit():
         ma = int(env)

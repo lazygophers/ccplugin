@@ -42,9 +42,9 @@ class Query:
     def ready(self, a: argparse.Namespace) -> None:
         # task 级可启动批 (脚本算, 非 AI 判): 就绪态 (已过 confirm 门) + 前置全 done + 有空闲 active 槽位。
         # 与 subtask ready 同构, 但只读预览 (start 才占槽); task 无写集字段, 故不算写集冲突。
-        slots = self.ws.config()["max_active"] - len(self.ws.store.active())
+        slots = self.ws.config()["pools"]["work"] - len(self.ws.store.active())
         if slots <= 0:
-            print(f"无空闲 active 槽 (上限 {self.ws.config()['max_active']} 已满) — 先 finish 一个再 start")
+            print(f"无空闲 active 槽 (上限 {self.ws.config()['pools']['work']} 已满) — 先 finish 一个再 start")
             return
         picked: list[dict[str, Any]] = []
         for t in self.ws.store.all_tasks():
