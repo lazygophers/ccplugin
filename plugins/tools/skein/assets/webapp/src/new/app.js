@@ -98,8 +98,8 @@ export function buildTimeline(task) {
 // ⚠️ `export { X } from './y.js'` 是**纯转发**, 不在本模块建立局部绑定 —— app.js 自己的代码
 // 调 X 会 ReferenceError。踩过一次: subTimelineView 里的 fmtHours 当场炸。
 // 故写成 import + export 两行: 前者给本文件用, 后者维持对外的再导出契约 (各 page 从 app.js 拿)。
-import { aggregateEta, criticalPath, deltaText, etaOf, etaText, fmtHours, actualOf, overallProgress } from './eta.js';
-export { aggregateEta, criticalPath, etaOf, etaText, fmtHours, actualOf, overallProgress };
+import { aggregateEta, criticalPath, deltaText, etaOf, etaText, fmtHours, actualOf, overallProgress, overallSummary } from './eta.js';
+export { aggregateEta, criticalPath, etaOf, etaText, fmtHours, actualOf, overallProgress, overallSummary };
 
 // ---- 执行阶段子时间线: 每个 subtask 的执行过程 (默认折叠) ----
 // board 详情面板 / task 详情页共用 (与 buildTimeline 同模式, 挂在时间线「执行」节点下)
@@ -189,7 +189,7 @@ export function h(tag, props, ...children) {
   let idFromTag = null;
 
   if (typeof tag === 'string' && (tag.includes('.') || tag.includes('#'))) {
-    const parts = tag.split(/(?=[.#])/);  // 按 . 或 # 分割, 保留分隔符
+    const parts = tag.split(/(?<!\\)(?=[.#])/);  // 按未转义的 . 或 # 分割, 保留分隔符 (转义点 \. 不切分)
     tagName = parts[0];
     for (let i = 1; i < parts.length; i++) {
       const p = parts[i];

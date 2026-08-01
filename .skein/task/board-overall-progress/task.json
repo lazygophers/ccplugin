@@ -2,7 +2,7 @@
   "id": "board-overall-progress",
   "name": "看板页头: 总进度条 + 总剩余时间",
   "desc": "board 页头接入已有的 overallProgress/aggregateEta, 展示加权总进度条与墙钟总剩余",
-  "status": "进行中",
+  "status": "检查中",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -23,7 +23,6 @@
         1,
         2,
         3,
-        4,
         5
       ],
       "status": "已完成",
@@ -108,7 +107,7 @@
   "created": 1785513752,
   "started": 1785556006,
   "confirmed": 1785514622,
-  "checked": null,
+  "checked": 1785566888,
   "finished": null,
   "updated": 1785566958,
   "confirmed_by": "user"

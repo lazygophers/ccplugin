@@ -6,7 +6,7 @@
 
 import { h, api, fmtRelative, fmtTime, normalizeTasks, normalizeTask, prioLabel, prioTextColor,
          confirmDialog, alertDialog, buildTimeline, subTimelineView, etaText, fmtHours, etaOf, actualOf,
-         copyChip, subIdChip } from '../app.js';
+         copyChip, subIdChip, overallSummary } from '../app.js';
 import { EDGE_KIND, edgeKinds, edgeLegend, drawEdges, buildDepDAG, depDAGView } from '../lib/depdag.js';
 
 const ST_COLOR = {
@@ -1024,6 +1024,8 @@ export async function render(mount, params, ctx) {
   // ETA 需并发上限折算并行墙钟 — overview 级配置下发到每个 card
   const maxActive = (resp && resp.overview && resp.overview.maxActive) || 2;
   const allTasks = normalizeTasks((resp && resp.cards) || []).map(t => (t.maxActive = maxActive, t));
+  // 全量口径 (不随状态筛选变) —— 与概览页同一套 overallProgress/aggregateEta, 见 eta.js#overallSummary
+  const summary = overallSummary(allTasks, maxActive);
 
   const q = params.query || {};
 
@@ -1282,9 +1284,16 @@ export async function render(mount, params, ctx) {
     mount.replaceChildren(
       // 标题行 (标题 / 状态筛选 / 缩放 / 视图切换 同一行)
       h('div.board-head.flex.items-center.mb-4.flex-wrap.gap-3', [
-        h('div.flex-shrink-0', [
+        h('div.flex-shrink-0.min-w-0', [
           h('h1.text-2xl.font-bold.text-head.mb-0\\.5', '任务看板'),
           h('p.text-muted.text-xs', `${allTasks.length} 个任务 · ${highlightedCount} 个高亮`),
+          h('div.flex.items-center.gap-2.mt-1\\.5', [
+            h('div.w-28.sm\\:w-44.h-1\\.5.rounded-full.bg-line.overflow-hidden.flex-shrink-0',
+              h('div.h-full.bg-accent.transition-all.duration-500', { style: { width: summary.pct + '%' } })),
+            h('span.text-xs.text-muted.whitespace-nowrap',
+              `整体 ${summary.pct}% (全量) · 预计剩余 ${summary.remainText}`),
+          ]),
+          summary.remainHint ? h('p.text-muted.text-xs.mt-0\\.5', summary.remainHint) : null,
         ]),
         h('div.flex-1.min-w-0', statusFilterBar(statusSet, countBy, setFilter)),
         h('div.flex.items-center.gap-3.flex-shrink-0', [
