@@ -5,9 +5,9 @@
 module.exports = {
   content: {
     files: ['./src/new/**/*.{html,js}', './src/*.js'],
-    // h() 的 tag 简写里响应式类写成 'div.lg\\:grid-cols-3' (运行时脱掉反斜杠)。
-    // 扫描器按字面看到 `lg\:grid-cols-3` 不认作候选 → 响应式类一个都不生成。先脱转义再扫。
-    transform: { js: (c) => c.replace(/\\+:/g, ':') },
+    // h() 的 tag 简写里响应式类写成 'div.lg\\:grid-cols-3', 小数类写成 'div.mb-0\\.5' (运行时脱掉反斜杠)。
+    // 扫描器按字面看到 `lg\:grid-cols-3` / `mb-0\.5` 不认作候选 → 响应式类/小数类一个都不生成。先脱转义再扫。
+    transform: { js: (c) => c.replace(/\\+:/g, ':').replace(/\\+\./g, '.') },
   },
   darkMode: ['class', '[data-theme="skein-dark"]'],
   theme: {

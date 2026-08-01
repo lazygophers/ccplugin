@@ -134,6 +134,30 @@ export function overallProgress(tasks) {
   return tot ? Math.round(live.reduce((a, t) => a + w(t) * pct(t), 0) / tot) : 0;
 }
 
+// 看板页头总进度摘要: 百分比 + 剩余文案 + 口径提示, 覆盖三种边界 (无 task / 全完成 / 全未估)。
+// 直接调用 overallProgress/aggregateEta, 不重算 —— 看板与概览页同源同算靠的就是这两个函数本身,
+// 本函数只做文案层的边界判断。tasks 须传全量 (不受状态筛选影响), 口径才是"整体"而非"当前筛选"。
+export function overallSummary(tasks, maxActive) {
+  const all = (tasks || []).filter(t => (t.status || '') !== 'archived');
+  const pct = overallProgress(all);
+  if (!all.length) return { pct: 0, remainText: '暂无任务', remainHint: '' };
+
+  const live = all.filter(t => {
+    const st = t.status || 'planning';
+    return st !== 'done' && st !== 'cancelled';
+  });
+  if (!live.length) return { pct, remainText: '全部完成', remainHint: '' };
+
+  const agg = aggregateEta(all, maxActive);
+  if (agg.unknown === live.length) {
+    return { pct, remainText: '未知', remainHint: `${agg.unknown} 个未估工时` };
+  }
+  const n = Math.max(1, Number(maxActive) || 1);
+  const hints = [`总工时 ${fmtHours(agg.work)}`, `并发 ${n}`];
+  if (agg.unknown) hints.push(`${agg.unknown} 个未估工时`);
+  return { pct, remainText: fmtHours(agg.hours), remainHint: hints.join(' · ') };
+}
+
 // 工时 → 人话。<1h 出分钟, <16h 出小时, 否则按 8h/人日 出天。
 export function fmtHours(h) {
   if (h == null || !isFinite(h) || h <= 0) return '—';

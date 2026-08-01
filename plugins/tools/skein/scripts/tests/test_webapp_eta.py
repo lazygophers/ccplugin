@@ -105,6 +105,49 @@ def test_unestimated_tasks_are_counted_not_guessed() -> None:
     assert out["unknown"] == 1 and out["hours"] == 0, out
 
 
+def _eval_summary(tasks: list[dict], max_active: int) -> dict:
+    """跑 eta.overallSummary —— 看板页头消费的正是这个函数 (board.js#overallSummary)。"""
+    script = f"""
+      const M = await import({str(WEBAPP / 'model.js')!r});
+      const E = await import({str(WEBAPP / 'eta.js')!r});
+      const T = M.normalizeTasks({json.dumps(tasks)});
+      console.log(JSON.stringify(E.overallSummary(T, {max_active})));
+    """
+    r = subprocess.run(["node", "--input-type=module", "-e", script],
+                       capture_output=True, text=True, timeout=30)
+    assert r.returncode == 0, f"node 跑失败:\n{r.stderr}"
+    return dict(json.loads(r.stdout.strip()))
+
+
+def test_summary_no_tasks_says_no_tasks_not_nan() -> None:
+    """无 task: 「暂无任务」而非 NaN / 空白 / 0%。"""
+    out = _eval_summary([], 2)
+    assert out == {"pct": 0, "remainText": "暂无任务", "remainHint": ""}, out
+
+
+def test_summary_all_done_says_all_done_not_zero_hours() -> None:
+    """全部完成: 「全部完成」而非误导性的 0h。"""
+    out = _eval_summary(
+        [{"id": "x", "status": "已完成", "estimate": 5, "spct": 100, "deps": [], "subtable": []}], 2)
+    assert out["pct"] == 100 and out["remainText"] == "全部完成" and out["remainHint"] == "", out
+
+
+def test_summary_all_unestimated_is_unknown_not_zero() -> None:
+    """全部未估工时: 剩余标「未知」而非 0h —— 0h 会让人以为马上做完, 比不显示更有害。"""
+    out = _eval_summary(
+        [{"id": "n", "status": "待处理", "deps": [], "subtable": []}], 2)
+    assert out["remainText"] == "未知" and "1 个未估工时" in out["remainHint"], out
+
+
+def test_summary_matches_overall_progress_and_aggregate_eta() -> None:
+    """同源同算: overallSummary 的 pct 必须和直接调 overallProgress 一致 (这条钉死看板与概览页
+    不会各算各的 —— 两处最终都经 overallProgress/aggregateEta 这两个函数, 不是各写一份)。"""
+    out = _eval(TASKS, 2)
+    summary = _eval_summary(TASKS, 2)
+    assert summary["pct"] == out["overall"], (summary, out)
+    assert summary["remainHint"].startswith("总工时"), summary
+
+
 if __name__ == "__main__":
     for name, fn in sorted(globals().items()):
         if name.startswith("test_") and callable(fn):

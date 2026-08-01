@@ -2,10 +2,10 @@
   "tasks": [
     {
       "id": "board-overall-progress",
-      "status": "就绪",
+      "status": "检查中",
       "deps": [],
       "priority": 5,
-      "worktree": null,
+      "worktree": ".worktrees/skein-board-overall-progress",
       "parent": null,
       "kind": "task"
     },
