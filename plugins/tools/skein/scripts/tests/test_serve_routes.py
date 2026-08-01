@@ -36,7 +36,7 @@ def _built(m: ModuleType, sk: Any) -> Any:
 def _seeded_skein(m: ModuleType, d: Path) -> Any:
     saved = {k: os.environ.pop(k) for k in list(os.environ) if k.startswith("CLAUDE_PLUGIN_OPTION_")}
     os.environ.update(saved)  # 仅探测键存在与否, 不改行为; 保原样
-    m.now = lambda: TNOW  # type: ignore[assignment]
+    m.now = lambda: TNOW  # type: ignore[attr-defined]  # 故意冻结时间的动态属性赋值, ModuleType 静态无此属性
     sk = m.Skein()
     sk.proj = "TESTPROJ"
     return sk

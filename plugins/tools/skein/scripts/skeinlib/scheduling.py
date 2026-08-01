@@ -280,8 +280,8 @@ class Scheduler:
                 deps = ",".join(s.get("depends_on", [])) or "-"
                 chk = "; ".join(s.get("验收", [])) or "-"
                 sk = ",".join(s.get("skills", [])) or "-"
-                est = s.get("estimate")
-                print(f"{s['sid']}\t{s['status']}\t{_sub_pct(s)}%\t{est if est else '-'}h\t{s['name']}"
+                est_v = s.get("estimate")  # est_v 而非 est: 避免与本函数 add 分支的 est(float) 同名混型
+                print(f"{s['sid']}\t{s['status']}\t{_sub_pct(s)}%\t{est_v if est_v else '-'}h\t{s['name']}"
                       f"\t依赖:{deps}\t验收:{chk}\tskills:{sk}")
             return
         if a.action == "show":
@@ -289,7 +289,7 @@ class Scheduler:
             s = self.ws._sub(t, a.sid)
             crit = s.get("验收", [])
             doneidx = set(s.get("验收done", []))
-            est = s.get("estimate")
+            est_v = s.get("estimate")  # est_v 而非 est: 避免与本函数 add 分支的 est(float) 同名混型
             elapsed = None
             if s.get("started") and s.get("finished"):
                 elapsed = round((s["finished"] - s["started"]) / 60, 1)  # 分钟
@@ -297,7 +297,7 @@ class Scheduler:
             print(f"name: {s['name']}")
             print(f"desc: {s.get('desc') or '-'}")
             print(f"status: {s['status']}")
-            print(f"estimate: {est if est else '-'} h")
+            print(f"estimate: {est_v if est_v else '-'} h")
             print(f"实际耗时: {elapsed if elapsed is not None else '-'} min")
             print(f"depends_on: {','.join(s.get('depends_on', [])) or '-'}")
             print(f"skills: {','.join(s.get('skills', [])) or '-'}")

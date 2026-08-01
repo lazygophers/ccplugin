@@ -9,13 +9,24 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
-from typing import Optional, cast
+from typing import TYPE_CHECKING, Optional, cast
 
 from skeinlib.errors import SkeinError
 from skeinlib.spec.text import _frontmatter, _slug, _strip_frontmatter
 
 
 class WriteMixin:
+    # 仅供 mypy 用的属性声明: root/layer_dir/_scan_namespaces/_rules/_rule_files 由兄弟类
+    # SpecBase 提供, _reindex_all 由兄弟 mixin IndexMixin 提供 (组装成 Spec 时混入)。
+    # TYPE_CHECKING 块运行时永不执行, 零行为改动, 只消除单看本 mixin 时的 attr-defined 噪声。
+    if TYPE_CHECKING:
+        root: Path
+        def layer_dir(self, layer: str) -> Path: ...
+        def _scan_namespaces(self) -> list[str]: ...
+        def _rules(self, layer: str) -> list[tuple[Path, str, str]]: ...
+        def _rule_files(self, layer: str) -> list[Path]: ...
+        def _reindex_all(self) -> dict[str, dict[str, int]]: ...
+
     # ---- namespace/inclusion 取参 (sediment/archive 共用) ----
     def _require_namespace(self, a: argparse.Namespace, *, with_inclusion: bool) -> tuple[str, Optional[str]]:
         """返回 (namespace, inclusion|None)。namespace 是自由字符串 (非白名单, design.md §2)。

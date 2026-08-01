@@ -203,7 +203,7 @@ def _view_board_data(snap: Snapshot) -> dict[str, Any]:
                            if t["status"] == S_READY
                            and not any(snap.dep_unfinished(d) for d in t.get("deps", []))), None)
 
-    prd_data = lambda tid: _prd_data(snap, tid)  # noqa: E731 — 实现提到模块级 _prd_data (detail 端点复用)
+    prd_data: Callable[[str], list[dict[str, Any]]] = lambda tid: _prd_data(snap, tid)  # noqa: E731 — 实现提到模块级 _prd_data (detail 端点复用)
 
     cards: list[dict[str, Any]] = []
     for t in tasks:
@@ -544,10 +544,10 @@ def _spec_frontmatter(text: str) -> tuple[dict[str, Any], str]:
             v = v.strip("\"'")
         meta[kv.group(1)] = v
     return meta, text[m.end():]
-def _cards_signature(data: dict[str, Any]) -> dict[str, tuple]:
+def _cards_signature(data: dict[str, Any]) -> dict[str, tuple[Any, ...]]:
     # 取 cards 关键字段做 signature (变即推 task-changed); 不深比 desc/subtable 等重字段 (省 CPU)。
     # ponytail: O(n) n=task 数; signature tuple 含 status/pct/sdone/stotal/started/finished/worktree, 软刷覆盖此集变化。
-    out: dict[str, tuple] = {}
+    out: dict[str, tuple[Any, ...]] = {}
     for c in data.get("cards", []):
         out[c["id"]] = (c.get("status"), c.get("spct"), c.get("sdone"), c.get("stotal"),
                         c.get("started"), c.get("finished"), c.get("worktree"),

@@ -9,6 +9,8 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from pathlib import Path
+from typing import TYPE_CHECKING
 
 from skeinlib.hooks.runner import budget_guard
 from skeinlib.spec.model import (AGENT_CATEGORIES, INDEX_BUDGET_TOKENS, STALE_DAYS,
@@ -17,6 +19,15 @@ from skeinlib.spec.text import _sections, _strip_frontmatter
 
 
 class InjectMixin:
+    # 仅供 mypy 用的属性声明: root/_always_files/_mtimes/_age_days 由兄弟类 SpecBase
+    # 提供 (组装成 Spec 时混入)。TYPE_CHECKING 块运行时永不执行, 零行为改动, 只消除单看
+    # 本 mixin 时的 attr-defined 噪声。
+    if TYPE_CHECKING:
+        root: Path
+        def _always_files(self) -> list[Path]: ...
+        def _mtimes(self, use_git: bool = True) -> dict[Path, int]: ...
+        def _age_days(self, f: Path, mtimes: dict[Path, int], now_ts: int) -> int: ...
+
     # ---- core 正文 (供 inject-core / session-start 复用) ----
     def _core_text_raw(self) -> str:
         parts = [_strip_frontmatter(f.read_text()).strip() for f in self._always_files()]

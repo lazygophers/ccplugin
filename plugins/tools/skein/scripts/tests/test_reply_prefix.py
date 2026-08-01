@@ -26,7 +26,7 @@ def _user_prompt(cwd: Path, prompt: str) -> str:
         [sys.executable, str(HOOKS), "user-prompt"], cwd=cwd,
         input=json.dumps({"cwd": str(cwd), "prompt": prompt}),
         capture_output=True, text=True, check=True)
-    return json.loads(r.stdout)["hookSpecificOutput"]["additionalContext"]
+    return str(json.loads(r.stdout)["hookSpecificOutput"]["additionalContext"])
 
 
 def _session_ctx(cwd: Path) -> str:
@@ -34,7 +34,7 @@ def _session_ctx(cwd: Path) -> str:
     r = subprocess.run(
         [sys.executable, str(SKEIN), "session-context"], cwd=cwd,
         capture_output=True, text=True, check=True)
-    return json.loads(r.stdout)["hookSpecificOutput"]["additionalContext"]
+    return str(json.loads(r.stdout)["hookSpecificOutput"]["additionalContext"])
 
 
 def _fill_prd(ws: Path, tid: str) -> None:

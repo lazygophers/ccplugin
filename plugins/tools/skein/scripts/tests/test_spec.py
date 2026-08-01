@@ -17,7 +17,7 @@ import sys
 import tempfile
 import time
 from pathlib import Path
-from typing import Callable
+from typing import Any, Callable
 
 MEM: Path = Path(__file__).resolve().parent.parent / "spec.py"
 
@@ -386,7 +386,7 @@ def test_maintain_product_no_auto_archive(mem_ws: Path, mem_cli: MemCli) -> None
     assert "wiki/feat" in out, f"product anchors 失效未报告: {out}"
 
 
-def _write_task(mem_ws: Path, tid: str, subtasks: list[dict], prd: str, design: str) -> Path:
+def _write_task(mem_ws: Path, tid: str, subtasks: list[dict[str, Any]], prd: str, design: str) -> Path:
     """analyze 只读 task.json/prd.md/design.md — 手写这三份 (不走 skein.py 全套脚手架, 更轻)。"""
     tdir = mem_ws / ".skein" / "task" / tid
     tdir.mkdir(parents=True, exist_ok=True)

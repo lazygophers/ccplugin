@@ -176,7 +176,7 @@ def _capture(m: ModuleType, d: Path) -> dict[str, Any]:
     frozen = [mod for mod in _now_holders() if hasattr(mod, "now")]
     saved_now = [(mod, mod.now) for mod in frozen]
     for mod in frozen:
-        mod.now = lambda: TNOW  # type: ignore[assignment]
+        mod.now = lambda: TNOW
     try:
         sk = m.Skein()
         sk.proj = "TESTPROJ"  # 固定项目名 (否则=临时目录 basename, 随机)
@@ -194,7 +194,7 @@ def _capture(m: ModuleType, d: Path) -> dict[str, Any]:
         }
     finally:
         for mod, fn in saved_now:
-            mod.now = fn  # type: ignore[assignment]
+            mod.now = fn
         os.environ.update(saved)
         os.chdir(cwd0)
 

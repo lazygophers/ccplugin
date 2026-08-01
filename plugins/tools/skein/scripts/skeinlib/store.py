@@ -135,7 +135,7 @@ class TaskStore:
                         f"subtasks={len(t.get('subtasks', []))} deps={t.get('deps') or '-'} "
                         f"contracts={len(t.get('contracts', []))}", style="dim")
         # 状态优先排序 (进行中>检查中>就绪>待处理>已完成), 同状态内按优先级降序 (数字越大越靠前), 同优先级按 id 序
-        out.sort(key=lambda t: (STATUS_ORDER.get(t.get("status"), 9),
+        out.sort(key=lambda t: (STATUS_ORDER.get(t.get("status", ""), 9),
                                 -(t.get("priority") or 5),
                                 t.get("id") or ""))
         return out

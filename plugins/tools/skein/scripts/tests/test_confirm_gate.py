@@ -25,6 +25,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
 import conftest  # noqa: F401  模块体把 scripts/ 塞进 sys.path
 from conftest import SKEIN, run_skein  # noqa: E402
@@ -63,7 +64,7 @@ def _raw(ws: Path, *args: str, timeout: float = 20) -> subprocess.CompletedProce
                           capture_output=True, text=True, timeout=timeout)
 
 
-def _task(ws: Path, tid: str) -> dict:
+def _task(ws: Path, tid: str) -> dict[str, Any]:
     return dict(json.loads((ws / ".skein/task" / tid / "task.json").read_text()))
 
 

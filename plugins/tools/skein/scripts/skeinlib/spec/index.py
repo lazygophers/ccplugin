@@ -11,12 +11,23 @@ from __future__ import annotations
 
 import argparse
 import re
-from typing import Optional, cast
+from pathlib import Path
+from typing import TYPE_CHECKING, Optional, cast
 
 from skeinlib.spec.text import _cell, _dist, _frontmatter, _link_target, _summary
 
 
 class IndexMixin:
+    # 仅供 mypy 用的属性声明: root/layer_dir/_scan_namespaces/_rules/_inclusion 由兄弟类
+    # SpecBase 提供 (组装成 Spec 时混入), TYPE_CHECKING 块运行时永不执行, 零行为改动,
+    # 只消除单看本 mixin 时的 attr-defined 噪声。
+    if TYPE_CHECKING:
+        root: Path
+        def layer_dir(self, layer: str) -> Path: ...
+        def _scan_namespaces(self) -> list[str]: ...
+        def _rules(self, layer: str) -> list[tuple[Path, str, str]]: ...
+        def _inclusion(self, f: Path) -> str: ...
+
     # ---- recall (按需粗筛: FTS5 BM25 优先, grep fallback) ----
     def recall(self, a: argparse.Namespace) -> None:
         query = cast(str, a.query)

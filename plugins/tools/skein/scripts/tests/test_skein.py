@@ -202,8 +202,8 @@ def main() -> None:
         sk(d, "subtask", "add", "task-5", "s3", "--deps", "s1,s2", "--name", "z", "--desc", "描述", "--estimate", "1")
         rdy("task-5")  # 过 confirm 门 → 就绪 (供后续 "就绪 task 待启动" 提示)
         assert (d / ".skein/task/task-5/task.md").exists(), "per-task 看板缺失"
-        rdy = sk(d, "subtask", "ready", "task-5").stdout
-        assert "s1" in rdy and "s2" in rdy and "s3" not in rdy, "就绪批错 (s3 应被依赖挡)"
+        rdy_out = sk(d, "subtask", "ready", "task-5").stdout
+        assert "s1" in rdy_out and "s2" in rdy_out and "s3" not in rdy_out, "就绪批错 (s3 应被依赖挡)"
         # ready 只读: 不改状态
         subs0 = json.loads((d / ".skein/task/task-5/task.json").read_text())["subtasks"]
         assert all(s["status"] == "待处理" for s in subs0), "ready 误改状态 (应只读)"

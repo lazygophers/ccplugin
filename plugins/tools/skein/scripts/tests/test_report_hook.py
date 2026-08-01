@@ -24,6 +24,7 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+from typing import Any
 
 import conftest  # noqa: F401  模块体把 scripts/ 塞进 sys.path
 from conftest import HOOKS  # noqa: E402
@@ -35,14 +36,14 @@ CRASH_ERR = (
     "AttributeError: 'Skein' object has no attribute 'does_not_exist'")
 
 
-def _run(payload: dict) -> subprocess.CompletedProcess[str]:
+def _run(payload: dict[str, Any]) -> subprocess.CompletedProcess[str]:
     """conftest 的 run_hooks 把 stdin 写死成空串, 这里要喂真 JSON, 故自己起进程。
     report 是纯 stdin→stdout 的转换, 不碰工作区, 所以不需要 ws fixture。"""
     return subprocess.run([sys.executable, str(HOOKS), "report"],
                           input=json.dumps(payload), capture_output=True, text=True, timeout=30)
 
 
-def _report(cmd: str, err: str) -> dict:
+def _report(cmd: str, err: str) -> dict[str, Any]:
     r = _run({"tool_name": "Bash", "tool_input": {"command": cmd}, "tool_error": err})
     assert r.returncode == 0, f"report hook 退非零: {r.stderr}"
     return dict(json.loads(r.stdout)) if r.stdout.strip() else {}

@@ -12,12 +12,18 @@ from __future__ import annotations
 import argparse
 import subprocess
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from skeinlib.spec.model import INCLUSIONS, NAMESPACES, spec_root
 from skeinlib.spec.text import _frontmatter, _sections
 
 
 class SpecBase:
+    # 仅供 mypy 用的属性声明: `_reindex_all` 由兄弟 mixin IndexMixin 提供 (组装成 Spec 时
+    # 混入), TYPE_CHECKING 块运行时永不执行, 零行为改动, 只消除单看本类时的 attr-defined 噪声。
+    if TYPE_CHECKING:
+        def _reindex_all(self) -> dict[str, dict[str, int]]: ...
+
     def __init__(self) -> None:
         self.root = spec_root()
     def layer_dir(self, layer: str) -> Path:

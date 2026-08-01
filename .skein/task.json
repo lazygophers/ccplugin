@@ -11,10 +11,19 @@
     },
     {
       "id": "mypy-mixin-debt",
-      "status": "进行中",
+      "status": "检查中",
       "deps": [],
       "priority": 5,
       "worktree": ".worktrees/skein-mypy-mixin-debt",
+      "parent": null,
+      "kind": "task"
+    },
+    {
+      "id": "skein-gitignore",
+      "status": "检查中",
+      "deps": [],
+      "priority": 5,
+      "worktree": ".worktrees/skein-skein-gitignore",
       "parent": null,
       "kind": "task"
     },
@@ -127,15 +136,6 @@
     },
     {
       "id": "board-overall-progress",
-      "status": "已完成",
-      "deps": [],
-      "priority": 5,
-      "worktree": null,
-      "parent": null,
-      "kind": "task"
-    },
-    {
-      "id": "skein-gitignore",
       "status": "已完成",
       "deps": [],
       "priority": 5,
