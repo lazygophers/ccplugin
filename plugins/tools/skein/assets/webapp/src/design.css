@@ -467,29 +467,29 @@ html { font-size: 14px; }
 .filter-btn.st-check { color: var(--muted); }
 .filter-btn.st-done { color: var(--muted); }
 .filter-btn.st-planning.active {
-  background: rgba(255, 182, 39, 0.22);
-  border-color: rgba(255, 182, 39, 0.45);
-  color: var(--sand-700);
+  background: rgba(255, 125, 97, 0.22);
+  border-color: rgba(255, 125, 97, 0.45);
+  color: var(--oc-coral-700);
 }
 .filter-btn.st-ready.active {
-  background: rgba(107, 130, 152, 0.25);
-  border-color: rgba(107, 130, 152, 0.45);
-  color: var(--stone-700);
+  background: rgba(38, 166, 200, 0.22);
+  border-color: rgba(38, 166, 200, 0.45);
+  color: var(--oc-ocean-700);
 }
 .filter-btn.st-active.active {
-  background: rgba(255, 200, 74, 0.3);
-  border-color: rgba(255, 200, 74, 0.5);
-  color: var(--sand-600);
+  background: rgba(255, 125, 97, 0.3);
+  border-color: rgba(255, 125, 97, 0.5);
+  color: var(--oc-coral-700);
 }
 .filter-btn.st-check.active {
   background: rgba(255, 182, 39, 0.22);
   border-color: rgba(255, 182, 39, 0.45);
-  color: var(--sand-600);
+  color: var(--oc-sunset-700);
 }
 .filter-btn.st-done.active {
-  background: rgba(102, 187, 106, 0.3);
-  border-color: rgba(102, 187, 106, 0.5);
-  color: var(--success);
+  background: rgba(130, 154, 177, 0.3);
+  border-color: rgba(130, 154, 177, 0.5);
+  color: var(--oc-deepsea-700);
 }
 [data-theme="skein-dark"] .filter-btn.st-planning { color: var(--muted); }
 [data-theme="skein-dark"] .filter-btn.st-ready { color: var(--muted); }
@@ -497,29 +497,29 @@ html { font-size: 14px; }
 [data-theme="skein-dark"] .filter-btn.st-check { color: var(--muted); }
 [data-theme="skein-dark"] .filter-btn.st-done { color: var(--muted); }
 [data-theme="skein-dark"] .filter-btn.st-planning.active {
-  background: rgba(255, 182, 39, 0.28);
-  border-color: rgba(255, 182, 39, 0.50);
-  color: var(--sand-300);
+  background: rgba(255, 148, 121, 0.28);
+  border-color: rgba(255, 148, 121, 0.50);
+  color: var(--oc-coral-300);
 }
 [data-theme="skein-dark"] .filter-btn.st-ready.active {
-  background: rgba(107, 130, 152, 0.28);
-  border-color: rgba(107, 130, 152, 0.50);
-  color: var(--stone-300);
+  background: rgba(75, 185, 213, 0.28);
+  border-color: rgba(75, 185, 213, 0.50);
+  color: var(--oc-ocean-300);
 }
 [data-theme="skein-dark"] .filter-btn.st-active.active {
-  background: rgba(255, 228, 158, 0.28);
-  border-color: rgba(255, 228, 158, 0.5);
-  color: var(--sand-400);
+  background: rgba(255, 148, 121, 0.28);
+  border-color: rgba(255, 148, 121, 0.5);
+  color: var(--oc-coral-300);
 }
 [data-theme="skein-dark"] .filter-btn.st-check.active {
-  background: rgba(255, 182, 39, 0.28);
-  border-color: rgba(255, 182, 39, 0.50);
-  color: var(--sand-400);
+  background: rgba(255, 200, 74, 0.28);
+  border-color: rgba(255, 200, 74, 0.50);
+  color: var(--oc-sunset-300);
 }
 [data-theme="skein-dark"] .filter-btn.st-done.active {
-  background: rgba(102, 187, 106, 0.35);
-  border-color: rgba(102, 187, 106, 0.55);
-  color: #66BB6A;
+  background: rgba(130, 154, 177, 0.35);
+  border-color: rgba(130, 154, 177, 0.55);
+  color: var(--oc-deepsea-300);
 }
 
 /* 4c. .badge 徽章 (examples: 风格: 软底色 + 无描边, 圆药丸) */
@@ -550,21 +550,22 @@ html { font-size: 14px; }
 [data-theme="skein-dark"] .badge-accent  { color: var(--sand-400); background: rgba(255, 228, 158, 0.22); }
 
 /* 状态色徽章 — 5 态: 规划中 / 待执行 / 执行中 / 验收中 / 已完成 (软底色, 无描边, 圆药丸) */
-.st-planning { background: rgba(255, 182, 39, 0.16); color: var(--sand-700); border: none; }
-.st-ready    { background: rgba(107, 130, 152, 0.18); color: var(--stone-700); border: none; }
-.st-pending  { background: rgba(107, 130, 152, 0.18); color: var(--stone-700); border: none; }
-.st-active   { background: rgba(255, 200, 74, 0.2); color: var(--sand-600); border: none; }
-.st-check    { background: rgba(255, 182, 39, 0.16); color: var(--sand-700); border: none; }
-.st-done     { background: rgba(102, 187, 106, 0.2); color: var(--success); border: none; }
-.st-failed   { background: rgba(255, 125, 97, 0.2); color: var(--danger); border: none; }
+/* 状态色徽章 — plan→Coral, 待执行→Ocean, exec→Coral, check→Sunset, finish→DeepSea (软底色, 无描边, 圆药丸) */
+.st-planning { background: rgba(255, 125, 97, 0.16); color: var(--oc-coral-700); border: none; }
+.st-ready    { background: rgba(38, 166, 200, 0.16); color: var(--oc-ocean-700); border: none; }
+.st-pending  { background: rgba(38, 166, 200, 0.16); color: var(--oc-ocean-700); border: none; }
+.st-active   { background: rgba(255, 125, 97, 0.2); color: var(--oc-coral-700); border: none; }
+.st-check    { background: rgba(255, 182, 39, 0.16); color: var(--oc-sunset-700); border: none; }
+.st-done     { background: rgba(130, 154, 177, 0.2); color: var(--oc-deepsea-700); border: none; }
+.st-failed   { background: rgba(255, 125, 97, 0.2); color: var(--oc-coral-700); border: none; }
 
-[data-theme="skein-dark"] .st-planning { background: rgba(130, 154, 177, 0.28); color: var(--sand-300); }
-[data-theme="skein-dark"] .st-ready    { background: rgba(75, 185, 213, 0.25); color: var(--stone-300); }
-[data-theme="skein-dark"] .st-pending  { background: rgba(255, 214, 115, 0.25); color: var(--sand-400); }
-[data-theme="skein-dark"] .st-active   { background: rgba(255, 228, 158, 0.22); color: var(--sand-400); }
-[data-theme="skein-dark"] .st-check    { background: rgba(255, 214, 115, 0.25); color: var(--sand-400); }
-[data-theme="skein-dark"] .st-done     { background: rgba(102, 187, 106, 0.28); color: #66BB6A; }
-[data-theme="skein-dark"] .st-failed   { background: rgba(255, 125, 97, 0.25); color: var(--danger); }
+[data-theme="skein-dark"] .st-planning { background: rgba(255, 148, 121, 0.28); color: var(--oc-coral-300); }
+[data-theme="skein-dark"] .st-ready    { background: rgba(75, 185, 213, 0.25); color: var(--oc-ocean-300); }
+[data-theme="skein-dark"] .st-pending  { background: rgba(75, 185, 213, 0.25); color: var(--oc-ocean-300); }
+[data-theme="skein-dark"] .st-active   { background: rgba(255, 148, 121, 0.22); color: var(--oc-coral-300); }
+[data-theme="skein-dark"] .st-check    { background: rgba(255, 200, 74, 0.25); color: var(--oc-sunset-300); }
+[data-theme="skein-dark"] .st-done     { background: rgba(130, 154, 177, 0.28); color: var(--oc-deepsea-300); }
+[data-theme="skein-dark"] .st-failed   { background: rgba(255, 125, 97, 0.25); color: var(--oc-coral-300); }
 
 /* 4d. .tag 标签 */
 .tag {
