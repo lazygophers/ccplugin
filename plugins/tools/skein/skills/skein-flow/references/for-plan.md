@@ -71,7 +71,7 @@ brainstorm 前先定**是否需要派 skein-researcher**, 按信号分档自动�
      - **Job Story 三段草拟** — main 套用户原话填 "When [情境], I want [动机], so I can [预期成果]", `AskUserQuestion` 让用户确认/修正三段, 锁定 outcome 再谈 solution。
      - **said / implied / missing 三分** — **明说**的入正文; **暗示**的入正文并回读确认; **缺失**的逐条列 prd.md「Open Questions」用 `AskUserQuestion` 问 (≤3 轮, 超限标「需求未定」停 planning); main 的**假设**强制写 prd.md「Assumptions」段, 禁埋正文 (防 Assumption Burial)。
      - **产物** — 「愿景 (Job Story)」+「Open Questions」+「Assumptions」段写入 prd.md; 收敛后接常规 brainstorm 补目标/边界/验收。
-   - **🧭 supertask 创建时机 (cold-start 收敛后判, 默认不建)** — 愿景翻译收敛后, 若需求过大需拆多个**各自完整 plan/exec/check/finish** 的独立小需求 → 建 supertask (`skein create <super-id> --kind supertask`) 作聚合层, 各小需求 `skein create <child-id> --parent <super-id>` 作 child task (深度限 2 层)。**单 task 可覆盖的中小需求** → 不建 supertask。
+   - **🧭 supertask 创建时机 (cold-start 收敛后判, 默认不建)** — 愿景翻译收敛后, 若需求过大需拆多个**各自完整 plan/exec/check/finish** 的独立小需求 → 建 supertask (`skein create <super-id> --kind supertask`) 作聚合层, 各小需求 `skein create <child-id> --parent <super-id>` 作 child task (深度限 2 层)。**单 task 可覆盖的中小需求** → 不建 supertask; 需要在 task 内部拆步骤而非独立闭环 → 用 subtask, 不建新 task。**已存在的 task 事后判定该归某 supertask** → 用 `skein parent <id> --set <super-id>` 改挂 (无需删档重建), `--set ""` 摘除; `parent` 与 `deps` 正交, 改挂不影响既有前置依赖。supertask finish 前要求全部 child 已完成, 否则脚本硬拒。
 4. 🛑 **grill 硬门 (未过禁进 exec · STOP)** — 委托 `skein-grill` 全轴对抗校对, 重点确认「用户想法 = PRD 写的」。弱点表交用户过, 补齐后放行。**未跑 grill 禁进 exec**; grill 未完成或弱点表未补齐 → 停在本步, 禁推进。
    - **锁定契约** — grill/brainstorm 里梳理出的不变量 (MUST/禁/边界条件) 由 main 用脚本逐条锁进 task.json (main 同步跑脚本, 不派 agent):
      - `skein contract <id> --add "契约文本"` (每条一次) / `skein contract <id>` (列出核对)

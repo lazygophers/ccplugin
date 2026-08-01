@@ -309,7 +309,8 @@ def _view_task_detail(snap: Snapshot, tid: str) -> Optional[dict[str, Any]]:
         for t in snap.all_tasks:
             if t.get("parent") == tid:
                 child_tasks.append({"id": t["id"], "name": t.get("name") or t["id"],
-                                    "status": t.get("status"), "desc": t.get("desc", "")})
+                                    "status": t.get("status"), "desc": t.get("desc", ""),
+                                    "progress": _task_pct(t)})
     return {"task": data, "docs": docs, "research": research, "archived": archived,
             "subtasks": data.get("subtasks", []), "contracts": data.get("contracts", []),
             "maxActive": snap.max_active,  # 前端 ETA 折算并行墙钟用

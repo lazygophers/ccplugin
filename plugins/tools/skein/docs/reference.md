@@ -20,6 +20,7 @@
 | `skein board` | 文本看板 |
 | `skein view` | 可视化看板 |
 | `skein deps <id> [--set <id1,id2>]` | 无 `--set` 只查; 带则设前置 (仅 pending 且无既有 deps 可写, 脚本查自引用/不存在/成环) |
+| `skein parent <id> [--set <parent-id>]` | 无 `--set` 只查当前 parent; `--set <id>` 挂到 supertask/task 下 (拒自引用/父不存在/深度超 2 层/自身已有 child); `--set ""` 摘除。任意状态可改, 与 `deps` 正交, 不碰 deps |
 | `skein subtask add/claim/ready/start/check/show/done/fail/list <task-id> [sid]` | subtask 管理 (add 登记 / claim 整批认领就绪 / ready 只读预览 / start 单个占槽 / check 勾验收 / show 查全字段 / done 完成 / fail 失败 / list 列态) |
 | `skein claim exec\|check` | 全局跨 task 认领批; phase 必填: `exec`=认领 ready subtask → running / `check`=认领 全done 的 进行中 task → 检查中 + 检查通过的 → 已完成 |
 | `skein contract list/add <task-id>` | 契约管理 |
@@ -97,12 +98,21 @@
 
 ### Super task 模板
 
+普通 `task` 是自成一个闭环的默认类型; `supertask` 是不写代码的顶层聚合层, 仅当需求过大要拆成多个**各自独立跑完 plan→exec→check→finish** 的小需求时才建 — 单 task 能覆盖的中小需求不建 supertask。
+
 ```bash
+# 建 supertask + child (建时声明)
 skein create <id> --kind supertask --name "<名>"
 skein create <child1> --parent <id>
 skein create <child2> --parent <id>
 # child 独立闭环, 末 child → supertask 聚合归档, 深度限 2 层
+
+# 存量 task 改挂 (无需删档重建)
+skein parent <child-existing> --set <id>   # 挂
+skein parent <child-existing> --set ""     # 摘除
 ```
+
+`parent` 管归属、`deps` 管执行顺序, 两者正交 — 挂 parent 不隐含也不替代 deps。**supertask finish 前, 全部 child 须已完成**, 否则脚本硬拒并列出未完成 child。
 
 ### 错误处理
 
@@ -124,7 +134,8 @@ skein create <child2> --parent <id>
 | --- | --- |
 | task | SKEIN 管理的闭环工作记录 |
 | subtask | task 内最小执行单元, DAG 调度 |
-| supertask | 聚合容器, child 各自独立闭环 |
+| supertask | 聚合容器, child 各自独立闭环; `kind=supertask` |
+| parent | task 的父挂载字段 (`skein parent --set`), 与 deps 正交, 限 2 层 |
 | 闭环 | plan→exec→check→finish, 不可跳步 |
 | worktree | git worktree, 1 task 1 物理隔离 |
 | board | task.md + task.html, 从 task.json 渲染 |

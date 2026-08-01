@@ -223,6 +223,41 @@ class Lifecycle:
         self.ws.store.sync()
         print(f"{a.id} deps = {', '.join(new) or '(空)'}")
 
+    def parent(self, a: argparse.Namespace) -> None:
+        # 查/改既有 task 的 parent 挂载 (给存量 task 补/改父, 摘除=--set 空串)。校验复用 create
+        # 那条 parent 链检查 (父存在/非自引用/父自身非 child, 即不超 2 层)。额外补一条本命令特有的:
+        # 本 task 若已有 child (别的 task parent 指向它), 挂父会让那些 child 变 3 层, 先拒。
+        # parent 与 deps 正交, 全程不碰任何 deps。不限状态 (parent 不涉 worktree/branch, 任意态可改)。
+        t = self.ws.store.load(a.id)
+        if a.set is None:
+            print(t.get("parent") or "(无父)")
+            return
+        new_parent = a.set.strip() or None
+        if new_parent is None:
+            t["parent"] = None
+            self.ws.store.save(t)
+            self.ws.store.sync()
+            print(f"{a.id} parent = (已摘除)")
+            return
+        if new_parent == a.id:
+            raise SkeinError(f"{a.id} parent 自引用")
+        p = self.ws.store.load(new_parent)  # 不存在 → SkeinError「task 不存在」(parent 引用完整性)
+        if p.get("parent"):
+            raise SkeinError(
+                f"深度超限: parent {new_parent} 本身是 child (其 parent={p.get('parent')!r}) — "
+                f"不可再嵌套 (限 2 层: supertask→task→subtask)")
+        if p.get("kind") not in ("supertask", None, "task"):
+            raise SkeinError(f"parent {new_parent} kind={p.get('kind')!r} 非法 — 仅允许 task|supertask")
+        children = [c["id"] for c in self.ws.store.all_tasks() if c.get("parent") == a.id]
+        if children:
+            raise SkeinError(
+                f"{a.id} 已是 {len(children)} 个 task 的父 ({','.join(children)}) — "
+                f"挂父会使这些 child 超 2 层 (先摘除这些 child 的 parent 或改挂别处)")
+        t["parent"] = new_parent
+        self.ws.store.save(t)
+        self.ws.store.sync()
+        print(f"{a.id} parent = {new_parent}")
+
     def _validate_estimate(self, tid: str, t: dict[str, Any]) -> None:
         # confirm 硬门: 预计工时(小时)必须已填且为正数, 缺失/默认空 → 拒绝进就绪。
         # 且须自下而上累加: task 工时 ≥ Σ subtask 工时 (差额 = plan/check 等 task 自身开销),

@@ -10,7 +10,8 @@ import { cn } from "@/lib/utils";
 import { fmtRelative, fmtTime } from "@/lib/format";
 import { renderMd } from "@/lib/md";
 import { etaOf, etaText, fmtHours, actualOf, deltaText, overallSummary } from "@/lib/eta";
-import { drawEdgesPaths, buildDepDAG, type DagNode, type DagEdge } from "@/lib/depdag";
+import { drawEdgesPaths, buildDepDAG, type DagEdge } from "@/lib/depdag";
+import { layoutTiered, layoutDAG, type LayoutNode, type GroupBox, type Density } from "@/lib/board-layout";
 import { ProgressBar } from "@/components/progress-bar";
 import { useToast } from "@/components/toast";
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -20,7 +21,6 @@ const ALL_STATUSES = ["planning", "ready", "active", "check", "done"];
 const DEFAULT_FILTER = new Set(["planning", "ready", "active", "check"]);
 
 // ── Sugiyama layout (ported from old board.js) ──
-interface LayoutNode extends DagNode { task: NormTask; rowH: number; }
 interface LayoutEdge extends DagEdge {}
 
 interface SugiOpts { colW: number; rowH: number; padX: number; padY: number; gapX: number; gapY: number; }
@@ -177,77 +177,6 @@ function sugiyama(ids: string[], depsOf: (id: string) => string[], opt: SugiOpts
   for (const n of all) { const bt = bandTop[n.band]; n.x += padX; n.y += bt.shift + bt.top + padY; }
   const maxY = all.reduce((m, n) => Math.max(m, n.y + (n.dummy ? 0 : rowH - gapY)), 0);
   return { layers, edges, bandCols: usedCols, bandsInfo, width: usedCols * colW + padX * 2, height: maxY + padY };
-}
-
-// ── Tiered layout (from old board.js layoutTiered) ──
-const DAG_DENSITY = {
-  large:   { w: 260, h: 76, gapX: 54, gapY: 39, padX: 120, padY: 45 },
-  compact: { w: 190, h: 52, gapX: 42, gapY: 33, padX: 120, padY: 45 },
-  mini:    { w: 120, h: 32, gapX: 42, gapY: 33, padX: 120, padY: 45 },
-};
-type Density = keyof typeof DAG_DENSITY;
-
-function layoutTiered(ids: string[], depsOf: (id: string) => string[], s: typeof DAG_DENSITY[Density], maxW: number, extraOf: (id: string) => Record<string, unknown>) {
-  const nw = s.w, nh = s.h;
-  const inSet = new Set(ids);
-  const lay = new Map<string, number>();
-  const topo: string[] = [];
-  {
-    const deps = new Map(ids.map(id => [id, depsOf(id).filter(d => inSet.has(d))]));
-    const left = new Map(ids.map(id => [id, deps.get(id)!.length]));
-    const succ = new Map(ids.map(id => [id, [] as string[]]));
-    for (const id of ids) for (const d of deps.get(id)!) succ.get(d)!.push(id);
-    const q = ids.filter(id => left.get(id) === 0);
-    const seen = new Set<string>();
-    while (q.length) { const cur = q.shift()!; seen.add(cur); topo.push(cur); for (const nx of succ.get(cur)!) { left.set(nx, left.get(nx)! - 1); if (left.get(nx) === 0) q.push(nx); } }
-    for (const id of ids) if (!seen.has(id)) topo.push(id);
-  }
-  for (const id of topo) lay.set(id, Math.max(0, ...depsOf(id).map(d => (lay.get(d) ?? -1) + 1)));
-  const tiers: string[][] = [];
-  for (const id of topo) (tiers[lay.get(id)!] || (tiers[lay.get(id)!] = [])).push(id);
-  const perRow = Math.max(1, Math.floor((maxW - s.padX * 2 + s.gapX) / (nw + s.gapX)));
-  const rowH = nh + 6;
-  const pos = new Map<string, { x: number; y: number }>();
-  const bary = (id: string) => { const ps = depsOf(id).map(d => pos.get(d)).filter(Boolean) as { x: number }[]; return ps.length ? ps.reduce((a, p) => a + p.x, 0) / ps.length : Infinity; };
-  let y = s.padY;
-  for (let pass = 0; pass < 2; pass++) {
-    y = s.padY;
-    for (const tier of tiers) {
-      if (!tier) continue;
-      if (pass) tier.sort((a, b) => bary(a) - bary(b));
-      const rows = Math.ceil(tier.length / perRow);
-      const cnt = Math.ceil(tier.length / rows);
-      tier.forEach((id, i) => {
-        const r = Math.floor(i / cnt), c = i % cnt;
-        const rowN = Math.min(cnt, tier.length - r * cnt);
-        const x0 = s.padX + (maxW - s.padX * 2 - (rowN * (nw + s.gapX) - s.gapX)) / 2;
-        pos.set(id, { x: Math.max(s.padX, x0) + c * (nw + s.gapX), y: y + r * rowH });
-      });
-      y += rows * rowH - 6 + s.gapY;
-    }
-  }
-  const nodes = topo.map(id => ({ id, ...pos.get(id)!, w: nw, h: nh, rowH: nh, band: 0, tier: lay.get(id), ...extraOf(id) }));
-  const nmap = new Map(nodes.map(n => [n.id, n]));
-  const edges: DagEdge[] = [];
-  for (const id of ids) {
-    for (const d of depsOf(id)) {
-      const from = nmap.get(d), to = nmap.get(id);
-      if (from && to) edges.push({ from, to, bends: [], cross: false, laneY: 0 });
-    }
-  }
-  return { nodes, edges, width: Math.max(...nodes.map(n => n.x + n.w)) + s.padX, height: y - s.gapY + s.padY };
-}
-
-function layoutDAG(tasks: NormTask[], view: { w: number; h: number }, density: Density) {
-  if (!tasks.length) return { nodes: [] as LayoutNode[], edges: [] as DagEdge[], width: 0, height: 0, density };
-  const byId = new Map(tasks.map(t => [t.id, t]));
-  const depsOf = (id: string) => (byId.get(id)?.deps || []).filter(d => byId.has(d));
-  const ids = tasks.map(t => t.id);
-  const maxW = view.w || 1200;
-  const extraOf = (id: string) => ({ task: byId.get(id)! });
-  const s = DAG_DENSITY[density] || DAG_DENSITY.compact;
-  const result = layoutTiered(ids, depsOf, s, maxW, extraOf);
-  return { ...result, density } as unknown as { nodes: LayoutNode[]; edges: DagEdge[]; width: number; height: number; density: Density };
 }
 
 // ── Components ──
@@ -437,12 +366,12 @@ export default function BoardPage() {
 
 // ── DAG Canvas ──
 function DagCanvas({ layout, statusSet, onSelect, selectedId }: {
-  layout: { nodes: LayoutNode[]; edges: DagEdge[]; width: number; height: number; density: Density };
+  layout: { nodes: LayoutNode[]; edges: DagEdge[]; groups: GroupBox[]; width: number; height: number; density: Density };
   statusSet: Set<string>;
   onSelect: (id: string) => void;
   selectedId: string | null;
 }) {
-  const { nodes, edges, width, height, density } = layout;
+  const { nodes, edges, groups, width, height, density } = layout;
   const { paths, markers } = useMemo(() => drawEdgesPaths(edges, (e) => ({
     dimmed: !(statusSet.has((e.from as LayoutNode).task?.status || "planning") && statusSet.has((e.to as LayoutNode).task?.status || "planning")),
   })), [edges, statusSet]);
@@ -483,6 +412,29 @@ function DagCanvas({ layout, statusSet, onSelect, selectedId }: {
           />
         ))}
       </svg>
+      {groups.map(g => {
+        const st = g.parent.status || "planning";
+        const meta = ST_META[st] || ST_META.planning;
+        const doneCount = g.children.filter(c => c.status === "done").length;
+        const pct = g.children.length ? Math.round((doneCount / g.children.length) * 100) : 0;
+        return (
+          <div key={g.id} className="dag-group-box absolute rounded-lg border-2 border-dashed"
+            style={{ left: g.x, top: g.y, width: g.w, height: g.h, borderColor: `var(${meta.colorVar})`, backgroundColor: `color-mix(in srgb, var(${meta.colorVar}) 6%, transparent)` }}>
+            <div
+              onClick={(e) => { e.preventDefault(); onSelect(g.id); }}
+              className={cn("dag-group-header flex cursor-pointer items-center gap-2 overflow-hidden rounded-t-md border-b px-2", selectedId === g.id && "ring-2 ring-primary")}
+              style={{ height: g.headerH, borderColor: `var(${meta.colorVar})`, backgroundColor: `color-mix(in srgb, var(${meta.colorVar}) 22%, var(--card))` }}
+            >
+              <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: `var(${meta.colorVar})` }} />
+              <span className="truncate text-xs font-semibold text-foreground">{g.parent.title || g.parent.name || g.id}</span>
+              <span className="ml-auto flex-shrink-0 font-mono text-[10px] text-muted-foreground">{doneCount}/{g.children.length}</span>
+              <div className="ml-1 h-1.5 w-12 flex-shrink-0 overflow-hidden rounded-full bg-muted">
+                <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: `var(${meta.colorVar})` }} />
+              </div>
+            </div>
+          </div>
+        );
+      })}
       {nodes.map(n => {
         const t = n.task; if (!t) return null;
         const st = t.status || "planning";

@@ -68,7 +68,11 @@ function TaskDetailContent() {
     api.task(id).then((r) => {
       const resp = r as unknown as Record<string, unknown>;
       const taskRaw = resp.task
-        ? { ...(resp.task as Record<string, unknown>), docs: resp.docs, research: resp.research, prd: resp.prd, progress: resp.progress, stage: resp.stage }
+        ? {
+            ...(resp.task as Record<string, unknown>), docs: resp.docs, research: resp.research,
+            prd: resp.prd, progress: resp.progress, stage: resp.stage,
+            parentTask: resp.parentTask, childTasks: resp.childTasks,
+          }
         : (resp.card || resp);
       setRaw(taskRaw as Record<string, unknown>);
       setTask(normalizeTask(taskRaw as Record<string, unknown>));
@@ -260,6 +264,7 @@ function TaskDetailContent() {
                         <StatusDot status={pt.status as string} className="mt-1.5" />
                         <div className="min-w-0 flex-1">
                           <div className="text-sm text-foreground">{pt.name as string}</div>
+                          <div className="text-[10px] text-muted-foreground">{ST_META[pt.status as string]?.label || (pt.status as string)}</div>
                         </div>
                       </Link>
                     </div>
@@ -273,6 +278,10 @@ function TaskDetailContent() {
                             <StatusDot status={c.status as string} className="mt-1.5" />
                             <div className="min-w-0 flex-1">
                               <div className="text-sm text-foreground">{c.name as string}</div>
+                              <div className="flex items-center gap-2">
+                                <div className="text-[10px] text-muted-foreground">{ST_META[c.status as string]?.label || (c.status as string)}</div>
+                                <div className="flex-1"><ProgressBar value={Number(c.progress) || 0} colorVar={(ST_META[c.status as string] || ST_META.planning).colorVar} showLabel={false} /></div>
+                              </div>
                             </div>
                           </Link>
                         ))}
@@ -540,6 +549,10 @@ function DepDagView({ taskId, allTasks }: { taskId: string; allTasks: NormTask[]
   return (
     <div className="overflow-x-auto">
       <div className="relative" style={{ width: dag.width, height: dag.height }}>
+        {/* 父子包裹: 用容器框表达归属, 不画箭头边 (与看板同规则) */}
+        {dag.groups.map(g => (
+          <div key={g.id} className="pointer-events-none absolute rounded-lg border border-dashed border-primary/30 bg-primary/[0.03]" style={{ left: g.x, top: g.y, width: g.w, height: g.h }} />
+        ))}
         <svg className="pointer-events-none absolute inset-0" style={{ width: "100%", height: "100%" }}>
           <defs>
             {markers.map(m => <marker key={m.id} id={m.id} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill={`var(--${m.color})`} /></marker>)}
