@@ -2,7 +2,7 @@
   "id": "spec-hooks-adapt",
   "name": "hooks.py 适配 + fileMatch 注入 + 修两现存 bug",
   "desc": "SPEC_REQUIRED 去 created 改 namespace/inclusion, SPEC_LAYERS→SPEC_INCLUSIONS 补 external, guard 加 globs 匹配注入, stop-check 判据跟随分表",
-  "status": "就绪",
+  "status": "检查中",
   "deps": [
     "spec-model-core"
   ],
@@ -22,12 +22,19 @@
         "product 缺 anchors 告警",
         "全部非阻塞"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785382380,
-      "started": null,
-      "finished": null
+      "started": 1785593344,
+      "finished": 1785593447
     },
     {
       "sid": "h2",
@@ -42,12 +49,18 @@
         "task.json 硬阻行为不变",
         "50 页规模 <1s"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785382381,
-      "started": null,
-      "finished": null
+      "started": 1785593344,
+      "finished": 1785593588
     },
     {
       "sid": "h3",
@@ -60,12 +73,16 @@
         "rules/map 失效项仍写标记",
         "不重复实现判据"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785382381,
-      "started": null,
-      "finished": null
+      "started": 1785593607,
+      "finished": 1785593701
     },
     {
       "sid": "h4",
@@ -82,27 +99,38 @@
         "零回归用例断言 guard 输出与改前一致",
         "doctor --quality 通过"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785382382,
-      "started": null,
-      "finished": null
+      "started": 1785593707,
+      "finished": 1785593821
     }
   ],
   "priority": 5,
   "estimate": 2.0,
   "repos": [],
-  "worktree": null,
-  "worktrees": [],
+  "worktree": ".worktrees/skein-spec-hooks-adapt",
+  "worktrees": [
+    {
+      "repo": ".",
+      "wt": ".worktrees/skein-spec-hooks-adapt",
+      "branch": "skein/spec-hooks-adapt",
+      "merged": false
+    }
+  ],
   "branch": "skein/spec-hooks-adapt",
   "parent": "spec-wiki-v2",
   "kind": "task",
   "created": 1785381913,
-  "started": null,
+  "started": 1785593344,
   "confirmed": 1785515075,
-  "checked": null,
+  "checked": 1785593833,
   "finished": null,
-  "updated": 1785515075,
+  "updated": 1785594044,
   "confirmed_by": "user"
 }
