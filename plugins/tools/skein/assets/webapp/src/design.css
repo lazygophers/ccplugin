@@ -1464,6 +1464,10 @@ dialog.dag-modal::backdrop { background: rgba(15,32,51,0.45); backdrop-filter: b
 .antd-btn-link:hover { text-decoration: underline; }
 .antd-btn-danger { background: var(--danger); color: #fff; }
 .antd-btn-danger:hover { background: #c53030; }
+/* 暗色主题 [data-theme="skein-dark"] .antd-btn (0,2,0) 特异性压过 .antd-btn-danger (0,1,0),
+   补同特异性 (0,2,0) 的暗色危险色规则抗衡, 禁用 !important (design.md §5) */
+[data-theme="skein-dark"] .antd-btn-danger { background: var(--danger); }
+[data-theme="skein-dark"] .antd-btn-danger:hover { background: #c53030; }
 .antd-btn:disabled,
 .antd-btn.disabled { background: var(--brd); color: var(--muted); cursor: not-allowed; opacity: 0.65; }
 .antd-btn-lg { padding: .588rem 1.176rem; font-size: 0.882rem; }

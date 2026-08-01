@@ -48,6 +48,9 @@ def main() -> None:
     s.add_argument("--status", choices=["active", "deprecated", "superseded", "proposed"], default="active",
                    help="主题状态 (缺省 active; proposed=plan 阶段未验证决策 / deprecated=弃用 / superseded=被替代)")
     s.add_argument("--body-file", help="规则正文文件路径; 关联写 `[[主题#规则标题]]` wikilink")
+    an = sub.add_parser("analyze", help="[只读] 五类一致性核查: 验收覆盖率/硬规冲突/范围蔓延/proposed 置信度/接缝存在性")
+    an.add_argument("tid", help="task id (.skein/task/<tid>/ 下须有 task.json, prd.md/design.md 可选)")
+    an.add_argument("--json", action="store_true", help="机器可读输出 (供 skein-checker 消费)")
     ls = sub.add_parser("list", help="列已存规则")
     ls.add_argument("--namespace", help="仅列指定 namespace (自由字符串, 缺省列全部扫描到的 namespace)")
     mt = sub.add_parser("maintain", help="全量体检 (按 namespace 判据分表: 超预算/stale/断链含anchors/"
@@ -81,7 +84,7 @@ def main() -> None:
         "init": m.init, "inject-core": m.inject_core, "recall": m.recall,
         "session-start": m.session_start, "subagent-start": m.subagent_start,
         "sediment": m.sediment, "reindex": m.reindex, "list": m.list_,
-        "maintain": m.maintain, "degrade": m.degrade,
+        "maintain": m.maintain, "degrade": m.degrade, "analyze": m.analyze,
         "archive": m.archive, "restore": m.restore, "restructure": m.restructure,
     }[cast(str, a.cmd)](a)
     DBG.log(f"✓ {a.cmd} 完成", style="bold green")

@@ -1,0 +1,66 @@
+{
+  "id": "board-overall-progress",
+  "name": "看板页头: 总进度条 + 总剩余时间",
+  "desc": "board 页头接入已有的 overallProgress/aggregateEta, 展示加权总进度条与墙钟总剩余",
+  "status": "就绪",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "b1",
+      "name": "看板页头接入总进度条 + 总剩余",
+      "desc": "看板页头标题区下方加加权总进度条(含百分比)与墙钟总剩余; 复用已有的加权进度与聚合 ETA 纯函数, 数据用看板已取的全量列表(缺字段才补端点字段, 禁新开端点/新发请求); 副文本给口径(总数/总工时/并发/未估数)并说明总进度为全量口径不随筛选变",
+      "estimate": 0.8,
+      "depends_on": [],
+      "验收": [
+        "页头显示进度条+百分比+剩余",
+        "口径副文本齐",
+        "三种边界文案正确(无task/全完成/全未估)",
+        "窄屏页头不塌",
+        "现有页头元素无回归"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "skills": [],
+      "created": 1785514253,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "b2",
+      "name": "同源一致性测试 + 悬空引用守卫",
+      "desc": "在纯函数接缝写: 三种边界各一条 + 一条同源一致性(概览页与看板页取数路径喂同一份数据, 算出百分比必须相等); 确认新增的 import/export 被现有 JS 静态扫描守卫覆盖",
+      "estimate": 0.5,
+      "depends_on": [
+        "b1"
+      ],
+      "验收": [
+        "一致性测试反向验证过(让两页各算各的即红)",
+        "三边界用例齐",
+        "静态扫描守卫覆盖新增引用",
+        "全量测试通过"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "skills": [],
+      "created": 1785514253,
+      "started": null,
+      "finished": null
+    }
+  ],
+  "priority": 5,
+  "estimate": 1.3,
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/board-overall-progress",
+  "parent": null,
+  "kind": "task",
+  "created": 1785513752,
+  "started": null,
+  "confirmed": 1785514622,
+  "checked": null,
+  "finished": null,
+  "updated": 1785514622,
+  "confirmed_by": "user"
+}

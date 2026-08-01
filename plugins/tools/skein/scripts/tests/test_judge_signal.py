@@ -87,33 +87,35 @@ def test_signals_accumulate() -> None:
 
 
 # ── 注入文案的硬性要求 (改 _CTX / _PREFIX_RULE 时这些不能丢) ──────────────────
-def test_ctx_demands_an_explicit_verdict_line() -> None:
-    """必须要求 AI 把判定结果写出来, 且三档齐全。
+def _verdict_lines(text: str) -> list[str]:
+    """格式模板行 (缩进的 `[skein] 判定: …`); 散文里提到判定行的句子不算。"""
+    return [ln.strip() for ln in text.splitlines() if ln.strip().startswith("[skein] 判定:")]
 
-    判定不写出来就等于没判 —— 事后分不清「判了 inline」和「压根没想直接开干」。
+
+def test_ctx_demands_an_explicit_verdict_line() -> None:
+    """必须要求 AI 把判定结果写出来, 且给出落地路径三条。
+
+    判定不写出来就等于没判 —— 事后分不清「判了直接改」和「压根没想直接开干」。
     写出来才让越界当场可见 (判了 flow 却在 Edit / 判了 inline 却改了五个文件)。
     """
     from skeinlib.hooks.judge import _CTX, _PREFIX_RULE
     for text, where in ((_CTX, "_CTX"), (_PREFIX_RULE, "_PREFIX_RULE")):
-        assert "判定:" in text, f"{where} 没给出判定行格式"
-        for verdict in ("flow", "补充", "inline"):
-            assert verdict in text, f"{where} 的判定档缺 {verdict}"
+        assert _verdict_lines(text), f"{where} 没给出判定行格式模板"
+        for path in ("flow", "补充", "inline"):
+            assert path in text, f"{where} 的落地路径缺 {path}"
     assert "第一行" in _PREFIX_RULE, "_PREFIX_RULE 没说明判定行要放第一行"
 
 
 def test_every_verdict_line_demands_a_reason() -> None:
-    """三档判定行**都**要带 (原因: …) —— 曾经只有 inline 那档带理由。
+    """每条判定行模板都要带 (原因: …) —— 曾经只有 inline 那档带理由。
 
-    只写结论不写原因, 越界看不见: 「判定: inline」后面改了五个文件, 到底是判据用错还是判据
-    没读, 事后分不出来, 用户也没法纠偏到点上。原因把判据摊开, 判错才当场可反驳。
+    只写结论不写原因, 越界看不见: 「判定: inline 直接改」后面改了五个文件, 到底是判据用错还是
+    判据没读, 事后分不出来, 用户也没法纠偏到点上。原因把判据摊开, 判错才当场可反驳。
     """
     from skeinlib.hooks.judge import _CTX, _PREFIX_RULE
     for text, where in ((_CTX, "_CTX"), (_PREFIX_RULE, "_PREFIX_RULE")):
-        # 只看格式模板行 (缩进的 `[skein] 判定: …`), 不看散文里提判定行的句子
-        lines = [ln for ln in text.splitlines() if ln.strip().startswith("[skein] 判定:")]
-        assert len(lines) >= 3, f"{where} 判定行不足三档: {lines}"
-        for ln in lines:
-            assert "原因" in ln, f"{where} 这档判定行没要求写原因: {ln.strip()!r}"
+        for ln in _verdict_lines(text):
+            assert "原因" in ln, f"{where} 这条判定行没要求写原因: {ln!r}"
 
 
 def test_ctx_has_no_escaped_backticks() -> None:
@@ -128,12 +130,41 @@ def test_ctx_has_no_escaped_backticks() -> None:
         assert "\\`" not in text, f"{where} 有转义漏出的反斜杠+反引号"
 
 
-def test_three_verdicts_are_defined_in_criteria() -> None:
-    """判据段要把三档各自的判定条件都写明, 不能只给格式不给依据。"""
+def test_ctx_length_budget() -> None:
+    """机械篇幅守卫 —— 唯一会在文案膨胀时报警的机制 (注释里的数字不会失败)。
+
+    阈值 = 压缩后实际值 + 少量余量, 不是随便定的圆整数: 余量必须小于本文案里最短一个独立
+    小节 (「## 判定归 AI, 不问用户」, 72 字), 否则「新增一整段」的最小场景也可能滑过去;
+    同时要大于一次措辞微调的量级 (几个字到二十来字), 否则改一个标点都要连带改阈值。
+    """
     from skeinlib.hooks.judge import _CTX
-    head = _CTX[:_CTX.index("## 🛑")]
-    for token in ("flow", "inline", "补充", "倾向序"):
-        assert token in head, f"判据段缺 {token}"
+    assert len(_CTX) <= 1170, (
+        f"_CTX 篇幅膨胀到 {len(_CTX)} 字, 超过预算 1170 (压缩后实际 1118 + 余量 52)。"
+        "先看是不是能砍 (§1 三类冗余处置), 确实要加的话同步把这个阈值和下面的注释一起改。"
+    )
+
+
+def test_prefix_rule_length_budget() -> None:
+    """`_PREFIX_RULE` 每轮都注入, 单独守 —— 与 `_CTX` 合并成一个总阈值会让任一方的膨胀被
+    另一方的余量掩盖 (`_CTX` 单条余量就能吃掉 `_PREFIX_RULE` 全部涨幅还不报警)。
+
+    阈值同样卡在「小于最短一条 bullet (46 字)」的量级, 保证补一条新规则必触发。
+    """
+    from skeinlib.hooks.judge import _PREFIX_RULE
+    assert len(_PREFIX_RULE) <= 310, (
+        f"_PREFIX_RULE 篇幅膨胀到 {len(_PREFIX_RULE)} 字, 超过预算 310 (压缩后实际 276 + 余量 34)。"
+    )
+
+
+def test_three_landing_paths_are_defined_with_criteria() -> None:
+    """「落地路径」段要把三条路各自的判定条件 + 拿不准时的取向都写明, 不能只给名字不给依据。
+
+    意图是开放的, 但落地只有这三条 (建 task / 并入 / 直接做), 判据丢了就等于让 AI 拍脑袋。
+    """
+    from skeinlib.hooks.judge import _CTX
+    body = _CTX[_CTX.index("## 落地路径"):]
+    for token in ("flow", "inline", "补充", "拿不准"):
+        assert token in body, f"落地路径段缺 {token}"
 
 
 if __name__ == "__main__":

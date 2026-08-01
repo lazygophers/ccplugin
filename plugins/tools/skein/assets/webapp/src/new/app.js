@@ -9,6 +9,7 @@ import * as api from "./lib/api.js";
 import * as md from "./lib/md.js";          // 复用现 lib/md.js (render/sanitize/mount) — 不重写
 import * as live from "./lib/live.js";
 import * as router from "./router.js";
+import { openSettingsPanel } from "./settings.js";
 
 // 重新导出, 方便 page 直接 import { h, api, fmtRelative, fmtTime } from '../app.js'
 export { api, md };
@@ -517,6 +518,13 @@ function wireMotion() {
   setTimeout(replayMotion, 120);
 }
 
+// ── 设置面板 (页头齿轮按钮) ──
+function wireConfigBtn() {
+  const btn = document.getElementById("config-btn");
+  if (!btn) return;
+  btn.addEventListener("click", () => openSettingsPanel());
+}
+
 // ── fab 回到顶部 ──
 function wireFab() {
   const fab = document.getElementById("fab-top");
@@ -545,6 +553,7 @@ async function boot() {
   wireSearch();
   wireMotion();
   wireFab();
+  wireConfigBtn();
   // 先连 WS (live.start 后 onLive 才能订阅广播); 再启 router (router.navigate 走首轮渲染)
   live.start();
   const onLive = live.subscribe;

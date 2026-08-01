@@ -229,17 +229,17 @@ class DoctorMixin:
         # ponytail: 不解析 mypy/pytest 输出做花式摘要, 直接把尾部行回显 (工具自身报错已足够可操作)。
         scripts_dir = SCRIPTS_DIR
         print("\n── 质量门 (mypy --strict + pytest) ──")
-        failed = False
+        failed: list[str] = []
 
         mypy_py = self._find_tool_interpreter("mypy")
         if mypy_py is None:
             print("✗ mypy 不可用: 无 python 能 import mypy (装: pip install mypy)")
-            failed = True
+            failed.append("mypy")
         else:
             r = subprocess.run([mypy_py, "-m", "mypy", "--strict", str(scripts_dir)],
                                capture_output=True, text=True)
             if r.returncode != 0:
-                failed = True
+                failed.append("mypy")
                 tail = "\n".join(r.stdout.splitlines()[-15:]) or r.stderr.strip()
                 print(f"✗ mypy --strict 失败 (python={mypy_py}):\n{tail}")
             else:
@@ -248,12 +248,12 @@ class DoctorMixin:
         pytest_py = self._find_tool_interpreter("pytest")
         if pytest_py is None:
             print("✗ pytest 不可用: 无 python 能 import pytest (装: pip install pytest)")
-            failed = True
+            failed.append("pytest")
         else:
             r = subprocess.run([pytest_py, "-m", "pytest", str(scripts_dir), "-q"],
                                capture_output=True, text=True)
             if r.returncode != 0:
-                failed = True
+                failed.append("pytest")
                 tail = "\n".join((r.stdout or r.stderr).splitlines()[-20:])
                 print(f"✗ pytest 失败 (python={pytest_py}):\n{tail}")
             else:

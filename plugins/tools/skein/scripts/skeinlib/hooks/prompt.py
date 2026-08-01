@@ -17,7 +17,7 @@ from skeinlib.hooks.judge import (_CTX, _PREFIX_RULE, _UNINIT_PLAIN, _UNINIT_TRE
 from skeinlib.hooks.util import git_root
 
 # 显式走 skein 流程的输入: 用户已经决定了, 无需路由启发, 也无需未初始化提示
-_EXPLICIT = ("go", "exec", "do", "plan")
+_EXPLICIT = ("go", "exec", "do", "plan", "继续", "continue")
 _EXPLICIT_PREFIX = ("/skein-", "/skein:skein-", "skein-")
 
 

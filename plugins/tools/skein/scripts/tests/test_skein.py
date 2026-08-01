@@ -264,6 +264,7 @@ def main() -> None:
     test_deps_ordering()
     test_progress_pct()
     test_seam_gate()
+    test_prd_section_gate()
     print("skein.py 冒烟测试全过 (init/create/start/finish/并发上限/deps门/看板/archive清理/多active并行/subtask-DAG/setup迁移/多子git worktree)")
 
 
@@ -433,6 +434,58 @@ def test_seam_gate() -> None:
         (d / ".skein/task/task-three/design.md").write_text("# task-three — 详细设计\n\n无接缝段 (旧 task)\n")
         r = sk(d, "confirm", "task-three", check=False)
         assert r.returncode == 0 and "缺测试接缝段" in r.stderr, f"旧 task 未告警或被阻断: {r}"
+
+
+def test_prd_section_gate() -> None:
+    """confirm 的 prd 章节门 (`validate_prd`): 六段 (V6) 齐备顺序对 → 放行且无章节告警;
+    旧四段 (V4: 目标/边界/验收标准/索引) 兼容态 → 放行但 stderr 告警建议迁六段, 不阻断;
+    章节残缺/顺序错 (既非 V4 又非 V6) → 硬拒 (非零退出 + 报错含标准章节清单)。
+    """
+    with tempfile.TemporaryDirectory() as td:
+        d: Path = Path(td)
+        make_ws(d)
+
+        def _seam_fill(tid: str) -> None:
+            design = d / ".skein/task" / tid / "design.md"
+            design.write_text(re.sub(
+                r"- \[ \] TODO: 填测试接缝", "- [x] 复用 `test_x.py::test_y` 现有单测",
+                design.read_text()))
+
+        def _ready(tid: str, prd_body: str) -> None:
+            sk(d, "create", tid, "--name", tid, "--desc", "d")
+            sk(d, "subtask", "add", tid, "s1", "--name", "n", "--desc", "d", "--estimate", "1")
+            (d / ".skein/task" / tid / "prd.md").write_text(prd_body)
+            _seam_fill(tid)
+            sk(d, "estimate", tid, "--set", "4")
+
+        # 场景 1: 标准六段齐备顺序对 → 放行, 无「旧四段」告警
+        _ready("v6-task",
+               "# v6-task — PRD\n\n## 目标\n- 解决 X\n\n## 边界\n- 范围内: a\n\n"
+               "## User Stories\n1. As a user, I want X\n\n"
+               "## 验收标准\n- 用例通过\n\n## Testing Decisions\n- 复用现有单测\n\n"
+               "## 索引\n- design.md\n")
+        r = sk(d, "confirm", "v6-task", check=False)
+        assert r.returncode == 0, f"标准六段不该被拒: {r.stderr}"
+        assert "旧四段" not in r.stderr, f"六段不该报旧四段告警: {r.stderr}"
+
+        # 场景 2: 旧四段 (目标/边界/验收标准/索引) 兼容态 → 放行但告警建议迁六段
+        _ready("v4-task",
+               "# v4-task — PRD\n\n## 目标\n- 解决 X\n\n## 边界\n- 范围内: a\n\n"
+               "## 验收标准\n- 用例通过\n\n## 索引\n- design.md\n")
+        r = sk(d, "confirm", "v4-task", check=False)
+        assert r.returncode == 0, f"旧四段兼容态不该被阻断: {r.stderr}"
+        assert "旧四段" in r.stderr and "建议迁六段模板" in r.stderr, f"旧四段未告警: {r.stderr}"
+
+        # 场景 3: 章节残缺 (既非 V4 又非 V6, 缺「边界」) → 硬拒
+        sk(d, "create", "bad-task", "--name", "bad-task", "--desc", "d")
+        sk(d, "subtask", "add", "bad-task", "s1", "--name", "n", "--desc", "d", "--estimate", "1")
+        (d / ".skein/task/bad-task/prd.md").write_text(
+            "# bad-task — PRD\n\n## 目标\n- 解决 X\n\n## 验收标准\n- 用例通过\n\n## 索引\n- design.md\n")
+        _seam_fill("bad-task")
+        sk(d, "estimate", "bad-task", "--set", "4")
+        r = sk(d, "confirm", "bad-task", check=False)
+        assert r.returncode != 0, "章节残缺 (既非 V4 又非 V6) 不该放行"
+        assert "二级章节须为" in r.stderr, f"残缺章节未报标准清单: {r.stderr}"
 
 
 def test_setup() -> None:

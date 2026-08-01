@@ -2,7 +2,7 @@
   "id": "spec-migrate",
   "name": "自动迁移 migrate 两阶段",
   "desc": "阶段1 脚本机械迁移(core/recall→rules+inclusion, 撞名章节合并, 配置键迁移, archive 快照可逆); 阶段2 AI 语义分拣候选(启发式打分产 product/map 候选)",
-  "status": "待处理",
+  "status": "就绪",
   "deps": [
     "spec-model-core"
   ],
@@ -125,8 +125,9 @@
   "kind": "task",
   "created": 1785381903,
   "started": null,
-  "confirmed": null,
+  "confirmed": 1785515083,
   "checked": null,
   "finished": null,
-  "updated": 1785382284
+  "updated": 1785515083,
+  "confirmed_by": "user"
 }

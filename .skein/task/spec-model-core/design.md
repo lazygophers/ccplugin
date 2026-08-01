@@ -27,7 +27,7 @@ spec/<namespace>/<category>/<topic>.md
 | `always` 页是否入 FTS | **入** | `recall` 命令要能查到全库; 注入与检索是两件事, 不该耦合 |
 | `degrade` 实现 | **改 frontmatter 一字段 + reindex**, 不移文件 | inclusion 脱离目录后, 跨层 git mv 已无意义; 顺带消掉 git mv 失败这一整类失败模式 |
 | stale 判据 | **按 namespace 分表** | 时间型 stale 对 wiki 有害 — 稳定功能的描述两年不改仍正确, 按 180 天自动归档等于删对的知识 |
-| `--layer` 兼容 | 保留一轮 deprecated alias (core→always / recall→auto) | 已有仓与 agent 提示词大量在用, 硬切会连带 9 个 agent 一起碎 |
+| `--layer` 兼容 | **CLI 参数直接删** (2026-08-01 用户裁定); 兼容只留在 frontmatter 读取层 (旧 `layer` 字段 core→always / recall→auto) | 双重兼容会出两条入参路径, 且需要冲突检测; frontmatter 那层已足够接住存量数据 |
 | 预算键 | 新键 `spec_always_budget` 默认 8000, 旧键 fallback | 符合 core 规则「配置真值来源唯一 (CONFIG_DEFAULTS + yaml + env)」; 1000 是笔误 — `spec.py:47` 注释 `SUBAGENT_BUDGET_TOKENS = 2000 ≈ core_budget() 字符`, 2000 token ≈ 8000 字符可自证 |
 
 ## 3. 改动映射 (现状 → 目标)
@@ -42,11 +42,11 @@ spec/<namespace>/<category>/<topic>.md
 | `:261` `_recall_fts()` | 跨 `recall`+`external` | 全 namespace + `--src` 过滤 |
 | `:393` `_rebuild_fts()` | 硬编码 `for layer in ("recall","external")` | 全 namespace; 表加 `namespace`/`inclusion`/`anchors` 列, `layer` 列保留一轮 |
 | `:414` `_reindex_layer()` | 每层一 index | 每 namespace 一 index; 行加 `inclusion`/`anchors` 列 |
-| `:891` `sediment` argparse | `--layer` required choices | `--namespace`(自由 str) + `--inclusion`(choices, 默认 auto) + `--globs` + `--anchors`; `--layer` deprecated alias |
+| `:891` `sediment` argparse | `--layer` required choices | `--namespace`(自由 str) + `--inclusion`(choices, 默认 auto) + `--globs` + `--anchors`; `--layer` 删除 |
 | `:897` `--status` | `active/deprecated/superseded` | 加 `proposed` (供 plan 阶段沉淀未验证决策) |
 | `:908` `degrade` | git mv 跨层 + 改 layer | 改 frontmatter 一行 + reindex |
 | `:904` `maintain` | 判据全层通用 | 按 namespace 分表 + anchors 失效纳入断链判据 |
-| `:911` `archive`/`restore` | `--layer` | `--namespace` (`--layer` alias) |
+| `:911` `archive`/`restore` | `--layer` | `--namespace` (无 alias) |
 
 ## 4. maintain 判据分表
 
@@ -73,4 +73,4 @@ spec/<namespace>/<category>/<topic>.md
 |---|---|
 | `_rules()` 等私有方法被 `hooks.py` 直调 (`cmd_stop_check` 调 `_scan_findings`) | 改签名前先 grep 全仓调用点; 保持 `_scan_findings` 对外行为不变 |
 | `views_golden.json` 快照可能含 spec 结构 | 本 task 不动 prd 模板, 若快照仍破则同轮重生 |
-| `--layer` alias 与新参数同时给 | 显式冲突检测: 二者同给即报错退出, 不猜意图 |
+| ~~`--layer` alias 与新参数同时给~~ | 已消失 —— alias 删了就没有冲突场景 |

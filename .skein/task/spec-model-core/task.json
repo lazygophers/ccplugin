@@ -2,7 +2,7 @@
   "id": "spec-model-core",
   "name": "spec.py 模型层: namespace×inclusion 正交",
   "desc": "LAYERS→NAMESPACES + inclusion 移入 frontmatter + 预算收口 spec_always_budget=8000 + 索引/FTS 全 namespace 改造 + degrade 简化为改字段",
-  "status": "进行中",
+  "status": "已完成",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -252,12 +252,38 @@
         "翻新的是断言而非实现(degrade 仍不移文件)",
         "5 个用例覆盖的原意图(maintain --apply 降级/stale/stop-check 标记)未丢"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785387978,
-      "started": null,
-      "finished": null
+      "started": 1785512676,
+      "finished": 1785512813
+    },
+    {
+      "sid": "s11",
+      "name": "修 check 暴露的两处缺陷",
+      "desc": "1) 删 skeinlib/spec/analyze.py:19 未使用的 pathlib.Path 导入 (ruff F401); 2) 修 skeinlib/doctor.py:232/264 —— failed 是 bool 却被 ', '.join(failed), 质量门一旦失败即 TypeError 崩溃, 改成累积失败项名的 list",
+      "estimate": 0.3,
+      "depends_on": [],
+      "验收": [
+        "ruff --select F,E9 全仓零错",
+        "构造一次质量门失败能正常打印失败项名而非抛 TypeError",
+        "全量 pytest 仍 311 passed"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785514061,
+      "started": 1785515121,
+      "finished": 1785516268
     }
   ],
   "priority": 5,
@@ -271,7 +297,7 @@
   "created": 1785381903,
   "started": 1785382122,
   "confirmed": 1785382122,
-  "checked": null,
-  "finished": null,
-  "updated": 1785387978
+  "checked": 1785513258,
+  "finished": 1785551934,
+  "updated": 1785551934
 }

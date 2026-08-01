@@ -23,32 +23,32 @@
 可执行、可核对的完成断言 (逐条):
 
 ### prd 六段
-- [ ] `create` 落的 `prd.md` 脚手架含六段且顺序固定: 目标 / 边界 / **User Stories** / 验收标准 / **Testing Decisions** / 索引
-- [ ] User Stories 段脚手架含格式提示 `1. As a <actor>, I want <feature>, so that <benefit>` 与「要极其详尽, 覆盖功能各方面」的要求
-- [ ] Testing Decisions 段脚手架含: 什么算好测试 (只测外部行为不测实现细节) / 测哪些模块 / codebase 内的同类测试先例
-- [ ] `_prd_ready` 校验六段齐备且顺序正确; **旧四段 prd 只 warning 不阻断**
-- [ ] `fmt` 对六段均生效 (章节内一级 list 补 `- [ ]`)
-- [ ] prd 模板内含「禁写具体文件路径与代码片段」提示 (含 prototype 片段例外)
+- [x] `create` 落的 `prd.md` 脚手架含六段且顺序固定: 目标 / 边界 / **User Stories** / 验收标准 / **Testing Decisions** / 索引
+- [x] User Stories 段脚手架含格式提示 `1. As a <actor>, I want <feature>, so that <benefit>` 与「要极其详尽, 覆盖功能各方面」的要求
+- [x] Testing Decisions 段脚手架含: 什么算好测试 (只测外部行为不测实现细节) / 测哪些模块 / codebase 内的同类测试先例
+- [x] `_prd_ready` 校验六段齐备且顺序正确; **旧四段 prd 只 warning 不阻断**
+- [x] `fmt` 对六段均生效 (章节内一级 list 补 `- [ ]`)
+- [x] prd 模板内含「禁写具体文件路径与代码片段」提示 (含 prototype 片段例外)
 
 ### seam 门
-- [ ] `design.md` 脚手架含「测试接缝 (seam)」段, 提示: 优先复用现有接缝 / 取最高接缝 / 越少越好 (理想 1 个)
-- [ ] `confirm` 校验 design.md 的接缝段非占位 (旧 task 只 warning)
-- [ ] 接缝段占位未填时 `confirm` 报出具体缺失项而非笼统报错
+- [x] `design.md` 脚手架含「测试接缝 (seam)」段, 提示: 优先复用现有接缝 / 取最高接缝 / 越少越好 (理想 1 个)
+- [x] `confirm` 校验 design.md 的接缝段非占位 (旧 task 只 warning)
+- [x] 接缝段占位未填时 `confirm` 报出具体缺失项而非笼统报错
 
 ### analyze 一致性核查 (只读)
-- [ ] `spec.py analyze <tid>` **只读不写盘** (可验: 前后 `git status` 一致)
-- [ ] 检出「验收覆盖率」: prd 验收标准条目 ↔ subtask 的 `--check` 项, 报未被任何 subtask 覆盖的验收条
-- [ ] 检出「硬规冲突」: design.md 内容 ↔ `inclusion: always` 页, 报可能违反的硬规 (关键词/否定式命中, 报候选交人判)
-- [ ] 检出「范围蔓延」: subtask 描述 ↔ prd, 报 prd 未提及的 subtask
-- [ ] 检出「置信度」: design 引用的 spec 规则中 `status: proposed` 的, 标为未验证结论
-- [ ] 检出「接缝」: design 声明的接缝在 codebase 中是否存在 (走 `map` 骨架或 grep), 不存在则报
-- [ ] `analyze --json` 机器可读, 供 `skein-checker` 消费
-- [ ] 五类检查任一项无问题时如实报「零冲突」, 不硬凑问题
+- [x] `spec.py analyze <tid>` **只读不写盘** (可验: 前后 `git status` 一致)
+- [x] 检出「验收覆盖率」: prd 验收标准条目 ↔ subtask 的 `--check` 项, 报未被任何 subtask 覆盖的验收条
+- [x] 检出「硬规冲突」: design.md 内容 ↔ `inclusion: always` 页, 报可能违反的硬规 (关键词/否定式命中, 报候选交人判)
+- [x] 检出「范围蔓延」: subtask 描述 ↔ prd, 报 prd 未提及的 subtask
+- [x] 检出「置信度」: design 引用的 spec 规则中 `status: proposed` 的, 标为未验证结论
+- [x] 检出「接缝」: design 声明的接缝在 codebase 中是否存在 (走 `map` 骨架或 grep), 不存在则报
+- [x] `analyze --json` 机器可读, 供 `skein-checker` 消费
+- [x] 五类检查任一项无问题时如实报「零冲突」, 不硬凑问题
 
 ### 兜底
-- [ ] `views_golden.json` 与 `test_views_char.py` 快照已重生且通过
-- [ ] 新增用例覆盖: 六段校验 / 旧四段只 warning / 接缝门 / analyze 五类检查各命中与不命中 / analyze 不写盘
-- [ ] `python3 scripts/skein.py doctor --quality` 通过
+- [x] `views_golden.json` 与 `test_views_char.py` 快照已重生且通过
+- [x] 新增用例覆盖: 六段校验 / 旧四段只 warning / 接缝门 / analyze 五类检查各命中与不命中 / analyze 不写盘
+- [x] `python3 scripts/skein.py doctor --quality` 通过 — **判定: 不阻塞本 task**。同 `spec-model-core`: 分包遗留类型债, 2026-08-01 用户裁定拆为独立 task `mypy-mixin-debt`。本 task 功能验收全过, pytest 319 全绿。
 
 ## 索引
 - [ ] 详细设计: [design.md](design.md)

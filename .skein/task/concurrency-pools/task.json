@@ -1,0 +1,188 @@
+{
+  "id": "concurrency-pools",
+  "name": "并发池重构: work/gate 双池 + research 状态",
+  "desc": "max_active 单数字换成 work(2, exec+research 共享, exec 优先)/gate(3, check+finish 共享) 双池; subtask 加 phase 字段; task 状态机加 research 态 (plan⇄research, research 禁直转就绪)",
+  "status": "就绪",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "模型层: 状态枚举改造",
+      "desc": "model.py: 删 S_READY, 加 S_RESEARCH(调研中)/S_FINISHING(收尾中); 同步 STATUS_ACTIVE/STATUS_INFLIGHT/_STATUS_ALIAS/STATUS_ORDER/PHASE_OF; subtask 加 phase 常量 (exec|research, 缺省 exec)",
+      "estimate": 1.0,
+      "depends_on": [],
+      "验收": [
+        "枚举无就绪残留",
+        "新增两态在全部映射表中有位置",
+        "现有测试对状态的断言已同步"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "skills": [],
+      "created": 1785512382,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "s2",
+      "name": "配置层: pools 双键",
+      "desc": "config.py: 删 max_active, 加 pools:{work:2,gate:3}; 层级化分组与 worktree/spec 风格一致",
+      "estimate": 0.5,
+      "depends_on": [],
+      "验收": [
+        "CONFIG_DEFAULTS 无 max_active",
+        "init 写出的 config.yaml 含 pools 块"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "skills": [],
+      "created": 1785512383,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "s3",
+      "name": "生命周期: confirm 吸收 start + 三个新转换",
+      "desc": "lifecycle.py: 删 start 方法, confirm --approved 直接 待处理→进行中 并承担体检/prd double-check/worktree/started/start 钩子; 新增 research(待处理→调研中)/plan(调研中→待处理)/finishing(检查中→收尾中); finish 只接收尾中态; 删 task 级并发上限",
+      "estimate": 2.5,
+      "depends_on": [
+        "s1",
+        "s2"
+      ],
+      "验收": [
+        "confirm 后 task 直接进行中且 worktree 已建",
+        "调研中调 confirm 报错提示先 plan",
+        "research 未全 done 时 plan 被拒",
+        "finish 拒非收尾中态"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "skills": [],
+      "created": 1785512383,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "s4",
+      "name": "调度器: 两池计数 + 加权打分",
+      "desc": "scheduling.py: work 池数全局 running(phase exec|research) subtask, gate 池数 检查中+收尾中 task; 打分 = 关键路径权重*W_CRIT + 等待小时*W_WAIT + exec 加权, 同分按登记序稳定; claim 满槽提示区分是哪个池",
+      "estimate": 2.0,
+      "depends_on": [
+        "s1",
+        "s2"
+      ],
+      "验收": [
+        "两池独立(work 满仍可 check)",
+        "exec 同分优先",
+        "等久的 research 能翻盘",
+        "满槽提示指明池名"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "skills": [],
+      "created": 1785512383,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "s5",
+      "name": "CLI + 只读投影 + 体检",
+      "desc": "cli.py 子命令表增删(删 start, 加 research/plan/finishing) 与 MUTATING 集合同步; query.py 槽位提示改双池; doctor.py 查两池超限 + 检出残留 max_active 提示已废弃",
+      "estimate": 1.5,
+      "depends_on": [
+        "s3",
+        "s4"
+      ],
+      "验收": [
+        "skein start 已不存在",
+        "doctor 报两池超限",
+        "残留 max_active 有可见提示"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "skills": [],
+      "created": 1785512383,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "s6",
+      "name": "看板 + Web 视图",
+      "desc": "board.py/views.py/boardsource.py/store.py: 显示两池各自 占用/上限; 前端 ETA 并行折算改按 work 池; 新增两状态的排序与展示",
+      "estimate": 1.5,
+      "depends_on": [
+        "s1",
+        "s2"
+      ],
+      "验收": [
+        "看板显示 work 与 gate 两行",
+        "Web 视图 JSON 含两池字段",
+        "新状态在看板有正确排序位"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "skills": [],
+      "created": 1785512383,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "s7",
+      "name": "注入文案 + skill/agent/文档同步",
+      "desc": "hooks/prompt.py 运行配置文案改双池; skills/skein-flow 及 references、agents/*.md、docs/reference.md 中的 就绪/start/max_active 表述全量同步",
+      "estimate": 2.0,
+      "depends_on": [
+        "s3",
+        "s4"
+      ],
+      "验收": [
+        "全仓无 就绪态/skein start/max_active 表述残留",
+        "文案经 claude -p 三次一致性验证"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "skills": [],
+      "created": 1785512383,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "s8",
+      "name": "测试: 行为测试 + 三个零残留扫描",
+      "desc": "按 design 测试接缝写: 状态转换门、两池独立、exec 同分优先、等待翻盘、池上限; 外加 就绪/start/max_active 三个源码扫描零残留测试",
+      "estimate": 2.0,
+      "depends_on": [
+        "s5",
+        "s6",
+        "s7"
+      ],
+      "验收": [
+        "全量测试通过",
+        "每个新测试反向验证过(改回旧行为即红)",
+        "ruff F/E9 清白"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "skills": [],
+      "created": 1785512383,
+      "started": null,
+      "finished": null
+    }
+  ],
+  "priority": 5,
+  "estimate": 13.0,
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/concurrency-pools",
+  "parent": null,
+  "kind": "task",
+  "created": 1785511640,
+  "started": null,
+  "confirmed": 1785515070,
+  "checked": null,
+  "finished": null,
+  "updated": 1785515070,
+  "confirmed_by": "user"
+}

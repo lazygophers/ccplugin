@@ -66,7 +66,8 @@ def test_user_prompt_injects_prefix_rule(ws: Path) -> None:
 def test_user_prompt_lists_active_task_phase(skein_cli: SkeinCli, ws: Path) -> None:
     """create+start task (进行中) → additionalContext 含 id 且标注 (exec)。"""
     _start_task(skein_cli, ws, "task-a")
-    ctx = _user_prompt(ws, "继续")
+    # prompt 不能用 _EXPLICIT 里的词 (go/exec/do/plan/继续/continue): 那些早退不注入
+    ctx = _user_prompt(ws, "接着往下做")
     assert "task-a(exec)" in ctx, f"未列 active task 阶段 (进行中→exec): {ctx!r}"
 
 
@@ -91,6 +92,7 @@ def test_session_context_lists_active_phase(skein_cli: SkeinCli, ws: Path) -> No
 def test_phase_mapping_active_to_exec(skein_cli: SkeinCli, ws: Path) -> None:
     """进行中 status 在 user-prompt (hooks._PHASE) 与 session (PHASE_OF) 均映射 exec。"""
     _start_task(skein_cli, ws, "task-m")
-    # prompt 不能用 "go"/"exec"/"do"/"skein-*": hooks.py:387 对它们早退不注入 (显式走 flow 无需路由提示)
-    assert "task-m(exec)" in _user_prompt(ws, "继续"), "hooks _PHASE 映射 进行中→exec 失效"
+    # prompt 不能用 _EXPLICIT 里的词 (go/exec/do/plan/继续/continue) 或 skein-*: 那些早退不注入
+    # (显式走 flow 无需路由提示)。「继续」曾用在这里, 2026-08-01 被划进 _EXPLICIT 后换掉。
+    assert "task-m(exec)" in _user_prompt(ws, "接着往下做"), "hooks _PHASE 映射 进行中→exec 失效"
     assert "task-m(exec)" in _session_ctx(ws), "skein PHASE_OF 映射 进行中→exec 失效"

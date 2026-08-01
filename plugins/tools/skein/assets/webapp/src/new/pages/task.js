@@ -567,31 +567,12 @@ export async function render(mount, params, ctx) {
             '操作',
           ]),
           h('div.flex.flex-wrap.gap-2', [
-            h('button.antd-btn.flex-1',
-              { onclick: () => alertDialog('编辑功能开发中') },
-              [h('i.fa.fa-pencil.mr-1.5'), '编辑']
-            ),
-            st === 'planning'
-              ? h('button.antd-btn.antd-btn-default',
-                  { onclick: () => alertDialog('状态变更开发中') },
-                  [h('i.fa.fa-flag.mr-1.5'), '就绪'])
-              : null,
-            st === 'ready'
-              ? h('button.antd-btn.antd-btn-default',
-                  { onclick: () => alertDialog('状态变更开发中') },
-                  [h('i.fa.fa-play.mr-1.5'), '开始'])
-              : null,
             // 人审门: 规划中才给「确认规划」。点它 = 真实用户批准 → 后端跑 confirm --approved。
             // main 没有浏览器点不了这个按钮, 所以这是审核门最硬的一条通道。
             st === 'planning'
               ? h('button.antd-btn.antd-btn-primary.w-full',
                   { onclick: confirmPlan, title: '审核 PRD 后放行进「就绪」, 之后才可被调度' },
                   [h('i.fa.fa-check.mr-1.5'), '确认规划 → 就绪'])
-              : null,
-            st === 'active'
-              ? h('button.antd-btn.antd-btn-default',
-                  { onclick: () => alertDialog('状态变更开发中') },
-                  [h('i.fa.fa-check.mr-1.5'), '提交验收'])
               : null,
             h('button.antd-btn.antd-btn-danger.w-full',
               { onclick: deleteTask, title: '软删进 .skein/trash/, 可恢复' },

@@ -1,0 +1,111 @@
+{
+  "id": "spec-inject-budget",
+  "name": "spec 注入总预算 800 token 口径统一",
+  "desc": "三注入点(session-start/subagent-start/inject-core)统一 token 口径总预算 ≤800, 现各自字符预算且实测全部超标",
+  "status": "就绪",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "b1",
+      "name": "标定字符→token 换算系数",
+      "desc": "拿本库真实中文页/英文页标定系数, 标定过程写进测试可复算, 系数往高估一侧取",
+      "estimate": 1.5,
+      "depends_on": [],
+      "验收": [
+        "中英文页各验证过且误差带写明"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "skills": [],
+      "created": 1785550410,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "b2",
+      "name": "预算表 + token 口径改造",
+      "desc": "三注入点预算收进单一数据表, 单位改 token, 新增注入点未登记即报错",
+      "estimate": 2.0,
+      "depends_on": [
+        "b1"
+      ],
+      "验收": [
+        "非正数预算被挡下"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "skills": [],
+      "created": 1785550410,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "b3",
+      "name": "机械守卫 + 反向验证",
+      "desc": "各注入点超预算即测试失败; 撑爆内容确认变红",
+      "estimate": 1.0,
+      "depends_on": [
+        "b2"
+      ],
+      "验收": [
+        "反向验证过 (见过红)"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "skills": [],
+      "created": 1785550410,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "b4",
+      "name": "压常驻注入到 800 token",
+      "desc": "压缩表达 + 降级低价值页, 禁截断; 压不进时报还差多少+最大几页",
+      "estimate": 2.5,
+      "depends_on": [
+        "b3"
+      ],
+      "验收": [
+        "既有语义断言原样绿, 未放宽"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "skills": [],
+      "created": 1785550410,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "b0",
+      "name": "可行性实测: 800 内能留下什么",
+      "desc": "按标定系数算三点现状总 token, 评估 800 约束下常驻能保留哪些规则; 若确认不可行即回报用户重定口径",
+      "estimate": 1.0,
+      "depends_on": [],
+      "验收": [
+        "给出 800 内可保留规则清单或不可行结论"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "skills": [],
+      "created": 1785551103,
+      "started": null,
+      "finished": null
+    }
+  ],
+  "priority": 5,
+  "estimate": 8.0,
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/spec-inject-budget",
+  "parent": null,
+  "kind": "task",
+  "created": 1785549463,
+  "started": null,
+  "confirmed": 1785551607,
+  "checked": null,
+  "finished": null,
+  "updated": 1785551607,
+  "confirmed_by": "user"
+}

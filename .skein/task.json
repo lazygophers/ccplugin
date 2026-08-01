@@ -1,8 +1,8 @@
 {
   "tasks": [
     {
-      "id": "config-hooks",
-      "status": "进行中",
+      "id": "board-overall-progress",
+      "status": "就绪",
       "deps": [],
       "priority": 5,
       "worktree": null,
@@ -10,18 +10,67 @@
       "kind": "task"
     },
     {
-      "id": "spec-model-core",
-      "status": "进行中",
+      "id": "concurrency-pools",
+      "status": "就绪",
       "deps": [],
+      "priority": 5,
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    },
+    {
+      "id": "flow-redo",
+      "status": "就绪",
+      "deps": [],
+      "priority": 5,
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    },
+    {
+      "id": "mypy-mixin-debt",
+      "status": "就绪",
+      "deps": [],
+      "priority": 5,
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    },
+    {
+      "id": "skein-gitignore",
+      "status": "就绪",
+      "deps": [],
+      "priority": 5,
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    },
+    {
+      "id": "spec-hooks-adapt",
+      "status": "就绪",
+      "deps": [
+        "spec-model-core"
+      ],
       "priority": 5,
       "worktree": null,
       "parent": "spec-wiki-v2",
       "kind": "task"
     },
     {
-      "id": "spec-prd-analyze",
-      "status": "进行中",
+      "id": "spec-inject-budget",
+      "status": "就绪",
       "deps": [],
+      "priority": 5,
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    },
+    {
+      "id": "spec-migrate",
+      "status": "就绪",
+      "deps": [
+        "spec-model-core"
+      ],
       "priority": 5,
       "worktree": null,
       "parent": "spec-wiki-v2",
@@ -39,29 +88,7 @@
       "kind": "task"
     },
     {
-      "id": "spec-hooks-adapt",
-      "status": "待处理",
-      "deps": [
-        "spec-model-core"
-      ],
-      "priority": 5,
-      "worktree": null,
-      "parent": "spec-wiki-v2",
-      "kind": "task"
-    },
-    {
       "id": "spec-map-namespace",
-      "status": "待处理",
-      "deps": [
-        "spec-model-core"
-      ],
-      "priority": 5,
-      "worktree": null,
-      "parent": "spec-wiki-v2",
-      "kind": "task"
-    },
-    {
-      "id": "spec-migrate",
       "status": "待处理",
       "deps": [
         "spec-model-core"
@@ -108,7 +135,7 @@
       "kind": "supertask"
     },
     {
-      "id": "git-skills-optimize",
+      "id": "judge-ctx-slim",
       "status": "已完成",
       "deps": [],
       "priority": 5,
@@ -117,7 +144,25 @@
       "kind": "task"
     },
     {
-      "id": "skein-drop-builtin-task-tools",
+      "id": "spec-model-core",
+      "status": "已完成",
+      "deps": [],
+      "priority": 5,
+      "worktree": null,
+      "parent": "spec-wiki-v2",
+      "kind": "task"
+    },
+    {
+      "id": "spec-prd-analyze",
+      "status": "已完成",
+      "deps": [],
+      "priority": 5,
+      "worktree": null,
+      "parent": "spec-wiki-v2",
+      "kind": "task"
+    },
+    {
+      "id": "webapp-settings-and-buttons",
       "status": "已完成",
       "deps": [],
       "priority": 5,

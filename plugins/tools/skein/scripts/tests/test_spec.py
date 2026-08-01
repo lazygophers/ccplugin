@@ -386,6 +386,96 @@ def test_maintain_product_no_auto_archive(mem_ws: Path, mem_cli: MemCli) -> None
     assert "wiki/feat" in out, f"product anchors 失效未报告: {out}"
 
 
+def _write_task(mem_ws: Path, tid: str, subtasks: list[dict], prd: str, design: str) -> Path:
+    """analyze 只读 task.json/prd.md/design.md — 手写这三份 (不走 skein.py 全套脚手架, 更轻)。"""
+    tdir = mem_ws / ".skein" / "task" / tid
+    tdir.mkdir(parents=True, exist_ok=True)
+    (tdir / "task.json").write_text(json.dumps({"id": tid, "subtasks": subtasks}, ensure_ascii=False))
+    (tdir / "prd.md").write_text(prd)
+    (tdir / "design.md").write_text(design)
+    return tdir
+
+
+def _snapshot(root: Path) -> dict[str, tuple[float, int]]:
+    """目录下所有文件的 (mtime, size) 快照, 供 analyze「不写盘」断言前后比对。"""
+    return {str(p): (p.stat().st_mtime, p.stat().st_size)
+            for p in root.rglob("*") if p.is_file()}
+
+
+def test_analyze_no_conflicts_and_readonly(mem_ws: Path, mem_cli: MemCli) -> None:
+    """analyze 五类检查零命中时如实报「零冲突」; 且全程只读, 不改动 .skein/ 下任何文件, 不新建文件。"""
+    tid = "clean-task"
+    _write_task(
+        mem_ws, tid,
+        subtasks=[{"sid": "s1", "name": "实现日志写入", "desc": "写日志文件模块",
+                   "depends_on": [], "验收": ["日志文件权限只读"]}],
+        prd=("# clean-task — PRD\n\n## 目标\n交付安全的日志写入模块。\n\n"
+             "## 边界\n仅涉及日志写入。\n\n"
+             "## 验收标准\n- [ ] 日志文件权限设为只读\n\n"
+             "## 索引\n- design.md\n"),
+        design=("# clean-task — 详细设计\n\n按接口规范写入日志, 不直接碰全局配置。\n\n"
+                "## 测试接缝 (seam)\n- `seed.txt` (repo 根真实存在路径)\n"),
+    )
+    repo_root = mem_ws
+    before = _snapshot(repo_root)
+
+    out = mem_cli(mem_ws, "analyze", tid).stdout
+    assert "零冲突" in out, f"应零命中却报了候选: {out}"
+
+    j = json.loads(mem_cli(mem_ws, "analyze", tid, "--json").stdout)
+    assert j["tid"] == tid and j["count"] == 0 and j["findings"] == [], f"json 输出应零 finding: {j}"
+
+    after = _snapshot(repo_root)
+    assert before == after, "analyze 不该写盘 (mtime/size 或文件集合变了)"
+
+
+def test_analyze_five_kinds_hit(mem_ws: Path, mem_cli: MemCli) -> None:
+    """构造能同时命中五类候选 (验收覆盖率/硬规冲突/范围蔓延/置信度/接缝存在性) 的 task, 逐类断言命中。"""
+    # 硬规: always 规则含否定式表述, design.md 正向复述同一短语 → 硬规冲突候选
+    body = _write_body(mem_ws, "hardrule.md", "禁止直接写全局配置, 一律走标准接口。")
+    mem_cli(mem_ws, "sediment", "--namespace", "rules", "--inclusion", "always",
+            "--category", "arch", "--topic", "config", "--title", "配置写入规范",
+            "--keywords", "config", "--body-file", str(body))
+    # 置信度: proposed 规则, design.md 引用其标题
+    body2 = _write_body(mem_ws, "proposed.md", "尚未验证的刷新时机策略。")
+    mem_cli(mem_ws, "sediment", "--namespace", "rules", "--inclusion", "auto",
+            "--category", "arch", "--topic", "flush", "--title", "异步刷新策略",
+            "--keywords", "flush", "--status", "proposed", "--body-file", str(body2))
+
+    tid = "dirty-task"
+    _write_task(
+        mem_ws, tid,
+        subtasks=[
+            # 验收覆盖: 「日志文件权限设为只读」命中, 但下面 prd 会多一条无人覆盖的验收条
+            {"sid": "s1", "name": "实现日志写入", "desc": "写日志文件模块",
+             "depends_on": [], "验收": ["日志可写"]},
+            # 范围蔓延: 名/desc 与 prd 全文无关键词交集
+            {"sid": "s2", "name": "搭建用户认证", "desc": "加OAuth登录流程",
+             "depends_on": [], "验收": []},
+        ],
+        prd=("# dirty-task — PRD\n\n## 目标\n交付一个安全的日志模块。\n\n"
+             "## 边界\n仅涉及日志写入。\n\n"
+             "## 验收标准\n- [ ] 日志文件权限设为只读\n- [ ] 支持异步刷新缓冲区\n\n"
+             "## 索引\n- design.md\n"),
+        design=("# dirty-task — 详细设计\n\n"
+                "为了性能, 我们直接写全局配置缓存, 而非走标准接口。\n\n"
+                "参考规则「异步刷新策略」设计缓冲区刷新时机。\n\n"
+                "## 测试接缝 (seam)\n- `plugins/tools/skein/scripts/nope_seam_test_file.py`\n"),
+    )
+
+    out = mem_cli(mem_ws, "analyze", tid).stdout
+    assert "[coverage]" in out and "异步刷新缓冲区" in out, f"验收覆盖率未命中: {out}"
+    assert "[hardrule]" in out and "配置写入规范" in out, f"硬规冲突未命中: {out}"
+    assert "[scope]" in out and "s2" in out, f"范围蔓延未命中: {out}"
+    assert "[confidence]" in out and "异步刷新策略" in out, f"置信度未命中: {out}"
+    assert "[seam]" in out and "nope_seam_test_file.py" in out, f"接缝存在性未命中: {out}"
+
+    j = json.loads(mem_cli(mem_ws, "analyze", tid, "--json").stdout)
+    kinds = {fd["kind"] for fd in j["findings"]}
+    assert kinds == {"coverage", "hardrule", "scope", "confidence", "seam"}, f"五类未全覆盖: {kinds}"
+    assert j["count"] == len(j["findings"]) == len(kinds), f"计数与条目不一致: {j}"
+
+
 def _age(f: Path, days: int) -> None:
     """把文件 mtime 推老 days 天 (frontmatter 已无时间字段, 新旧判定只看 mtime/git)。"""
     old = time.time() - days * 86400
@@ -436,8 +526,10 @@ if __name__ == "__main__":
                test_restructure_merge, test_external_layer,
                lambda ws, _cli: test_always_budget_fallback(ws),  # 只收 ws, 无 cli
                test_namespace_free_extension, test_inclusion_injection_namespace_agnostic,
-               test_degrade_no_file_move, test_maintain_product_no_auto_archive):
+               test_degrade_no_file_move, test_maintain_product_no_auto_archive,
+               test_analyze_no_conflicts_and_readonly, test_analyze_five_kinds_hit):
         fn(_mk_ws(), mem_cli)
     print("spec.py 测试全过 (init/sediment主题合并/recall FTS5+grep fallback/inject-core隔离层/"
           "hook注入/正反链(含非LAYERS namespace)/孤立/restructure/external层/always_budget fallback/"
-          "namespace自由扩展/inclusion筛选/degrade不移文件/product不自动archive)")
+          "namespace自由扩展/inclusion筛选/degrade不移文件/product不自动archive/"
+          "analyze五类命中与零冲突/analyze不写盘)")

@@ -2,7 +2,7 @@
   "id": "spec-hooks-adapt",
   "name": "hooks.py 适配 + fileMatch 注入 + 修两现存 bug",
   "desc": "SPEC_REQUIRED 去 created 改 namespace/inclusion, SPEC_LAYERS→SPEC_INCLUSIONS 补 external, guard 加 globs 匹配注入, stop-check 判据跟随分表",
-  "status": "待处理",
+  "status": "就绪",
   "deps": [
     "spec-model-core"
   ],
@@ -100,8 +100,9 @@
   "kind": "task",
   "created": 1785381913,
   "started": null,
-  "confirmed": null,
+  "confirmed": 1785515075,
   "checked": null,
   "finished": null,
-  "updated": 1785382382
+  "updated": 1785515075,
+  "confirmed_by": "user"
 }
