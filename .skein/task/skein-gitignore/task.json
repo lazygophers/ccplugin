@@ -2,7 +2,7 @@
   "id": "skein-gitignore",
   "name": ".skein 衍生物忽略清单与生成器对齐",
   "desc": "GI_ENTRIES 写死清单与真实衍生物脱节(缺 index.md/backlinks.md/board/), 新工作区会把可重建产物入库; 需清单与产出点单一真值源 + 守卫防漂移",
-  "status": "就绪",
+  "status": "检查中",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -15,12 +15,14 @@
       "验收": [
         "真值清单逐条列出"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785551487,
-      "started": null,
-      "finished": null
+      "started": 1785567667,
+      "finished": 1785568077
     },
     {
       "sid": "g2",
@@ -33,12 +35,14 @@
       "验收": [
         "不存在第二处独立清单"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785551487,
-      "started": null,
-      "finished": null
+      "started": 1785568077,
+      "finished": 1785568429
     },
     {
       "sid": "g3",
@@ -51,12 +55,14 @@
       "验收": [
         "残留移除有确认依据"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785551487,
-      "started": null,
-      "finished": null
+      "started": 1785568429,
+      "finished": 1785568732
     },
     {
       "sid": "g4",
@@ -69,12 +75,14 @@
       "验收": [
         "反向验证过 (见过红)"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785551487,
-      "started": null,
-      "finished": null
+      "started": 1785568732,
+      "finished": 1785569950
     },
     {
       "sid": "g5",
@@ -87,27 +95,36 @@
       "验收": [
         "真值未被忽略"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785551488,
-      "started": null,
-      "finished": null
+      "started": 1785569971,
+      "finished": 1785571128
     }
   ],
   "priority": 5,
   "estimate": 7.5,
   "repos": [],
-  "worktree": null,
-  "worktrees": [],
+  "worktree": ".worktrees/skein-skein-gitignore",
+  "worktrees": [
+    {
+      "repo": ".",
+      "wt": ".worktrees/skein-skein-gitignore",
+      "branch": "skein/skein-gitignore",
+      "merged": false
+    }
+  ],
   "branch": "skein/skein-gitignore",
   "parent": null,
   "kind": "task",
   "created": 1785551250,
-  "started": null,
+  "started": 1785567667,
   "confirmed": 1785551555,
-  "checked": null,
+  "checked": 1785571668,
   "finished": null,
-  "updated": 1785551555,
+  "updated": 1785571668,
   "confirmed_by": "user"
 }
