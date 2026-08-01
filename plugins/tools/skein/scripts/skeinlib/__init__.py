@@ -22,7 +22,7 @@ migrate     trellis 一次性迁移 (与 task 生命周期无关, 单独放)  �
 workspace   Workspace: 路径/配置/store/阶段钩子 + 工作区写锁  → config, store, worktree
   ├ admin      init / setup / config / clean / board         → workspace, migrate
   ├ lifecycle  create→confirm→start→check→finish + del/rename → workspace, prd, worktree
-  ├ scheduling claim / subtask (DAG 调度)                     → workspace, lifecycle, dag
+  ├ scheduling claim exec / subtask (DAG 调度)                     → workspace, lifecycle, dag
   ├ query      current / ready / status / list (只读)         → workspace, dag, views
   └ artifacts  prd / fmt / contract (task 工件)               → workspace, prd
 commands    Skein 门面: 继承 Workspace, 装配上面五个 + 两 mixin → 全部

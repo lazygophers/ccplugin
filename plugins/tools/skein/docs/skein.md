@@ -99,10 +99,10 @@
 
 | 步骤 | 说明 |
 | --- | --- |
-| claim | DAG → 就绪 subtask → 拓扑排序 → dispatch |
+| claim | `skein claim exec`: DAG → 就绪 subtask → 拓扑排序 → dispatch |
 | dispatch | 一律派 `skein-executor`, 并发 ≤ max_active |
 | 完成判定 | 每 subtask 回 done/fail; fail 重派 ≤2 轮 (质量验收全归 check) |
-| 完成即派 | 1 subtask 完 → 释放槽 → claim 下一个 |
+| 完成即派 | 1 subtask 完 → 释放槽 → `skein claim exec` 下一个 |
 
 **自愈**:
 | 情况 | 处理 |
@@ -186,7 +186,8 @@ subtasks:
 | 范围 | 命令 | 行为 |
 | --- | --- | --- |
 | 单 task | `skein subtask claim <id>` | DAG → ready set → 拓扑排序 → max_active 个 |
-| 全局 | `skein claim` | 所有进行中 task 同上 |
+| 全局 exec | `skein claim exec` | 所有进行中 task 同上 |
+| 全局 check | `skein claim check` | 全done 进行中 task → 检查中; 检查通过 → 已完成 |
 
 ### 调度约束
 

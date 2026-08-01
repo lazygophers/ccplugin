@@ -30,7 +30,7 @@ subtask DAG 存 per-task `task.json` 的 `subtasks[]` (guard 硬阻 AI 直读写
 | 命令 | 谁跑 | 作用 |
 |---|---|---|
 | `subtask add` | planning/main | 登记 subtask 到 DAG (参数表见 [subtask-operations.md §2.3](subtask-operations.md)) |
-| `claim` | main (每轮，主路径) | 见 §5.3 |
+| `claim exec` | main (每轮，主路径) | 见 §5.3 |
 | `subtask claim <tid>` | main (单 task 兼容) | 见 §5.3 |
 | `claim --dry-run` | main (查候选) | 见 §5.3 |
 | `subtask check <tid> <sid> --passed "1,3"` | main (**check 阶段**，非 exec) | 勾选已过验收序号 (1-based；`all`/`none`)，更新完成百分比。exec 不勾验收 — 归 check 阶段 checkpoint 核对 |
@@ -59,7 +59,7 @@ subtask.ready = (∀ dep ∈ subtask.depends_on: dep.status == done)
 | `skein create` / `subtask add` | ❌ 不阻塞 | pending task 不论前置是否 plan/finish，一律提前 plan |
 | `skein confirm` | ❌ 不阻塞 | planning 正常推进到就绪 |
 | `skein start` (task 级) | ✅ 阻塞 | 前置 task 未 done，start 硬拒 |
-| `skein claim` (subtask 级) | ✅ 阻塞 | 前置 subtask 未 done，不算 ready |
+| `skein claim exec` (subtask 级) | ✅ 阻塞 | 前置 subtask 未 done，不算 ready |
 
 > **核心原则**：plan/confirm 不阻塞，仅 start/claim 等。前置未完成也照常把规划做完，等 start 时才等前置。
 
@@ -76,11 +76,11 @@ crit_weight(node) = 1 + max(crit_weight(child) for child in children(node))
                    (叶子节点 crit_weight = 1)
 ```
 
-脚本内部字段为 `_crit_weight`，由 `claim` 时自动计算，planning 无需手动指定。
+脚本内部字段为 `_crit_weight`，由 `claim exec` 时自动计算，planning 无需手动指定。
 
 ### 3.2 就绪批排序
 
-就绪数 > 空闲槽时，`claim` 按以下优先级截取：
+就绪数 > 空闲槽时，`claim exec` 按以下优先级截取：
 
 1. **拓扑深度降序** — 深度大者阻塞下游最多，先派
 2. **task 登记序** — 同深度时，先创建的 task 优先
@@ -120,7 +120,7 @@ layer N: 最下游节点
 |---|---|---|
 | **task 级** | 同时「进行中」的 task 数 ≤ max_active | `skein start` 时硬拒 |
 | **单 task 内 subtask** | 单 task 内同时「运行中」的 subtask 数 ≤ max_active | `skein subtask start` 时硬拒 |
-| **全局 subtask** | 所有可调度 task (进行中 + 就绪) 加起来的 running subtask 数 ≤ max_active | `skein claim` 全局认领时截断 |
+| **全局 subtask** | 所有可调度 task (进行中 + 就绪) 加起来的 running subtask 数 ≤ max_active | `skein claim exec` 全局认领时截断 |
 
 ### 4.3 两套独立槽
 
@@ -136,28 +136,28 @@ layer N: 最下游节点
 ### 5.1 调度循环
 
 ```
-while skein claim 返回非空:       # 全局跨 task 合池竞争
+while skein claim exec 返回非空:       # 全局跨 task 合池竞争
     对认领到的每个 (task, subtask): 派 agent 执行  # ≤ max_active
     等任一 subagent 返回
-    → skein subtask done/fail <tid> <sid> → 回到 skein claim
+    → skein subtask done/fail <tid> <sid> → 回到 skein claim exec
 ```
 
 ### 5.2 核心规则
 
-- **不等一批跑完**：任一 subtask 返回 → 立即 `done`/`fail` → 立即 `claim` 补下一个
+- **不等一批跑完**：任一 subtask 返回 → 立即 `done`/`fail` → 立即 `claim exec` 补下一个
 - **槽位不空转**：释放一个槽位，立刻填一个新的 ready subtask
-- **脚本一步到位**：就绪判定 + 占槽由 `claim` 原子完成，main 不逐个 `subtask start`
+- **脚本一步到位**：就绪判定 + 占槽由 `claim exec` 原子完成，main 不逐个 `subtask start`
 
 ### 5.3 claim 命令族
 
 | 命令 | 范围 | 用途 |
 |---|---|---|
-| `skein claim` | 全局跨 task | **主路径**：所有可调度 task (进行中 + 就绪, 前置已清) 的 ready subtask 合池竞争; 就绪 task 首个 subtask 被认领时自动启动 |
+| `skein claim exec` | 全局跨 task | **主路径**：所有可调度 task (进行中 + 就绪, 前置已清) 的 ready subtask 合池竞争; 就绪 task 首个 subtask 被认领时自动启动 |
 | `skein subtask claim <tid>` | 单 task 内 | 兼容模式：仅指定 task 内截断，不跨 task 竞争 |
-| `skein claim --dry-run` | 全局只读 | 预览就绪批，不改态不占槽 |
+| `skein claim exec --dry-run` | 全局只读 | 预览就绪批，不改态不占槽 |
 | `skein subtask start <tid> <sid>` | 单个 subtask | 失败重派 / 定点补派 |
 
-> **claim 默认改态占槽**：调用即把就绪批整批标 running + 占槽，无需额外参数。`--dry-run` 才只读。
+> **claim exec 默认改态占槽**：调用即把就绪批整批标 running + 占槽，无需额外参数。`--dry-run` 才只读。
 > 各命令的源/目标状态、前置校验、副作用见 [subtask-state-machine.md §操作命令](subtask-state-machine.md)。
 
 ---
@@ -166,13 +166,13 @@ while skein claim 返回非空:       # 全局跨 task 合池竞争
 
 ### 6.1 优先级总纲: 派异步优先, 同步 plan 填余力
 
-**铁律: 优先把槽位占满异步执行, 同步 plan 只在槽位已满 / 无可调度 subtask 时跑。** subagent 跑起来后是异步占槽, 同步 plan 不抢这个槽 —— 所以每回合先 `claim` 把能派的 subtask 派出去 (占满 `max_active` 槽), 槽位满或 `claim` 返回空时才做 plan-ahead, 用同步空档把 pending task 推到就绪, 保证一有槽位释放即有 ready task 接上, 流水线不断档。
+**铁律: 优先把槽位占满异步执行, 同步 plan 只在槽位已满 / 无可调度 subtask 时跑。** subagent 跑起来后是异步占槽, 同步 plan 不抢这个槽 —— 所以每回合先 `claim exec` 把能派的 subtask 派出去 (占满 `max_active` 槽), 槽位满或 `claim exec` 返回空时才做 plan-ahead, 用同步空档把 pending task 推到就绪, 保证一有槽位释放即有 ready task 接上, 流水线不断档。
 
 ```
 每回合:
-  1. skein claim  → 有就绪 subtask 就派, 占满 max_active 槽 (异步, 立即回手)
-  2. 槽位满 OR claim 返回空 → 加载 plan-ahead 推 pending task 到就绪
-  3. plan 每步间回探 claim → 有 subtask 可派立即中断 plan 回去派
+  1. skein claim exec  → 有就绪 subtask 就派, 占满 max_active 槽 (异步, 立即回手)
+  2. 槽位满 OR claim exec 返回空 → 加载 plan-ahead 推 pending task 到就绪
+  3. plan 每步间回探 claim exec → 有 subtask 可派立即中断 plan 回去派
 ```
 
 - **派 subtask 是异步动作** (派出即占槽, 不阻塞 main), plan 是同步动作 —— 同回合内先做异步占槽, 再做同步 plan, 两不耽误。
@@ -192,13 +192,13 @@ skein list --status open --json
 
 ### 6.3 必让位 subtask
 
-- 每步 planning 前/后回探 `claim`
+- 每步 planning 前/后回探 `claim exec`
 - 一旦有 subtask 可派 (subagent 回传腾槽 / 新 ready) → 立即放下 planning 回去派 subtask
 - plan-ahead 可被随时打断，subtask 调度优先级永远更高
 
 ### 6.4 死锁判定
 
-- 无未 plan 的 pending task，且 `claim` 持续返回空 → 检查 depends_on 是否有环
+- 无未 plan 的 pending task，且 `claim exec` 持续返回空 → 检查 depends_on 是否有环
 - 有环 → 停手回 skein-flow plan 阶段 改 DAG，禁空转轮询
 
 ---

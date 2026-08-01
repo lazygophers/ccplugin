@@ -55,7 +55,7 @@ SKEIN subtask 的 4 个状态、流转规则、操作命令及与 `max_active` �
 - **前置校验**: sid 不重复; `--estimate` 为正数 (非数字或 ≤0 直接报错退出); task estimate 须 ≥ Σ subtask estimate
 - **字段初始化**: `status=pending`、`created=now()`、`estimate=<--estimate 入参>`、`started=null`、`finished=null`
 
-### 2. `skein claim` — 全局跨 task 批量认领
+### 2. `skein claim exec` — 全局跨 task 批量认领
 
 - **源状态**: 待处理 (且依赖全 done)
 - **目标状态**: 运行中 (running)
@@ -107,7 +107,7 @@ SKEIN subtask 的 4 个状态、流转规则、操作命令及与 `max_active` �
 |---|---|---|
 | **task 级** | 同时「进行中」的 task 数 ≤ `max_active` | `skein start` 时 |
 | **单 task 内 subtask** | 单 task 内同时「运行中」的 subtask 数 ≤ `max_active` | `skein subtask start` 时 |
-| **全局 subtask** | 所有 active task 加起来的 running subtask 数 ≤ `max_active` | `skein claim` 全局认领时 |
+| **全局 subtask** | 所有 active task 加起来的 running subtask 数 ≤ `max_active` | `skein claim exec` 全局认领时 |
 
 > 注：单 task 内 subtask 用 `max_active` 作为并发上限，
 > 全局 claim 也用 `max_active`。两者是同一个配置值。
@@ -116,7 +116,7 @@ SKEIN subtask 的 4 个状态、流转规则、操作命令及与 `max_active` �
 
 | 事件 | 槽位变化 |
 |---|---|
-| `claim` / `subtask start` → running | **占** 1 个槽 |
+| `claim exec` / `subtask start` → running | **占** 1 个槽 |
 | `subtask done` / `subtask fail` | **释** 1 个槽 |
 | `skein start` (task 级) | task 占 1 个 active 槽 (与 subtask 槽是两套) |
 
@@ -124,14 +124,14 @@ SKEIN subtask 的 4 个状态、流转规则、操作命令及与 `max_active` �
 
 ### 调度规则 (claim 算法)
 
-`skein claim` 全局调度：
+`skein claim exec` 全局调度：
 1. 遍历所有「进行中」的 task
 2. 对每个 task，找出所有 `status=pending` 且依赖全 done 的 subtask (= ready 池)
 3. 按「拓扑深度降序 → task 登记序 → subtask 登记序」排序
 4. 取前 `N = max_active - 当前全局 running 数` 个
 5. 批量标 running + 各 task 各自 _save
 
-完成即派：每有一个 subtask done/fail → 立即 `skein claim` 补下一个，槽位不空转。
+完成即派：每有一个 subtask done/fail → 立即 `skein claim exec` 补下一个，槽位不空转。
 
 ---
 

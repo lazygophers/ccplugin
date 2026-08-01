@@ -9,7 +9,7 @@
 Workspace          路径 / 生效配置 / TaskStore / 阶段钩子     ← 共享底座, Skein 继承它
 ├─ Admin           init / setup / config / clean / board      (不带 task id 的命令)
 ├─ Lifecycle       create → confirm → start → check → finish  (单个 task 的状态机)
-├─ Scheduler       claim / subtask                            (subtask DAG 调度)
+├─ Scheduler       claim exec / check / subtask                            (subtask DAG 调度)
 ├─ Query           current / ready / status / list            (只读投影, 无写盘)
 └─ Artifacts       prd / fmt / contract                       (task 工件读写)
 ```

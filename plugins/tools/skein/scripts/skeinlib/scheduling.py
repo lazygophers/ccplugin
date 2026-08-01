@@ -1,7 +1,7 @@
 """`Scheduler` — subtask DAG 调度: 谁就绪、谁先派、认领即占槽。
 
 ## 两级调度
-`subtask claim <tid>` 是单 task 内的就绪批; `claim` (无 tid) 是**全局跨 task** 的就绪批 ——
+`subtask claim <tid>` 是单 task 内的就绪批; `claim exec` (无 tid) 是**全局跨 task** 的就绪批 ——
 所有可调度 task 的 ready subtask 合池竞争同一个 `max_active`。两者共用 `_crit_weight`
 关键路径权重排序: 最长下游链先派, 最小化 makespan。
 
@@ -21,7 +21,8 @@ if TYPE_CHECKING:
 
 from skeinlib.dag import _crit_weight, _split, _split_semi, _sub_estimate_sum, _sub_pct
 from skeinlib.errors import SkeinError
-from skeinlib.model import (SS_DONE, SS_FAILED, SS_PENDING, SS_RUNNING, S_READY, now)
+from skeinlib.model import (SS_DONE, SS_FAILED, SS_PENDING, SS_RUNNING, S_READY,
+                            S_ACTIVE, S_CHECK, now)
 from skeinlib.views import _fmt_ts
 
 from typing import TYPE_CHECKING as _TC
@@ -107,9 +108,18 @@ class Scheduler:
         return [(c[0], c[1]) for c in cand[:slots]]
 
     def claim(self, a: argparse.Namespace) -> None:
-        """全局跨 task 认领就绪批: 所有 active task ready subtask 竞争全局 max_active 槽。
-        整批标 running + 各 task 各 _save。无 tid (对照 `subtask claim <tid>` 单 task)。
-        `--dry-run`: 只读预览整批 (与默认认领同源排序), 不改状态 (旧 pop)。"""
+        """全局跨 task 认领批, 按 phase 分流:
+        - exec: 所有可调度 task 的 ready subtask 合池竞争 max_active 槽 → 整批标 running (旧 claim 行为)
+        - check: 进行中 task 全 subtask done → 检查中; 检查中 task 全 subtask done 且 check 全绿 → 已完成 (finish)
+        `--dry-run`: 只读预览, 不改状态。"""
+        phase = getattr(a, "phase", "exec")
+        if phase == "exec":
+            self._claim_exec(a)
+        elif phase == "check":
+            self._claim_check(a)
+
+    def _claim_exec(self, a: argparse.Namespace) -> None:
+        """exec 认领: ready subtask → running (与旧 claim 行为一致)。"""
         batch = self._global_ready()
         if getattr(a, "dry_run", False):
             if not batch:
@@ -131,7 +141,7 @@ class Scheduler:
                 sk = ",".join(s.get("skills", [])) or "-"
                 chk = "; ".join(s.get("验收", [])) or "-"
                 print(f"{t['id']}/{s['sid']}\t{s['name']}\tskills: {sk}\t验收: {chk}")
-            print("— 认领整批: `skein.py claim`  或只占单个: `skein.py subtask start <tid> <sid>`")
+            print("— 认领整批: `skein.py claim exec`  或只占单个: `skein.py subtask start <tid> <sid>`")
             return
         if not batch:
             tasks = self._schedulable()
@@ -172,6 +182,65 @@ class Scheduler:
             sk = ",".join(s.get("skills", [])) or "-"
             chk = "; ".join(s.get("验收", [])) or "-"
             print(f"{tid}/{s['sid']}\t{s['name']}\tskills: {sk}\t验收: {chk}")
+
+    def _claim_check(self, a: argparse.Namespace) -> None:
+        """check 认领: 两路合并 —
+        1. 进行中 task 全 subtask done → 检查中 (交给 skein-checker 验收)
+        2. 检查中 task 全 subtask done 且无失败 → 已完成 (finish, 合并+销 worktree)
+        --dry-run 只读预览。"""
+        to_check: list[dict[str, Any]] = []
+        to_finish: list[dict[str, Any]] = []
+        for t in self.ws.store.active():
+            subs = t.get("subtasks", [])
+            if not subs:
+                continue
+            all_done = all(s["status"] == SS_DONE for s in subs)
+            if not all_done:
+                continue
+            if t["status"] == S_ACTIVE:
+                to_check.append(t)
+            elif t["status"] == S_CHECK:
+                # 检查中 + 全 done: 可 finish (验收是否全绿由 skein-checker 保证, 这里只看状态)
+                to_finish.append(t)
+        dry = getattr(a, "dry_run", False)
+        if not to_check and not to_finish:
+            print("无可认领的 check/finish task — 进行中 task 须全 subtask done 才认领")
+            return
+        if dry:
+            if to_check:
+                print("待进检查 (只读预览, 不改状态) — 去掉 --dry-run 认领:")
+                for t in to_check:
+                    print(f"  {t['id']}\t{t['name']} → 检查中")
+            if to_finish:
+                print("待 finish (只读预览, 不改状态) — 去掉 --dry-run 认领:")
+                for t in to_finish:
+                    print(f"  {t['id']}\t{t['name']} → 已完成")
+            return
+        # 执行认领: 先 check 后 finish (finish 的 merge 依赖 check 完成)
+        claimed_check: list[str] = []
+        for t in to_check:
+            t["status"] = S_CHECK
+            t["checked"] = now()
+            self.ws.store.save(t)
+            claimed_check.append(t["id"])
+        if claimed_check:
+            self.ws.store.sync()
+            print(f"已认领进检查 ({len(claimed_check)} task) — main 派 skein-checker 验收:")
+            for tid in claimed_check:
+                print(f"  {tid}")
+        # finish 路直接调 lifecycle.finish (合并 + 销 worktree + 标记完成)
+        claimed_finish: list[str] = []
+        for t in to_finish:
+            try:
+                a_f = argparse.Namespace(id=t["id"])
+                self.lifecycle.finish(a_f)
+                claimed_finish.append(t["id"])
+            except SkeinError as e:
+                print(f"  {t['id']}: finish 失败 — {e}")
+        if claimed_finish:
+            print(f"已认领 finish ({len(claimed_finish)} task):")
+            for tid in claimed_finish:
+                print(f"  {tid}")
 
     def subtask(self, a: argparse.Namespace) -> None:
         if a.action == "add":

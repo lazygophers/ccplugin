@@ -84,8 +84,10 @@ def main() -> None:
     cl.add_argument("--days", type=int, help="保留范围: 归档完成超此天数的 task (省略用 config retain_days; 0=全部完成 task 立即归档)")
     sub.add_parser("current", help="列全部 active task (无 focus, 就绪皆可并行)")
     sub.add_parser("ready", help="脚本算可启动 task 批 (就绪态+前置全done+有空闲槽, 只读预览)")
-    cm = sub.add_parser("claim", help="全局跨 task 认领就绪批 (所有 active task ready subtask 竞争 max_active 槽); --dry-run 只读预览")
-    cm.add_argument("--dry-run", action="store_true", help="只读预览全局就绪批, 不改状态 (旧 pop)")
+    cm = sub.add_parser("claim", help="全局跨 task 认领批; phase 必填区分阶段")
+    cm.add_argument("phase", choices=["exec", "check"],
+                    help="exec=认领 ready subtask → running (所有可调度 task 的 ready subtask 竞争 max_active 槽); check=认领 全 subtask done 的 进行中 task → 检查中 + 认领 检查通过的 检查中 task → 已完成")
+    cm.add_argument("--dry-run", action="store_true", help="只读预览认领批, 不改状态")
     li = sub.add_parser("list", help="列所有 task (含状态); --status 过滤 + --json 压缩输出")
     li.add_argument("--status", help="过滤: 待处理/就绪/进行中/检查中/已完成 (或 pending/ready/active/check/done), open=全部未完成; 逗号多选")
     li.add_argument("--json", action="store_true",

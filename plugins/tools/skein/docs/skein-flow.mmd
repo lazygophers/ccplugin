@@ -74,7 +74,7 @@ graph TB
   end
 
   subgraph Exec["Phase 2: 执行 — skein-exec (无验收, 执行完成即 done)"]
-    START --> CLAIM{"skein claim<br/>(全局跨 task 竞争 max_active 槽)<br/>整批标 running + 占槽"}
+    START --> CLAIM{"skein claim exec<br/>(全局跨 task 竞争 max_active 槽)<br/>整批标 running + 占槽"}
     CLAIM -->|就绪 subtask| DISPATCH["dispatch 6 字段 prompt<br/>目标/已知/工作目录/输出/验收/失败<br/>+ Recursion Guard + 读后写硬门"]
     CLAIM -->|无 subtask, 仅本 task| NO_SUB[main 派 1 个 skein-executor<br/>单 task 无 subtask 兜底]
     CLAIM -->|"空: 满槽 running==max_active / 无就绪 subtask<br/>→ 查有无未规划 task"| PLAN_AHEAD["提前 plan 未规划 task (subtask 优先, plan 次级填充)<br/>skein-plan --continue 推到 planning-complete 待处理<br/>(仍待 confirm→就绪, 不自动过用户门; start 受 max_active 限)"]

@@ -35,8 +35,8 @@ effort: medium
 
 | 硬门 | 门规 | 违反后果 |
 |---|---|---|
-| 1. task 级 | 未 `skein confirm` (**须先拿到用户批准**) 禁进 exec。**就绪即可调度** — `claim` 会在首个 subtask 被认领时自动 `start` (建 worktree + 进行中), 不必手工先 start | 流程错误, 回退补 confirm |
-| 2. subtask 级 | 未 `skein claim`/`subtask start` 占槽禁派 agent | 已派视为无槽, 需回收补占槽 |
+| 1. task 级 | 未 `skein confirm` (**须先拿到用户批准**) 禁进 exec。**就绪即可调度** — `claim exec` 会在首个 subtask 被认领时自动 `start` (建 worktree + 进行中), 不必手工先 start | 流程错误, 回退补 confirm |
+| 2. subtask 级 | 未 `skein claim exec`/`subtask start` 占槽禁派 agent | 已派视为无槽, 需回收补占槽 |
 | 3. check 级 | 未 `skein check` (进行中→检查中) 禁跑验证/宣告结果 | 验证无效, 需重走 check |
 
 🔒 **禁自降级** — 无"简单的可直接"口子, 任一借口 (「这个简单」「先做起来再说」「差不多勾满了」等) 均不构成豁免。详见 [references/state-before-action.md](references/state-before-action.md)、[task-state-machine.md](references/task-state-machine.md)、[subtask-state-machine.md](references/subtask-state-machine.md)。
@@ -105,12 +105,12 @@ effort: medium
 
 ## 🛑 硬门
 
-见状态先行硬门 1 (未 `skein confirm` 过人审门禁进 exec) + 硬门 2 (未 `claim` 占槽禁派 agent)。就绪态 task 直接 `claim` 即可, 首个 subtask 被认领时脚本自动启动该 task。**exec 无验收** — subagent 回传即执行完成, main 只 `done`/`fail`, 验收全归 check。
+见状态先行硬门 1 (未 `skein confirm` 过人审门禁进 exec) + 硬门 2 (未 `claim` 占槽禁派 agent)。就绪态 task 直接 `claim exec` 即可, 首个 subtask 被认领时脚本自动启动该 task。**exec 无验收** — subagent 回传即执行完成, main 只 `done`/`fail`, 验收全归 check。
 
 ## ✅ exec 阶段完成判据
 
 - [ ] 每 ready subtask 均已派真实 `Agent(subagent_type="skein:skein-executor")` 或已 done/fail (无遗漏挂起)
-- [ ] `claim` 返回空且无 depends_on 死锁 (确认无可调度项)
+- [ ] `claim exec` 返回空且无 depends_on 死锁 (确认无可调度项)
 - [ ] 全部 subtask done → 已自动进 check (不止于 subtask 全 done 就停手)
 - [ ] 回合末已输出任务清单 (有异步在跑时)
 
@@ -195,7 +195,7 @@ check 全绿后的**收尾门**, 只做收尾 (勘察改动+悬挂 → 合并 �
 | plan | subtask 粒度不清 / depends_on 定不了 | 回 brainstorm 补边界重切 | 仍切不动 → 派 `skein-researcher` 勘察代码再拆 |
 | exec | subtask 报错 (非阻塞) | 自愈: 定点重派 ≤2 轮 / 根因独立插修复 subtask | 修复也失败/超 scope → 停调度回传 (root-cause-protocol) |
 | exec | subagent 返回 `需要:` | main 转达用户/补信息后重派 | 信息仍缺 → 挂起下游未 ready, 禁标 done |
-| exec | `claim` 返回空 (满槽/无就绪) | 找 `待处理` 无 subtask 的 task 提前 plan 填空闲 | 全 pending 仍空 → 查 depends_on 死锁, 停手回 plan 改 DAG |
+| exec | `claim exec` 返回空 (满槽/无就绪) | 找 `待处理` 无 subtask 的 task 提前 plan 填空闲 | 全 pending 仍空 → 查 depends_on 死锁, 停手回 plan 改 DAG |
 | check | 孤立失败 (单点 lint/type/test/契约) | 回 planning 重确认定修复方向, 加 1 定点修复 subtask | 反复不过 → 见下 check 第 3 轮路径 |
 | check | 一致性冲突 / 根因跨 subtask | 加多个修复 subtask (一冲突一), 逐条覆盖 | 冲突未全覆盖禁 finish |
 | check | 修复子任务 ≥2 轮仍 FAIL (第 3 轮) | 按 root-cause-protocol 5 维根因复盘 | 带根因回 planning 定向重修; 超 exec (需求/设计缺陷) → 转人工 |

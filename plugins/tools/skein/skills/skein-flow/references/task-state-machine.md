@@ -10,7 +10,7 @@ SKEIN task 生命周期的 5 个状态、流转规则、操作命令与合法性
 | 状态 (中文) | 英文别名 | 阶段 | 占 active 槽 | 有 worktree | 含义 |
 |---|---|---|---|---|---|
 | **待处理** | pending / planning | plan | 否 | 否 | 刚创建，正在 brainstorm / 规划 subtask / 填 PRD / 出 design，未过用户确认门 |
-| **就绪** | ready | ready | 否 | 否 | planning 完成 (prd 齐 + ≥1 subtask) + 用户确认通过。**已可被调度** — 首个 subtask 被 `claim` 认领时自动转进行中, 无需手工 `skein start` |
+| **就绪** | ready | ready | 否 | 否 | planning 完成 (prd 齐 + ≥1 subtask) + 用户确认通过。**已可被调度** — 首个 subtask 被 `claim exec` 认领时自动转进行中, 无需手工 `skein start` |
 | **进行中** | active | exec | **是** | 是 | 已 start，worktree 已建，subtask 正在被派发执行 |
 | **检查中** | check | check | 否 | 是 | 全 subtask done，已 `skein check` 进验证阶段，skein-checker 跑 lint/test/契约 |
 | **已完成** | done | finish | 否 | 否 (已销) | 验证全绿 + merge 回主仓 + 销 worktree，闭环结束 |
@@ -64,7 +64,7 @@ SKEIN task 生命周期的 5 个状态、流转规则、操作命令与合法性
 |---|---|---|---|---|
 | `skein create <id>` | (无) | 待处理 | id 合法 (kebab-case slug)、未占用 | 建 task 目录 + prd/design 脚手架 |
 | `skein confirm <id>` | 待处理 | 就绪 | ≥1 subtask 登记 + prd 三章节齐 + 无 TODO 占位 + 预计工时 + **用户审核** (看板点「确认规划」, 或 `--summary` → `AskUserQuestion` → `--approved`) | 置 `confirmed` + `confirmed_by=user` |
-| `skein start <id>` | 就绪 | 进行中 | doctor 体检过 + 非满槽 (`max_active`) + deps 全完成 + prd 二次校验 | 建 worktree + 置 `started` 时间戳。**通常不必手工跑** — `claim` / `subtask start` 认领就绪 task 的 subtask 时会自动触发同一段逻辑 |
+| `skein start <id>` | 就绪 | 进行中 | doctor 体检过 + 非满槽 (`max_active`) + deps 全完成 + prd 二次校验 | 建 worktree + 置 `started` 时间戳。**通常不必手工跑** — `claim exec` / `subtask start` 认领就绪 task 的 subtask 时会自动触发同一段逻辑 |
 | `skein check <id>` | 进行中 | 检查中 | (无额外校验，只要状态对) | 置 `checked` 时间戳 |
 | `skein finish <id>` | 进行中 / 检查中 | 已完成 | (无 subtask 完成校验，脚本不卡) | merge 回主仓 + 销 worktree + 置 `finished` 时间戳 |
 | `skein archive <id>` | 已完成 | (归档) | 已完成 | 移到 `archive/<年>/<月-日>/<id>/` |

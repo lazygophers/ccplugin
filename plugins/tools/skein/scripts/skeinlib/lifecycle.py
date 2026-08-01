@@ -303,7 +303,7 @@ class Lifecycle:
     def _start_task(self, tid: str, a: argparse.Namespace, *, quiet: bool = False) -> dict[str, Any]:
         """就绪 → 进行中: 体检 + 并发校验 + 建 worktree + 打时间戳。返回启动后的 task。
 
-        抽成方法是为了给**自动启动**复用 —— `claim` / `subtask start` 认领到一个属于「就绪」
+        抽成方法是为了给**自动启动**复用 —— `claim exec` / `subtask start` 认领到一个属于「就绪」
         task 的 subtask 时会调它 (见 `_ensure_task_active`), 那条路必须走**完全相同**的副作用:
         doctor 前置体检、task 级 max_active 校验、prd double-check、worktree 建立、started
         时间戳、start 的 before/after 阶段钩子。少任何一样, 自动启动的 task 就与手工 start 的

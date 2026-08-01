@@ -205,7 +205,7 @@ def test_global_claim_cross_task(skein_cli: SkeinCli, ws: Path) -> None:
         skein_cli(ws, "estimate", tid, "--set", "1")  # estimate 硬门: confirm 前须填实工时
         skein_cli(ws, "confirm", tid)                     # 待处理→就绪
         skein_cli(ws, "start", tid)                       # start 建立运行环境 + 占 active
-    out = skein_cli(ws, "claim").stdout                   # 全局 claim
+    out = skein_cli(ws, "claim", "exec").stdout              # 全局 claim exec
     assert "已全局认领" in out
     # 两个 task 各 1 subtask, 竞争 2 槽 → 两个都进 running
     assert "alpha-beta/x" in out and "gamma-delta/x" in out

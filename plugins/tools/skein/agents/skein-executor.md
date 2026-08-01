@@ -25,7 +25,7 @@ python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-start --agent skein-ex
 - 自跑 `python3 <repo>/plugins/tools/skein/scripts/skein.py subtask show <tid> <sid>` 读 desc/验收/depends_on/skills 等全部字段, 不靠 dispatch prompt 里的转述。
 - 需 spec 约定佐证时先 `python3 <repo>/plugins/tools/skein/scripts/spec.py recall <关键词>`。
 - 缺信息 (验收模糊/依赖不明) → needs 标 `需要: <问题>`, 不猜, 不直接问用户。
-- **你被派时 subtask 已是 running 态 (main 用 claim 前置占槽), 不重复占槽、不跑 claim/start**。
+- **你被派时 subtask 已是 running 态 (main 用 claim exec 前置占槽), 不重复占槽、不跑 claim exec/start**。
 
 ### 2. 定位现状
 ```
