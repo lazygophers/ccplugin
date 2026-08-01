@@ -129,6 +129,37 @@ dispatch 里指定的 `TYPE_CHECKING` 属性声明块。乍看撞上了 `mypy-mi
 留这条是因为: **规则的适用前提比规则本身更容易被忘掉。** 下次有人看到「Protocol 里有方法桩」
 就照着禁忌打回, 会误伤一个正确实现。
 
+### A 组收尾记录 + 两处诊断更正 (main 亲验)
+
+**全量 13 failed → 0 failed, `333 passed`** (PRD 目标是 ≥333, 正好命中)。
+skip/xfail 数 2/3/2 → 2/3/2 **零新增**; `assets/` git diff 为空; 未装任何 node 侧依赖。
+
+实现走的正是 design 定的原生类型擦除路线, 且代码注释写明了 `--no-warnings` 的**理由** ——
+stderr 非空会被 `returncode` 断言误判成「通道失败」而非「被测逻辑失败」, 这正是 PRD user
+story 3 要的可分辨性。**注释解释的是「为什么」而不是「做了什么」, 这是对的。**
+
+#### 更正一: `test_views_char` 那条红根本不属 A 组
+
+main 最初把 19 条红分三组时, 把 `test_views_char` 的 1 条归进了 A 组 (前端迁移致 node import
+断链)。**归因错了。** 它的真实根因是 `views_golden.json` **没跟上人审门那个特性** ——
+`confirmed` 字段由 `lifecycle.py` 真写入、`views.py` 真投影, 而 golden 快照还停在加字段之前。
+
+修法是 golden 补 8 行、**零删除** (main 实测 `--numstat` 为 `8 0`)。
+**这不是「改 golden 换绿」那种放宽** —— 快照补上一个代码真产出的字段, 是让它记得更全而非更少。
+两者外观相似而性质相反, 区分点在: **删/改既有条目 = 放宽; 纯增新字段 = 追平。**
+
+#### 更正二: 旧 SPA 引用没清干净, PRD 验收该条当时不成立
+
+a1 回报清干净了, 但 main 复核搜到 `test_serve_routes.py` 的 docstring 仍指向已删的
+`assets/webapp/src/new/settings.js`。测试本身是绿的, 所以它不会自己暴露。
+
+**这不是可忽略的注释瑕疵**: 那条 docstring 声明自己「对齐 settings.js 的提交逻辑, 前端一旦
+跑偏这条测试的形状假设就该跟着改」—— 它把自己定义成一面镜子, 而镜子照的东西没了。
+下一个人照着这个指针去找, 只会找到空气。
+
+对齐对象其实还在, 迁到了前端组件里 (main 实测该处注释自称 "same as old settings.js"),
+所以修法只是把指针指对。**已开 a2 补掉。**
+
 ## 索引
 
 - [ ] 详细设计: [design.md](design.md)

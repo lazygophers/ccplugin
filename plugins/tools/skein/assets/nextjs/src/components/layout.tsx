@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { href: "/tasks", label: "任务", icon: "fa-tasks" },
   { href: "/spec", label: "规范", icon: "fa-file-text-o" },
   { href: "/archive", label: "归档", icon: "fa-archive" },
+  { href: "/trash", label: "垃圾桶", icon: "fa-trash" },
 ];
 
 export function Sidebar() {

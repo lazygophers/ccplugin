@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import datetime
 import sys
@@ -371,6 +372,75 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
     @app.get("/__skein__/archive")
     async def _archive() -> JSONResponse:  # 归档页: 已归档 + 已完成 task
         return JSONResponse(_view_archive(board._snapshot()))
+
+    @app.get("/__skein__/trash")
+    async def _trash() -> JSONResponse:  # 垃圾桶: .skein/trash/<id>.<date>/ 软删 task
+        trash_dir = board.dir / "trash"
+        tasks: list[dict[str, Any]] = []
+        if trash_dir.exists():
+            for d in sorted(trash_dir.iterdir()):
+                if not d.is_dir():
+                    continue
+                tj = d / "task.json"
+                info: dict[str, Any] = {"id": d.name, "name": d.name, "status": "deleted"}
+                if tj.exists():
+                    try:
+                        t = json.loads(tj.read_text())
+                        info = {"id": t.get("id", d.name), "name": t.get("name", d.name),
+                                "status": t.get("status", "deleted"), "desc": t.get("desc", ""),
+                                "deletedAt": d.name}
+                    except Exception:
+                        pass
+                tasks.append(info)
+        return JSONResponse({"tasks": tasks})
+
+    @app.post("/__skein__/archive/del")
+    async def _archive_del(request: Request) -> JSONResponse:  # 归档 → trash (可恢复)
+        try:
+            body = json.loads(request.scope.get("skein_body") or b"{}")
+        except Exception:
+            return JSONResponse({"error": "bad request"}, status_code=400)
+        tid = body.get("id")
+        if not isinstance(tid, str) or not tid.strip():
+            return JSONResponse({"error": "id 必填"}, status_code=400)
+        snap = board._snapshot()
+        src = snap.archived_path(tid)
+        if src is None or not src.exists():
+            return JSONResponse({"error": f"归档任务不存在: {tid}"}, status_code=404)
+        trash_dir = board.dir / "trash"
+        trash_dir.mkdir(parents=True, exist_ok=True)
+        dst = trash_dir / f"{tid}.{datetime.datetime.now().strftime('%Y%m%d')}"
+        if dst.exists():
+            shutil.rmtree(dst)
+        shutil.move(str(src), str(dst))
+        return JSONResponse({"ok": True, "moved": str(dst)})
+
+    @app.post("/__skein__/trash/purge")
+    async def _trash_purge(request: Request) -> JSONResponse:  # 永久删除 trash 中的任务
+        try:
+            body = json.loads(request.scope.get("skein_body") or b"{}")
+        except Exception:
+            return JSONResponse({"error": "bad request"}, status_code=400)
+        tid = body.get("id")
+        trash_dir = board.dir / "trash"
+        if not trash_dir.exists():
+            return JSONResponse({"error": "垃圾桶为空"}, status_code=404)
+        if isinstance(tid, str) and tid.strip():
+            # 删指定 task: 匹配 <id>.* 或精确目录名
+            matches = [p for p in trash_dir.iterdir() if p.is_dir() and (p.name == tid or p.name.startswith(f"{tid}."))]
+            if not matches:
+                return JSONResponse({"error": f"垃圾桶中不存在: {tid}"}, status_code=404)
+            for m in matches:
+                shutil.rmtree(m)
+            return JSONResponse({"ok": True, "purged": [m.name for m in matches]})
+        else:
+            # 清空全部
+            count = 0
+            for d in trash_dir.iterdir():
+                if d.is_dir():
+                    shutil.rmtree(d)
+                    count += 1
+            return JSONResponse({"ok": True, "purged_count": count})
 
     @app.get("/__skein__/search")
     async def _search(q: str = "") -> JSONResponse:  # 跨 task/subtask/prd/spec 关键词搜

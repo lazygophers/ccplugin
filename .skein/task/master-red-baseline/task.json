@@ -68,11 +68,36 @@
         "未新增 node 侧依赖",
         "通道失败与断言失败信息可分辨"
       ],
-      "验收done": [],
-      "status": "运行中",
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785585848,
       "started": 1785588777,
+      "finished": 1785589596
+    },
+    {
+      "sid": "a2",
+      "name": "清旧 SPA 残留指针",
+      "desc": "test_serve_routes.py docstring 仍指向已删的 assets/webapp/src/new/settings.js, 改指迁移后的前端组件",
+      "estimate": 0.2,
+      "depends_on": [
+        "a1"
+      ],
+      "验收": [
+        "全仓搜不到 assets/webapp 引用",
+        "该文件测试仍绿",
+        "未改任何断言"
+      ],
+      "验收done": [],
+      "status": "运行中",
+      "skills": [],
+      "created": 1785589596,
+      "started": 1785589602,
       "finished": null
     }
   ],
@@ -96,6 +121,6 @@
   "confirmed": 1785585955,
   "checked": null,
   "finished": null,
-  "updated": 1785588777,
+  "updated": 1785589602,
   "confirmed_by": "user"
 }
