@@ -1,8 +1,50 @@
 {
   "tasks": [
     {
-      "id": "spec-map-namespace",
+      "id": "task-priority",
       "status": "进行中",
+      "deps": [],
+      "priority": 5,
+      "worktree": ".worktrees/skein-task-priority",
+      "parent": null,
+      "kind": "task",
+      "created": 1785599378,
+      "confirmed": 1785600358,
+      "started": 1785602048,
+      "checked": null,
+      "finished": null
+    },
+    {
+      "id": "dag-parent-nesting",
+      "status": "检查中",
+      "deps": [],
+      "priority": 5,
+      "worktree": ".worktrees/skein-dag-parent-nesting",
+      "parent": null,
+      "kind": "task",
+      "created": 1785596410,
+      "confirmed": 1785597112,
+      "started": 1785597112,
+      "checked": 1785602090,
+      "finished": null
+    },
+    {
+      "id": "master-green",
+      "status": "检查中",
+      "deps": [],
+      "priority": 5,
+      "worktree": ".worktrees/skein-master-green",
+      "parent": null,
+      "kind": "task",
+      "created": 1785597765,
+      "confirmed": 1785597858,
+      "started": 1785602098,
+      "checked": 1785602971,
+      "finished": null
+    },
+    {
+      "id": "spec-map-namespace",
+      "status": "检查中",
       "deps": [
         "spec-model-core"
       ],
@@ -13,22 +55,20 @@
       "created": 1785381913,
       "confirmed": 1785594107,
       "started": 1785594113,
-      "checked": null,
+      "checked": 1785594885,
       "finished": null
     },
     {
-      "id": "spec-product-wiki",
-      "status": "进行中",
-      "deps": [
-        "spec-model-core"
-      ],
+      "id": "board-live-refresh",
+      "status": "就绪",
+      "deps": [],
       "priority": 5,
-      "worktree": ".worktrees/skein-spec-product-wiki",
-      "parent": "spec-wiki-v2",
+      "worktree": null,
+      "parent": null,
       "kind": "task",
-      "created": 1785381913,
-      "confirmed": 1785594107,
-      "started": 1785594113,
+      "created": 1785599378,
+      "confirmed": 1785600387,
+      "started": null,
       "checked": null,
       "finished": null
     },
@@ -98,34 +138,6 @@
       "finished": null
     },
     {
-      "id": "flow-redo",
-      "status": "已完成",
-      "deps": [],
-      "priority": 5,
-      "worktree": null,
-      "parent": null,
-      "kind": "task",
-      "created": 1785513753,
-      "confirmed": 1785514975,
-      "started": 1785587845,
-      "checked": 1785591581,
-      "finished": 1785594101
-    },
-    {
-      "id": "master-red-baseline",
-      "status": "已完成",
-      "deps": [],
-      "priority": 5,
-      "worktree": null,
-      "parent": null,
-      "kind": "task",
-      "created": 1785567661,
-      "confirmed": 1785585955,
-      "started": 1785585978,
-      "checked": 1785590882,
-      "finished": 1785594102
-    },
-    {
       "id": "spec-hooks-adapt",
       "status": "已完成",
       "deps": [
@@ -140,20 +152,6 @@
       "started": 1785593344,
       "checked": 1785593833,
       "finished": 1785594073
-    },
-    {
-      "id": "spec-inject-budget",
-      "status": "已完成",
-      "deps": [],
-      "priority": 5,
-      "worktree": null,
-      "parent": null,
-      "kind": "task",
-      "created": 1785549463,
-      "confirmed": 1785551607,
-      "started": 1785593318,
-      "checked": 1785593322,
-      "finished": 1785593333
     },
     {
       "id": "spec-migrate",
@@ -200,18 +198,20 @@
       "finished": 1785552552
     },
     {
-      "id": "spec-sqlite-meta",
+      "id": "spec-product-wiki",
       "status": "已完成",
-      "deps": [],
+      "deps": [
+        "spec-model-core"
+      ],
       "priority": 5,
       "worktree": null,
-      "parent": null,
+      "parent": "spec-wiki-v2",
       "kind": "task",
-      "created": 1785583037,
-      "confirmed": 1785589953,
-      "started": 1785591090,
-      "checked": 1785593290,
-      "finished": 1785594102
+      "created": 1785381913,
+      "confirmed": 1785594107,
+      "started": 1785594113,
+      "checked": 1785594885,
+      "finished": 1785596660
     }
   ]
 }

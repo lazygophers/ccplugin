@@ -193,7 +193,7 @@ def test_maintain_apply_broken_link_report_only(mem_ws: Path, mem_cli: MemCli) -
     _reindex(mem_ws, mem_cli)
     out = mem_cli(mem_ws, "maintain", "--apply").stdout
     assert "断链" in out and "missing-target" in out, f"--apply 未报告断链: {out}"
-    assert "仍需人工" in out, "断链未归入人工区"
+    assert "只报告 (需人工判断)" in out, "断链未归入人工区"
     assert (_ws_root(mem_ws) / "recall/git/t-00.md").exists(), "断链文件被误归档"
 
 
@@ -318,7 +318,7 @@ def _stop_check(mem_ws: Path) -> subprocess.CompletedProcess[str]:
 
 
 def test_stop_check_writes_pending_fix(mem_ws: Path, mem_cli: MemCli) -> None:
-    """有问题 (断链) → .pending-fix 写出, JSON schema: ts/core_chars/budget/problems[]。"""
+    """有问题 (断链) → .pending-fix 写出, JSON schema: ts/core_chars/core_tokens/budget_tokens/problems[]。"""
     # ponytail: 显式写 config spec_core_budget=8000 隔离测试, 不耦合全局默认 (st1 改默认 1000)
     cfg = _ws_root(mem_ws).parent / "config.yaml"
     cfg.write_text("spec_core_budget: 8000\n")
@@ -331,9 +331,12 @@ def test_stop_check_writes_pending_fix(mem_ws: Path, mem_cli: MemCli) -> None:
     marker = _ws_root(mem_ws) / ".pending-fix"
     assert marker.exists(), "有问题却未写 .pending-fix"
     payload = json.loads(marker.read_text())
-    assert set(("ts", "core_chars", "budget", "problems")) <= set(payload), \
+    assert set(("ts", "core_chars", "core_tokens", "budget_tokens", "problems")) <= set(payload), \
         f"pending-fix 缺字段: {payload.keys()}"
-    assert payload["budget"] == 8000, f"budget 值错: {payload['budget']}"
+    from skeinlib.token_conversion import estimate_tokens_from_chars
+    # budget_tokens 是配置 char 预算换算后的 token 数, 非原始 8000 (chars→tokens 系数见 token_conversion.py)
+    assert payload["budget_tokens"] == estimate_tokens_from_chars(8000), \
+        f"budget_tokens 值错: {payload['budget_tokens']}"
     probs = payload["problems"]
     assert any(p.get("type") == "broken-link" and "missing-target" in p.get("detail", "")
                for p in probs), f"problems 未含断链: {probs}"

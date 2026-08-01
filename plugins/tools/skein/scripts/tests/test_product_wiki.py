@@ -20,10 +20,12 @@ import tempfile
 import time
 from pathlib import Path
 
+from conftest import MemCli
+
 MEM: Path = Path(__file__).resolve().parent.parent / "spec.py"
 
 
-def test_amend_changes_only_target_section(mem_ws: Path, mem_cli) -> None:
+def test_amend_changes_only_target_section(mem_ws: Path, mem_cli: MemCli) -> None:
     """amend 改写只动目标章节, 其他章节与 frontmatter 不变 (test_spec.py 用例1)。"""
     rules = mem_ws / ".skein" / "spec"
 
@@ -58,7 +60,7 @@ def test_amend_changes_only_target_section(mem_ws: Path, mem_cli) -> None:
     assert "---" in updated and "category: wiki" in updated
 
 
-def test_amend_reversible_with_archive_restore(mem_ws: Path, mem_cli) -> None:
+def test_amend_reversible_with_archive_restore(mem_ws: Path, mem_cli: MemCli) -> None:
     """amend 可逆: 改前自动 archive 旧版，restore 可恢复 (test_spec.py 用例2)。"""
     rules = mem_ws / ".skein" / "spec"
 
@@ -101,7 +103,7 @@ def test_amend_reversible_with_archive_restore(mem_ws: Path, mem_cli) -> None:
     assert len(restored_files) > 0, "restore 未恢复文件"
 
 
-def test_amend_section_not_found_error(mem_ws: Path, mem_cli) -> None:
+def test_amend_section_not_found_error(mem_ws: Path, mem_cli: MemCli) -> None:
     """amend 章节不存在时报错，并列出现有章节名 (test_spec.py 用例3)。"""
     rules = mem_ws / ".skein" / "spec"
 
@@ -125,7 +127,7 @@ def test_amend_section_not_found_error(mem_ws: Path, mem_cli) -> None:
         assert "存在的章节" in error_msg
 
 
-def test_amend_rename_section_updates_backlinks(mem_ws: Path, mem_cli) -> None:
+def test_amend_rename_section_updates_backlinks(mem_ws: Path, mem_cli: MemCli) -> None:
     """amend rename-section 同步更新反链跟随 (test_spec.py 用例4)。"""
     rules = mem_ws / ".skein" / "spec"
 
@@ -171,7 +173,7 @@ def test_amend_rename_section_updates_backlinks(mem_ws: Path, mem_cli) -> None:
         assert "target#新标题" in updated_backlinks
 
 
-def test_finish_candidates_three_paths(mem_ws: Path, mem_cli) -> None:
+def test_finish_candidates_three_paths(mem_ws: Path, mem_cli: MemCli) -> None:
     """finish-candidates 三种命中路径: anchors反查/关键词recall/建议新建 (test_spec.py 用例5)。"""
     # 路径1: anchors 命中 (创建真实文件)
     real_file = mem_ws / "plugins" / "tools" / "skein" / "scripts" / "real_feature.py"
@@ -256,7 +258,7 @@ def test_finish_candidates_three_paths(mem_ws: Path, mem_cli) -> None:
         assert "无" in fc_data3["message"] or "建议" in fc_data3["message"] or "候选" in fc_data3["message"]
 
 
-def test_product_no_pending_fix_on_maintain(mem_ws: Path, mem_cli) -> None:
+def test_product_no_pending_fix_on_maintain(mem_ws: Path, mem_cli: MemCli) -> None:
     """product namespace 不写 .pending-fix (test_spec.py 用例7)。"""
     rules = mem_ws / ".skein" / "spec"
 
@@ -296,7 +298,7 @@ def test_product_no_pending_fix_on_maintain(mem_ws: Path, mem_cli) -> None:
     # 这个断言取决于具体实现，如果 rules 创建 .pending-fix 则能验证对比
 
 
-def test_recall_src_product_only_product_hits(mem_ws: Path, mem_cli) -> None:
+def test_recall_src_product_only_product_hits(mem_ws: Path, mem_cli: MemCli) -> None:
     """recall --src product 只返回 product 命中 (test_spec.py 用例8)。"""
     rules = mem_ws / ".skein" / "spec"
 
