@@ -1,8 +1,8 @@
-/* SKEIN webapp — Design Tokens · Beach Ocean/Sand
-   Light = 晴空碧海（sky + warm sand）
-   Dark  = 暮色海岸（deep ocean + warm gold）
+/* SKEIN webapp — Design Tokens · Ocean & Sand (nd_design_system.html 移植)
+   Light = 白昼碧海（ocean + warm sand + coral + seaweed）
+   Dark  = 夜幕深海（deep ocean + moonlit sand + bioluminescent coral）
    · 保留旧变量名（--bg/--card/--fg/--head/--muted/--brd/--line/--accent/--accent2
-     及 --ocean-* / --whiteSand-* / --goldSand-* / --night-*）作为兼容别名。
+     及 --ocean-* / --whiteSand-* / --goldSand-* / --night-* / --sky-* / --sand-* / --stone-*）作为兼容别名。
    · 主题属性沿用 skein-dark / skein-light，与 index.html 脚本保持一致。 */
 
 @media (prefers-color-scheme: light) {
@@ -13,136 +13,208 @@
 }
 
 :root {
-  /* ── Brand · Sky / Ocean ── */
-  --sky-50:  #f0f9ff;
-  --sky-100: #e0f2fe;
-  --sky-200: #bae6fd;
-  --sky-300: #7dd3fc;
-  --sky-400: #38bdf8;
-  --sky-500: #0ea5e9;
-  --sky-600: #0284c7;
-  --sky-700: #0369a1;
-  --sky-800: #075985;
-  --sky-900: #0c4a6e;
-  --sky-950: #082f49;
+  /* ── Ocean 色系 (主品牌色) ── */
+  --oc-ocean-50: #E8F6FA; --oc-ocean-100: #C5EBF4; --oc-ocean-200: #9EDCEA; --oc-ocean-300: #73CBE0;
+  --oc-ocean-400: #4BB9D5; --oc-ocean-500: #26A6C8; --oc-ocean-600: #1E8BA8; --oc-ocean-700: #166F88;
+  --oc-ocean-800: #0F5368; --oc-ocean-900: #073848; --oc-ocean-950: #032230;
 
-  /* ── Accent · Sand / Gold ── */
-  --sand-50:  #fffbf0;
-  --sand-100: #fef3c7;
-  --sand-200: #fde68a;
-  --sand-300: #fcd34d;
-  --sand-400: #fbbf24;
-  --sand-500: #f59e0b;
-  --sand-600: #d97706;
-  --sand-700: #b45309;
-  --sand-800: #92400e;
-  --sand-900: #78350f;
-  --sand-950: #451a03;
+  /* ── Sand 色系 ── */
+  --oc-sand-50: #FDF9F3; --oc-sand-100: #F9F0E3; --oc-sand-200: #F5E7D3; --oc-sand-300: #F1DEC3;
+  --oc-sand-400: #EDD5B3; --oc-sand-500: #E8CCA3; --oc-sand-600: #D4B88F; --oc-sand-700: #C0A47B;
+  --oc-sand-800: #AC9067; --oc-sand-900: #987C53; --oc-sand-950: #7A6340;
 
-  /* ── Ocean deep scale (for dark mode) ── */
-  --ocean-50:  #f0f9ff;
-  --ocean-100: #e0f2fe;
-  --ocean-200: #bae6fd;
-  --ocean-300: #7dd3fc;
-  --ocean-400: #38bdf8;
-  --ocean-500: #0ea5e9;
-  --ocean-600: #0284c7;
-  --ocean-700: #0369a1;
-  --ocean-800: #1e3a5f;
-  --ocean-900: #0f172a;
-  --ocean-950: #082032;
+  /* ── Coral 珊瑚色系 ── */
+  --oc-coral-50: #FFF0ED; --oc-coral-100: #FFD9D1; --oc-coral-200: #FFC2B5; --oc-coral-300: #FFAB99;
+  --oc-coral-400: #FF947D; --oc-coral-500: #FF7D61; --oc-coral-600: #E66A50; --oc-coral-700: #CC573F;
+  --oc-coral-800: #B3442E; --oc-coral-900: #99311D; --oc-coral-950: #7A2312;
 
-  /* ── Neutral · Warm Stone ── */
-  --stone-50:  #fafaf9;
-  --stone-100: #f5f5f4;
-  --stone-200: #e7e5e4;
-  --stone-300: #d6d3d1;
-  --stone-400: #a8a29e;
-  --stone-500: #78716c;
-  --stone-600: #57534e;
-  --stone-700: #44403c;
-  --stone-800: #292524;
-  --stone-900: #1c1917;
-  --stone-950: #0c0a09;
+  /* ── Seaweed 海草绿系 ── */
+  --oc-seaweed-50: #E8F5E9; --oc-seaweed-100: #C8E6C9; --oc-seaweed-200: #A5D6A7; --oc-seaweed-300: #81C784;
+  --oc-seaweed-400: #66BB6A; --oc-seaweed-500: #4CAF50; --oc-seaweed-600: #43A047; --oc-seaweed-700: #388E3C;
+  --oc-seaweed-800: #2E7D32; --oc-seaweed-900: #1B5E20; --oc-seaweed-950: #0D3B10;
+
+  /* ── Shell 贝壳色系 ── */
+  --oc-shell-50: #FFFBF7; --oc-shell-100: #FFF5ED; --oc-shell-200: #FFEDD8; --oc-shell-300: #FFE0C2;
+  --oc-shell-400: #FFD0A8; --oc-shell-500: #FFBF8F; --oc-shell-600: #E6A87A; --oc-shell-700: #CC9166;
+  --oc-shell-800: #B37A53; --oc-shell-900: #996340; --oc-shell-950: #7A4D2E;
+
+  /* ── Sunset 日落金系 ── */
+  --oc-sunset-50: #FFF8E8; --oc-sunset-100: #FFEFC5; --oc-sunset-200: #FFE49E; --oc-sunset-300: #FFD673;
+  --oc-sunset-400: #FFC84A; --oc-sunset-500: #FFB627; --oc-sunset-600: #E6A020; --oc-sunset-700: #CC8B1A;
+  --oc-sunset-800: #B37614; --oc-sunset-900: #99610E; --oc-sunset-950: #7A4D08;
+
+  /* ── DeepSea 深海紫系 ── */
+  --oc-deepsea-50: #F0F4F8; --oc-deepsea-100: #D9E2EC; --oc-deepsea-200: #BCCCDC; --oc-deepsea-300: #9FB3C8;
+  --oc-deepsea-400: #829AB1; --oc-deepsea-500: #627D98; --oc-deepsea-600: #486581; --oc-deepsea-700: #334E68;
+  --oc-deepsea-800: #243B53; --oc-deepsea-900: #102A43; --oc-deepsea-950: #061B2D;
+
+  /* ── Foam 泡沫白系 ── */
+  --oc-foam-50: #F7FCFE; --oc-foam-100: #E8F6FA; --oc-foam-200: #D5EDF5; --oc-foam-300: #B8E0ED;
+  --oc-foam-400: #96D0E3; --oc-foam-500: #6EBDD7; --oc-foam-600: #5BA8C2; --oc-foam-700: #4893AD;
+  --oc-foam-800: #357E98; --oc-foam-900: #226983; --oc-foam-950: #13546E;
+
+  /* ── Reef 礁石灰系 ── */
+  --oc-reef-50: #F5F7FA; --oc-reef-100: #E1E7ED; --oc-reef-200: #C8D1DB; --oc-reef-300: #A8B8C8;
+  --oc-reef-400: #8A9DB0; --oc-reef-500: #6B8298; --oc-reef-600: #556B7D; --oc-reef-700: #405462;
+  --oc-reef-800: #2B3D48; --oc-reef-900: #16262E; --oc-reef-950: #0A161C;
+
+  /* ── Neutral 中性色系 ── */
+  --oc-neutral-50: #FAFAF9; --oc-neutral-100: #F5F5F4; --oc-neutral-200: #E7E5E4; --oc-neutral-300: #D6D3D1;
+  --oc-neutral-400: #A8A29E; --oc-neutral-500: #78716C; --oc-neutral-600: #57534E; --oc-neutral-700: #44403C;
+  --oc-neutral-800: #292524; --oc-neutral-900: #1C1917; --oc-neutral-950: #0F0D0B;
+
+  /* ── 语义色彩 ── */
+  --oc-success: var(--oc-seaweed-600);
+  --oc-warning: var(--oc-sunset-600);
+  --oc-error: var(--oc-coral-600);
+  --oc-info: var(--oc-ocean-600);
+
+  /* ── 字体 ── */
+  --oc-font-display: "Maple Mono", "Maple Mono NF", "Maple Mono SC", monospace;
+  --oc-font-body: "Maple Mono", "Maple Mono NF", "Maple Mono SC", monospace;
+  --oc-font-mono: "Maple Mono", "Maple Mono NF", "Maple Mono SC", monospace;
+
+  /* ── 动效 ── */
+  --oc-duration-fast: 150ms; --oc-duration-normal: 250ms; --oc-duration-slow: 350ms; --oc-duration-slower: 500ms;
+  --oc-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --oc-ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --oc-ease-in-out: cubic-bezier(0.87, 0, 0.13, 1);
+  --oc-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ═══════════ 兼容映射层 ═══════════
+     将旧色板名映射到新的 --oc-* 体系，让 design.css 里的 var() 引用自动跟随。
+     Dark-first：默认（无 data-theme 或 dark）走深海夜幕。 */
+
+  /* ── sky → ocean 映射 ── */
+  --sky-50:  var(--oc-foam-50);
+  --sky-100: var(--oc-foam-100);
+  --sky-200: var(--oc-ocean-200);
+  --sky-300: var(--oc-ocean-300);
+  --sky-400: var(--oc-ocean-400);
+  --sky-500: var(--oc-ocean-500);
+  --sky-600: var(--oc-ocean-600);
+  --sky-700: var(--oc-ocean-700);
+  --sky-800: var(--oc-ocean-800);
+  --sky-900: var(--oc-ocean-900);
+  --sky-950: var(--oc-ocean-950);
+
+  /* ── sand → sunset 映射 (旧 sand 是金色系，对应 sunset) ── */
+  --sand-50:  var(--oc-sunset-50);
+  --sand-100: var(--oc-sunset-100);
+  --sand-200: var(--oc-sunset-200);
+  --sand-300: var(--oc-sunset-300);
+  --sand-400: var(--oc-sunset-400);
+  --sand-500: var(--oc-sunset-500);
+  --sand-600: var(--oc-sunset-600);
+  --sand-700: var(--oc-sunset-700);
+  --sand-800: var(--oc-sunset-800);
+  --sand-900: var(--oc-sunset-900);
+  --sand-950: var(--oc-sunset-950);
+
+  /* ── ocean (旧 deep ocean) → deepsea 映射 ── */
+  --ocean-50:  var(--oc-deepsea-50);
+  --ocean-100: var(--oc-deepsea-100);
+  --ocean-200: var(--oc-deepsea-200);
+  --ocean-300: var(--oc-deepsea-300);
+  --ocean-400: var(--oc-deepsea-400);
+  --ocean-500: var(--oc-deepsea-500);
+  --ocean-600: var(--oc-deepsea-600);
+  --ocean-700: var(--oc-deepsea-700);
+  --ocean-800: var(--oc-deepsea-800);
+  --ocean-900: var(--oc-deepsea-900);
+  --ocean-950: var(--oc-deepsea-950);
+
+  /* ── stone → reef 映射 ── */
+  --stone-50:  var(--oc-reef-50);
+  --stone-100: var(--oc-reef-100);
+  --stone-200: var(--oc-reef-200);
+  --stone-300: var(--oc-reef-300);
+  --stone-400: var(--oc-reef-400);
+  --stone-500: var(--oc-reef-500);
+  --stone-600: var(--oc-reef-600);
+  --stone-700: var(--oc-reef-700);
+  --stone-800: var(--oc-reef-800);
+  --stone-900: var(--oc-reef-900);
+  --stone-950: var(--oc-reef-950);
 
   /* ── Semantic ── */
-  --success: #10b981;
-  --warning: #f59e0b;
-  --danger:  #f43f5e;
-  --info:    #0ea5e9;
+  --success: var(--oc-seaweed-500);
+  --warning: var(--oc-sunset-500);
+  --danger:  var(--oc-coral-500);
+  --info:    var(--oc-ocean-500);
 
-  --success-text: #047857;
-  --warning-text: #b45309;
-  --danger-text:  #be123c;
-  --info-text:    #0369a1;
+  --success-text: var(--oc-seaweed-700);
+  --warning-text: var(--oc-sunset-700);
+  --danger-text:  var(--oc-coral-700);
+  --info-text:    var(--oc-ocean-700);
 
-  --success-bg: rgba(16, 185, 129, 0.12);
-  --warning-bg: rgba(245, 158, 11, 0.12);
-  --danger-bg:  rgba(244, 63, 94, 0.12);
-  --info-bg:    rgba(14, 165, 233, 0.12);
+  --success-bg: rgba(76, 175, 80, 0.12);
+  --warning-bg: rgba(255, 182, 39, 0.12);
+  --danger-bg:  rgba(255, 125, 97, 0.12);
+  --info-bg:    rgba(38, 166, 200, 0.12);
 
-  --success-border: rgba(16, 185, 129, 0.28);
-  --warning-border: rgba(245, 158, 11, 0.28);
-  --danger-border:  rgba(244, 63, 94, 0.28);
-  --info-border:    rgba(14, 165, 233, 0.28);
+  --success-border: rgba(76, 175, 80, 0.28);
+  --warning-border: rgba(255, 182, 39, 0.28);
+  --danger-border:  rgba(255, 125, 97, 0.28);
+  --info-border:    rgba(38, 166, 200, 0.28);
 
   /* ── Core derived tokens（下游 page.js 主入口） ──
-     Dark-first：默认（无 data-theme 或 dark）走暮色海岸暗色。 */
-  --bg:    var(--ocean-950);
-  --card:  var(--ocean-900);
-  --fg:    var(--stone-100);
-  --head:  var(--stone-50);
-  --muted: var(--stone-400);
-  --brd:   var(--ocean-800);
-  --line:  rgba(148, 163, 184, 0.22);
-  --accent:  var(--sky-400);
-  --accent2: var(--sand-500);
+     Dark-first：默认（无 data-theme 或 dark）走深海夜幕暗色。 */
+  --bg:    var(--oc-deepsea-950);
+  --card:  var(--oc-deepsea-900);
+  --fg:    var(--oc-reef-100);
+  --head:  var(--oc-reef-50);
+  --muted: var(--oc-reef-400);
+  --brd:   var(--oc-deepsea-800);
+  --line:  rgba(107, 130, 152, 0.22);
+  --accent:  var(--oc-ocean-400);
+  --accent2: var(--oc-sunset-500);
 
   /* ── Surface / elevation ── */
-  --bg-canvas:   var(--ocean-950);
-  --bg-panel:    var(--ocean-900);
-  --bg-elevated: #1e3a5f;
-  --bg-hover:    #254a6e;
-  --bg-active:   #2d5b7d;
+  --bg-canvas:   var(--oc-deepsea-950);
+  --bg-panel:    var(--oc-deepsea-900);
+  --bg-elevated: var(--oc-deepsea-800);
+  --bg-hover:    #2a4865;
+  --bg-active:   #355878;
   --border-subtle: rgba(255, 255, 255, 0.05);
   --border-default:  rgba(255, 255, 255, 0.08);
   --border-hover:    rgba(255, 255, 255, 0.14);
-  --text-primary:    var(--stone-100);
-  --text-secondary:  var(--stone-300);
-  --text-muted:      var(--stone-500);
-  --text-tertiary:   var(--stone-600);
+  --text-primary:    var(--oc-reef-100);
+  --text-secondary:  var(--oc-reef-300);
+  --text-muted:      var(--oc-reef-500);
+  --text-tertiary:   var(--oc-reef-600);
 
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.25);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.45);
-  --shadow-accent: 0 4px 14px rgba(56, 189, 248, 0.18);
+  --shadow-accent: 0 4px 14px rgba(75, 185, 213, 0.18);
 
   /* ── 材质 / glass 兼容变量 ── */
   --glass-bg:        var(--bg-panel);
   --glass-brd:       var(--border-default);
-  --glass-brd-blue:  rgba(56, 189, 248, 0.40);
+  --glass-brd-blue:  rgba(75, 185, 213, 0.40);
   --glass-inset-hi:  rgba(255, 255, 255, 0.06);
   --glass-shadow:    rgba(0, 0, 0, 0.40);
   --glass-blur:      0px;
-  --bar-track:       rgba(56, 189, 248, 0.12);
+  --bar-track:       rgba(75, 185, 213, 0.12);
   --panel-2:         rgba(255, 255, 255, 0.03);
-  --chip:            rgba(56, 189, 248, 0.14);
+  --chip:            rgba(75, 185, 213, 0.14);
   --popover-bg:      var(--bg-elevated);
   --popover-brd:     var(--border-default);
   --popover-shadow:  rgba(0, 0, 0, 0.45);
 
   /* ── 状态色 ── */
-  --st-planning: var(--sand-300);
-  --st-pending:  var(--stone-400);
-  --st-ready:    var(--stone-400);
-  --st-active:   var(--sky-400);
-  --st-check:    var(--sand-400);
-  --st-done:     var(--success);
-  --st-failed:   var(--danger);
+  --st-planning: var(--oc-sunset-400);
+  --st-pending:  var(--oc-reef-400);
+  --st-ready:    var(--oc-reef-400);
+  --st-active:   var(--oc-ocean-400);
+  --st-check:    var(--oc-sunset-400);
+  --st-done:     var(--oc-seaweed-400);
+  --st-failed:   var(--oc-coral-400);
 
   /* ── UI 令牌 ── */
-  --font:  'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --mono:  ui-monospace, 'SF Mono', 'JetBrains Mono', monospace;
+  --font:  'Maple Mono', 'Maple Mono NF', 'Maple Mono SC', monospace;
+  --mono:  'Maple Mono', 'Maple Mono NF', 'Maple Mono SC', monospace;
   --radius:    8px;
   --radius-sm: 6px;
   --radius-lg: 12px;
@@ -155,116 +227,123 @@
   --surface-bg-2: var(--bg-elevated);
   --surface-bg-3: var(--bg-active);
   --surface:      var(--bg-elevated);
-  --sel-bg:       rgba(56, 189, 248, 0.18);
-  --sel-fg:       var(--sky-300);
+  --sel-bg:       rgba(75, 185, 213, 0.18);
+  --sel-fg:       var(--oc-ocean-300);
 
-  /* ── 兼容旧色板别名 ──
-     旧 ocean/whiteSand/goldSand/night 映射到新的海滩色系。 */
-  --ocean-foam:    var(--sky-200);
-  --ocean-shallow: var(--sky-400);
-  --ocean-mid:     var(--sky-500);
-  --ocean-deep:    var(--sky-600);
-  --ocean-abyss:   var(--sky-800);
+  /* ── 兼容旧色板别名 ── */
+  --ocean-foam:    var(--oc-ocean-200);
+  --ocean-shallow: var(--oc-ocean-400);
+  --ocean-mid:     var(--oc-ocean-500);
+  --ocean-deep:    var(--oc-ocean-600);
+  --ocean-abyss:   var(--oc-ocean-800);
   --whiteSand-pearl:  var(--bg-canvas);
   --whiteSand-shell:  var(--bg-panel);
   --whiteSand-cream:  var(--bg-hover);
-  --goldSand-light:  var(--sand-200);
-  --goldSand-mid:    var(--sand-400);
-  --goldSand-deep:   var(--sand-500);
-  --goldSand-sunset: var(--sand-600);
-  --night-base: var(--ocean-950);
-  --night-mid:  var(--ocean-900);
-  --night-deep: var(--ocean-800);
-  --skein-gold: var(--sand-400);
+  --goldSand-light:  var(--oc-sunset-200);
+  --goldSand-mid:    var(--oc-sunset-400);
+  --goldSand-deep:   var(--oc-sunset-500);
+  --goldSand-sunset: var(--oc-sunset-600);
+  --night-base: var(--oc-deepsea-950);
+  --night-mid:  var(--oc-deepsea-900);
+  --night-deep: var(--oc-deepsea-800);
+  --skein-gold: var(--oc-sunset-400);
 }
 
-/* ── 明模 · 晴空碧海 Light ── */
+/* ── 明模 · 白昼碧海 Light ── */
 [data-theme="skein-light"] {
-  --bg:    var(--sand-50);
+  --bg:    var(--oc-sand-50);
   --card:  #ffffff;
-  --fg:    var(--stone-700);
-  --head:  var(--stone-900);
-  --muted: var(--stone-500);
-  --brd:   var(--stone-200);
+  --fg:    var(--oc-neutral-700);
+  --head:  var(--oc-neutral-900);
+  --muted: var(--oc-neutral-500);
+  --brd:   var(--oc-neutral-200);
   --line:  rgba(120, 113, 108, 0.25);
-  --accent:  var(--sky-500);
-  --accent2: var(--sand-600);
+  --accent:  var(--oc-ocean-500);
+  --accent2: var(--oc-sunset-600);
 
-  --bg-canvas:   var(--sand-50);
+  --bg-canvas:   var(--oc-sand-50);
   --bg-panel:    #ffffff;
   --bg-elevated: #ffffff;
-  --bg-hover:    var(--sky-50);
-  --bg-active:   var(--sky-100);
+  --bg-hover:    var(--oc-foam-50);
+  --bg-active:   var(--oc-ocean-100);
   --border-subtle: rgba(15, 23, 42, 0.04);
   --border-default:  rgba(15, 23, 42, 0.08);
   --border-hover:    rgba(15, 23, 42, 0.15);
-  --text-primary:    var(--stone-800);
-  --text-secondary:  var(--stone-600);
-  --text-muted:      var(--stone-400);
-  --text-tertiary:   var(--stone-300);
+  --text-primary:    var(--oc-neutral-800);
+  --text-secondary:  var(--oc-neutral-600);
+  --text-muted:      var(--oc-neutral-400);
+  --text-tertiary:   var(--oc-neutral-300);
 
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08);
-  --shadow-accent: 0 4px 14px rgba(14, 165, 233, 0.22);
+  --shadow-accent: 0 4px 14px rgba(38, 166, 200, 0.22);
 
   --glass-bg:        var(--bg-panel);
   --glass-brd:       var(--border-default);
-  --glass-brd-blue:  rgba(14, 165, 233, 0.45);
+  --glass-brd-blue:  rgba(38, 166, 200, 0.45);
   --glass-inset-hi:  rgba(255, 255, 255, 0.80);
   --glass-shadow:    rgba(0, 0, 0, 0.06);
-  --bar-track:       rgba(14, 165, 233, 0.10);
+  --bar-track:       rgba(38, 166, 200, 0.10);
   --panel-2:         rgba(15, 23, 42, 0.02);
-  --chip:            rgba(14, 165, 233, 0.10);
+  --chip:            rgba(38, 166, 200, 0.10);
   --popover-bg:      #ffffff;
-  --popover-brd:     var(--stone-200);
+  --popover-brd:     var(--oc-neutral-200);
   --popover-shadow:  rgba(0, 0, 0, 0.10);
 
-  --st-planning: #d97706;
-  --st-pending:  #78716c;
-  --st-ready:    #78716c;
-  --st-active:   #0ea5e9;
-  --st-check:    #d97706;
-  --st-done:     #059669;
-  --st-failed:   #e11d48;
+  --st-planning: var(--oc-sunset-600);
+  --st-pending:  var(--oc-neutral-500);
+  --st-ready:    var(--oc-neutral-500);
+  --st-active:   var(--oc-ocean-500);
+  --st-check:    var(--oc-sunset-600);
+  --st-done:     var(--oc-seaweed-600);
+  --st-failed:   var(--oc-coral-600);
 
   --surface-bg-1: #ffffff;
-  --surface-bg-2: var(--sand-50);
-  --surface-bg-3: var(--sky-50);
-  --surface:      var(--sky-50);
-  --sel-bg:       rgba(14, 165, 233, 0.12);
-  --sel-fg:       var(--sky-700);
+  --surface-bg-2: var(--oc-sand-50);
+  --surface-bg-3: var(--oc-foam-50);
+  --surface:      var(--oc-foam-50);
+  --sel-bg:       rgba(38, 166, 200, 0.12);
+  --sel-fg:       var(--oc-ocean-700);
 
-  --success-bg: #ecfdf5;
-  --warning-bg: #fffbeb;
-  --danger-bg:  #fff1f2;
-  --info-bg:    #f0f9ff;
-  --success-text: #047857;
-  --warning-text: #b45309;
-  --danger-text:  #be123c;
-  --info-text:    #0369a1;
-  --success-border: #a7f3d0;
-  --warning-border: #fde68a;
-  --danger-border:  #fecdd3;
-  --info-border:    #bae6fd;
+  --success-bg: rgba(76, 175, 80, 0.10);
+  --warning-bg: rgba(255, 182, 39, 0.10);
+  --danger-bg:  rgba(255, 125, 97, 0.10);
+  --info-bg:    rgba(38, 166, 200, 0.10);
+  --success-text: var(--oc-seaweed-700);
+  --warning-text: var(--oc-sunset-700);
+  --danger-text:  var(--oc-coral-700);
+  --info-text:    var(--oc-ocean-700);
+  --success-border: rgba(76, 175, 80, 0.30);
+  --warning-border: rgba(255, 182, 39, 0.30);
+  --danger-border:  rgba(255, 125, 97, 0.30);
+  --info-border:    rgba(38, 166, 200, 0.30);
 
-  /* 兼容旧色板别名 */
-  --ocean-foam:    var(--sky-100);
-  --ocean-shallow: var(--sky-500);
-  --ocean-mid:     var(--sky-600);
-  --ocean-deep:    var(--sky-700);
-  --ocean-abyss:   var(--sky-900);
+  /* 兼容旧色板别名 — light */
+  --sky-50:  var(--oc-ocean-50);
+  --sky-100: var(--oc-ocean-100);
+  --sky-400: var(--oc-ocean-500);
+  --sky-500: var(--oc-ocean-500);
+  --sky-600: var(--oc-ocean-600);
+  --sky-700: var(--oc-ocean-700);
+  --sky-800: var(--oc-ocean-800);
+
+  --ocean-foam:    var(--oc-ocean-100);
+  --ocean-shallow: var(--oc-ocean-500);
+  --ocean-mid:     var(--oc-ocean-600);
+  --ocean-deep:    var(--oc-ocean-700);
+  --ocean-abyss:   var(--oc-ocean-900);
   --whiteSand-pearl:  var(--bg-canvas);
   --whiteSand-shell:  var(--bg-panel);
   --whiteSand-cream:  var(--bg-hover);
-  --goldSand-light:  var(--sand-100);
-  --goldSand-mid:    var(--sand-500);
-  --goldSand-deep:   var(--sand-600);
-  --goldSand-sunset: var(--sand-700);
-  --night-base: var(--sand-50);
-  --night-mid:  var(--stone-100);
-  --night-deep: var(--stone-200);
-  --skein-gold: var(--sand-500);
+  --goldSand-light:  var(--oc-sunset-100);
+  --goldSand-mid:    var(--oc-sunset-500);
+  --goldSand-deep:   var(--oc-sunset-600);
+  --goldSand-sunset: var(--oc-sunset-700);
+  --night-base: var(--oc-sand-50);
+  --night-mid:  var(--oc-neutral-100);
+  --night-deep: var(--oc-neutral-200);
+  --skein-gold: var(--oc-sunset-500);
 }
 
 /* 显式暗色主题（与默认 root 一致） */
@@ -275,9 +354,8 @@
 /* 系统偏好兜底：未设置 data-theme 时走暗色（Dark-first） */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="skein-light"]):not([data-theme="skein-dark"]) {
-    /* 与默认 :root 一致，显式保留以增强可读性 */
-    --bg: var(--ocean-950); --card: var(--ocean-900); --fg: var(--stone-100);
-    --head: var(--stone-50); --muted: var(--stone-400); --brd: var(--ocean-800);
-    --line: rgba(148, 163, 184, 0.22); --accent: var(--sky-400); --accent2: var(--sand-500);
+    --bg: var(--oc-deepsea-950); --card: var(--oc-deepsea-900); --fg: var(--oc-reef-100);
+    --head: var(--oc-reef-50); --muted: var(--oc-reef-400); --brd: var(--oc-deepsea-800);
+    --line: rgba(107, 130, 152, 0.22); --accent: var(--oc-ocean-400); --accent2: var(--oc-sunset-500);
   }
 }

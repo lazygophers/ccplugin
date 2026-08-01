@@ -32,7 +32,7 @@ function giveUp() {
   try { window.close(); } catch (_) {}
   // ponytail: 内联遮罩 (不走 design.css) — 服务停时 CSS 可能加载不全, 兜底 system-ui。
   document.documentElement.innerHTML =
-    '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font:16px/1.6 system-ui;color:#666;text-align:center">' +
+    '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font:16px/1.6 \'Maple Mono\',\'Maple Mono NF\',monospace;color:#666;text-align:center">' +
     "SKEIN 看板服务已停止<br>(5 分钟未恢复, 请重开 <code>skein serve</code>)</div>";
 }
 
