@@ -193,7 +193,7 @@ def test_maintain_apply_broken_link_report_only(mem_ws: Path, mem_cli: MemCli) -
     _reindex(mem_ws, mem_cli)
     out = mem_cli(mem_ws, "maintain", "--apply").stdout
     assert "断链" in out and "missing-target" in out, f"--apply 未报告断链: {out}"
-    assert "仍需人工" in out, "断链未归入人工区"
+    assert "只报告 (需人工判断)" in out, "断链未归入人工区"
     assert (_ws_root(mem_ws) / "recall/git/t-00.md").exists(), "断链文件被误归档"
 
 

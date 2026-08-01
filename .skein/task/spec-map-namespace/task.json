@@ -2,7 +2,7 @@
   "id": "spec-map-namespace",
   "name": "map namespace: 骨架现算 + anchors 断链",
   "desc": "git ls-files 目录树 + 正则抓顶层符号现算不落盘(纯 stdlib, ponytail 标 ceiling) + 语义页 anchors + 断链判据扩到 anchors 失效",
-  "status": "进行中",
+  "status": "检查中",
   "deps": [
     "spec-model-core"
   ],
@@ -48,12 +48,17 @@
         "map 命令合并骨架与语义",
         "顶层地图可标 always 并被注入"
       ],
-      "验收done": [],
-      "status": "运行中",
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785382646,
       "started": 1785594276,
-      "finished": null
+      "finished": 1785594735
     },
     {
       "sid": "k3",
@@ -98,12 +103,16 @@
         "骨架不落盘用例断言临时目录文件集合无变化",
         "doctor --quality 通过"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785382646,
-      "started": null,
-      "finished": null
+      "started": 1785594736,
+      "finished": 1785594885
     }
   ],
   "priority": 5,
@@ -124,8 +133,8 @@
   "created": 1785381913,
   "started": 1785594113,
   "confirmed": 1785594107,
-  "checked": null,
+  "checked": 1785594885,
   "finished": null,
-  "updated": 1785594476,
+  "updated": 1785595090,
   "confirmed_by": "user"
 }

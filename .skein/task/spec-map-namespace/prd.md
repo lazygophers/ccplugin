@@ -25,7 +25,7 @@
 可执行、可核对的完成断言 (逐条):
 
 ### 骨架现算
-- [ ] `spec.py map --skeleton` 输出: 目录树 + 每文件顶层符号名 + 行数, **不写任何文件**
+- [x] `spec.py map --skeleton` 输出: 目录树 + 每文件顶层符号名 + 行数, **不写任何文件**
 - [ ] 文件清单来自 `git ls-files`; 非 git 仓 (无 git 二进制或非仓) 降级 `rglob` 且复用既有衍生文件排除范式 (`__pycache__` / `.mypy_cache` / `.ruff_cache` 等)
 - [ ] 符号抓取覆盖: Python (`def` / `class` / `async def`) + JS/TS (`function` / `class` / `export function` / `export const`) + Go (`func` / `type`)
 - [ ] 抓取代码处有 `ponytail:` 注释, 写明「正则非 AST, 装饰器/嵌套/多行签名抓不准, 升级路径 tree-sitter」
