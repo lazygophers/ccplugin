@@ -22,12 +22,19 @@
         "1000 文件 <3s",
         "清单可参数注入"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785382646,
       "started": null,
-      "finished": null
+      "finished": 1785594259
     },
     {
       "sid": "k2",
@@ -106,5 +113,5 @@
   "confirmed": null,
   "checked": null,
   "finished": null,
-  "updated": 1785382646
+  "updated": 1785594259
 }

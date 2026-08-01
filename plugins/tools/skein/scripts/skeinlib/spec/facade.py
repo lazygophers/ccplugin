@@ -15,8 +15,9 @@ from skeinlib.spec.core import SpecBase
 from skeinlib.spec.index import IndexMixin
 from skeinlib.spec.inject import InjectMixin
 from skeinlib.spec.maintain import MaintainMixin
+from skeinlib.spec.map import MapMixin
 from skeinlib.spec.write import WriteMixin
 
 
-class Spec(AnalyzeMixin, IndexMixin, InjectMixin, WriteMixin, MaintainMixin, SpecBase):
+class Spec(AnalyzeMixin, IndexMixin, InjectMixin, WriteMixin, MaintainMixin, MapMixin, SpecBase):
     """规则记忆库门面 — 子命令实现散在各 mixin, 见本模块 docstring。"""

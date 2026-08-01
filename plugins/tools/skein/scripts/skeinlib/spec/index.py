@@ -32,6 +32,22 @@ class IndexMixin:
     def recall(self, a: argparse.Namespace) -> None:
         query = cast(str, a.query)
         src = cast(Optional[str], getattr(a, "src", None)) or "all"
+
+        # 特殊处理: --src code 时返回 map namespace BM25 命中 + anchors 汇总
+        if src == "code":
+            hits = self._recall_map_code(query)
+            if hits:
+                print("recall 命中 (map namespace code 语义页):")
+                print("\n".join(hits))
+                # 汇总所有命中页的 anchors
+                anchors_summary = self._summarize_anchors(query)
+                if anchors_summary:
+                    print("\nanchors 汇总:")
+                    print(anchors_summary)
+            else:
+                print("recall 无命中")
+            return
+
         fts_hits = self._recall_fts(query, src)
         if fts_hits is not None:
             if fts_hits:
@@ -308,3 +324,82 @@ class IndexMixin:
             total = sum(by_cat.values())
             lines.append(f"| {layer} | {total} | {_dist(by_cat)} | [{layer}/index.md]({layer}/index.md) |")
         (self.root / "index.md").write_text("\n".join(lines) + "\n")
+
+    def _recall_map_code(self, query: str) -> list[str]:
+        """仅召回 map namespace 的 code 语义页 (BM25 优先，grep fallback)。
+
+        返回格式: | [rel] | category | title | keywords | - | summary |
+        """
+        # 先尝试 FTS5 BM25
+        db = self.root / ".recall.db"
+        if db.exists():
+            tokens = [t for t in re.split(r"\s+", query.strip()) if t]
+            if tokens and not any('"' in t for t in tokens):
+                ftsq = " OR ".join(f'"{t}"' for t in tokens)
+                import sqlite3
+                try:
+                    con = sqlite3.connect(db)
+                    try:
+                        rows = con.execute(
+                            "SELECT rel, category, title, keywords, body FROM rules "
+                            "WHERE namespace = 'map' AND rules MATCH ? ORDER BY bm25(rules) LIMIT 10",
+                            (ftsq,)).fetchall()
+                    finally:
+                        con.close()
+                    if rows:
+                        return [f"| [{rel}] | {cat} | {title} | {kw} | - | {_summary(body)} |"
+                                for rel, cat, title, kw, body in rows]
+                except sqlite3.OperationalError:
+                    pass  # 降级 grep
+
+        # fallback: grep map/index.md
+        return self._recall_grep(query, "map")
+
+    def _summarize_anchors(self, query: str) -> str:
+        """汇总 map namespace 命中页的 anchors 字段。
+
+        返回格式: anchors (按命中频次排序):
+        - path/to/file (N次命中)
+        """
+        db = self.root / ".recall.db"
+        if not db.exists():
+            return ""
+
+        import sqlite3
+        try:
+            con = sqlite3.connect(db)
+            try:
+                # 查询 map namespace 中所有命中的页的 anchors
+                tokens = [t for t in re.split(r"\s+", query.strip()) if t]
+                if not tokens or any('"' in t for t in tokens):
+                    return ""
+
+                ftsq = " OR ".join(f'"{t}"' for t in tokens)
+                rows = con.execute(
+                    "SELECT anchors FROM rules WHERE namespace = 'map' AND rules MATCH ?",
+                    (ftsq,)).fetchall()
+            finally:
+                con.close()
+        except sqlite3.OperationalError:
+            return ""
+
+        # 汇总 anchors (按频次排序)
+        from collections import Counter
+        anchor_counter = Counter()
+        for (anchors_str,) in rows:
+            if anchors_str:
+                # anchors 字段格式: "path1,path2,path3"
+                anchors = anchors_str.split(",")
+                for anchor in anchors:
+                    anchor = anchor.strip()
+                    if anchor:
+                        anchor_counter[anchor] += 1
+
+        if not anchor_counter:
+            return ""
+
+        # 按频次排序输出
+        summary_lines = ["anchors (按命中频次排序):"]
+        for anchor, count in anchor_counter.most_common():
+            summary_lines.append(f"- {anchor} ({count}次命中)")
+        return "\n".join(summary_lines)

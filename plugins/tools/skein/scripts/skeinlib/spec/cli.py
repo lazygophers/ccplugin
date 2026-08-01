@@ -30,8 +30,8 @@ def main() -> None:
     sub.add_parser("reindex", help="重建各层 index.md + 顶层总索引 (改盘后同步)")
     r = sub.add_parser("recall", help="按关键词 FTS5 BM25 排序 recall (无 .recall.db/MATCH 失败 → grep fallback)")
     r.add_argument("query", help="任务关键词")
-    r.add_argument("--src", choices=["rules", "product", "map", "all"], default="all",
-                   help="仅召回指定 namespace (缺省 all 全 namespace)")
+    r.add_argument("--src", choices=["rules", "product", "map", "code", "all"], default="all",
+                   help="仅召回指定 namespace (code=map namespace 语义页+anchors汇总; 缺省 all 全 namespace)")
     s = sub.add_parser("sediment", help="沉淀一条规则 (追加为主题文件的一个章节) + 自动 reindex")
     s.add_argument("--namespace", required=True,
                    help="内容分类目录名 (自由字符串, 非 choices — 开放可扩展; 常见 rules/product/map/external)")
@@ -70,6 +70,9 @@ def main() -> None:
     rc = sub.add_parser("restructure", help="按映射把碎片文件合并进主题文件 (源进 .archive/, 可 restore 回滚)")
     rc.add_argument("--map", required=True, help='JSON 文件: {"core/git/merge.md": ["core/git/rule-01.md", ...]}')
     rc.add_argument("--dry-run", action="store_true", help="只打印计划不落盘")
+    mp = sub.add_parser("map", help="[只读] 现算目录树+符号+行数 (不写盘; ponytail: 正则非AST, 升级路径tree-sitter)")
+    mp.add_argument("--skeleton", action="store_true", help="骨架模式: 仅顶层符号 (Python def/class/async def, JS/TS function/class/export, Go func/type)")
+    mp.add_argument("--paths", help="文件清单注入 (逗号分隔路径; 缺省=git ls-files, 非git降级rglob)")
 
     # --debug 可置子命令前后任意位置: 预剥离 argv (argparse 子解析器不认父级 flag)
     cli_debug = any(x in ("-d", "--debug") for x in sys.argv[1:])
@@ -86,5 +89,6 @@ def main() -> None:
         "sediment": m.sediment, "reindex": m.reindex, "list": m.list_,
         "maintain": m.maintain, "degrade": m.degrade, "analyze": m.analyze,
         "archive": m.archive, "restore": m.restore, "restructure": m.restructure,
+        "map": m.map,
     }[cast(str, a.cmd)](a)
     DBG.log(f"✓ {a.cmd} 完成", style="bold green")

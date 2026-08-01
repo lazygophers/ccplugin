@@ -64,9 +64,11 @@ def _read_hook_stdin() -> Optional[str]:
         return None
 def spec_root() -> Path:
     try:
+        # 使用进程当前工作目录而非默认工作目录，确保在 worktree 中正确解析
+        cwd = Path.cwd()
         r = subprocess.run(["git", "rev-parse", "--show-toplevel"],
-                           capture_output=True, text=True)
-        base = Path(r.stdout.strip()) if r.returncode == 0 else Path.cwd()
+                           capture_output=True, text=True, cwd=cwd)
+        base = Path(r.stdout.strip()) if r.returncode == 0 else cwd
     except FileNotFoundError:  # 无 git 二进制 → fallback cwd (设计意图: 非 git 也可用)
         base = Path.cwd()
     return base / ".skein" / "spec"
