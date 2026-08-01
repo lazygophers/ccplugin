@@ -2,7 +2,7 @@
   "id": "spec-product-wiki",
   "name": "product namespace + amend + finish 回写",
   "desc": "wiki 主体: product 按功能域切页 + amend 改写既有章节(旧版进 archive) + finish 时 diff→anchors 反查候选页派 specer 回写 + product 判据只报告不自动删",
-  "status": "待处理",
+  "status": "进行中",
   "deps": [
     "spec-model-core"
   ],
@@ -21,12 +21,18 @@
         "recall --src product 只返 product 命中",
         "无 product 页时零回归"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785382522,
-      "started": null,
-      "finished": null
+      "started": 1785594113,
+      "finished": 1785594232
     },
     {
       "sid": "p2",
@@ -41,12 +47,18 @@
         "rename-section 反链跟随不断链",
         "amend 后 index/FTS/backlinks 已同步"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785382522,
-      "started": null,
-      "finished": null
+      "started": 1785594244,
+      "finished": 1785594462
     },
     {
       "sid": "p3",
@@ -63,12 +75,18 @@
         "--json 机器可读",
         "文件列表可参数注入(测试无需真 git 仓)"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785382522,
-      "started": null,
-      "finished": null
+      "started": 1785594462,
+      "finished": 1785594661
     },
     {
       "sid": "p4",
@@ -84,12 +102,17 @@
         "product 不写 pending-fix",
         "输出两类分明且只报告类列出需人判原因"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785382522,
-      "started": null,
-      "finished": null
+      "started": 1785594462,
+      "finished": 1785594609
     },
     {
       "sid": "p5",
@@ -108,25 +131,33 @@
         "doctor --quality 通过"
       ],
       "验收done": [],
-      "status": "待处理",
+      "status": "运行中",
       "skills": [],
       "created": 1785382522,
-      "started": null,
+      "started": 1785594661,
       "finished": null
     }
   ],
   "priority": 5,
   "estimate": 4.0,
   "repos": [],
-  "worktree": null,
-  "worktrees": [],
+  "worktree": ".worktrees/skein-spec-product-wiki",
+  "worktrees": [
+    {
+      "repo": ".",
+      "wt": ".worktrees/skein-spec-product-wiki",
+      "branch": "skein/spec-product-wiki",
+      "merged": false
+    }
+  ],
   "branch": "skein/spec-product-wiki",
   "parent": "spec-wiki-v2",
   "kind": "task",
   "created": 1785381913,
-  "started": null,
-  "confirmed": null,
+  "started": 1785594113,
+  "confirmed": 1785594107,
   "checked": null,
   "finished": null,
-  "updated": 1785382522
+  "updated": 1785594661,
+  "confirmed_by": "user"
 }
