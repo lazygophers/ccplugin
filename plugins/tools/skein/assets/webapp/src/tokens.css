@@ -204,13 +204,15 @@
   --popover-shadow:  rgba(0, 0, 0, 0.45);
 
   /* ── 状态色 ── */
-  --st-planning: var(--oc-sunset-400);
-  --st-pending:  var(--oc-reef-400);
-  --st-ready:    var(--oc-reef-400);
-  --st-active:   var(--oc-ocean-400);
+  /* ── 状态色 (暗色) ──
+     plan → Coral | research → Sand | 待执行(ready/pending) → Ocean | exec(active) → Coral | check → Sunset | finish(done) → DeepSea */
+  --st-planning: var(--oc-coral-400);
+  --st-pending:  var(--oc-ocean-400);
+  --st-ready:    var(--oc-ocean-400);
+  --st-active:   var(--oc-coral-400);
   --st-check:    var(--oc-sunset-400);
-  --st-done:     var(--oc-seaweed-400);
-  --st-failed:   var(--oc-coral-400);
+  --st-done:     var(--oc-deepsea-400);
+  --st-failed:   var(--oc-coral-500);
 
   /* ── UI 令牌 ── */
   --font:  'Maple Mono', 'Maple Mono NF', 'Maple Mono SC', monospace;
@@ -291,12 +293,12 @@
   --popover-brd:     var(--oc-neutral-200);
   --popover-shadow:  rgba(0, 0, 0, 0.10);
 
-  --st-planning: var(--oc-sunset-600);
-  --st-pending:  var(--oc-neutral-500);
-  --st-ready:    var(--oc-neutral-500);
-  --st-active:   var(--oc-ocean-500);
+  --st-planning: var(--oc-coral-600);
+  --st-pending:  var(--oc-ocean-600);
+  --st-ready:    var(--oc-ocean-600);
+  --st-active:   var(--oc-coral-600);
   --st-check:    var(--oc-sunset-600);
-  --st-done:     var(--oc-seaweed-600);
+  --st-done:     var(--oc-deepsea-600);
   --st-failed:   var(--oc-coral-600);
 
   --surface-bg-1: #ffffff;
