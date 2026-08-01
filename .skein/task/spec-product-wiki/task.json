@@ -2,7 +2,7 @@
   "id": "spec-product-wiki",
   "name": "product namespace + amend + finish 回写",
   "desc": "wiki 主体: product 按功能域切页 + amend 改写既有章节(旧版进 archive) + finish 时 diff→anchors 反查候选页派 specer 回写 + product 判据只报告不自动删",
-  "status": "进行中",
+  "status": "检查中",
   "deps": [
     "spec-model-core"
   ],
@@ -130,12 +130,16 @@
         "product 不自动 archive 属回归重点已覆盖",
         "doctor --quality 通过"
       ],
-      "验收done": [],
-      "status": "运行中",
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785382522,
       "started": 1785594661,
-      "finished": null
+      "finished": 1785594881
     }
   ],
   "priority": 5,
@@ -156,8 +160,8 @@
   "created": 1785381913,
   "started": 1785594113,
   "confirmed": 1785594107,
-  "checked": null,
+  "checked": 1785594885,
   "finished": null,
-  "updated": 1785594661,
+  "updated": 1785596596,
   "confirmed_by": "user"
 }
