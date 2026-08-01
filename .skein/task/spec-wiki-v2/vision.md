@@ -6,9 +6,9 @@
 
 | child | 名称 | 状态 | subtask 完成 | 进度 |
 |---|---|---|---|---|
+| spec-docs-examples | docs + examples 示例仓迁移 | 就绪 | 0/3 | 5% |
 | spec-hooks-adapt | hooks.py 适配 + fileMatch 注入 + 修两现存 bug | 就绪 | 0/4 | 5% |
 | spec-migrate | 自动迁移 migrate 两阶段 | 就绪 | 0/5 | 5% |
-| spec-docs-examples | docs + examples 示例仓迁移 | 待处理 | 0/3 | 0% |
 | spec-map-namespace | map namespace: 骨架现算 + anchors 断链 | 待处理 | 0/4 | 0% |
 | spec-product-wiki | product namespace + amend + finish 回写 | 待处理 | 0/5 | 0% |
 | spec-skills-agents-adapt | skills + agents 全量适配 | 待处理 | 0/5 | 0% |

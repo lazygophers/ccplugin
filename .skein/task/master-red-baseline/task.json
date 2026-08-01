@@ -1,0 +1,101 @@
+{
+  "id": "master-red-baseline",
+  "name": "master 基线 19 条红回绿",
+  "desc": "干净 master 实测 19 failed/314 passed, 三组独立根因 (A13 前端迁移删源致 node 侧测试断链 / B4 claim 新增必填 phase 漏改测试 / C2 服务端入口改动触发两条新守卫)。清零以恢复「红=我搞红的」判据, 是 concurrency-pools 的前置",
+  "status": "进行中",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "b1",
+      "name": "B组: claim phase 参数补全",
+      "desc": "test_ready_scheduling.py 的 claim 调用点补必填 phase 参数; 全仓搜索确认无第三处遗漏",
+      "estimate": 0.5,
+      "depends_on": [],
+      "验收": [
+        "test_ready_scheduling 4 条全绿",
+        "全仓搜索确认 claim 无第三处遗漏调用点",
+        "未删改任何断言"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785585835,
+      "started": 1785585978,
+      "finished": 1785588049
+    },
+    {
+      "sid": "c1",
+      "name": "C组: 服务端入口守卫违规修复",
+      "desc": "补类型声明块登记 + 补衍生物清单登记; 守卫零改动; 修完各做一次反向验红",
+      "estimate": 1.5,
+      "depends_on": [
+        "b1"
+      ],
+      "验收": [
+        "两条守卫测试文件 git diff 为空",
+        "类型检查全绿且 type ignore 数量不增",
+        "衍生物守卫绿",
+        "两条守卫各完成一次反向验红并写进回传"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785585848,
+      "started": 1785588058,
+      "finished": 1785588777
+    },
+    {
+      "sid": "a1",
+      "name": "A组: node 侧测试指向 TS 源",
+      "desc": "三个 node 侧测试改为原生类型擦除直跑 TS 源; 抑制模块类型告警; 行为逐条对齐; 清残留旧 SPA 引用",
+      "estimate": 3.0,
+      "depends_on": [
+        "c1"
+      ],
+      "验收": [
+        "13 条全绿且零新增 skip/xfail",
+        "全仓搜不到已删旧 SPA 目录引用",
+        "未新增 node 侧依赖",
+        "通道失败与断言失败信息可分辨"
+      ],
+      "验收done": [],
+      "status": "运行中",
+      "skills": [],
+      "created": 1785585848,
+      "started": 1785588777,
+      "finished": null
+    }
+  ],
+  "priority": 5,
+  "estimate": 5.0,
+  "repos": [],
+  "worktree": ".worktrees/skein-master-red-baseline",
+  "worktrees": [
+    {
+      "repo": ".",
+      "wt": ".worktrees/skein-master-red-baseline",
+      "branch": "skein/master-red-baseline",
+      "merged": false
+    }
+  ],
+  "branch": "skein/master-red-baseline",
+  "parent": null,
+  "kind": "task",
+  "created": 1785567661,
+  "started": 1785585978,
+  "confirmed": 1785585955,
+  "checked": null,
+  "finished": null,
+  "updated": 1785588777,
+  "confirmed_by": "user"
+}

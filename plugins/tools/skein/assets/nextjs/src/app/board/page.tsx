@@ -14,6 +14,7 @@ import { drawEdgesPaths, buildDepDAG, type DagNode, type DagEdge } from "@/lib/d
 import { ProgressBar } from "@/components/progress-bar";
 import { useToast } from "@/components/toast";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { IconApprove, IconFinish, IconDetail, IconTrash, IconClose, IconCopyMini } from "@/components/icons";
 
 const ALL_STATUSES = ["planning", "ready", "active", "check", "done"];
 const DEFAULT_FILTER = new Set(["planning", "ready", "active", "check"]);
@@ -180,9 +181,9 @@ function sugiyama(ids: string[], depsOf: (id: string) => string[], opt: SugiOpts
 
 // ── Tiered layout (from old board.js layoutTiered) ──
 const DAG_DENSITY = {
-  large:   { w: 260, h: 76, gapX: 18, gapY: 26, padX: 40, padY: 30 },
-  compact: { w: 190, h: 52, gapX: 14, gapY: 22, padX: 40, padY: 30 },
-  mini:    { w: 120, h: 32, gapX: 14, gapY: 22, padX: 40, padY: 30 },
+  large:   { w: 260, h: 76, gapX: 54, gapY: 39, padX: 120, padY: 45 },
+  compact: { w: 190, h: 52, gapX: 42, gapY: 33, padX: 120, padY: 45 },
+  mini:    { w: 120, h: 32, gapX: 42, gapY: 33, padX: 120, padY: 45 },
 };
 type Density = keyof typeof DAG_DENSITY;
 
@@ -498,7 +499,7 @@ function DagCanvas({ layout, statusSet, onSelect, selectedId }: {
             <div
               onClick={(e) => { e.preventDefault(); onSelect(n.id); }}
               data-task-id={n.id}
-              className={cn("flex cursor-pointer items-center gap-2 overflow-hidden rounded-md border transition-all hover:shadow-md", selectedId === n.id && "ring-2 ring-primary")}
+              className={cn("flex cursor-pointer items-center gap-2 overflow-hidden rounded-md border transition-all hover:shadow-md", selectedId === n.id && "ring-2 ring-primary", st === "active" && "dag-node-active")}
               style={{ height: n.h, borderColor: `var(${meta.colorVar})`, backgroundColor: `color-mix(in srgb, var(${meta.colorVar}) 20%, var(--card))` }}
             >
               <span className="h-2 w-2 flex-shrink-0 rounded-full ml-2" style={{ backgroundColor: `var(${meta.colorVar})` }} />
@@ -516,6 +517,34 @@ function DagCanvas({ layout, statusSet, onSelect, selectedId }: {
                 )}
               </div>
             </div>
+            {/* Hover 悬浮卡片 */}
+            {hoverId === n.id && (
+              <div className="pointer-events-none absolute left-0 top-full z-50 mt-2 w-80 rounded-lg border border-border/40 bg-card/95 p-4 shadow-xl backdrop-blur-md">
+                <div className="mb-1.5 flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: `var(${meta.colorVar})` }} />
+                  <span className="text-xs font-semibold text-foreground">{t.title || t.name || t.id}</span>
+                  <span className="ml-auto rounded px-1.5 py-0.5 text-[9px] font-medium text-white" style={{ backgroundColor: `var(${meta.colorVar})` }}>{meta.label}</span>
+                </div>
+                <div className="mb-1.5 font-mono text-[10px] text-muted-foreground">#{t.id}</div>
+                {(t.desc || t.description) && (
+                  <div className="mb-2 line-clamp-3 text-xs leading-relaxed text-muted-foreground">{t.desc || t.description}</div>
+                )}
+                {subs.length > 0 && (
+                  <div className="mb-1.5">
+                    <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                      <span>子任务进度</span>
+                      <span>{subDone}/{subs.length}</span>
+                    </div>
+                    <div className="mt-0.5 h-1 overflow-hidden rounded-full bg-muted">
+                      <div className="h-full rounded-full transition-all" style={{ width: `${subs.length ? Math.round(subDone / subs.length * 100) : 0}%`, backgroundColor: `var(${meta.colorVar})` }} />
+                    </div>
+                  </div>
+                )}
+                {(t.deps && t.deps.length > 0) && (
+                  <div className="text-[10px] text-muted-foreground">依赖: {t.deps.join(", ")}</div>
+                )}
+              </div>
+            )}
           </div>
         );
       })}
@@ -541,7 +570,7 @@ function ListView({ tasks, statusSet, onSelect }: { tasks: NormTask[]; statusSet
             </div>
             <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
               {list.length ? list.map(t => (
-                <div key={t.id} onClick={() => onSelect(t.id)} className="flex cursor-pointer items-center gap-2 rounded-lg p-2 transition-colors hover:bg-muted/30">
+                <div key={t.id} onClick={() => onSelect(t.id)} className={cn("flex cursor-pointer items-center gap-2 rounded-lg p-2 transition-colors hover:bg-muted/30", st === "active" && "dag-node-active")}>
                   <i className={`fa ${meta.icon} text-xs`} style={{ color: `var(${meta.colorVar})` }} />
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm text-foreground">{t.title || t.name || "(未命名)"}</div>
@@ -582,22 +611,14 @@ function DetailPanel({ task, allTasks, onClose, onConfirm, onFinish, onDelete, o
         </div>
         <div className="flex items-center gap-1.5">
           {st === "planning" && (
-            <button onClick={() => onConfirm(task.id)} title="确认规划 → 进就绪" className="rounded-md border border-primary/40 px-2 py-1 text-xs text-primary hover:bg-primary/10">
-              <i className="fa fa-check mr-1" />确认
-            </button>
+            <button onClick={() => onConfirm(task.id)} data-tip="确认规划 → 进就绪" className="icon-btn flex items-center justify-center rounded-md border border-primary/40 p-1.5 text-primary hover:bg-primary/10"><IconApprove /></button>
           )}
           {(st === "active" || st === "check") && (
-            <button onClick={() => onFinish(task.id, task.title || task.name || task.id)} title="强制完成" className="rounded-md border border-primary/40 px-2 py-1 text-xs text-primary hover:bg-primary/10">
-              <i className="fa fa-flag-checkered mr-1" />完成
-            </button>
+            <button onClick={() => onFinish(task.id, task.title || task.name || task.id)} data-tip="强制完成" className="icon-btn flex items-center justify-center rounded-md border border-primary/40 p-1.5 text-primary hover:bg-primary/10"><IconFinish /></button>
           )}
-          <Link href={`/task/detail/?id=${task.id}`} prefetch={false} title="打开详情页" className="rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:bg-muted/30 hover:text-foreground">
-            <i className="fa fa-external-link mr-1" />详情
-          </Link>
-          <button onClick={() => onDelete(task.id, task.title || task.name || task.id)} title="删除任务" className="rounded-md border border-destructive/50 bg-destructive/10 px-2 py-1 text-xs text-destructive hover:bg-destructive/20">
-            <i className="fa fa-trash mr-1" />删除
-          </button>
-          <button onClick={onClose} title="关闭" className="rounded-md p-1.5 text-muted-foreground hover:bg-muted/30 hover:text-foreground"><i className="fa fa-times" /></button>
+          <Link href={`/task/detail/?id=${task.id}`} prefetch={false} data-tip="打开详情页" className="icon-btn flex items-center justify-center rounded-md border border-border p-1.5 text-muted-foreground hover:bg-muted/30 hover:text-foreground"><IconDetail /></Link>
+          <button onClick={() => onDelete(task.id, task.title || task.name || task.id)} data-tip="删除任务" className="icon-btn flex items-center justify-center rounded-md border border-destructive/50 bg-destructive/10 p-1.5 text-destructive hover:bg-destructive/20"><IconTrash /></button>
+          <button onClick={onClose} data-tip="关闭" className="icon-btn flex items-center justify-center rounded-md p-1.5 text-muted-foreground hover:bg-muted/30 hover:text-foreground"><IconClose /></button>
         </div>
       </div>
 
@@ -693,11 +714,11 @@ function CopyableId({ id, label }: { id: string; label?: string }) {
   return (
     <span
       onClick={() => { navigator.clipboard?.writeText(id); toast(`已复制 ${label || "ID"}: ${id}`, "success"); }}
-      className="cursor-pointer font-mono text-xs text-muted-foreground hover:text-primary transition-colors"
+      className="copyable-id group inline-flex cursor-pointer items-center gap-1 font-mono text-xs text-muted-foreground transition-colors hover:text-primary"
       title={`点击复制 ${label || "ID"}: ${id}`}
     >
-      <i className="fa fa-clone mr-0.5 text-[10px]" />
-      #{id}
+      <span>#{id}</span>
+      <IconCopyMini className="opacity-0 transition-opacity group-hover:opacity-100" />
     </span>
   );
 }
@@ -774,7 +795,7 @@ function TaskTimeline({ task, eta, subs }: { task: NormTask; eta: { main: string
 function SubtaskDag({ subs }: { subs: NormSubtask[] }) {
   const layout = useMemo(() => {
     const byId = new Map(subs.map(s => [s.id, s]));
-    const s = { colW: 160, rowH: 60, padX: 16, padY: 12, gapX: 16, gapY: 12 };
+    const s = { colW: 160, rowH: 60, padX: 16, padY: 24, gapX: 16, gapY: 24 };
     const depsOf = (id: string) => (byId.get(id)?.deps || []).filter(d => byId.has(d));
     return layoutTiered([...byId.keys()], depsOf, { w: s.colW - s.gapX, h: s.rowH - s.gapY, gapX: s.gapX, gapY: s.gapY, padX: s.padX, padY: s.padY }, 580, (id) => ({ sub: byId.get(id)! }));
   }, [subs]);

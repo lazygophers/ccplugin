@@ -14,6 +14,7 @@ import { drawEdgesPaths, buildDepDAG } from "@/lib/depdag";
 import { ProgressBar } from "@/components/progress-bar";
 import { useToast } from "@/components/toast";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { IconApprove, IconFinish, IconTrash, IconCopyMini } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
 // ── Timeline stages (from old app.js buildTimeline) ──
@@ -142,24 +143,27 @@ function TaskDetailContent() {
                   <h1 className="text-3xl font-bold text-foreground">{task.title || task.name || "(未命名)"}</h1>
                 </div>
                 <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                  <span className="cursor-pointer font-mono text-muted-foreground hover:text-primary transition-colors" onClick={() => navigator.clipboard?.writeText(task.id)} title="点击复制">#{task.id}</span>
+                  <span className="copyable-id group inline-flex cursor-pointer items-center gap-1 font-mono text-muted-foreground transition-colors hover:text-primary" onClick={() => { navigator.clipboard?.writeText(task.id); toast(`已复制: ${task.id}`, "success"); }} title="点击复制">
+                    #{task.id}
+                    <IconCopyMini className="opacity-0 transition-opacity group-hover:opacity-100" />
+                  </span>
                   {task.createdAt && <><span className="opacity-40">·</span><span>创建于 {fmtRelative(task.createdAt)}</span></>}
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 {st === "planning" && (
-                  <button onClick={async () => { try { await api.exec("confirm", { id: task.id }); toast("已确认规划", "success"); setTimeout(load, 500); } catch { toast("确认失败", "error"); } }} title="确认规划 → 进就绪" className="rounded-md border border-primary/40 p-2 text-primary hover:bg-primary/10">
-                    <i className="fa fa-check" />
+                  <button onClick={async () => { try { await api.exec("confirm", { id: task.id }); toast("已确认规划", "success"); setTimeout(load, 500); } catch { toast("确认失败", "error"); } }} data-tip="确认规划 → 进就绪" className="icon-btn flex items-center justify-center rounded-md border border-primary/40 p-2 text-primary hover:bg-primary/10">
+                    <IconApprove size={18} />
                   </button>
                 )}
                 {(st === "active" || st === "check") && (
-                  <button onClick={() => setConfirmAction({ type: "finish" })} title="强制完成" className="rounded-md border border-primary/40 p-2 text-primary hover:bg-primary/10">
-                    <i className="fa fa-flag-checkered" />
+                  <button onClick={() => setConfirmAction({ type: "finish" })} data-tip="强制完成" className="icon-btn flex items-center justify-center rounded-md border border-primary/40 p-2 text-primary hover:bg-primary/10">
+                    <IconFinish size={18} />
                   </button>
                 )}
                 <StatusBadge status={st} className="px-4 py-1 text-base" />
-                <button onClick={() => setConfirmAction({ type: "delete" })} title="删除任务" className="rounded-md border border-destructive/50 bg-destructive/10 p-2 text-destructive hover:bg-destructive/20">
-                  <i className="fa fa-trash" />
+                <button onClick={() => setConfirmAction({ type: "delete" })} data-tip="删除任务" className="icon-btn flex items-center justify-center rounded-md border border-destructive/50 bg-destructive/10 p-2 text-destructive hover:bg-destructive/20">
+                  <IconTrash size={18} />
                 </button>
               </div>
             </div>
@@ -220,7 +224,7 @@ function TaskDetailContent() {
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
                             <span className="truncate text-xs font-medium text-foreground">{s.title || s.name || s.sid}</span>
-                            <span className="cursor-pointer font-mono text-[10px] text-muted-foreground hover:text-primary transition-colors" onClick={() => navigator.clipboard?.writeText(s.sid)} title="点击复制">{s.sid}</span>
+                            <span className="cursor-pointer font-mono text-[10px] text-muted-foreground hover:text-primary transition-colors" onClick={() => { navigator.clipboard?.writeText(s.sid); toast(`已复制: ${s.sid}`, "success"); }} title="点击复制">{s.sid}</span>
                           </div>
                           {s.desc && <div className="mt-0.5 break-words text-[11px] text-muted-foreground overflow-hidden">{s.desc}</div>}
                           <div className="mt-0.5 flex items-center gap-2 text-[10px] text-muted-foreground">
@@ -340,6 +344,25 @@ function TaskDetailContent() {
           </div>
         </main>
       </div>
+      <ConfirmDialog
+        open={!!confirmAction}
+        title={confirmAction?.type === "delete" ? "删除任务" : "强制完成"}
+        message={confirmAction?.type === "delete"
+          ? `确认删除 "${task?.title || task?.name || id}"？删除后可从回收站恢复。`
+          : `确认强制完成 "${task?.title || task?.name || id}"？将合并 worktree 并标记为已完成。`}
+        confirmText={confirmAction?.type === "delete" ? "删除" : "完成"}
+        destructive={confirmAction?.type === "delete"}
+        onCancel={() => setConfirmAction(null)}
+        onConfirm={async () => {
+          const type = confirmAction?.type;
+          setConfirmAction(null);
+          if (!task) return;
+          try {
+            if (type === "delete") { await api.exec("del", { id: task.id }); toast("已删除", "success"); setTimeout(() => { window.location.href = "/board/"; }, 800); }
+            else if (type === "finish") { await api.exec("finish", { id: task.id }); toast("已完成", "success"); setTimeout(load, 500); }
+          } catch { toast("操作失败", "error"); }
+        }}
+      />
     </div>
   );
 }
@@ -438,7 +461,7 @@ function useSubtaskLayout(subs: NormSubtask[]) {
     if (!subs.length) return { layout: null };
     const byId = new Map(subs.map(s => [s.id, s]));
     const depsOf = (id: string) => (byId.get(id)?.deps || []).filter(d => byId.has(d));
-    const s = { w: 148, h: 48, gapX: 16, gapY: 12, padX: 16, padY: 12 };
+    const s = { w: 148, h: 48, gapX: 16, gapY: 24, padX: 16, padY: 24 };
     const ids = [...byId.keys()];
     // simple tiered layout
     const lay = new Map<string, number>();

@@ -2,7 +2,7 @@
   "id": "concurrency-pools",
   "name": "并发池重构: work/gate 双池 + research 状态",
   "desc": "max_active 单数字换成 work(2, exec+research 共享, exec 优先)/gate(3, check+finish 共享) 双池; subtask 加 phase 字段; task 状态机加 research 态 (plan⇄research, research 禁直转就绪)",
-  "status": "进行中",
+  "status": "就绪",
   "deps": [],
   "contracts": [],
   "subtasks": [

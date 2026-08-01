@@ -135,8 +135,8 @@
 
   /* SKEIN 状态色 — plan→Coral | 待执行→Ocean | exec→Seaweed | check→Sunset | finish→DeepSea */
   --st-planning: var(--oc-coral-600);
-  --st-pending: var(--oc-ocean-600);
-  --st-ready: var(--oc-ocean-600);
+  --st-pending: var(--oc-shell-600);
+  --st-ready: var(--oc-shell-600);
   --st-active: var(--oc-seaweed-600);
   --st-check: var(--oc-sunset-600);
   --st-done: var(--oc-deepsea-600);
@@ -178,8 +178,8 @@
   --sidebar-ring: var(--oc-deepsea-400);
 
   --st-planning: var(--oc-coral-800);
-  --st-pending: var(--oc-ocean-800);
-  --st-ready: var(--oc-ocean-800);
+  --st-pending: var(--oc-shell-800);
+  --st-ready: var(--oc-shell-800);
   --st-active: var(--oc-seaweed-800);
   --st-check: var(--oc-sunset-800);
   --st-done: var(--oc-deepsea-800);
@@ -266,4 +266,51 @@
 @keyframes tl-blink {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.6; }
+}
+
+/* ═══ 主题适配滚动条 ═══ */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--muted-foreground) 35%, transparent) transparent;
+}
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--muted-foreground) 35%, transparent);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in srgb, var(--muted-foreground) 55%, transparent);
+}
+::-webkit-scrollbar-corner { background: transparent; }
+
+/* ═══ Icon button tooltip (data-tip) ═══ */
+.icon-btn { position: relative; }
+.icon-btn[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: var(--foreground);
+  color: var(--background);
+  font-size: 11px;
+  font-weight: 500;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 100;
+}
+.icon-btn[data-tip]:hover::after { opacity: 1; }
+
+/* ═══ 执行中 task 呼吸动效 ═══ */
+.dag-node-active {
+  animation: dag-breathe 2.5s ease-in-out infinite;
+}
+@keyframes dag-breathe {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--st-active) 0%, transparent); }
+  50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--st-active) 25%, transparent); }
 }

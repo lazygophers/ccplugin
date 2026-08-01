@@ -72,12 +72,11 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
     import asyncio
 
     # Next.js static export: dist/ 是纯静态产物, _next/ chunks 文件名含 hash 天然防缓存
-    # /src/pages/*.js → 编辑后看旧板 (就绪态改动不生效)。no-cache 令每次载入走重验证
-    # (ETag/Last-Modified 命中仍回 304, 变更即取新), 修根因不改 index.html 模块图。
+    # 但 HTML 页面无 hash → no-store 强制浏览器每次都拿最新 (免 dev 迭代时看旧板)。
     class _NoCacheStatic(StaticFiles):
         async def get_response(self, path: str, scope: Any) -> Any:
             resp = await super().get_response(path, scope)
-            resp.headers["Cache-Control"] = "no-cache"
+            resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
             return resp
 
     # 注入模块全局: PEP 563 (from __future__ import annotations) 把 handler 参数注解 string化,
@@ -381,6 +380,12 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
     # mount dist/ 为根 + html=true → 浏览器 /dashboard/ → dashboard/index.html 自然命中,
     # /dashboard (无尾斜杠) → Starlette 302 → /dashboard/ → 命中。无需逐路由声明。
     app.mount("/_next", _NoCacheStatic(directory=str(dist_dir() / "_next"), check_dir=False), name="next-static")
+
+    # task/detail SPA 页面: 必须在 /task mount 之前, 否则被 task 数据 StaticFiles 拦截 → 404。
+    # Next.js 输出 dist/task/detail/index.html, 但 /task mount 指向 .skein/task/ (数据目录)。
+    @app.get("/task/detail", response_class=HTMLResponse)
+    async def _spa_task_detail() -> str:
+        return (dist_dir() / "task" / "detail" / "index.html").read_text(encoding="utf-8")
 
     # 规划文档 (prd/design/findings.md) 直出: doc.js fetch /task/<id>/<f>.md
     app.mount("/task", StaticFiles(directory=str(board.tasks), check_dir=False), name="task")

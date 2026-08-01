@@ -1,8 +1,36 @@
 {
   "tasks": [
     {
-      "id": "concurrency-pools",
+      "id": "flow-redo",
       "status": "进行中",
+      "deps": [],
+      "priority": 5,
+      "worktree": ".worktrees/skein-flow-redo",
+      "parent": null,
+      "kind": "task",
+      "created": 1785513753,
+      "confirmed": 1785514975,
+      "started": 1785587845,
+      "checked": null,
+      "finished": null
+    },
+    {
+      "id": "master-red-baseline",
+      "status": "进行中",
+      "deps": [],
+      "priority": 5,
+      "worktree": ".worktrees/skein-master-red-baseline",
+      "parent": null,
+      "kind": "task",
+      "created": 1785567661,
+      "confirmed": 1785585955,
+      "started": 1785585978,
+      "checked": null,
+      "finished": null
+    },
+    {
+      "id": "concurrency-pools",
+      "status": "就绪",
       "deps": [],
       "priority": 5,
       "worktree": ".worktrees/skein-concurrency-pools",
@@ -15,15 +43,17 @@
       "finished": null
     },
     {
-      "id": "flow-redo",
+      "id": "spec-docs-examples",
       "status": "就绪",
-      "deps": [],
+      "deps": [
+        "spec-skills-agents-adapt"
+      ],
       "priority": 5,
       "worktree": null,
-      "parent": null,
+      "parent": "spec-wiki-v2",
       "kind": "task",
-      "created": 1785513753,
-      "confirmed": 1785514975,
+      "created": 1785381925,
+      "confirmed": 1785588459,
       "started": null,
       "checked": null,
       "finished": null
@@ -70,22 +100,6 @@
       "kind": "task",
       "created": 1785381903,
       "confirmed": 1785515083,
-      "started": null,
-      "checked": null,
-      "finished": null
-    },
-    {
-      "id": "spec-docs-examples",
-      "status": "待处理",
-      "deps": [
-        "spec-skills-agents-adapt"
-      ],
-      "priority": 5,
-      "worktree": null,
-      "parent": "spec-wiki-v2",
-      "kind": "task",
-      "created": 1785381925,
-      "confirmed": null,
       "started": null,
       "checked": null,
       "finished": null
@@ -166,20 +180,6 @@
       "parent": null,
       "kind": "supertask",
       "created": 1785381895,
-      "confirmed": null,
-      "started": null,
-      "checked": null,
-      "finished": null
-    },
-    {
-      "id": "webapp-spa-mount-red",
-      "status": "待处理",
-      "deps": [],
-      "priority": 5,
-      "worktree": null,
-      "parent": null,
-      "kind": "task",
-      "created": 1785567661,
       "confirmed": null,
       "started": null,
       "checked": null,
