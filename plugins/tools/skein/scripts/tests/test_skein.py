@@ -230,14 +230,14 @@ def main() -> None:
         assert {s["sid"]: s["status"] for s in subs}["s3"] == "待处理"
         # ---- claim --dry-run: 只读预览全局就绪批 (旧 pop 折叠进此) ----
         # task-4 仍 active 且 s1 就绪 → s1 出现在全局就绪批预览 (task-4/s1)
-        rp = sk(d, "claim", "--dry-run").stdout
+        rp = sk(d, "claim", "exec", "--dry-run").stdout
         assert "task-4" in rp and "s1" in rp, f"claim --dry-run 未含 active task 就绪 subtask: {rp!r}"
         # claim --dry-run 只读: 不改状态
         s4 = json.loads((d / ".skein/task/task-4/task.json").read_text())["subtasks"]
         assert {s["sid"]: s["status"] for s in s4}["s1"] == "待处理", "claim --dry-run 误改状态 (应只读)"
         # 无 active 就绪 + 有就绪 task 时走 "就绪 task 待启动" 提示 (task-5 已 confirm→就绪, task-4 done 掉 s1 后腾出)
         sk(d, "subtask", "claim", "task-4"); sk(d, "subtask", "done", "task-4", "s1"); sk(d, "finish", "task-4")
-        assert "就绪 task 待启动" in sk(d, "claim", "--dry-run").stdout, "claim --dry-run 未提示就绪 task 待启动"
+        assert "就绪 task 待启动" in sk(d, "claim", "exec", "--dry-run").stdout, "claim --dry-run 未提示就绪 task 待启动"
         # ---- DAG 节点框: 长 name/desc 不截断 + 限宽 [208,272] + 多行换行 (高随行数增长, 不加宽避横滚) ----
         longnm = "改造dag_html节点宽自适应不截断完整展示信息"
         sk(d, "subtask", "add", "task-5", "s4", "--name", longnm,

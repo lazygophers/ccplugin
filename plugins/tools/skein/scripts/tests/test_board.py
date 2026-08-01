@@ -65,7 +65,10 @@ def test_prd_and_efficiency() -> None:
             # _webapp_html() 无 persist 参数 — serve 恒实时渲染, 永不落盘 task.html
             (d / ".skein/task.html").unlink(missing_ok=True)
             html = sk_obj._webapp_html()
-            assert '<main id="view"' in html, "_webapp_html 应出 SPA 挂载点"
+            # 前端迁移到 Next.js static export 后, SPA 挂载点不再有固定 id (旧 `<main id="view">`
+            # 是手写 SPA 的产物); 各页面组件 (page.tsx) 统一渲染 `<main` 结构标签, 取它做挂载点存在性
+            # 断言 —— 与 404 页面 (无 <main>, 见 assets/dist/404/index.html) 能明确区分。
+            assert "<main" in html, "_webapp_html 应出 SPA 挂载点"
 
             # --- prd 数据 (前端渲染, 校验 __SKEIN__ JSON 结构而非 HTML) ---
             data = _view_board_data(sk_obj._snapshot())
@@ -144,11 +147,14 @@ def test_serve_http() -> None:
                 with urllib.request.urlopen(base + path, timeout=2) as r:
                     return r.status, r.read()
 
-            # 看板页实时渲染: serve 走 webapp SPA shell (工程化前端); 结构化数据走 /__skein__/data
-            st, body = get("/task.html")
+            # 看板页实时渲染: serve 走 Next.js static export SPA shell (dist/board/); 结构化数据走
+            # /__skein__/data。旧 `/task.html` 路由随迁移消失, 看板真实页面现挂在 `/board/`
+            # (dist/ 以 html=True 挂载在 "/", `/board/` 命中 dist/board/index.html)。
+            st, body = get("/board/")
             b = body.decode()
-            # ponytail: 前缀匹配 (无闭合 >) — index.html main 加了 class, 精确子串会失配; 仍验 SPA 挂载点存在
-            assert st == 200 and '<main id="view"' in b, "serve 页缺 SPA 挂载点 (webapp shell)"
+            # `<main id="view">` 是旧手写 SPA 的挂载点; 迁移后各页面组件统一渲染 `<main` 结构标签
+            # (assets/nextjs/src/app/board/page.tsx), 取它做挂载点存在性断言。
+            assert st == 200 and "<main" in b, "serve 页缺 SPA 挂载点 (Next.js board 页)"
             st, body = get("/__skein__/data")
             card = next(c for c in json.loads(body)["cards"] if c["id"] == "prd-demo")
             prd = {s["name"]: s for s in card["prd"]}
@@ -156,14 +162,17 @@ def test_serve_http() -> None:
             # rev 端点: 数字串 (data_rev.asset_rev)
             st, body = get("/__skein__/rev")
             assert st == 200 and re.fullmatch(r"\d+\.\d+", body.decode()), "rev 端点格式非 data.asset 数字对"
-            # 静态资产直出插件 assets/webapp/ (无 .skein/ 拷贝)
-            st, body = get("/src/design.css")
-            assert st == 200 and b"--" in body, "src/design.css 未直出"
+            # 静态资产直出插件 assets/dist/ (无 .skein/ 拷贝) —— 旧 /src/design.css (手写 CSS) 已随
+            # 迁移消失。改测 dist/favicon.ico: 它是 dist/ 根下确定存在的静态文件 (不像 _next/static
+            # 下按 build 而变的 hash chunk, 名字固定), 走同一条 "/" 根挂载 (_NoCacheStatic html=True)
+            # 直出, 足以验证「静态资产从 assets/dist/ 直出、无 .skein/ 拷贝」这条行为。
+            st, body = get("/favicon.ico")
+            assert st == 200 and len(body) > 0, "dist/favicon.ico 未直出"
             assert not (d / ".skein/board").exists(), "serve 误把资产拷进 .skein/"
             # 路径穿越: %2f 形式落 StaticFiles 守卫必须 404 (urllib 不折叠编码 %2f, 落守卫)
             code = 0
             try:
-                get("/src/..%2f..%2fscripts%2fskein.py")
+                get("/_next/..%2f..%2fscripts%2fskein.py")
             except urllib.error.HTTPError as e:
                 code = e.code
             assert code == 404, f"路径穿越未挡 (得 {code})"
