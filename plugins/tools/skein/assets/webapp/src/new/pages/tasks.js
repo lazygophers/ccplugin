@@ -22,7 +22,7 @@ function priorityBadge(priority) {
 }
 
 function taskRow(task) {
-  return h('a.glass-card.flex.items-center.gap-4.p-4.cursor-pointer.hover\\:shadow-lg.transition-all',
+  return h('a.card.flex.items-center.gap-4.p-4.cursor-pointer.hover\\:shadow-lg.transition-all',
     { href: '/task/detail?id=' + encodeURIComponent(task.id), 'data-nav-link': true },
     [
       h('div.flex-1.min-w-0', [
@@ -91,7 +91,7 @@ export async function render(mount, params, ctx) {
 
     if (!list.length) {
       content.replaceChildren(
-        h('div.glass-card.py-16.text-center', [
+        h('div.card.py-16.text-center', [
           h('i.fa.fa-inbox.text-4xl.text-muted.mb-3'),
           h('p.text-muted', '没有匹配的任务'),
         ])
@@ -125,7 +125,7 @@ export async function render(mount, params, ctx) {
     ]),
 
     // 筛选栏
-    h('div.glass-card.p-3.mb-6', [
+    h('div.card.p-3.mb-6', [
       h('div.flex.items-center.gap-2.flex-wrap', [
         h(`button.filter-btn${filter === 'all' ? ' active' : ''}`,
           { 'data-filter': 'all', onclick: (e) => setFilter('all', e.currentTarget) },

@@ -362,7 +362,7 @@ async function loadHtm() {
   return mod.default;
 }
 
-// ── 主题切换 (浅海滩蓝金 / 暗夜幕) ──
+// ── 主题切换 (refined material light / dark) ──
 const THEMES = ["light", "dark"];
 const DEFAULT_THEME = "dark";
 
@@ -400,6 +400,35 @@ function wireTheme() {
       applyTheme(next);
     });
   }
+}
+
+// ── 侧边栏移动端开关 ──
+function wireSidebar() {
+  const toggle = document.getElementById("menu-toggle");
+  const sidebar = document.getElementById("sidebar");
+  const overlay = document.getElementById("sidebarOverlay");
+  if (!toggle || !sidebar) return;
+
+  function open() {
+    sidebar.classList.add("open");
+    if (overlay) overlay.classList.add("open");
+  }
+  function close() {
+    sidebar.classList.remove("open");
+    if (overlay) overlay.classList.remove("open");
+  }
+  toggle.addEventListener("click", () => {
+    if (sidebar.classList.contains("open")) close();
+    else open();
+  });
+  if (overlay) overlay.addEventListener("click", close);
+  // 切页后自动收起移动端菜单
+  document.addEventListener("click", (e) => {
+    const a = e.target.closest("a[href]");
+    if (!a) return;
+    const url = new URL(a.href, location.href);
+    if (url.origin === location.origin && sidebar.classList.contains("open")) close();
+  });
 }
 
 // ── 全局搜索 (防抖 200ms → api.search → 下拉; 现版 app.js:22-81 迁移) ──
@@ -550,6 +579,7 @@ const ctx = {
 
 async function boot() {
   wireTheme();
+  wireSidebar();
   wireSearch();
   wireMotion();
   wireFab();

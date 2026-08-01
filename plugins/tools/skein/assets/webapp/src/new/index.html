@@ -5,15 +5,15 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>SKEIN · {{PROJ}}</title>
 
-  <!-- 设计系统基底: 16 色硬 token + 布局原语 + 动效; 早加载避免 FOUC -->
+  <!-- 设计系统基底 -->
   <link rel="stylesheet" href="../tokens.css">
   <link rel="stylesheet" href="../design.css">
   <!-- 图标: font-awesome 4.7 子集 (53 枚字形, 5KB woff2), 本地直出无外网请求 -->
   <link rel="stylesheet" href="../icons.css">
-  <!-- Tailwind 预构建静态 css (原 cdn.tailwindcss.com 运行时 JIT, 省 ~400KB JS); 置于 design.css 后保持原级联顺序 -->
+  <!-- Tailwind 预构建静态 css -->
   <link rel="stylesheet" href="../tailwind.css?v={{VER}}">
 </head>
-<body class="bg-fluid-light min-h-screen font-sans text-fg transition-colors duration-500 ease-in-out">
+<body class="bg-fluid-dark min-h-screen font-sans text-fg transition-colors duration-500 ease-in-out">
   <!-- 早同步主题 (避免闪屏): localStorage 校验 → 默认 dark -->
   <script>
     (function () {
@@ -33,42 +33,80 @@
     })();
   </script>
 
-  <!-- 顶栏: 玻璃横梁 + logo + 6 页 tab + search + theme toggle -->
-  <header class="topbar sticky top-0 z-float glass border-b border-brd/60">
-    <div class="max-w-screen-2xl mx-auto px-4 md:px-8 py-3 flex items-center gap-4">
-      <strong class="logo flex items-center gap-2 text-head font-bold text-lg">
-        <span class="mark inline-block w-3 h-3 rounded-full bg-goldSand-deep pulse-dot" aria-hidden="true"></span>
-        SKEIN · <span class="text-gradient-ocean">{{PROJ}}</span>
-      </strong>
+  <div class="app" id="app">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand" title="SKEIN">
+        <div class="sidebar-logo"></div>
+        <div class="sidebar-brand-text">
+          <div class="sidebar-brand-title">SKEIN</div>
+          <div class="sidebar-brand-sub">{{PROJ}}</div>
+        </div>
+      </div>
 
-      <nav class="nav hidden md:flex items-center gap-1 ml-4" aria-label="主导航" data-nav-root>
-        <a href="/dashboard" data-nav class="nav-tab px-3 py-1.5 rounded-lg text-sm font-medium">概览</a>
-        <a href="/board"     data-nav class="nav-tab px-3 py-1.5 rounded-lg text-sm font-medium">看板</a>
-        <a href="/queue"     data-nav class="nav-tab px-3 py-1.5 rounded-lg text-sm font-medium">队列</a>
-        <a href="/tasks"     data-nav class="nav-tab px-3 py-1.5 rounded-lg text-sm font-medium">任务</a>
-        <a href="/spec"      data-nav class="nav-tab px-3 py-1.5 rounded-lg text-sm font-medium">规范</a>
-        <a href="/archive"   data-nav class="nav-tab px-3 py-1.5 rounded-lg text-sm font-medium">归档</a>
-      </nav>
+      <div class="sidebar-search">
+        <input class="sidebar-search-input" id="menuSearch" type="text" placeholder="搜索菜单…" autocomplete="off" />
+      </div>
 
-      <label class="search ml-auto flex items-center gap-2 px-3 py-2 rounded-lg border border-brd/60 bg-card/60 hover:border-accent/40 transition-colors">
-        <i class="fa fa-search text-muted text-sm"></i>
-        <input type="search" id="global-search" placeholder="搜索 id / 名称 / 描述…" autocomplete="off" aria-label="全局搜索" class="bg-transparent outline-none w-56 text-sm">
-      </label>
+      <div class="sidebar-scroll" id="sidebarScroll">
+        <div class="sidebar-section-label">工作台</div>
+        <a href="/dashboard" data-nav class="sidebar-item active" title="概览">
+          <i class="fa fa-dashboard"></i>
+          <span class="sidebar-item-text">概览</span>
+        </a>
+        <a href="/board" data-nav class="sidebar-item" title="看板">
+          <i class="fa fa-sitemap"></i>
+          <span class="sidebar-item-text">看板</span>
+        </a>
+        <a href="/queue" data-nav class="sidebar-item" title="队列">
+          <i class="fa fa-list-ol"></i>
+          <span class="sidebar-item-text">队列</span>
+        </a>
+        <a href="/tasks" data-nav class="sidebar-item" title="任务">
+          <i class="fa fa-tasks"></i>
+          <span class="sidebar-item-text">任务</span>
+        </a>
+        <a href="/spec" data-nav class="sidebar-item" title="规范">
+          <i class="fa fa-file-text-o"></i>
+          <span class="sidebar-item-text">规范</span>
+        </a>
+        <a href="/archive" data-nav class="sidebar-item" title="归档">
+          <i class="fa fa-archive"></i>
+          <span class="sidebar-item-text">归档</span>
+        </a>
+      </div>
 
-      <button type="button" id="config-btn" class="icon-btn p-2 rounded-lg text-muted hover:text-accent hover:bg-accent/10 transition-colors" aria-label="设置" title="设置">
-        <i class="fa fa-cog"></i>
-      </button>
+      <div class="sidebar-footer">
+        <button type="button" id="theme-toggle-btn" class="sidebar-item" aria-label="切换主题" title="切换主题" style="margin-bottom:0">
+          <i class="fa fa-moon-o dark:hidden"></i>
+          <i class="fa fa-sun-o hidden dark:inline-block"></i>
+          <span class="sidebar-item-text">切换主题</span>
+        </button>
+      </div>
+    </aside>
 
-      <button type="button" id="theme-toggle-btn" class="theme-toggle-btn glass rounded-full px-4 py-2 flex items-center gap-2 hover-float text-sm" aria-label="切换主题">
-        <i class="fa fa-moon-o dark:hidden"></i>
-        <i class="fa fa-sun-o hidden dark:inline-block"></i>
-        <span class="hidden sm:inline">切换主题</span>
-      </button>
-    </div>
-  </header>
+    <!-- Sidebar overlay for mobile -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-  <!-- SPA 挂载点 -->
-  <main id="view" class="relative z-10 max-w-screen-2xl mx-auto px-4 md:px-8 py-8"></main>
+    <!-- Main -->
+    <main class="main">
+      <header class="topbar">
+        <button type="button" id="menu-toggle" class="menu-toggle" aria-label="打开菜单">
+          <i class="fa fa-bars"></i>
+        </button>
+        <nav class="antd-breadcrumb" aria-label="面包屑" id="topbarCrumb">
+          <span class="current" id="pageTitle">看板</span>
+        </nav>
+        <div class="topbar-right">
+          <button type="button" id="config-btn" class="icon-btn p-2 rounded-lg text-muted hover:text-accent hover:bg-accent/10 transition-colors" aria-label="设置" title="设置">
+            <i class="fa fa-cog"></i>
+          </button>
+        </div>
+      </header>
+
+      <div class="content" id="view"></div>
+    </main>
+  </div>
 
   <!-- 回到顶部 fab -->
   <button type="button" id="fab-top" class="fab-top fixed bottom-6 right-6 z-float w-12 h-12 rounded-full glass border border-brd/60 flex items-center justify-center text-accent opacity-0 pointer-events-none transition-all hover-float hover:border-accent/50" aria-label="回到顶部" title="回到顶部">

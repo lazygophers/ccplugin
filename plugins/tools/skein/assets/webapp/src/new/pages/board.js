@@ -628,7 +628,7 @@ function nodeCard(node, onClick, dimmed, density = 'compact') {
     [
       nodePopover(node),
       // 卡片本体高度锁定为 node.h — drawEdges 用 node.h 算端点中线, 内容撑高会让连线脱离卡片
-      h(`div.dag-node.dag-node-${density}.glass-card.cursor-pointer.transition-all.overflow-hidden.flex.items-center.gap-2.st-${st}`,
+      h(`div.dag-node.dag-node-${density}.card.cursor-pointer.transition-all.overflow-hidden.flex.items-center.gap-2.st-${st}`,
         {
           onclick: (e) => { e.preventDefault(); onClick(t.id); },
           'data-task-id': t.id,
@@ -700,7 +700,7 @@ function listView(tasks, onClick, statusSet) {
     ALL_STATUSES.map(st => {
       const list = tasks.filter(t => (t.status || 'planning') === st);
       const isDimmed = !allSelected && !statusSet.has(st);
-      return h(`div.glass-card${isDimmed ? ' opacity-40' : ''}`, [
+      return h(`div.card${isDimmed ? ' opacity-40' : ''}`, [
         h('div.flex.items-center.gap-2.mb-4', [
           h(`span.w-3.h-3.rounded-full.${ST_COLOR[st]}`),
           h('span.text-sm.font-semibold.text-head', ST_LABEL[st]),
@@ -827,7 +827,7 @@ function prdAcceptanceView(prd) {
 function renderPrdCard(sec) {
   const icon = sec.name === '目标' ? 'fa-bullseye' : sec.name === '验收标准' ? 'fa-check-square-o' : 'fa-file-text-o';
   const color = sec.name === '目标' ? 'st-planning' : sec.name === '验收标准' ? 'st-check' : 'st-active';
-  return h('div.glass-card.p-4', [
+  return h('div.card.p-4', [
     h('div.flex.items-center.gap-2.mb-3', [
       h(`i.fa.${icon}.text-${color}.text-sm`),
       h('div.section-title.text-accent.m-0',
@@ -852,7 +852,7 @@ function renderPrdCard(sec) {
 // ---- 契约章节 ----
 function contractsView(contracts) {
   if (!contracts || !contracts.length) return null;
-  return h('div.glass-card.p-4', [
+  return h('div.card.p-4', [
     h('div.flex.items-center.gap-2.mb-3', [
       h('i.fa.fa-handshake-o.text-st-check.text-sm'),
       h('div.section-title.text-accent.m-0', `契约 (${contracts.length})`),
@@ -876,7 +876,7 @@ function designView(design) {
   if (!design) return null;
   // 截取前 500 字符做预览, 点击展开
   const preview = design.length > 500 ? design.slice(0, 500) + '...' : design;
-  return h('div.glass-card.p-4', [
+  return h('div.card.p-4', [
     h('div.flex.items-center.gap-2.mb-3', [
       h('i.fa.fa-sitemap.text-st-active.text-sm'),
       h('div.section-title.text-accent.m-0', '详细设计'),
@@ -932,7 +932,7 @@ function detailPanel(task, allTasks, onClose, onSubClick, onOpenDetail, onTaskCl
       // 顶部信息区: 紧凑横向排列
       h('div.detail-info-row', [
         // 1. 基本信息
-        h('div.glass-card.p-4', [
+        h('div.card.p-4', [
           h('div.section-title.text-accent.mb-3', '基本信息'),
           infoRow('优先级', prioLabel(task.priority) + ` (${task.priority != null ? Number(task.priority) : 5})`),
           task.assignee ? infoRow('负责人', task.assignee) : null,
@@ -953,7 +953,7 @@ function detailPanel(task, allTasks, onClose, onSubClick, onOpenDetail, onTaskCl
               })()),
         ]),
         // 2. 任务描述
-        h('div.glass-card.p-4', [
+        h('div.card.p-4', [
           h('div.section-title.text-accent.mb-2', '任务描述'),
           h('p.text-sm.text-fg.whitespace-pre-wrap', task.description || task.desc || '暂无描述'),
         ]),
@@ -969,7 +969,7 @@ function detailPanel(task, allTasks, onClose, onSubClick, onOpenDetail, onTaskCl
       (() => {
         const { nodes } = buildDepDAG(task.id, allTasks);
         if (nodes.length <= 1) return null;
-        return h('div.glass-card.p-4.panel-span-2', [
+        return h('div.card.p-4.panel-span-2', [
           h('div.flex.items-center.gap-2.mb-3', [
             h('i.fa.fa-share-alt.text-st-active.text-sm'),
             h('div.section-title.text-accent.m-0', `依赖关系图 (${nodes.length})`),
@@ -980,7 +980,7 @@ function detailPanel(task, allTasks, onClose, onSubClick, onOpenDetail, onTaskCl
 
       // 子任务 DAG — 跨全宽
       task.subtasks && task.subtasks.length >= 2
-        ? h('div.glass-card.p-4.panel-span-2', [
+        ? h('div.card.p-4.panel-span-2', [
             h('div.section-title.text-accent.mb-3', `子任务 DAG (${task.subtasks.length})`),
             subDAGView(task.subtasks, onSubClick, task.id),
           ])
@@ -990,7 +990,7 @@ function detailPanel(task, allTasks, onClose, onSubClick, onOpenDetail, onTaskCl
       task.docs && task.docs.design ? h('div.panel-span-2', designView(task.docs.design)) : null,
 
       // 时间线 — 跨全宽
-      h('div.glass-card.p-4.panel-span-2', [
+      h('div.card.p-4.panel-span-2', [
         h('div.section-title.text-accent.mb-3', '生命周期时间线'),
         timelineView(timeline, task),
       ]),
@@ -1328,7 +1328,7 @@ export async function render(mount, params, ctx) {
       ]),
 
       // 主内容区: 左 DAG/列表 + (可选) 右详情
-      h(`div.board-main.glass-card${hasPanel ? ' has-panel' : ''}`, {
+      h(`div.board-main.card${hasPanel ? ' has-panel' : ''}`, {
         id: 'board-main',
         style: view === 'dag' ? { height: 'calc(100vh - 200px)' } : null,
       }, [

@@ -136,7 +136,7 @@ export async function render(mount, params, ctx) {
             archiveGroup('失败', 'fa-times-circle', f),
             o.length ? archiveGroup('其他', 'fa-archive', o) : null,
           ].filter(Boolean)
-        : [h('div.glass-card.py-16.text-center', [
+        : [h('div.card.py-16.text-center', [
             h('i.fa.fa-search.text-4xl.text-muted.opacity-40.mb-3'),
             h('div.text-muted', '没有匹配的归档任务'),
           ])]
@@ -167,7 +167,7 @@ export async function render(mount, params, ctx) {
     ]),
 
     // 搜索
-  h('div.glass-card.mb-6', [
+  h('div.card.mb-6', [
     h('label.flex.items-center.gap-2', [
       h('i.fa.fa-search.text-muted'),
       h('input',
@@ -195,7 +195,7 @@ export async function render(mount, params, ctx) {
             archiveGroup('失败', 'fa-times-circle', failedTasks),
             otherTasks.length ? archiveGroup('其他', 'fa-archive', otherTasks) : null,
           ]
-        : [h('div.glass-card.py-16.text-center', [
+        : [h('div.card.py-16.text-center', [
             h('i.fa.fa-archive.text-4xl.text-muted.opacity-40.mb-3'),
             h('div.text-muted.mb-1', '暂无归档任务'),
             h('div.text-xs.text-muted', '已完成或失败的任务会显示在这里'),

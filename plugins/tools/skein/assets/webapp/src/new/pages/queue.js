@@ -46,15 +46,15 @@ export async function render(mount, params, ctx) {
 
     // 统计条
     h('div.grid.grid-cols-3.gap-4.mb-6', [
-      h('div.glass-card.text-center', [
+      h('div.card.text-center', [
         h('div.text-2xl.font-bold.text-st-active.mb-1', activeCount),
         h('div.text-xs.text-muted', '执行中'),
       ]),
-      h('div.glass-card.text-center', [
+      h('div.card.text-center', [
         h('div.text-2xl.font-bold.text-st-ready.mb-1', pendingCount),
         h('div.text-xs.text-muted', '待执行'),
       ]),
-      h('div.glass-card.text-center', [
+      h('div.card.text-center', [
         h('div.text-2xl.font-bold.text-st-check.mb-1',
           queueTasks.filter(t => t.status === 'check').length),
         h('div.text-xs.text-muted', '待验收'),
@@ -62,7 +62,7 @@ export async function render(mount, params, ctx) {
     ]),
 
     // 列表
-    h('div.glass-card.p-0.overflow-hidden', [
+    h('div.card.p-0.overflow-hidden', [
       h('div.p-4.border-b.border-brd/40.flex.items-center.justify-between', [
         h('div.flex.items-center.gap-2', [
           h('i.fa.fa-list-ul.text-accent'),

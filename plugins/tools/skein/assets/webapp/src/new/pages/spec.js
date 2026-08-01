@@ -23,7 +23,7 @@ function flatten(tree) {
 
 // ---- 规范卡片 ----
 function specCard(spec) {
-  return h('a.glass-card.hover-float.transition-all.cursor-pointer.block',
+  return h('a.card.transition-all.cursor-pointer.block',
     // 参数一律 query (core `[arch] webapp 参数一律 query`), 禁 /spec/<id> path 参数
     { href: `/spec/detail?id=${encodeURIComponent(spec.id)}`, 'data-nav': '' },
     [
@@ -65,7 +65,7 @@ function metaCard(meta) {
   const keys = [...META_ORDER.filter(k => meta[k] != null),
                 ...Object.keys(meta).filter(k => k !== 'title' && !META_ORDER.includes(k))];
   if (!keys.length) return null;
-  return h('div.glass-card.p-4', [
+  return h('div.card.p-4', [
     h('h3.section-title', [h('i.fa.fa-info-circle.text-accent'), '元数据']),
     h('div.space-y-3',
       keys.map(k => h('div', [
@@ -93,7 +93,7 @@ async function renderDetail(mount, relPath) {
     // 左信息栏 (元数据) + 右正文
     h('div.grid.grid-cols-1.lg\\:grid-cols-4.gap-6.items-start', [
       h('div.lg\\:col-span-1', metaCard(meta)),
-      h('div.lg\\:col-span-3.glass-card.p-5',
+      h('div.lg\\:col-span-3.card.p-5',
         // 规则类 spec 常只有 frontmatter (标题即全部内容), body 空时给占位而非空白卡
         !resp
           ? h('div.py-16.text-center.text-muted', '规范不存在或读取失败')
@@ -163,7 +163,7 @@ export async function render(mount, params, ctx) {
       h('p#spec-count.text-muted', `${specs.length} 条规范 · 来自 .skein/spec/`),
     ]),
 
-    h('div.glass-card.mb-6.space-y-3', [
+    h('div.card.mb-6.space-y-3', [
       h('label.flex.items-center.gap-2.px-3.py-2.rounded-lg.border.border-brd\\/60.bg-card\\/60', [
         h('i.fa.fa-search.text-muted'),
         h('input', {

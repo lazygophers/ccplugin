@@ -1,8 +1,12 @@
-/* SKEIN webapp — Design Tokens · 海滩蓝金 (替代 oklch 派生)
-   ── 16 色硬 token (ocean5+whiteSand3+goldSand4+night3+语义3) 迁自 docs/examples L14-46
-   · 明模 (海滩蓝金) :root; 暗模 (夜幕暗) [data-theme="skein-dark"]
-   · 派生变量 (--bg/--card/--fg/--head/--muted/--brd/--line/--accent 等) 保名兼容下游 page.js
-   · 玻璃流沙层 + 状态色 + UI 令牌 (radius/font/mono) 一并落硬 hex */
+/* SKEIN webapp — Design Tokens · Refined Material (amber/slate)
+   基于 /Users/luoxin/bcpay/example/css/style.css 与
+   /Users/luoxin/bcpay/example/design-demos/direction-a-refined-material.html
+   的 Dark-first amber + slate 专业 SaaS 风格。
+   · 保留旧变量名（--bg/--card/--fg/--head/--muted/--brd/--line/--accent/--accent2
+     及 --ocean-* / --whiteSand-* / --goldSand-* / --night-*）作为兼容别名，
+     使 page.js 与 tailwind.config.js 无需同步大改。
+   · 主题属性沿用 skein-dark / skein-light，与 index.html 脚本保持一致。 */
+
 @media (prefers-color-scheme: light) {
   :root:not([data-theme]) { color-scheme: light; }
 }
@@ -11,172 +15,247 @@
 }
 
 :root {
-  /* ── 16 色硬 token · 海滩蓝金 ── (examples:14-46) */
-  /* ocean 5 阶 */
-  --ocean-foam:    #e8f4fa;     /* 浪花浅蓝 */
-  --ocean-shallow: #74b9e8;     /* 浅海/近海 */
-  --ocean-mid:     #429cd1;     /* 近海 */
-  --ocean-deep:    #237bb8;     /* 深海 */
-  --ocean-abyss:   #0f4d75;     /* 海沟/夜海 */
-  /* whiteSand 3 色 */
-  --whiteSand-pearl:  #fffefb;  /* 珍珠白 */
-  --whiteSand-shell:  #fdf6e8;  /* 贝壳米 */
-  --whiteSand-cream:  #f8f0dc;  /* 奶油沙 */
-  /* goldSand 4 色 */
-  --goldSand-light:  #f0d9a0;   /* 浅金 */
-  --goldSand-mid:    #e6c88b;   /* 沙滩金 */
-  --goldSand-deep:   #d4b066;   /* 深沙金 */
-  --goldSand-sunset: #c89548;   /* 夕阳暖金 */
-  /* night 3 阶 (暗模底) */
-  --night-base: #0f2033;
-  --night-mid:  #162c42;
-  --night-deep: #091420;
-  /* 语义 3 色 */
-  --success: #48bb78;
-  --warning: #ed8936;
-  --danger:  #e53e3e;
+  /* ── Brand · Amber ── */
+  --amber-50:  #fffbeb;
+  --amber-100: #fef3c7;
+  --amber-200: #fde68a;
+  --amber-300: #fcd34d;
+  --amber-400: #fbbf24;
+  --amber-500: #f59e0b;
+  --amber-600: #d97706;
+  --amber-700: #b45309;
+  --amber-800: #92400e;
+  --amber-900: #78350f;
+  --amber-950: #451a03;
 
-  /* 兼容旧别名: --skein-gold (现 input.css 多处引用) */
-  --skein-gold: var(--goldSand-mid);
+  /* ── Accent · Orange ── */
+  --orange-50:  #fff7ed;
+  --orange-100: #ffedd5;
+  --orange-500: #f97316;
+  --orange-600: #ea580c;
+  --orange-700: #c2410c;
 
-  /* ── 派生语义令牌 · 明模 (海滩蓝金) ──
-     替代 oklch 派生体系 (input.css:26-39); 保名兼容下游 page.js */
-  --bg:    var(--whiteSand-pearl);          /* 页面底 (烘焙渐变会覆盖) */
-  --card:  rgba(255, 254, 251, 0.82);       /* 卡面 (玻璃半透) */
-  --fg:    #1e293b;                         /* 主文本 (slate-800, examples:540) */
-  --head:  #0f4d75;                         /* 标题 (ocean.abyss 深) */
-  --muted: #64748b;                         /* 次级/辅助 (slate-500) */
-  --brd:   #e2e8f0;                         /* 常规边框 (slate-200) */
-  --line:  rgba(148, 163, 184, 0.35);       /* 分隔线 (tl-node::before 浅) */
-  --accent:   var(--ocean-mid);             /* 主功能色 (近海) */
-  --accent2:  var(--goldSand-deep);         /* 高亮点缀 (深沙金) */
+  /* ── Neutral · Slate ── */
+  --slate-50:  #f8fafc;
+  --slate-100: #f1f5f9;
+  --slate-200: #e2e8f0;
+  --slate-300: #cbd5e1;
+  --slate-400: #94a3b8;
+  --slate-500: #64748b;
+  --slate-600: #475569;
+  --slate-700: #334155;
+  --slate-800: #1e293b;
+  --slate-900: #0f172a;
+  --slate-950: #020617;
 
-  /* ── 玻璃流沙层 (A 皮, examples:119 + DAG popover L369-377) ── */
-  --glass-bg:        rgba(255, 254, 251, 0.78);     /* whiteSand.pearl 半透 */
-  --glass-brd:       rgba(226, 232, 240, 0.6);      /* slate-200/60 (中性边框, examples 通用) */
-  --glass-brd-blue:  rgba(66, 156, 209, 0.45);      /* ocean.mid 描边 (强调态) */
-  --glass-inset-hi:  rgba(255, 255, 255, 0.65);     /* 内顶光 */
-  --glass-shadow:    rgba(15, 32, 51, 0.10);        /* 海滩阴影 */
-  --glass-blur:      14px;                          /* backdrop-filter 标准量 */
-  --bar-track:       rgba(66, 156, 209, 0.10);      /* 进度条底轨 ocean.mid */
-  --panel-2:         rgba(116, 185, 232, 0.06);     /* 二级面 (legend 底) */
-  --chip:            rgba(116, 185, 232, 0.10);     /* 通用 chip 底 */
-  --popover-bg:      rgba(255, 254, 251, 0.82);     /* DAG popover 明 (L370) */
-  --popover-brd:     rgba(116, 185, 232, 0.30);
-  --popover-shadow:  rgba(212, 176, 102, 0.18);     /* 暖金 popover 投影 */
+  /* ── Semantic ── */
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger:  #ef4444;
+  --info:    #3b82f6;
 
-  /* ── 状态色 (--st-*) · 蓝金明度阶梯 ──
-     旧版 ready/pending/check 三态同为中蓝且明度接近, 小色块与 DAG 描边上肉眼分不开。
-     改为: 蓝系四阶按明度单调递减 (推进越深 = 颜色越重), 三个关键节点跳色。
-     明模 (白底 L99): 越推进越深, 每级 ≥14 L, 灰度打印也可分
-       planning L74 → pending L60 → ready L40 → check L23  (对比底 25/39/59/76)
-     跳色 (金/绿/红) 与蓝系色相分离, 不参与阶梯, 明度尽量插进蓝阶空档:
-       failed L51 落 ready39–pending60 之间; done L67 / active L73 落 pending 之上。
-     注: 7 色塞不进白底可用区间 (L24–74, 每色需 ≥10 L 间距 → 需 70 L)，
-     done/active 与 active/planning 灰度必撞。彩屏下靠色相区分, 无碍。
-     代价: active 浅金在白底对比仅 26 — 已知取舍 */
-  --st-planning: #7dd3fc;
-  --st-pending:  #38bdf8;
-  --st-ready:    #0284c7;
-  --st-active:   #e8c78a;
-  --st-check:    #0c4a6e;
-  --st-done:     #6ee7a8;
-  --st-failed:   #dc2626;
+  --success-text: #047857;
+  --warning-text: #b45309;
+  --danger-text:  #be123c;
+  --info-text:    #1d4ed8;
+
+  --success-bg: rgba(16, 185, 129, 0.12);
+  --warning-bg: rgba(245, 158, 11, 0.12);
+  --danger-bg:  rgba(239, 68, 68, 0.12);
+  --info-bg:    rgba(59, 130, 246, 0.12);
+
+  --success-border: rgba(16, 185, 129, 0.28);
+  --warning-border: rgba(245, 158, 11, 0.28);
+  --danger-border:  rgba(239, 68, 68, 0.28);
+  --info-border:    rgba(59, 130, 246, 0.28);
+
+  /* ── Core derived tokens（下游 page.js 主入口） ──
+     Dark-first：默认（无 data-theme 或 dark）走暗色。 */
+  --bg:    var(--slate-950);
+  --card:  var(--slate-900);
+  --fg:    var(--slate-100);
+  --head:  var(--slate-50);
+  --muted: var(--slate-400);
+  --brd:   var(--slate-800);
+  --line:  rgba(148, 163, 184, 0.20);
+  --accent:  var(--amber-500);
+  --accent2: var(--orange-600);
+
+  /* ── Surface / elevation ── */
+  --bg-canvas:   var(--slate-950);
+  --bg-panel:    var(--slate-900);
+  --bg-elevated: var(--slate-800);
+  --bg-hover:    var(--slate-700);
+  --bg-active:   var(--slate-600);
+  --border-subtle: rgba(255, 255, 255, 0.05);
+  --border-default:  rgba(255, 255, 255, 0.08);
+  --border-hover:    rgba(255, 255, 255, 0.13);
+  --text-primary:    var(--slate-100);
+  --text-secondary:  var(--slate-400);
+  --text-muted:      var(--slate-500);
+  --text-tertiary:   var(--slate-600);
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.20);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.30);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.40);
+  --shadow-amber: 0 4px 14px rgba(245, 158, 11, 0.15);
+
+  /* ── 材质 / glass 兼容变量（方向 A 以实色为主，但保留别名避免 page.js 报错） ── */
+  --glass-bg:        var(--bg-panel);
+  --glass-brd:       var(--border-default);
+  --glass-brd-blue:  rgba(245, 158, 11, 0.35);
+  --glass-inset-hi:  rgba(255, 255, 255, 0.06);
+  --glass-shadow:    rgba(0, 0, 0, 0.35);
+  --glass-blur:      0px;
+  --bar-track:       rgba(245, 158, 11, 0.10);
+  --panel-2:         rgba(255, 255, 255, 0.03);
+  --chip:            rgba(245, 158, 11, 0.12);
+  --popover-bg:      var(--bg-elevated);
+  --popover-brd:     var(--border-default);
+  --popover-shadow:  rgba(0, 0, 0, 0.40);
+
+  /* ── 状态色 ── */
+  --st-planning: var(--amber-300);
+  --st-pending:  var(--slate-400);
+  --st-ready:    var(--slate-400);
+  --st-active:   var(--amber-500);
+  --st-check:    var(--amber-400);
+  --st-done:     var(--success);
+  --st-failed:   var(--danger);
 
   /* ── UI 令牌 ── */
-  --font: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;  /* examples:47-49 */
-  --mono: ui-monospace, 'SF Mono', 'JetBrains Mono', monospace;
-  --radius: 8px;            /* rounded-lg: tabs, nav items */
-  --radius-sm: 6px;         /* rounded-md: buttons, inputs */
-  --radius-lg: 12px;        /* rounded-xl: glass cards */
+  --font:  'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono:  ui-monospace, 'SF Mono', 'JetBrains Mono', monospace;
+  --radius:    8px;
+  --radius-sm: 6px;
+  --radius-lg: 12px;
   --z-float: 1000;
   --z-modal: 2000;
   --z-toast: 2100;
 
-  /* surface 令牌 (pages 通用面色: th / pre / doc 背景) */
-  --surface-bg-1: #fffefb;   /* pearl */
-  --surface-bg-2: #fdf6e8;   /* shell */
-  --surface-bg-3: #f8f0dc;   /* cream */
-  --sel-bg: rgba(116, 185, 232, 0.16);    /* 选中行底 */
-  --sel-fg: var(--ocean-deep);
+  /* ── surface 兼容变量 ── */
+  --surface-bg-1: var(--bg-panel);
+  --surface-bg-2: var(--bg-elevated);
+  --surface-bg-3: var(--bg-active);
+  --surface:      var(--bg-elevated);
+  --sel-bg:       rgba(245, 158, 11, 0.16);
+  --sel-fg:       var(--amber-400);
+
+  /* ── 兼容旧色板别名（使 tailwind.config.js 与旧 page.js 不崩） ──
+     旧 ocean/whiteSand/goldSand/night 全部映射到新的 amber/slate 色系。 */
+  --ocean-foam:    var(--slate-200);
+  --ocean-shallow: var(--slate-400);
+  --ocean-mid:     var(--amber-500);
+  --ocean-deep:    var(--amber-600);
+  --ocean-abyss:   var(--amber-800);
+  --whiteSand-pearl:  var(--bg-panel);
+  --whiteSand-shell:  var(--bg-elevated);
+  --whiteSand-cream:  var(--bg-hover);
+  --goldSand-light:  var(--amber-200);
+  --goldSand-mid:    var(--amber-400);
+  --goldSand-deep:   var(--amber-500);
+  --goldSand-sunset: var(--amber-600);
+  --night-base: var(--slate-950);
+  --night-mid:  var(--slate-900);
+  --night-deep: var(--slate-800);
+  --skein-gold: var(--amber-400);
 }
 
-/* ── 暗模 · 夜幕暗 (night base/mid/deep 为底 + goldSand 暖色点睛) ──
-   参 examples bg-fluid-dark L62-66 + DAG popover 暗模 L377 + 配色 tab 暗模 L576-673 */
-[data-theme="skein-dark"] {
-  --bg:    var(--night-base);
-  --card:  rgba(22, 44, 66, 0.72);          /* night.mid 半透 */
-  --fg:    #f1f5f9;                          /* slate-100 主文本 */
-  --head:  var(--goldSand-light);            /* 标题用金辉作暖点睛 */
-  --muted: #94a3b8;                          /* slate-400 */
-  --brd:   #334155;                          /* slate-700 (examples:660) */
-  --line:  rgba(148, 163, 184, 0.25);
-  --accent:  var(--ocean-shallow);           /* 暗模近海蓝 (亮一阶显眼) */
-  --accent2: var(--goldSand-mid);            /* 暗模沙金 */
+/* ── 明模 · Refined Material Light ── */
+[data-theme="skein-light"] {
+  --bg:    #ffffff;
+  --card:  #fafafa;
+  --fg:    var(--slate-900);
+  --head:  var(--slate-900);
+  --muted: var(--slate-500);
+  --brd:   var(--slate-200);
+  --line:  rgba(148, 163, 184, 0.35);
+  --accent:  var(--amber-600);
+  --accent2: var(--orange-600);
 
-  /* 玻璃流沙层 · 暗: 中性 slate 描边 + 深投影 */
-  --glass-bg:        rgba(22, 44, 66, 0.62);
-  --glass-brd:       rgba(71, 85, 105, 0.4);      /* slate-600/40 (中性边框, examples 暗模通用) */
-  --glass-brd-blue:  rgba(116, 185, 232, 0.55);
-  --glass-inset-hi:  rgba(230, 200, 139, 0.28);     /* 金顶光 */
-  --glass-shadow:    rgba(0, 0, 0, 0.45);
-  --bar-track:       rgba(230, 200, 139, 0.10);
-  --panel-2:         rgba(148, 163, 184, 0.08);
-  --chip:            rgba(230, 200, 139, 0.12);
-  --popover-bg:      rgba(22, 44, 66, 0.85);
-  --popover-brd:     rgba(66, 156, 209, 0.40);
-  --popover-shadow:  rgba(0, 0, 0, 0.45);
+  --bg-canvas:   #ffffff;
+  --bg-panel:    #fafafa;
+  --bg-elevated: #ffffff;
+  --bg-hover:    var(--slate-100);
+  --bg-active:   var(--slate-200);
+  --border-subtle: rgba(15, 23, 42, 0.04);
+  --border-default:  rgba(15, 23, 42, 0.08);
+  --border-hover:    rgba(15, 23, 42, 0.14);
+  --text-primary:    var(--slate-900);
+  --text-secondary:  var(--slate-600);
+  --text-muted:      var(--slate-400);
+  --text-tertiary:   var(--slate-300);
 
-  /* surface 暗 */
-  --surface-bg-1: #0f2033;     /* night.base */
-  --surface-bg-2: #162c42;     /* night.mid */
-  --surface-bg-3: #091420;     /* night.deep */
-  --sel-bg: rgba(116, 185, 232, 0.20);
-  --sel-fg: var(--ocean-shallow);
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --shadow-amber: 0 4px 14px rgba(245, 158, 11, 0.25);
 
-  /* ── 状态色暗模 · 阶梯反向 ──
-     明模那套 (L74→L23) 直接套暗底会翻车: check #0c4a6e (L23) 压在 --bg #0f2033 (L13) 上
-     只差 10 L, 1px 描边基本隐形。暗底改为「越推进越亮」, 语义仍是「推进越深对比越强」。
-       planning L40 → pending L60 → ready L74 → check L86  (对比底 27/47/61/73)
-     跳色三色不覆盖: 在暗底对比 active 60 / done 54 / failed 38, 均 ≥38。 */
-  --st-planning: #0284c7;
-  --st-pending:  #38bdf8;
-  --st-ready:    #7dd3fc;
-  --st-check:    #bae6fd;
+  --glass-bg:        var(--bg-panel);
+  --glass-brd:       var(--border-default);
+  --glass-brd-blue:  rgba(245, 158, 11, 0.45);
+  --glass-inset-hi:  rgba(255, 255, 255, 0.80);
+  --glass-shadow:    rgba(0, 0, 0, 0.06);
+  --bar-track:       rgba(245, 158, 11, 0.10);
+  --panel-2:         rgba(15, 23, 42, 0.02);
+  --chip:            rgba(245, 158, 11, 0.10);
+  --popover-bg:      #ffffff;
+  --popover-brd:     var(--slate-200);
+  --popover-shadow:  rgba(0, 0, 0, 0.10);
+
+  --st-planning: #d97706;
+  --st-pending:  #64748b;
+  --st-ready:    #64748b;
+  --st-active:   #f59e0b;
+  --st-check:    #d97706;
+  --st-done:     #059669;
+  --st-failed:   #dc2626;
+
+  --surface-bg-1: #ffffff;
+  --surface-bg-2: #fafafa;
+  --surface-bg-3: var(--slate-100);
+  --surface:      var(--slate-100);
+  --sel-bg:       rgba(245, 158, 11, 0.12);
+  --sel-fg:       var(--amber-700);
+
+  --success-bg: #ecfdf5;
+  --warning-bg: #fffbeb;
+  --danger-bg:  #fef2f2;
+  --info-bg:    #eff6ff;
+  --success-text: #047857;
+  --warning-text: #b45309;
+  --danger-text:  #b91c1c;
+  --info-text:    #1d4ed8;
+  --success-border: #a7f3d0;
+  --warning-border: #fde68a;
+  --danger-border:  #fecaca;
+  --info-border:    #bfdbfe;
+
+  /* 兼容旧色板别名 */
+  --ocean-foam:    var(--slate-100);
+  --ocean-shallow: var(--slate-500);
+  --ocean-mid:     var(--amber-600);
+  --ocean-deep:    var(--amber-700);
+  --ocean-abyss:   var(--amber-900);
+  --whiteSand-pearl:  var(--bg-canvas);
+  --whiteSand-shell:  var(--bg-panel);
+  --whiteSand-cream:  var(--bg-hover);
+  --goldSand-light:  var(--amber-100);
+  --goldSand-mid:    var(--amber-500);
+  --goldSand-deep:   var(--amber-600);
+  --goldSand-sunset: var(--amber-700);
+  --night-base: var(--slate-50);
+  --night-mid:  var(--slate-100);
+  --night-deep: var(--slate-200);
+  --skein-gold: var(--amber-500);
 }
 
-/* ponytail: 暗模系统跟随兜底 — 无 data-theme 时若 prefers-color-scheme=dark 走暗 */
+/* 系统偏好兜底：未设置 data-theme 时走暗色（Dark-first） */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="skein-light"]):not([data-theme="skein-dark"]) {
-    --bg:    var(--night-base);
-    --card:  rgba(22, 44, 66, 0.72);
-    --fg:    #f1f5f9;
-    --head:  var(--goldSand-light);
-    --muted: #94a3b8;
-    --brd:   #334155;
-    --line:  rgba(148, 163, 184, 0.25);
-    --accent:  var(--ocean-shallow);
-    --accent2: var(--goldSand-mid);
-    --glass-bg:        rgba(22, 44, 66, 0.62);
-    --glass-brd:       rgba(71, 85, 105, 0.4);      /* slate-600/40 */
-    --glass-brd-blue:  rgba(116, 185, 232, 0.55);
-    --glass-inset-hi:  rgba(230, 200, 139, 0.28);
-    --glass-shadow:    rgba(0, 0, 0, 0.45);
-    --bar-track:       rgba(230, 200, 139, 0.10);
-    --panel-2:         rgba(148, 163, 184, 0.08);
-    --chip:            rgba(230, 200, 139, 0.12);
-    --popover-bg:      rgba(22, 44, 66, 0.85);
-    --popover-brd:     rgba(66, 156, 209, 0.40);
-    --popover-shadow:  rgba(0, 0, 0, 0.45);
-    --surface-bg-1: #0f2033;
-    --surface-bg-2: #162c42;
-    --surface-bg-3: #091420;
-    --sel-bg: rgba(116, 185, 232, 0.20);
-    --sel-fg: var(--ocean-shallow);
-    /* 状态色阶梯反向 — 同 [data-theme="skein-dark"], 理由见那里 */
-    --st-planning: #0284c7;
-    --st-pending:  #38bdf8;
-    --st-ready:    #7dd3fc;
-    --st-check:    #bae6fd;
+    /* 与默认 :root 一致，显式保留以增强可读性 */
+    --bg: var(--slate-950); --card: var(--slate-900); --fg: var(--slate-100);
+    --head: var(--slate-50); --muted: var(--slate-400); --brd: var(--slate-800);
+    --line: rgba(148, 163, 184, 0.20); --accent: var(--amber-500); --accent2: var(--orange-600);
   }
 }

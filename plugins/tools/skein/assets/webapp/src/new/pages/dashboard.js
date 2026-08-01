@@ -1,68 +1,58 @@
 // ============================================================
 //  Dashboard — 概览
-//  设计: 4 个 KPI 玻璃卡 + 状态分布 + 最近活跃任务 + 最近完成
+//  设计: 4 个 KPI 卡片 + 紧凑状态网格 + 最近活跃 / 最近完成列表
+//  主题: refined material (amber/slate)，无 glassmorphism，无堆叠进度条
 // ============================================================
 
 import { h, api, fmtRelative, normalizeTasks, normalizeStatus } from '../app.js';
 import { aggregateEta, fmtHours, overallProgress } from '../eta.js';
 
-// ---- 颜色辅助 ----
-const ST_COLOR = {
-  planning: 'st-planning', ready: 'st-ready', active: 'st-active',
-  check:    'st-check',    done:  'st-done',  failed: 'st-failed',
+// ---- 状态元数据 ----
+const ST_META = {
+  planning: { key: 'planning', label: '规划中', color: 'st-planning', icon: 'fa-pencil-square-o' },
+  ready:    { key: 'ready',    label: '待执行', color: 'st-ready',    icon: 'fa-clock-o' },
+  active:   { key: 'active',   label: '执行中', color: 'st-active',   icon: 'fa-spinner' },
+  check:    { key: 'check',    label: '待验收', color: 'st-check',    icon: 'fa-eye' },
+  done:     { key: 'done',     label: '已完成', color: 'st-done',     icon: 'fa-check' },
 };
-const ST_LABEL = {
-  planning: '规划中', ready: '待执行', active: '执行中',
-  check:    '待验收', done: '已完成',  failed: '失败',
-};
+const ST_ORDER = ['planning', 'ready', 'active', 'check', 'done'];
 
-// ---- KPI 玻璃卡 ----
-function kpiCard(label, value, iconClass, colorVar, trend) {
-  return h('div.glass-card.hover-float.transition-all', [
-    h('div.flex.items-start.justify-between.mb-3', [
-      h('span.text-sm.text-muted.font-medium', label),
-      h(`div.w-10.h-10.rounded-lg.flex.items-center.justify-center.text-${colorVar}.bg-${colorVar}/10`,
-        h(`i.fa.${iconClass}.text-lg`)
+// ---- KPI 卡片 ----
+function kpiCard(label, value, iconClass, colorVar, hint) {
+  return h('div.card.hover\:border-hover.transition-all', [
+    h('div.flex.items-start.justify-between.mb-2', [
+      h('span.text-xs.text-muted.font-medium', label),
+      h(`div.w-9.h-9.rounded-lg.flex.items-center.justify-center.text-${colorVar}.bg-${colorVar}/10`,
+        h(`i.fa.${iconClass}`)
       ),
     ]),
-    h('div.text-3xl.font-bold.text-head.mb-1', String(value)),
-    trend ? h('div.text-xs.text-muted', trend) : null,
+    h('div.text-2xl.font-bold.text-head.mb-1', String(value)),
+    hint ? h('div.text-xs.text-muted.truncate', hint) : null,
   ]);
 }
 
-// ---- 状态分布进度条 ----
-function statusDistribution(stats) {
+// ---- 紧凑状态网格（替代堆叠进度条） ----
+function statusGrid(stats) {
   const total = Object.values(stats).reduce((a, b) => a + b, 0) || 1;
-  const order = ['planning', 'ready', 'active', 'check', 'done'];
-  const items = order.map(s => ({
-    key: s, label: ST_LABEL[s], count: stats[s] || 0,
-    pct: ((stats[s] || 0) / total) * 100,
-    color: ST_COLOR[s],
-  }));
-
-  return h('div.glass-card', [
-    h('h3.section-title', '状态分布'),
-    // 堆叠进度条
-    h('div.h-3.rounded-full.bg-line.overflow-hidden.flex.mb-4',
-      items.filter(i => i.count > 0).map(it =>
-        h(`div.h-full.bg-${it.color}.transition-all.duration-500`,
-          { style: { width: it.pct + '%' } }
-        )
-      )
-    ),
-    // 图例 + 数字
-    h('div.grid.grid-cols-2.md\\:grid-cols-5.gap-3',
-      items.map(it =>
-        h('div.flex.items-center.gap-2', [
-          h(`span.w-2.5.h-2.5.rounded-full.bg-${it.color}.flex-shrink-0`),
-          h('div', [
-            h('div.text-xs.text-muted', it.label),
-            h('div.text-sm.font-semibold.text-head',
-              `${it.count} `, h('span.text-muted.font-normal', `(${it.pct.toFixed(0)}%)`)
+  return h('div.card', [
+    h('h3.section-title-sm.mb-3', '状态分布'),
+    h('div.grid.grid-cols-2.md\\:grid-cols-5.gap-2',
+      ST_ORDER.map((s) => {
+        const meta = ST_META[s];
+        const count = stats[s] || 0;
+        const pct = ((count / total) * 100).toFixed(0);
+        return h('div.flex.items-center.gap-2.p-2.rounded-lg.bg-card', [
+          h(`div.w-8.h-8.rounded-lg.flex.items-center.justify-center.text-${meta.color}.bg-${meta.color}/10`,
+            h(`i.fa.${meta.icon}.text-xs`)
+          ),
+          h('div.min-w-0', [
+            h('div.text-xs.text-muted', meta.label),
+            h('div.text-sm.font-semibold.text-head', `${count}`,
+              h('span.text-muted.font-normal.ml-1', `(${pct}%)`)
             ),
           ]),
-        ])
-      )
+        ]);
+      })
     ),
   ]);
 }
@@ -70,10 +60,11 @@ function statusDistribution(stats) {
 // ---- 任务列表行 ----
 function taskRow(task) {
   const st = task.status || 'planning';
-  return h(`a.task-row.flex.items-center.gap-3.p-3.rounded-lg.border.border-transparent.hover\\:border-brd\\/60.hover\\:bg-card\\/40.transition-all.cursor-pointer`,
+  const meta = ST_META[st] || ST_META.planning;
+  return h('a.flex.items-center.gap-3.p-2.rounded-lg.border.border-transparent.hover\\:border-brd\\/60.hover\\:bg-card\\/40.transition-all.cursor-pointer',
     { href: `/task/detail?id=${task.id}`, 'data-nav': '' },
     [
-      h(`span.w-2.h-2.rounded-full.bg-${ST_COLOR[st]}.flex-shrink-0`),
+      h(`span.w-2.h-2.rounded-full.bg-${meta.color}.flex-shrink-0`),
       h('div.flex-1.min-w-0', [
         h('div.text-sm.font-medium.text-head.truncate',
           task.title || task.name || '(未命名)'
@@ -82,7 +73,7 @@ function taskRow(task) {
           task.description || task.id
         ),
       ]),
-      h(`span.antd-tag.antd-tag-${st}.flex-shrink-0`, ST_LABEL[st] || st),
+      h(`span.antd-tag.antd-tag-${st}.flex-shrink-0`, meta.label),
       h('span.text-xs.text-muted.flex-shrink-0',
         task.updatedAt ? fmtRelative(task.updatedAt) : ''
       ),
@@ -92,20 +83,19 @@ function taskRow(task) {
 
 // ---- 列表卡片 ----
 function listCard(title, icon, tasks, emptyText) {
-  return h('div.glass-card', [
-    h('h3.section-title', [
+  return h('div.card', [
+    h('h3.section-title-sm.mb-3', [
       h(`i.fa.${icon}.text-accent`),
       title,
     ]),
     tasks && tasks.length
-      ? h('div.divide-y divide-line/50', tasks.map(taskRow))
-      : h('div.py-12.text-center.text-muted text-sm', emptyText || '暂无数据'),
+      ? h('div.divide-y.divide-line\\/50', tasks.map(taskRow))
+      : h('div.py-10.text-center.text-muted.text-sm', emptyText || '暂无数据'),
   ]);
 }
 
 // ---- 主渲染 ----
 export async function render(mount) {
-  // /dashboard 端点自足: 计数 / 完成率 / 最近列表全内联, 不再拉 /data 全量看板
   const dash = await api.dashboard().catch(() => null) || {};
 
   // statusDist 键是中文状态 → 归一到 5 状态系统
@@ -120,13 +110,9 @@ export async function render(mount) {
   const taskCount = dash.taskCount || 0;
   const doneRate = dash.doneRate || 0;
 
-  // 整体进度与剩余: 用 etaCards (端点专为此下发的精简字段) 走 eta.js 的同一套算法。
-  // 「完成率」= 已完成 task 数占比 (粗); 「整体进度」= 按工时加权的完成度 (细, 含在途 task 的
-  // 部分进度)。两个都留着 —— 前者答「做完几个」, 后者答「整体走了多远」。
   const etaTasks = normalizeTasks(dash.etaCards || []);
   const overallPct = overallProgress(etaTasks);
   const agg = aggregateEta(etaTasks, dash.maxActive || 2);
-  // 剩余口径是**墙钟** (按并发折算), 不是人力工时累加 —— 回答的是「还要多久」。
   const remainText = agg.hours > 0 ? fmtHours(agg.hours) : '—';
   const remainHint = agg.hours > 0
     ? `总工时 ${fmtHours(agg.work)} · 并发 ${dash.maxActive || 2}` +
@@ -135,13 +121,13 @@ export async function render(mount) {
 
   mount.replaceChildren(
     // 页标题
-    h('div.mb-8', [
-      h('h1.text-3xl.font-bold.text-head.mb-2', '项目概览'),
-      h('p.text-muted', `共 ${taskCount} 个任务 · 整体进度 ${overallPct}% · 预计剩余 ${remainText}`),
+    h('div.mb-5', [
+      h('h1.text-2xl.font-bold.text-head.mb-1', '项目概览'),
+      h('p.text-sm.text-muted', `共 ${taskCount} 个任务 · 整体进度 ${overallPct}% · 预计剩余 ${remainText}`),
     ]),
 
     // KPI 4 卡
-    h('div.grid.grid-cols-2.lg\\:grid-cols-4.gap-4.mb-6', [
+    h('div.grid.grid-cols-2.lg\\:grid-cols-4.gap-3.mb-4', [
       kpiCard('整体进度', `${overallPct}%`, 'fa-tasks', 'accent',
         `${countBy.done || 0}/${taskCount} 完成 · 按工时加权`),
       kpiCard('预计剩余', remainText, 'fa-hourglass-half', 'st-planning', remainHint),
@@ -152,10 +138,10 @@ export async function render(mount) {
     ]),
 
     // 状态分布
-    h('div.mb-6', statusDistribution(countBy)),
+    h('div.mb-4', statusGrid(countBy)),
 
     // 两列: 最近活跃 + 最近完成
-    h('div.grid.grid-cols-1.lg\\:grid-cols-3.gap-6', [
+    h('div.grid.grid-cols-1.lg\\:grid-cols-3.gap-4', [
       h('div.lg\\:col-span-2', listCard('最近活跃', 'fa-bolt', recentActive, '暂无进行中的任务')),
       h('div', listCard('最近完成', 'fa-check-square-o', recentDone, '暂无已完成的任务')),
     ]),

@@ -163,7 +163,7 @@ function subDAGView(subs, onSubClick) {
         ...nodes.map((n) => {
           const sst = n.sub.status || 'planning';
           // 已完成子任务仍渲染 (链路完整), 只用 .is-done 灰显降权, 不隐藏。
-          return h(`div.sub-dag-node.absolute.glass-card.p-2.cursor-pointer.transition-all.${ST_COLOR[sst]}${sst === 'done' ? '.is-done' : ''}`,
+          return h(`div.sub-dag-node.absolute.card.p-2.cursor-pointer.transition-all.${ST_COLOR[sst]}${sst === 'done' ? '.is-done' : ''}`,
             {
               style: { left: n.x + 'px', top: n.y + 'px', width: n.w + 'px', height: n.h + 'px' },
               onclick: (e) => { if (onSubClick) onSubClick(n.id); },
@@ -202,7 +202,7 @@ function prdSectionView(prd) {
 function prdCard(sec) {
   const icon = sec.name === '目标' ? 'fa-bullseye' : sec.name === '验收标准' ? 'fa-check-square-o' : 'fa-file-text-o';
   const color = sec.name === '目标' ? 'st-planning' : sec.name === '验收标准' ? 'st-check' : 'st-active';
-  return h('div.glass-card.p-5', [
+  return h('div.card.p-5', [
     h('h3.section-title', [
       h(`i.fa.${icon}.text-${color}`),
       sec.name + (sec.badge ? ` (${sec.badge[0]}/${sec.badge[1]})` : ''),
@@ -241,7 +241,7 @@ function depLink(d) {
 // ---- 契约 ----
 function contractsView(contracts) {
   if (!contracts || !contracts.length) return null;
-  return h('div.glass-card.p-5', [
+  return h('div.card.p-5', [
     h('h3.section-title', [
       h('i.fa.fa-handshake-o.text-st-check'),
       `契约 (${contracts.length})`,
@@ -267,7 +267,7 @@ const docEmpty = md.isPlaceholder;   // 模板占位 (只有标题 + 提示句) 
 // ---- 详细设计 ----
 function designView(design) {
   if (docEmpty(design)) return null;
-  return h('div.glass-card.p-5', [
+  return h('div.card.p-5', [
     h('h3.section-title', [
       h('i.fa.fa-sitemap.text-st-active'),
       '详细设计',
@@ -286,7 +286,7 @@ function researchView(findings, research) {
   const notes = Object.entries(research || {}).filter(([, body]) => !docEmpty(body));
   const hasFindings = !docEmpty(findings);
   if (!hasFindings && !notes.length) return null;   // 全是模板占位 → 整卡不渲染
-  return h('div.glass-card.p-5', [
+  return h('div.card.p-5', [
     h('h3.section-title', [
       h('i.fa.fa-flask.text-st-planning'),
       `调研${notes.length ? ` (结论 + ${notes.length} 篇过程笔记)` : ' 结论'}`,
@@ -311,7 +311,7 @@ function researchView(findings, research) {
 function subtaskListView(subs, taskId) {
   if (!subs || !subs.length) return null;
   const done = subs.filter(s => s.status === 'done').length;
-  return h('div.glass-card.p-5', [
+  return h('div.card.p-5', [
     h('h3.section-title', [
       h('i.fa.fa-tasks.text-accent'),
       `子任务列表`,
@@ -365,7 +365,7 @@ export async function render(mount, params, ctx) {
 
   if (!task) {
     mount.replaceChildren(
-      h('div.glass-card.py-16.text-center', [
+      h('div.card.py-16.text-center', [
         h('i.fa.fa-exclamation-triangle.text-4xl.text-warning.mb-3'),
         h('h2.text-xl.font-semibold.text-head.mb-2', '任务不存在'),
         h('p.text-muted.mb-4', `ID: ${taskId}`),
@@ -427,7 +427,7 @@ export async function render(mount, params, ctx) {
   // 基本信息 / 时间线卡片抽成函数 — 初绘和增量 patch (patchInfoCard/patchTimelineCard) 共用同一份 markup,
   // 固定 id 供 patch 时 querySelector 定位替换。
   function infoCard() {
-    return h('div.glass-card.p-5', { id: 'task-info-card' }, [
+    return h('div.card.p-5', { id: 'task-info-card' }, [
       h('h3.section-title', '基本信息'),
       // 状态在页头徽标已有, 各时间点归时间线; 这里不重复
       infoItem('优先级', task.priority === 'high' ? '高' : task.priority === 'low' ? '低' : '中'),
@@ -450,7 +450,7 @@ export async function render(mount, params, ctx) {
     ]);
   }
   function timelineCard() {
-    return h('div.glass-card.p-5', { id: 'task-timeline-card' }, [
+    return h('div.card.p-5', { id: 'task-timeline-card' }, [
       h('h3.section-title', [h('i.fa.fa-history.text-accent'), '生命周期时间线']),
       timelineView(buildTimeline(task), task),
     ]);
@@ -527,7 +527,7 @@ export async function render(mount, params, ctx) {
 
         // 前置依赖 (空则整卡不渲染, 与「被依赖」一致)
         depTasks.length
-          ? h('div.glass-card.p-5', [
+          ? h('div.card.p-5', [
               h('h3.section-title', [
                 h('i.fa.fa-link.text-accent'),
                 '前置依赖',
@@ -539,7 +539,7 @@ export async function render(mount, params, ctx) {
 
         // 被依赖
         dependents.length
-          ? h('div.glass-card.p-5', [
+          ? h('div.card.p-5', [
               h('h3.section-title', [
                 h('i.fa.fa-share-alt.text-accent'),
                 '被依赖',
@@ -551,7 +551,7 @@ export async function render(mount, params, ctx) {
 
         // 依赖关系图 — 只拿 前置+本 task+后置 这一层, 详情端点已内联返回, 不额外拉 /data 全量看板
         depTasks.length || dependents.length
-          ? h('div.glass-card.p-4', [
+          ? h('div.card.p-4', [
               h('div.flex.items-center.gap-2.mb-3', [
                 h('i.fa.fa-share-alt.text-st-active.text-sm'),
                 h('div.eyebrow.text-accent.m-0', `依赖关系图 (${depTasks.length + dependents.length + 1})`),
@@ -561,7 +561,7 @@ export async function render(mount, params, ctx) {
           : null,
 
         // 操作
-        h('div.glass-card.p-5', [
+        h('div.card.p-5', [
           h('h3.section-title', [
             h('i.fa.fa-cog.text-accent'),
             '操作',
@@ -585,7 +585,7 @@ export async function render(mount, params, ctx) {
       h('div.lg\\:col-span-4.space-y-6.min-w-0', [
         // 描述
         task.description
-          ? h('div.glass-card.p-5', [
+          ? h('div.card.p-5', [
               h('h3.section-title', '任务描述'),
               h('div.text-sm.text-fg.leading-relaxed.whitespace-pre-wrap', task.description),
             ])
@@ -599,7 +599,7 @@ export async function render(mount, params, ctx) {
 
         // 子任务 DAG
         task.subtasks && task.subtasks.length >= 2
-          ? h('div.glass-card.p-5', [
+          ? h('div.card.p-5', [
               h('h3.section-title', [
                 h('i.fa.fa-sitemap.text-accent'),
                 `子任务 DAG (${task.subtasks.length})`,

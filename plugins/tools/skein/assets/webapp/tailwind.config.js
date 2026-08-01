@@ -13,15 +13,26 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        ocean:      { foam: 'var(--ocean-foam)', shallow: 'var(--ocean-shallow)', mid: 'var(--ocean-mid)', deep: 'var(--ocean-deep)', abyss: 'var(--ocean-abyss)' },
-        whiteSand:  { pearl: 'var(--whiteSand-pearl)', shell: 'var(--whiteSand-shell)', cream: 'var(--whiteSand-cream)' },
-        goldSand:   { light: 'var(--goldSand-light)', mid: 'var(--goldSand-mid)', deep: 'var(--goldSand-deep)', sunset: 'var(--goldSand-sunset)' },
-        night:      { base: 'var(--night-base)', mid: 'var(--night-mid)', deep: 'var(--night-deep)' },
-        success: 'var(--success)', warning: 'var(--warning)', danger: 'var(--danger)',
+        amber: {
+          50: 'var(--amber-50)', 100: 'var(--amber-100)', 200: 'var(--amber-200)',
+          300: 'var(--amber-300)', 400: 'var(--amber-400)', 500: 'var(--amber-500)',
+          600: 'var(--amber-600)', 700: 'var(--amber-700)', 800: 'var(--amber-800)',
+          900: 'var(--amber-900)', 950: 'var(--amber-950)',
+        },
+        slate: {
+          50: 'var(--slate-50)', 100: 'var(--slate-100)', 200: 'var(--slate-200)',
+          300: 'var(--slate-300)', 400: 'var(--slate-400)', 500: 'var(--slate-500)',
+          600: 'var(--slate-600)', 700: 'var(--slate-700)', 800: 'var(--slate-800)',
+          900: 'var(--slate-900)', 950: 'var(--slate-950)',
+        },
+        success: 'var(--success)', warning: 'var(--warning)', danger: 'var(--danger)', info: 'var(--info)',
         bg: 'var(--bg)', card: 'var(--card)', fg: 'var(--fg)', head: 'var(--head)',
         muted: 'var(--muted)', brd: 'var(--brd)', line: 'var(--line)',
         accent: 'var(--accent)', accent2: 'var(--accent2)',
-        'st-pending': 'var(--st-pending)', 'st-active': 'var(--st-active)',
+        'bg-canvas': 'var(--bg-canvas)', 'bg-panel': 'var(--bg-panel)',
+        'bg-elevated': 'var(--bg-elevated)', 'bg-hover': 'var(--bg-hover)',
+        'st-planning': 'var(--st-planning)', 'st-pending': 'var(--st-pending)',
+        'st-ready': 'var(--st-ready)', 'st-active': 'var(--st-active)',
         'st-check': 'var(--st-check)', 'st-done': 'var(--st-done)', 'st-failed': 'var(--st-failed)',
       },
       fontFamily: {
