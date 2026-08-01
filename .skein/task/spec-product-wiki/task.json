@@ -107,12 +107,16 @@
         "product 不自动 archive 属回归重点已覆盖",
         "doctor --quality 通过"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785382522,
       "started": null,
-      "finished": null
+      "finished": 1785594864
     }
   ],
   "priority": 5,
@@ -128,5 +132,5 @@
   "confirmed": null,
   "checked": null,
   "finished": null,
-  "updated": 1785382522
+  "updated": 1785594864
 }
