@@ -216,7 +216,7 @@ function TaskDetailContent() {
 
               {/* Subtask list */}
               {subs.length > 0 && (
-                <Card title={`子任务列表 (${subDone}/${subs.length})`} icon="fa-tasks">
+                <Card title="子任务列表" icon="fa-tasks">
                   <div className="space-y-2">
                     {subs.map(s => (
                       <div key={s.sid} className="flex items-start gap-3 rounded-md p-2 transition-colors hover:bg-muted/30">
@@ -248,12 +248,12 @@ function TaskDetailContent() {
 
               {/* Dep links */}
               {depTasks.length > 0 && (
-                <Card title={`前置依赖 (${depTasks.length})`} icon="fa-link">
+                <Card title="前置依赖" icon="fa-link">
                   <div className="space-y-2">{depTasks.map(d => <DepLink key={d.id} task={d} />)}</div>
                 </Card>
               )}
               {dependents.length > 0 && (
-                <Card title={`被依赖 (${dependents.length})`} icon="fa-share-alt">
+                <Card title="被依赖" icon="fa-share-alt">
                   <div className="space-y-2">{dependents.map(d => <DepLink key={d.id} task={d} />)}</div>
                 </Card>
               )}
@@ -304,7 +304,7 @@ function TaskDetailContent() {
 
               {/* Contracts */}
               {task.contracts && task.contracts.length > 0 && (
-                <Card title={`契约 (${task.contracts.length})`} icon="fa-handshake-o">
+                <Card title="契约" icon="fa-handshake-o">
                   <div className="space-y-3">
                     {task.contracts.map((c, i) => (
                       <div key={i} className="rounded-lg border border-border/40 bg-muted/20 p-3">
@@ -373,7 +373,7 @@ function SubTimeline({ subs, taskId }: { subs: NormSubtask[]; taskId: string }) 
   const ordered = [...subs].sort((a, b) => (a.startedAt || Infinity) - (b.startedAt || Infinity));
   return (
     <details className="mt-1" open={open} onToggle={(e) => setOpen((e.target as HTMLDetailsElement).open)}>
-      <summary className="cursor-pointer select-none text-[10px] text-muted-foreground">子任务执行过程 ({subs.length})</summary>
+      <summary className="cursor-pointer select-none text-[10px] text-muted-foreground">子任务执行过程</summary>
       <div className="mt-1 space-y-1">
         {ordered.map(s => {
           const st = s.status || "planning";
@@ -428,7 +428,7 @@ function SubtaskDagCard({ subs }: { subs: NormSubtask[] }) {
   if (!layout || !layout.nodes.length) return null;
 
   return (
-    <Card title={`子任务 DAG (${subs.length})`} icon="fa-sitemap">
+    <Card title="子任务 DAG" icon="fa-sitemap">
       <div className="overflow-auto" ref={wrapRef} onMouseDown={onMouseDown} style={{ cursor: "grab", maxHeight: "400px" }}>
         <div className="relative mx-auto" style={{ width: layout.width, height: layout.height }}>
           <svg className="pointer-events-none absolute inset-0" style={{ width: "100%", height: "100%" }}>

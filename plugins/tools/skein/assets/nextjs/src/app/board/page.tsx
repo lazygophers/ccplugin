@@ -335,7 +335,7 @@ export default function BoardPage() {
             {/* Status filter */}
             <div className="flex flex-1 flex-wrap items-center gap-2">
               <button onClick={toggleAll} className={cn("rounded-full border px-3 py-1 text-xs font-medium transition-colors", allSelected ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/50")}>
-                全部 ({allTasks.length})
+                全部
               </button>
               {ALL_STATUSES.map(st => (
                 <button key={st} onClick={() => toggleStatus(st)} className={cn("rounded-full border px-3 py-1 text-xs font-medium transition-colors", statusSet.has(st) ? "text-foreground" : "border-border text-muted-foreground opacity-50 hover:opacity-80")} style={statusSet.has(st) ? { borderColor: `var(${ST_META[st].colorVar})`, backgroundColor: `color-mix(in srgb, var(${ST_META[st].colorVar}) 25%, transparent)` } : {}}>
@@ -663,7 +663,7 @@ function DetailPanel({ task, allTasks, onClose, onConfirm, onFinish, onDelete, o
 
         {/* Contracts */}
         {task.contracts?.length > 0 && (
-          <DetailCard title={`契约 (${task.contracts.length})`}>
+          <DetailCard title="契约">
             <div className="space-y-2">
               {task.contracts.map((c, i) => (
                 <div key={i} className="rounded border border-border/40 bg-muted/20 p-2">
@@ -677,7 +677,7 @@ function DetailPanel({ task, allTasks, onClose, onConfirm, onFinish, onDelete, o
 
         {/* Subtask DAG */}
         {subs.length >= 2 && (
-          <DetailCard title={`子任务 DAG (${subs.length})`}>
+          <DetailCard title="子任务 DAG">
             <SubtaskDag subs={subs} />
           </DetailCard>
         )}
@@ -762,7 +762,7 @@ function TaskTimeline({ task, eta, subs }: { task: NormTask; eta: { main: string
               <div className="text-[10px] text-muted-foreground">{s.desc}</div>
               {s.key === "started" && subs.length > 0 && (
                 <details open className="mt-1 ml-2">
-                  <summary className="cursor-pointer select-none text-[10px] text-muted-foreground">子任务 ({subs.length})</summary>
+                  <summary className="cursor-pointer select-none text-[10px] text-muted-foreground">子任务</summary>
                   <div className="mt-1 space-y-1 border-l border-border/30 pl-3">
                     {subs.map(sub => {
                       const sm = ST_META[sub.status] || ST_META.planning;
