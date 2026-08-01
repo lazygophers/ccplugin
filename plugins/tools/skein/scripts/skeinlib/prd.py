@@ -8,6 +8,7 @@ from __future__ import annotations
 import re
 import sys
 from pathlib import Path
+from typing import Any
 
 from skeinlib.errors import SkeinError
 from skeinlib.model import (PRD_SECTIONS, PRD_SECTIONS_V4, PRD_SECTIONS_V6, PRD_TODO_SECTIONS)
@@ -188,7 +189,7 @@ def validate_seam(tasks_dir: Path, tid: str) -> None:
             file=sys.stderr)
 
 
-def review_summary(tasks_dir: Path, tid: str, t: dict) -> str:
+def review_summary(tasks_dir: Path, tid: str, t: dict[str, Any]) -> str:
     """给用户人眼审核用的 PRD 摘要 — 纯函数, 吃 task dict 返字符串。
 
     只摘**够判断该不该放行**的东西: 目标 / 验收标准 / 边界三章正文 + subtask 拆解 + 工时。

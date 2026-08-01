@@ -19,7 +19,7 @@ def sig(p: str) -> set[str]:
 def test_empty_prompt_no_signal() -> None:
     assert _judge_signal("") == []
     assert _judge_signal("   ") == []
-    assert _judge_signal(None) == []  # type: ignore[arg-type]  hook 拿到的 payload 可能缺字段
+    assert _judge_signal(None) == []  # type: ignore[arg-type] # hook 拿到的 payload 可能缺字段
 
 
 def test_action_verbs_hit() -> None:

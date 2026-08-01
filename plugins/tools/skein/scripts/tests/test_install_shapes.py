@@ -32,7 +32,7 @@ PLUGIN = SCRIPTS.parent
 ENTRIES = ("skein.py", "spec.py", "hooks.py")
 
 
-def _ok(*argv: str, cwd: Path | None = None, env: dict | None = None) -> bool:
+def _ok(*argv: str, cwd: Path | None = None, env: dict[str, str] | None = None) -> bool:
     """跑一条命令, 只关心「没因 import 崩掉」。"""
     r = subprocess.run(argv, cwd=cwd, env=env, capture_output=True, text=True,
                        stdin=subprocess.DEVNULL, timeout=30)

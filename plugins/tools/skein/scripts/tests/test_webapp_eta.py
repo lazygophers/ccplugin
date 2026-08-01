@@ -17,6 +17,7 @@ from __future__ import annotations
 import json
 import shutil
 import subprocess
+from typing import Any
 
 import pytest
 
@@ -35,7 +36,7 @@ TASKS = [
 ]
 
 
-def _eval(tasks: list[dict], max_active: int) -> dict:
+def _eval(tasks: list[dict[str, Any]], max_active: int) -> dict[str, Any]:
     """跑真 model.normalizeTasks + eta.{overallProgress,aggregateEta}, 返回结果 dict。"""
     script = f"""
       const M = await import({str(WEBAPP / 'model.js')!r});
@@ -105,7 +106,7 @@ def test_unestimated_tasks_are_counted_not_guessed() -> None:
     assert out["unknown"] == 1 and out["hours"] == 0, out
 
 
-def _eval_summary(tasks: list[dict], max_active: int) -> dict:
+def _eval_summary(tasks: list[dict[str, Any]], max_active: int) -> dict[str, Any]:
     """跑 eta.overallSummary —— 看板页头消费的正是这个函数 (board.js#overallSummary)。"""
     script = f"""
       const M = await import({str(WEBAPP / 'model.js')!r});

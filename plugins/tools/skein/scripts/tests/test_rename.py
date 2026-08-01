@@ -127,7 +127,9 @@ def test_subtask_rename_id_sync_depends(skein_cli: SkeinCli, ws: Path) -> None:
     skein_cli(ws, "rename", "task-a", "s1", "--id", "s1x")
     t = _task(ws, "task-a")
     assert _sub(t, "s1x") is not None and _sub(t, "s1") is None, "sid 未改名"
-    dep = _sub(t, "s2")["depends_on"]
+    s2 = _sub(t, "s2")
+    assert s2 is not None
+    dep = s2["depends_on"]
     assert "s1x" in dep and "s1" not in dep, f"depends_on 未同步: {dep}"
 
 

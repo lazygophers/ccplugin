@@ -30,7 +30,7 @@ def _disable(skein_cli: SkeinCli, ws: Path) -> None:
 def _session_ctx(skein_cli: SkeinCli, ws: Path) -> str:
     """跑 session-context, 取 additionalContext 文本 (hook JSON 出口)。"""
     r = skein_cli(ws, "session-context")
-    return json.loads(r.stdout.strip())["hookSpecificOutput"]["additionalContext"]
+    return str(json.loads(r.stdout.strip())["hookSpecificOutput"]["additionalContext"])
 
 
 def _user_prompt(ws: Path, prompt: str) -> str:
@@ -38,7 +38,7 @@ def _user_prompt(ws: Path, prompt: str) -> str:
     payload = json.dumps({"cwd": str(ws), "prompt": prompt})
     r = subprocess.run([sys.executable, str(HOOKS), "user-prompt"],
                        cwd=ws, input=payload, capture_output=True, text=True, check=True)
-    return json.loads(r.stdout.strip())["hookSpecificOutput"]["additionalContext"]
+    return str(json.loads(r.stdout.strip())["hookSpecificOutput"]["additionalContext"])
 
 
 # ---------- R1 禁填 (use_worktree=false → create/repos 拒) ----------

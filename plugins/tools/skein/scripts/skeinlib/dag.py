@@ -35,7 +35,7 @@ def _sub_pct(s: dict[str, Any]) -> int:
     return (lo + hi) // 2
 def _task_pct(t: dict[str, Any]) -> int:
     # task 进度 = 状态区间 + subtask 完成度均值线性插值 (done 强制 100; 无 subs 取区间中点)。
-    st = t.get("status")
+    st = t.get("status", "")
     if st == S_DONE:
         return 100
     lo, hi = _TASK_PCT_RANGE.get(st, (0, 5))
@@ -46,7 +46,7 @@ def _task_pct(t: dict[str, Any]) -> int:
     return (lo + hi) // 2
 def _task_stage(t: dict[str, Any]) -> str:
     # task 阶段标签 (plan/ready/exec/check/done) 供 board card 渲染
-    st = t.get("status")
+    st = t.get("status", "")
     if st == S_DONE:
         return "done"
     return PHASE_OF.get(st, "plan")  # 待处理→plan / 就绪→ready / 进行中→exec / 检查中→check

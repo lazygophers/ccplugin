@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
 import conftest  # noqa: F401  模块体把 scripts/ 塞进 sys.path
 from conftest import run_skein  # noqa: E402
@@ -48,7 +49,7 @@ def _ready(ws: Path, tid: str, *, subs: int = 1, est: float = 4) -> str:
     return tid
 
 
-def _t(ws: Path, tid: str) -> dict:
+def _t(ws: Path, tid: str) -> dict[str, Any]:
     return dict(json.loads((ws / ".skein/task" / tid / "task.json").read_text()))
 
 

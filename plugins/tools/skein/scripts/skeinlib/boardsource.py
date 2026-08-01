@@ -17,7 +17,7 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import Any, Callable, Optional, cast
+from typing import TYPE_CHECKING, Any, Callable, Optional, cast
 
 from skeinlib.hooks.runner import DBG
 from skeinlib.config import _cfg_effective, _yaml_load
@@ -26,8 +26,28 @@ from skeinlib.serve import (build_app, install_serve_deps, max_mtime, probe_same
 from skeinlib.views import Snapshot
 from skeinlib.paths import SCRIPTS_DIR, SKEIN_ENTRY
 
+if TYPE_CHECKING:
+    from skeinlib.store import TaskStore
+
 
 class BoardSourceMixin:
+    # 仅供 mypy 用的属性声明 (依赖契约见上方类文档字符串, 另加 `_LOCK_ID_PATH` — 门面
+    # commands.py:Skein 上的类常量): 实际由宿主 Workspace/Skein 提供, TYPE_CHECKING 块运行时
+    # 永不执行, 零行为改动, 只消除单看本 mixin 时的 attr-defined 噪声。
+    if TYPE_CHECKING:
+        dir: Path
+        root: Path
+        tasks: Path
+        archive_dir: Path
+        proj: str
+        store: "TaskStore"
+        _LOCK_ID_PATH: str
+        _REV_PATH: str
+        _LIVE_PATH: str
+
+        def config(self) -> dict[str, Any]: ...
+        def _wt_shown(self) -> bool: ...
+
     # ---- 看板可视化 (http 实时渲染, 不落盘; `skein.py view`/`serve` 起服务) ----
     def _snapshot(self) -> Snapshot:
         # 一次目录扫描 → 6 board 视图统一输入 (每请求构造一次)

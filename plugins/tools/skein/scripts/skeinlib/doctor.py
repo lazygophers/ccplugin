@@ -19,7 +19,8 @@ import argparse
 import json
 import subprocess
 import sys
-from typing import Optional
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Optional
 
 from skeinlib.hooks.runner import budget_guard
 from skeinlib.config import hooks_schema_errors
@@ -29,10 +30,27 @@ from skeinlib.model import (PHASE_OF, SLUG_RE, SS_DONE, SS_FAILED, SS_PENDING, S
 from skeinlib.worktree import worktrees_of
 from skeinlib.paths import SCRIPTS_DIR
 
+if TYPE_CHECKING:
+    from skeinlib.store import TaskStore
+
 SESSION_CTX_BUDGET_TOKENS = 400  # session-context 注入 token 硬预算 (active task ≤2, 正常远低于)
 
 
 class DoctorMixin:
+    # 仅供 mypy 用的属性声明 (依赖契约见上方类文档字符串): 实际由宿主 Workspace 提供,
+    # TYPE_CHECKING 块运行时永不执行, 零行为改动, 只消除单看本 mixin 时的 attr-defined 噪声。
+    if TYPE_CHECKING:
+        root: Path
+        dir: Path
+        tasks: Path
+        archive_dir: Path
+        git: bool
+        store: "TaskStore"
+
+        def config(self) -> dict[str, Any]: ...
+        def _wt_shown(self) -> bool: ...
+        def _hooks_cfg(self) -> dict[str, Any]: ...
+
     def doctor(self, a: argparse.Namespace) -> None:
         # 纯脚本体检: 扫 task/subtask 不变量违规 (源码真值 = per-task task.json)。
         # 不做 AI 判断, 只查机械可验的结构性问题。有 ✗ 错误 → exit 1 (可 CI/hook 门禁)。

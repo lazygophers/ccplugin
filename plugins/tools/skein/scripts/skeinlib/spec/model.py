@@ -77,7 +77,8 @@ def always_budget() -> int:
         cfg_path = spec_root().parent / "config.yaml"
         if cfg_path.exists():
             raw = _yaml_load(cfg_path.read_text())
-            spec_raw = raw.get("spec") if isinstance(raw.get("spec"), dict) else {}
+            spec_val = raw.get("spec")  # 先绑局部变量再 isinstance, 供 mypy 窄化 (直接对表达式 isinstance 窄化不了重复求值的调用)
+            spec_raw = spec_val if isinstance(spec_val, dict) else {}
             v = spec_raw.get("always_budget", raw.get("spec_always_budget"))
             if not isinstance(v, int) or v <= 0:
                 v = spec_raw.get("core_budget", raw.get("spec_core_budget"))  # deprecated fallback

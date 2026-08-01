@@ -13,7 +13,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-import pytest  # type: ignore[import-not-found]
+import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from skeinlib.config import _yaml_load, _yaml_dump  # noqa: E402

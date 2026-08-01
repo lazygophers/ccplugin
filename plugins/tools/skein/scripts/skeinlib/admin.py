@@ -143,8 +143,8 @@ class Admin:
         # (如 init 默认就写嵌套), 改写该嵌套叶而非另加扁平键 —— 否则嵌套读取优先级更高, 扁平 set 会被
         # 遮蔽变相失效 (见 _cfg_effective 优先级: 嵌套新键 > 旧扁平键)。
         key = a.key
-        path = _CFG_LEGACY.get(key)
-        path_str = f"{path[0]}.{path[1]}" if path else key
+        legacy = _CFG_LEGACY.get(key)  # 避免与上方 for-loop 变量 path (str) 同名混型 (mypy 按函数作用域统一变量类型)
+        path_str = f"{legacy[0]}.{legacy[1]}" if legacy else key
         if path_str not in _cfg_paths():
             raise SkeinError(f"未知配置键: {key} — 可用: {', '.join(_cfg_paths())}")
         try:
@@ -154,7 +154,7 @@ class Admin:
             raise SkeinError(f"值类型不合: {key} 需 {expect}, 得 {a.value!r}")
         f = self.ws.dir / "config.yaml"
         raw = _yaml_load(f.read_text()) if f.exists() else {}
-        if key in _CFG_LEGACY and not (isinstance(raw.get(path[0]), dict) and path[1] in raw[path[0]]):
+        if legacy is not None and not (isinstance(raw.get(legacy[0]), dict) and legacy[1] in raw[legacy[0]]):
             # 旧扁平键 且 盘上尚无同名嵌套叶: 原样写回扁平 (纯扁平旧仓零破坏, 不代劳迁移)。
             raw[key] = val
         else:

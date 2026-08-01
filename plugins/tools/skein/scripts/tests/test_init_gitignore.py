@@ -17,7 +17,7 @@ import tempfile
 import time
 from pathlib import Path
 
-from typing import Callable
+from typing import Any, Callable
 
 from conftest import HOOKS
 from skeinlib.derivatives import DERIVATIVES
@@ -26,7 +26,7 @@ SkeinCli = Callable[..., object]
 MemCli = Callable[..., object]
 
 
-def _run_hook_stdin(cwd: Path, cmd: str, payload: dict) -> None:
+def _run_hook_stdin(cwd: Path, cmd: str, payload: dict[str, Any]) -> None:
     """hooks.py 子命令读 stdin JSON — conftest 的 hooks_cli 固定喂空串, 故这里直调 (沿用
     test_report_hook.py 的先例)。"""
     subprocess.run([sys.executable, str(HOOKS), cmd], cwd=cwd, input=json.dumps(payload),

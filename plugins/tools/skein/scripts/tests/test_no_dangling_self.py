@@ -140,10 +140,10 @@ def test_ws_probe_catches_a_planted_case() -> None:
             self.ws = ws
 
         def ok(self) -> object:
-            return self.ws.store          # Workspace 上真有
+            return self.ws.store          # type: ignore[attr-defined] # Workspace 上真有, ws 故意标 object 让检查器只靠 AST 摸名字, 从不真跑
 
         def broken(self) -> object:
-            return self.ws.gone_away()    # ← 没有
+            return self.ws.gone_away()    # type: ignore[attr-defined] # ← 没有, 同上: 故意植入的悬空引用, 只喂 ast.parse 不执行
 
     got = _dangling_ws(Fake)
     assert got == ["gone_away"], f"自检失败, 实际 {got}"
@@ -168,7 +168,7 @@ def test_probe_catches_a_planted_dangling_reference() -> None:
             pass
 
         def broken(self) -> object:
-            return self.gone_away()      # ← 不存在
+            return self.gone_away()      # type: ignore[attr-defined] # ← 不存在, 故意植入的悬空引用, 只喂 ast.parse 不执行
 
     missing = _dangling(Base)
     assert missing == ["gone_away"], f"自检失败, 期望抓到 gone_away, 实际 {missing}"

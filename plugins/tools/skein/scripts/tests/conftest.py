@@ -97,22 +97,22 @@ def make_spec_ws(d: Path) -> Path:
 import pytest  # noqa: E402  (放在实现之后, 让上半段 import 时不必有 pytest)
 
 
-@pytest.fixture  # type: ignore[untyped-decorator]
+@pytest.fixture
 def git_cmd() -> GitCmd:
     return run_git
 
 
-@pytest.fixture  # type: ignore[untyped-decorator]
+@pytest.fixture
 def skein_cli() -> SkeinCli:
     return run_skein
 
 
-@pytest.fixture  # type: ignore[untyped-decorator]
+@pytest.fixture
 def mem_cli() -> MemCli:
     return run_spec
 
 
-@pytest.fixture  # type: ignore[untyped-decorator]
+@pytest.fixture
 def hooks_cli() -> HooksCli:
     return run_hooks
 
@@ -130,17 +130,17 @@ def _build_template(dst: Path, init: Callable[[Path], Path]) -> Path:
     return dst
 
 
-@pytest.fixture(scope="session")  # type: ignore[untyped-decorator]
+@pytest.fixture(scope="session")
 def _ws_template(tmp_path_factory: pytest.TempPathFactory) -> Path:
     return _build_template(tmp_path_factory.mktemp("tmpl-ws"), make_ws)
 
 
-@pytest.fixture(scope="session")  # type: ignore[untyped-decorator]
+@pytest.fixture(scope="session")
 def _spec_ws_template(tmp_path_factory: pytest.TempPathFactory) -> Path:
     return _build_template(tmp_path_factory.mktemp("tmpl-spec"), make_spec_ws)
 
 
-@pytest.fixture  # type: ignore[untyped-decorator]
+@pytest.fixture
 def ws(tmp_path: Path, _ws_template: Path) -> Path:
     """隔离临时 git 仓 + skein init。每个测试独立目录 (从 session 模板复制, 互不可见)。"""
     d = tmp_path / "ws"
@@ -148,7 +148,7 @@ def ws(tmp_path: Path, _ws_template: Path) -> Path:
     return d
 
 
-@pytest.fixture  # type: ignore[untyped-decorator]
+@pytest.fixture
 def mem_ws(tmp_path: Path, _spec_ws_template: Path) -> Path:
     """隔离临时 git 仓 + spec init。每个测试独立目录 (从 session 模板复制)。"""
     d = tmp_path / "spec-ws"
