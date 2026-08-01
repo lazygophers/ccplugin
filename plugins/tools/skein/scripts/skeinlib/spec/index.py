@@ -108,6 +108,7 @@ class IndexMixin:
             counts[ns] = self._reindex_layer(ns)
         self._reindex_top(counts)
         self._rebuild_fts()
+        self._rebuild_spec_meta()
         self._rebuild_backlinks_md(self._rebuild_backlinks())
         return counts
     def _rebuild_backlinks(self) -> dict[str, list[str]]:
@@ -170,6 +171,100 @@ class IndexMixin:
                         (f"{f.parent.name}/{f.stem}.md#{title}", f.parent.name, title,
                          str(meta.get("keywords", "")), body, ns, inc,
                          str(meta.get("anchors", ""))))
+            con.commit()
+        finally:
+            con.close()
+
+    def _rebuild_spec_meta(self) -> None:
+        """重建 spec_meta 表 (文件粒度元数据: path/title/namespace/category/keywords/inclusion/mtime)。
+
+        每个文件一行（非章节），path 为 PK。复用 boardsource._spec_build_cache 解析逻辑：
+        - 遍历所有 spec 文件（跳 index.md/backlinks.md）
+        - 解析 frontmatter (title/category/keywords)
+        - 解析正文首个 H1 标题
+        - title 优先级: H1 > frontmatter title > 文件名
+        - keywords 存 JSON 字符串
+        """
+        db = self.root / ".recall.db"
+        import sqlite3
+        import json
+        con = sqlite3.connect(db)
+        try:
+            # DROP + CREATE (幂等迁移)
+            con.execute("DROP TABLE IF EXISTS spec_meta")
+            con.execute(
+                "CREATE TABLE spec_meta ("
+                "path TEXT PRIMARY KEY, "
+                "title TEXT, "
+                "namespace TEXT, "
+                "category TEXT, "
+                "keywords TEXT, "
+                "inclusion TEXT, "
+                "mtime REAL"
+                ")")
+
+            # 扫描所有 spec 文件
+            for ns in self._scan_namespaces():
+                ns_dir = self.layer_dir(ns)
+                if not ns_dir.exists():
+                    continue
+                for p in sorted(ns_dir.rglob("*.md")):
+                    if not p.is_file() or p.name in ("index.md", "backlinks.md"):
+                        continue
+
+                    try:
+                        txt = p.read_text(encoding="utf-8", errors="replace")
+                    except Exception:
+                        continue
+
+                    rel = str(p.relative_to(self.root))
+                    mtime = p.stat().st_mtime
+
+                    # 解析 frontmatter
+                    fm_title, category, keywords = "", "", []
+                    in_fm = False
+                    lines = txt.split("\n")
+                    fm_end = 0
+                    for li, line in enumerate(lines):
+                        s = line.strip()
+                        if s == "---" and not in_fm:
+                            in_fm = True
+                            continue
+                        if s == "---" and in_fm:
+                            fm_end = li + 1
+                            break
+                        if in_fm:
+                            if s.startswith("title:"):
+                                fm_title = s[6:].strip().strip("\"\'")
+                            elif s.startswith("category:"):
+                                category = s[9:].strip().strip("\"\'")
+                            elif s.startswith("keywords:"):
+                                raw = s[9:].strip()
+                                if raw.startswith("["):
+                                    keywords = [k.strip().strip("\"\'") for k in raw.strip("[]").split(",") if k.strip()]
+
+                    # 解析 H1 标题
+                    h1_title = ""
+                    for line in lines[fm_end:]:
+                        s = line.strip()
+                        if s.startswith("# ") and not s.startswith("## "):
+                            h1_title = s[2:].strip()
+                            break
+
+                    # title 优先级: H1 > frontmatter title > 文件名
+                    title = h1_title or fm_title or p.stem
+
+                    # inclusion = 与 path 相同 (兼容前端字段名)
+                    inclusion = rel
+
+                    # keywords 转 JSON 字符串
+                    keywords_json = json.dumps(keywords, ensure_ascii=False)
+
+                    con.execute(
+                        "INSERT INTO spec_meta(path, title, namespace, category, keywords, inclusion, mtime) "
+                        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                        (rel, title, ns, category, keywords_json, inclusion, mtime))
+
             con.commit()
         finally:
             con.close()
