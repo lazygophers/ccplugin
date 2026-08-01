@@ -6,7 +6,7 @@
       "deps": [
         "spec-model-core"
       ],
-      "priority": 5,
+      "priority": "normal",
       "worktree": ".worktrees/skein-spec-map-namespace",
       "parent": "spec-wiki-v2",
       "kind": "task",
@@ -18,25 +18,25 @@
     },
     {
       "id": "spec-product-wiki",
-      "status": "进行中",
+      "status": "检查中",
       "deps": [
         "spec-model-core"
       ],
-      "priority": 5,
+      "priority": "normal",
       "worktree": ".worktrees/skein-spec-product-wiki",
       "parent": "spec-wiki-v2",
       "kind": "task",
       "created": 1785381913,
       "confirmed": 1785594107,
       "started": 1785594113,
-      "checked": null,
+      "checked": 1785594885,
       "finished": null
     },
     {
       "id": "concurrency-pools",
       "status": "就绪",
       "deps": [],
-      "priority": 5,
+      "priority": "normal",
       "worktree": ".worktrees/skein-concurrency-pools",
       "parent": null,
       "kind": "task",
@@ -52,7 +52,7 @@
       "deps": [
         "spec-skills-agents-adapt"
       ],
-      "priority": 5,
+      "priority": "normal",
       "worktree": null,
       "parent": "spec-wiki-v2",
       "kind": "task",
@@ -73,7 +73,7 @@
         "spec-map-namespace",
         "spec-prd-analyze"
       ],
-      "priority": 5,
+      "priority": "normal",
       "worktree": null,
       "parent": "spec-wiki-v2",
       "kind": "task",
@@ -87,7 +87,7 @@
       "id": "spec-wiki-v2",
       "status": "待处理",
       "deps": [],
-      "priority": 5,
+      "priority": "normal",
       "worktree": null,
       "parent": null,
       "kind": "supertask",
@@ -101,7 +101,7 @@
       "id": "flow-redo",
       "status": "已完成",
       "deps": [],
-      "priority": 5,
+      "priority": "normal",
       "worktree": null,
       "parent": null,
       "kind": "task",
@@ -115,7 +115,7 @@
       "id": "master-red-baseline",
       "status": "已完成",
       "deps": [],
-      "priority": 5,
+      "priority": "normal",
       "worktree": null,
       "parent": null,
       "kind": "task",
@@ -131,7 +131,7 @@
       "deps": [
         "spec-model-core"
       ],
-      "priority": 5,
+      "priority": "normal",
       "worktree": null,
       "parent": "spec-wiki-v2",
       "kind": "task",
@@ -145,7 +145,7 @@
       "id": "spec-inject-budget",
       "status": "已完成",
       "deps": [],
-      "priority": 5,
+      "priority": "normal",
       "worktree": null,
       "parent": null,
       "kind": "task",
@@ -161,7 +161,7 @@
       "deps": [
         "spec-model-core"
       ],
-      "priority": 5,
+      "priority": "normal",
       "worktree": null,
       "parent": "spec-wiki-v2",
       "kind": "task",
@@ -175,7 +175,7 @@
       "id": "spec-model-core",
       "status": "已完成",
       "deps": [],
-      "priority": 5,
+      "priority": "normal",
       "worktree": null,
       "parent": "spec-wiki-v2",
       "kind": "task",
@@ -189,7 +189,7 @@
       "id": "spec-prd-analyze",
       "status": "已完成",
       "deps": [],
-      "priority": 5,
+      "priority": "normal",
       "worktree": null,
       "parent": "spec-wiki-v2",
       "kind": "task",
@@ -203,7 +203,7 @@
       "id": "spec-sqlite-meta",
       "status": "已完成",
       "deps": [],
-      "priority": 5,
+      "priority": "normal",
       "worktree": null,
       "parent": null,
       "kind": "task",

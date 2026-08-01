@@ -1,0 +1,104 @@
+{
+  "id": "progress-stage-interp",
+  "name": "进度推算改阶段区间映射",
+  "desc": "task/subtask 进度改为状态区间 + 完成度线性插值 (用户拍板方案 A), 后端 skein.py 与前端 board.js 兜底副本同步",
+  "status": "已完成",
+  "deps": [
+    "webapp-motion-depdag"
+  ],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "skein.py 区间插值改造",
+      "desc": "重写 _sub_pct / _task_pct 为阶段区间线性插值",
+      "depends_on": [],
+      "验收": [
+        "_task_pct 区间: planning 0-5 / ready 5-10 / active 10-85 / check 85-98 / done 100",
+        "_sub_pct 区间: 待处理 0-5 / running 10-90 / done 100",
+        "样例 active+subAvg75=66, active+subAvg100=85, check+subAvg100=98, ready+subAvg0=5",
+        "样例 running+0/3=10, running+2/3=63, running+无验收=50, done=100",
+        "无 subtask task 取状态区间中点",
+        "python3 -c import 无语法错"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785253908,
+      "started": 1785254427,
+      "finished": 1785254561
+    },
+    {
+      "sid": "s2",
+      "name": "board.js 兜底副本同步",
+      "desc": "前端本地进度算法对齐后端新公式",
+      "depends_on": [
+        "s1"
+      ],
+      "验收": [
+        "board.js 兜底算法与 skein.py 同公式同区间",
+        "逐样例结果与后端一致",
+        "node --check 通过"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785253908,
+      "started": 1785254561,
+      "finished": 1785254798
+    },
+    {
+      "sid": "s3",
+      "name": "test_task_pct.py 期望值对齐新公式",
+      "desc": "5 项失败用例更新期望值+重命名编码旧语义的用例名",
+      "depends_on": [
+        "s1"
+      ],
+      "验收": [
+        "5 项失败用例期望值改为新公式实测值",
+        "用例名不再编码旧语义 (如 test_subs_all_done_active_task_is_100)",
+        "补失败态 subtask 与无 subs 区间中点的用例",
+        "pytest 该文件全绿"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785254561,
+      "started": 1785254561,
+      "finished": 1785254764
+    }
+  ],
+  "priority": 5,
+  "estimate": 1.0,
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/progress-stage-interp",
+  "parent": null,
+  "kind": "task",
+  "created": 1785253853,
+  "started": 1785254427,
+  "confirmed": 1785253908,
+  "checked": 1785254798,
+  "finished": 1785255047,
+  "updated": 1785255047
+}

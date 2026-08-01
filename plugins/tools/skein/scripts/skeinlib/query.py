@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 from skeinlib.dag import _sub_pct, _task_pct
 from skeinlib.errors import SkeinError
-from skeinlib.model import (SS_DONE, SS_FAILED, SS_PENDING, SS_RUNNING, S_ACTIVE, S_CHECK,
+from skeinlib.model import (PRIORITY_DEFAULT, SS_DONE, SS_FAILED, SS_PENDING, SS_RUNNING, S_ACTIVE, S_CHECK,
                             S_DONE, S_PENDING, S_READY, _STATUS_ALIAS)
 from skeinlib.views import _fmt_ts
 from skeinlib.worktree import worktrees_of
@@ -92,7 +92,8 @@ class Query:
             return
         pct = _task_pct(t)
         deps = ",".join(t.get("deps", [])) or "-"
-        print(f"task\t{t['id']}\t{t['status']}\t{pct}%\t{t['name']}")
+        prio = t.get("priority") or PRIORITY_DEFAULT
+        print(f"task\t{t['id']}\t{t['status']}\t{pct}%\t{prio}\t{t['name']}")
         if self.ws._wt_shown():
             print(f"worktree\t{t.get('worktree') or '-'}\t前置:{deps}")
         else:
@@ -124,6 +125,7 @@ class Query:
                 "repos": t.get("repos", []),
                 "worktree": (t.get("worktree") or None) if wt_shown else None,
                 "worktrees": [{"repo": w["repo"], "wt": w["wt"]} for w in worktrees_of(t)] if wt_shown else [],
+                "priority": t.get("priority") or PRIORITY_DEFAULT,
                 "pct": pct, "subs": cnt, "ready": ready}
 
     def list_(self, a: argparse.Namespace) -> None:
@@ -145,4 +147,4 @@ class Query:
                              ensure_ascii=False, separators=(",", ":")))
             return
         for t in tasks:
-            print(f"{t['id']}\t{t['status']}\t{t['name']}")
+            print(f"{t['id']}\t{t['status']}\t{t.get('priority') or PRIORITY_DEFAULT}\t{t['name']}")

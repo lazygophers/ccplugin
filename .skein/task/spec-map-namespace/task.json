@@ -106,7 +106,7 @@
       "finished": null
     }
   ],
-  "priority": 5,
+  "priority": "normal",
   "estimate": 2.5,
   "repos": [],
   "worktree": ".worktrees/skein-spec-map-namespace",

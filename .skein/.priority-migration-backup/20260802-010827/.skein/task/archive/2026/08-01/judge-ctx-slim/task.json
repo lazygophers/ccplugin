@@ -1,0 +1,63 @@
+{
+  "id": "judge-ctx-slim",
+  "name": "精简 judge _CTX 注入文案",
+  "desc": "UserPromptSubmit 注入的 _CTX 已膨胀到 2410 字符 (约 3 倍于 judge.py:16 注释声称的 400 token 预算), 且存在段落职责重叠与自我论证冗余; 用户手改后 tests/test_judge_signal.py 有 1 条断言变红。目标: 在不丢任何一条已被测试钉住的语义前提下大幅压缩篇幅, 修红测试, 并复核 judge.py:16 的预算注释与实际相符",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "j1",
+      "name": "压缩注入文案 + 修红断言",
+      "desc": "按冗余三类型(自我论证/跨段重复/与脚本证据串重复)压缩判定注入文案至原篇幅 60% 以下, 被测试钉住的语义逐条保留; 修复上一轮手改造成的红断言并记录修法",
+      "estimate": 0.8,
+      "depends_on": [],
+      "验收": [
+        "无转义漏出的反斜杠"
+      ],
+      "验收done": [
+        1
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785517971,
+      "started": 1785518855,
+      "finished": 1785519436
+    },
+    {
+      "sid": "j2",
+      "name": "篇幅守卫 + 预算数字对齐",
+      "desc": "新增机械长度断言守卫, 反向验证(撑爆文案确认变红)后改回; 校正源码注释里已失真的预算数字, 使注释/阈值/实际三者一致",
+      "estimate": 0.4,
+      "depends_on": [
+        "j1"
+      ],
+      "验收": [
+        "阈值余量合理(措辞微调不触发, 新增整段触发)"
+      ],
+      "验收done": [
+        1
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785517972,
+      "started": 1785519499,
+      "finished": 1785519846
+    }
+  ],
+  "priority": 5,
+  "estimate": 1.2,
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/judge-ctx-slim",
+  "parent": null,
+  "kind": "task",
+  "created": 1785517785,
+  "started": 1785518855,
+  "confirmed": 1785518157,
+  "checked": 1785519961,
+  "finished": 1785554647,
+  "updated": 1785554647,
+  "confirmed_by": "user"
+}

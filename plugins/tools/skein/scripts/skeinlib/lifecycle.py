@@ -19,9 +19,10 @@ if TYPE_CHECKING:
 
 from skeinlib.dag import _sub_estimate_sum
 from skeinlib.errors import SkeinError
-from skeinlib.model import (CODE_ID_RE, SLUG_RE, STATUS_INFLIGHT, S_ACTIVE, S_CHECK,
+from skeinlib.model import (CODE_ID_RE, PRIORITY_DEFAULT, SLUG_RE, STATUS_INFLIGHT, S_ACTIVE, S_CHECK,
                             S_DONE, S_PENDING, S_READY, now)
 from skeinlib.prd import review_summary, validate_prd, validate_seam
+from skeinlib.priority import validate_priority
 from skeinlib.worktree import commit_all, destroy_worktrees, git, make_worktree, parse_repos, worktrees_of
 
 import datetime
@@ -79,7 +80,7 @@ class Lifecycle:
         t = {
             "id": tid, "name": a.name, "desc": a.desc,
             "status": S_PENDING, "deps": deps, "contracts": [], "subtasks": [],
-            "priority": getattr(a, "priority", 5) or 5,  # 0-10, 默认 5 (中)
+            "priority": validate_priority(getattr(a, "priority", None)),  # 四档枚举, 未指定落中档
             "estimate": getattr(a, "estimate", None),  # 预计工时(小时), plan 阶段必填, confirm 硬门校验
             "repos": repos,          # planning 声明的目标子 git (rel 路径; 空=单根/原地模式)
             "worktree": None, "worktrees": [], "branch": f"skein/{tid}",
@@ -174,6 +175,18 @@ class Lifecycle:
         self.ws.store.save(t)
         self.ws.store.sync()
         print(f"{a.id} estimate = {val} h")
+
+    def priority(self, a: argparse.Namespace) -> None:
+        # 查/改 task 优先级。调度旋钮而非规划契约 (design.md) — 不锁状态, 任意状态均可改;
+        # 只改字段不碰执行中的槽, 故「不打断已在跑的」是结构性成立, 不需要额外校验。
+        t = self.ws.store.load(a.id)
+        if a.set is None:
+            print(t.get("priority") or PRIORITY_DEFAULT)
+            return
+        t["priority"] = validate_priority(a.set)
+        self.ws.store.save(t)
+        self.ws.store.sync()
+        print(f"{a.id} priority = {t['priority']}")
 
     def deps(self, a: argparse.Namespace) -> None:
         # 查/补 task 级前置 DAG (dedup 排序用: 给散落 task 之间补执行序, 织成完整 DAG)。

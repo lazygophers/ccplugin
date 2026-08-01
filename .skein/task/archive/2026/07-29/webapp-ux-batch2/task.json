@@ -117,7 +117,7 @@
       "finished": 1785244203
     }
   ],
-  "priority": 5,
+  "priority": "normal",
   "repos": [],
   "worktree": null,
   "worktrees": [],

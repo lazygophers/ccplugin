@@ -1,0 +1,131 @@
+{
+  "id": "spec-map-namespace",
+  "name": "map namespace: 骨架现算 + anchors 断链",
+  "desc": "git ls-files 目录树 + 正则抓顶层符号现算不落盘(纯 stdlib, ponytail 标 ceiling) + 语义页 anchors + 断链判据扩到 anchors 失效",
+  "status": "进行中",
+  "deps": [
+    "spec-model-core"
+  ],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "k1",
+      "name": "骨架现算 map --skeleton",
+      "desc": "git ls-files 取清单(非 git 降级 rglob+既有排除范式) + 目录树 + 三语言(py/js-ts/go)正则抓顶层符号 + 行数; 不写盘; 必留 ponytail 注释标 ceiling 与 tree-sitter 升级路径; 文件清单可参数注入",
+      "estimate": 1.0,
+      "depends_on": [],
+      "验收": [
+        "输出目录树+符号+行数且不写任何文件",
+        "三语言符号均能抓",
+        "非 git 仓降级生效且排除衍生目录",
+        "ponytail 注释已标 ceiling",
+        "1000 文件 <3s",
+        "清单可参数注入"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785382646,
+      "started": 1785594113,
+      "finished": 1785594272
+    },
+    {
+      "sid": "k2",
+      "name": "map namespace 落地",
+      "desc": "spec/map/<cat>/<topic>.md 语义页 + anchors 字段 + init 建空目录 + recall --src code(BM25 命中+anchors 汇总) + map 命令合并骨架与语义 + 顶层地图页 inclusion:always 约定",
+      "estimate": 0.7,
+      "depends_on": [],
+      "验收": [
+        "无 map 页时 map 命令只出骨架零回归",
+        "recall --src code 返回命中页与 anchors 汇总",
+        "map 命令合并骨架与语义",
+        "顶层地图可标 always 并被注入"
+      ],
+      "验收done": [],
+      "status": "运行中",
+      "skills": [],
+      "created": 1785382646,
+      "started": 1785594276,
+      "finished": null
+    },
+    {
+      "sid": "k3",
+      "name": "anchors 强弱断链判据",
+      "desc": "maintain 断链判据扩到 anchors; path 与 path:symbol 两种写法; 文件不存在=强断链, 文件在符号没了=弱断链; 符号检测复用骨架正则; archive 策略按 namespace 填进 s6 的分表(map 可 archive, product 只报告), 禁另写一份判定",
+      "estimate": 0.5,
+      "depends_on": [
+        "k1"
+      ],
+      "验收": [
+        "强弱断链区分正确",
+        "符号检测复用骨架正则未重复实现",
+        "map anchors 失效可 archive",
+        "product anchors 失效只报告",
+        "判定逻辑只有一处实现"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785382646,
+      "started": 1785594276,
+      "finished": 1785594476
+    },
+    {
+      "sid": "k4",
+      "name": "map 测试套件",
+      "desc": "覆盖骨架不落盘/三语言符号/非 git 降级/anchors 强弱断链/map 可 archive 而 product 不可/recall --src code",
+      "estimate": 0.3,
+      "depends_on": [
+        "k1",
+        "k2",
+        "k3"
+      ],
+      "验收": [
+        "6 类用例齐备全绿",
+        "骨架不落盘用例断言临时目录文件集合无变化",
+        "doctor --quality 通过"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "skills": [],
+      "created": 1785382646,
+      "started": null,
+      "finished": null
+    }
+  ],
+  "priority": 5,
+  "estimate": 2.5,
+  "repos": [],
+  "worktree": ".worktrees/skein-spec-map-namespace",
+  "worktrees": [
+    {
+      "repo": ".",
+      "wt": ".worktrees/skein-spec-map-namespace",
+      "branch": "skein/spec-map-namespace",
+      "merged": false
+    }
+  ],
+  "branch": "skein/spec-map-namespace",
+  "parent": "spec-wiki-v2",
+  "kind": "task",
+  "created": 1785381913,
+  "started": 1785594113,
+  "confirmed": 1785594107,
+  "checked": null,
+  "finished": null,
+  "updated": 1785594476,
+  "confirmed_by": "user"
+}

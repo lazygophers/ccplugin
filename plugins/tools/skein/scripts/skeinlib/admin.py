@@ -20,6 +20,7 @@ from skeinlib.model import S_DONE
 from skeinlib.migrate import (disable_trellisx_plugin, migrate_trellis_tasks,
                               purge_trellis_hooks, purge_wiring, settings_trellis_notes)
 from skeinlib.paths import SPEC_ENTRY
+from skeinlib.priority import migrate_priority_values
 from skeinlib.worktree import ignore_worktree_dir
 
 import contextlib
@@ -184,3 +185,15 @@ class Admin:
     def board(self, a: argparse.Namespace) -> None:
         self.ws.store._write_board()
         print(f"看板已更新: {self.ws.dir / 'task.md'}")
+
+    def migrate_priority(self, a: argparse.Namespace) -> None:
+        # 一次性: 存量 0-10 数字优先级 → 四档枚举。改前备份原文件, 幂等 (已迁移的跳过, 可重跑)。
+        result = migrate_priority_values(self.ws.root, self.ws.tasks, self.ws.archive_dir)
+        migrated = result["migrated"]
+        if not migrated:
+            print("无待迁移 task (全部已是四档枚举或无 priority 字段)")
+            return
+        self.ws.store.sync()  # 刷新顶层镜像索引, 免看板/查询继续读到旧值
+        print(f"已迁移 {len(migrated)} 个 task.json (备份于 {result['backup_dir']}):")
+        for p in migrated:
+            print(f"  {p}")
