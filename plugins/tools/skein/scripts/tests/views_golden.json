@@ -1014,7 +1014,7 @@
         "desc": "",
         "id": "ghost1",
         "name": "ghost1",
-        "priority": 5,
+        "priority": "normal",
         "spct": 2,
         "started": null,
         "status": "待处理"
