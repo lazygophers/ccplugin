@@ -2,7 +2,7 @@
   "id": "concurrency-pools",
   "name": "并发池重构: work/gate 双池 + research 状态",
   "desc": "max_active 单数字换成 work(2, exec+research 共享, exec 优先)/gate(3, check+finish 共享) 双池; subtask 加 phase 字段; task 状态机加 research 态 (plan⇄research, research 禁直转就绪)",
-  "status": "就绪",
+  "status": "进行中",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -18,11 +18,12 @@
         "现有测试对状态的断言已同步"
       ],
       "验收done": [],
-      "status": "待处理",
+      "status": "失败",
       "skills": [],
       "created": 1785512382,
-      "started": null,
-      "finished": null
+      "started": 1785559720,
+      "finished": 1785562400,
+      "note": "裁定=B (main 2026-08-01): s1 只改 model.py 的枚举/别名/排序/阶段映射表, 剔除其中的「就绪」条目; S_READY 常量声明本身保留为过渡, 彻底删除与 6 个消费文件 (lifecycle/scheduling/dag/query/doctor/views) 的改造推给 s3。理由: 按字面「改到测试绿」会让 s1 吞掉 s3(2.5h)+s5 一部分, 与 DAG 拆分冲突且必然与 s3 执行者返工。重派时把本裁定写进 prompt。另: 该 worktree 已于 2026-08-01 用 git stash 清回干净基线 (stash@{0} = s2 半截 pools 迁移), s2 需整体重做。"
     },
     {
       "sid": "s2",
@@ -34,12 +35,16 @@
         "CONFIG_DEFAULTS 无 max_active",
         "init 写出的 config.yaml 含 pools 块"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2
+      ],
+      "status": "失败",
       "skills": [],
       "created": 1785512383,
-      "started": null,
-      "finished": null
+      "started": 1785559720,
+      "finished": 1785561434,
+      "note": "假绿: 自报已完成但 pytest 9 failed/310 passed (基线 319), 违反自身验收「不低于基线」。pools 双键已建对(work=2/gate=3)且 CONFIG_DEFAULTS 已无 max_active, 但读取点漏改 —— query.py:47 仍读 config()['max_active'], 实测 KeyError 当场崩。红的 9 条全在其改动面: test_config_cli.py x7 + test_serve_routes 配置面板 + test_ready_scheduling 并发上限。需重派补齐读取点迁移与测试同步。"
     },
     {
       "sid": "s3",
@@ -173,16 +178,23 @@
   "priority": 5,
   "estimate": 13.0,
   "repos": [],
-  "worktree": null,
-  "worktrees": [],
+  "worktree": ".worktrees/skein-concurrency-pools",
+  "worktrees": [
+    {
+      "repo": ".",
+      "wt": ".worktrees/skein-concurrency-pools",
+      "branch": "skein/concurrency-pools",
+      "merged": false
+    }
+  ],
   "branch": "skein/concurrency-pools",
   "parent": null,
   "kind": "task",
   "created": 1785511640,
-  "started": null,
+  "started": 1785559720,
   "confirmed": 1785515070,
   "checked": null,
   "finished": null,
-  "updated": 1785515070,
+  "updated": 1785562400,
   "confirmed_by": "user"
 }

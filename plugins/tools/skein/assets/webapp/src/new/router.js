@@ -14,6 +14,21 @@
 const ROUTES = ["board", "task", "tasks", "queue", "dashboard", "archive", "spec"];
 const DEFAULT = "board";   // 访问 / 或未知路由 → 看板
 
+const PAGE_TITLES = {
+  board: '看板',
+  task: '任务详情',
+  tasks: '任务列表',
+  queue: '队列',
+  dashboard: '概览',
+  archive: '归档',
+  spec: '规范',
+};
+
+function updatePageTitle(name) {
+  const el = document.getElementById('pageTitle');
+  if (el) el.textContent = PAGE_TITLES[name] || PAGE_TITLES[DEFAULT];
+}
+
 function parse() {
   const seg = location.pathname.split("/").filter(Boolean);  // ["task","abc"] | ["board"] | []
   let name = seg[0] || DEFAULT;
@@ -75,6 +90,7 @@ async function navigate() {
   if (!mount) return;
 
   highlightNav(name);
+  updatePageTitle(name);
   teardown();
   placeholder(mount, name, "加载中…");
 

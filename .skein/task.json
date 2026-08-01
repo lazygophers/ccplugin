@@ -2,19 +2,19 @@
   "tasks": [
     {
       "id": "board-overall-progress",
-      "status": "就绪",
+      "status": "进行中",
       "deps": [],
       "priority": 5,
-      "worktree": null,
+      "worktree": ".worktrees/skein-board-overall-progress",
       "parent": null,
       "kind": "task"
     },
     {
       "id": "concurrency-pools",
-      "status": "就绪",
+      "status": "进行中",
       "deps": [],
       "priority": 5,
-      "worktree": null,
+      "worktree": ".worktrees/skein-concurrency-pools",
       "parent": null,
       "kind": "task"
     },
