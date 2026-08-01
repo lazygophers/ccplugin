@@ -96,7 +96,8 @@ def always_budget_tokens() -> int:
     import sys
     from pathlib import Path
     # 动态添加 token_conversion 到路径, 避免相对导入的复杂性
-    token_conversion_path = Path(__file__).parent.parent.parent.parent / "token_conversion.py"
+    # token_conversion.py 现在位于 skeinlib 目录内
+    token_conversion_path = Path(__file__).parent.parent / "token_conversion.py"
     if str(token_conversion_path.parent) not in sys.path:
         sys.path.insert(0, str(token_conversion_path.parent))
 
