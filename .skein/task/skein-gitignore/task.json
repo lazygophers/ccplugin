@@ -2,7 +2,7 @@
   "id": "skein-gitignore",
   "name": ".skein 衍生物忽略清单与生成器对齐",
   "desc": "GI_ENTRIES 写死清单与真实衍生物脱节(缺 index.md/backlinks.md/board/), 新工作区会把可重建产物入库; 需清单与产出点单一真值源 + 守卫防漂移",
-  "status": "检查中",
+  "status": "已完成",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -108,15 +108,8 @@
   "priority": 5,
   "estimate": 7.5,
   "repos": [],
-  "worktree": ".worktrees/skein-skein-gitignore",
-  "worktrees": [
-    {
-      "repo": ".",
-      "wt": ".worktrees/skein-skein-gitignore",
-      "branch": "skein/skein-gitignore",
-      "merged": false
-    }
-  ],
+  "worktree": null,
+  "worktrees": [],
   "branch": "skein/skein-gitignore",
   "parent": null,
   "kind": "task",
@@ -124,7 +117,7 @@
   "started": 1785567667,
   "confirmed": 1785551555,
   "checked": 1785571668,
-  "finished": null,
-  "updated": 1785571668,
+  "finished": 1785573264,
+  "updated": 1785573264,
   "confirmed_by": "user"
 }
