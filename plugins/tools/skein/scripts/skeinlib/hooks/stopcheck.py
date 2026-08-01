@@ -22,7 +22,8 @@ def cmd_stop_check(_: dict[str, Any]) -> int:
     from datetime import datetime  # 局部: 仅落盘 ts 用
 
     from skeinlib.spec.facade import Spec
-    from skeinlib.spec.model import always_budget
+    from skeinlib.spec.model import always_budget_tokens
+    from skeinlib.token_conversion import estimate_tokens_from_chars
 
     spec = Spec()
     if not spec.root.exists():
@@ -53,7 +54,8 @@ def cmd_stop_check(_: dict[str, Any]) -> int:
     payload = {
         "ts": datetime.now().isoformat(timespec="seconds"),
         "core_chars": len(spec._core_text_raw()),
-        "budget": always_budget(),
+        "core_tokens": estimate_tokens_from_chars(len(spec._core_text_raw())),
+        "budget_tokens": always_budget_tokens(),
         "problems": problems,
     }
     marker.write_text(json.dumps(payload, ensure_ascii=False, indent=2))

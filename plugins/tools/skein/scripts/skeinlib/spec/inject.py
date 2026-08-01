@@ -13,8 +13,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from skeinlib.hooks.runner import budget_guard
-from skeinlib.spec.model import (AGENT_CATEGORIES, INDEX_BUDGET_TOKENS, STALE_DAYS,
-                                 SUBAGENT_BUDGET_TOKENS, _read_hook_stdin, always_budget, now)
+from skeinlib.spec.model import (AGENT_CATEGORIES, INJECTION_BUDGETS, STALE_DAYS,
+                                 _read_hook_stdin, always_budget_tokens, now)
 from skeinlib.spec.text import _sections, _strip_frontmatter
 
 
@@ -34,11 +34,15 @@ class InjectMixin:
         return "\n\n".join(p for p in parts if p)
     def _core_text(self) -> str:
         text = self._core_text_raw()
-        budget = always_budget()
-        if len(text) > budget:
-            sys.stderr.write(
-                f"core 规则 {len(text)} 字符 > 预算 {budget} — "
-                "常驻注入过重, 考虑降级部分到 recall\n")
+        budget = always_budget_tokens()
+        if len(text) > 0:  # 这里比较字符数与 token 预算，需要换算
+            # 估算当前文本的 token 数
+            from skeinlib.token_conversion import estimate_tokens_from_chars
+            estimated_tokens = estimate_tokens_from_chars(len(text))
+            if estimated_tokens > budget:
+                sys.stderr.write(
+                    f"core 规则约 {estimated_tokens} token > 预算 {budget} — "
+                    "常驻注入过重, 考虑降级部分到 recall\n")
         return text
     # ---- inject-core (按需拉全文正文) ----
     def inject_core(self, _: argparse.Namespace) -> None:
@@ -55,14 +59,15 @@ class InjectMixin:
             return
         ctx = budget_guard(
             "# SKEIN core 规则索引 (仅标题; 需全文跑 `spec.py inject-core`)\n\n" + idx,
-            INDEX_BUDGET_TOKENS, "spec:session-start")
-        # maintain 提示: core 超预算 或 最老规则 > 180 天 → 1 行提醒 (不挤 INDEX 预算)
+            INJECTION_BUDGETS["session_index"], "spec:session-start")
+        # maintain 提示: core 超预算 或 最老规则 > 180 天 → 1 行提醒 (不挤 session_index 预算)
         core_text = self._core_text_raw()
         now_ts = now()
         # hook 热路径: 不跑 git log (use_git=False), 文件系统 mtime 够判"该体检了"
         mt = self._mtimes(use_git=False)
         oldest = max((self._age_days(f, mt, now_ts) for f in self._always_files()), default=0)
-        if len(core_text) > always_budget() or oldest > STALE_DAYS:
+        from skeinlib.token_conversion import estimate_tokens_from_chars
+        if estimate_tokens_from_chars(len(core_text)) > always_budget_tokens() or oldest > STALE_DAYS:
             ctx += f"\n⚠️ core 超 budget / 有 > {STALE_DAYS}天老规则, 跑 `spec.py maintain` 体检"
         print(json.dumps({"hookSpecificOutput": {
             "hookEventName": "SessionStart", "additionalContext": ctx}}))
@@ -91,6 +96,6 @@ class InjectMixin:
         else:  # 空映射/非 skein agent/stdin 失败 → 全 core 正文 + 索引 (对齐 help: 每 subagent 注 core 全文)
             body = self._core_text().strip()
             ctx = head + f"\n## core 规则 (全量)\n\n{body}\n\n## core 索引\n\n{idx}{recall_tail}"
-        ctx = budget_guard(ctx, SUBAGENT_BUDGET_TOKENS, "spec:subagent-start")
+        ctx = budget_guard(ctx, INJECTION_BUDGETS["subagent_core"], "spec:subagent-start")
         print(json.dumps({"hookSpecificOutput": {
             "hookEventName": "SubagentStart", "additionalContext": ctx}}))

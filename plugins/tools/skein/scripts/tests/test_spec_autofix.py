@@ -3,7 +3,7 @@
 通过 subprocess 跑 spec.py + hooks.py CLI (conftest 的 mem_ws fixture 造隔离 .skein/spec/ 仓),
 覆盖四条已实现路径:
   1. degrade 单文件降级 (frontmatter inclusion always→auto + reindex + audit-log; 不搬文件)。
-  2. degrade --auto 循环降到 always 页总字符 < always_budget() 即停。
+  2. degrade --auto 循环降到 always 页总 token < always_budget_tokens() 即停。
   3. maintain --apply 四类修复 (stale→归档 / keywords重复→归档保留最新 / 废弃→归档 / 断链只报告)
      + 无 --apply 只报告不改文件。
   4. .audit-log 写入格式 + 7 天轮转 (注入 10d/30d 旧行被清, 2d + 非 iso 头保留)。

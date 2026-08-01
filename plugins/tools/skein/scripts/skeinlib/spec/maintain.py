@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING, Any, Optional, cast
 from skeinlib.errors import SkeinError
 from skeinlib.spec.model import (AUDIT_RETENTION_DAYS, DEFAULT_MAINTAIN_POLICY,
                                  KEYWORDS_DUP_THRESHOLD, MAINTAIN_POLICY, STALE_DAYS,
-                                 always_budget, now)
+                                 always_budget_tokens, now)
 from skeinlib.spec.text import (_clean_body, _frontmatter, _link_target, _months, _sections,
                                 _strip_frontmatter)
 
@@ -98,16 +98,18 @@ class MaintainMixin:
         repo_root = self.root.parent.parent  # .skein/spec → 仓库根 (anchors 是仓库相对路径)
         findings: list[dict[str, Any]] = []
 
-        # 判据 (全部): 超预算 — always 页总字符, 与 --namespace 过滤无关 (跨 namespace 全局关切), 恒跑
+        # 判据 (全部): 超预算 — always 页总 token, 与 --namespace 过滤无关 (跨 namespace 全局关切), 恒跑
         core_text = self._core_text_raw()
-        budget = always_budget()
-        if len(core_text) > budget:
+        from skeinlib.token_conversion import estimate_tokens_from_chars
+        budget = always_budget_tokens()
+        estimated_tokens = estimate_tokens_from_chars(len(core_text))
+        if estimated_tokens > budget:
             sized = sorted(
                 ((len(_strip_frontmatter(f.read_text()).strip()), f.parent.name, f.stem)
                  for f in self._always_files()), reverse=True)
             cands = ", ".join(f"{cat}/{stem}({sz})" for sz, cat, stem in sized[:3])
-            findings.append({"kind": "overbudget", "size": len(core_text),
-                             "text": f"[超预算] always {len(core_text)} > {budget} 字符 — 考虑降级: {cands}"})
+            findings.append({"kind": "overbudget", "size": estimated_tokens,
+                             "text": f"[超预算] always 约 {estimated_tokens} token > {budget} token — 考虑降级: {cands}"})
 
         for ns in namespaces:
             policy = MAINTAIN_POLICY.get(ns, DEFAULT_MAINTAIN_POLICY)
@@ -281,18 +283,20 @@ class MaintainMixin:
         self._reindex_all()
         return rel
     def _degrade_core_to_budget(self) -> list[str]:
-        """循环降 top-1 最大 always 页 → auto, 直到 always 总字符 < always_budget() 或无 always 页。返回降级路径列表。"""
+        """循环降 top-1 最大 always 页 → auto, 直到 always 总 token < always_budget_tokens() 或无 always 页。返回降级路径列表。"""
+        from skeinlib.token_conversion import estimate_tokens_from_chars
         degraded: list[str] = []
         while True:
             core_text = self._core_text_raw()
-            budget = always_budget()
-            if len(core_text) <= budget:
+            budget = always_budget_tokens()
+            estimated_tokens = estimate_tokens_from_chars(len(core_text))
+            if estimated_tokens <= budget:
                 break
             files = self._always_files()
             if not files:
                 break
             top = max(files, key=lambda f: len(_strip_frontmatter(f.read_text()).strip()))
-            reason = f"always超预算({len(core_text)}>{budget})"
+            reason = f"always超预算(约{estimated_tokens}token>{budget}token)"
             degraded.append(self._degrade_one(top, reason))
         return degraded
     def _rewrite_inclusion(self, f: Path, new_inclusion: str) -> None:
@@ -322,15 +326,17 @@ class MaintainMixin:
     # ---- degrade 子命令 ----
     def degrade(self, a: argparse.Namespace) -> None:
         if getattr(a, "auto", False):
-            before = len(self._core_text_raw())
+            from skeinlib.token_conversion import estimate_tokens_from_chars
+            before_tokens = estimate_tokens_from_chars(len(self._core_text_raw()))
             degraded = self._degrade_core_to_budget()
-            after = len(self._core_text_raw())
+            after_tokens = estimate_tokens_from_chars(len(self._core_text_raw()))
             if degraded:
-                print(f"自动降级 {len(degraded)} 条 always→auto (总字符 {before}→{after}):")
+                print(f"自动降级 {len(degraded)} 条 always→auto (总 token {before_tokens}→{after_tokens}):")
                 for rel in degraded:
                     print(f"  - {rel}")
             else:
-                print(f"无需降级 (always 页总字符 {after} ≤ {always_budget()})")
+                budget = always_budget_tokens()
+                print(f"无需降级 (always 页总 token {after_tokens} ≤ {budget})")
             return
         target = cast(str, a.file)
         # external 是终点层 (纯手动检索), degrade 仅 always→auto 单向 → 显式拒, 免用户误以为可降级

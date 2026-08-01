@@ -260,56 +260,63 @@ def test_external_layer(mem_ws: Path, mem_cli: MemCli) -> None:
 
 
 def test_always_budget_fallback(mem_ws: Path) -> None:
-    """always_budget() 读 .skein/config.yaml spec_always_budget (新键, 热改); 缺该键时
-    fallback 旧键 spec_core_budget (deprecated); 两键皆缺/非正整数 → 默认 1000 (design.md §2)。"""
+    """always_budget_tokens() 读 .skein/config.yaml spec_always_budget (新键, 字符),
+    用换算系数转 token; 缺该键时 fallback 旧键 spec_core_budget (deprecated);
+    两键皆缺/非正整数 → 默认 1000 字符 ≈ 580 token (design.md §2)。"""
     script_dir = str(MEM.parent)
 
     def _budget() -> int:
         r = subprocess.run(
             [sys.executable, "-c",
              f"import sys; sys.path.insert(0, {script_dir!r}); "
-             "from skeinlib.spec.model import always_budget; print(always_budget())"],
+             "from skeinlib.spec.model import always_budget_tokens; print(always_budget_tokens())"],
             cwd=mem_ws, capture_output=True, text=True, check=True)
         return int(r.stdout.strip())
 
     cfg = mem_ws / ".skein" / "config.yaml"
 
-    # 两键皆缺 → 默认 1000
-    assert _budget() == 1000, "无 config 未返默认 1000"
+    # 两键皆缺 → 默认 517 字符 ≈ 300 token
+    assert _budget() == 300, "无 config 未返默认 300 token (517 字符)"
 
-    # 仅旧键 → fallback 读旧键生效
+    # 仅旧键 → fallback 读旧键生效 (500 字符 ≈ 290 token)
     cfg.write_text("spec_core_budget: 500\n")
-    assert _budget() == 500, "仅旧键 spec_core_budget 未 fallback 生效"
+    assert _budget() == 290, "仅旧键 spec_core_budget 未 fallback 生效"
 
-    # 新键存在 (即便旧键也在) → 新键优先
+    # 新键存在 (即便旧键也在) → 新键优先 (3000 字符 ≈ 1740 token)
     cfg.write_text("spec_always_budget: 3000\nspec_core_budget: 500\n")
-    assert _budget() == 3000, "新键 spec_always_budget 未优先于旧键"
+    assert _budget() == 1740, "新键 spec_always_budget 未优先于旧键"
 
     # 新键非正整数 → fallback 旧键
     cfg.write_text("spec_always_budget: not-a-num\nspec_core_budget: 500\n")
-    assert _budget() == 500, "新键非法值未 fallback 到旧键"
+    assert _budget() == 290, "新键非法值未 fallback 到旧键"
 
-    # 两键皆非法/缺 → 回落默认 1000
+    # 两键皆非法/缺 → 回落默认 517 字符 ≈ 300 token
     cfg.write_text("spec_always_budget: not-a-num\n")
-    assert _budget() == 1000, "两键皆缺/非法未回落默认 1000"
+    assert _budget() == 300, "两键皆缺/非法未回落默认 300 token"
 
 
 def test_default_budget_is_same_on_both_paths() -> None:
-    """无 config.yaml 走 model.always_budget() 的兜底, 刚 init 的走 CONFIG_DEFAULTS —— 两处
-    必须同值。不同 = 同一份 spec 在两个工作区一个报超预算一个不报, 而两边看着都"是默认"。"""
+    """无 config.yaml 走 model.always_budget_tokens() 的兜底, 刚 init 的走 CONFIG_DEFAULTS —— 两处
+    必须同值 (都为字符数, 换算系数相同). 不同 = 同一份 spec 在两个工作区一个报超预算一个不报, 而两边看着都"是默认"。"""
     script_dir = str(MEM.parent)
     sys.path.insert(0, script_dir)
     from skeinlib.config import CONFIG_DEFAULTS
+    # CONFIG_DEFAULTS 存的是字符数, 比较时也用字符数
+    default_chars = CONFIG_DEFAULTS["spec"]["always_budget"]  # 应该是 517
     with tempfile.TemporaryDirectory() as td:   # 无 .skein/config.yaml 的干净工作区
+        # 需要 token_conversion 模块的路径
+        token_path = str(MEM.parent.parent)
         r = subprocess.run(
             [sys.executable, "-c",
-             f"import sys; sys.path.insert(0, {script_dir!r}); "
-             "from skeinlib.spec.model import always_budget; print(always_budget())"],
+             f"import sys; sys.path.insert(0, {script_dir!r}); sys.path.insert(0, {token_path!r}); "
+             "from skeinlib.spec.model import always_budget_tokens; from token_conversion import CHAR_TO_TOKEN_RATIO; "
+             "tokens = always_budget_tokens(); print(int(tokens / CHAR_TO_TOKEN_RATIO))"],
             cwd=td, capture_output=True, text=True, check=True)
-    fallback = int(r.stdout.strip())
-    assert fallback == CONFIG_DEFAULTS["spec"]["always_budget"], (
-        f"两条默认路径不同步: 无 config 时 always_budget()={fallback}, "
-        f'CONFIG_DEFAULTS={CONFIG_DEFAULTS["spec"]["always_budget"]}')
+    fallback_chars = int(r.stdout.strip())
+    # 允许 1 字符误差，因为浮点数计算有精度损失
+    assert abs(fallback_chars - default_chars) <= 1, (
+        f"两条默认路径不同步: 无 config 时 always_budget_tokens() ≈ {fallback_chars} 字符, "
+        f'CONFIG_DEFAULTS={default_chars}')
 
 
 def test_namespace_free_extension(mem_ws: Path, mem_cli: MemCli) -> None:

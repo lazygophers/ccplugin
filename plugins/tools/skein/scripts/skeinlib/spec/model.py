@@ -16,8 +16,15 @@ from pathlib import Path
 from typing import Any, Optional, cast
 
 
-INDEX_BUDGET_TOKENS = 400  # SessionStart 注入的极简索引 token 硬预算 (每条 1 行, 只 title+类目)
-SUBAGENT_BUDGET_TOKENS = 2000  # SubagentStart 注入 core 全文 token 硬预算 (兜底截断; 正常由 always_budget() 字符预算先兜住)
+# 单一预算表: 三个注入点的 token 预算 (单位: token)
+# 新增注入点 → 在此表加一行，自动纳入预算管控
+# 设计约束: 三个注入点预算总和 ≤800 token (design.md)
+# ponytail: 单一真值源，三处分散预算 → 收进一张表
+INJECTION_BUDGETS: dict[str, int] = {
+    "session_index": 200,   # SessionStart 极简索引 token 硬预算 (每条 1 行, 只 title+类目)
+    "session_core": 300,     # 会话常驻注入 token 软预算 (原 1000 字符 ≈ 580 token, 降为 300)
+    "subagent_core": 300,    # SubagentStart core 全文 token 硬预算 (原 2000 字符 ≈ 1160 token, 大幅降为 300)
+}
 NAMESPACES = ("rules", "product", "map", "external")  # namespace 默认清单 (仅 init 建目录用); 实际可用 namespace 由 Spec._scan_namespaces() 目录扫描得, 非白名单
 INCLUSIONS = ("always", "auto", "fileMatch", "manual")  # inclusion 封闭四值 (加载策略, frontmatter 级); 对齐 Cursor .cursor/rules 与 Kiro .kiro/steering 收敛结论
 STALE_DAYS = 180  # maintain stale 判据: created 年龄超此天数且无近期 updated → 候选
@@ -63,27 +70,56 @@ def spec_root() -> Path:
     except FileNotFoundError:  # 无 git 二进制 → fallback cwd (设计意图: 非 git 也可用)
         base = Path.cwd()
     return base / ".skein" / "spec"
-def always_budget() -> int:
-    """always 全文软预算 (字符): 读 .skein/config.yaml spec.always_budget (复用 skein._yaml_load);
-    旧扁平键 spec_always_budget 仍生效 deprecated fallback; 缺该键时再 fallback 读
-    spec.core_budget (新嵌套) / spec_core_budget (旧扁平, deprecated); 两键皆缺/非正整数 → 默认 1000。
-    ⚠️ 这个默认值必须与 skeinlib.config.CONFIG_DEFAULTS["spec"]["always_budget"] 同步 —— 无
-    config.yaml 的工作区走这里, 刚 init 的走那边, 两处不一致 = 同一份 spec 一会儿超预算一会儿不超。
+def _validate_budget(budget: int) -> None:
+    """预算守卫: 非正数预算抛 ValueError
+
+    Args:
+        budget: 预算值 (token 数)
+
+    Raises:
+        ValueError: 预算非正数
+    """
+    if budget <= 0:
+        raise ValueError(f"预算必须为正数: {budget}")
+
+def always_budget_tokens() -> int:
+    """会话常驻注入 token 软预算: 读 .skein/config.yaml spec.always_budget (字符),
+    用换算系数转为 token。旧扁平键 spec_always_budget 仍生效 deprecated fallback;
+    缺该键时再 fallback 读 spec.core_budget (新嵌套) / spec_core_budget (旧扁平, deprecated);
+    两键皆缺/非正整数 → 默认 1000 字符 ≈ 580 token。
+
+    ⚠️ 默认值必须与 skeinlib.config.CONFIG_DEFAULTS["spec"]["always_budget"] 同步。
+
     ponytail: 不用 skein._cfg_effective — 那个会给缺失叶回填默认值, 会吃掉「always_budget 本就
     未设」这个信号, 令 core_budget 旧键 fallback 永远失效; 这里要保留「缺失」而非「已知默认」的区别,
     故直读 raw 按 (嵌套>扁平) 取值, 取不到才是真缺失。懒求值, 每次调读盘, 支持热改。"""
+    import sys
+    from pathlib import Path
+    # 动态添加 token_conversion 到路径, 避免相对导入的复杂性
+    token_conversion_path = Path(__file__).parent.parent.parent.parent / "token_conversion.py"
+    if str(token_conversion_path.parent) not in sys.path:
+        sys.path.insert(0, str(token_conversion_path.parent))
+
+    from token_conversion import estimate_tokens_from_chars
+
     try:
-        from skeinlib.config import _yaml_load  # 局部 import: 只要配置解析器, 不拖整个引擎
+        from skeinlib.config import _yaml_load  # 局部 import
         cfg_path = spec_root().parent / "config.yaml"
         if cfg_path.exists():
             raw = _yaml_load(cfg_path.read_text())
-            spec_val = raw.get("spec")  # 先绑局部变量再 isinstance, 供 mypy 窄化 (直接对表达式 isinstance 窄化不了重复求值的调用)
+            spec_val = raw.get("spec")
             spec_raw = spec_val if isinstance(spec_val, dict) else {}
             v = spec_raw.get("always_budget", raw.get("spec_always_budget"))
             if not isinstance(v, int) or v <= 0:
                 v = spec_raw.get("core_budget", raw.get("spec_core_budget"))  # deprecated fallback
             if isinstance(v, int) and v > 0:
-                return v
+                chars = v
+                tokens = estimate_tokens_from_chars(chars)  # 字符 → token
+                _validate_budget(tokens)  # 守卫: 非正数预算被挡下
+                return tokens
     except Exception:
         pass
-    return 1000
+    # 默认 517 字符 ≈ 300 token (517 × 0.58 = 299.86, ceil = 300)
+    default_tokens = estimate_tokens_from_chars(517)
+    _validate_budget(default_tokens)
+    return default_tokens
