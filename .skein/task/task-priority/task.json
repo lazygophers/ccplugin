@@ -21,12 +21,20 @@
         "迁移后 doctor 通过",
         "用例覆盖四个区间的映射"
       ],
-      "验收done": [],
-      "status": "失败",
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785601507,
       "started": 1785602048,
-      "finished": 1785602073,
+      "finished": 1785604230,
       "note": "主动让槽: master-green 需优先跑完 (用户已拍板), 而当前调度器还不支持优先级压过登记序 —— 正是本 task 要修的问题。p1 未派 agent 未产出改动, 复位无损失"
     },
     {
@@ -44,12 +52,18 @@
         "单 task 查询与列表均可见优先级",
         "非法值被拒"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785601507,
-      "started": null,
-      "finished": null
+      "started": 1785604761,
+      "finished": 1785605108
     },
     {
       "sid": "p3",
@@ -119,6 +133,25 @@
       "created": 1785601507,
       "started": null,
       "finished": null
+    },
+    {
+      "sid": "p6",
+      "name": "修 queue 顺序回归: PRIORITY_RANK 改变了同档内相对次序",
+      "desc": "p1 换排序键后 queue 视图任务顺序变化, 但 p1 范围不含排序行为改动, 恢复原顺序",
+      "estimate": 0.5,
+      "depends_on": [],
+      "验收": [
+        "queue 视图顺序与 p1 之前一致",
+        "views golden 通过且未靠重生成掩盖",
+        "查清顺序变化的确切成因并写明",
+        "全同档时排序结果与改动前逐位相同"
+      ],
+      "验收done": [],
+      "status": "运行中",
+      "skills": [],
+      "created": 1785606410,
+      "started": 1785606416,
+      "finished": null
     }
   ],
   "priority": 5,
@@ -141,6 +174,6 @@
   "confirmed": 1785600358,
   "checked": null,
   "finished": null,
-  "updated": 1785602073,
+  "updated": 1785606416,
   "confirmed_by": "user"
 }

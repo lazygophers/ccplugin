@@ -6,7 +6,7 @@
 
 | child | 名称 | 状态 | subtask 完成 | 进度 |
 |---|---|---|---|---|
-| spec-map-namespace | map namespace: 骨架现算 + anchors 断链 | 检查中 | 4/4 | 98% |
+| spec-map-namespace | map namespace: 骨架现算 + anchors 断链 | 检查中 | 5/5 | 98% |
 | spec-docs-examples | docs + examples 示例仓迁移 | 就绪 | 0/3 | 5% |
 | spec-skills-agents-adapt | skills + agents 全量适配 | 就绪 | 0/5 | 5% |
 | spec-hooks-adapt | hooks.py 适配 + fileMatch 注入 + 修两现存 bug | 已完成 | 4/4 | 100% |

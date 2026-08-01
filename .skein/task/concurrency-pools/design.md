@@ -142,3 +142,21 @@ check 阶段验证的是`行为对不对`而非`跑没跑起来`, 全靠这里�
 
 唯一的例外是三个「零残留」扫描测试 —— 它们的接缝是源码文本本身, 因为要防的正是「某个角落漏改了
 但运行时碰不到」这类静默残留。
+
+## s2 边界调整 (2026-08-02, main 裁定)
+
+s2 原定只改 `CONFIG_DEFAULTS` 与 init 写出的 config.yaml。实测发现删 `max_active` 后
+`store.py:246` (`render_task_board(t, self._cfg()["max_active"])`) 抛 `KeyError`，
+而该行位于 `TaskStore.save()` —— **task.json 唯一写入口**，任何写盘命令 (create/confirm/
+exec/check/finish) 都过它。s2 单独落地 = 主干瞬间全灭 (140 failed / 219 passed)。
+
+原切法 (s2 配置 / s4 调度器 / s6 看板 / s7 文案) 要求主干在中间态连续全灭数轮，切法错误。
+
+**裁定: s2 边界扩到「全部读取方机械替换为 `pools.work`」**，限定行为零变化 —— `pools.work`
+默认 2 = 原 `max_active` 默认 2，替换后全量 pytest 必须回到 359 passed 全绿。涉及
+`store.py` / `query.py` / `boardsource.py` / `lifecycle.py` / `hooks/prompt.py` / `cli.py` 文案。
+
+**语义改造仍归原 subtask**: 两池独立计数与加权打分 → s4；取消 task 级并发上限 → s3
+(s2 只换取值来源，校验本身留着)；看板两行 → s6；doctor 两池超限 → s5；全仓表述清理 → s7。
+
+design §5「不留 fallback」指配置真值层面禁新旧双读，不禁读取方单向切新键 —— 故不加过渡兜底。

@@ -75,7 +75,12 @@
 - [ ] 文档写明 supertask 生命周期约束 (child 未全 done 时父不可收束)
 - [ ] 文档写明存量 task 改挂父子的操作方式
 - [ ] 改动过的 skills 文件过项目 CLAUDE.md 规定的 `claude -p` 质量门 (同一 prompt 连跑 3 次主流程描述一致)
-  - 质量门因 API ConnectionRefused 未能执行 (时间: 2026-08-02), 待 check 阶段补跑
+  - **挂账放行 (2026-08-02, main 判定)**: 该项三次尝试均 `API Error: Unable to connect to API (ConnectionRefused)`
+    —— d5 执行时、check 阶段 checker 重试时、main 独立复现时。判定为**环境级故障, 非文档内容缺陷**。
+  - 放行理由: 其余全部验收项已过 (mypy 0 错 / pytest 367 passed / 浏览器实测屏幕可见 / doctor --quality 通过);
+    继续卡住的代价是 worktree 长期占用且 merge 冲突面持续扩大 (已实际发生一次 `views_golden.json` 冲突)。
+  - **未验的是什么**: 改动过的 skills 文件没经过「AI 能否正确理解其触发场景与主流程」的可读性验证。
+    环境恢复后应补跑; 若届时发现表述有歧义, 单独建 task 修, 不回退本 task。
 
 ### 兜底
 - [ ] 前端构建通过, dist 产物已入库

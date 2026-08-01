@@ -2,7 +2,7 @@
   "id": "master-green",
   "name": "修 master 基线红: 4 项质量门失败",
   "desc": "test_views_char golden 过期 / stop_check pending-fix 断言对旧 schema / config_cli 测试读真实配置未隔离 / mypy --strict 存量问题 — 修完让 doctor --quality 恢复绿, 后续 task 的质量门才有意义",
-  "status": "检查中",
+  "status": "已完成",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -61,15 +61,8 @@
   "priority": 5,
   "estimate": 4.5,
   "repos": [],
-  "worktree": ".worktrees/skein-master-green",
-  "worktrees": [
-    {
-      "repo": ".",
-      "wt": ".worktrees/skein-master-green",
-      "branch": "skein/master-green",
-      "merged": false
-    }
-  ],
+  "worktree": null,
+  "worktrees": [],
   "branch": "skein/master-green",
   "parent": null,
   "kind": "task",
@@ -77,7 +70,7 @@
   "started": 1785602098,
   "confirmed": 1785597858,
   "checked": 1785602971,
-  "finished": null,
-  "updated": 1785603397,
+  "finished": 1785603465,
+  "updated": 1785603465,
   "confirmed_by": "user"
 }

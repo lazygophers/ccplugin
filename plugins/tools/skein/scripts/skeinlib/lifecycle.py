@@ -346,10 +346,11 @@ class Lifecycle:
             t["worktrees"] = [make_worktree(t, r, cfg, self.ws.root) for r in repos]
             t["worktree"] = ", ".join(w["wt"] for w in t["worktrees"])  # 显示汇总
         elif wt_on:
-            rel = f"{cfg['worktree']['root']}/skein-{tid}"  # 相对 project root 存盘, 免机器绝对路径入库
-            git("worktree", "add", "-b", t["branch"], str(self.ws.root / rel), "HEAD", cwd=self.ws.root)
-            t["worktree"] = rel
-            t["worktrees"] = [{"repo": ".", "wt": rel, "branch": t["branch"], "merged": False}]
+            # 复用 make_worktree 而非另拼一遍 add: 它含「分支/目录已存在则复用」的三路处理,
+            # 否则 start→fail→重 start 会重复 add 同名分支而 exit 255, task 永久卡死。
+            w = make_worktree(t, ".", cfg, self.ws.root)
+            t["worktree"] = w["wt"]
+            t["worktrees"] = [w]
         else:
             t["worktree"] = None  # 非 git / config 禁用, 无 repos: 原地执行, 无 worktree 隔离
             t["worktrees"] = []
