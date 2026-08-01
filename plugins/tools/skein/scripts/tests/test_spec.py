@@ -104,7 +104,9 @@ def test_hook_inject_session_and_subagent(mem_ws: Path, mem_cli: MemCli) -> None
     sa = json.loads(mem_cli(mem_ws, "subagent-start").stdout)
     sctx = sa["hookSpecificOutput"]["additionalContext"]
     assert sa["hookSpecificOutput"]["hookEventName"] == "SubagentStart", "subagent hook 格式错"
-    assert "合并冲突必 abort" in sctx, "subagent-start 该注入 core 正文 (非仅索引)"
+    # 无 stdin.agent_type → cats 为空 → 只注索引 (b4 结构性压缩: 全文改按需 inject-core)
+    assert "合并冲突必 abort" not in sctx, "subagent-start 无 agent_type 不该注入正文 (只索引)"
+    assert "[git/merge] 合并冲突处理" in sctx, "subagent-start 索引缺规则标题"
     assert "SPEC:" in sctx and "recall" in sctx, "subagent-start 缺 spec 纪律指令"
 
 
@@ -304,12 +306,10 @@ def test_default_budget_is_same_on_both_paths() -> None:
     # CONFIG_DEFAULTS 存的是字符数, 比较时也用字符数
     default_chars = CONFIG_DEFAULTS["spec"]["always_budget"]  # 应该是 517
     with tempfile.TemporaryDirectory() as td:   # 无 .skein/config.yaml 的干净工作区
-        # 需要 token_conversion 模块的路径
-        token_path = str(MEM.parent.parent)
         r = subprocess.run(
             [sys.executable, "-c",
-             f"import sys; sys.path.insert(0, {script_dir!r}); sys.path.insert(0, {token_path!r}); "
-             "from skeinlib.spec.model import always_budget_tokens; from token_conversion import CHAR_TO_TOKEN_RATIO; "
+             f"import sys; sys.path.insert(0, {script_dir!r}); "
+             "from skeinlib.spec.model import always_budget_tokens; from skeinlib.token_conversion import CHAR_TO_TOKEN_RATIO; "
              "tokens = always_budget_tokens(); print(int(tokens / CHAR_TO_TOKEN_RATIO))"],
             cwd=td, capture_output=True, text=True, check=True)
     fallback_chars = int(r.stdout.strip())

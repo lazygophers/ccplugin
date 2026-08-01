@@ -46,7 +46,9 @@ class InjectMixin:
         return text
     # ---- inject-core (按需拉全文正文) ----
     def inject_core(self, _: argparse.Namespace) -> None:
-        sys.stdout.write(self._core_text())
+        text = self._core_text()
+        budget = always_budget_tokens()
+        sys.stdout.write(budget_guard(text, budget, "spec:inject-core"))
     # ---- core 极简索引 (章节粒度, 每条规则 1 行: [类目] 主题 · title) ----
     def _core_index(self) -> str:
         rules = [(f, t, b) for f in self._always_files() for t, b in _sections(f.read_text())]
@@ -84,18 +86,14 @@ class InjectMixin:
         idx = self._core_index().strip()
         if not idx:
             return
-        head = ("# SKEIN spec 纪律 (执行期强制)\n"
-                "- 动手前: 相关约定先跑 `spec.py recall <关键词>` 拉 recall 层, 别凭记忆重推。\n"
-                "- 命中 core 规则 (下列) 即硬约束, 违反视为未完成。\n"
-                "- 踩到「后续同类任务会再犯」的坑 / 定下可复用约定: 在回传给 main 的摘要里标一行 `SPEC:` 供 finish sediment 落盘, 别让它随 worktree 销毁蒸发。\n")
-        recall_tail = "\n## 需要其他类目全文? 跑 `spec.py recall <关键词>` 或 inject-core\n"
+        head = ("# SKEIN spec 纪律\n- 动手前跑 `spec.py recall <关键词>`\n- core 规则即硬约束\n- 可复用约定标 `SPEC:` 供 sediment 落盘\n")
+        recall_tail = "\n## 需要全文? 跑 `spec.py recall <关键词>`\n"
         cats = AGENT_CATEGORIES.get(_read_hook_stdin() or "", [])
         if cats:
             body = self._core_text_by_cat(cats).strip()
             ctx = head + f"\n## core 规则 (命中类目 {cats})\n\n{body}\n\n## 全量 core 索引\n\n{idx}{recall_tail}"
-        else:  # 空映射/非 skein agent/stdin 失败 → 全 core 正文 + 索引 (对齐 help: 每 subagent 注 core 全文)
-            body = self._core_text().strip()
-            ctx = head + f"\n## core 规则 (全量)\n\n{body}\n\n## core 索引\n\n{idx}{recall_tail}"
+        else:  # 空映射/非 skein agent/stdin 失败 → 只注摘要+索引 (对齐 budget，原全文注入超预算)
+            ctx = head + f"\n## 全量 core 索引\n\n{idx}{recall_tail}"
         ctx = budget_guard(ctx, INJECTION_BUDGETS["subagent_core"], "spec:subagent-start")
         print(json.dumps({"hookSpecificOutput": {
             "hookEventName": "SubagentStart", "additionalContext": ctx}}))
