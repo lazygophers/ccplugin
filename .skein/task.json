@@ -15,6 +15,20 @@
       "finished": null
     },
     {
+      "id": "master-red-baseline",
+      "status": "进行中",
+      "deps": [],
+      "priority": 5,
+      "worktree": ".worktrees/skein-master-red-baseline",
+      "parent": null,
+      "kind": "task",
+      "created": 1785567661,
+      "confirmed": 1785585955,
+      "started": 1785585978,
+      "checked": null,
+      "finished": null
+    },
+    {
       "id": "flow-redo",
       "status": "就绪",
       "deps": [],
@@ -166,20 +180,6 @@
       "parent": null,
       "kind": "supertask",
       "created": 1785381895,
-      "confirmed": null,
-      "started": null,
-      "checked": null,
-      "finished": null
-    },
-    {
-      "id": "webapp-spa-mount-red",
-      "status": "待处理",
-      "deps": [],
-      "priority": 5,
-      "worktree": null,
-      "parent": null,
-      "kind": "task",
-      "created": 1785567661,
       "confirmed": null,
       "started": null,
       "checked": null,

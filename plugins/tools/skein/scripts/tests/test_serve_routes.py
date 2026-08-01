@@ -138,7 +138,7 @@ def test_config_panel_shaped_payload_persists() -> None:
     """webapp 设置面板 (w1) 的提交形状: GET 生效值深拷贝再覆盖编辑字段, 不含 hooks —— 落盘正确,
     且未渲染控件的分组子键 (如 deprecated `spec.core_budget`) 原样带回, 不被兜底成默认值。
 
-    对齐 plugins/tools/skein/assets/webapp/src/new/settings.js 的提交逻辑 (`onSave` 深拷贝 cfg
+    对齐 plugins/tools/skein/assets/nextjs/src/components/settings.tsx 的提交逻辑 (`onSave` 深拷贝 cfg
     + delete payload.hooks + 覆盖 8 个可编辑字段), 前端一旦跑偏这条测试的形状假设就该跟着改。
     """
     m = _load()

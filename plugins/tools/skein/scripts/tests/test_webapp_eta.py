@@ -1,16 +1,18 @@
-"""前端 ETA 数学回归 — 经 node 跑 `assets/webapp/src/new/{model,eta}.js` 的纯函数。
+"""前端 ETA 数学回归 — 经 node 跑 `assets/nextjs/src/lib/{model,eta}.ts` 的纯函数。
 
 ## 为什么这两个模块能被测
-它们原本埋在 `app.js` 里, 而 app.js 一被 import 就自启动 (碰 `document`), 于是这套算法在
-浏览器外根本跑不起来, 只能靠人眼看看板。抽成 `model.js` (字段/状态规范化) + `eta.js` (ETA 数学)
-之后, node 直接 import 就能验。
+它们零 import、完全自包含 (无路径别名/无 React 运行时/无打包器依赖), node 原生类型擦除
+可直接 `import()` 源文件, 免去构建步骤 —— 详见 design.md「A 组: TS 执行通道选型」。
 
 ## 为什么值得测
 看板的「预计剩余」是唯一给用户「还要多久」答案的地方, 而它依赖两件容易静默错的事:
 ① 中文状态映射 —— 没映上就走 `OWN_LEFT` 的兜底系数 0.6, 数字会**悄悄偏**而不会报错;
 ② 并发折算 —— `max_active` 缺省 2, 累加与墙钟差一倍, 口径搞混就是答非所问。
 
-node 缺失时 skip (纯 stdlib 铁律只约束 Python 侧; 前端资产本就需要浏览器/node 环境)。
+node 缺失时 skip (纯 stdlib 铁律只约束 Python 侧; 前端资产本就需要 node 环境)。
+`--no-warnings` 抑制 node 对 TS 源文件缺 `"type": "module"` 声明的 MODULE_TYPELESS_PACKAGE_JSON
+告警 (该声明归前端构建管, 不为测试好跑而动它) —— 否则 stderr 非空会被 `_eval`/`_eval_summary`
+的 `r.returncode == 0` 断言误判为通道失败, 而非真被测逻辑的失败。
 """
 from __future__ import annotations
 
@@ -24,7 +26,7 @@ import pytest
 import conftest  # noqa: F401  模块体把 scripts/ 塞进 sys.path
 from conftest import SCRIPTS  # noqa: E402
 
-WEBAPP = SCRIPTS.parent / "assets" / "webapp" / "src" / "new"
+WEBAPP = SCRIPTS.parent / "assets" / "nextjs" / "src" / "lib"
 pytestmark = pytest.mark.skipif(shutil.which("node") is None, reason="需要 node 才能跑前端模块")
 
 # 三个 task: b 依赖 a, c 独立。全部 planning (OWN_LEFT=1, 剩余 = 全额估时)。
@@ -39,8 +41,8 @@ TASKS = [
 def _eval(tasks: list[dict[str, Any]], max_active: int) -> dict[str, Any]:
     """跑真 model.normalizeTasks + eta.{overallProgress,aggregateEta}, 返回结果 dict。"""
     script = f"""
-      const M = await import({str(WEBAPP / 'model.js')!r});
-      const E = await import({str(WEBAPP / 'eta.js')!r});
+      const M = await import({str(WEBAPP / 'model.ts')!r});
+      const E = await import({str(WEBAPP / 'eta.ts')!r});
       const T = M.normalizeTasks({json.dumps(tasks)});
       const a = E.aggregateEta(T, {max_active});
       console.log(JSON.stringify({{
@@ -49,7 +51,7 @@ def _eval(tasks: list[dict[str, Any]], max_active: int) -> dict[str, Any]:
         hours: a.hours, work: a.work, critical: a.critical, unknown: a.unknown,
       }}));
     """
-    r = subprocess.run(["node", "--input-type=module", "-e", script],
+    r = subprocess.run(["node", "--no-warnings", "--input-type=module", "-e", script],
                        capture_output=True, text=True, timeout=30)
     assert r.returncode == 0, f"node 跑失败:\n{r.stderr}"
     return dict(json.loads(r.stdout.strip()))
@@ -109,12 +111,12 @@ def test_unestimated_tasks_are_counted_not_guessed() -> None:
 def _eval_summary(tasks: list[dict[str, Any]], max_active: int) -> dict[str, Any]:
     """跑 eta.overallSummary —— 看板页头消费的正是这个函数 (board.js#overallSummary)。"""
     script = f"""
-      const M = await import({str(WEBAPP / 'model.js')!r});
-      const E = await import({str(WEBAPP / 'eta.js')!r});
+      const M = await import({str(WEBAPP / 'model.ts')!r});
+      const E = await import({str(WEBAPP / 'eta.ts')!r});
       const T = M.normalizeTasks({json.dumps(tasks)});
       console.log(JSON.stringify(E.overallSummary(T, {max_active})));
     """
-    r = subprocess.run(["node", "--input-type=module", "-e", script],
+    r = subprocess.run(["node", "--no-warnings", "--input-type=module", "-e", script],
                        capture_output=True, text=True, timeout=30)
     assert r.returncode == 0, f"node 跑失败:\n{r.stderr}"
     return dict(json.loads(r.stdout.strip()))

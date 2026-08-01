@@ -30,6 +30,7 @@ DERIVATIVES: list[Derivative] = [
     Derivative("spec/*/backlinks.md", "spec/index.py _rebuild_backlinks_md (正反链表)"),
     Derivative(".edit-tally", "hooks/postwrite.py cmd_flow_gate 计数标记"),
     Derivative(".edit-tally.warned", "hooks/postwrite.py cmd_flow_gate 已提醒标记"),
+    Derivative("index.html", "assets/nextjs `pnpm build` (Next.js static export → assets/dist/)"),
 ]
 
 

@@ -15,6 +15,7 @@
       {
         "assignee": "t",
         "checked": null,
+        "confirmed": null,
         "created": 1999990000,
         "depNames": [],
         "deps": [],
@@ -198,6 +199,7 @@
       {
         "assignee": "t",
         "checked": null,
+        "confirmed": null,
         "created": 1999990000,
         "depNames": [],
         "deps": [],
@@ -224,6 +226,7 @@
       {
         "assignee": "t",
         "checked": 1999999000,
+        "confirmed": null,
         "created": 1999990000,
         "depNames": [],
         "deps": [],
@@ -274,6 +277,7 @@
       {
         "assignee": "t",
         "checked": null,
+        "confirmed": null,
         "created": 1999990000,
         "depNames": [],
         "deps": [],
@@ -324,6 +328,7 @@
       {
         "assignee": "t",
         "checked": null,
+        "confirmed": null,
         "created": 1999990000,
         "depNames": [
           "Alpha 任务"
@@ -378,6 +383,7 @@
       {
         "assignee": "t",
         "checked": null,
+        "confirmed": null,
         "created": 1999990000,
         "depNames": [],
         "deps": [],
@@ -428,6 +434,7 @@
       {
         "assignee": "t",
         "checked": null,
+        "confirmed": null,
         "created": null,
         "depNames": [],
         "deps": [],
@@ -454,6 +461,7 @@
       {
         "assignee": "t",
         "checked": null,
+        "confirmed": null,
         "created": 1999990000,
         "depNames": [],
         "deps": [],
