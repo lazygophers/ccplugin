@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING, Any, Callable, Optional, cast
 from skeinlib.hooks.runner import DBG
 from skeinlib.config import _cfg_effective, _yaml_load
 from skeinlib.serve import (build_app, install_serve_deps, max_mtime, probe_same_project,
-                            serve_deps_present, webapp_dir)
+                            serve_deps_present, dist_dir)
 from skeinlib.views import Snapshot
 from skeinlib.paths import SCRIPTS_DIR, SKEIN_ENTRY
 
@@ -57,19 +57,8 @@ class BoardSourceMixin:
             tasks_dir=self.tasks, archive_dir=self.archive_dir,
             spec_root=self._spec_root(), max_active=self.config()["max_active"])
     def _webapp_html(self) -> str:
-        # 工程化前端首页: 读 assets/webapp/src/new/index.html, 只填 token。
-        # token 缺席则 replace 无副作用 → 与 index.html 松耦合。数据全走 XHR (/__skein__/data), 不内联首屏。
-        html = (webapp_dir() / "src" / "new" / "index.html").read_text(encoding="utf-8")
-        # 文档从 / 出, 但 index.html 物理在 /src/new/; 注入 <base> 让相对引 (./app.js + ../tokens.css)
-        # 解析到 /src/new/* 而非 / *(命中 SPA fallback 返 text/html → MIME 错)。base 不影响绝对 URL。
-        html = html.replace("<head>", '<head>\n  <base href="/src/new/">', 1)
-        tokens = {
-            "PROJ": self.proj,
-            "VER": self._asset_rev(),  # /src/new/*.js?v=VER 缓存击穿
-        }
-        for k, v in tokens.items():
-            html = html.replace("{{" + k + "}}", str(v))
-        return html
+        # Next.js static export: 直接读 dist/index.html
+        return (dist_dir() / "index.html").read_text(encoding="utf-8")
     def _spec_rev(self) -> str:
         # spec rev: .skein/spec/ 内 .md 最大 mtime_ns。变 → WS 推 "spec-changed"。
         # ponytail: rglob ~几十 .md 文件 stat (500ms 周期, 免读内容); 与 _data_rev 独立 (spec 不进 task.json)。
@@ -215,9 +204,8 @@ class BoardSourceMixin:
         # 数据 rev: task.json (顶层 + 各 task) 最大 mtime_ns。变 → WS 推 "data" → 软刷新只 swap .layout。
         return max_mtime([self.dir / "task.json"] + list(self.tasks.glob("*/task.json")))
     def _asset_rev(self) -> str:
-        # 资产 rev: webapp 源 + 编译 css 最大 mtime_ns。变 → WS 推 "reload" → 整页 reload (换 <head> 里 CSS link/script, 软刷不换 head)。
-        # ponytail: 每 500ms rglob assets (~几十文件) stat, 免读内容; vendor 二进制不纳入 (只盯 dist)。
-        return max_mtime([p for p in webapp_dir().rglob("*") if p.is_file()])
+        # 资产 rev: dist/ 构建产物最大 mtime_ns。变 → WS 推 "reload" → 整页 reload。
+        return max_mtime([p for p in dist_dir().rglob("*") if p.is_file()])
     def _task_json_rev(self) -> str:
         # 合并 rev (data + asset): /__skein__/rev 轮询兜底端点用, 任一变即变。
         return f"{self._data_rev()}.{self._asset_rev()}"

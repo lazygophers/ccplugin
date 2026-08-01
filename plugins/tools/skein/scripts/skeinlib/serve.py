@@ -41,15 +41,15 @@ def install_serve_deps() -> None:
     cmd = [sys.executable, "-m", "pip", "install", "-q"]
     cmd += ["-r", str(req)] if req.exists() else ["fastapi", "uvicorn[standard]"]
     subprocess.run(cmd, check=False)
-# ---- webapp 工程化前端: 静态目录 (src/new/* + vendor/htm.js 入库, 运行态零下载零构建) ----
+# ---- Next.js static export 前端: assets/dist/ (纯静态, 无构建步骤) ----
 
 
-def webapp_dir() -> Path:
-    """插件自带的前端资产目录 `<plugin>/assets/webapp/`。
+def dist_dir() -> Path:
+    """插件自带的前端构建产物目录 `<plugin>/assets/dist/`。
 
-    本文件在 `<plugin>/scripts/skeinlib/` 下, 故要往上三级才到插件根 —— 从 skein.py 搬进包时
-    多了一层目录, 基准跟着变。资产靠 StaticFiles 直出, 不拷进 .skein/。"""
-    return (PLUGIN_ROOT / "assets" / "webapp").resolve()
+    本文件在 `<plugin>/scripts/skeinlib/` 下, 故要往上三级才到插件根。
+    dist/ 是 Next.js static export 产物, 已提交到 git, 用户无需 build。"""
+    return (PLUGIN_ROOT / "assets" / "dist").resolve()
 
 
 def probe_same_project(port: int, proj_id: str, lock_id_path: str) -> bool:
@@ -71,7 +71,7 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
     from fastapi.staticfiles import StaticFiles
     import asyncio
 
-    # webapp 前端是无构建 ES 模块图: index.html 未给 import 链带 ?v 版本戳, 浏览器强缓存
+    # Next.js static export: dist/ 是纯静态产物, _next/ chunks 文件名含 hash 天然防缓存
     # /src/pages/*.js → 编辑后看旧板 (就绪态改动不生效)。no-cache 令每次载入走重验证
     # (ETag/Last-Modified 命中仍回 304, 变更即取新), 修根因不改 index.html 模块图。
     class _NoCacheStatic(StaticFiles):
@@ -193,8 +193,8 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
         return JSONResponse(_view_board_data(board._snapshot()))
 
     @app.get("/", response_class=HTMLResponse)
-    async def _page() -> str:  # 首页: webapp/src/new/index.html 工程化前端
-        return board._webapp_html()
+    async def _page() -> str:  # 首页: Next.js static export dist/index.html
+        return (dist_dir() / "index.html").read_text(encoding="utf-8")
 
     @app.websocket(board._LIVE_PATH)
     async def _live(ws: WebSocket) -> None:  # 热重载: 接受连接后阻塞保活, rev 变时 _watch_loop 推 "reload"
@@ -208,7 +208,7 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
         finally:
             clients.discard(ws)
 
-    # ---- webapp 后端数据 endpoint (9 个; 全走 board 同一数据源) ----
+    # ---- Next.js 前端后端数据 endpoint (9 个; 全走 board 同一数据源) ----
     @app.get("/__skein__/dashboard")
     async def _dashboard() -> JSONResponse:  # 统计: 完成率/活跃数/subtask进度/状态分布
         return JSONResponse(_view_dashboard(board._snapshot()))
@@ -311,30 +311,41 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
     async def _search(q: str = "") -> JSONResponse:  # 跨 task/subtask/prd/spec 关键词搜
         return JSONResponse(_view_search(board._snapshot(), q))
 
-    # webapp 改 history API (pathname) 路由: 直访 /dashboard /queue /task 等单段 SPA 路径须回 index.html 让前端 router 接管。
-    # /task 与下方 StaticFiles mount 同前缀冲突 → 裸路径会被 mount 吞 (StaticFiles 无 index → 404)。
-    # 显式 @app.get 在 mount 之前声明, Starlette 按声明顺序匹, 精确 /task /board 命中此 route; /task/<id>/prd.md 落 mount 出静态。
-    def _spa() -> str:
-        return board._webapp_html()
+    # Next.js static export: 每个路由有自己的 index.html (dashboard/index.html, board/index.html 等)。
+    # 直接挂 dist/ 为静态根, 浏览器访问 /dashboard/ → dashboard/index.html 自然命中。
+    app.mount("/_next", _NoCacheStatic(directory=str(dist_dir() / "_next"), check_dir=False), name="next-static")
 
-    @app.get("/task", response_class=HTMLResponse)
-    async def _spa_task() -> str:  # /task 裸路径 (task 列表页) / /task?id=<tid> (详情) 均走 SPA; ?id 保留给前端 router
-        return _spa()
+    # SPA 路由兜底: Next.js trailingSlash=true 输出 /dashboard/ /board/ 等目录,
+    # 但裸路径 /dashboard /board 也需命中 → 显式声明在 mount 前。
+    def _spa_page(page: str) -> str:
+        p = dist_dir() / page / "index.html"
+        if p.exists():
+            return p.read_text(encoding="utf-8")
+        return (dist_dir() / "index.html").read_text(encoding="utf-8")
 
-    @app.get("/task/detail", response_class=HTMLResponse)
-    async def _spa_task_detail() -> str:  # 详情页 /task/detail?id=<tid>: 参数一律走 query, 禁 path 参数
-        return _spa()
+    @app.get("/dashboard", response_class=HTMLResponse)
+    async def _spa_dashboard() -> str: return _spa_page("dashboard")
 
     @app.get("/board", response_class=HTMLResponse)
-    async def _spa_board() -> str:  # /board 裸路径 = board 页
-        return _spa()
+    async def _spa_board() -> str: return _spa_page("board")
 
-    # webapp 工程化前端 (htm 重写版): 首页在 / 出, 其 src/new/index.html 相对引 ../tokens.css + ../design.css
-    # + ./app.js (ES module 动态 import ./pages/*.js + ./lib/*.js + ../../dag.js + ../../prd-parse.js)。
-    # 挂 /src /vendor 使这些相对 URL 解析; check_dir=False: 兼容开发期部分目录未落地不炸。
-    # ponytail: T7 删旧 petite-vue 版后 /webapp /dist 两 mount 同步删 (无引用)。
-    app.mount("/src", _NoCacheStatic(directory=str(webapp_dir() / "src"), check_dir=False), name="src")
-    app.mount("/vendor", StaticFiles(directory=str(webapp_dir() / "vendor"), check_dir=False), name="vendor")
+    @app.get("/queue", response_class=HTMLResponse)
+    async def _spa_queue() -> str: return _spa_page("queue")
+
+    @app.get("/tasks", response_class=HTMLResponse)
+    async def _spa_tasks() -> str: return _spa_page("tasks")
+
+    @app.get("/spec", response_class=HTMLResponse)
+    async def _spa_spec() -> str: return _spa_page("spec")
+
+    @app.get("/archive", response_class=HTMLResponse)
+    async def _spa_archive() -> str: return _spa_page("archive")
+
+    @app.get("/task", response_class=HTMLResponse)
+    async def _spa_task() -> str: return _spa_page("task")
+
+    @app.get("/task/detail", response_class=HTMLResponse)
+    async def _spa_task_detail() -> str: return _spa_page("task/detail")
     # 规划文档 (prd/design/findings.md) 直出 .skein/task/: doc.js fetch task/<id>/<f>.md → /task/<id>/<f>.md
     # check_dir=False: 空仓无 .skein/task 时不炸 (StaticFiles 自带穿越守卫, 只出既存文件)
     app.mount("/task", StaticFiles(directory=str(board.tasks), check_dir=False), name="task")
