@@ -75,12 +75,19 @@
         "全量测试不低于 319 且用例只增不减",
         "ruff F/E9 清白"
       ],
-      "验收done": [],
-      "status": "运行中",
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785562886,
       "started": 1785564701,
-      "finished": null
+      "finished": 1785565940
     }
   ],
   "priority": 5,
@@ -103,6 +110,6 @@
   "confirmed": 1785514622,
   "checked": null,
   "finished": null,
-  "updated": 1785564701,
+  "updated": 1785566958,
   "confirmed_by": "user"
 }
