@@ -1,6 +1,7 @@
 ---
 title: verification
 layer: core
+inclusion: auto
 category: planning
 keywords: [validation,自评,防偏,独立子agent]
 status: active
@@ -9,14 +10,12 @@ status: active
 ## 独立验证防自评偏差
 
 ### 铁律 / 契约
-
 - MUST：评分/评估 spawn 独立子 agent 或独立 session，禁同 context 自评自改
 - MUST：独立验证是唯一纠偏机制，自评分数一律 +1 偏乐观
 - MUST：重要质量决策（破坏性变更/接线/触发词）必须人审，禁"我觉得更好"直落
 - MUST：LLM-as-judge 准确率仅 46.4%，fine-grained 差异不可信
 
 ### 反例 (命中=违规)
-
 | 禁 | 改为 |
 |---|---|
 | 同 context 自评自改 | Spawn 独立子 agent 跑评分，主 agent 只读结果 |

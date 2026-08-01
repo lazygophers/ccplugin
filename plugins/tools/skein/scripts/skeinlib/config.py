@@ -258,8 +258,8 @@ CONFIG_DEFAULTS: dict[str, Any] = {
         "board_open": True,  # 仅 view 命令生效 (monitor serve 从不开浏览器): True→view 起服务后自动开浏览器; False→只打印 URL 不开
     },
     "spec": {
-        "core_budget": 400,  # deprecated: 旧字段, spec.py always_budget() 缺 always_budget 时 fallback 读它; 新配置写 always_budget
-        "always_budget": 1000,  # spec always(原core) 全文软预算 (字符); 超 → spec.py maintain/degrade 告警并自动降级
+        "core_budget": 400,  # deprecated: 旧字段, spec.py always_budget_tokens() 缺 always_budget 时 fallback 读它; 新配置写 always_budget
+        "always_budget": 517,  # spec always(原core) 全文软预算 (字符), 转为 token 后 ≈300 token; 超 → spec.py maintain/degrade 告警并自动降级
     },
     # 自定义钩子 — **完整结构**, 全部 scope × 时机都列出, 只有执行列表是空的。这样 init 写出的
     # config.yaml 自带完整可配面, 用户不查文档就知道能配什么, 只需往对应列表里加条目。
