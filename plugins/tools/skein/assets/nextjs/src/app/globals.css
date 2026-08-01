@@ -314,3 +314,17 @@
   0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--st-active) 0%, transparent); }
   50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--st-active) 25%, transparent); }
 }
+
+/* ═══ Select 主题适配 ═══ */
+select {
+  background-color: var(--background);
+  color: var(--foreground);
+}
+select option {
+  background-color: var(--card);
+  color: var(--foreground);
+}
+.dark select option {
+  background-color: var(--oc-deepsea-900);
+  color: var(--foreground);
+}

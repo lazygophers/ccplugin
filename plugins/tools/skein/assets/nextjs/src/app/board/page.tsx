@@ -263,7 +263,7 @@ export default function BoardPage() {
   const [viewBox, setViewBox] = useState({ w: 1200, h: 800 });
   const wrapRef = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLDivElement>(null);
-  const [confirmAction, setConfirmAction] = useState<{ type: "delete" | "finish"; id: string; name: string } | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{ type: "delete" | "finish" | "clean"; id: string; name: string } | null>(null);
 
   useEffect(() => {
     api.data().then((r) => {
@@ -309,10 +309,7 @@ export default function BoardPage() {
   };
   const toggleAll = () => setStatusSet(allSelected ? new Set(["planning", "ready", "active", "check"]) : new Set(ALL_STATUSES));
 
-  const cleanDone = async () => {
-    if (!confirm(`归档已完成任务? (等价 skein clean --days=0)`)) return;
-    try { const r = await api.exec("clean", { days: 0 }); window.location.reload(); } catch {}
-  };
+  const cleanDone = () => setConfirmAction({ type: "clean", id: "", name: "" });
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -412,12 +409,14 @@ export default function BoardPage() {
 
           <ConfirmDialog
             open={!!confirmAction}
-            title={confirmAction?.type === "delete" ? "删除任务" : "强制完成"}
+            title={confirmAction?.type === "delete" ? "删除任务" : confirmAction?.type === "finish" ? "强制完成" : "归档已完成任务"}
             message={confirmAction?.type === "delete"
               ? `确认删除 "${confirmAction?.name}"？删除后可从回收站恢复。`
-              : `确认强制完成 "${confirmAction?.name}"？将合并 worktree 并标记为已完成。`}
-            confirmText={confirmAction?.type === "delete" ? "删除" : "完成"}
-            destructive={confirmAction?.type === "delete"}
+              : confirmAction?.type === "finish"
+              ? `确认强制完成 "${confirmAction?.name}"？将合并 worktree 并标记为已完成。`
+              : `归档所有已完成任务？(等价 skein clean --days=0)`}
+            confirmText={confirmAction?.type === "delete" ? "删除" : confirmAction?.type === "finish" ? "完成" : "归档"}
+            destructive={confirmAction?.type === "delete" || confirmAction?.type === "clean"}
             onCancel={() => setConfirmAction(null)}
             onConfirm={async () => {
               if (!confirmAction) return;
@@ -425,7 +424,8 @@ export default function BoardPage() {
               setConfirmAction(null);
               try {
                 if (type === "delete") { await api.exec("del", { id }); setSelectedId(null); toast("已删除", "success"); }
-                else { await api.exec("finish", { id }); toast("已完成", "success"); }
+                else if (type === "finish") { await api.exec("finish", { id }); toast("已完成", "success"); }
+                else { await api.exec("clean", { days: 0 }); toast("已归档", "success"); setTimeout(() => window.location.reload(), 500); }
               } catch { toast("操作失败", "error"); }
             }}
           />
@@ -628,7 +628,7 @@ function DetailPanel({ task, allTasks, onClose, onConfirm, onFinish, onDelete, o
         <DetailCard title="基本信息">
           <InfoRow label="优先级" value={String(task.priority ?? 5)} />
           <InfoRow label="预估工时" value={task.estimate ? `${task.estimate} h` : "—"} />
-          <InfoRow label="进度" value={<ProgressBar value={Number(task.progress ?? (st === "done" ? 100 : 0))} colorVar={meta.colorVar} />} />
+          <InfoRow label="进度" value={<ProgressBar value={Number((task as Record<string, unknown>).spct ?? task.progress ?? (st === "done" ? 100 : 0))} colorVar={meta.colorVar} />} />
           {st === "done" ? (() => { const a = actualOf(task as unknown as Parameters<typeof actualOf>[0]); if (!a) return null; const dt = deltaText(a.delta); return <InfoRow label="实际耗时" value={`${fmtHours(a.hours)}${dt ? ` (${dt})` : ""}`} />; })()
             : <InfoRow label="预计剩余" value={eta ? eta.main : "—"} />}
         </DetailCard>
