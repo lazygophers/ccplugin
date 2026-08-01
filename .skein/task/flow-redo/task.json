@@ -2,7 +2,7 @@
   "id": "flow-redo",
   "name": "skein-flow redo: 断点续跑 + 重派 subagent",
   "desc": "session 意外退出后 redo 复位孤儿 running subtask 并续跑剩余 flow; --plan 只到 plan 停",
-  "status": "检查中",
+  "status": "已完成",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -85,15 +85,8 @@
   "priority": 5,
   "estimate": 2.3,
   "repos": [],
-  "worktree": ".worktrees/skein-flow-redo",
-  "worktrees": [
-    {
-      "repo": ".",
-      "wt": ".worktrees/skein-flow-redo",
-      "branch": "skein/flow-redo",
-      "merged": false
-    }
-  ],
+  "worktree": null,
+  "worktrees": [],
   "branch": "skein/flow-redo",
   "parent": null,
   "kind": "task",
@@ -101,7 +94,7 @@
   "started": 1785587845,
   "confirmed": 1785514975,
   "checked": 1785591581,
-  "finished": null,
-  "updated": 1785591674,
+  "finished": 1785594101,
+  "updated": 1785594101,
   "confirmed_by": "user"
 }

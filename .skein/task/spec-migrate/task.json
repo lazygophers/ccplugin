@@ -2,7 +2,7 @@
   "id": "spec-migrate",
   "name": "自动迁移 migrate 两阶段",
   "desc": "阶段1 脚本机械迁移(core/recall→rules+inclusion, 撞名章节合并, 配置键迁移, archive 快照可逆); 阶段2 AI 语义分拣候选(启发式打分产 product/map 候选)",
-  "status": "就绪",
+  "status": "已完成",
   "deps": [
     "spec-model-core"
   ],
@@ -40,12 +40,16 @@
         "章节标题撞名加 (recall) 后缀并存不覆盖",
         "合并页 inclusion=always 且报告列出该页"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785382283,
       "started": null,
-      "finished": null
+      "finished": 1785592094
     },
     {
       "sid": "m3",
@@ -62,12 +66,18 @@
         "product/map 目录被建",
         "三种 --stage 入口可用"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785382284,
       "started": null,
-      "finished": null
+      "finished": 1785592314
     },
     {
       "sid": "m4",
@@ -107,12 +117,16 @@
         "可逆用例断言 restore 后内容 hash 集合一致",
         "doctor --quality 通过"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785382284,
       "started": null,
-      "finished": null
+      "finished": 1785592813
     }
   ],
   "priority": 5,
@@ -124,10 +138,10 @@
   "parent": "spec-wiki-v2",
   "kind": "task",
   "created": 1785381903,
-  "started": null,
+  "started": 1785591635,
   "confirmed": 1785515083,
-  "checked": null,
-  "finished": null,
-  "updated": 1785515083,
+  "checked": 1785592911,
+  "finished": 1785593254,
+  "updated": 1785593254,
   "confirmed_by": "user"
 }

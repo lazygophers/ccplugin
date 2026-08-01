@@ -160,7 +160,7 @@ export function drawEdgesPaths(edges: DagEdge[], getEdgeInfo?: (e: DagEdge) => E
   return { paths, markers };
 }
 
-// ---- buildDepDAG: 以当前 task 为中心的上下游图 ----
+// ---- buildDepDAG: 以当前 task 为中心的上下游图 (含父子关系) ----
 export function buildDepDAG(taskId: string, allTasks: NormTask[]) {
   const byId = new Map(allTasks.map(t => [t.id, t]));
   const task = byId.get(taskId);
@@ -194,6 +194,31 @@ export function buildDepDAG(taskId: string, allTasks: NormTask[]) {
     queue.push(...next.filter(d => !visited.has(d)));
   }
 
+  // 父子关系纳入图: 当前 task 的 parent + parent 的其他 child; 若是 supertask 则纳入其 child
+  const parentId = task.parent;
+  if (parentId && byId.has(parentId) && !visited.has(parentId)) {
+    visited.add(parentId);
+    upstream.push(parentId);
+  }
+  // supertask 的 child 全部纳入
+  if (task.kind === "supertask") {
+    for (const t of allTasks) {
+      if (t.parent === taskId && !visited.has(t.id)) {
+        visited.add(t.id);
+        downstream.push(t.id);
+      }
+    }
+  }
+  // 若当前 task 有 parent, 把兄弟 (同 parent 的其他 child) 也纳入
+  if (parentId) {
+    for (const t of allTasks) {
+      if (t.parent === parentId && t.id !== taskId && !visited.has(t.id)) {
+        visited.add(t.id);
+        downstream.push(t.id);
+      }
+    }
+  }
+
   const layerOf = new Map<string, number>();
   layerOf.set(taskId, 0);
   let upQueue = [taskId], upLayer = 0;
@@ -208,6 +233,12 @@ export function buildDepDAG(taskId: string, allTasks: NormTask[]) {
         if (layerOf.has(d) && layerOf.get(d)! >= upLayer) continue;
         layerOf.set(d, upLayer); next.push(d);
       }
+      // parent 在上游层
+      if (t.parent && visited.has(t.parent)) {
+        if (!layerOf.has(t.parent) || layerOf.get(t.parent)! >= upLayer) {
+          layerOf.set(t.parent, upLayer); next.push(t.parent);
+        }
+      }
     }
     upQueue = [...new Set(next)];
   }
@@ -221,6 +252,17 @@ export function buildDepDAG(taskId: string, allTasks: NormTask[]) {
         if (!visited.has(d)) continue;
         if (layerOf.has(d) && layerOf.get(d)! <= downLayer) continue;
         layerOf.set(d, downLayer); next.push(d);
+      }
+      // child 在下游层 (supertask → child, 或同 parent 的兄弟)
+      const t = byId.get(id);
+      if (t) {
+        for (const ot of allTasks) {
+          if (ot.parent === id && visited.has(ot.id)) {
+            if (!layerOf.has(ot.id) || layerOf.get(ot.id)! <= downLayer) {
+              layerOf.set(ot.id, downLayer); next.push(ot.id);
+            }
+          }
+        }
       }
     }
     downQueue = [...new Set(next)];
@@ -252,6 +294,11 @@ export function buildDepDAG(taskId: string, allTasks: NormTask[]) {
   for (const n of nodes) {
     for (const depId of n.task.deps || []) {
       const src = nodes.find(x => x.id === depId);
+      if (src) edges.push({ from: src, to: n, bends: [], cross: false, laneY: 0 });
+    }
+    // parent → child 边 (父子关系, 非 deps)
+    if (n.task.parent) {
+      const src = nodes.find(x => x.id === n.task.parent);
       if (src) edges.push({ from: src, to: n, bends: [], cross: false, laneY: 0 });
     }
   }

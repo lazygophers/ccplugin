@@ -2,7 +2,7 @@
   "id": "spec-map-namespace",
   "name": "map namespace: 骨架现算 + anchors 断链",
   "desc": "git ls-files 目录树 + 正则抓顶层符号现算不落盘(纯 stdlib, ponytail 标 ceiling) + 语义页 anchors + 断链判据扩到 anchors 失效",
-  "status": "待处理",
+  "status": "进行中",
   "deps": [
     "spec-model-core"
   ],
@@ -22,12 +22,19 @@
         "1000 文件 <3s",
         "清单可参数注入"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785382646,
-      "started": null,
-      "finished": null
+      "started": 1785594113,
+      "finished": 1785594272
     },
     {
       "sid": "k2",
@@ -42,10 +49,10 @@
         "顶层地图可标 always 并被注入"
       ],
       "验收done": [],
-      "status": "待处理",
+      "status": "运行中",
       "skills": [],
       "created": 1785382646,
-      "started": null,
+      "started": 1785594276,
       "finished": null
     },
     {
@@ -63,12 +70,18 @@
         "product anchors 失效只报告",
         "判定逻辑只有一处实现"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785382646,
-      "started": null,
-      "finished": null
+      "started": 1785594276,
+      "finished": 1785594476
     },
     {
       "sid": "k4",
@@ -96,15 +109,23 @@
   "priority": 5,
   "estimate": 2.5,
   "repos": [],
-  "worktree": null,
-  "worktrees": [],
+  "worktree": ".worktrees/skein-spec-map-namespace",
+  "worktrees": [
+    {
+      "repo": ".",
+      "wt": ".worktrees/skein-spec-map-namespace",
+      "branch": "skein/spec-map-namespace",
+      "merged": false
+    }
+  ],
   "branch": "skein/spec-map-namespace",
   "parent": "spec-wiki-v2",
   "kind": "task",
   "created": 1785381913,
-  "started": null,
-  "confirmed": null,
+  "started": 1785594113,
+  "confirmed": 1785594107,
   "checked": null,
   "finished": null,
-  "updated": 1785382646
+  "updated": 1785594476,
+  "confirmed_by": "user"
 }

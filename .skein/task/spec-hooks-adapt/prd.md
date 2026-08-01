@@ -23,18 +23,18 @@
 
 ## 验收标准
 可执行、可核对的完成断言 (逐条):
-- [ ] `SPEC_REQUIRED` 改为 `("title","namespace","inclusion","keywords")` —— **`created` 已移除**, 写一个无 `created` 字段的 spec 文件不再告警
-- [ ] `SPEC_LAYERS` 改为 `SPEC_INCLUSIONS = ("always","auto","fileMatch","manual")`; 写 `inclusion: manual` 的 external 页**不再**报非法
-- [ ] `namespace` 只校验非空, **不校验白名单** (namespace 开放可扩展); 自建 namespace 的页不告警
-- [ ] `inclusion: fileMatch` 但缺 `globs` → 告警 (warning, 非阻塞)
-- [ ] `namespace: product|map` 缺 `anchors` → 告警 (warning, 非阻塞, 因失效检测依赖它)
-- [ ] `cmd_guard` 新增: `tool_input.file_path` 与各 `inclusion: fileMatch` 页的 `globs` 匹配 → 该页正文经 `additionalContext` 注入
-- [ ] fileMatch 匹配用 `fnmatch`/`pathlib.PurePath.match` (stdlib), glob 相对**工作区根**解析
-- [ ] 无 `fileMatch` 页时 `cmd_guard` 行为与改前完全一致 (零回归)
-- [ ] `cmd_guard` 在 spec 库有 50 页规模下单次执行 < 1s (远离 5s timeout)
-- [ ] `cmd_guard` 原有职责 (硬阻 AI 直读写 task.json / task.md) 完全保留, 现有用例全绿
-- [ ] `cmd_stop_check` 跟随 `maintain` 判据分表: `product` namespace 的失效项**不写** `.pending-fix` (不自动修需求真值)
-- [ ] 新增用例覆盖: 两个 bug 的回归 / fileMatch 命中与未命中 / 缺 globs 告警 / product 不写标记 / guard 原职责不回归
+- [x] `SPEC_REQUIRED` 改为 `("title","namespace","inclusion","keywords")` —— **`created` 已移除**, 写一个无 `created` 字段的 spec 文件不再告警
+- [x] `SPEC_LAYERS` 改为 `SPEC_INCLUSIONS = ("always","auto","fileMatch","manual")`; 写 `inclusion: manual` 的 external 页**不再**报非法
+- [x] `namespace` 只校验非空, **不校验白名单** (namespace 开放可扩展); 自建 namespace 的页不告警
+- [x] `inclusion: fileMatch` 但缺 `globs` → 告警 (warning, 非阻塞)
+- [x] `namespace: product|map` 缺 `anchors` → 告警 (warning, 非阻塞, 因失效检测依赖它)
+- [x] `cmd_guard` 新增: `tool_input.file_path` 与各 `inclusion: fileMatch` 页的 `globs` 匹配 → 该页正文经 `additionalContext` 注入
+- [x] fileMatch 匹配用 `fnmatch`/`pathlib.PurePath.match` (stdlib), glob 相对**工作区根**解析
+- [x] 无 `fileMatch` 页时 `cmd_guard` 行为与改前完全一致 (零回归)
+- [x] `cmd_guard` 在 spec 库有 50 页规模下单次执行 < 1s (远离 5s timeout)
+- [x] `cmd_guard` 原有职责 (硬阻 AI 直读写 task.json / task.md) 完全保留, 现有用例全绿
+- [x] `cmd_stop_check` 跟随 `maintain` 判据分表: `product` namespace 的失效项**不写** `.pending-fix` (不自动修需求真值)
+- [x] 新增用例覆盖: 两个 bug 的回归 / fileMatch 命中与未命中 / 缺 globs 告警 / product 不写标记 / guard 原职责不回归
 - [ ] `python3 scripts/skein.py doctor --quality` 通过
 
 ## 索引

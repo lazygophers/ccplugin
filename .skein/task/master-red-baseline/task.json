@@ -2,7 +2,7 @@
   "id": "master-red-baseline",
   "name": "master 基线 19 条红回绿",
   "desc": "干净 master 实测 19 failed/314 passed, 三组独立根因 (A13 前端迁移删源致 node 侧测试断链 / B4 claim 新增必填 phase 漏改测试 / C2 服务端入口改动触发两条新守卫)。清零以恢复「红=我搞红的」判据, 是 concurrency-pools 的前置",
-  "status": "检查中",
+  "status": "已完成",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -109,15 +109,8 @@
   "priority": 5,
   "estimate": 5.0,
   "repos": [],
-  "worktree": ".worktrees/skein-master-red-baseline",
-  "worktrees": [
-    {
-      "repo": ".",
-      "wt": ".worktrees/skein-master-red-baseline",
-      "branch": "skein/master-red-baseline",
-      "merged": false
-    }
-  ],
+  "worktree": null,
+  "worktrees": [],
   "branch": "skein/master-red-baseline",
   "parent": null,
   "kind": "task",
@@ -125,7 +118,7 @@
   "started": 1785585978,
   "confirmed": 1785585955,
   "checked": 1785590882,
-  "finished": null,
-  "updated": 1785591544,
+  "finished": 1785594102,
+  "updated": 1785594102,
   "confirmed_by": "user"
 }

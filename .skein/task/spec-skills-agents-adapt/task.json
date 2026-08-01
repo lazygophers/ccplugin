@@ -2,7 +2,7 @@
   "id": "spec-skills-agents-adapt",
   "name": "skills + agents 全量适配",
   "desc": "skein-spec SKILL 重写 + 5 references 改判据/模板 + 补 prune-workflow 断链 + 新增 product/map 模板与 migration-v2 + skein-flow 4 references + 9 个 agent 措辞与职责 + plugin.json description; 过 claude -p 质量门",
-  "status": "待处理",
+  "status": "就绪",
   "deps": [
     "spec-model-core",
     "spec-migrate",
@@ -118,7 +118,7 @@
     }
   ],
   "priority": 5,
-  "estimate": 4.0,
+  "estimate": 5.0,
   "repos": [],
   "worktree": null,
   "worktrees": [],
@@ -127,8 +127,9 @@
   "kind": "task",
   "created": 1785381925,
   "started": null,
-  "confirmed": null,
+  "confirmed": 1785594118,
   "checked": null,
   "finished": null,
-  "updated": 1785382888
+  "updated": 1785594118,
+  "confirmed_by": "user"
 }
