@@ -281,112 +281,6 @@
         "created": 1999990000,
         "depNames": [],
         "deps": [],
-        "desc": "待启动",
-        "elapsed": 0,
-        "estimate": null,
-        "finished": null,
-        "id": "gamma",
-        "kind": "task",
-        "name": "Gamma 任务",
-        "nextUp": false,
-        "parent": null,
-        "prd": [],
-        "sdone": 0,
-        "spct": 5,
-        "stage": "ready",
-        "started": null,
-        "status": "就绪",
-        "stotal": 1,
-        "subNodes": [
-          [
-            "g1",
-            "子-g1",
-            "待处理",
-            [],
-            2,
-            "desc-g1"
-          ]
-        ],
-        "subtable": [
-          {
-            "acc": [],
-            "created": 1999991000,
-            "depNames": [],
-            "dependsOn": [],
-            "estimate": null,
-            "finished": null,
-            "name": "子-g1",
-            "pct": 2,
-            "sid": "g1",
-            "skills": [],
-            "started": null,
-            "status": "待处理"
-          }
-        ],
-        "worktree": null
-      },
-      {
-        "assignee": "t",
-        "checked": null,
-        "confirmed": null,
-        "created": 1999990000,
-        "depNames": [
-          "Alpha 任务"
-        ],
-        "deps": [
-          "alpha"
-        ],
-        "desc": "被阻塞",
-        "elapsed": 0,
-        "estimate": null,
-        "finished": null,
-        "id": "zeta",
-        "kind": "task",
-        "name": "Zeta 任务",
-        "nextUp": false,
-        "parent": null,
-        "prd": [],
-        "sdone": 0,
-        "spct": 5,
-        "stage": "ready",
-        "started": null,
-        "status": "就绪",
-        "stotal": 1,
-        "subNodes": [
-          [
-            "z1",
-            "子-z1",
-            "待处理",
-            [],
-            2,
-            "desc-z1"
-          ]
-        ],
-        "subtable": [
-          {
-            "acc": [],
-            "created": 1999991000,
-            "depNames": [],
-            "dependsOn": [],
-            "estimate": null,
-            "finished": null,
-            "name": "子-z1",
-            "pct": 2,
-            "sid": "z1",
-            "skills": [],
-            "started": null,
-            "status": "待处理"
-          }
-        ],
-        "worktree": null
-      },
-      {
-        "assignee": "t",
-        "checked": null,
-        "confirmed": null,
-        "created": 1999990000,
-        "depNames": [],
-        "deps": [],
         "desc": "规划中",
         "elapsed": 0,
         "estimate": null,
@@ -505,6 +399,112 @@
             "skills": [],
             "started": 1999992000,
             "status": "已完成"
+          }
+        ],
+        "worktree": null
+      },
+      {
+        "assignee": "t",
+        "checked": null,
+        "confirmed": null,
+        "created": 1999990000,
+        "depNames": [],
+        "deps": [],
+        "desc": "待启动",
+        "elapsed": 0,
+        "estimate": null,
+        "finished": null,
+        "id": "gamma",
+        "kind": "task",
+        "name": "Gamma 任务",
+        "nextUp": false,
+        "parent": null,
+        "prd": [],
+        "sdone": 0,
+        "spct": 5,
+        "stage": "plan",
+        "started": null,
+        "status": "就绪",
+        "stotal": 1,
+        "subNodes": [
+          [
+            "g1",
+            "子-g1",
+            "待处理",
+            [],
+            2,
+            "desc-g1"
+          ]
+        ],
+        "subtable": [
+          {
+            "acc": [],
+            "created": 1999991000,
+            "depNames": [],
+            "dependsOn": [],
+            "estimate": null,
+            "finished": null,
+            "name": "子-g1",
+            "pct": 2,
+            "sid": "g1",
+            "skills": [],
+            "started": null,
+            "status": "待处理"
+          }
+        ],
+        "worktree": null
+      },
+      {
+        "assignee": "t",
+        "checked": null,
+        "confirmed": null,
+        "created": 1999990000,
+        "depNames": [
+          "Alpha 任务"
+        ],
+        "deps": [
+          "alpha"
+        ],
+        "desc": "被阻塞",
+        "elapsed": 0,
+        "estimate": null,
+        "finished": null,
+        "id": "zeta",
+        "kind": "task",
+        "name": "Zeta 任务",
+        "nextUp": false,
+        "parent": null,
+        "prd": [],
+        "sdone": 0,
+        "spct": 5,
+        "stage": "plan",
+        "started": null,
+        "status": "就绪",
+        "stotal": 1,
+        "subNodes": [
+          [
+            "z1",
+            "子-z1",
+            "待处理",
+            [],
+            2,
+            "desc-z1"
+          ]
+        ],
+        "subtable": [
+          {
+            "acc": [],
+            "created": 1999991000,
+            "depNames": [],
+            "dependsOn": [],
+            "estimate": null,
+            "finished": null,
+            "name": "子-z1",
+            "pct": 2,
+            "sid": "z1",
+            "skills": [],
+            "started": null,
+            "status": "待处理"
           }
         ],
         "worktree": null
@@ -641,44 +641,6 @@
       {
         "deps": [],
         "estimate": null,
-        "id": "gamma",
-        "spct": 5,
-        "status": "就绪",
-        "subtable": [
-          {
-            "dependsOn": [],
-            "estimate": null,
-            "finished": null,
-            "pct": 2,
-            "sid": "g1",
-            "started": null,
-            "status": "待处理"
-          }
-        ]
-      },
-      {
-        "deps": [
-          "alpha"
-        ],
-        "estimate": null,
-        "id": "zeta",
-        "spct": 5,
-        "status": "就绪",
-        "subtable": [
-          {
-            "dependsOn": [],
-            "estimate": null,
-            "finished": null,
-            "pct": 2,
-            "sid": "z1",
-            "started": null,
-            "status": "待处理"
-          }
-        ]
-      },
-      {
-        "deps": [],
-        "estimate": null,
         "id": "delta",
         "spct": 0,
         "status": "待处理",
@@ -717,6 +679,44 @@
             "sid": "e1",
             "started": 1999992000,
             "status": "已完成"
+          }
+        ]
+      },
+      {
+        "deps": [],
+        "estimate": null,
+        "id": "gamma",
+        "spct": 5,
+        "status": "就绪",
+        "subtable": [
+          {
+            "dependsOn": [],
+            "estimate": null,
+            "finished": null,
+            "pct": 2,
+            "sid": "g1",
+            "started": null,
+            "status": "待处理"
+          }
+        ]
+      },
+      {
+        "deps": [
+          "alpha"
+        ],
+        "estimate": null,
+        "id": "zeta",
+        "spct": 5,
+        "status": "就绪",
+        "subtable": [
+          {
+            "dependsOn": [],
+            "estimate": null,
+            "finished": null,
+            "pct": 2,
+            "sid": "z1",
+            "started": null,
+            "status": "待处理"
           }
         ]
       }
@@ -771,6 +771,15 @@
       },
       {
         "created": 1999990000,
+        "desc": "规划中",
+        "finished": null,
+        "id": "delta",
+        "name": "Delta 任务",
+        "started": null,
+        "status": "待处理"
+      },
+      {
+        "created": 1999990000,
         "desc": "待启动",
         "finished": null,
         "id": "gamma",
@@ -786,15 +795,6 @@
         "name": "Zeta 任务",
         "started": null,
         "status": "就绪"
-      },
-      {
-        "created": 1999990000,
-        "desc": "规划中",
-        "finished": null,
-        "id": "delta",
-        "name": "Delta 任务",
-        "started": null,
-        "status": "待处理"
       },
       {
         "created": null,
@@ -911,27 +911,27 @@
       {
         "crit": 1,
         "depends_on": [],
-        "desc": "desc-g1",
-        "i": 0,
-        "name": "子-g1",
-        "ready": false,
-        "sid": "g1",
-        "status": "待处理",
-        "ti": 3,
-        "tid": "gamma",
-        "trank": 1
-      },
-      {
-        "crit": 1,
-        "depends_on": [],
         "desc": "desc-d1",
         "i": 0,
         "name": "子-d1",
         "ready": false,
         "sid": "d1",
         "status": "待处理",
-        "ti": 5,
+        "ti": 3,
         "tid": "delta",
+        "trank": 1
+      },
+      {
+        "crit": 1,
+        "depends_on": [],
+        "desc": "desc-g1",
+        "i": 0,
+        "name": "子-g1",
+        "ready": false,
+        "sid": "g1",
+        "status": "待处理",
+        "ti": 6,
+        "tid": "gamma",
         "trank": 1
       },
       {
@@ -943,7 +943,7 @@
         "ready": false,
         "sid": "z1",
         "status": "待处理",
-        "ti": 4,
+        "ti": 7,
         "tid": "zeta",
         "trank": 2
       }
@@ -981,26 +981,6 @@
       },
       {
         "created": 1999990000,
-        "desc": "待启动",
-        "id": "gamma",
-        "name": "Gamma 任务",
-        "priority": null,
-        "spct": 5,
-        "started": null,
-        "status": "就绪"
-      },
-      {
-        "created": 1999990000,
-        "desc": "被阻塞",
-        "id": "zeta",
-        "name": "Zeta 任务",
-        "priority": null,
-        "spct": 5,
-        "started": null,
-        "status": "就绪"
-      },
-      {
-        "created": 1999990000,
         "desc": "规划中",
         "id": "delta",
         "name": "Delta 任务",
@@ -1018,6 +998,26 @@
         "spct": 2,
         "started": null,
         "status": "待处理"
+      },
+      {
+        "created": 1999990000,
+        "desc": "待启动",
+        "id": "gamma",
+        "name": "Gamma 任务",
+        "priority": null,
+        "spct": 5,
+        "started": null,
+        "status": "就绪"
+      },
+      {
+        "created": 1999990000,
+        "desc": "被阻塞",
+        "id": "zeta",
+        "name": "Zeta 任务",
+        "priority": null,
+        "spct": 5,
+        "started": null,
+        "status": "就绪"
       }
     ],
     "readySubtasks": [
