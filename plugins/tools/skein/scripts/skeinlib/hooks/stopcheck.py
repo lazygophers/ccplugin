@@ -18,19 +18,31 @@ def cmd_stop_check(_: dict[str, Any]) -> int:
     """Stop hook: 扫 spec → 有问题写 .pending-fix JSON (供 main 下回合检测派 specer bg 修复); 只读不修。
 
     返回 0 永不阻塞 (问题归 specer agent 异步修)。无 .skein/spec → 静默; 无问题 → 删旧标记防已修复后误触发。
+
+    判据按 namespace 分表 (与 maintain 共用同一套 MAINTAIN_POLICY 逻辑):
+    - product namespace: 失效项不写 .pending-fix (需求真值不自动修复)
+    - rules/map/external: 失效项写 .pending-fix (可自动修复或需人工判断)
     """
     from datetime import datetime  # 局部: 仅落盘 ts 用
 
     from skeinlib.spec.facade import Spec
-    from skeinlib.spec.model import always_budget_tokens
+    from skeinlib.spec.model import always_budget_tokens, MAINTAIN_POLICY
     from skeinlib.token_conversion import estimate_tokens_from_chars
 
     spec = Spec()
     if not spec.root.exists():
         return 0  # 非 skein 项目 → 静默
-    findings = spec._scan_findings(["core", "recall"])
+
+    # 扫描全部 namespace，但不写 product namespace 的失效标记 (需求真值不自动修复)
+    all_ns = spec._scan_namespaces()
+    findings = spec._scan_findings(all_ns)
+
+    # 过滤掉 product namespace 的失效项 (不自动修复需求真值)
+    # rel 格式为 "namespace/category/stem"，通过 rel 判断 namespace
+    filtered_findings = [fd for fd in findings if not fd.get("rel", "").startswith("product/")]
+
     marker = spec.root / ".pending-fix"
-    if not findings:
+    if not filtered_findings:
         try:
             marker.unlink()  # 已修复 → 清旧标记免误触发
         except FileNotFoundError:
@@ -38,7 +50,7 @@ def cmd_stop_check(_: dict[str, Any]) -> int:
         return 0
     root = spec.root
     problems: list[dict[str, Any]] = []
-    for fd in findings:
+    for fd in filtered_findings:
         kind = fd["kind"]
         text = fd.get("text", "")
         if kind == "overbudget":
