@@ -135,15 +135,6 @@
       "kind": "supertask"
     },
     {
-      "id": "judge-ctx-slim",
-      "status": "已完成",
-      "deps": [],
-      "priority": 5,
-      "worktree": null,
-      "parent": null,
-      "kind": "task"
-    },
-    {
       "id": "spec-model-core",
       "status": "已完成",
       "deps": [],
@@ -159,15 +150,6 @@
       "priority": 5,
       "worktree": null,
       "parent": "spec-wiki-v2",
-      "kind": "task"
-    },
-    {
-      "id": "webapp-settings-and-buttons",
-      "status": "已完成",
-      "deps": [],
-      "priority": 5,
-      "worktree": null,
-      "parent": null,
       "kind": "task"
     }
   ]
