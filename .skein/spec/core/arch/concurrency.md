@@ -1,4 +1,5 @@
 ---
+inclusion: auto
 title: concurrency
 layer: core
 category: arch

@@ -1,4 +1,5 @@
 ---
+inclusion: auto
 title: convention
 layer: core
 category: script

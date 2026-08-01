@@ -1,4 +1,5 @@
 ---
+inclusion: auto
 title: gate
 layer: core
 category: planning

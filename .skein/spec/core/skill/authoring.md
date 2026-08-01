@@ -1,4 +1,5 @@
 ---
+inclusion: auto
 title: authoring
 layer: core
 category: skill

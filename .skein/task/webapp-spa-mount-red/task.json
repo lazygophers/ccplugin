@@ -1,0 +1,23 @@
+{
+  "id": "webapp-spa-mount-red",
+  "name": "master 上 test_board 两条红测试",
+  "desc": "d9af0e786 webapp 重设计改掉 index.html 的 SPA 挂载点 <main id=\"view\">, test_board.py::test_prd_and_efficiency 与 ::test_serve_http 在干净 master 上即失败",
+  "status": "待处理",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [],
+  "priority": 5,
+  "estimate": null,
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/webapp-spa-mount-red",
+  "parent": null,
+  "kind": "task",
+  "created": 1785567661,
+  "started": null,
+  "confirmed": null,
+  "checked": null,
+  "finished": null,
+  "updated": 1785567661
+}

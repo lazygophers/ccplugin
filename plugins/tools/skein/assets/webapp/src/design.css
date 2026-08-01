@@ -1,7 +1,7 @@
-/* SKEIN webapp — Design System · Refined Material (amber/slate, 框架无关, 纯 CSS)
-   · 基于 /Users/luoxin/bcpay/example/css/style.css 与 direction-a-refined-material.html
-   · 用 amber/slate 替换了原海滩蓝金，sidebar + refined material 卡片
-   · 保留 glass-card 作为 .card 的兼容别名，避免 pages 一次性全崩。 */
+/* SKEIN webapp — Design System · Beach Ocean/Sand (sky/sand/ocean, 框架无关, 纯 CSS)
+   · Light = 晴空碧海（sky + warm sand）
+   · Dark  = 暮色海岸（deep ocean + warm gold）
+   · 保留 glass-card 作为 .card 的兼容别名。 */
 
 /* 全局字号基线: 组件 rem 值统一按 /17 换算, 改这一处即可全站缩放 */
 html { font-size: 14px; }
@@ -11,7 +11,7 @@ html { font-size: 14px; }
    bg-fluid-dark:  night 渐变 + 海蓝/暖金角光晕。 */
 .bg-fluid-light { background: var(--bg-canvas); }
 .bg-fluid-dark { background: var(--bg-canvas); }
-.bg-wave { background: linear-gradient(90deg, #f1f5f9 0%, #fbbf24 100%); }   /* examples:68 */
+.bg-wave { background: linear-gradient(90deg, #e0f2fe 0%, #0ea5e9 100%); }   /* 海浪渐变 */
 
 
 /* ═══════════ 布局原语 (8+) ═══════════ */
@@ -81,8 +81,8 @@ html { font-size: 14px; }
   background: var(--bg-panel);
   border-color: var(--border-subtle);
 }
-.card-amber { border-color: rgba(245, 158, 11, 0.22); }
-.card-amber:hover { border-color: rgba(245, 158, 11, 0.40); box-shadow: var(--shadow-amber); }
+.card-accent { border-color: rgba(245, 158, 11, 0.22); }
+.card-accent:hover { border-color: rgba(245, 158, 11, 0.40); box-shadow: var(--shadow-accent); }
 
 /* ═══════════ 布局工具类 (Tailwind 风格, 保证动态内容也生效) ═══════════ */
 
@@ -211,7 +211,7 @@ html { font-size: 14px; }
 .text-head { color: var(--head); }
 .text-muted { color: var(--muted); }
 .text-accent { color: var(--accent); }
-.text-accent2 { color: var(--amber-500); }
+.text-accent2 { color: var(--sand-500); }
 .text-success { color: var(--success); }
 .text-warning { color: var(--warning); }
 .text-danger { color: var(--danger); }
@@ -372,10 +372,10 @@ html { font-size: 14px; }
   cursor: pointer;
   transition: background-color 0.2s, color 0.2s;
 }
-.tab-btn:hover { color: var(--amber-600); background: rgba(66,156,209,0.08); }
-[data-theme="skein-dark"] .tab-btn:hover { color: var(--amber-400); background: rgba(116,185,232,0.12); }
-.tab-btn.active { background: var(--amber-500); color: #fff; }
-[data-theme="skein-dark"] .tab-btn.active { background: var(--amber-500); color: #fff; }
+.tab-btn:hover { color: var(--sand-600); background: rgba(66,156,209,0.08); }
+[data-theme="skein-dark"] .tab-btn:hover { color: var(--sand-400); background: rgba(116,185,232,0.12); }
+.tab-btn.active { background: var(--sand-500); color: #fff; }
+[data-theme="skein-dark"] .tab-btn.active { background: var(--sand-500); color: #fff; }
 
 /* 4b. .nav-tab 导航菜单 (menu-style, 软底色 active, examples:950-955) */
 .nav-tab {
@@ -387,20 +387,20 @@ html { font-size: 14px; }
   transition: background-color 0.15s, color 0.15s;
 }
 .nav-tab:hover {
-  color: var(--amber-600);
+  color: var(--sand-600);
   background: rgba(245, 158, 11, 0.08);
 }
 [data-theme="skein-dark"] .nav-tab:hover {
-  color: var(--amber-400);
+  color: var(--sand-400);
   background: rgba(251, 191, 36, 0.12);
 }
 .nav-tab.active {
-  color: var(--amber-600);
+  color: var(--sand-600);
   background: rgba(245, 158, 11, 0.15);
   font-weight: 500;
 }
 [data-theme="skein-dark"] .nav-tab.active {
-  color: var(--amber-400);
+  color: var(--sand-400);
   background: rgba(251, 191, 36, 0.2);
   font-weight: 500;
 }
@@ -414,11 +414,11 @@ html { font-size: 14px; }
   font-family: var(--font);
 }
 .theme-toggle-btn:hover {
-  border-color: var(--amber-500);
-  color: var(--amber-600);
+  border-color: var(--sand-500);
+  color: var(--sand-600);
 }
 [data-theme="skein-dark"] .theme-toggle-btn:hover {
-  color: var(--amber-400);
+  color: var(--sand-400);
 }
 /* dark:hidden / dark:inline-block 工具类 */
 .dark\\:hidden { display: inline-block; }
@@ -439,25 +439,25 @@ html { font-size: 14px; }
   transition: all 0.2s ease;
 }
 .filter-btn:hover {
-  border-color: var(--amber-500);
-  color: var(--amber-600);
+  border-color: var(--sand-500);
+  color: var(--sand-600);
   background: rgba(245, 158, 11, 0.1);
 }
 [data-theme="skein-dark"] .filter-btn:hover {
-  color: var(--amber-400);
+  color: var(--sand-400);
   background: rgba(251, 191, 36, 0.15);
 }
 .filter-btn.active {
   background: rgba(245, 158, 11, 0.25);
   border-color: rgba(245, 158, 11, 0.50);
-  color: var(--amber-600);
+  color: var(--sand-600);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
   font-weight: 600;
 }
 [data-theme="skein-dark"] .filter-btn.active {
   background: rgba(245, 158, 11, 0.22);
   border-color: rgba(245, 158, 11, 0.45);
-  color: var(--amber-400);
+  color: var(--sand-400);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
 }
 /* 状态色 filter 变体 — 未选中用统一中性色, 选中才显色 */
@@ -469,22 +469,22 @@ html { font-size: 14px; }
 .filter-btn.st-planning.active {
   background: rgba(245, 158, 11, 0.22);
   border-color: rgba(245, 158, 11, 0.45);
-  color: var(--amber-700);
+  color: var(--sand-700);
 }
 .filter-btn.st-ready.active {
   background: rgba(148, 163, 184, 0.25);
   border-color: rgba(148, 163, 184, 0.45);
-  color: var(--slate-700);
+  color: var(--stone-700);
 }
 .filter-btn.st-active.active {
   background: rgba(212, 176, 102, 0.3);
   border-color: rgba(212, 176, 102, 0.5);
-  color: var(--amber-600);
+  color: var(--sand-600);
 }
 .filter-btn.st-check.active {
   background: rgba(245, 158, 11, 0.22);
   border-color: rgba(245, 158, 11, 0.45);
-  color: var(--amber-600);
+  color: var(--sand-600);
 }
 .filter-btn.st-done.active {
   background: rgba(72, 187, 120, 0.3);
@@ -499,22 +499,22 @@ html { font-size: 14px; }
 [data-theme="skein-dark"] .filter-btn.st-planning.active {
   background: rgba(245, 158, 11, 0.28);
   border-color: rgba(245, 158, 11, 0.50);
-  color: var(--amber-300);
+  color: var(--sand-300);
 }
 [data-theme="skein-dark"] .filter-btn.st-ready.active {
   background: rgba(148, 163, 184, 0.28);
   border-color: rgba(148, 163, 184, 0.50);
-  color: var(--slate-300);
+  color: var(--stone-300);
 }
 [data-theme="skein-dark"] .filter-btn.st-active.active {
   background: rgba(230, 200, 139, 0.28);
   border-color: rgba(230, 200, 139, 0.5);
-  color: var(--amber-400);
+  color: var(--sand-400);
 }
 [data-theme="skein-dark"] .filter-btn.st-check.active {
   background: rgba(245, 158, 11, 0.28);
   border-color: rgba(245, 158, 11, 0.50);
-  color: var(--amber-400);
+  color: var(--sand-400);
 }
 [data-theme="skein-dark"] .filter-btn.st-done.active {
   background: rgba(72, 187, 120, 0.35);
@@ -532,37 +532,37 @@ html { font-size: 14px; }
   font-weight: 500;
   line-height: 1.5;
   background: rgba(245, 158, 11, 0.2);
-  color: var(--amber-600);
+  color: var(--sand-600);
   border: none;
   white-space: nowrap;
 }
 .badge-sm { padding: .059rem .353rem; font-size: 0.588rem; }
-.badge-primary { background: rgba(148, 163, 184, 0.18); color: var(--slate-700); }
+.badge-primary { background: rgba(148, 163, 184, 0.18); color: var(--stone-700); }
 .badge-success { background: rgba(72, 187, 120, 0.2); color: var(--success); }
 .badge-warning { background: rgba(237, 137, 54, 0.2); color: var(--warning); }
 .badge-danger  { background: rgba(229, 62, 62, 0.2);  color: var(--danger);  }
-.badge-accent  { background: rgba(212, 176, 102, 0.2); color: var(--amber-600); }
-[data-theme="skein-dark"] .badge { color: var(--amber-400); }
-[data-theme="skein-dark"] .badge-primary { color: var(--amber-400); background: rgba(251, 191, 36, 0.25); }
+.badge-accent  { background: rgba(212, 176, 102, 0.2); color: var(--sand-600); }
+[data-theme="skein-dark"] .badge { color: var(--sand-400); }
+[data-theme="skein-dark"] .badge-primary { color: var(--sand-400); background: rgba(251, 191, 36, 0.25); }
 [data-theme="skein-dark"] .badge-success { color: #34d399; background: rgba(72, 187, 120, 0.28); }
 [data-theme="skein-dark"] .badge-warning { color: var(--warning); background: rgba(237, 137, 54, 0.25); }
 [data-theme="skein-dark"] .badge-danger  { color: var(--danger);  background: rgba(229, 62, 62, 0.25);  }
-[data-theme="skein-dark"] .badge-accent  { color: var(--amber-400); background: rgba(230, 200, 139, 0.22); }
+[data-theme="skein-dark"] .badge-accent  { color: var(--sand-400); background: rgba(230, 200, 139, 0.22); }
 
 /* 状态色徽章 — 5 态: 规划中 / 待执行 / 执行中 / 验收中 / 已完成 (软底色, 无描边, 圆药丸) */
-.st-planning { background: rgba(245, 158, 11, 0.16); color: var(--amber-700); border: none; }
-.st-ready    { background: rgba(148, 163, 184, 0.18); color: var(--slate-700); border: none; }
-.st-pending  { background: rgba(148, 163, 184, 0.18); color: var(--slate-700); border: none; }
-.st-active   { background: rgba(212, 176, 102, 0.2); color: var(--amber-600); border: none; }
-.st-check    { background: rgba(245, 158, 11, 0.16); color: var(--amber-700); border: none; }
+.st-planning { background: rgba(245, 158, 11, 0.16); color: var(--sand-700); border: none; }
+.st-ready    { background: rgba(148, 163, 184, 0.18); color: var(--stone-700); border: none; }
+.st-pending  { background: rgba(148, 163, 184, 0.18); color: var(--stone-700); border: none; }
+.st-active   { background: rgba(212, 176, 102, 0.2); color: var(--sand-600); border: none; }
+.st-check    { background: rgba(245, 158, 11, 0.16); color: var(--sand-700); border: none; }
 .st-done     { background: rgba(72, 187, 120, 0.2); color: var(--success); border: none; }
 .st-failed   { background: rgba(229, 62, 62, 0.2); color: var(--danger); border: none; }
 
-[data-theme="skein-dark"] .st-planning { background: rgba(167, 139, 250, 0.28); color: var(--amber-300); }
-[data-theme="skein-dark"] .st-ready    { background: rgba(56, 189, 248, 0.25); color: var(--slate-300); }
-[data-theme="skein-dark"] .st-pending  { background: rgba(251, 191, 36, 0.25); color: var(--amber-400); }
-[data-theme="skein-dark"] .st-active   { background: rgba(230, 200, 139, 0.22); color: var(--amber-400); }
-[data-theme="skein-dark"] .st-check    { background: rgba(251, 191, 36, 0.25); color: var(--amber-400); }
+[data-theme="skein-dark"] .st-planning { background: rgba(167, 139, 250, 0.28); color: var(--sand-300); }
+[data-theme="skein-dark"] .st-ready    { background: rgba(56, 189, 248, 0.25); color: var(--stone-300); }
+[data-theme="skein-dark"] .st-pending  { background: rgba(251, 191, 36, 0.25); color: var(--sand-400); }
+[data-theme="skein-dark"] .st-active   { background: rgba(230, 200, 139, 0.22); color: var(--sand-400); }
+[data-theme="skein-dark"] .st-check    { background: rgba(251, 191, 36, 0.25); color: var(--sand-400); }
 [data-theme="skein-dark"] .st-done     { background: rgba(72, 187, 120, 0.28); color: #34d399; }
 [data-theme="skein-dark"] .st-failed   { background: rgba(229, 62, 62, 0.25); color: var(--danger); }
 
@@ -582,22 +582,22 @@ html { font-size: 14px; }
 }
 .tag-accent {
   background: rgba(66,156,209,0.1);
-  color: var(--amber-600);
+  color: var(--sand-600);
   border-color: rgba(66,156,209,0.2);
 }
 [data-theme="skein-dark"] .tag-accent {
   background: rgba(116,185,232,0.1);
-  color: var(--amber-400);
+  color: var(--sand-400);
   border-color: rgba(116,185,232,0.2);
 }
 .tag-gold {
   background: rgba(218,165,32,0.1);
-  color: var(--amber-600);
+  color: var(--sand-600);
   border-color: rgba(218,165,32,0.2);
 }
 [data-theme="skein-dark"] .tag-gold {
   background: rgba(255,215,0,0.1);
-  color: var(--amber-200);
+  color: var(--sand-200);
   border-color: rgba(255,215,0,0.2);
 }
 
@@ -762,11 +762,11 @@ html { font-size: 14px; }
   flex-shrink: 0;
   font-size: 14px;
   background: rgba(66,156,209,0.12);
-  color: var(--amber-600);
+  color: var(--sand-600);
 }
 [data-theme="skein-dark"] .dag-node-wrap .dag-pop-icon {
   background: rgba(66,156,209,0.2);
-  color: var(--amber-400);
+  color: var(--sand-400);
 }
 .dag-node-wrap .dag-pop-title-group {
   flex: 1;
@@ -796,16 +796,16 @@ html { font-size: 14px; }
   height: auto;
 }
 .dag-node-wrap .dag-pop-badge.done { background: rgba(72,187,120,0.18); color: #059669; }
-.dag-node-wrap .dag-pop-badge.active { background: rgba(201,162,39,0.2); color: var(--amber-600); animation: dagBreathe 1.8s ease-in-out infinite; }
-.dag-node-wrap .dag-pop-badge.planning { background: rgba(116,185,232,0.2); color: var(--amber-600); }
-.dag-node-wrap .dag-pop-badge.ready { background: rgba(66,156,209,0.18); color: var(--amber-600); }
-.dag-node-wrap .dag-pop-badge.check { background: rgba(201,162,39,0.18); color: var(--amber-600); }
+.dag-node-wrap .dag-pop-badge.active { background: rgba(201,162,39,0.2); color: var(--sand-600); animation: dagBreathe 1.8s ease-in-out infinite; }
+.dag-node-wrap .dag-pop-badge.planning { background: rgba(116,185,232,0.2); color: var(--sand-600); }
+.dag-node-wrap .dag-pop-badge.ready { background: rgba(66,156,209,0.18); color: var(--sand-600); }
+.dag-node-wrap .dag-pop-badge.check { background: rgba(201,162,39,0.18); color: var(--sand-600); }
 .dag-node-wrap .dag-pop-badge.failed { background: rgba(245,101,101,0.18); color: #c53030; }
 [data-theme="skein-dark"] .dag-node-wrap .dag-pop-badge.done { background: rgba(72,187,120,0.25); color: #34d399; }
-[data-theme="skein-dark"] .dag-node-wrap .dag-pop-badge.active { background: rgba(201,162,39,0.25); color: var(--amber-200); }
-[data-theme="skein-dark"] .dag-node-wrap .dag-pop-badge.planning { background: rgba(116,185,232,0.25); color: var(--amber-400); }
-[data-theme="skein-dark"] .dag-node-wrap .dag-pop-badge.ready { background: rgba(66,156,209,0.25); color: var(--amber-400); }
-[data-theme="skein-dark"] .dag-node-wrap .dag-pop-badge.check { background: rgba(201,162,39,0.25); color: var(--amber-200); }
+[data-theme="skein-dark"] .dag-node-wrap .dag-pop-badge.active { background: rgba(201,162,39,0.25); color: var(--sand-200); }
+[data-theme="skein-dark"] .dag-node-wrap .dag-pop-badge.planning { background: rgba(116,185,232,0.25); color: var(--sand-400); }
+[data-theme="skein-dark"] .dag-node-wrap .dag-pop-badge.ready { background: rgba(66,156,209,0.25); color: var(--sand-400); }
+[data-theme="skein-dark"] .dag-node-wrap .dag-pop-badge.check { background: rgba(201,162,39,0.25); color: var(--sand-200); }
 [data-theme="skein-dark"] .dag-node-wrap .dag-pop-badge.failed { background: rgba(245,101,101,0.25); color: #feb2b2; }
 .dag-node-wrap .dag-pop-desc {
   font-size: 12px;
@@ -849,21 +849,21 @@ html { font-size: 14px; }
 .dag-node-wrap .dag-pop-bar.check > i { background: var(--goldSand-mid); }
 /* 执行中: 条纹流动 (antdShimmer 复用现成 keyframe, 见 antd-progress 同款效果) */
 .dag-node-wrap .dag-pop-bar.active > i {
-  background: var(--amber-500);
+  background: var(--sand-500);
   background-size: 200% 100%;
   animation: antdShimmer 1.4s ease infinite;
 }
 .dag-node-wrap .dag-pop-pct {
   font-size: 12px;
   font-weight: 600;
-  color: var(--amber-600);
+  color: var(--sand-600);
   flex-shrink: 0;
   font-variant-numeric: tabular-nums;
   min-width: 36px;
   text-align: right;
 }
 [data-theme="skein-dark"] .dag-node-wrap .dag-pop-pct {
-  color: var(--amber-400);
+  color: var(--sand-400);
 }
 .dag-node-wrap .dag-pop-sub-info {
   font-size: 11px;
@@ -904,11 +904,11 @@ html { font-size: 14px; }
   border-radius: 4px;
   font-family: var(--mono);
   font-size: 10px;
-  color: var(--amber-600);
+  color: var(--sand-600);
 }
 [data-theme="skein-dark"] .dag-node-wrap .dag-pop-deps-tags span {
   background: rgba(66,156,209,0.18);
-  color: var(--amber-400);
+  color: var(--sand-400);
 }
 .dag-node-wrap .dag-pop-meta-row {
   display: flex;
@@ -932,12 +932,12 @@ html { font-size: 14px; }
   padding: 2px 8px;
   border-radius: 999px;
   background: rgba(201,162,39,0.12);
-  color: var(--amber-600);
+  color: var(--sand-600);
   font-family: var(--mono);
 }
 [data-theme="skein-dark"] .dag-node-wrap .dag-pop-tag {
   background: rgba(201,162,39,0.2);
-  color: var(--amber-200);
+  color: var(--sand-200);
 }
 .dag-node-wrap .dag-pop-footer {
   display: flex;
@@ -1172,12 +1172,12 @@ html { font-size: 14px; }
 /* 5. .eyebrow 小标题前缀 (input.css:201 衔接) */
 .eyebrow {
   font-size: 0.647rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
-  color: var(--amber-500); margin-bottom: .529rem;
+  color: var(--sand-500); margin-bottom: .529rem;
   display: inline-flex; align-items: center; gap: .529rem;
 }
 .eyebrow::before { content: ''; width: 26px; height: 1px; background: var(--accent); opacity: .6; }
-[data-theme="skein-dark"] .eyebrow { color: var(--amber-400); }
-[data-theme="skein-dark"] .eyebrow::before { background: var(--amber-400); }
+[data-theme="skein-dark"] .eyebrow { color: var(--sand-400); }
+[data-theme="skein-dark"] .eyebrow::before { background: var(--sand-400); }
 
 /* 6. .tl-dot 时间轴节点 (examples:198-213) — 4 态: default/done/cur/custom */
 .tl-axis { position: relative; margin: .353rem 0 .235rem; padding-left: 1.412rem; }
@@ -1196,10 +1196,10 @@ html { font-size: 14px; }
   display: flex; align-items: center; justify-content: center;
 }
 [data-theme="skein-dark"] .tl-dot { border-color: #475569; background: var(--night-mid); }
-.tl-dot.done { background: var(--tl-c, var(--amber-500)); border-color: var(--tl-c, var(--amber-500)); color: #fff; }
+.tl-dot.done { background: var(--tl-c, var(--sand-500)); border-color: var(--tl-c, var(--sand-500)); color: #fff; }
 .tl-dot.done::after { content: "\2713"; font-size: 0.412rem; line-height: 1; }
-.tl-dot.cur { background: var(--tl-c, var(--amber-500)); border-color: var(--tl-c, var(--amber-500)); animation: tlPulse 1.8s ease-in-out infinite; }
-.tl-dot.custom { background: var(--tl-c, var(--amber-500)); border-color: var(--tl-c, var(--amber-500)); color: #fff; }
+.tl-dot.cur { background: var(--tl-c, var(--sand-500)); border-color: var(--tl-c, var(--sand-500)); animation: tlPulse 1.8s ease-in-out infinite; }
+.tl-dot.custom { background: var(--tl-c, var(--sand-500)); border-color: var(--tl-c, var(--sand-500)); color: #fff; }
 .tl-dot.custom::after { content: var(--tl-icon, "\2713"); font-size: 0.412rem; line-height: 1; }
 .tl-time { font-variant-numeric: tabular-nums; font-size: 0.647rem; color: #94a3b8; letter-spacing: 0.02em; }
 /* ETA 摘要条: 贴在时间轴上方, 主文案高亮 + 次级拆解小字 */
@@ -1209,19 +1209,19 @@ html { font-size: 14px; }
   margin-bottom: .471rem; padding: .294rem .588rem; border-radius: 6px;
   background: var(--tl-c-bg, rgba(66,156,209,0.1));
 }
-.tl-eta-main { font-size: 0.765rem; font-weight: 600; color: var(--tl-c, var(--amber-600)); font-variant-numeric: tabular-nums; }
+.tl-eta-main { font-size: 0.765rem; font-weight: 600; color: var(--tl-c, var(--sand-600)); font-variant-numeric: tabular-nums; }
 .tl-eta-detail { font-size: 0.647rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 [data-theme="skein-dark"] .tl-eta { background: var(--tl-c-bg, rgba(116,185,232,0.14)); }
-[data-theme="skein-dark"] .tl-eta-main { color: var(--amber-400); }
+[data-theme="skein-dark"] .tl-eta-main { color: var(--sand-400); }
 .tl-name { font-weight: 600; color: var(--fg); font-size: 0.824rem; }
 .tl-desc { font-size: 0.706rem; color: var(--muted); margin-top: .118rem; line-height: 1.5; }
 .tl-dur  { font-variant-numeric: tabular-nums; font-size: 0.647rem; color: #94a3b8; }
 .tl-st   { display: inline-block; padding: .059rem .412rem; border-radius: 9px; font-size: 0.588rem; line-height: 15px; font-weight: 500; vertical-align: middle; }
 .tl-st.done    { background: rgba(72,187,120,0.18); color: #059669; }
-.tl-st.cur     { background: var(--tl-c-bg, rgba(245,158,11,0.2)); color: var(--tl-c, var(--amber-600)); }
+.tl-st.cur     { background: var(--tl-c-bg, rgba(245,158,11,0.2)); color: var(--tl-c, var(--sand-600)); }
 .tl-st.pending { background: transparent; color: #94a3b8; border: 1px solid #e2e8f0; }
 [data-theme="skein-dark"] .tl-st.done    { background: rgba(72,187,120,0.25); color: #34d399; }
-[data-theme="skein-dark"] .tl-st.cur     { background: var(--tl-c-bg, rgba(116,185,232,0.25)); color: var(--amber-400); }
+[data-theme="skein-dark"] .tl-st.cur     { background: var(--tl-c-bg, rgba(116,185,232,0.25)); color: var(--sand-400); }
 [data-theme="skein-dark"] .tl-st.pending { color: #64748b; border-color: #334155; }
 [data-theme="skein-dark"] .tl-time { color: #64748b; }
 [data-theme="skein-dark"] .tl-dur  { color: #64748b; }
@@ -1282,12 +1282,12 @@ html { font-size: 14px; }
 .tl-h-axis { position: relative; display: flex; justify-content: space-between; padding: 1.412rem .706rem .471rem; overflow-x: auto; }
 .tl-h-axis::before {
   content: ""; position: absolute; left: 20px; right: 20px; top: 32px; height: 2px;
-  background: var(--slate-400);
+  background: var(--stone-400);
 }
 .tl-h-node { position: relative; flex: 0 0 auto; text-align: center; min-width: 80px; }
 .tl-h-dot {
-  width: 16px; height: 16px; border-radius: 50%; background: var(--tl-c, var(--amber-500));
-  border: 3px solid #fff; box-shadow: 0 0 0 2px var(--tl-c, var(--amber-500));
+  width: 16px; height: 16px; border-radius: 50%; background: var(--tl-c, var(--sand-500));
+  border: 3px solid #fff; box-shadow: 0 0 0 2px var(--tl-c, var(--sand-500));
   margin: 0 auto .471rem; position: relative; z-index: 1;
 }
 [data-theme="skein-dark"] .tl-h-dot { border-color: var(--night-mid); }
@@ -1299,13 +1299,13 @@ html { font-size: 14px; }
 .dag-svg text { fill: var(--fg); font-weight: 500; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
 [data-theme="skein-dark"] .dag-svg text { fill: #f1f5f9; }
 .dag-svg .node > rect, .dag-svg .node > ellipse, .dag-svg .node > polygon {
-  stroke: var(--slate-400); stroke-width: 1.5; fill: var(--bg-panel);
+  stroke: var(--stone-400); stroke-width: 1.5; fill: var(--bg-panel);
   transform-box: fill-box; transform-origin: center;
   transition: fill .2s, stroke .2s, transform .15s, filter .15s;
 }
 [data-theme="skein-dark"] .dag-svg .node > rect,
 [data-theme="skein-dark"] .dag-svg .node > ellipse,
-[data-theme="skein-dark"] .dag-svg .node > polygon { stroke: var(--slate-500); fill: var(--bg-panel); }
+[data-theme="skein-dark"] .dag-svg .node > polygon { stroke: var(--stone-500); fill: var(--bg-panel); }
 .dag-svg .node.done > rect, .dag-svg .node.done > ellipse, .dag-svg .node.done > polygon { fill: rgba(72,187,120,0.18); stroke: var(--success); }
 [data-theme="skein-dark"] .dag-svg .node.done > rect,
 [data-theme="skein-dark"] .dag-svg .node.done > ellipse,
@@ -1313,11 +1313,11 @@ html { font-size: 14px; }
 .dag-svg .node.done > text { fill: #059669; }
 [data-theme="skein-dark"] .dag-svg .node.done > text { fill: #9ae6b4; }
 .dag-svg .node.active > rect, .dag-svg .node.active > ellipse, .dag-svg .node.active > polygon {
-  fill: var(--amber-600); stroke: var(--amber-700); animation: dagPulse 1.6s ease-in-out infinite;
+  fill: var(--sand-600); stroke: var(--sand-700); animation: dagPulse 1.6s ease-in-out infinite;
 }
 [data-theme="skein-dark"] .dag-svg .node.active > rect,
 [data-theme="skein-dark"] .dag-svg .node.active > ellipse,
-[data-theme="skein-dark"] .dag-svg .node.active > polygon { fill: var(--amber-600); stroke: var(--amber-400); }
+[data-theme="skein-dark"] .dag-svg .node.active > polygon { fill: var(--sand-600); stroke: var(--sand-400); }
 .dag-svg .node.active > text { fill: #fff; }
 .dag-svg .node.failed > rect, .dag-svg .node.failed > ellipse, .dag-svg .node.failed > polygon {
   fill: #fff; stroke: var(--danger); stroke-width: 2;
@@ -1353,14 +1353,14 @@ html { font-size: 14px; }
 .dag-pop-name { font-weight: 600; font-size: 12px; display: flex; align-items: center; gap: 6px; }
 .dag-pop-badge { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 .dag-pop-badge.done    { background: var(--success); }
-.dag-pop-badge.active  { background: var(--amber-500); }
+.dag-pop-badge.active  { background: var(--sand-500); }
 .dag-pop-badge.failed  { background: var(--danger); }
 .dag-pop-badge.default { background: #94a3b8; }
 .dag-pop-bar { height: 5px; background: rgba(148,163,184,0.25); border-radius: 3px; overflow: hidden; margin-top: 2px; }
-.dag-pop-bar > i { display: block; height: 100%; border-radius: 3px; background: var(--amber-500); }
+.dag-pop-bar > i { display: block; height: 100%; border-radius: 3px; background: var(--sand-500); }
 .dag-pop-bar.done > i   { background: var(--success); }
 .dag-pop-bar.failed > i { background: var(--danger); }
-[data-theme="skein-dark"] .dag-pop-bar > i { background: var(--amber-500); }
+[data-theme="skein-dark"] .dag-pop-bar > i { background: var(--sand-500); }
 .dag-pop-meta { font-size: 10px; color: var(--muted); margin-top: auto; display: flex; justify-content: space-between; }
 /* DAG Modal: 原生 dialog (examples:392-411) */
 dialog.dag-modal {
@@ -1376,7 +1376,7 @@ dialog.dag-modal::backdrop { background: rgba(15,32,51,0.45); backdrop-filter: b
 .dag-modal-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
 .dag-modal-title {
   font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; margin: 0;
-  border-bottom: 2px solid var(--amber-500); padding-bottom: 6px;
+  border-bottom: 2px solid var(--sand-500); padding-bottom: 6px;
 }
 .dag-modal-close {
   border: none; background: transparent; font-size: 22px; line-height: 1; cursor: pointer;
@@ -1384,17 +1384,17 @@ dialog.dag-modal::backdrop { background: rgba(15,32,51,0.45); backdrop-filter: b
 }
 .dag-modal-close:hover { background: rgba(148,163,184,0.20); }
 .dag-modal-row { font-size: 13px; line-height: 1.5; }
-.dag-modal-row strong { color: var(--amber-800); font-weight: 600; margin-right: 4px; }
-[data-theme="skein-dark"] .dag-modal-row strong { color: var(--amber-400); }
+.dag-modal-row strong { color: var(--sand-800); font-weight: 600; margin-right: 4px; }
+[data-theme="skein-dark"] .dag-modal-row strong { color: var(--sand-400); }
 .dag-modal-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
 .dag-modal-chips:empty::after { content: "—"; color: #94a3b8; }
 .dag-modal-chip {
   display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px;
-  background: rgba(240,217,160,0.28); color: var(--amber-600);
+  background: rgba(240,217,160,0.28); color: var(--sand-600);
 }
-[data-theme="skein-dark"] .dag-modal-chip { background: rgba(230,200,139,0.22); color: var(--amber-400); }
+[data-theme="skein-dark"] .dag-modal-chip { background: rgba(230,200,139,0.22); color: var(--sand-400); }
 .dag-modal-bar-wrap { height: 8px; background: rgba(148,163,184,0.25); border-radius: 4px; overflow: hidden; margin-top: 4px; }
-.dag-modal-bar { display: block; height: 100%; border-radius: 4px; background: var(--amber-500); width: 0; }
+.dag-modal-bar { display: block; height: 100%; border-radius: 4px; background: var(--sand-500); width: 0; }
 .dag-modal-bar.done   { background: var(--success); }
 .dag-modal-bar.failed { background: var(--danger); }
 
@@ -1404,7 +1404,7 @@ dialog.dag-modal::backdrop { background: rgba(15,32,51,0.45); backdrop-filter: b
 }
 .bg-wave-bar > .fill {
   position: relative; overflow: hidden; height: 100%; border-radius: 4px;
-  background: var(--amber-500);
+  background: var(--sand-500);
   box-shadow: none;
 }
 .bg-wave-bar.active > .fill::after {
@@ -1421,26 +1421,26 @@ dialog.dag-modal::backdrop { background: rgba(15,32,51,0.45); backdrop-filter: b
   display: inline-flex; align-items: center; gap: .353rem; justify-content: center;
   padding: .353rem .941rem; border-radius: var(--radius-sm); border: 1px solid transparent;
   font: 500 0.765rem/1.4 var(--font); cursor: pointer; transition: background .15s, border-color .15s, color .15s, transform .1s;
-  background: var(--amber-600); color: #fff;
+  background: var(--sand-600); color: #fff;
 }
-.antd-btn:hover { background: var(--amber-700); }
-[data-theme="skein-dark"] .antd-btn { background: var(--amber-600); color: #fff; }
-[data-theme="skein-dark"] .antd-btn:hover { background: var(--amber-700); }
+.antd-btn:hover { background: var(--sand-700); }
+[data-theme="skein-dark"] .antd-btn { background: var(--sand-600); color: #fff; }
+[data-theme="skein-dark"] .antd-btn:hover { background: var(--sand-700); }
 .antd-btn:active { transform: translateY(1px); }
 .antd-btn-default {
-  background: transparent; color: var(--amber-600); border-color: var(--amber-600);
+  background: transparent; color: var(--sand-600); border-color: var(--sand-600);
 }
-[data-theme="skein-dark"] .antd-btn-default { color: var(--amber-400); border-color: var(--amber-400); }
+[data-theme="skein-dark"] .antd-btn-default { color: var(--sand-400); border-color: var(--sand-400); }
 .antd-btn-default:hover { background: rgba(245,158,11,0.10); }
 .antd-btn-dashed {
   background: transparent; color: var(--muted); border: 1px dashed #94a3b8;
 }
-.antd-btn-dashed:hover { color: var(--amber-500); border-color: var(--amber-500); }
-.antd-btn-text { background: transparent; color: var(--amber-600); border-color: transparent; }
-[data-theme="skein-dark"] .antd-btn-text { color: var(--amber-400); }
+.antd-btn-dashed:hover { color: var(--sand-500); border-color: var(--sand-500); }
+.antd-btn-text { background: transparent; color: var(--sand-600); border-color: transparent; }
+[data-theme="skein-dark"] .antd-btn-text { color: var(--sand-400); }
 .antd-btn-text:hover { background: rgba(245,158,11,0.10); }
-.antd-btn-link { background: transparent; color: var(--amber-600); border-color: transparent; padding: .353rem .471rem; }
-[data-theme="skein-dark"] .antd-btn-link { color: var(--amber-400); }
+.antd-btn-link { background: transparent; color: var(--sand-600); border-color: transparent; padding: .353rem .471rem; }
+[data-theme="skein-dark"] .antd-btn-link { color: var(--sand-400); }
 .antd-btn-link:hover { text-decoration: underline; }
 .antd-btn-danger { background: var(--danger); color: #fff; }
 .antd-btn-danger:hover { background: #c53030; }
@@ -1462,10 +1462,10 @@ dialog.dag-modal::backdrop { background: rgba(15,32,51,0.45); backdrop-filter: b
   padding: .353rem .706rem; border-radius: var(--radius-sm); font-size: 0.824rem; color: var(--muted);
   cursor: pointer; text-decoration: none; transition: background .15s, color .15s;
 }
-.antd-menu-h > a:hover { background: rgba(66,156,209,0.08); color: var(--amber-600); }
-[data-theme="skein-dark"] .antd-menu-h > a:hover { background: rgba(116,185,232,0.12); color: var(--amber-400); }
-.antd-menu-h > a.active { background: rgba(66,156,209,0.15); color: var(--amber-600); font-weight: 500; }
-[data-theme="skein-dark"] .antd-menu-h > a.active { background: rgba(116,185,232,0.20); color: var(--amber-400); }
+.antd-menu-h > a:hover { background: rgba(66,156,209,0.08); color: var(--sand-600); }
+[data-theme="skein-dark"] .antd-menu-h > a:hover { background: rgba(116,185,232,0.12); color: var(--sand-400); }
+.antd-menu-h > a.active { background: rgba(66,156,209,0.15); color: var(--sand-600); font-weight: 500; }
+[data-theme="skein-dark"] .antd-menu-h > a.active { background: rgba(116,185,232,0.20); color: var(--sand-400); }
 .antd-menu-v {
   border: 1px solid var(--brd); border-radius: var(--radius-sm); padding: .235rem;
   font-size: 0.824rem; background: var(--glass-bg);
@@ -1475,8 +1475,8 @@ dialog.dag-modal::backdrop { background: rgba(15,32,51,0.45); backdrop-filter: b
   color: var(--fg); cursor: pointer; text-decoration: none;
 }
 .antd-menu-v > a:hover, .antd-menu-v > details > summary:hover { background: rgba(148,163,184,0.10); }
-.antd-menu-v > a.active { background: rgba(66,156,209,0.15); color: var(--amber-600); font-weight: 500; }
-[data-theme="skein-dark"] .antd-menu-v > a.active { background: rgba(116,185,232,0.20); color: var(--amber-400); }
+.antd-menu-v > a.active { background: rgba(66,156,209,0.15); color: var(--sand-600); font-weight: 500; }
+[data-theme="skein-dark"] .antd-menu-v > a.active { background: rgba(116,185,232,0.20); color: var(--sand-400); }
 .antd-menu-v details > summary { list-style: none; }
 .antd-menu-v details > summary::-webkit-details-marker { display: none; }
 .antd-menu-v details[open] > summary .chev { transform: rotate(90deg); }
@@ -1494,12 +1494,12 @@ dialog.dag-modal::backdrop { background: rgba(15,32,51,0.45); backdrop-filter: b
   border: 1px solid var(--brd); background: transparent; color: var(--fg);
   cursor: pointer; transition: border-color .15s, color .15s;
 }
-.antd-pagination button:hover { border-color: var(--amber-500); color: var(--amber-500); }
-.antd-pagination button.active { background: var(--amber-600); color: #fff; border-color: var(--amber-600); }
-[data-theme="skein-dark"] .antd-pagination button.active { background: var(--amber-500); border-color: var(--amber-500); }
+.antd-pagination button:hover { border-color: var(--sand-500); color: var(--sand-500); }
+.antd-pagination button.active { background: var(--sand-600); color: #fff; border-color: var(--sand-600); }
+[data-theme="skein-dark"] .antd-pagination button.active { background: var(--sand-500); border-color: var(--sand-500); }
 .antd-breadcrumb { display: flex; align-items: center; gap: .353rem; font-size: 0.824rem; }
-.antd-breadcrumb a { color: var(--amber-600); text-decoration: none; cursor: pointer; }
-[data-theme="skein-dark"] .antd-breadcrumb a { color: var(--amber-400); }
+.antd-breadcrumb a { color: var(--sand-600); text-decoration: none; cursor: pointer; }
+[data-theme="skein-dark"] .antd-breadcrumb a { color: var(--sand-400); }
 .antd-breadcrumb a:hover { text-decoration: underline; }
 .antd-breadcrumb .sep { color: var(--muted); font-size: 0.647rem; }
 .antd-breadcrumb .current { color: var(--muted); }
@@ -1511,14 +1511,14 @@ dialog.dag-modal::backdrop { background: rgba(15,32,51,0.45); backdrop-filter: b
   font-size: 0.824rem; font-weight: 500;
 }
 .antd-steps .step.done .step-dot { background: var(--success); color: #fff; }
-.antd-steps .step.current .step-dot { background: var(--amber-600); color: #fff; }
-[data-theme="skein-dark"] .antd-steps .step.current .step-dot { background: var(--amber-500); }
+.antd-steps .step.current .step-dot { background: var(--sand-600); color: #fff; }
+[data-theme="skein-dark"] .antd-steps .step.current .step-dot { background: var(--sand-500); }
 .antd-steps .step.wait .step-dot {
   background: transparent; border: 2px solid var(--brd); color: var(--muted);
 }
 .antd-steps .step-label { font-size: 0.706rem; color: var(--muted); }
-.antd-steps .step.current .step-label { color: var(--amber-600); font-weight: 500; }
-[data-theme="skein-dark"] .antd-steps .step.current .step-label { color: var(--amber-400); }
+.antd-steps .step.current .step-label { color: var(--sand-600); font-weight: 500; }
+[data-theme="skein-dark"] .antd-steps .step.current .step-label { color: var(--sand-400); }
 .antd-steps .step-bar { height: 2px; width: 64px; margin: 0 .235rem; }
 .antd-steps .step-bar.done { background: var(--success); }
 .antd-steps .step-bar.wait { background: var(--brd); }
@@ -1531,7 +1531,7 @@ dialog.dag-modal::backdrop { background: rgba(15,32,51,0.45); backdrop-filter: b
   box-sizing: border-box;
 }
 .antd-input:focus, .antd-select:focus, .antd-textarea:focus, .antd-datepicker:focus {
-  outline: none; border-color: var(--amber-500);
+  outline: none; border-color: var(--sand-500);
   box-shadow: 0 0 0 2px rgba(66,156,209,0.20);
 }
 .antd-input::placeholder, .antd-textarea::placeholder { color: var(--muted); }
@@ -1553,7 +1553,7 @@ dialog.dag-modal::backdrop { background: rgba(15,32,51,0.45); backdrop-filter: b
 [data-theme="skein-dark"] .antd-datepicker {
   background: var(--night-mid); border-color: #334155;
 }
-.antd-checkbox, .antd-radio { accent-color: var(--amber-500); width: 16px; height: 16px; cursor: pointer; }
+.antd-checkbox, .antd-radio { accent-color: var(--sand-500); width: 16px; height: 16px; cursor: pointer; }
 /* Switch (examples:284-296) — appearance:none 改滑块 */
 .antd-switch {
   appearance: none; -webkit-appearance: none;
@@ -1565,11 +1565,11 @@ dialog.dag-modal::backdrop { background: rgba(15,32,51,0.45); backdrop-filter: b
   content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%;
   background: #fff; transition: transform 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }
-.antd-switch:checked { background: var(--amber-500); }
+.antd-switch:checked { background: var(--sand-500); }
 .antd-switch:checked::after { transform: translateX(16px); }
 .antd-switch:disabled { opacity: 0.5; cursor: not-allowed; }
 [data-theme="skein-dark"] .antd-switch { background: #475569; }
-[data-theme="skein-dark"] .antd-switch:checked { background: var(--amber-500); }
+[data-theme="skein-dark"] .antd-switch:checked { background: var(--sand-500); }
 
 /* ── 类目 4: DataDisplay · Card / Tag / Badge / Avatar / Tooltip / Skeleton (examples:1133-1428) ── */
 .antd-card {
@@ -1579,8 +1579,8 @@ dialog.dag-modal::backdrop { background: rgba(15,32,51,0.45); backdrop-filter: b
   transition: transform .2s, box-shadow .2s, border-color .2s;
 }
 .antd-card.hoverable:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(0,0,0,0.06); }
-.antd-card.emphasize { border-left: 4px solid var(--amber-500); }
-[data-theme="skein-dark"] .antd-card.emphasize { border-left-color: var(--amber-400); }
+.antd-card.emphasize { border-left: 4px solid var(--sand-500); }
+[data-theme="skein-dark"] .antd-card.emphasize { border-left-color: var(--sand-400); }
 .antd-card-title {
   display: flex; align-items: center; justify-content: space-between; gap: .706rem;
   font-size: 0.824rem; font-weight: 500; color: var(--fg); margin-bottom: .471rem;
@@ -1590,10 +1590,10 @@ dialog.dag-modal::backdrop { background: rgba(15,32,51,0.45); backdrop-filter: b
   display: flex; gap: .471rem; margin-top: .706rem; padding-top: .471rem;
   border-top: 1px solid var(--brd); font-size: 0.706rem;
 }
-.antd-card-actions a { color: var(--amber-600); cursor: pointer; text-decoration: none; }
+.antd-card-actions a { color: var(--sand-600); cursor: pointer; text-decoration: none; }
 .antd-card-actions a:hover { text-decoration: underline; }
 .antd-card-actions a.danger { color: var(--danger); }
-[data-theme="skein-dark"] .antd-card-actions a { color: var(--amber-400); }
+[data-theme="skein-dark"] .antd-card-actions a { color: var(--sand-400); }
 [data-theme="skein-dark"] .antd-card { background: var(--bg-elevated); border-color: var(--border-default); }
 /* Tag (examples:1229-1237) */
 .antd-tag {
@@ -1601,41 +1601,41 @@ dialog.dag-modal::backdrop { background: rgba(15,32,51,0.45); backdrop-filter: b
   font-size: 0.706rem; line-height: 18px; font-weight: 500;
   border: 1px solid transparent; white-space: nowrap;
 }
-.antd-tag.ocean    { background: rgba(245,158,11,0.10);  border-color: var(--amber-500);   color: var(--amber-600); }
-.antd-tag.gold     { background: rgba(230,200,139,0.10); border-color: var(--amber-600); color: var(--amber-600); }
+.antd-tag.ocean    { background: rgba(245,158,11,0.10);  border-color: var(--sand-500);   color: var(--sand-600); }
+.antd-tag.gold     { background: rgba(230,200,139,0.10); border-color: var(--sand-600); color: var(--sand-600); }
 .antd-tag.success  { background: rgba(72,187,120,0.10);  border-color: var(--success);    color: var(--success); }
 .antd-tag.warning  { background: rgba(237,137,54,0.10);  border-color: var(--warning);    color: var(--warning); }
 .antd-tag.danger   { background: rgba(229,62,62,0.10);   border-color: var(--danger);     color: var(--danger); }
-.antd-tag.solid    { background: var(--amber-600); color: #fff; border-color: var(--amber-600); }
-[data-theme="skein-dark"] .antd-tag.ocean { color: var(--amber-400); }
-[data-theme="skein-dark"] .antd-tag.gold  { color: var(--amber-400); }
+.antd-tag.solid    { background: var(--sand-600); color: #fff; border-color: var(--sand-600); }
+[data-theme="skein-dark"] .antd-tag.ocean { color: var(--sand-400); }
+[data-theme="skein-dark"] .antd-tag.gold  { color: var(--sand-400); }
 
 /* 状态 tag: planning / ready / active / check / done / failed (5 状态系统 + 兼容 pending) */
 .antd-tag-planning {
   background: rgba(167, 139, 250, 0.14);
   border-color: rgba(167, 139, 250, 0.32);
-  color: var(--amber-700);
+  color: var(--sand-700);
 }
 .antd-tag-ready {
   background: rgba(56, 189, 248, 0.14);
   border-color: rgba(56, 189, 248, 0.32);
-  color: var(--slate-700);
+  color: var(--stone-700);
 }
 .antd-tag-pending {
   background: rgba(148, 163, 184, 0.12);
   border-color: rgba(148, 163, 184, 0.30);
-  color: var(--amber-600);
+  color: var(--sand-600);
 }
 .antd-tag-active {
   background: rgba(200, 149, 72, 0.14);
   border-color: rgba(200, 149, 72, 0.35);
-  color: var(--amber-700);
+  color: var(--sand-700);
   animation: dagBreathe 1.8s ease-in-out infinite;
 }
 .antd-tag-check {
   background: rgba(251, 191, 36, 0.14);
   border-color: rgba(251, 191, 36, 0.35);
-  color: var(--amber-600);
+  color: var(--sand-600);
 }
 .antd-tag-done {
   background: rgba(72, 187, 120, 0.12);
@@ -1647,11 +1647,11 @@ dialog.dag-modal::backdrop { background: rgba(15,32,51,0.45); backdrop-filter: b
   border-color: rgba(229, 62, 62, 0.30);
   color: var(--danger);
 }
-[data-theme="skein-dark"] .antd-tag-planning { color: var(--amber-300); }
-[data-theme="skein-dark"] .antd-tag-ready { color: var(--slate-300); }
-[data-theme="skein-dark"] .antd-tag-pending { color: var(--amber-400); }
-[data-theme="skein-dark"] .antd-tag-active  { color: var(--amber-400); }
-[data-theme="skein-dark"] .antd-tag-check   { color: var(--amber-400); }
+[data-theme="skein-dark"] .antd-tag-planning { color: var(--sand-300); }
+[data-theme="skein-dark"] .antd-tag-ready { color: var(--stone-300); }
+[data-theme="skein-dark"] .antd-tag-pending { color: var(--sand-400); }
+[data-theme="skein-dark"] .antd-tag-active  { color: var(--sand-400); }
+[data-theme="skein-dark"] .antd-tag-check   { color: var(--sand-400); }
 /* Badge (examples:1240-1251) — 数字/角标 */
 .antd-badge-count {
   display: inline-block; min-width: 16px; height: 16px; padding: 0 .235rem;
@@ -1667,10 +1667,10 @@ dialog.dag-modal::backdrop { background: rgba(15,32,51,0.45); backdrop-filter: b
 .antd-avatar {
   display: inline-flex; align-items: center; justify-content: center;
   width: 40px; height: 40px; border-radius: 50%;
-  background: linear-gradient(135deg, var(--amber-400), var(--amber-600));
+  background: linear-gradient(135deg, var(--sand-400), var(--sand-600));
   color: #fff; font-size: 0.765rem; font-weight: 500; flex: none;
 }
-.antd-avatar.gold { background: var(--amber-500); }
+.antd-avatar.gold { background: var(--sand-500); }
 .antd-avatar.success { background: var(--success); }
 .antd-avatar.square { border-radius: var(--radius-sm); }
 .antd-avatar.lg { width: 48px; height: 48px; font-size: 0.882rem; }
@@ -1731,11 +1731,11 @@ dialog.antd-modal::backdrop { background: rgba(15,32,51,0.45); backdrop-filter: 
 .antd-alert .antd-alert-icon { flex: none; margin-top: .118rem; }
 .antd-alert .antd-alert-text { flex: 1; }
 .antd-alert .antd-alert-text strong { font-weight: 600; margin-right: .235rem; }
-.antd-alert.info     { background: rgba(245,158,11,0.10);  border-color: rgba(66,156,209,0.30);  color: var(--amber-600); }
+.antd-alert.info     { background: rgba(245,158,11,0.10);  border-color: rgba(66,156,209,0.30);  color: var(--sand-600); }
 .antd-alert.success  { background: rgba(72,187,120,0.10);  border-color: rgba(72,187,120,0.30);  color: var(--success); }
 .antd-alert.warning  { background: rgba(237,137,54,0.10);  border-color: rgba(237,137,54,0.30);  color: var(--warning); }
 .antd-alert.error    { background: rgba(229,62,62,0.10);   border-color: rgba(229,62,62,0.30);   color: var(--danger); }
-[data-theme="skein-dark"] .antd-alert.info { color: var(--amber-400); }
+[data-theme="skein-dark"] .antd-alert.info { color: var(--sand-400); }
 /* Message: 顶部 toast (examples:264-269) */
 .antd-message {
   position: fixed; top: 24px; left: 50%; transform: translateX(-50%) translateY(-100px);
@@ -1759,7 +1759,7 @@ dialog.antd-modal::backdrop { background: rgba(15,32,51,0.45); backdrop-filter: 
 }
 .antd-progress-fill {
   height: 100%; border-radius: 999px;
-  background: var(--amber-500); transition: width 0.5s ease;
+  background: var(--sand-500); transition: width 0.5s ease;
 }
 .antd-progress-fill.success { background: var(--success); }
 .antd-progress-fill.danger  { background: var(--danger); }
@@ -1806,8 +1806,8 @@ dialog.antd-modal::backdrop { background: rgba(15,32,51,0.45); backdrop-filter: 
 
 /* 4. tlPulse (examples:207-211) — Timeline 当前点, 光晕扩散 + 微缩放呼吸 */
 @keyframes tlPulse {
-  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--tl-c, var(--amber-500)) 55%, transparent); transform: scale(1); }
-  50%      { box-shadow: 0 0 0 7px color-mix(in srgb, var(--tl-c, var(--amber-500)) 0%, transparent); transform: scale(1.15); }
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--tl-c, var(--sand-500)) 55%, transparent); transform: scale(1); }
+  50%      { box-shadow: 0 0 0 7px color-mix(in srgb, var(--tl-c, var(--sand-500)) 0%, transparent); transform: scale(1.15); }
 }
 
 /* 4b. dagBreathe (HTML 元素专用) — DAG 卡片/徽标呼吸, 光晕扩散 + 轻微缩放, 幅度小于 tlPulse (矩形卡片) */
@@ -1819,7 +1819,7 @@ dialog.antd-modal::backdrop { background: rgba(15,32,51,0.45); backdrop-filter: 
 /* 5. dagPulse (examples:325-331) — DAG 进行中节点, SVG 专用 (不支持 box-shadow, 用 drop-shadow 呼吸) */
 @keyframes dagPulse {
   0%, 100% { filter: drop-shadow(0 0 0 transparent); opacity: 1; }
-  50%      { filter: drop-shadow(0 0 5px var(--amber-500)) drop-shadow(0 0 2px var(--amber-500)); opacity: 0.94; }
+  50%      { filter: drop-shadow(0 0 5px var(--sand-500)) drop-shadow(0 0 2px var(--sand-500)); opacity: 0.94; }
 }
 
 /* 6. antdSpin (examples:245) */
@@ -1954,7 +1954,7 @@ dialog.antd-modal::backdrop { background: rgba(15,32,51,0.45); backdrop-filter: 
   max-width: 100%;
   transition: background-color .15s ease, color .15s ease;
 }
-.copy-chip:hover  { background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--amber-500); }
+.copy-chip:hover  { background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--sand-500); }
 .copy-chip:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
 .copy-chip-text   { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .copy-chip-icon   { opacity: 0; font-size: .75em; transition: opacity .15s ease; flex-shrink: 0; }
@@ -2004,7 +2004,7 @@ dialog.antd-modal::backdrop { background: rgba(15,32,51,0.45); backdrop-filter: 
 .sidebar-logo {
   width: 30px; height: 30px;
   border-radius: var(--radius-sm);
-  background: linear-gradient(135deg, var(--amber-400), var(--amber-600));
+  background: linear-gradient(135deg, var(--sand-400), var(--sand-600));
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
   box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.25), 0 8px 18px -6px rgba(245, 158, 11, 0.35);
@@ -2055,7 +2055,7 @@ dialog.antd-modal::backdrop { background: rgba(15,32,51,0.45); backdrop-filter: 
 
 .sidebar-search-input::placeholder { color: var(--text-muted); }
 .sidebar-search-input:hover { border-color: var(--border-hover); }
-.sidebar-search-input:focus { border-color: var(--amber-500); box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.12); }
+.sidebar-search-input:focus { border-color: var(--sand-500); box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.12); }
 
 .sidebar-scroll {
   flex: 1;
@@ -2098,13 +2098,13 @@ dialog.antd-modal::backdrop { background: rgba(15,32,51,0.45); backdrop-filter: 
 }
 
 .sidebar-item.active {
-  background: var(--amber-500);
+  background: var(--sand-500);
   color: #fff;
   box-shadow: 0 2px 8px rgba(245, 158, 11, 0.35);
 }
 
 .sidebar-item.active:hover {
-  background: var(--amber-600);
+  background: var(--sand-600);
   color: #fff;
 }
 

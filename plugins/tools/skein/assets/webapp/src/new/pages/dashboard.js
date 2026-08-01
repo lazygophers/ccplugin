@@ -1,7 +1,7 @@
 // ============================================================
 //  Dashboard — 概览
 //  设计: 4 个 KPI 卡片 + 紧凑状态网格 + 最近活跃 / 最近完成列表
-//  主题: refined material (amber/slate)，无 glassmorphism，无堆叠进度条
+//  主题: beach ocean/sand（暗=暮色海岸，亮=晴空碧海），无 glassmorphism，无堆叠进度条
 // ============================================================
 
 import { h, api, fmtRelative, normalizeTasks, normalizeStatus } from '../app.js';

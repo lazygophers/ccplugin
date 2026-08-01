@@ -1,4 +1,5 @@
 ---
+inclusion: auto
 title: plugin-boundary
 layer: core
 category: arch

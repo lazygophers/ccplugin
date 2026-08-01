@@ -1,4 +1,5 @@
 ---
+inclusion: auto
 title: http-server
 layer: core
 category: arch

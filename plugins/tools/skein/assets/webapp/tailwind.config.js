@@ -13,17 +13,29 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        amber: {
-          50: 'var(--amber-50)', 100: 'var(--amber-100)', 200: 'var(--amber-200)',
-          300: 'var(--amber-300)', 400: 'var(--amber-400)', 500: 'var(--amber-500)',
-          600: 'var(--amber-600)', 700: 'var(--amber-700)', 800: 'var(--amber-800)',
-          900: 'var(--amber-900)', 950: 'var(--amber-950)',
+        sky: {
+          50: 'var(--sky-50)', 100: 'var(--sky-100)', 200: 'var(--sky-200)',
+          300: 'var(--sky-300)', 400: 'var(--sky-400)', 500: 'var(--sky-500)',
+          600: 'var(--sky-600)', 700: 'var(--sky-700)', 800: 'var(--sky-800)',
+          900: 'var(--sky-900)', 950: 'var(--sky-950)',
         },
-        slate: {
-          50: 'var(--slate-50)', 100: 'var(--slate-100)', 200: 'var(--slate-200)',
-          300: 'var(--slate-300)', 400: 'var(--slate-400)', 500: 'var(--slate-500)',
-          600: 'var(--slate-600)', 700: 'var(--slate-700)', 800: 'var(--slate-800)',
-          900: 'var(--slate-900)', 950: 'var(--slate-950)',
+        sand: {
+          50: 'var(--sand-50)', 100: 'var(--sand-100)', 200: 'var(--sand-200)',
+          300: 'var(--sand-300)', 400: 'var(--sand-400)', 500: 'var(--sand-500)',
+          600: 'var(--sand-600)', 700: 'var(--sand-700)', 800: 'var(--sand-800)',
+          900: 'var(--sand-900)', 950: 'var(--sand-950)',
+        },
+        ocean: {
+          50: 'var(--ocean-50)', 100: 'var(--ocean-100)', 200: 'var(--ocean-200)',
+          300: 'var(--ocean-300)', 400: 'var(--ocean-400)', 500: 'var(--ocean-500)',
+          600: 'var(--ocean-600)', 700: 'var(--ocean-700)', 800: 'var(--ocean-800)',
+          900: 'var(--ocean-900)', 950: 'var(--ocean-950)',
+        },
+        stone: {
+          50: 'var(--stone-50)', 100: 'var(--stone-100)', 200: 'var(--stone-200)',
+          300: 'var(--stone-300)', 400: 'var(--stone-400)', 500: 'var(--stone-500)',
+          600: 'var(--stone-600)', 700: 'var(--stone-700)', 800: 'var(--stone-800)',
+          900: 'var(--stone-900)', 950: 'var(--stone-950)',
         },
         success: 'var(--success)', warning: 'var(--warning)', danger: 'var(--danger)', info: 'var(--info)',
         bg: 'var(--bg)', card: 'var(--card)', fg: 'var(--fg)', head: 'var(--head)',

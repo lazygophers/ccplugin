@@ -1,4 +1,5 @@
 ---
+inclusion: auto
 title: webapp
 layer: core
 category: arch

@@ -1,10 +1,8 @@
-/* SKEIN webapp — Design Tokens · Refined Material (amber/slate)
-   基于 /Users/luoxin/bcpay/example/css/style.css 与
-   /Users/luoxin/bcpay/example/design-demos/direction-a-refined-material.html
-   的 Dark-first amber + slate 专业 SaaS 风格。
+/* SKEIN webapp — Design Tokens · Beach Ocean/Sand
+   Light = 晴空碧海（sky + warm sand）
+   Dark  = 暮色海岸（deep ocean + warm gold）
    · 保留旧变量名（--bg/--card/--fg/--head/--muted/--brd/--line/--accent/--accent2
-     及 --ocean-* / --whiteSand-* / --goldSand-* / --night-*）作为兼容别名，
-     使 page.js 与 tailwind.config.js 无需同步大改。
+     及 --ocean-* / --whiteSand-* / --goldSand-* / --night-*）作为兼容别名。
    · 主题属性沿用 skein-dark / skein-light，与 index.html 脚本保持一致。 */
 
 @media (prefers-color-scheme: light) {
@@ -15,111 +13,130 @@
 }
 
 :root {
-  /* ── Brand · Amber ── */
-  --amber-50:  #fffbeb;
-  --amber-100: #fef3c7;
-  --amber-200: #fde68a;
-  --amber-300: #fcd34d;
-  --amber-400: #fbbf24;
-  --amber-500: #f59e0b;
-  --amber-600: #d97706;
-  --amber-700: #b45309;
-  --amber-800: #92400e;
-  --amber-900: #78350f;
-  --amber-950: #451a03;
+  /* ── Brand · Sky / Ocean ── */
+  --sky-50:  #f0f9ff;
+  --sky-100: #e0f2fe;
+  --sky-200: #bae6fd;
+  --sky-300: #7dd3fc;
+  --sky-400: #38bdf8;
+  --sky-500: #0ea5e9;
+  --sky-600: #0284c7;
+  --sky-700: #0369a1;
+  --sky-800: #075985;
+  --sky-900: #0c4a6e;
+  --sky-950: #082f49;
 
-  /* ── Accent · Orange ── */
-  --orange-50:  #fff7ed;
-  --orange-100: #ffedd5;
-  --orange-500: #f97316;
-  --orange-600: #ea580c;
-  --orange-700: #c2410c;
+  /* ── Accent · Sand / Gold ── */
+  --sand-50:  #fffbf0;
+  --sand-100: #fef3c7;
+  --sand-200: #fde68a;
+  --sand-300: #fcd34d;
+  --sand-400: #fbbf24;
+  --sand-500: #f59e0b;
+  --sand-600: #d97706;
+  --sand-700: #b45309;
+  --sand-800: #92400e;
+  --sand-900: #78350f;
+  --sand-950: #451a03;
 
-  /* ── Neutral · Slate ── */
-  --slate-50:  #f8fafc;
-  --slate-100: #f1f5f9;
-  --slate-200: #e2e8f0;
-  --slate-300: #cbd5e1;
-  --slate-400: #94a3b8;
-  --slate-500: #64748b;
-  --slate-600: #475569;
-  --slate-700: #334155;
-  --slate-800: #1e293b;
-  --slate-900: #0f172a;
-  --slate-950: #020617;
+  /* ── Ocean deep scale (for dark mode) ── */
+  --ocean-50:  #f0f9ff;
+  --ocean-100: #e0f2fe;
+  --ocean-200: #bae6fd;
+  --ocean-300: #7dd3fc;
+  --ocean-400: #38bdf8;
+  --ocean-500: #0ea5e9;
+  --ocean-600: #0284c7;
+  --ocean-700: #0369a1;
+  --ocean-800: #1e3a5f;
+  --ocean-900: #0f172a;
+  --ocean-950: #082032;
+
+  /* ── Neutral · Warm Stone ── */
+  --stone-50:  #fafaf9;
+  --stone-100: #f5f5f4;
+  --stone-200: #e7e5e4;
+  --stone-300: #d6d3d1;
+  --stone-400: #a8a29e;
+  --stone-500: #78716c;
+  --stone-600: #57534e;
+  --stone-700: #44403c;
+  --stone-800: #292524;
+  --stone-900: #1c1917;
+  --stone-950: #0c0a09;
 
   /* ── Semantic ── */
   --success: #10b981;
   --warning: #f59e0b;
-  --danger:  #ef4444;
-  --info:    #3b82f6;
+  --danger:  #f43f5e;
+  --info:    #0ea5e9;
 
   --success-text: #047857;
   --warning-text: #b45309;
   --danger-text:  #be123c;
-  --info-text:    #1d4ed8;
+  --info-text:    #0369a1;
 
   --success-bg: rgba(16, 185, 129, 0.12);
   --warning-bg: rgba(245, 158, 11, 0.12);
-  --danger-bg:  rgba(239, 68, 68, 0.12);
-  --info-bg:    rgba(59, 130, 246, 0.12);
+  --danger-bg:  rgba(244, 63, 94, 0.12);
+  --info-bg:    rgba(14, 165, 233, 0.12);
 
   --success-border: rgba(16, 185, 129, 0.28);
   --warning-border: rgba(245, 158, 11, 0.28);
-  --danger-border:  rgba(239, 68, 68, 0.28);
-  --info-border:    rgba(59, 130, 246, 0.28);
+  --danger-border:  rgba(244, 63, 94, 0.28);
+  --info-border:    rgba(14, 165, 233, 0.28);
 
   /* ── Core derived tokens（下游 page.js 主入口） ──
-     Dark-first：默认（无 data-theme 或 dark）走暗色。 */
-  --bg:    var(--slate-950);
-  --card:  var(--slate-900);
-  --fg:    var(--slate-100);
-  --head:  var(--slate-50);
-  --muted: var(--slate-400);
-  --brd:   var(--slate-800);
-  --line:  rgba(148, 163, 184, 0.20);
-  --accent:  var(--amber-500);
-  --accent2: var(--orange-600);
+     Dark-first：默认（无 data-theme 或 dark）走暮色海岸暗色。 */
+  --bg:    var(--ocean-950);
+  --card:  var(--ocean-900);
+  --fg:    var(--stone-100);
+  --head:  var(--stone-50);
+  --muted: var(--stone-400);
+  --brd:   var(--ocean-800);
+  --line:  rgba(148, 163, 184, 0.22);
+  --accent:  var(--sky-400);
+  --accent2: var(--sand-500);
 
   /* ── Surface / elevation ── */
-  --bg-canvas:   var(--slate-950);
-  --bg-panel:    var(--slate-900);
-  --bg-elevated: var(--slate-800);
-  --bg-hover:    var(--slate-700);
-  --bg-active:   var(--slate-600);
+  --bg-canvas:   var(--ocean-950);
+  --bg-panel:    var(--ocean-900);
+  --bg-elevated: #1e3a5f;
+  --bg-hover:    #254a6e;
+  --bg-active:   #2d5b7d;
   --border-subtle: rgba(255, 255, 255, 0.05);
   --border-default:  rgba(255, 255, 255, 0.08);
-  --border-hover:    rgba(255, 255, 255, 0.13);
-  --text-primary:    var(--slate-100);
-  --text-secondary:  var(--slate-400);
-  --text-muted:      var(--slate-500);
-  --text-tertiary:   var(--slate-600);
+  --border-hover:    rgba(255, 255, 255, 0.14);
+  --text-primary:    var(--stone-100);
+  --text-secondary:  var(--stone-300);
+  --text-muted:      var(--stone-500);
+  --text-tertiary:   var(--stone-600);
 
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.20);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.30);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.40);
-  --shadow-amber: 0 4px 14px rgba(245, 158, 11, 0.15);
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-accent: 0 4px 14px rgba(56, 189, 248, 0.18);
 
-  /* ── 材质 / glass 兼容变量（方向 A 以实色为主，但保留别名避免 page.js 报错） ── */
+  /* ── 材质 / glass 兼容变量 ── */
   --glass-bg:        var(--bg-panel);
   --glass-brd:       var(--border-default);
-  --glass-brd-blue:  rgba(245, 158, 11, 0.35);
+  --glass-brd-blue:  rgba(56, 189, 248, 0.40);
   --glass-inset-hi:  rgba(255, 255, 255, 0.06);
-  --glass-shadow:    rgba(0, 0, 0, 0.35);
+  --glass-shadow:    rgba(0, 0, 0, 0.40);
   --glass-blur:      0px;
-  --bar-track:       rgba(245, 158, 11, 0.10);
+  --bar-track:       rgba(56, 189, 248, 0.12);
   --panel-2:         rgba(255, 255, 255, 0.03);
-  --chip:            rgba(245, 158, 11, 0.12);
+  --chip:            rgba(56, 189, 248, 0.14);
   --popover-bg:      var(--bg-elevated);
   --popover-brd:     var(--border-default);
-  --popover-shadow:  rgba(0, 0, 0, 0.40);
+  --popover-shadow:  rgba(0, 0, 0, 0.45);
 
   /* ── 状态色 ── */
-  --st-planning: var(--amber-300);
-  --st-pending:  var(--slate-400);
-  --st-ready:    var(--slate-400);
-  --st-active:   var(--amber-500);
-  --st-check:    var(--amber-400);
+  --st-planning: var(--sand-300);
+  --st-pending:  var(--stone-400);
+  --st-ready:    var(--stone-400);
+  --st-active:   var(--sky-400);
+  --st-check:    var(--sand-400);
   --st-done:     var(--success);
   --st-failed:   var(--danger);
 
@@ -138,124 +155,129 @@
   --surface-bg-2: var(--bg-elevated);
   --surface-bg-3: var(--bg-active);
   --surface:      var(--bg-elevated);
-  --sel-bg:       rgba(245, 158, 11, 0.16);
-  --sel-fg:       var(--amber-400);
+  --sel-bg:       rgba(56, 189, 248, 0.18);
+  --sel-fg:       var(--sky-300);
 
-  /* ── 兼容旧色板别名（使 tailwind.config.js 与旧 page.js 不崩） ──
-     旧 ocean/whiteSand/goldSand/night 全部映射到新的 amber/slate 色系。 */
-  --ocean-foam:    var(--slate-200);
-  --ocean-shallow: var(--slate-400);
-  --ocean-mid:     var(--amber-500);
-  --ocean-deep:    var(--amber-600);
-  --ocean-abyss:   var(--amber-800);
-  --whiteSand-pearl:  var(--bg-panel);
-  --whiteSand-shell:  var(--bg-elevated);
+  /* ── 兼容旧色板别名 ──
+     旧 ocean/whiteSand/goldSand/night 映射到新的海滩色系。 */
+  --ocean-foam:    var(--sky-200);
+  --ocean-shallow: var(--sky-400);
+  --ocean-mid:     var(--sky-500);
+  --ocean-deep:    var(--sky-600);
+  --ocean-abyss:   var(--sky-800);
+  --whiteSand-pearl:  var(--bg-canvas);
+  --whiteSand-shell:  var(--bg-panel);
   --whiteSand-cream:  var(--bg-hover);
-  --goldSand-light:  var(--amber-200);
-  --goldSand-mid:    var(--amber-400);
-  --goldSand-deep:   var(--amber-500);
-  --goldSand-sunset: var(--amber-600);
-  --night-base: var(--slate-950);
-  --night-mid:  var(--slate-900);
-  --night-deep: var(--slate-800);
-  --skein-gold: var(--amber-400);
+  --goldSand-light:  var(--sand-200);
+  --goldSand-mid:    var(--sand-400);
+  --goldSand-deep:   var(--sand-500);
+  --goldSand-sunset: var(--sand-600);
+  --night-base: var(--ocean-950);
+  --night-mid:  var(--ocean-900);
+  --night-deep: var(--ocean-800);
+  --skein-gold: var(--sand-400);
 }
 
-/* ── 明模 · Refined Material Light ── */
+/* ── 明模 · 晴空碧海 Light ── */
 [data-theme="skein-light"] {
-  --bg:    #ffffff;
-  --card:  #fafafa;
-  --fg:    var(--slate-900);
-  --head:  var(--slate-900);
-  --muted: var(--slate-500);
-  --brd:   var(--slate-200);
-  --line:  rgba(148, 163, 184, 0.35);
-  --accent:  var(--amber-600);
-  --accent2: var(--orange-600);
+  --bg:    var(--sand-50);
+  --card:  #ffffff;
+  --fg:    var(--stone-700);
+  --head:  var(--stone-900);
+  --muted: var(--stone-500);
+  --brd:   var(--stone-200);
+  --line:  rgba(120, 113, 108, 0.25);
+  --accent:  var(--sky-500);
+  --accent2: var(--sand-600);
 
-  --bg-canvas:   #ffffff;
-  --bg-panel:    #fafafa;
+  --bg-canvas:   var(--sand-50);
+  --bg-panel:    #ffffff;
   --bg-elevated: #ffffff;
-  --bg-hover:    var(--slate-100);
-  --bg-active:   var(--slate-200);
+  --bg-hover:    var(--sky-50);
+  --bg-active:   var(--sky-100);
   --border-subtle: rgba(15, 23, 42, 0.04);
   --border-default:  rgba(15, 23, 42, 0.08);
-  --border-hover:    rgba(15, 23, 42, 0.14);
-  --text-primary:    var(--slate-900);
-  --text-secondary:  var(--slate-600);
-  --text-muted:      var(--slate-400);
-  --text-tertiary:   var(--slate-300);
+  --border-hover:    rgba(15, 23, 42, 0.15);
+  --text-primary:    var(--stone-800);
+  --text-secondary:  var(--stone-600);
+  --text-muted:      var(--stone-400);
+  --text-tertiary:   var(--stone-300);
 
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08);
-  --shadow-amber: 0 4px 14px rgba(245, 158, 11, 0.25);
+  --shadow-accent: 0 4px 14px rgba(14, 165, 233, 0.22);
 
   --glass-bg:        var(--bg-panel);
   --glass-brd:       var(--border-default);
-  --glass-brd-blue:  rgba(245, 158, 11, 0.45);
+  --glass-brd-blue:  rgba(14, 165, 233, 0.45);
   --glass-inset-hi:  rgba(255, 255, 255, 0.80);
   --glass-shadow:    rgba(0, 0, 0, 0.06);
-  --bar-track:       rgba(245, 158, 11, 0.10);
+  --bar-track:       rgba(14, 165, 233, 0.10);
   --panel-2:         rgba(15, 23, 42, 0.02);
-  --chip:            rgba(245, 158, 11, 0.10);
+  --chip:            rgba(14, 165, 233, 0.10);
   --popover-bg:      #ffffff;
-  --popover-brd:     var(--slate-200);
+  --popover-brd:     var(--stone-200);
   --popover-shadow:  rgba(0, 0, 0, 0.10);
 
   --st-planning: #d97706;
-  --st-pending:  #64748b;
-  --st-ready:    #64748b;
-  --st-active:   #f59e0b;
+  --st-pending:  #78716c;
+  --st-ready:    #78716c;
+  --st-active:   #0ea5e9;
   --st-check:    #d97706;
   --st-done:     #059669;
-  --st-failed:   #dc2626;
+  --st-failed:   #e11d48;
 
   --surface-bg-1: #ffffff;
-  --surface-bg-2: #fafafa;
-  --surface-bg-3: var(--slate-100);
-  --surface:      var(--slate-100);
-  --sel-bg:       rgba(245, 158, 11, 0.12);
-  --sel-fg:       var(--amber-700);
+  --surface-bg-2: var(--sand-50);
+  --surface-bg-3: var(--sky-50);
+  --surface:      var(--sky-50);
+  --sel-bg:       rgba(14, 165, 233, 0.12);
+  --sel-fg:       var(--sky-700);
 
   --success-bg: #ecfdf5;
   --warning-bg: #fffbeb;
-  --danger-bg:  #fef2f2;
-  --info-bg:    #eff6ff;
+  --danger-bg:  #fff1f2;
+  --info-bg:    #f0f9ff;
   --success-text: #047857;
   --warning-text: #b45309;
-  --danger-text:  #b91c1c;
-  --info-text:    #1d4ed8;
+  --danger-text:  #be123c;
+  --info-text:    #0369a1;
   --success-border: #a7f3d0;
   --warning-border: #fde68a;
-  --danger-border:  #fecaca;
-  --info-border:    #bfdbfe;
+  --danger-border:  #fecdd3;
+  --info-border:    #bae6fd;
 
   /* 兼容旧色板别名 */
-  --ocean-foam:    var(--slate-100);
-  --ocean-shallow: var(--slate-500);
-  --ocean-mid:     var(--amber-600);
-  --ocean-deep:    var(--amber-700);
-  --ocean-abyss:   var(--amber-900);
+  --ocean-foam:    var(--sky-100);
+  --ocean-shallow: var(--sky-500);
+  --ocean-mid:     var(--sky-600);
+  --ocean-deep:    var(--sky-700);
+  --ocean-abyss:   var(--sky-900);
   --whiteSand-pearl:  var(--bg-canvas);
   --whiteSand-shell:  var(--bg-panel);
   --whiteSand-cream:  var(--bg-hover);
-  --goldSand-light:  var(--amber-100);
-  --goldSand-mid:    var(--amber-500);
-  --goldSand-deep:   var(--amber-600);
-  --goldSand-sunset: var(--amber-700);
-  --night-base: var(--slate-50);
-  --night-mid:  var(--slate-100);
-  --night-deep: var(--slate-200);
-  --skein-gold: var(--amber-500);
+  --goldSand-light:  var(--sand-100);
+  --goldSand-mid:    var(--sand-500);
+  --goldSand-deep:   var(--sand-600);
+  --goldSand-sunset: var(--sand-700);
+  --night-base: var(--sand-50);
+  --night-mid:  var(--stone-100);
+  --night-deep: var(--stone-200);
+  --skein-gold: var(--sand-500);
+}
+
+/* 显式暗色主题（与默认 root 一致） */
+[data-theme="skein-dark"] {
+  /* 与 :root 默认暗色一致，无需覆盖 */
 }
 
 /* 系统偏好兜底：未设置 data-theme 时走暗色（Dark-first） */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="skein-light"]):not([data-theme="skein-dark"]) {
     /* 与默认 :root 一致，显式保留以增强可读性 */
-    --bg: var(--slate-950); --card: var(--slate-900); --fg: var(--slate-100);
-    --head: var(--slate-50); --muted: var(--slate-400); --brd: var(--slate-800);
-    --line: rgba(148, 163, 184, 0.20); --accent: var(--amber-500); --accent2: var(--orange-600);
+    --bg: var(--ocean-950); --card: var(--ocean-900); --fg: var(--stone-100);
+    --head: var(--stone-50); --muted: var(--stone-400); --brd: var(--ocean-800);
+    --line: rgba(148, 163, 184, 0.22); --accent: var(--sky-400); --accent2: var(--sand-500);
   }
 }

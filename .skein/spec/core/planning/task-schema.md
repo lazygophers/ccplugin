@@ -1,4 +1,5 @@
 ---
+inclusion: auto
 title: task-schema
 layer: core
 category: planning

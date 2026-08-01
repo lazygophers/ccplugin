@@ -1,4 +1,5 @@
 ---
+inclusion: auto
 title: perf
 layer: core
 category: script
