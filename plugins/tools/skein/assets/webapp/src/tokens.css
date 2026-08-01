@@ -167,7 +167,7 @@
   --muted: var(--oc-reef-400);
   --brd:   var(--oc-deepsea-800);
   --line:  rgba(107, 130, 152, 0.22);
-  --accent:  var(--oc-ocean-400);
+  --accent:  var(--oc-deepsea-400);
   --accent2: var(--oc-sunset-500);
 
   /* ── Surface / elevation ── */
@@ -187,18 +187,18 @@
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.25);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.45);
-  --shadow-accent: 0 4px 14px rgba(75, 185, 213, 0.18);
+  --shadow-accent: 0 4px 14px rgba(130, 154, 177, 0.18);
 
   /* ── 材质 / glass 兼容变量 ── */
   --glass-bg:        var(--bg-panel);
   --glass-brd:       var(--border-default);
-  --glass-brd-blue:  rgba(75, 185, 213, 0.40);
+  --glass-brd-blue:  rgba(130, 154, 177, 0.40);
   --glass-inset-hi:  rgba(255, 255, 255, 0.06);
   --glass-shadow:    rgba(0, 0, 0, 0.40);
   --glass-blur:      0px;
-  --bar-track:       rgba(75, 185, 213, 0.12);
+  --bar-track:       rgba(130, 154, 177, 0.12);
   --panel-2:         rgba(255, 255, 255, 0.03);
-  --chip:            rgba(75, 185, 213, 0.14);
+  --chip:            rgba(130, 154, 177, 0.14);
   --popover-bg:      var(--bg-elevated);
   --popover-brd:     var(--border-default);
   --popover-shadow:  rgba(0, 0, 0, 0.45);
@@ -229,8 +229,8 @@
   --surface-bg-2: var(--bg-elevated);
   --surface-bg-3: var(--bg-active);
   --surface:      var(--bg-elevated);
-  --sel-bg:       rgba(75, 185, 213, 0.18);
-  --sel-fg:       var(--oc-ocean-300);
+  --sel-bg:       rgba(130, 154, 177, 0.18);
+  --sel-fg:       var(--oc-deepsea-300);
 
   /* ── 兼容旧色板别名 ── */
   --ocean-foam:    var(--oc-ocean-200);
@@ -358,6 +358,6 @@
   :root:not([data-theme="skein-light"]):not([data-theme="skein-dark"]) {
     --bg: var(--oc-deepsea-950); --card: var(--oc-deepsea-900); --fg: var(--oc-reef-100);
     --head: var(--oc-reef-50); --muted: var(--oc-reef-400); --brd: var(--oc-deepsea-800);
-    --line: rgba(107, 130, 152, 0.22); --accent: var(--oc-ocean-400); --accent2: var(--oc-sunset-500);
+    --line: rgba(107, 130, 152, 0.22); --accent: var(--oc-deepsea-400); --accent2: var(--oc-sunset-500);
   }
 }

@@ -35,12 +35,14 @@
       "验收": [
         "Mixin attr-defined 全局归零"
       ],
-      "验收done": [],
-      "status": "运行中",
+      "验收done": [
+        1
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785550410,
       "started": 1785573774,
-      "finished": null
+      "finished": 1785574191
     },
     {
       "sid": "m3",
@@ -53,12 +55,14 @@
       "验收": [
         "doctor --quality 通过"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785550410,
-      "started": null,
-      "finished": null
+      "started": 1785574192,
+      "finished": 1785575515
     },
     {
       "sid": "m4",
@@ -72,10 +76,10 @@
         "守卫反向验证过 (见过红)"
       ],
       "验收done": [],
-      "status": "待处理",
+      "status": "运行中",
       "skills": [],
       "created": 1785550410,
-      "started": null,
+      "started": 1785575515,
       "finished": null
     }
   ],
@@ -99,6 +103,6 @@
   "confirmed": 1785551607,
   "checked": null,
   "finished": null,
-  "updated": 1785573774,
+  "updated": 1785575515,
   "confirmed_by": "user"
 }
