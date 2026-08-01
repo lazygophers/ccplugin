@@ -11,7 +11,7 @@
     },
     {
       "id": "skein-gitignore",
-      "status": "进行中",
+      "status": "检查中",
       "deps": [],
       "priority": 5,
       "worktree": ".worktrees/skein-skein-gitignore",
@@ -124,15 +124,6 @@
       "worktree": null,
       "parent": null,
       "kind": "supertask"
-    },
-    {
-      "id": "webapp-spa-mount-red",
-      "status": "待处理",
-      "deps": [],
-      "priority": 5,
-      "worktree": null,
-      "parent": null,
-      "kind": "task"
     },
     {
       "id": "board-overall-progress",

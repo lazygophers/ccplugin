@@ -14,6 +14,7 @@ if TYPE_CHECKING:
 
 from skeinlib.config import (_CFG_LEGACY, CONFIG_DEFAULTS, HOOKS_SKELETON, _cfg_get_path,
                              _cfg_paths, _cfg_set_path, _coerce_config, _yaml_dump, _yaml_load)
+from skeinlib.derivatives import gi_entries
 from skeinlib.errors import SkeinError
 from skeinlib.model import S_DONE
 from skeinlib.migrate import (disable_trellisx_plugin, migrate_trellis_tasks,
@@ -42,13 +43,9 @@ class Admin:
         cfg = self.ws.dir / "config.yaml"
         if not cfg.exists():
             cfg.write_text(_yaml_dump(dict(CONFIG_DEFAULTS)) + HOOKS_SKELETON)
-        # .skein/.gitignore — 忽略自动渲染看板 (task.md 从 task.json 无损重建, 且 AI 禁读写)
-        # + spec/.archive/ (完全重构可逆归档转储) + 衍生/临时 (hook 标记/审计日志/FTS 索引/软删转储)
+        # .skein/.gitignore — 条目从 derivatives.DERIVATIVES 单一登记处导出 (单一来源, 见该模块)
         gi = self.ws.dir / ".gitignore"
-        GI_ENTRIES = [
-            "task.md", "vision.md", "*.lock", "spec/.archive/",
-            "spec/.pending-fix", "spec/.audit-log", "spec/.recall.db", "trash/",
-        ]
+        GI_ENTRIES = gi_entries()
         if not gi.exists():
             gi.write_text("# skein.py 自动渲染/衍生, 不入库\n" + "\n".join(GI_ENTRIES) + "\n")
         else:
