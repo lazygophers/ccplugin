@@ -1,15 +1,6 @@
 {
   "tasks": [
     {
-      "id": "board-overall-progress",
-      "status": "检查中",
-      "deps": [],
-      "priority": 5,
-      "worktree": ".worktrees/skein-board-overall-progress",
-      "parent": null,
-      "kind": "task"
-    },
-    {
       "id": "concurrency-pools",
       "status": "进行中",
       "deps": [],
@@ -133,6 +124,15 @@
       "worktree": null,
       "parent": null,
       "kind": "supertask"
+    },
+    {
+      "id": "board-overall-progress",
+      "status": "已完成",
+      "deps": [],
+      "priority": 5,
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
     },
     {
       "id": "spec-model-core",
