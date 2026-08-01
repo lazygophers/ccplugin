@@ -160,3 +160,32 @@ exec/check/finish) 都过它。s2 单独落地 = 主干瞬间全灭 (140 failed 
 (s2 只换取值来源，校验本身留着)；看板两行 → s6；doctor 两池超限 → s5；全仓表述清理 → s7。
 
 design §5「不留 fallback」指配置真值层面禁新旧双读，不禁读取方单向切新键 —— 故不加过渡兜底。
+
+## s1 交付后的中间态不一致 (2026-08-02, main 审 golden 后记, s3 必须收口)
+
+s1 按裁定 B 只改 `model.py` 五张表、剔除表内「就绪」条目, `S_READY` 常量留过渡。这产生一个
+**跨表不一致的中间态**, 记在这里免得 s3 执行者当成自己引入的 bug:
+
+- 6 个消费文件 (lifecycle/scheduling/dag/query/doctor/views) 仍在往 task.json 写 `S_READY`,
+  所以 task 的 `status` 照旧是「就绪」;
+- 但 `PHASE_OF` 已删掉 `S_READY: "ready"`, 就绪态 task 的 `stage` 落到兜底值 `"plan"`;
+- `STATUS_ORDER` 也删了 `S_READY`, 就绪态 task 在看板排序里掉到末尾。
+
+净效果: **`status="就绪"` 而 `stage="plan"`, 且排序位置改变**。
+
+**main 对 golden 重生成的审计结论 (放行依据)**: s1 连带重生成了 `tests/views_golden.json`
+(336 行变动)。main 用集合比对逐项核过, 全部变化仅两类, 均可归因到上述 `PHASE_OF`/`STATUS_ORDER`
+剔除:
+
+1. `board_data.cards[gamma].stage` 与 `[zeta].stage`: `"ready"` → `"plan"` (这两个是 fixture 里
+   仅有的就绪态 task)
+2. 排序位置变化: `board_data.cards` 顺序由 `alpha,super1,beta,gamma,zeta,delta,ghost1,epsilon`
+   变为 `alpha,super1,beta,delta,ghost1,epsilon,gamma,zeta`; `queue.pendingQueue[].ti` 索引跟着变
+
+`dashboard.etaCards` / `dashboard.recentActive` / `queue.queueTasks` 三处经集合比对确认**纯重排,
+内容逐项相等**; `archive_list` / `search_*` / `task_detail_*` 六处**逐字未变**。**没有吞掉未察觉的
+漂移**, 故放行。
+
+**s3 的收口义务**: s3 做完 (`S_READY` 彻底删除 + 6 个消费文件迁到新状态机) 后, 上述不一致必须消失
+—— 届时不该再有任何 task 落到「status 是就绪」这个值上。s3 完成时须复核 golden 里 gamma/zeta 两项
+的 `status`/`stage` 是否已收敛到新状态机的合法组合, 而不是继续停在 `status="就绪"`。
