@@ -1,0 +1,23 @@
+{
+  "id": "spec-sqlite-meta",
+  "name": "spec SQLite metadata 索引",
+  "desc": "将 spec 内存缓存改为 SQLite 持久化: spec 文件级 metadata (path/title/namespace/category/keywords/inclusion/status) 存入 .recall.db 普通表 spec_meta, serve 端点直接查 SQLite 而非内存, 前端请求只取所需分页数据而非全量",
+  "status": "待处理",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [],
+  "priority": 5,
+  "estimate": null,
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/spec-sqlite-meta",
+  "parent": null,
+  "kind": "task",
+  "created": 1785583037,
+  "started": null,
+  "confirmed": null,
+  "checked": null,
+  "finished": null,
+  "updated": 1785583037
+}

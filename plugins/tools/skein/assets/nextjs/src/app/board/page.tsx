@@ -12,6 +12,8 @@ import { renderMd } from "@/lib/md";
 import { etaOf, etaText, fmtHours, actualOf, deltaText, overallSummary } from "@/lib/eta";
 import { drawEdgesPaths, buildDepDAG, type DagNode, type DagEdge } from "@/lib/depdag";
 import { ProgressBar } from "@/components/progress-bar";
+import { useToast } from "@/components/toast";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 
 const ALL_STATUSES = ["planning", "ready", "active", "check", "done"];
 const DEFAULT_FILTER = new Set(["planning", "ready", "active", "check"]);
@@ -250,6 +252,7 @@ function layoutDAG(tasks: NormTask[], view: { w: number; h: number }, density: D
 // ── Components ──
 
 export default function BoardPage() {
+  const toast = useToast();
   const [allTasks, setAllTasks] = useState<NormTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<"dag" | "list">("dag");
@@ -259,6 +262,7 @@ export default function BoardPage() {
   const [viewBox, setViewBox] = useState({ w: 1200, h: 800 });
   const wrapRef = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLDivElement>(null);
+  const [confirmAction, setConfirmAction] = useState<{ type: "delete" | "finish"; id: string; name: string } | null>(null);
 
   useEffect(() => {
     api.data().then((r) => {
@@ -381,9 +385,9 @@ export default function BoardPage() {
             {/* Right: Detail panel */}
             {selectedTask && (
               <DetailPanel task={selectedTask} allTasks={allTasks} onClose={() => setSelectedId(null)}
-                onConfirm={async (id) => { try { await api.exec("confirm", { id }); } catch {} }}
-                onFinish={async (id) => { if (confirm(`强制完成 #${id}?`)) { try { await api.exec("finish", { id }); } catch {} } }}
-                onDelete={async (id) => { if (confirm(`删除任务 #${id}?`)) { try { await api.exec("del", { id }); setSelectedId(null); } catch {} } }}
+                onConfirm={async (id) => { try { await api.exec("confirm", { id }); toast("已确认规划", "success"); } catch { toast("确认失败", "error"); } }}
+                onFinish={(id, name) => setConfirmAction({ type: "finish", id, name })}
+                onDelete={(id, name) => setConfirmAction({ type: "delete", id, name })}
                 onSelectTask={setSelectedId}
               />
             )}
@@ -404,6 +408,26 @@ export default function BoardPage() {
               ))}
             </div>
           )}
+
+          <ConfirmDialog
+            open={!!confirmAction}
+            title={confirmAction?.type === "delete" ? "删除任务" : "强制完成"}
+            message={confirmAction?.type === "delete"
+              ? `确认删除 "${confirmAction?.name}"？删除后可从回收站恢复。`
+              : `确认强制完成 "${confirmAction?.name}"？将合并 worktree 并标记为已完成。`}
+            confirmText={confirmAction?.type === "delete" ? "删除" : "完成"}
+            destructive={confirmAction?.type === "delete"}
+            onCancel={() => setConfirmAction(null)}
+            onConfirm={async () => {
+              if (!confirmAction) return;
+              const { type, id } = confirmAction;
+              setConfirmAction(null);
+              try {
+                if (type === "delete") { await api.exec("del", { id }); setSelectedId(null); toast("已删除", "success"); }
+                else { await api.exec("finish", { id }); toast("已完成", "success"); }
+              } catch { toast("操作失败", "error"); }
+            }}
+          />
         </main>
       </div>
     </div>
@@ -536,7 +560,7 @@ function ListView({ tasks, statusSet, onSelect }: { tasks: NormTask[]; statusSet
 // ── Detail Panel ──
 function DetailPanel({ task, allTasks, onClose, onConfirm, onFinish, onDelete, onSelectTask }: {
   task: NormTask; allTasks: NormTask[]; onClose: () => void;
-  onConfirm: (id: string) => void; onFinish: (id: string) => void; onDelete: (id: string) => void; onSelectTask: (id: string) => void;
+  onConfirm: (id: string) => void; onFinish: (id: string, name: string) => void; onDelete: (id: string, name: string) => void; onSelectTask: (id: string) => void;
 }) {
   const st = task.status || "planning";
   const meta = ST_META[st] || ST_META.planning;
@@ -546,7 +570,7 @@ function DetailPanel({ task, allTasks, onClose, onConfirm, onFinish, onDelete, o
   const subDone = subs.filter(s => s.status === "done").length;
 
   return (
-    <aside className="detail-panel absolute right-0 top-0 flex h-full w-[380px] flex-col border-l border-border/30 bg-card/60 backdrop-blur-md rounded-r-lg overflow-hidden shadow-xl z-10">
+    <aside className="detail-panel absolute right-0 top-0 flex h-full w-[456px] flex-col border-l border-border/30 bg-card/60 backdrop-blur-md rounded-r-lg overflow-hidden shadow-xl z-10">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border/50 px-5 py-4">
         <div className="min-w-0 flex-1">
@@ -554,7 +578,7 @@ function DetailPanel({ task, allTasks, onClose, onConfirm, onFinish, onDelete, o
             <StatusBadge status={st} />
             <CopyableId id={task.id} />
           </div>
-          <h3 className="truncate text-lg font-semibold text-foreground">{task.title || task.name || "(未命名)"}</h3>
+          <h3 className="text-base font-semibold leading-tight text-foreground" style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{task.title || task.name || "(未命名)"}</h3>
         </div>
         <div className="flex items-center gap-1.5">
           {st === "planning" && (
@@ -563,15 +587,15 @@ function DetailPanel({ task, allTasks, onClose, onConfirm, onFinish, onDelete, o
             </button>
           )}
           {(st === "active" || st === "check") && (
-            <button onClick={() => onFinish(task.id)} title="强制完成" className="rounded-md border border-primary/40 px-2 py-1 text-xs text-primary hover:bg-primary/10">
+            <button onClick={() => onFinish(task.id, task.title || task.name || task.id)} title="强制完成" className="rounded-md border border-primary/40 px-2 py-1 text-xs text-primary hover:bg-primary/10">
               <i className="fa fa-flag-checkered mr-1" />完成
             </button>
           )}
           <Link href={`/task/detail/?id=${task.id}`} prefetch={false} title="打开详情页" className="rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:bg-muted/30 hover:text-foreground">
             <i className="fa fa-external-link mr-1" />详情
           </Link>
-          <button onClick={() => onDelete(task.id)} title="删除任务" className="rounded-md border border-destructive/40 px-2 py-1 text-xs text-destructive hover:bg-destructive/10">
-            <i className="fa fa-trash" />
+          <button onClick={() => onDelete(task.id, task.title || task.name || task.id)} title="删除任务" className="rounded-md border border-destructive/50 bg-destructive/10 px-2 py-1 text-xs text-destructive hover:bg-destructive/20">
+            <i className="fa fa-trash mr-1" />删除
           </button>
           <button onClick={onClose} title="关闭" className="rounded-md p-1.5 text-muted-foreground hover:bg-muted/30 hover:text-foreground"><i className="fa fa-times" /></button>
         </div>
@@ -665,14 +689,14 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 function CopyableId({ id, label }: { id: string; label?: string }) {
-  const [copied, setCopied] = useState(false);
+  const toast = useToast();
   return (
     <span
-      onClick={() => { navigator.clipboard?.writeText(id); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
+      onClick={() => { navigator.clipboard?.writeText(id); toast(`已复制 ${label || "ID"}: ${id}`, "success"); }}
       className="cursor-pointer font-mono text-xs text-muted-foreground hover:text-primary transition-colors"
       title={`点击复制 ${label || "ID"}: ${id}`}
     >
-      {copied ? <i className="fa fa-check text-seaweed mr-0.5" /> : <i className="fa fa-clone mr-0.5 text-[10px]" />}
+      <i className="fa fa-clone mr-0.5 text-[10px]" />
       #{id}
     </span>
   );

@@ -12,6 +12,8 @@ import { renderMd } from "@/lib/md";
 import { etaOf, etaText, fmtHours, actualOf, deltaText, type EtaResult } from "@/lib/eta";
 import { drawEdgesPaths, buildDepDAG } from "@/lib/depdag";
 import { ProgressBar } from "@/components/progress-bar";
+import { useToast } from "@/components/toast";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { cn } from "@/lib/utils";
 
 // ── Timeline stages (from old app.js buildTimeline) ──
@@ -47,6 +49,7 @@ function isPlaceholder(src: string): boolean {
 }
 
 function TaskDetailContent() {
+  const toast = useToast();
   const params = useSearchParams();
   const id = params.get("id") || "";
   const [task, setTask] = useState<NormTask | null>(null);
@@ -57,6 +60,7 @@ function TaskDetailContent() {
   const [research, setResearch] = useState<Record<string, string>>({});
   const [prd, setPrd] = useState<{ name: string; items?: { text: string; done?: boolean; kind?: string }[]; badge?: [number, number] }[]>([]);
   const [notFound, setNotFound] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<{ type: "delete" | "finish" } | null>(null);
 
   const load = useCallback(() => {
     if (!id) return;
@@ -144,18 +148,18 @@ function TaskDetailContent() {
               </div>
               <div className="flex items-center gap-2">
                 {st === "planning" && (
-                  <button onClick={async () => { try { await api.exec("confirm", { id: task.id }); setTimeout(load, 500); } catch {} }} title="确认规划 → 进就绪" className="rounded-md border border-primary/40 px-3 py-1.5 text-xs text-primary hover:bg-primary/10">
-                    <i className="fa fa-check mr-1" />确认规划
+                  <button onClick={async () => { try { await api.exec("confirm", { id: task.id }); toast("已确认规划", "success"); setTimeout(load, 500); } catch { toast("确认失败", "error"); } }} title="确认规划 → 进就绪" className="rounded-md border border-primary/40 p-2 text-primary hover:bg-primary/10">
+                    <i className="fa fa-check" />
                   </button>
                 )}
                 {(st === "active" || st === "check") && (
-                  <button onClick={async () => { if (confirm(`强制完成 #${task.id}?`)) { try { await api.exec("finish", { id: task.id }); setTimeout(load, 500); } catch {} } }} title="强制完成" className="rounded-md border border-primary/40 px-3 py-1.5 text-xs text-primary hover:bg-primary/10">
-                    <i className="fa fa-flag-checkered mr-1" />强制完成
+                  <button onClick={() => setConfirmAction({ type: "finish" })} title="强制完成" className="rounded-md border border-primary/40 p-2 text-primary hover:bg-primary/10">
+                    <i className="fa fa-flag-checkered" />
                   </button>
                 )}
                 <StatusBadge status={st} className="px-4 py-1 text-base" />
-                <button onClick={async () => { if (confirm(`删除任务 #${task.id}?`)) { try { await api.exec("del", { id: task.id }); window.location.href = "/board/"; } catch {} } }} title="删除任务" className="rounded-md border border-destructive/40 px-3 py-1.5 text-xs text-destructive hover:bg-destructive/10">
-                  <i className="fa fa-trash mr-1" />删除
+                <button onClick={() => setConfirmAction({ type: "delete" })} title="删除任务" className="rounded-md border border-destructive/50 bg-destructive/10 p-2 text-destructive hover:bg-destructive/20">
+                  <i className="fa fa-trash" />
                 </button>
               </div>
             </div>
@@ -254,11 +258,16 @@ function TaskDetailContent() {
               <Card title="操作" icon="fa-cog">
                 <div className="flex flex-wrap gap-2">
                   {st === "planning" && (
-                    <button onClick={async () => { try { await api.exec("confirm", { id: task.id }); load(); } catch {} }} className="w-full rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90">
+                    <button onClick={async () => { try { await api.exec("confirm", { id: task.id }); toast("已确认规划", "success"); setTimeout(load, 500); } catch { toast("确认失败", "error"); } }} className="w-full rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90">
                       <i className="fa fa-check mr-1.5" />确认规划 → 就绪
                     </button>
                   )}
-                  <button onClick={async () => { if (confirm(`删除任务 #${task.id}? 软删进 .skein/trash/, 可恢复`)) { try { await api.exec("del", { id: task.id }); window.location.href = "/board/"; } catch {} } }} className="w-full rounded-md border border-destructive px-3 py-2 text-xs font-medium text-destructive transition-colors hover:bg-destructive/10">
+                  {(st === "active" || st === "check") && (
+                    <button onClick={() => setConfirmAction({ type: "finish" })} className="w-full rounded-md border border-primary px-3 py-2 text-xs font-medium text-primary transition-colors hover:bg-primary/10">
+                      <i className="fa fa-flag-checkered mr-1.5" />强制完成
+                    </button>
+                  )}
+                  <button onClick={() => setConfirmAction({ type: "delete" })} className="w-full rounded-md border border-destructive px-3 py-2 text-xs font-medium text-destructive transition-colors hover:bg-destructive/10">
                     <i className="fa fa-times-circle mr-1.5" />删除任务
                   </button>
                 </div>
