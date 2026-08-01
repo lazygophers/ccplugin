@@ -1,0 +1,199 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xl: calc(var(--radius) + 6px);
+}
+
+/* ═══ Ocean & Sand 设计系统 — Light (Ocean 主题) ═══ */
+:root {
+  /* Ocean 色板 */
+  --oc-ocean-50: #E8F6FA; --oc-ocean-100: #C5EBF4; --oc-ocean-200: #9EDCEA; --oc-ocean-300: #73CBE0;
+  --oc-ocean-400: #4BB9D5; --oc-ocean-500: #26A6C8; --oc-ocean-600: #1E8BA8; --oc-ocean-700: #166F88;
+  --oc-ocean-800: #0F5368; --oc-ocean-900: #073848; --oc-ocean-950: #032230;
+
+  /* Sand 色板 */
+  --oc-sand-50: #FDF9F3; --oc-sand-100: #F9F0E3; --oc-sand-200: #F5E7D3; --oc-sand-300: #F1DEC3;
+  --oc-sand-400: #EDD5B3; --oc-sand-500: #E8CCA3; --oc-sand-600: #D4B88F; --oc-sand-700: #C0A47B;
+  --oc-sand-800: #AC9067; --oc-sand-900: #987C53; --oc-sand-950: #7A6340;
+
+  /* Coral 色板 */
+  --oc-coral-50: #FFF0ED; --oc-coral-100: #FFD9D1; --oc-coral-200: #FFC2B5; --oc-coral-300: #FFAB99;
+  --oc-coral-400: #FF947D; --oc-coral-500: #FF7D61; --oc-coral-600: #E66A50; --oc-coral-700: #CC573F;
+  --oc-coral-800: #B3442E; --oc-coral-900: #99311D; --oc-coral-950: #7A2312;
+
+  /* Seaweed 色板 */
+  --oc-seaweed-50: #E8F5E9; --oc-seaweed-100: #C8E6C9; --oc-seaweed-200: #A5D6A7; --oc-seaweed-300: #81C784;
+  --oc-seaweed-400: #66BB6A; --oc-seaweed-500: #4CAF50; --oc-seaweed-600: #43A047; --oc-seaweed-700: #388E3C;
+  --oc-seaweed-800: #2E7D32; --oc-seaweed-900: #1B5E20; --oc-seaweed-950: #0D3B10;
+
+  /* Shell 色板 */
+  --oc-shell-50: #FFFBF7; --oc-shell-100: #FFF5ED; --oc-shell-200: #FFEDD8; --oc-shell-300: #FFE0C2;
+  --oc-shell-400: #FFD0A8; --oc-shell-500: #FFBF8F; --oc-shell-600: #E6A87A; --oc-shell-700: #CC9166;
+  --oc-shell-800: #B37A53; --oc-shell-900: #996340; --oc-shell-950: #7A4D2E;
+
+  /* Sunset 色板 */
+  --oc-sunset-50: #FFF8E8; --oc-sunset-100: #FFEFC5; --oc-sunset-200: #FFE49E; --oc-sunset-300: #FFD673;
+  --oc-sunset-400: #FFC84A; --oc-sunset-500: #FFB627; --oc-sunset-600: #E6A020; --oc-sunset-700: #CC8B1A;
+  --oc-sunset-800: #B37614; --oc-sunset-900: #99610E; --oc-sunset-950: #7A4D08;
+
+  /* DeepSea 色板 */
+  --oc-deepsea-50: #F0F4F8; --oc-deepsea-100: #D9E2EC; --oc-deepsea-200: #BCCCDC; --oc-deepsea-300: #9FB3C8;
+  --oc-deepsea-400: #829AB1; --oc-deepsea-500: #627D98; --oc-deepsea-600: #486581; --oc-deepsea-700: #334E68;
+  --oc-deepsea-800: #243B53; --oc-deepsea-900: #102A43; --oc-deepsea-950: #061B2D;
+
+  /* Foam 色板 */
+  --oc-foam-50: #F7FCFE; --oc-foam-100: #E8F6FA; --oc-foam-200: #D5EDF5; --oc-foam-300: #B8E0ED;
+  --oc-foam-400: #96D0E3; --oc-foam-500: #6EBDD7; --oc-foam-600: #5BA8C2; --oc-foam-700: #4893AD;
+  --oc-foam-800: #357E98; --oc-foam-900: #226983; --oc-foam-950: #13546E;
+
+  /* Reef 色板 */
+  --oc-reef-50: #F5F7FA; --oc-reef-100: #E1E7ED; --oc-reef-200: #C8D1DB; --oc-reef-300: #A8B8C8;
+  --oc-reef-400: #8A9DB0; --oc-reef-500: #6B8298; --oc-reef-600: #556B7D; --oc-reef-700: #405462;
+  --oc-reef-800: #2B3D48; --oc-reef-900: #16262E; --oc-reef-950: #0A161C;
+
+  /* Neutral 色板 */
+  --oc-neutral-50: #FAFAF9; --oc-neutral-100: #F5F5F4; --oc-neutral-200: #E7E5E4; --oc-neutral-300: #D6D3D1;
+  --oc-neutral-400: #A8A29E; --oc-neutral-500: #78716C; --oc-neutral-600: #57534E; --oc-neutral-700: #44403C;
+  --oc-neutral-800: #292524; --oc-neutral-900: #1C1917; --oc-neutral-950: #0F0D0B;
+
+  /* shadcn 语义映射 — Light: Ocean 主题 */
+  --background: var(--oc-sand-50);
+  --foreground: var(--oc-neutral-800);
+  --card: #ffffff;
+  --card-foreground: var(--oc-neutral-800);
+  --popover: #ffffff;
+  --popover-foreground: var(--oc-neutral-800);
+  --primary: var(--oc-ocean-500);
+  --primary-foreground: #ffffff;
+  --secondary: var(--oc-foam-100);
+  --secondary-foreground: var(--oc-ocean-700);
+  --muted: var(--oc-neutral-100);
+  --muted-foreground: var(--oc-neutral-500);
+  --accent: var(--oc-ocean-100);
+  --accent-foreground: var(--oc-ocean-700);
+  --destructive: var(--oc-coral-500);
+  --border: var(--oc-neutral-200);
+  --input: var(--oc-neutral-200);
+  --ring: var(--oc-ocean-400);
+  --chart-1: var(--oc-ocean-500);
+  --chart-2: var(--oc-sunset-500);
+  --chart-3: var(--oc-seaweed-500);
+  --chart-4: var(--oc-coral-500);
+  --chart-5: var(--oc-deepsea-500);
+  --radius: 0.5rem;
+  --font-sans: 'Maple Mono', 'Maple Mono NF', 'Maple Mono SC', monospace;
+  --font-mono: 'Maple Mono', 'Maple Mono NF', 'Maple Mono SC', monospace;
+  --sidebar: #ffffff;
+  --sidebar-foreground: var(--oc-neutral-800);
+  --sidebar-primary: var(--oc-ocean-500);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: var(--oc-foam-50);
+  --sidebar-accent-foreground: var(--oc-ocean-700);
+  --sidebar-border: var(--oc-neutral-200);
+  --sidebar-ring: var(--oc-ocean-400);
+
+  /* SKEIN 状态色 — plan→Coral | 待执行→Ocean | exec→Coral | check→Sunset | finish→DeepSea */
+  --st-planning: var(--oc-coral-600);
+  --st-pending: var(--oc-ocean-600);
+  --st-ready: var(--oc-ocean-600);
+  --st-active: var(--oc-coral-600);
+  --st-check: var(--oc-sunset-600);
+  --st-done: var(--oc-deepsea-600);
+  --st-failed: var(--oc-coral-600);
+}
+
+/* ═══ Dark (DeepSea 主题) ═══ */
+.dark {
+  --background: var(--oc-deepsea-950);
+  --foreground: var(--oc-reef-100);
+  --card: var(--oc-deepsea-900);
+  --card-foreground: var(--oc-reef-100);
+  --popover: var(--oc-deepsea-800);
+  --popover-foreground: var(--oc-reef-100);
+  --primary: var(--oc-deepsea-400);
+  --primary-foreground: #ffffff;
+  --secondary: var(--oc-deepsea-800);
+  --secondary-foreground: var(--oc-reef-300);
+  --muted: var(--oc-deepsea-800);
+  --muted-foreground: var(--oc-reef-400);
+  --accent: var(--oc-deepsea-700);
+  --accent-foreground: var(--oc-reef-300);
+  --destructive: var(--oc-coral-400);
+  --border: var(--oc-deepsea-700);
+  --input: var(--oc-deepsea-700);
+  --ring: var(--oc-deepsea-400);
+  --chart-1: var(--oc-deepsea-400);
+  --chart-2: var(--oc-sunset-400);
+  --chart-3: var(--oc-seaweed-400);
+  --chart-4: var(--oc-coral-400);
+  --chart-5: var(--oc-ocean-400);
+  --sidebar: var(--oc-deepsea-900);
+  --sidebar-foreground: var(--oc-reef-100);
+  --sidebar-primary: var(--oc-deepsea-400);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: var(--oc-deepsea-800);
+  --sidebar-accent-foreground: var(--oc-reef-300);
+  --sidebar-border: var(--oc-deepsea-700);
+  --sidebar-ring: var(--oc-deepsea-400);
+
+  --st-planning: var(--oc-coral-400);
+  --st-pending: var(--oc-ocean-400);
+  --st-ready: var(--oc-ocean-400);
+  --st-active: var(--oc-coral-400);
+  --st-check: var(--oc-sunset-400);
+  --st-done: var(--oc-deepsea-400);
+  --st-failed: var(--oc-coral-500);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}

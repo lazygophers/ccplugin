@@ -1,0 +1,75 @@
+/* 图标: font-awesome 4.7 子集 (只含本前端实际用到的 53 枚字形) — 取代 CDN 的 30KB css + 75KB woff2。
+   重新生成: 见 tailwind.config.js 同级的 icons 构建说明 (pyftsubset --unicodes-file)。 */
+@font-face {
+  font-family: 'FontAwesome';
+  src: url(/fonts/fa-subset.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+.fa {
+  display: inline-block;
+  font: normal normal normal 14px/1 FontAwesome;
+  font-size: inherit;
+  text-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+.fa-lg { font-size: 1.33333333em; line-height: .75em; vertical-align: -15%; }
+.fa-fw { width: 1.28571429em; text-align: center; }
+.fa-spin { animation: fa-spin 2s infinite linear; }
+@keyframes fa-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(359deg); } }
+
+.fa-angle-right:before { content: "\f105"; }
+.fa-archive:before { content: "\f187"; }
+.fa-arrow-down:before { content: "\f063"; }
+.fa-arrow-up:before { content: "\f062"; }
+.fa-bolt:before { content: "\f0e7"; }
+.fa-bullseye:before { content: "\f140"; }
+.fa-check:before { content: "\f00c"; }
+.fa-check-circle:before { content: "\f058"; }
+.fa-check-square:before { content: "\f14a"; }
+.fa-check-square-o:before { content: "\f046"; }
+.fa-chevron-down:before { content: "\f078"; }
+.fa-chevron-left:before { content: "\f053"; }
+.fa-chevron-right:before { content: "\f054"; }
+.fa-chevron-up:before { content: "\f077"; }
+.fa-circle-o:before { content: "\f10c"; }
+.fa-clock-o:before { content: "\f017"; }
+.fa-cog:before { content: "\f013"; }
+.fa-cube:before { content: "\f1b2"; }
+.fa-exclamation-triangle:before { content: "\f071"; }
+.fa-expand:before { content: "\f065"; }
+.fa-external-link:before { content: "\f08e"; }
+.fa-eye:before { content: "\f06e"; }
+.fa-file-text-o:before { content: "\f0f6"; }
+.fa-flag:before { content: "\f024"; }
+.fa-flag-o:before { content: "\f11d"; }
+.fa-hand-pointer-o:before { content: "\f25a"; }
+.fa-handshake-o:before { content: "\f2b5"; }
+.fa-history:before { content: "\f1da"; }
+.fa-inbox:before { content: "\f01c"; }
+.fa-lightbulb-o:before { content: "\f0eb"; }
+.fa-link:before { content: "\f0c1"; }
+.fa-list:before { content: "\f03a"; }
+.fa-list-ul:before { content: "\f0ca"; }
+.fa-minus:before { content: "\f068"; }
+.fa-moon-o:before { content: "\f186"; }
+.fa-pencil:before { content: "\f040"; }
+.fa-play:before { content: "\f04b"; }
+.fa-plus:before { content: "\f067"; }
+.fa-search:before { content: "\f002"; }
+.fa-search-minus:before { content: "\f010"; }
+.fa-search-plus:before { content: "\f00e"; }
+.fa-share-alt:before { content: "\f1e0"; }
+.fa-sitemap:before { content: "\f0e8"; }
+.fa-spinner:before { content: "\f110"; }
+.fa-square-o:before { content: "\f096"; }
+.fa-star:before { content: "\f005"; }
+.fa-sun-o:before { content: "\f185"; }
+.fa-tasks:before { content: "\f0ae"; }
+.fa-th:before { content: "\f00a"; }
+.fa-th-large:before { content: "\f009"; }
+.fa-times:before { content: "\f00d"; }
+.fa-times-circle:before { content: "\f057"; }
+.fa-user:before { content: "\f007"; }
