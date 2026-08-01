@@ -45,6 +45,9 @@ def main() -> None:
     dp = sub.add_parser("deps", help="查/补 task 级前置 DAG (dedup 排序用; 仅 pending 且无既有 deps 可写)")
     dp.add_argument("id", help="task id")
     dp.add_argument("--set", help="设置前置 task id (逗号分隔; 仅当该 task 现无 deps 时允许); 省略则列出")
+    pt = sub.add_parser("parent", help="查/改既有 task 的 parent 挂载 (与 deps 正交, 不碰任何 deps; 摘除=--set 空串)")
+    pt.add_argument("id", help="task id")
+    pt.add_argument("--set", help="设置父 supertask/task id (空串=摘除, 省略则查看当前值)")
     cf = sub.add_parser("confirm", help="用户确认门 (待处理→就绪): 须**用户本人**审核 PRD 后才放行, 两条通道见 --approved / 终端交互")
     cf.add_argument("id", help="task id")
     cf.add_argument("--summary", action="store_true",
@@ -175,6 +178,7 @@ def main() -> None:
         "finish": sk.lifecycle.finish, "archive": sk.lifecycle.archive,
         "repos": sk.lifecycle.repos, "deps": sk.lifecycle.deps,
         "estimate": sk.lifecycle.estimate, "rename": sk.lifecycle.rename,
+        "parent": sk.lifecycle.parent,
         "del": sk.lifecycle.del_, "delete": sk.lifecycle.del_,
         "rm": sk.lifecycle.del_, "remove": sk.lifecycle.del_,
         # Scheduler: subtask DAG 调度
@@ -190,7 +194,7 @@ def main() -> None:
     # 会写 task.json / task.md 的命令加工作区写锁 (防多 skein 进程并发 read-modify-write)。
     # 纯读命令 (current/ready/list/board/view) 免锁。subtask 含读 action 但整体加锁最省事。
     MUTATING = {"init", "setup", "create", "confirm", "start", "check", "finish", "fmt", "archive", "clean",
-                "contract", "repos", "deps", "estimate", "subtask", "claim", "prd", "del", "delete", "rm", "remove",
+                "contract", "repos", "deps", "parent", "estimate", "subtask", "claim", "prd", "del", "delete", "rm", "remove",
                 "rename", "config"}
     if a.cmd in MUTATING:
         with _workspace_lock(sk.dir / ".lock"):
