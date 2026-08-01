@@ -1091,6 +1091,7 @@
   },
   "task_detail_alpha": {
     "archived": false,
+    "childTasks": [],
     "contracts": [
       "契约A",
       "契约B"
@@ -1110,6 +1111,7 @@
       "prd": "# alpha — PRD\n\n## 目标\n交付纯视图模块。\n- [x] 拆出 Snapshot\n- [ ] 六视图纯函数化\n- [ ] TODO: 占位跳过\n\n## 边界\n- [ ] 不动调度\n\n## 验收标准\n输出字节级不变。\n- [x] golden 通过\n- [ ] TestClient 覆盖\n"
     },
     "maxActive": 2,
+    "parentTask": null,
     "prd": [
       {
         "badge": [
@@ -1286,6 +1288,7 @@
   "task_detail_ghost1": null,
   "task_detail_old1": {
     "archived": true,
+    "childTasks": [],
     "contracts": [],
     "depTasks": [],
     "dependents": [],
@@ -1295,6 +1298,7 @@
       "prd": null
     },
     "maxActive": 2,
+    "parentTask": null,
     "prd": [],
     "progress": 100,
     "research": {},

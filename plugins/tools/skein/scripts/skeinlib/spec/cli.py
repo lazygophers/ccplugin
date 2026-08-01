@@ -73,6 +73,15 @@ def main() -> None:
     mp = sub.add_parser("map", help="[只读] 现算目录树+符号+行数 (不写盘; ponytail: 正则非AST, 升级路径tree-sitter)")
     mp.add_argument("--skeleton", action="store_true", help="骨架模式: 仅顶层符号 (Python def/class/async def, JS/TS function/class/export, Go func/type)")
     mp.add_argument("--paths", help="文件清单注入 (逗号分隔路径; 缺省=git ls-files, 非git降级rglob)")
+    am = sub.add_parser("amend", help="改写既有章节正文, 其余章节与 frontmatter 逐字不动; 改前 archive 旧版; 章节不存在报错并列现有章节名; --rename-section 同步更新反链; 后自动 reindex")
+    am.add_argument("--topic", required=True, help="主题路径 (<ns>/<cat>/<topic>)")
+    am.add_argument("--section", required=True, help="目标章节名 (标题不含 ##)")
+    am.add_argument("--body-file", required=True, help="新章节正文文件路径")
+    am.add_argument("--rename-section", help="改写后的新章节名 (不改标题则不传此参数)")
+    fc = sub.add_parser("finish-candidates", help="[finish 用] 为 task 生成候选 product wiki 页 (三路降级: anchors反查→prd关键词recall→皆无建议新建)")
+    fc.add_argument("tid", help="task id (.skein/task/<tid>/ 下须有 task.json, prd.md)")
+    fc.add_argument("--json", action="store_true", help="机器可读输出 (JSON 格式)")
+    fc.add_argument("--files", help="文件列表 (逗号分隔, 测试用; 缺省则 git diff 取得)")
 
     # --debug 可置子命令前后任意位置: 预剥离 argv (argparse 子解析器不认父级 flag)
     cli_debug = any(x in ("-d", "--debug") for x in sys.argv[1:])
@@ -89,6 +98,6 @@ def main() -> None:
         "sediment": m.sediment, "reindex": m.reindex, "list": m.list_,
         "maintain": m.maintain, "degrade": m.degrade, "analyze": m.analyze,
         "archive": m.archive, "restore": m.restore, "restructure": m.restructure,
-        "map": m.map,
+        "map": m.map, "amend": m.amend, "finish-candidates": m.finish_candidates,
     }[cast(str, a.cmd)](a)
     DBG.log(f"✓ {a.cmd} 完成", style="bold green")

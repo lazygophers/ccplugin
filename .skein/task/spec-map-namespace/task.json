@@ -2,7 +2,7 @@
   "id": "spec-map-namespace",
   "name": "map namespace: 骨架现算 + anchors 断链",
   "desc": "git ls-files 目录树 + 正则抓顶层符号现算不落盘(纯 stdlib, ponytail 标 ceiling) + 语义页 anchors + 断链判据扩到 anchors 失效",
-  "status": "待处理",
+  "status": "检查中",
   "deps": [
     "spec-model-core"
   ],
@@ -33,8 +33,8 @@
       "status": "已完成",
       "skills": [],
       "created": 1785382646,
-      "started": null,
-      "finished": 1785594259
+      "started": 1785594113,
+      "finished": 1785594272
     },
     {
       "sid": "k2",
@@ -48,12 +48,17 @@
         "map 命令合并骨架与语义",
         "顶层地图可标 always 并被注入"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785382646,
-      "started": null,
-      "finished": null
+      "started": 1785594276,
+      "finished": 1785594735
     },
     {
       "sid": "k3",
@@ -70,12 +75,18 @@
         "product anchors 失效只报告",
         "判定逻辑只有一处实现"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785382646,
-      "started": null,
-      "finished": null
+      "started": 1785594276,
+      "finished": 1785594476
     },
     {
       "sid": "k4",
@@ -92,26 +103,38 @@
         "骨架不落盘用例断言临时目录文件集合无变化",
         "doctor --quality 通过"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785382646,
-      "started": null,
-      "finished": null
+      "started": 1785594736,
+      "finished": 1785594885
     }
   ],
   "priority": 5,
   "estimate": 2.5,
   "repos": [],
-  "worktree": null,
-  "worktrees": [],
+  "worktree": ".worktrees/skein-spec-map-namespace",
+  "worktrees": [
+    {
+      "repo": ".",
+      "wt": ".worktrees/skein-spec-map-namespace",
+      "branch": "skein/spec-map-namespace",
+      "merged": false
+    }
+  ],
   "branch": "skein/spec-map-namespace",
   "parent": "spec-wiki-v2",
   "kind": "task",
   "created": 1785381913,
-  "started": null,
-  "confirmed": null,
-  "checked": null,
+  "started": 1785594113,
+  "confirmed": 1785594107,
+  "checked": 1785594885,
   "finished": null,
-  "updated": 1785594259
+  "updated": 1785595090,
+  "confirmed_by": "user"
 }

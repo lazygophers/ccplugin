@@ -295,11 +295,27 @@ def _view_task_detail(snap: Snapshot, tid: str) -> Optional[dict[str, Any]]:
             dep_tasks.append(brief)
         if tid in t.get("deps", []):
             dependents.append(brief)
+    # 父子关系: supertask → child task 列表; child → parent task 信息
+    parent_id = data.get("parent")
+    parent_task = None
+    child_tasks: list[dict[str, Any]] = []
+    if parent_id:
+        for t in snap.all_tasks:
+            if t["id"] == parent_id:
+                parent_task = {"id": t["id"], "name": t.get("name") or t["id"],
+                               "status": t.get("status"), "desc": t.get("desc", "")}
+                break
+    if data.get("kind") == "supertask":
+        for t in snap.all_tasks:
+            if t.get("parent") == tid:
+                child_tasks.append({"id": t["id"], "name": t.get("name") or t["id"],
+                                    "status": t.get("status"), "desc": t.get("desc", "")})
     return {"task": data, "docs": docs, "research": research, "archived": archived,
             "subtasks": data.get("subtasks", []), "contracts": data.get("contracts", []),
             "maxActive": snap.max_active,  # 前端 ETA 折算并行墙钟用
             "prd": _prd_parse(docs.get("prd")), "progress": _task_pct(data),
-            "stage": _task_stage(data), "depTasks": dep_tasks, "dependents": dependents}
+            "stage": _task_stage(data), "depTasks": dep_tasks, "dependents": dependents,
+            "parentTask": parent_task, "childTasks": child_tasks}
 def _view_archive_list(snap: Snapshot) -> list[dict[str, Any]]:
     # 已归档 task 列表 (archive/<年>/<月-日>/<id>)
     out: list[dict[str, Any]] = []
@@ -525,8 +541,8 @@ class DataSource(Protocol):
     def _spec_rev(self) -> str: ...
     def _spec_tree(self) -> dict[str, Any]: ...
     def _spec_resolve(self, rel: Any) -> Optional[Path]: ...
-    def _spec_build_cache(self) -> None: ...
-    def _spec_meta(self) -> list[dict[str, Any]]: ...
+    def _spec_meta(self, page: int = ..., page_size: int = ..., namespace: str = ...,
+                   category: str = ..., keyword: str = ...) -> dict[str, Any]: ...
     def _spec_search(self, q: str) -> list[dict[str, Any]]: ...
     def _exec_argv(self, body: dict[str, Any]) -> Optional[list[str]]: ...
     def config(self) -> dict[str, Any]: ...

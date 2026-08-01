@@ -246,6 +246,43 @@ function TaskDetailContent() {
                 </Card>
               )}
 
+              {/* Parent/Child relationship */}
+              {(() => {
+                const pt = raw?.parentTask as Record<string, unknown> | undefined;
+                const ct = (raw?.childTasks || []) as Record<string, unknown>[];
+                if (!pt && ct.length === 0) return null;
+                return (
+                <Card title="父子关系" icon="fa-sitemap">
+                  {pt && (
+                    <div className="mb-2">
+                      <div className="mb-1 text-[10px] text-muted-foreground">父任务</div>
+                      <Link prefetch={false} href={`/task/detail/?id=${pt.id}`} className="flex items-start gap-2 rounded-md p-2 transition-colors hover:bg-muted/30">
+                        <StatusDot status={pt.status as string} className="mt-1.5" />
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm text-foreground">{pt.name as string}</div>
+                        </div>
+                      </Link>
+                    </div>
+                  )}
+                  {ct.length > 0 && (
+                    <div>
+                      <div className="mb-1 text-[10px] text-muted-foreground">子任务 ({ct.length})</div>
+                      <div className="space-y-1">
+                        {ct.map(c => (
+                          <Link key={c.id as string} prefetch={false} href={`/task/detail/?id=${c.id}`} className="flex items-start gap-2 rounded-md p-2 transition-colors hover:bg-muted/30">
+                            <StatusDot status={c.status as string} className="mt-1.5" />
+                            <div className="min-w-0 flex-1">
+                              <div className="text-sm text-foreground">{c.name as string}</div>
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </Card>
+                );
+              })()}
+
               {/* Dep links */}
               {depTasks.length > 0 && (
                 <Card title="前置依赖" icon="fa-link">

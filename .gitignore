@@ -57,6 +57,10 @@ desktop/src-tauri/gen/
 lib/build/
 dist/
 
+# skein 预构建前端资产入库 (serve 运行时零构建零下载)
+# 上面的 dist/ 会连 assets/dist/ 一起忽略 → 发布包缺 _next chunks → 页面 404
+!plugins/tools/skein/assets/dist/
+
 # webapp 预构建前端资产入库 (serve 运行时零构建零下载)
 !plugins/tools/skein/assets/webapp/dist/
 !plugins/tools/skein/assets/webapp/dist/app.css

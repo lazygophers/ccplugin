@@ -187,7 +187,8 @@ class MaintainMixin:
                 age = self._age_days(f, mtimes, now_ts)
 
                 # 判据 rules: stale — 最近修改 (git 提交时间, 无则 fs mtime) 超 STALE_DAYS 且无引用
-                if policy.get("stale") and age > STALE_DAYS:
+                # product namespace 不套时间判据 (需求真值无时效性)
+                if policy.get("stale") and ns != "product" and age > STALE_DAYS:
                     findings.append({"kind": "stale", "file": f, "rel": rel, "status": status,
                                      "text": f"[stale] {rel} (最近改动 {_months(age)},{age}天前, status {status})"})
 
@@ -235,7 +236,8 @@ class MaintainMixin:
                             # 弱断链只报告，不归档（符号可能被重构但文件仍在）
 
                 # 判据 rules/external: 废弃/superseded → archive
-                if policy.get("deprecated") and status in ("deprecated", "superseded"):
+                # product namespace 不套废弃判据 (需求真值不自动归档)
+                if policy.get("deprecated") and ns != "product" and status in ("deprecated", "superseded"):
                     findings.append({"kind": "deprecated", "file": f, "rel": rel, "status": status,
                                      "text": f"[废弃] {rel} (status {status}) — 建议 archive"})
 
@@ -245,7 +247,8 @@ class MaintainMixin:
                                      "text": f"[配置问题] {rel}: inclusion=fileMatch 缺 globs"})
 
                 # 判据 rules: 孤立 — 整篇无入度 (stem 及其任一章节都不在 backlinks) + active + 超 STALE_DAYS
-                if policy.get("orphan") and status == "active":
+                # product namespace 不套孤立判据 (需求真值无入度要求)
+                if policy.get("orphan") and ns != "product" and status == "active":
                     linked = f.stem in backlinks or any(f"{f.stem}#{t}" in backlinks
                                                         for t, _ in _sections(txt))
                     if not linked and age > STALE_DAYS:
@@ -253,7 +256,8 @@ class MaintainMixin:
                                          "text": f"[孤立] {rel} 无入度+active+超{STALE_DAYS}天 — 候选归档/降级"})
 
             # 判据 rules: keywords 高重复 — 同 keywords 组 ≥3 条 → 保留最新, 余 archive
-            if policy.get("keywords_dup"):
+            # product namespace 不套 keywords 重复判据 (需求真值不自动归档)
+            if policy.get("keywords_dup") and ns != "product":
                 groups: dict[str, list[Path]] = {}
                 for f in self._rule_files(ns):
                     kw = _frontmatter(f.read_text()).get("keywords", "").strip()
@@ -276,14 +280,32 @@ class MaintainMixin:
         if not apply:
             print("maintain 体检 (.skein/spec):")
             if findings:
-                print("\n".join(fd["text"] for fd in findings))
+                # 区分两类: 可自动修 vs 只报告
+                auto_fixable = [fd for fd in findings if fd["kind"] in ("overbudget", "stale", "deprecated", "orphan", "keywords_dup", "anchors_broken")]
+                report_only = [fd for fd in findings if fd["kind"] in ("broken_link", "config_issue")]
+
+                if auto_fixable:
+                    print("可自动修 (maintain --apply 会处理):")
+                    for fd in auto_fixable:
+                        print(f"  - {fd['text']}")
+
+                if report_only:
+                    print("只报告 (需人工判断):")
+                    for fd in report_only:
+                        reason = ""
+                        if fd["kind"] == "broken_link":
+                            reason = "需判断修哪头/补目标"
+                        elif fd["kind"] == "config_issue":
+                            reason = "需补充配置 (如 globs)"
+                        print(f"  - {fd['text']} ({reason})" if reason else f"  - {fd['text']}")
             else:
                 print("全清 (无超预算/stale/断链/重复/废弃/孤立)")
             return
 
         # --apply: 自动修复可修项 (断链/配置问题/report类判据只报告, 需人判断)
-        broken = [fd for fd in findings if fd["kind"] == "broken_link"]
-        report_only = [fd for fd in findings if fd["kind"] == "config_issue"]
+        # 分两类: 可自动修 vs 只报告 (product/断链/配置问题需人判断原因)
+        auto_fixable = [fd for fd in findings if fd["kind"] in ("overbudget", "stale", "deprecated", "orphan", "keywords_dup", "anchors_broken")]
+        report_only = [fd for fd in findings if fd["kind"] in ("broken_link", "config_issue")]
         actions: list[str] = []
 
         # 超预算 → 循环降级 always→auto (仅改 frontmatter, 不移文件)
@@ -296,31 +318,36 @@ class MaintainMixin:
             actions.append(f"always 超预算修复: {before}→{after} 字符 (降 {len(degraded)} 条)")
 
         # 归档批: stale + 废弃 + keywords 重复(保留最新) + anchors失效(仅 policy=archive 如 map) 合并一次 .archive/<ts>/
+        # product namespace 不归档 (需求真值只报告, 需人判断)
         archive_reasons: dict[Path, tuple[str, str]] = {}
         for fd in findings:
             if fd["kind"] == "stale":
                 f = cast(Path, fd["file"])
-                archive_reasons[f] = ("prune-stale", f"stale({fd['rel']},超{STALE_DAYS}天)")
+                # product 不归档, 只报告
+                if not f.relative_to(self.root).as_posix().startswith("product/"):
+                    archive_reasons[f] = ("prune-stale", f"stale({fd['rel']},超{STALE_DAYS}天)")
             elif fd["kind"] == "deprecated":
                 f = cast(Path, fd["file"])
-                archive_reasons[f] = ("prune-deprecated", f"废弃(status={fd['status']})")
+                if not f.relative_to(self.root).as_posix().startswith("product/"):
+                    archive_reasons[f] = ("prune-deprecated", f"废弃(status={fd['status']})")
             elif fd["kind"] == "orphan":
                 f = cast(Path, fd["file"])
                 # ponytail: stale 必然 orphan, 但 stale 判据更强更具体 → stale 优先, orphan 不覆盖已占 key
-                if f not in archive_reasons:
+                if f not in archive_reasons and not f.relative_to(self.root).as_posix().startswith("product/"):
                     archive_reasons[f] = ("prune-orphan", "孤立(无入度+active+stale)")
             elif fd["kind"] == "anchors_broken":
                 f = cast(Path, fd["file"])
-                if f not in archive_reasons:
+                if f not in archive_reasons and not f.relative_to(self.root).as_posix().startswith("product/"):
                     archive_reasons[f] = ("prune-anchors", f"anchors失效({fd['rel']})")
         for fd in findings:
             if fd["kind"] == "keywords_dup":
                 files = cast(list[Path], fd["files"])
                 # 保留最新 (最近改动者, git 提交时间优先), 其余归档
+                # product 不归档, 只报告
                 mt = self._mtimes()
                 newest = max(files, key=lambda f: mt.get(f, 0))
                 for f in files:
-                    if f != newest and f not in archive_reasons:
+                    if f != newest and f not in archive_reasons and not f.relative_to(self.root).as_posix().startswith("product/"):
                         archive_reasons[f] = (
                             "prune-dup", f'keywords重复(组"{fd["kw"]}":{len(files)}条,保留最新)')
         # ponytail: 跳过被上文 degrade 处理的 (overbudget+stale 同一最大文件场景);
@@ -336,10 +363,17 @@ class MaintainMixin:
             print("\n".join(actions))
         else:
             print("无自动可修项")
-        need_human = broken + report_only
-        if need_human:
-            print("\n仍需人工 (断链/配置问题 — 需判断修哪头/补目标/补 globs):")
-            print("\n".join(fd["text"] for fd in need_human))
+
+        # 只报告类: 需人判断原因 (断链/配置问题等)
+        if report_only:
+            print("\n只报告 (需人工判断):")
+            for fd in report_only:
+                reason = ""
+                if fd["kind"] == "broken_link":
+                    reason = "需判断修哪头/补目标"
+                elif fd["kind"] == "config_issue":
+                    reason = "需补充配置 (如 globs)"
+                print(f"  - {fd['text']} ({reason})" if reason else f"  - {fd['text']}")
     # ---- 审计日志 (.audit-log 追加写 + 7天轮转) ----
     def _write_audit(self, action: str, file: str, before: str, after: str, reason: str) -> None:
         """追加审计行 + 写前清 7 天前旧行 (按行首 iso ts 判)。格式: iso_ts|action|file|before->(after)|reason"""

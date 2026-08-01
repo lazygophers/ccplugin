@@ -22,7 +22,7 @@ if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
 
-def run_test(budget_modification=None):
+def run_test(budget_modification: int | None = None) -> subprocess.CompletedProcess[str]:
     """运行测试并返回结果"""
     if budget_modification:
         from skeinlib.spec.model import INJECTION_BUDGETS
@@ -38,7 +38,7 @@ def run_test(budget_modification=None):
     return result
 
 
-def main():
+def main() -> bool:
     print("=" * 60)
     print("反向验证: 机械守卫 + 预算守卫测试")
     print("=" * 60)
@@ -72,12 +72,12 @@ def main():
     # 运行一个简单的超预算测试
     from skeinlib.hooks.runner import budget_guard, CHARS_PER_TOKEN
     over_content = "x" * ((small_budget + 10) * CHARS_PER_TOKEN)
-    result = budget_guard(over_content, small_budget, "spec:session-start")
+    guarded = budget_guard(over_content, small_budget, "spec:session-start")
 
-    if len(result) < len(over_content):
+    if len(guarded) < len(over_content):
         print(f"✅ 见过红: 预算 {small_budget} tokens 正确截断了内容")
         print(f"   原内容长度: {len(over_content)} 字符")
-        print(f"   截断后长度: {len(result)} 字符")
+        print(f"   截断后长度: {len(guarded)} 字符")
     else:
         print("❌ 反向验证失败: 预算守卫未生效")
         INJECTION_BUDGETS["session_index"] = original_budget

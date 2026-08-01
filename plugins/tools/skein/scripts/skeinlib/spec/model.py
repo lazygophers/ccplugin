@@ -95,15 +95,7 @@ def always_budget_tokens() -> int:
     ponytail: 不用 skein._cfg_effective — 那个会给缺失叶回填默认值, 会吃掉「always_budget 本就
     未设」这个信号, 令 core_budget 旧键 fallback 永远失效; 这里要保留「缺失」而非「已知默认」的区别,
     故直读 raw 按 (嵌套>扁平) 取值, 取不到才是真缺失。懒求值, 每次调读盘, 支持热改。"""
-    import sys
-    from pathlib import Path
-    # 动态添加 token_conversion 到路径, 避免相对导入的复杂性
-    # token_conversion.py 现在位于 skeinlib 目录内
-    token_conversion_path = Path(__file__).parent.parent / "token_conversion.py"
-    if str(token_conversion_path.parent) not in sys.path:
-        sys.path.insert(0, str(token_conversion_path.parent))
-
-    from token_conversion import estimate_tokens_from_chars
+    from skeinlib.token_conversion import estimate_tokens_from_chars
 
     try:
         from skeinlib.config import _yaml_load  # 局部 import

@@ -2,7 +2,7 @@
   "id": "spec-hooks-adapt",
   "name": "hooks.py 适配 + fileMatch 注入 + 修两现存 bug",
   "desc": "SPEC_REQUIRED 去 created 改 namespace/inclusion, SPEC_LAYERS→SPEC_INCLUSIONS 补 external, guard 加 globs 匹配注入, stop-check 判据跟随分表",
-  "status": "检查中",
+  "status": "已完成",
   "deps": [
     "spec-model-core"
   ],
@@ -114,15 +114,8 @@
   "priority": 5,
   "estimate": 2.0,
   "repos": [],
-  "worktree": ".worktrees/skein-spec-hooks-adapt",
-  "worktrees": [
-    {
-      "repo": ".",
-      "wt": ".worktrees/skein-spec-hooks-adapt",
-      "branch": "skein/spec-hooks-adapt",
-      "merged": false
-    }
-  ],
+  "worktree": null,
+  "worktrees": [],
   "branch": "skein/spec-hooks-adapt",
   "parent": "spec-wiki-v2",
   "kind": "task",
@@ -130,7 +123,7 @@
   "started": 1785593344,
   "confirmed": 1785515075,
   "checked": 1785593833,
-  "finished": null,
-  "updated": 1785594044,
+  "finished": 1785594073,
+  "updated": 1785594073,
   "confirmed_by": "user"
 }
