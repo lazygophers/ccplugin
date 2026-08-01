@@ -16,7 +16,7 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import pytest
 
@@ -38,7 +38,7 @@ def _make_tool_input(file_path: str, tool_name: str = "Write") -> dict[str, Any]
     }
 
 
-def _capture_output(func: callable, d: dict[str, Any]) -> tuple[int, str, str]:
+def _capture_output(func: Callable[[dict[str, Any]], int], d: dict[str, Any]) -> tuple[int, str, str]:
     """捕获函数 stdout/stderr，返回 (exit_code, stdout, stderr)."""
     from io import StringIO
     import contextlib

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional, cast
+from typing import TYPE_CHECKING, Any, Optional, cast
 import re
 
 from skeinlib.errors import SkeinError
@@ -302,30 +302,31 @@ class WriteMixin:
             repo_root = self.root.parent.parent
 
             # 优先检查工作目录的未暂存变更
-            result = subprocess.run(
+            proc = subprocess.run(
                 ["git", "diff", "--name-only"],
                 capture_output=True, text=True, cwd=repo_root
             )
-            working_files = [f.strip() for f in result.stdout.splitlines() if f.strip()]
+            working_files = [f.strip() for f in proc.stdout.splitlines() if f.strip()]
 
             # 检查已暂存但未提交的变更
-            result = subprocess.run(
+            proc = subprocess.run(
                 ["git", "diff", "--staged", "--name-only"],
                 capture_output=True, text=True, cwd=repo_root
             )
-            staged_files = [f.strip() for f in result.stdout.splitlines() if f.strip()]
+            staged_files = [f.strip() for f in proc.stdout.splitlines() if f.strip()]
 
             # 合并工作目录和暂存区的变更（去重）
             changed_files = sorted(set(working_files + staged_files))
 
             # 如果没有变更，尝试与上次提交比较
             if not changed_files:
-                result = subprocess.run(
+                proc = subprocess.run(
                     ["git", "diff", "--name-only", "HEAD~1", "HEAD"],
                     capture_output=True, text=True, cwd=repo_root
                 )
-                changed_files = [f.strip() for f in result.stdout.splitlines() if f.strip()]
+                changed_files = [f.strip() for f in proc.stdout.splitlines() if f.strip()]
 
+        result: dict[str, Any]
         if not changed_files:
             result = {
                 "tid": tid,
@@ -369,7 +370,7 @@ class WriteMixin:
         """
         import re
 
-        keywords = set()
+        keywords: set[str] = set()
 
         # 尝试解析 frontmatter 中的 keywords
         frontmatter_match = re.search(r'keywords:\s*\[(.*?)\]', prd_content, re.DOTALL)
@@ -453,7 +454,7 @@ class WriteMixin:
 
         return False
 
-    def _recall_by_keywords(self, keywords: list[str]) -> list[dict[str, str]]:
+    def _recall_by_keywords(self, keywords: list[str]) -> list[dict[str, Any]]:
         """基于关键词从 product namespace recall。
 
         返回: [{rule: <规则ID>, title: <标题>, keywords: <关键词>}]
@@ -494,7 +495,7 @@ class WriteMixin:
 
         return candidates
 
-    def _print_finish_candidates_result(self, result: dict) -> None:
+    def _print_finish_candidates_result(self, result: dict[str, Any]) -> None:
         """以人类可读格式输出 finish-candidates 结果。"""
         print(f"# Task {result['tid']} 的候选 Product Wiki 页")
         print()

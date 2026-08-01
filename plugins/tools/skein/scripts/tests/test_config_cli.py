@@ -30,6 +30,7 @@ from conftest import SkeinCli
 import sys as _sys  # noqa: E402
 
 _sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from skeinlib.config import CONFIG_DEFAULTS as _DEFAULTS  # noqa: E402  单一真值源, 禁在测试里硬编码默认值
 from skeinlib.config import STAGE_NAMES as _STAGES  # noqa: E402  单一真值源, 禁在测试里硬编码阶段名
 
 
@@ -160,7 +161,8 @@ def test_show_json(skein_cli: SkeinCli, ws: Path) -> None:
     data = json.loads(r.stdout.strip())
     assert isinstance(data["worktree"]["enabled"], bool), f"worktree.enabled 非 bool: {data['worktree']!r}"
     assert data["max_active"] == 2, f"max_active 非默认 2: {data['max_active']}"
-    assert data["spec"]["always_budget"] == 1000, f"spec.always_budget 非默认: {data['spec']}"
+    assert data["spec"]["always_budget"] == _DEFAULTS["spec"]["always_budget"], \
+        f"spec.always_budget 非默认: {data['spec']}"
 
 
 def test_json_reflects_set(skein_cli: SkeinCli, ws: Path) -> None:

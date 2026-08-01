@@ -23,7 +23,7 @@ from skeinlib.hooks.runner import budget_guard, est_tokens, CHARS_PER_TOKEN
 from skeinlib.spec.model import INJECTION_BUDGETS, always_budget_tokens
 
 
-def test_budget_guard_short_content():
+def test_budget_guard_short_content() -> None:
     """budget_guard 对短内容应原样返回。"""
     short = "short content"
     budget = 1000  # 1000 tokens
@@ -31,7 +31,7 @@ def test_budget_guard_short_content():
     assert result == short, "短内容不应被截断"
 
 
-def test_budget_guard_exact_budget():
+def test_budget_guard_exact_budget() -> None:
     """budget_guard 对刚好等于预算的内容应原样返回。"""
     # 创建刚好等于预算的内容
     budget = 10  # 10 tokens
@@ -40,7 +40,7 @@ def test_budget_guard_exact_budget():
     assert result == content, "刚好预算的内容不应被截断"
 
 
-def test_budget_guard_truncates_over_budget():
+def test_budget_guard_truncates_over_budget() -> None:
     """budget_guard 对超预算内容应截断并添加警告。机械守卫核心测试。"""
     # 创建超过预算的内容
     budget = 10  # 10 tokens = 40 字符
@@ -53,7 +53,7 @@ def test_budget_guard_truncates_over_budget():
     assert "截断" in result or "..." in result, "截断内容应包含警告标记"
 
 
-def test_session_start_budget():
+def test_session_start_budget() -> None:
     """session_start 注入点预算守卫测试 (200 token)。"""
     budget = INJECTION_BUDGETS["session_index"]  # 动态读取预算
 
@@ -68,7 +68,7 @@ def test_session_start_budget():
     assert len(result) < len(over_content), "超预算应被截断 (机械守卫)"
 
 
-def test_subagent_start_budget():
+def test_subagent_start_budget() -> None:
     """subagent_start 注入点预算守卫测试 (300 token)。"""
     budget = INJECTION_BUDGETS["subagent_core"]  # 300 tokens
     assert budget == 300, "subagent_core 预算应为 300 tokens"
@@ -84,7 +84,7 @@ def test_subagent_start_budget():
     assert len(result) < len(over_content), "超预算应被截断"
 
 
-def test_inject_core_budget():
+def test_inject_core_budget() -> None:
     """inject_core 注入点预算守卫测试 (300 token 默认)。"""
     budget = always_budget_tokens()  # 默认 300 tokens
     assert budget > 0, "预算必须为正数"
@@ -100,7 +100,7 @@ def test_inject_core_budget():
     assert len(result) < len(over_content), "超预算应被截断"
 
 
-def test_est_tokens_accuracy():
+def test_est_tokens_accuracy() -> None:
     """est_tokens 估算函数准确性测试。"""
     # 1 token ≈ 4 字符 (粗略估算)
     text = "a" * 40  # 40 字符

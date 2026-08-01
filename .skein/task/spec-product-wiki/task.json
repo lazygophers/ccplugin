@@ -2,7 +2,7 @@
   "id": "spec-product-wiki",
   "name": "product namespace + amend + finish 回写",
   "desc": "wiki 主体: product 按功能域切页 + amend 改写既有章节(旧版进 archive) + finish 时 diff→anchors 反查候选页派 specer 回写 + product 判据只报告不自动删",
-  "status": "检查中",
+  "status": "已完成",
   "deps": [
     "spec-model-core"
   ],
@@ -145,15 +145,8 @@
   "priority": "normal",
   "estimate": 4.0,
   "repos": [],
-  "worktree": ".worktrees/skein-spec-product-wiki",
-  "worktrees": [
-    {
-      "repo": ".",
-      "wt": ".worktrees/skein-spec-product-wiki",
-      "branch": "skein/spec-product-wiki",
-      "merged": false
-    }
-  ],
+  "worktree": null,
+  "worktrees": [],
   "branch": "skein/spec-product-wiki",
   "parent": "spec-wiki-v2",
   "kind": "task",
@@ -161,7 +154,7 @@
   "started": 1785594113,
   "confirmed": 1785594107,
   "checked": 1785594885,
-  "finished": null,
-  "updated": 1785596596,
+  "finished": 1785596660,
+  "updated": 1785596660,
   "confirmed_by": "user"
 }
