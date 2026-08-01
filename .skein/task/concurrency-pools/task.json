@@ -18,7 +18,7 @@
         "现有测试对状态的断言已同步"
       ],
       "验收done": [],
-      "status": "失败",
+      "status": "运行中",
       "skills": [],
       "created": 1785512382,
       "started": 1785559720,
@@ -39,11 +39,11 @@
         1,
         2
       ],
-      "status": "运行中",
+      "status": "已完成",
       "skills": [],
       "created": 1785512383,
       "started": 1785559720,
-      "finished": 1785561434,
+      "finished": 1785606617,
       "note": "假绿: 自报已完成但 pytest 9 failed/310 passed (基线 319), 违反自身验收「不低于基线」。pools 双键已建对(work=2/gate=3)且 CONFIG_DEFAULTS 已无 max_active, 但读取点漏改 —— query.py:47 仍读 config()['max_active'], 实测 KeyError 当场崩。红的 9 条全在其改动面: test_config_cli.py x7 + test_serve_routes 配置面板 + test_ready_scheduling 并发上限。需重派补齐读取点迁移与测试同步。"
     },
     {
@@ -195,6 +195,6 @@
   "confirmed": 1785515070,
   "checked": null,
   "finished": null,
-  "updated": 1785603902,
+  "updated": 1785606666,
   "confirmed_by": "user"
 }

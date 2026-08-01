@@ -29,20 +29,6 @@
       "finished": null
     },
     {
-      "id": "dag-parent-nesting",
-      "status": "检查中",
-      "deps": [],
-      "priority": 5,
-      "worktree": ".worktrees/skein-dag-parent-nesting",
-      "parent": null,
-      "kind": "task",
-      "created": 1785596410,
-      "confirmed": 1785597112,
-      "started": 1785597112,
-      "checked": 1785602090,
-      "finished": null
-    },
-    {
       "id": "spec-map-namespace",
       "status": "检查中",
       "deps": [
@@ -122,6 +108,20 @@
       "started": null,
       "checked": null,
       "finished": null
+    },
+    {
+      "id": "dag-parent-nesting",
+      "status": "已完成",
+      "deps": [],
+      "priority": 5,
+      "worktree": null,
+      "parent": null,
+      "kind": "task",
+      "created": 1785596410,
+      "confirmed": 1785597112,
+      "started": 1785597112,
+      "checked": 1785602090,
+      "finished": 1785606498
     },
     {
       "id": "master-green",

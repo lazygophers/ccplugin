@@ -2,7 +2,7 @@
   "id": "dag-parent-nesting",
   "name": "DAG 父子容器包裹 + 详情展父子",
   "desc": "board DAG 把 supertask 渲染成容器框包裹子 task (去父子箭头边), task 详情页展示父/子关系; 并把 spec-wiki-v2 设为 supertask 挂五个 spec-* 子 task",
-  "status": "检查中",
+  "status": "已完成",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -203,15 +203,8 @@
   "priority": 5,
   "estimate": 12.5,
   "repos": [],
-  "worktree": ".worktrees/skein-dag-parent-nesting",
-  "worktrees": [
-    {
-      "repo": ".",
-      "wt": ".worktrees/skein-dag-parent-nesting",
-      "branch": "skein/dag-parent-nesting",
-      "merged": false
-    }
-  ],
+  "worktree": null,
+  "worktrees": [],
   "branch": "skein/dag-parent-nesting",
   "parent": null,
   "kind": "task",
@@ -219,7 +212,7 @@
   "started": 1785597112,
   "confirmed": 1785597112,
   "checked": 1785602090,
-  "finished": null,
-  "updated": 1785606419,
+  "finished": 1785606498,
+  "updated": 1785606498,
   "confirmed_by": "user"
 }
