@@ -2,22 +2,82 @@
   "id": "spec-sqlite-meta",
   "name": "spec SQLite metadata 索引",
   "desc": "将 spec 内存缓存改为 SQLite 持久化: spec 文件级 metadata (path/title/namespace/category/keywords/inclusion/status) 存入 .recall.db 普通表 spec_meta, serve 端点直接查 SQLite 而非内存, 前端请求只取所需分页数据而非全量",
-  "status": "待处理",
+  "status": "进行中",
   "deps": [],
   "contracts": [],
-  "subtasks": [],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "spec_meta 表构建",
+      "desc": "spec/index.py 加 _rebuild_spec_meta(): DROP+CREATE spec_meta 表, 解析 frontmatter/H1/keywords, INSERT 每文件一行, _reindex_all 追加调用",
+      "estimate": 1.5,
+      "depends_on": [],
+      "验收": [
+        "reindex 后 .recall.db 含 spec_meta 表",
+        "spec_meta 行数=spec 文件数(跳 index.md/backlinks.md)",
+        "SELECT path/title/namespace/category/keywords 列正确"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785589892,
+      "started": 1785589955,
+      "finished": 1785591188,
+      "note": "redo 孤儿复位: session 意外退出"
+    },
+    {
+      "sid": "s2",
+      "name": "serve 查询改 SQLite + 删内存缓存",
+      "desc": "boardsource.py 删 _spec_search_cache/_spec_build_cache/_spec_meta/_spec_search 内存实现, 改 SQLite 查询; serve.py /spec/meta 支持 page/page_size/namespace/category/keyword 参数, lifespan/watch 删 _spec_build_cache 调用",
+      "estimate": 2.0,
+      "depends_on": [
+        "s1"
+      ],
+      "验收": [
+        "/spec/meta?page=1&page_size=20 返回分页结果",
+        "/spec/meta?namespace=core&category=arch 返回筛选结果",
+        "/spec/search?q=config 返回匹配项",
+        "_spec_search_cache 无残留引用",
+        "serve lifespan 不再调 _spec_build_cache"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785589895,
+      "started": 1785591245,
+      "finished": 1785591531
+    }
+  ],
   "priority": 5,
-  "estimate": null,
+  "estimate": 3.5,
   "repos": [],
-  "worktree": null,
-  "worktrees": [],
+  "worktree": ".worktrees/skein-spec-sqlite-meta",
+  "worktrees": [
+    {
+      "repo": ".",
+      "wt": ".worktrees/skein-spec-sqlite-meta",
+      "branch": "skein/spec-sqlite-meta",
+      "merged": false
+    }
+  ],
   "branch": "skein/spec-sqlite-meta",
   "parent": null,
   "kind": "task",
   "created": 1785583037,
-  "started": null,
-  "confirmed": null,
+  "started": 1785591090,
+  "confirmed": 1785589953,
   "checked": null,
   "finished": null,
-  "updated": 1785583037
+  "updated": 1785591531,
+  "confirmed_by": "user"
 }

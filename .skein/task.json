@@ -15,8 +15,22 @@
       "finished": null
     },
     {
-      "id": "master-red-baseline",
+      "id": "spec-sqlite-meta",
       "status": "进行中",
+      "deps": [],
+      "priority": 5,
+      "worktree": ".worktrees/skein-spec-sqlite-meta",
+      "parent": null,
+      "kind": "task",
+      "created": 1785583037,
+      "confirmed": 1785589953,
+      "started": 1785591090,
+      "checked": null,
+      "finished": null
+    },
+    {
+      "id": "master-red-baseline",
+      "status": "检查中",
       "deps": [],
       "priority": 5,
       "worktree": ".worktrees/skein-master-red-baseline",
@@ -25,7 +39,7 @@
       "created": 1785567661,
       "confirmed": 1785585955,
       "started": 1785585978,
-      "checked": null,
+      "checked": 1785590882,
       "finished": null
     },
     {
@@ -152,20 +166,6 @@
       "parent": "spec-wiki-v2",
       "kind": "task",
       "created": 1785381925,
-      "confirmed": null,
-      "started": null,
-      "checked": null,
-      "finished": null
-    },
-    {
-      "id": "spec-sqlite-meta",
-      "status": "待处理",
-      "deps": [],
-      "priority": 5,
-      "worktree": null,
-      "parent": null,
-      "kind": "task",
-      "created": 1785583037,
       "confirmed": null,
       "started": null,
       "checked": null,
