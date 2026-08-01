@@ -1,9 +1,9 @@
 ---
 name: skein-flow
-description: SKEIN task 闭环编排器 (plan→exec→check→finish)。$1 路由阶段, 缺省=flow 全闭环到 finish; 全空 (无参无描述)=清空模式, 把全部未完成 task 逐个跑到 finish。跨文件/多步或要求走 SKEIN 流程时用: 强制建 task, main 派 subagent 在 worktree 执行, 禁 inline 直改。
+description: SKEIN task 闭环编排器 (plan→exec→check→finish, 另有 redo 断点续跑)。$1 路由阶段, 缺省=flow 全闭环到 finish; 全空 (无参无描述)=清空模式, 把全部未完成 task 逐个跑到 finish; redo <tid> = session 意外结束后复位孤儿 subtask 接着跑。跨文件/多步或要求走 SKEIN 流程时用: 强制建 task, main 派 subagent 在 worktree 执行, 禁 inline 直改。
 user-invocable: true
-argument-hint: "[flow|plan|exec|check|finish] [任务描述/ID] (全空=清空全部未完成 task)"
-arguments: ["flow|plan|exec|check|finish", "任务描述/ID"]
+argument-hint: "[flow|plan|exec|check|finish|redo] [任务描述/ID] [--plan] (全空=清空全部未完成 task)"
+arguments: ["flow|plan|exec|check|finish|redo", "任务描述/ID"]
 model: sonnet
 effort: medium
 ---
@@ -24,6 +24,7 @@ effort: medium
 | `exec` | **exec** | 驱动就绪/在途 task 走完整闭环到 finish (start→exec→check→finish) |
 | `check` | **check** | exec 产物完成后、finish 前, 派 `Agent(subagent_type="skein:skein-checker")` 跑验证 |
 | `finish` | **check 全绿后** | 派 `Agent(subagent_type="skein:skein-finisher")` 勘察 + skein finish 闭环 + 异步 sediment |
+| `redo <tid> [--plan]` | **redo (断点续跑)** | session 意外结束后, 复位该 task 全部「运行中」subtask (一律当孤儿) 并按当前所处阶段续跑剩余闭环。**必须带 tid**, 不接受全空清空模式; `--plan` 只到规划收敛即停, 不进 exec |
 
 🔒 **禁把缺省当 plan 用** — 无参 / 只给任务描述 = 用户要**做完**, 不是要个规划稿。plan 收敛后禁停手问「要不要开始执行」, 直接续 exec。只有显式 `/skein-flow plan` 才停在就绪。
 
@@ -162,6 +163,87 @@ check 全绿后的**收尾门**, 只做收尾 (勘察改动+悬挂 → 合并 �
 - [ ] `.pending-fix` 标记已检测 (有则 auto-fix bg 已派, 无则跳过)
 
 **完整 finish 阶段作业手册** (流程步骤 / 失败模式表含 merge 冲突处理 / auto-fix 双保险) 详见 [references/for-finish.md](references/for-finish.md)。
+
+---
+
+# redo 阶段 (断点续跑门)
+
+session 意外结束 (窗口关/上下文爆/进程被杀) 后, 被派出去的 subagent 一起消失, 但占的槽还记在盘上:
+subtask 停在「运行中」, 调度器认为满槽, task 卡死。`redo` 一键认领残局、复位死槽、接着往下跑到闭环。
+**落在编排层, 不新增引擎命令** —— 复位动作全部用现有 `skein subtask` 命令拼, 拼法固定禁自由发挥。
+
+## 触发
+
+`$1=redo <tid> [--plan]` (与 plan/exec/check/finish 并列的第五个首参路由)。**必须带 tid**, 不接受全空
+清空模式。**不传 tid**: 不裸报错 —— 扫描全部 task, 列出「进行中态且存在运行中 subtask」的候选清单
+(卡死嫌疑名单) 供使用者从中选一个补 tid; 若候选为空, 明确回「无卡死 task, 无需 redo」。
+
+**`--plan` 子参数**: 复位孤儿的动作照做 (解卡是刚需, 不受 --plan 影响), 但**只把规划推到收敛就停,
+不自动进 exec** —— 分界点是「进 exec 前」。此子参数只对**起点归类为规划中** (待处理/就绪) 的 task 有
+效: 续规划到收敛即停, 不再自动 `claim exec`/`start`。对**执行中/检查中/已完成**三种起点, 规划早已在
+更早阶段收敛过, `--plan` 没有可拦截的点, 行为与不带 `--plan` 一致 (仍复位/仍续跑) —— 但必须向使用者
+说明「该 task 已过规划阶段, --plan 未生效」, 不能默不作声地照常执行让人误以为被拦下了。
+
+## 🛑 孤儿判定口径 (动手前必须向使用者声明)
+
+**全部「运行中」subtask 一律当孤儿, 不做存活探测/心跳/时长阈值** (2026-08-01 用户裁定) —— 误判一个
+还活着的代价 = 重跑一个 subtask (可接受), 放过一个死槽代价 = task 永久卡死 (不可接受), 两者不对称。
+
+🔒 **代价 (必须讲明, 不能藏)**: **redo 期间禁止有 agent 在跑** —— 若在有活 agent 时 redo, 会把活的
+一起复位, 造成两个 agent 干同一件事、互相覆盖改动。编排层看不见 agent 存活, 无法用代码防, 只能动手前
+把口径亮给使用者。
+
+🔒 **redo 只改状态, 不回滚已产出的改动**: 复位动作只是把孤儿 subtask 的状态打回可调度 (运行中→失败→
+运行中), 不删除、不撤销上一轮已经写出的任何文件改动 —— 那是上一轮的劳动成果, 且 subtask 重跑本来就
+要求幂等。redo 解的是「槽被占死」这个卡点, 不是「回滚重来」。想丢弃某个 subtask 已产出的改动, redo
+不提供这个能力, 需另想办法 (如手工 revert)。
+
+## 起点分流: 按 task 当前所处阶段续什么
+
+不预设卡在哪一步, 先 `skein status <tid>` 读当前态分流:
+
+| task 当前 `status` | redo 做什么 |
+|---|---|
+| 待处理 / 就绪 | 无运行中 subtask 可复位 (未 start 无 worktree). 待处理→续规划到收敛; 就绪→直接进 exec 调度, 均无需复位动作 |
+| 进行中 | 复位全部运行中孤儿 subtask (见下方复位步骤) → 重新调度 → 续跑剩余闭环 |
+| 检查中 | 二次判定验证中/收尾中 (见下) → 验证中重派验证, 收尾中重派收尾, **验证中不退回执行态** |
+| 已完成 | 报「已闭环, 无事可做」, 不做任何操作 |
+
+**检查中态二次判定**: `检查中` 落盘态无法直接分辨"还没验完"和"验过 PASS 但没来得及 finish"。跑
+`skein prd show <tid>` 读「验收标准」章节 — 全部条目已 `- [x]` → **收尾中** → 重派
+`Agent(subagent_type="skein:skein-finisher")`；有任一条目仍 `- [ ]` 或读不到明确结论 → **默认验证中**
+→ 重派 `Agent(subagent_type="skein:skein-checker")`。默认偏向验证中: 误判多跑一次幂等验证代价低,
+误判带冲突直接 finish 代价高, 拿不准一律按验证中处理。
+
+## 复位步骤 (进行中态专用, 命令固定禁改拼法)
+
+1. `skein subtask list <tid>` → 筛 `status` 列为 `运行中` 的全部 sid。无结果 → 跳过 2/3, 直接
+   `skein claim exec` 回正常调度循环。
+2. 对每个孤儿 sid **逐个**执行 (引擎无 `运行中→待处理` 直接迁移, 只有
+   `运行中→失败→运行中`, 这是唯一拼得出的等价路径):
+   ```
+   skein subtask fail <tid> <sid> --note "redo 孤儿复位: session 意外退出, 全部运行中一律当孤儿"
+   skein subtask start <tid> <sid>
+   ```
+3. `skein claim exec` 补齐 pending 池待认领项, 之后按 [references/for-exec.md](references/for-exec.md)
+   常规流程续跑到全 subtask done → check。
+
+## 🔒 复位后必报: 被复位清单 (动手后必须回传使用者)
+
+复位步骤跑完 (无论动了几个孤儿), 必须回传一份清单让使用者核对有没有误伤 —— 不做交互确认, 但这份清单
+是硬性的, 不能省:
+
+```
+redo <tid> 已复位以下 subtask (运行中 → 失败 → 运行中, 重新可调度):
+- r1: 原运行中, 判定孤儿, 已复位
+- r2: 原运行中, 判定孤儿, 已复位
+无需复位: r3 (已完成), r4 (待处理)
+```
+
+第 1 步无孤儿 (进行中态但当前无运行中 subtask) → 清单退化为一行:
+`redo <tid>: 无运行中 subtask 需复位, 直接续调度。`
+
+**完整 redo 阶段作业手册** (起点分流细节 / 复位步骤边界情况 / 与状态机的对应关系) 详见 [references/for-redo.md](references/for-redo.md)。
 
 ---
 
