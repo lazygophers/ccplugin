@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any, AsyncIterator, Callable, Iterable, Optional, cast
 
 from skeinlib.hooks.runner import debug_enabled
-from skeinlib.paths import PLUGIN_ROOT
+from skeinlib.paths import PLUGIN_ROOT, SPEC_ENTRY
 from skeinlib.config import (CFG_REMOTE_DENY, CONFIG_DEFAULTS, _cfg_get_path, _coerce_config,
                              _yaml_dump, _yaml_load)
 from skeinlib.views import (DataSource, _cards_signature, _spec_frontmatter, _view_archive,
@@ -135,6 +135,7 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
                     msgs.append("data")  # 旧字符串协议兜底 (无差异但 rev 变, 全订阅软刷)
                 last_cards = new_cards
             elif cur_s != last_s:
+                board._spec_build_cache()  # spec 文件变 → 重建搜索缓存
                 msgs.append(json.dumps({"type": "spec-changed", "path": ""}))
             if msgs:
                 last_a, last_d, last_s = cur_a, cur_d, cur_s
@@ -148,6 +149,7 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
 
     @asynccontextmanager
     async def lifespan(_app: Any) -> AsyncIterator[None]:
+        board._spec_build_cache()  # serve 启动时建 spec 搜索缓存
         task = asyncio.create_task(_watch_loop())
         if on_ready:
             on_ready()  # 已 bind, 落 lock (保证 lock 在 = 端口可连)
@@ -226,6 +228,10 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
     async def _spec() -> JSONResponse:  # spec 树 namespace × 类目 × 文件 (namespace 目录扫描得, 非白名单)
         return JSONResponse(board._spec_tree())
 
+    @app.get("/__skein__/spec/meta")
+    async def _spec_meta() -> JSONResponse:  # 扁平元数据列表 (path/title/category/keywords), 供前端筛选
+        return JSONResponse(board._spec_meta())
+
     @app.get("/__skein__/spec/file")
     async def _spec_file(path: str) -> Any:  # 单 spec 原文 (realpath 校验限 .skein/spec/)
         p = board._spec_resolve(path)
@@ -236,6 +242,15 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
         txt = p.read_text(encoding="utf-8", errors="replace")
         meta, body = _spec_frontmatter(txt)  # frontmatter 解析归后端; content 保留原文 (编辑器用)
         return {"path": path, "content": txt, "meta": meta, "body": body}
+
+    def _spec_reindex() -> None:
+        """spec 变更后重建索引 (index.md/backlinks.md) + 搜索缓存。"""
+        try:
+            subprocess.run([sys.executable, str(SPEC_ENTRY), "reindex"],
+                           cwd=str(board.root), capture_output=True, text=True, timeout=30)
+        except Exception:
+            pass  # reindex 失败不阻塞保存; watch loop 下次 tick 也会重建缓存
+        board._spec_build_cache()
 
     @app.post("/__skein__/spec/save")
     async def _spec_save(request: Request) -> Any:  # 写 spec (realpath 校验越界拒; 仅 .md)
@@ -250,7 +265,58 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
             return JSONResponse({"error": "路径越界或非 .md"}, status_code=403)
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(content, encoding="utf-8")
+        _spec_reindex()
         return {"ok": True, "path": rel}
+
+    @app.post("/__skein__/spec/create")
+    async def _spec_create(request: Request) -> Any:  # 新建 spec 文件
+        try:
+            body = json.loads(request.scope.get("skein_body") or b"{}")
+            rel, content = body.get("path"), body.get("content", "")
+            assert isinstance(rel, str) and rel.strip()
+        except Exception:
+            return JSONResponse({"error": "bad request"}, status_code=400)
+        if not rel.endswith(".md"):
+            return JSONResponse({"error": "仅支持 .md 文件"}, status_code=400)
+        p = board._spec_resolve(rel)
+        if p is None:
+            return JSONResponse({"error": "路径越界"}, status_code=403)
+        if p.exists():
+            return JSONResponse({"error": "文件已存在"}, status_code=409)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        # 默认 frontmatter + 正文骨架
+        if not content.strip():
+            title = p.stem
+            content = f"---\ntitle: {title}\ncategory: \nkeywords: []\ninclusion: auto\n---\n\n# {title}\n\n"
+        p.write_text(content, encoding="utf-8")
+        _spec_reindex()
+        return {"ok": True, "path": rel}
+
+    @app.post("/__skein__/spec/delete")
+    async def _spec_delete(request: Request) -> Any:  # 删除 spec 文件
+        try:
+            body = json.loads(request.scope.get("skein_body") or b"{}")
+            rel = body.get("path")
+            assert isinstance(rel, str) and rel.strip()
+        except Exception:
+            return JSONResponse({"error": "bad request"}, status_code=400)
+        p = board._spec_resolve(rel)
+        if p is None or p.suffix != ".md":
+            return JSONResponse({"error": "路径越界或非 .md"}, status_code=403)
+        if not p.exists():
+            return JSONResponse({"error": "文件不存在"}, status_code=404)
+        # 禁删索引文件
+        if p.name in ("index.md", "backlinks.md"):
+            return JSONResponse({"error": "禁删索引文件"}, status_code=403)
+        p.unlink()
+        _spec_reindex()
+        return {"ok": True, "path": rel}
+
+    @app.get("/__skein__/spec/search")
+    async def _spec_search(q: str) -> JSONResponse:  # 全文搜索 spec 缓存 (serve 启动时建, rev 变时重建)
+        if not q.strip():
+            return JSONResponse([])
+        return JSONResponse(board._spec_search(q))
 
     @app.post("/__skein__/exec")
     def _exec(request: Request) -> Any:  # 白名单命令 (固定 argv; sync def → 跑线程池不阻塞 loop)
@@ -311,49 +377,17 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
     async def _search(q: str = "") -> JSONResponse:  # 跨 task/subtask/prd/spec 关键词搜
         return JSONResponse(_view_search(board._snapshot(), q))
 
-    # Next.js static export: 每个路由有自己的 index.html (dashboard/index.html, board/index.html 等)。
-    # 直接挂 dist/ 为静态根, 浏览器访问 /dashboard/ → dashboard/index.html 自然命中。
+    # Next.js static export: dist/ 含每路由 index.html (dashboard/index.html 等)。
+    # mount dist/ 为根 + html=true → 浏览器 /dashboard/ → dashboard/index.html 自然命中,
+    # /dashboard (无尾斜杠) → Starlette 302 → /dashboard/ → 命中。无需逐路由声明。
     app.mount("/_next", _NoCacheStatic(directory=str(dist_dir() / "_next"), check_dir=False), name="next-static")
 
-    # SPA 路由兜底: Next.js trailingSlash=true 输出 /dashboard/ /board/ 等目录,
-    # 但裸路径 /dashboard /board 也需命中 → 显式声明在 mount 前。
-    def _spa_page(page: str) -> str:
-        p = dist_dir() / page / "index.html"
-        if p.exists():
-            return p.read_text(encoding="utf-8")
-        return (dist_dir() / "index.html").read_text(encoding="utf-8")
-
-    @app.get("/dashboard", response_class=HTMLResponse)
-    async def _spa_dashboard() -> str: return _spa_page("dashboard")
-
-    @app.get("/board", response_class=HTMLResponse)
-    async def _spa_board() -> str: return _spa_page("board")
-
-    @app.get("/queue", response_class=HTMLResponse)
-    async def _spa_queue() -> str: return _spa_page("queue")
-
-    @app.get("/tasks", response_class=HTMLResponse)
-    async def _spa_tasks() -> str: return _spa_page("tasks")
-
-    @app.get("/spec", response_class=HTMLResponse)
-    async def _spa_spec() -> str: return _spa_page("spec")
-
-    @app.get("/archive", response_class=HTMLResponse)
-    async def _spa_archive() -> str: return _spa_page("archive")
-
-    @app.get("/task", response_class=HTMLResponse)
-    async def _spa_task() -> str: return _spa_page("task")
-
-    @app.get("/task/detail", response_class=HTMLResponse)
-    async def _spa_task_detail() -> str: return _spa_page("task/detail")
-    # 规划文档 (prd/design/findings.md) 直出 .skein/task/: doc.js fetch task/<id>/<f>.md → /task/<id>/<f>.md
-    # check_dir=False: 空仓无 .skein/task 时不炸 (StaticFiles 自带穿越守卫, 只出既存文件)
+    # 规划文档 (prd/design/findings.md) 直出: doc.js fetch /task/<id>/<f>.md
     app.mount("/task", StaticFiles(directory=str(board.tasks), check_dir=False), name="task")
-    # SPA fallback: 其余无专属 route/mount 的 GET 路径 (/dashboard /queue /spec /archive 等单段 SPA 路由) 兜底回 index.html。
-    # 声明在所有 mount 之后 → 静态 (含 /task/<id>/prd.md, /dist/app.css) 先匹命中; 命不中才回落 SPA。API (/__skein__/*) 在更上方, 优先级最高。
-    @app.get("/{full_path:path}", response_class=HTMLResponse)
-    async def _spa_fallback(full_path: str) -> str:
-        return _spa()
+    # SPA catch-all: dist/ 根静态服务 (所有前端路由 /dashboard/ /board/ /spec/ 等的 index.html)
+    # html=true → /dashboard/ 自动返回 dashboard/index.html。
+    # 声明在 API + /task mount 之后 → API 优先级最高, task 文档次之, 最后 SPA。
+    app.mount("/", _NoCacheStatic(directory=str(dist_dir()), html=True, check_dir=False), name="spa-root")
     return app
 
 

@@ -49,7 +49,7 @@ export default function TasksPage() {
             placeholder="搜索任务…"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="mb-4 w-full max-w-md rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-primary"
+            className="mb-4 w-full max-w-md rounded-md border border-border bg-card/60 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-primary"
           />
 
           {/* Filters */}
@@ -76,7 +76,8 @@ export default function TasksPage() {
               <Link
                 key={t.id}
                 href={`/task/detail/?id=${t.id}`}
-                className="rounded-lg border border-border bg-card p-4 transition-all hover:border-primary/40 hover:shadow-md"
+                prefetch={false}
+                className="rounded-lg border border-border bg-card/60 p-4 transition-all hover:border-primary/40 hover:shadow-md"
               >
                 <div className="mb-2 flex items-center gap-2">
                   <StatusDot status={t.status} />

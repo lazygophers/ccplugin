@@ -19,12 +19,12 @@ export function StatusBadge({ status, className }: { status: string; className?:
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium whitespace-nowrap",
+        "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium whitespace-nowrap st-badge",
         className
       )}
       style={{
-        backgroundColor: `color-mix(in srgb, var(${meta.colorVar}) 16%, transparent)`,
-        color: `var(${meta.colorVar})`,
+        backgroundColor: `var(${meta.colorVar})`,
+        color: "#ffffff",
       }}
     >
       {meta.label}

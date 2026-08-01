@@ -62,6 +62,7 @@ export interface Task {
   kind?: string;
   parent?: string | null;
   started?: number | null;
+  confirmed?: number | null;
   finished?: number | null;
   checked?: number | null;
   created?: number | null;
@@ -88,6 +89,20 @@ export interface SpecItem {
   inclusion: string;
 }
 
+export interface SpecSearchResult {
+  path: string;
+  title: string;
+  snippet: string;
+}
+
+export interface SpecMetaItem {
+  path: string;
+  title: string;
+  namespace: string;
+  category: string;
+  keywords: string[];
+}
+
 export interface BoardData {
   cards: Task[];
   overview: DashboardData["overview"];
@@ -102,8 +117,12 @@ export const api = {
   queue: () => getJSON<{ items: QueueItem[] }>(`${BASE}/queue`),
   task: (tid: string) => getJSON<Task>(`${BASE}/task?id=${encodeURIComponent(tid)}`),
   spec: () => getJSON<{ items: SpecItem[] }>(`${BASE}/spec`),
+  specMeta: () => getJSON<SpecMetaItem[]>(`${BASE}/spec/meta`),
   specFile: (path: string) => getJSON<{ content: string }>(`${BASE}/spec/file?path=${encodeURIComponent(path)}`),
   specSave: (path: string, content: string) => postJSON(`${BASE}/spec/save`, { path, content }),
+  specCreate: (path: string, content?: string) => postJSON(`${BASE}/spec/create`, { path, content: content || "" }),
+  specDelete: (path: string) => postJSON(`${BASE}/spec/delete`, { path }),
+  specSearch: (q: string) => getJSON<SpecSearchResult[]>(`${BASE}/spec/search?q=${encodeURIComponent(q)}`),
   archive: () => getJSON<{ tasks: Task[] }>(`${BASE}/archive`),
   search: (q: string) => getJSON<{ results: Task[] }>(`${BASE}/search?q=${encodeURIComponent(q)}`),
   getConfig: () => getJSON<Record<string, unknown>>(`${BASE}/config`),

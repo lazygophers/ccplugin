@@ -98,12 +98,12 @@
   --oc-neutral-800: #292524; --oc-neutral-900: #1C1917; --oc-neutral-950: #0F0D0B;
 
   /* shadcn 语义映射 — Light: Ocean 主题 */
-  --background: var(--oc-sand-50);
-  --foreground: var(--oc-neutral-800);
+  --background: #FAFAF9;
+  --foreground: #1C1917;
   --card: #ffffff;
-  --card-foreground: var(--oc-neutral-800);
+  --card-foreground: #1C1917;
   --popover: #ffffff;
-  --popover-foreground: var(--oc-neutral-800);
+  --popover-foreground: #1C1917;
   --primary: var(--oc-ocean-500);
   --primary-foreground: #ffffff;
   --secondary: var(--oc-foam-100);
@@ -133,11 +133,11 @@
   --sidebar-border: var(--oc-neutral-200);
   --sidebar-ring: var(--oc-ocean-400);
 
-  /* SKEIN 状态色 — plan→Coral | 待执行→Ocean | exec→Coral | check→Sunset | finish→DeepSea */
+  /* SKEIN 状态色 — plan→Coral | 待执行→Ocean | exec→Seaweed | check→Sunset | finish→DeepSea */
   --st-planning: var(--oc-coral-600);
   --st-pending: var(--oc-ocean-600);
   --st-ready: var(--oc-ocean-600);
-  --st-active: var(--oc-coral-600);
+  --st-active: var(--oc-seaweed-600);
   --st-check: var(--oc-sunset-600);
   --st-done: var(--oc-deepsea-600);
   --st-failed: var(--oc-coral-600);
@@ -145,12 +145,12 @@
 
 /* ═══ Dark (DeepSea 主题) ═══ */
 .dark {
-  --background: var(--oc-deepsea-950);
-  --foreground: var(--oc-reef-100);
-  --card: var(--oc-deepsea-900);
-  --card-foreground: var(--oc-reef-100);
-  --popover: var(--oc-deepsea-800);
-  --popover-foreground: var(--oc-reef-100);
+  --background: #0C1520;
+  --foreground: #F0EDE8;
+  --card: #1A2E42;
+  --card-foreground: #F0EDE8;
+  --popover: #162536;
+  --popover-foreground: #F0EDE8;
   --primary: var(--oc-deepsea-400);
   --primary-foreground: #ffffff;
   --secondary: var(--oc-deepsea-800);
@@ -177,13 +177,13 @@
   --sidebar-border: var(--oc-deepsea-700);
   --sidebar-ring: var(--oc-deepsea-400);
 
-  --st-planning: var(--oc-coral-400);
-  --st-pending: var(--oc-ocean-400);
-  --st-ready: var(--oc-ocean-400);
-  --st-active: var(--oc-coral-400);
-  --st-check: var(--oc-sunset-400);
-  --st-done: var(--oc-deepsea-400);
-  --st-failed: var(--oc-coral-500);
+  --st-planning: var(--oc-coral-800);
+  --st-pending: var(--oc-ocean-800);
+  --st-ready: var(--oc-ocean-800);
+  --st-active: var(--oc-seaweed-800);
+  --st-check: var(--oc-sunset-800);
+  --st-done: var(--oc-deepsea-800);
+  --st-failed: var(--oc-coral-800);
 }
 
 @layer base {
@@ -191,9 +191,79 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
+    background-color: var(--background);
+    background-image:
+      linear-gradient(180deg, var(--oc-foam-100) 0%, var(--oc-ocean-100) 40%, var(--oc-ocean-200) 70%, transparent 100%),
+      linear-gradient(0deg, var(--oc-sand-200) 0%, var(--oc-sand-100) 30%, var(--oc-shell-100) 60%, transparent 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+  .dark body {
+    background-color: var(--background);
+    background-image:
+      linear-gradient(180deg, var(--oc-deepsea-900) 0%, var(--oc-ocean-900) 40%, var(--oc-ocean-800) 70%, transparent 100%),
+      linear-gradient(0deg, var(--oc-sand-900) 0%, var(--oc-sand-800) 25%, var(--oc-deepsea-800) 55%, transparent 100%);
+    background-attachment: fixed;
   }
   html {
     @apply font-sans;
   }
+}
+
+/* ═══ Markdown body ═══ */
+.md-body { line-height: 1.7; }
+.md-body h1 { font-size: 1.5em; font-weight: 700; margin: 0.8em 0 0.4em; }
+.md-body h2 { font-size: 1.3em; font-weight: 700; margin: 0.7em 0 0.3em; }
+.md-body h3 { font-size: 1.15em; font-weight: 600; margin: 0.6em 0 0.3em; }
+.md-body h4, .md-body h5, .md-body h6 { font-weight: 600; margin: 0.5em 0 0.2em; }
+.md-body p { margin: 0.4em 0; }
+.md-body ul, .md-body ol { padding-left: 1.4em; margin: 0.4em 0; }
+.md-body li { margin: 0.2em 0; }
+.md-body li.task { list-style: none; }
+.md-body code { font-family: var(--font-mono); background: color-mix(in srgb, var(--muted-foreground) 12%, transparent); padding: 0.1em 0.3em; border-radius: 3px; font-size: 0.9em; }
+.md-body pre { background: color-mix(in srgb, var(--muted-foreground) 8%, var(--background)); border: 1px solid var(--border); border-radius: 6px; padding: 0.8em; overflow-x: auto; margin: 0.6em 0; }
+.md-body pre code { background: none; padding: 0; }
+.md-body blockquote { border-left: 3px solid var(--primary); padding-left: 1em; margin: 0.5em 0; opacity: 0.8; }
+.md-body table { border-collapse: collapse; width: 100%; margin: 0.5em 0; }
+.md-body th, .md-body td { border: 1px solid var(--border); padding: 0.3em 0.6em; text-align: left; }
+.md-body th { background: color-mix(in srgb, var(--muted-foreground) 8%, transparent); font-weight: 600; }
+.md-body hr { border: none; border-top: 1px solid var(--border); margin: 0.8em 0; }
+.md-body a { color: var(--primary); text-decoration: none; }
+.md-body a:hover { text-decoration: underline; }
+.md-body img { max-width: 100%; border-radius: 6px; }
+.md-body strong { font-weight: 600; }
+.md-body del { opacity: 0.6; }
+
+/* ═══ 进度条 ═══ */
+.progress-bar-track { height: 6px; border-radius: 3px; background: var(--muted); overflow: hidden; position: relative; }
+.progress-bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+.progress-bar-fill.animated {
+  background-size: 200% 100%;
+  animation: progress-shimmer 2s linear infinite;
+}
+@keyframes progress-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ═══ 时间线脉冲 ═══ */
+.tl-dot-active::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 9999px;
+  border: 2px solid;
+  animation: tl-ripple 1.5s ease-out infinite;
+}
+@keyframes tl-ripple {
+  0% { opacity: 0.8; transform: scale(0.5); }
+  100% { opacity: 0; transform: scale(2.5); }
+}
+.tl-label-active {
+  animation: tl-blink 2s ease-in-out infinite;
+}
+@keyframes tl-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
 }

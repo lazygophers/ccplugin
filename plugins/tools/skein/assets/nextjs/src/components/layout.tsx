@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { api } from "@/lib/api";
+import { SettingsModal } from "@/components/settings";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "概览", icon: "fa-dashboard" },
@@ -17,35 +19,38 @@ const NAV_ITEMS = [
 export function Sidebar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [projName, setProjName] = useState("");
+
+  useEffect(() => {
+    api.id().then((r) => {
+      const path = String(r);
+      // /path/to/.skein → 项目名 = 上两级目录名
+      const parts = path.replace(/\/\.skein\/?$/, "").split("/");
+      setProjName(parts[parts.length - 1] || "SKEIN");
+    }).catch(() => setProjName("SKEIN"));
+  }, []);
 
   return (
     <>
-      {/* Mobile overlay */}
       {open && (
-        <div
-          className="fixed inset-0 z-[99] bg-black/40 lg:hidden"
-          onClick={() => setOpen(false)}
-        />
+        <div className="fixed inset-0 z-[99] bg-black/40 lg:hidden" onClick={() => setOpen(false)} />
       )}
-
       <aside
         className={cn(
-          "fixed left-0 top-0 z-[100] flex h-screen w-[220px] flex-col border-r border-border bg-sidebar transition-transform duration-200",
+          "fixed left-0 top-0 z-[100] flex h-screen w-[220px] flex-col border-r border-border/30 bg-card/40 backdrop-blur-md transition-transform duration-200",
           open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
-        {/* Brand */}
         <div className="flex items-center gap-2.5 border-b border-border/50 px-3 pb-4 pt-4">
-          <div className="flex h-[30px] w-[30px] items-center justify-center rounded-md bg-gradient-to-br from-primary to-chart-4 text-sm font-extrabold text-white shadow-sm">
+          <div className="flex h-[30px] w-[30px] items-center justify-center rounded-md text-sm font-extrabold text-white shadow-sm" style={{ background: "linear-gradient(135deg, var(--primary), var(--accent))" }}>
             S
           </div>
-          <div className="flex flex-col">
-            <span className="text-sm font-bold tracking-tight text-sidebar-foreground">SKEIN</span>
+          <div className="flex min-w-0 flex-col">
+            <span className="truncate text-sm font-bold tracking-tight text-sidebar-foreground">{projName || "SKEIN"}</span>
             <span className="text-[10px] text-muted-foreground">Task Orchestrator</span>
           </div>
         </div>
 
-        {/* Nav */}
         <nav className="flex-1 overflow-y-auto p-3">
           <div className="mb-1 px-2.5 pt-3 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
             工作台
@@ -56,6 +61,7 @@ export function Sidebar() {
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={false}
                 onClick={() => setOpen(false)}
                 className={cn(
                   "mb-0.5 flex h-[34px] items-center gap-2.5 rounded-md px-2.5 text-xs font-medium transition-colors",
@@ -71,7 +77,6 @@ export function Sidebar() {
           })}
         </nav>
 
-        {/* Footer: Theme toggle */}
         <div className="border-t border-border/50 p-3">
           <ThemeToggle />
         </div>
@@ -110,22 +115,42 @@ function ThemeToggle() {
 
 export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
   const pathname = usePathname();
+  const [showSettings, setShowSettings] = useState(false);
+  const [projName, setProjName] = useState("");
   const title = NAV_ITEMS.find((n) => pathname.startsWith(n.href))?.label || "SKEIN";
 
+  useEffect(() => {
+    api.id().then((r) => {
+      const path = String(r);
+      const parts = path.replace(/\/\.skein\/?$/, "").split("/");
+      setProjName(parts[parts.length - 1] || "");
+    }).catch(() => {});
+  }, []);
+
   return (
-    <header className="sticky top-0 z-10 flex h-12 items-center gap-4 border-b border-border bg-background px-6">
-      <button
-        onClick={onMenuClick}
-        className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-muted-foreground lg:hidden"
-      >
-        <i className="fa fa-bars" />
-      </button>
-      <span className="text-sm font-medium text-muted-foreground">{title}</span>
-      <div className="ml-auto">
-        <button className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground">
-          <i className="fa fa-cog" />
+    <>
+      <header className="sticky top-0 z-10 flex h-12 items-center gap-4 border-b border-border/30 bg-card/40 px-6 backdrop-blur-md">
+        <button
+          onClick={onMenuClick}
+          className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-muted-foreground lg:hidden"
+        >
+          <i className="fa fa-bars" />
         </button>
-      </div>
-    </header>
+        <div className="flex items-center gap-2 text-sm">
+          {projName && <span className="font-medium text-foreground">{projName}</span>}
+          {projName && <span className="text-muted-foreground">/</span>}
+          <span className="text-muted-foreground">{title}</span>
+        </div>
+        <div className="ml-auto">
+          <button
+            onClick={() => setShowSettings(true)}
+            className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+          >
+            <i className="fa fa-cog" />
+          </button>
+        </div>
+      </header>
+      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+    </>
   );
 }

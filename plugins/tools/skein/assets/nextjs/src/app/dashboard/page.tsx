@@ -45,23 +45,42 @@ export default function DashboardPage() {
             <KpiCard label="规划中" value={statusDist.planning || 0} icon="fa-pencil-square-o" colorVar="--st-planning" hint="待 confirm" />
           </div>
 
-          {/* Status grid */}
-          <div className="mb-4 rounded-lg border border-border bg-card p-4">
-            <h3 className="mb-3 text-sm font-semibold text-foreground">状态分布</h3>
-            <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
-              {ST_ORDER.map((s) => {
+          {/* Status distribution — stacked bar */}
+          <div className="mb-4 rounded-lg border border-border bg-card/60 p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-foreground">状态分布</h3>
+              <span className="text-xs text-muted-foreground">{total} 个任务</span>
+            </div>
+            {/* Stacked bar */}
+            <div className="mb-3 flex h-7 w-full overflow-hidden rounded-lg" title="任务状态分布">
+              {ST_ORDER.filter(s => (statusDist[s] || 0) > 0).map(s => {
+                const meta = ST_META[s];
+                const count = statusDist[s] || 0;
+                const pct = count / total * 100;
+                return (
+                  <div
+                    key={s}
+                    className="flex items-center justify-center transition-all duration-500"
+                    style={{ width: `${pct}%`, backgroundColor: `var(${meta.colorVar})` }}
+                    title={`${meta.label}: ${count} (${Math.round(pct)}%)`}
+                  >
+                    {pct >= 8 && <span className="text-[10px] font-bold text-white">{count}</span>}
+                  </div>
+                );
+              })}
+            </div>
+            {/* Legend */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+              {ST_ORDER.map(s => {
                 const meta = ST_META[s];
                 const count = statusDist[s] || 0;
                 const pct = Math.round(count / total * 100);
                 return (
-                  <div key={s} className="flex items-center gap-2 rounded-lg bg-muted/30 p-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: `color-mix(in srgb, var(${meta.colorVar}) 10%, transparent)`, color: `var(${meta.colorVar})` }}>
-                      <i className={`fa ${meta.icon} text-xs`} />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-xs text-muted-foreground">{meta.label}</div>
-                      <div className="text-sm font-semibold text-foreground">{count} <span className="ml-0.5 font-normal text-muted-foreground">({pct}%)</span></div>
-                    </div>
+                  <div key={s} className="flex items-center gap-1.5">
+                    <div className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: `var(${meta.colorVar})` }} />
+                    <span className="text-xs text-muted-foreground">{meta.label}</span>
+                    <span className="text-xs font-semibold text-foreground">{count}</span>
+                    <span className="text-[10px] text-muted-foreground">{pct}%</span>
                   </div>
                 );
               })}
@@ -85,7 +104,7 @@ export default function DashboardPage() {
 
 function KpiCard({ label, value, icon, colorVar, hint }: { label: string; value: number | string; icon: string; colorVar: string; hint?: string }) {
   return (
-    <div className="rounded-lg border border-border bg-card p-4 transition-colors hover:border-border/60">
+    <div className="rounded-lg border border-border bg-card/60 p-4 transition-colors hover:border-border/60">
       <div className="mb-2 flex items-start justify-between">
         <span className="text-xs font-medium text-muted-foreground">{label}</span>
         <div className="flex h-9 w-9 items-center justify-center rounded-lg" style={{ backgroundColor: `color-mix(in srgb, var(${colorVar}) 10%, transparent)`, color: `var(${colorVar})` }}>
@@ -100,7 +119,7 @@ function KpiCard({ label, value, icon, colorVar, hint }: { label: string; value:
 
 function TaskListCard({ title, icon, tasks, emptyText }: { title: string; icon: string; tasks: { id: string; title?: string; name?: string; description?: string; desc?: string; status: string }[]; emptyText: string }) {
   return (
-    <div className="rounded-lg border border-border bg-card p-4">
+    <div className="rounded-lg border border-border bg-card/60 p-4">
       <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
         <i className={`fa ${icon} text-primary`} />
         {title}
@@ -108,7 +127,7 @@ function TaskListCard({ title, icon, tasks, emptyText }: { title: string; icon: 
       {tasks.length ? (
         <div className="divide-y divide-border/50">
           {tasks.map((t) => (
-            <Link key={t.id} href={`/task/detail/?id=${t.id}`} className="flex cursor-pointer items-center gap-3 rounded-lg p-2 transition-colors hover:bg-muted/30">
+            <Link key={t.id} href={`/task/detail/?id=${t.id}`} prefetch={false} className="flex cursor-pointer items-center gap-3 rounded-lg p-2 transition-colors hover:bg-muted/30">
               <StatusDot status={t.status} />
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-medium text-foreground">{t.title || t.name || "(未命名)"}</div>

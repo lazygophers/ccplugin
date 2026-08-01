@@ -44,7 +44,7 @@ export default function QueuePage() {
             <StatCard value={checkCount} label="待验收" colorVar="--st-check" />
           </div>
 
-          <div className="overflow-hidden rounded-lg border border-border bg-card p-0">
+          <div className="overflow-hidden rounded-lg border border-border/30 bg-transparent p-0">
             <div className="flex items-center justify-between border-b border-border/40 p-4">
               <div className="flex items-center gap-2">
                 <i className="fa fa-list-ul text-primary" />
@@ -53,21 +53,24 @@ export default function QueuePage() {
               <span className="text-xs text-muted-foreground">按优先级排序</span>
             </div>
             {items.length ? (
-              <div className="divide-y divide-border/40">
-                {items.map((t) => (
-                  <Link key={t.tid + "/" + t.sid} href={`/task/detail/?id=${t.tid}`} className="flex cursor-pointer items-center gap-4 p-4 transition-colors hover:bg-muted/30">
+              <div className="space-y-2">
+                {items.map((t) => {
+                  const r = t as unknown as Record<string, unknown>;
+                  return (
+                  <Link key={String(r.id) + "/" + (r.sid || "")} href={`/task/detail/?id=${r.id}`} prefetch={false} className="flex cursor-pointer items-center gap-4 rounded-lg bg-card/60 p-4 transition-colors hover:bg-card/60">
                     <StatusDot status={t.status} />
                     <div className="min-w-0 flex-1">
                       <div className="mb-1 flex items-center gap-2">
-                        <span className="truncate text-sm font-medium text-foreground">{t.name}</span>
+                        <span className="truncate text-sm font-medium text-foreground">{String(r.name || r.title || r.id)}</span>
                       </div>
-                      <div className="truncate text-xs text-muted-foreground">{t.tid}/{t.sid}</div>
+                      <div className="truncate text-xs text-muted-foreground">{String(r.id)}/{String(r.sid || "")}</div>
                     </div>
                     <div className="flex-shrink-0 text-right">
                       <StatusBadge status={t.status} />
                     </div>
                   </Link>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="py-16 text-center">
@@ -84,7 +87,7 @@ export default function QueuePage() {
 
 function StatCard({ value, label, colorVar }: { value: number; label: string; colorVar: string }) {
   return (
-    <div className="rounded-lg border border-border bg-card p-4 text-center">
+    <div className="rounded-lg border border-border/30 bg-card/40 p-4 text-center">
       <div className="mb-1 text-2xl font-bold" style={{ color: `var(${colorVar})` }}>{value}</div>
       <div className="text-xs text-muted-foreground">{label}</div>
     </div>

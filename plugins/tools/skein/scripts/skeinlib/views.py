@@ -233,6 +233,7 @@ def _view_board_data(snap: Snapshot) -> dict[str, Any]:
             "worktree": (t.get("worktree") or None) if snap.wt_shown else None,
             "assignee": t.get("assignee") or t.get("owner") or git_user,
             "created": t.get("created"),
+            "confirmed": t.get("confirmed"),
             "started": t.get("started"),
             "checked": t.get("checked"),
             "finished": t.get("finished"),

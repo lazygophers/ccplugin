@@ -33,7 +33,8 @@ export default function ArchivePage() {
                 <Link
                   key={t.id}
                   href={`/task/detail/?id=${t.id}`}
-                  className="flex cursor-pointer items-start gap-4 rounded-xl border border-border/40 bg-card/30 p-4 transition-all hover:border-border hover:bg-muted/30"
+                  prefetch={false}
+                  className="flex cursor-pointer items-start gap-4 rounded-xl border border-border/40 bg-card/60 p-4 transition-all hover:border-border hover:bg-muted/30"
                 >
                   <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: `color-mix(in srgb, var(--st-done) 10%, transparent)`, color: "var(--st-done)" }}>
                     <i className="fa fa-check-circle text-lg" />

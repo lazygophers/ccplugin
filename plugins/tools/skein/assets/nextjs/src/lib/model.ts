@@ -44,6 +44,7 @@ export interface NormTask {
   kind: string;
   parent: string | null;
   createdAt: number | null;
+  confirmedAt: number | null;
   startedAt: number | null;
   finishedAt: number | null;
   checkedAt: number | null;
@@ -95,6 +96,7 @@ export function normalizeTask(t: Record<string, unknown>): NormTask {
     kind: (t.kind || 'task') as string,
     parent: (t.parent || null) as string | null,
     createdAt: createdTs,
+    confirmedAt: (t.confirmedAt || (t.confirmed ? (t.confirmed as number) * 1000 : null)) as number | null,
     startedAt: startedTs,
     finishedAt: finishedTs,
     checkedAt: (t.checkedAt || (t.checked ? (t.checked as number) * 1000 : null)) as number | null,

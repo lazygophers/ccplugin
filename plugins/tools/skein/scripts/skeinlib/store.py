@@ -95,7 +95,12 @@ class TaskStore:
         tasks = [{"id": t["id"], "status": t["status"], "deps": t["deps"],
                   "priority": t.get("priority", 5),
                   "worktree": t.get("worktree"),
-                  "parent": t.get("parent"), "kind": t.get("kind", "task")} for t in self.all_tasks()]
+                  "parent": t.get("parent"), "kind": t.get("kind", "task"),
+                  "created": t.get("created"),
+                  "confirmed": t.get("confirmed"),
+                  "started": t.get("started"),
+                  "checked": t.get("checked"),
+                  "finished": t.get("finished")} for t in self.all_tasks()]
         self.write_if_changed(self.dir / "task.json",
             json.dumps({"tasks": tasks}, ensure_ascii=False, indent=2))
         self._write_board()  # 变更即刷 task.md (看板 http 实时渲染, 不落盘)
