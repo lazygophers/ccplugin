@@ -111,7 +111,7 @@ effort: medium
 
 - [ ] 每 ready subtask 均已派真实 `Agent(subagent_type="skein:skein-executor")` 或已 done/fail (无遗漏挂起)
 - [ ] `claim exec` 返回空且无 depends_on 死锁 (确认无可调度项)
-- [ ] 全部 subtask done → 已自动进 check (不止于 subtask 全 done 就停手)
+- [ ] 全部 subtask done → `skein claim check` 认领进检查 (不止于 subtask 全 done 就停手)
 - [ ] 回合末已输出任务清单 (有异步在跑时)
 
 **完整 exec 阶段作业手册** (入口路由 / 调度门载体分工 / 调度循环 (`max_active` 并发上限) / 自愈闭环 / tight feedback loop / 两条硬规 / 失败模式) 详见 [references/for-exec.md](references/for-exec.md)。

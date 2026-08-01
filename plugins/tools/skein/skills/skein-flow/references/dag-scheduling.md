@@ -32,7 +32,7 @@ subtask DAG 存 per-task `task.json` 的 `subtasks[]` (guard 硬阻 AI 直读写
 | `subtask add` | planning/main | 登记 subtask 到 DAG (参数表见 [subtask-operations.md §2.3](subtask-operations.md)) |
 | `claim exec` | main (每轮，主路径) | 见 §5.3 |
 | `subtask claim <tid>` | main (单 task 兼容) | 见 §5.3 |
-| `claim --dry-run` | main (查候选) | 见 §5.3 |
+| `claim exec --dry-run` | main (查候选) | 见 §5.3 |
 | `subtask check <tid> <sid> --passed "1,3"` | main (**check 阶段**，非 exec) | 勾选已过验收序号 (1-based；`all`/`none`)，更新完成百分比。exec 不勾验收 — 归 check 阶段 checkpoint 核对 |
 | `subtask done/fail <tid> <sid>` | main (exec，agent 回) | agent 执行完成/失败即改态。exec 唯一改态出口 (`done`=执行动作完成；验收核对留给 check) |
 | `subtask ready <tid>` / `list <tid>` | main (查态) | 只读预览 / 列全 subtask 态 |
@@ -61,7 +61,7 @@ subtask.ready = (∀ dep ∈ subtask.depends_on: dep.status == done)
 | `skein start` (task 级) | ✅ 阻塞 | 前置 task 未 done，start 硬拒 |
 | `skein claim exec` (subtask 级) | ✅ 阻塞 | 前置 subtask 未 done，不算 ready |
 
-> **核心原则**：plan/confirm 不阻塞，仅 start/claim 等。前置未完成也照常把规划做完，等 start 时才等前置。
+> **核心原则**：plan/confirm 不阻塞，仅 start/claim exec 等。前置未完成也照常把规划做完，等 start 时才等前置。
 
 ---
 
@@ -152,12 +152,14 @@ while skein claim exec 返回非空:       # 全局跨 task 合池竞争
 
 | 命令 | 范围 | 用途 |
 |---|---|---|
-| `skein claim exec` | 全局跨 task | **主路径**：所有可调度 task (进行中 + 就绪, 前置已清) 的 ready subtask 合池竞争; 就绪 task 首个 subtask 被认领时自动启动 |
+| `skein claim exec` | 全局跨 task | **exec 主路径**：所有可调度 task (进行中 + 就绪, 前置已清) 的 ready subtask 合池竞争; 就绪 task 首个 subtask 被认领时自动启动 |
+| `skein claim check` | 全局跨 task | **check/finish 主路径**：进行中 task 全 subtask done → 检查中 (交 skein-checker); 检查中 task 全 subtask done → 已完成 (调 lifecycle.finish 合并+销 worktree) |
 | `skein subtask claim <tid>` | 单 task 内 | 兼容模式：仅指定 task 内截断，不跨 task 竞争 |
-| `skein claim exec --dry-run` | 全局只读 | 预览就绪批，不改态不占槽 |
+| `skein claim exec --dry-run` | 全局只读 | 预览 exec 就绪批，不改态不占槽 |
+| `skein claim check --dry-run` | 全局只读 | 预览 check/finish 待认领批，不改态 |
 | `skein subtask start <tid> <sid>` | 单个 subtask | 失败重派 / 定点补派 |
 
-> **claim exec 默认改态占槽**：调用即把就绪批整批标 running + 占槽，无需额外参数。`--dry-run` 才只读。
+> **claim 默认改态占槽**：`claim exec` 调用即把就绪批整批标 running + 占槽；`claim check` 调用即把全done task 标检查中 / 检查通过的标已完成。`--dry-run` 才只读。
 > 各命令的源/目标状态、前置校验、副作用见 [subtask-state-machine.md §操作命令](subtask-state-machine.md)。
 
 ---
@@ -188,7 +190,7 @@ skein list --status open --json
 
 - **目标**：用 exec 空闲窗口把排队 task 备到「一有 slot 即可 start」，流水线不断档
 - **推到哪里停**：至多推到 `skein confirm`/`start` 门前 (planning-complete 待处理态)
-- **不自动过用户门**：confirm 是用户确认门，plan-ahead 不自动 confirm。**注**: 这条只约束 plan-ahead 预备的**非焦点 pending task** (exec 空闲时顺手推进的排队 task)。循环当前焦点 task 的 confirm 行为以 [flow-loop.md](flow-loop.md) 为准 (flow 主循环视 confirm 为非阻塞门, 判据勾满自动过); 该 pending task 一旦被 claim/exec 选为焦点, 即按 flow-loop.md 自动过 confirm, 不再受本条限制。
+- **不自动过用户门**：confirm 是用户确认门，plan-ahead 不自动 confirm。**注**: 这条只约束 plan-ahead 预备的**非焦点 pending task** (exec 空闲时顺手推进的排队 task)。循环当前焦点 task 的 confirm 行为以 [flow-loop.md](flow-loop.md) 为准 (flow 主循环视 confirm 为非阻塞门, 判据勾满自动过); 该 pending task 一旦被 claim exec/exec 选为焦点, 即按 flow-loop.md 自动过 confirm, 不再受本条限制。
 
 ### 6.3 必让位 subtask
 
@@ -273,7 +275,7 @@ skein subtask add <tid> <fix-sid> \
 
 ### 8.2 排序
 
-全局 claim 时排序键：
+全局 claim exec 时排序键：
 1. 拓扑深度降序
 2. task 登记序 (先创建的 task 优先)
 3. subtask 登记序 (先 add 的 subtask 优先)

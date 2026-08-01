@@ -14,7 +14,7 @@
 
 | Skill | 职责 | 入口 |
 | --- | --- | --- |
-| skein-flow | 主线编排: plan→exec→check→finish 四阶段单一真值源, 参数路由 (`/skein-flow [flow\|plan\|exec\|check\|finish]`, 缺省 = flow 全闭环)。plan=brainstorm+research+grill+DAG / exec=claim+dispatch / check=lint+type+test+contract / finish=merge+sediment+archive | 自动 (flow 信号) |
+| skein-flow | 主线编排: plan→exec→check→finish 四阶段单一真值源, 参数路由 (`/skein-flow [flow\|plan\|exec\|check\|finish]`, 缺省 = flow 全闭环)。plan=brainstorm+research+grill+DAG / exec=claim exec+dispatch / check=lint+type+test+contract / finish=merge+sediment+archive | 自动 (flow 信号) |
 | skein-spec | 规则记忆: recall/sediment/bootstrap/prune | 按需 |
 | skein-grill | 对抗审查: red team (plan 后硬门) | flow 调用 |
 | skein-research | 调研: 代码 survey + 外部搜索 | plan/exec 调用 |

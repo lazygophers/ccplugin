@@ -24,7 +24,7 @@ SKEIN subtask 的 4 个状态、流转规则、操作命令及与 `max_active` �
               ┌──────────┐
               │  待处理   │  (pending)
               └────┬─────┘
-                   │ claim / subtask start
+                   │ claim exec / subtask start
                    ↓
               ┌──────────┐
         ┌────→│  运行中   │←───┐
@@ -69,7 +69,7 @@ SKEIN subtask 的 4 个状态、流转规则、操作命令及与 `max_active` �
 - **源状态**: 同 task 内待处理 (且依赖全 done)
 - **目标状态**: 运行中 (running)
 - **范围**: 仅指定 task 内的 ready subtask
-- **其余同全局 claim**
+- **其余同全局 claim exec**
 
 ### 4. `skein subtask start <tid> <sid>` — 单个启动
 
@@ -110,7 +110,7 @@ SKEIN subtask 的 4 个状态、流转规则、操作命令及与 `max_active` �
 | **全局 subtask** | 所有 active task 加起来的 running subtask 数 ≤ `max_active` | `skein claim exec` 全局认领时 |
 
 > 注：单 task 内 subtask 用 `max_active` 作为并发上限，
-> 全局 claim 也用 `max_active`。两者是同一个配置值。
+> 全局 claim exec 也用 `max_active`。两者是同一个配置值。
 
 ### 占槽 / 释槽时机
 
@@ -122,7 +122,7 @@ SKEIN subtask 的 4 个状态、流转规则、操作命令及与 `max_active` �
 
 > **两套槽独立**: task 级 active 槽 (控制同时几个 task 在跑) 和 subtask 级 running 槽 (控制同时派几个 agent) 是**两套独立计数**，互不影响。
 
-### 调度规则 (claim 算法)
+### 调度规则 (claim exec 算法)
 
 `skein claim exec` 全局调度：
 1. 遍历所有「进行中」的 task

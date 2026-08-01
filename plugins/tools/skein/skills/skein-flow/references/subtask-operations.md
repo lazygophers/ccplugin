@@ -176,7 +176,7 @@ skein subtask add <tid> <new-sid> \
 
 - **并入 = 归并到现有 task**，不新建 task
 - 新 subtask 的 `--deps` 挂到合适位置 (依赖已有的相关 subtask)
-- 如果 task 已经在「进行中」态，新 subtask add 后若 deps 全 done 则立即 ready，下一轮 claim 即派
+- 如果 task 已经在「进行中」态，新 subtask add 后若 deps 全 done 则立即 ready，下一轮 claim exec 即派
 
 ### 5.4 约束
 

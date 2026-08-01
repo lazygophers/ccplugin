@@ -4,7 +4,7 @@ skein-flow 全流程的载体层强制规则 (最高优先级)。每条都不可
 
 - **「派 agent」= 真实调用 `Agent` 工具, 不是叙述**。每个「派 agent」动作 MUST 在同一回复产生真实 tool_use。禁在无 `Agent` 调用时回传「已派出 / 在做」— 宣称 ≠ 调用 = 幻觉跳步。task/看板/worktree 的「已建」同理必须是真跑过命令的结果。
 - **main 默认禁写源码** — 改源码 exec 一律派 `skein-executor`, 跑 check 派 `skein-checker`。仅特别情况例外 (上下文密集决策 / 用户显式要求), 且必在 task worktree 内。文件数口径见 [scope-boundary.md](scope-boundary.md), 禁另立「≤N 文件」标准。
-- **载体一律具名 subagent, 禁 teammate / agent-team** — exec / check / finish 三阶段全部经 `Agent` 工具派具名 subagent, main 独家调度、结果只回传 main。**精确调用形式见下方「派发调用形式」段, 照抄即可**。禁 `SendMessage` 派 teammate, 禁 team 共享任务列表自认领, 禁 `Agent` 带 `team_name`。理由: 调度真值是 `.skein/task.json` 的 DAG + claim 占槽, team 的共享任务列表与之双写冲突; 且 subtask 顺序敏感 + 共享同一 worktree, 命中官方「sequential tasks / same-file edits 用 subagent 更有效」判据。环境层若开着 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`, 本条仍是硬约束 — 开关是可用性, 不是许可。
+- **载体一律具名 subagent, 禁 teammate / agent-team** — exec / check / finish 三阶段全部经 `Agent` 工具派具名 subagent, main 独家调度、结果只回传 main。**精确调用形式见下方「派发调用形式」段, 照抄即可**。禁 `SendMessage` 派 teammate, 禁 team 共享任务列表自认领, 禁 `Agent` 带 `team_name`。理由: 调度真值是 `.skein/task.json` 的 DAG + claim exec 占槽, team 的共享任务列表与之双写冲突; 且 subtask 顺序敏感 + 共享同一 worktree, 命中官方「sequential tasks / same-file edits 用 subagent 更有效」判据。环境层若开着 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`, 本条仍是硬约束 — 开关是可用性, 不是许可。
 - **exec / check 分工, main 作调度器** — exec: 一律派 `skein-executor` 各执行 1 个 (并发上限 2 / 完成即派 / 共享 task worktree); 递归护栏 (Recursion Guard) 靠 `skein-executor` 工具面剔除 Agent/Task 强制, 非靠 dispatch prompt 文字禁止。check: 派 `skein-checker` (工具受限, 无 Write/Edit/Agent/Task 的具名 agent)。调度算法详见 `skein-flow exec 阶段` skill, check 详见 `skein-flow check 阶段`。
 - **有 task 必有 worktree** — task 在其 worktree 内执行 (`skein start` 自动建), 主工作区零改动; 默认 1 task 1 worktree。finish 后自动销。**多子 git**: 改动跨多个子 git (并列独立 repo 或 submodule) 时, planning 阶段用 `skein create <id> --name "X" --desc "Y" --repos <rel路径,逗号分隔>` 声明目标子 git (root 用 `.`); `start` 为每个声明的子 git 各建 1 worktree+分支, `finish` 各自 commit→merge→销。声明留空 = 单根/原地模式 (原行为)。子 git 集合由 planning 声明, 不靠脚本猜。
 - **`skein` 由 main 同步跑** — create/start/finish/archive 是任务记录管理, main 直接跑, 不派 agent、不算实质工作。
@@ -37,7 +37,7 @@ Agent(
 ```
 
 **禁用参数 / 禁用工具**:
-- ❌ `team_name=...` — 传了就是 agent-team, 与 `.skein/task.json` 的 DAG + claim 占槽双写冲突
+- ❌ `team_name=...` — 传了就是 agent-team, 与 `.skein/task.json` 的 DAG + claim exec 占槽双写冲突
 - ❌ `SendMessage(to=...)` 派 teammate — 同上
 - ❌ 裸名 `subagent_type="skein-executor"` (缺 `skein:` 前缀)
 - ❌ 只在文字里写「派 skein-executor 执行」而无真实 tool_use — 宣称 ≠ 调用
@@ -53,7 +53,7 @@ Agent(
 | 处理请求 | 强制走 task 闭环, 即使看似简单 (❌ inline 跳 task) |
 | 改任务状态 | 经 skein CLI 操作 (❌ 直编 `.skein/task.md`) |
 | exec 派发顺序 | 按 depends_on DAG 自动排序即派 (❌ exec 阶段问用户顺序) |
-| 有 subtask 的 task | 走 claim→派 subagent→done 循环 (❌ main inline 顺跑不派 subagent) |
+| 有 subtask 的 task | 走 claim exec→派 subagent→done 循环 (❌ main inline 顺跑不派 subagent) |
 | 相关工作组织 | 归一 task 拆 subtask (❌ 相关工作拆成多个 task) |
 | 进 exec 前置 | 先过 grill 硬门再推进 (❌ 跳 grill 硬门进 exec) |
 | 调度图/子任务落盘 | 写进 task.json (❌ 写进 md 文件) |

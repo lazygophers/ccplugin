@@ -36,12 +36,12 @@
 
 ---
 
-### 🛑 硬门 2: Subtask 级 — 未 claim 占槽禁派
+### 🛑 硬门 2: Subtask 级 — 未 claim exec 占槽禁派
 
 | 项 | 内容 |
 |---|---|
 | **门规** | subtask 必须先 `skein claim exec` / `skein subtask claim <tid>` / `skein subtask start <tid> <sid>` (标 running 占 `max_active` 槽) 才能派 agent |
-| **禁止行为** | pending / failed 态 subtask 禁直接派 agent，必须先经 claim / start 占槽 |
+| **禁止行为** | pending / failed 态 subtask 禁直接派 agent，必须先经 claim exec / start 占槽 |
 | **违反后果** | 流程错误，已派出的 agent 视为无槽运行，必须回收或补占槽 |
 | **回退操作** | 先把 subtask 标 running 占槽 (`skein subtask start <tid> <sid>` 或 `skein claim exec` 整批认领)，再派 agent |
 | **校验依据** | `skein subtask start` 脚本硬卡：非 pending/failed 态拒；满槽也拒 |

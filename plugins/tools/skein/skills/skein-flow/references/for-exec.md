@@ -1,6 +1,6 @@
 # for-exec — exec 阶段作业手册
 
-只管**调度编排** (main 保留项: claim 占槽 / 派发 / 自愈决策 / `需要:` 转达)。单 subtask 怎么执行归 `skein-executor` agent 自身工作流, 本文件不重复。
+只管**调度编排** (main 保留项: claim exec 占槽 / 派发 / 自愈决策 / `需要:` 转达)。单 subtask 怎么执行归 `skein-executor` agent 自身工作流, 本文件不重复。
 
 ## 触发与前置硬门
 
@@ -33,7 +33,7 @@
 
 ### 调度循环 (动态, 完成即派)
 
-调度循环本身 (`while skein claim 返回非空: 派 → 等回传 → done/fail → 再 claim`) 与并发上限 / 并行判定详见 [dag-scheduling.md](dag-scheduling.md) 第 5.1 节, 禁另抄一份。
+调度循环本身 (`while skein claim exec 返回非空: 派 → 等回传 → done/fail → 再 claim exec`) 与并发上限 / 并行判定详见 [dag-scheduling.md](dag-scheduling.md) 第 5.1 节, 禁另抄一份。
 
 - **🟢 派异步优先, 同步 plan 填余力 (禁干等)** — 每回合先 `claim exec` 把就绪 subtask 派出去占满 `max_active` 槽 (异步, 立即回手), **槽位满或 `claim exec` 返回空时才做 plan-ahead** 把 pending task 推到就绪, 保证一有槽位释放即有 ready task 接上。只要还有 pending task 未就绪, plan-ahead 就不停 (前提是槽位已满 / 无可派 subtask), 禁 idle 干等。详见 [dag-scheduling.md](dag-scheduling.md) §6.1。
 - **🔴 exec 无验收 (完成即 done, 验收全归 check)** — executor 回传即执行完成 (自跑 `subtask done/fail`), main **不重复勾验收**。exec 只判「执行有没有跑完/报错」, 不判「验收过没过」。

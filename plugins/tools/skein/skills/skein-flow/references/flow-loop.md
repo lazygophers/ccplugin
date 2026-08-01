@@ -11,7 +11,7 @@ while 有可推进 task:                      # task 级并发受 max_active (�
       待处理 (未 confirm)  → plan  → 判据勾满 → skein confirm → 落到「就绪」
       就绪                 → skein start (占槽 + 建 worktree) → 进 exec
       进行中               → exec 调度循环 (claim exec → 派 agent → done → 再 claim exec)
-      进行中 且 全 subtask done → skein check → 派 skein-checker
+      进行中 且 全 subtask done → claim check (认领进检查) → skein-checker 自跑 skein check → 验收
       检查中 且 全绿零冲突 → finish (勘察 + merge + 标记 + 异步 sediment)
       检查中 且 FAIL       → 回 planning 重确认 (❗停顿点, 见下)
     finish 完 → 回循环头取下一个 task
