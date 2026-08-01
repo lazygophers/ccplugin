@@ -2,7 +2,7 @@
   "id": "mypy-mixin-debt",
   "name": "分包 Mixin 悬空属性 mypy 债",
   "desc": "cac9849f6 分包后约 120 条 XxxMixin has no attribute, 卡住 doctor --quality 质量门",
-  "status": "检查中",
+  "status": "已完成",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -88,15 +88,8 @@
   "priority": 5,
   "estimate": 6.0,
   "repos": [],
-  "worktree": ".worktrees/skein-mypy-mixin-debt",
-  "worktrees": [
-    {
-      "repo": ".",
-      "wt": ".worktrees/skein-mypy-mixin-debt",
-      "branch": "skein/mypy-mixin-debt",
-      "merged": false
-    }
-  ],
+  "worktree": null,
+  "worktrees": [],
   "branch": "skein/mypy-mixin-debt",
   "parent": null,
   "kind": "task",
@@ -104,7 +97,7 @@
   "started": 1785573409,
   "confirmed": 1785551607,
   "checked": 1785575962,
-  "finished": null,
-  "updated": 1785575962,
+  "finished": 1785576834,
+  "updated": 1785576834,
   "confirmed_by": "user"
 }

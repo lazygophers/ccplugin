@@ -10,24 +10,6 @@
       "kind": "task"
     },
     {
-      "id": "mypy-mixin-debt",
-      "status": "检查中",
-      "deps": [],
-      "priority": 5,
-      "worktree": ".worktrees/skein-mypy-mixin-debt",
-      "parent": null,
-      "kind": "task"
-    },
-    {
-      "id": "skein-gitignore",
-      "status": "检查中",
-      "deps": [],
-      "priority": 5,
-      "worktree": ".worktrees/skein-skein-gitignore",
-      "parent": null,
-      "kind": "task"
-    },
-    {
       "id": "flow-redo",
       "status": "就绪",
       "deps": [],
@@ -136,6 +118,24 @@
     },
     {
       "id": "board-overall-progress",
+      "status": "已完成",
+      "deps": [],
+      "priority": 5,
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    },
+    {
+      "id": "mypy-mixin-debt",
+      "status": "已完成",
+      "deps": [],
+      "priority": 5,
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    },
+    {
+      "id": "skein-gitignore",
       "status": "已完成",
       "deps": [],
       "priority": 5,
