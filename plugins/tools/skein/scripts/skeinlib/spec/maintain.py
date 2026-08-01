@@ -23,6 +23,16 @@ from skeinlib.spec.model import (AUDIT_RETENTION_DAYS, DEFAULT_MAINTAIN_POLICY,
 from skeinlib.spec.text import (_clean_body, _frontmatter, _link_target, _months, _sections,
                                 _strip_frontmatter)
 
+# 复用 map.py 的符号检测正则（k1 骨架现算实现）— 禁重复实现
+# 从 map.py 导入，确保单一真值源
+try:
+    from skeinlib.spec.map import _GO_TOP_RE, _JS_TOP_RE, _PY_TOP_RE
+except ImportError:
+    # ponytail: fallback 防御性复制（如果 map.py 结构变化）
+    _PY_TOP_RE = re.compile(r"^(def|class|async\s+def)\s+(\w+)")
+    _JS_TOP_RE = re.compile(r"^(function|class|export\s+(?:function|class|const|let|var))\s+(\w+)")
+    _GO_TOP_RE = re.compile(r"^(func|type)\s+(\w+)")
+
 
 class MaintainMixin:
     # 仅供 mypy 用的属性声明: 引擎拆分后本 mixin 引用的 root / _scan_namespaces 等实际
@@ -45,6 +55,62 @@ class MaintainMixin:
                          body: str, keywords: str, status: str,
                          inclusion: str = "auto", globs: Optional[str] = None,
                          anchors: Optional[str] = None) -> None: ...
+
+    # 符号检测辅助方法（复用 map.py 的骨架正则，k1 实现）
+    def _check_file_symbol(self, file_path: Path, symbol: str) -> bool:
+        """检查文件中是否存在指定符号（按语言选择正则）。
+
+        返回 True 如果符号存在，False 如果不存在。
+        文件不存在或读不出时返回 False。
+        """
+        if not file_path.is_file():
+            return False
+
+        try:
+            content = file_path.read_text()
+        except (OSError, UnicodeDecodeError):
+            return False
+
+        ext = file_path.suffix.lower()
+
+        if ext in {".py", ".pyx", ".pyi"}:
+            return self._check_py_symbol(content, symbol)
+        elif ext in {".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs"}:
+            return self._check_js_symbol(content, symbol)
+        elif ext in {".go", ".golang"}:
+            return self._check_go_symbol(content, symbol)
+        else:
+            # 非代码文件：当作路径存在即通过（兼容纯路径 anchors）
+            return True
+
+    def _check_py_symbol(self, content: str, symbol: str) -> bool:
+        """Python 符号检测：def/class/async def。"""
+        for line in content.splitlines():
+            m = _PY_TOP_RE.search(line.strip())
+            if m and m.group(2) == symbol:
+                return True
+        return False
+
+    def _check_js_symbol(self, content: str, symbol: str) -> bool:
+        """JS/TS 符号检测：function/class/export。"""
+        for line in content.splitlines():
+            m = _JS_TOP_RE.search(line.strip())
+            if m:
+                # export const foo = ... → foo
+                # export function bar → bar
+                # class Baz → Baz
+                name = m.group(2).split("(")[0].split("=")[0].strip()
+                if name == symbol and name.isidentifier():
+                    return True
+        return False
+
+    def _check_go_symbol(self, content: str, symbol: str) -> bool:
+        """Go 符号检测：func/type。"""
+        for line in content.splitlines():
+            m = _GO_TOP_RE.search(line.strip())
+            if m and m.group(2) == symbol:
+                return True
+        return False
     # ---- archive (完全重构前可逆清库: 移旧规则到 .archive/<ts>/, reindex 空) ----
     def archive(self, a: argparse.Namespace) -> None:
         namespace_opt = cast(Optional[str], getattr(a, "namespace", None))
@@ -135,18 +201,39 @@ class MaintainMixin:
                         findings.append({"kind": "broken_link", "rel": rel, "slug": slug,
                                          "text": f"[断链] {rel}: [[{slug}]] ✗ 目标缺失"})
 
-                # 判据 (全部, 断链判据扩到 anchors): anchors 声明路径不存在 → 统一只报告;
-                # namespace 判据表另标 "archive" 时 (如 map) 追加一条可自动归档的 finding。
+                # 判据 (全部, 断链判据扩到 anchors): 强弱断链区分
+                # 强断链: anchors 路径不存在; 弱断链: 路径存在但 symbol 缺失
+                # 统一先报告, 按 policy.get("anchors") 决定是否可归档
                 anchors_raw = str(meta.get("anchors", "")).strip()
                 if anchors_raw:
-                    missing = [a.strip() for a in anchors_raw.split(",")
-                              if a.strip() and not (repo_root / a.strip()).exists()]
-                    if missing:
-                        findings.append({"kind": "broken_link", "rel": rel,
-                                         "text": f"[断链] {rel}: anchors {','.join(missing)} 路径不存在"})
-                        if policy.get("anchors") == "archive":
-                            findings.append({"kind": "anchors_broken", "file": f, "rel": rel,
-                                             "text": f"[anchors失效] {rel} (namespace={ns}) — 判据: 自动归档"})
+                    for anchor in anchors_raw.split(","):
+                        anchor = anchor.strip()
+                        if not anchor:
+                            continue
+
+                        # 解析 path:symbol 格式
+                        if ":" in anchor:
+                            path_part, symbol = anchor.split(":", 1)
+                            path_part = path_part.strip()
+                            symbol = symbol.strip()
+                        else:
+                            path_part, symbol = anchor.strip(), None
+
+                        # 强断链: 文件不存在
+                        target_file = repo_root / path_part
+                        if not target_file.exists():
+                            findings.append({"kind": "broken_link", "rel": rel,
+                                             "text": f"[断链-强] {rel}: anchors {anchor} 路径不存在"})
+                            if policy.get("anchors") == "archive":
+                                findings.append({"kind": "anchors_broken", "file": f, "rel": rel,
+                                                 "text": f"[anchors失效] {rel} (namespace={ns}) — 判据: 自动归档"})
+                            continue
+
+                        # 弱断链: 文件存在但 symbol 缺失
+                        if symbol and not self._check_file_symbol(target_file, symbol):
+                            findings.append({"kind": "broken_link", "rel": rel,
+                                             "text": f"[断链-弱] {rel}: anchors {anchor} 文件存在但符号 '{symbol}' 缺失"})
+                            # 弱断链只报告，不归档（符号可能被重构但文件仍在）
 
                 # 判据 rules/external: 废弃/superseded → archive
                 # product namespace 不套废弃判据 (需求真值不自动归档)

@@ -41,16 +41,55 @@ def _link_target(raw: str) -> str:
     anchor = anchor.strip()
     return f"{stem}#{anchor}" if anchor else stem
 def _frontmatter(text: str) -> dict[str, str]:
+    """解析 frontmatter，返回字典。
+
+    支持格式:
+    - 简单 key: value
+    - 行内数组 key: [a, b, c] -> 转为逗号分隔字符串
+    - 流式数组 (多行 - item) -> 转为逗号分隔字符串
+    """
     if not text.startswith("---"):
         return {}
     end = text.find("\n---", 3)
     if end == -1:
         return {}
     out: dict[str, str] = {}
+    current_key = None
+    list_items: list[str] = []
+
     for ln in text[3:end].splitlines():
-        if ":" in ln:
+        if ":" in ln and not ln.startswith("  "):  # 顶层键
+            # 保存上一个键的列表值
+            if current_key and list_items:
+                out[current_key] = ", ".join(item.strip() for item in list_items)
+
             k, _, v = ln.partition(":")
-            out[k.strip()] = v.strip().strip("[]")
+            current_key = k.strip()
+            v = v.strip()
+
+            # 检查是否是行内数组
+            if v.startswith("[") and v.endswith("]"):
+                # 行内数组: key: [a, b, c] -> "a, b, c"
+                items = [item.strip().strip("\"'") for item in v[1:-1].split(",")]
+                out[current_key] = ", ".join(items)
+                current_key = None  # 已处理，不需要累积列表
+                list_items = []
+            elif v:
+                # 简单值
+                out[current_key] = v
+                current_key = None
+                list_items = []
+            else:
+                # 流式数组开始
+                list_items = []
+        elif ln.strip().startswith("- ") and current_key:
+            # 流式数组项
+            list_items.append(ln.strip()[2:].strip().strip("\"'"))
+
+    # 保存最后一个键的列表值
+    if current_key and list_items:
+        out[current_key] = ", ".join(item.strip() for item in list_items)
+
     return out
 def _strip_frontmatter(text: str) -> str:
     if text.startswith("---"):
