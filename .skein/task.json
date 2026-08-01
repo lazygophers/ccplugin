@@ -29,22 +29,6 @@
       "finished": null
     },
     {
-      "id": "spec-map-namespace",
-      "status": "检查中",
-      "deps": [
-        "spec-model-core"
-      ],
-      "priority": 5,
-      "worktree": ".worktrees/skein-spec-map-namespace",
-      "parent": "spec-wiki-v2",
-      "kind": "task",
-      "created": 1785381913,
-      "confirmed": 1785594107,
-      "started": 1785594113,
-      "checked": 1785594885,
-      "finished": null
-    },
-    {
       "id": "board-live-refresh",
       "status": "就绪",
       "deps": [],
@@ -152,6 +136,22 @@
       "started": 1785593344,
       "checked": 1785593833,
       "finished": 1785594073
+    },
+    {
+      "id": "spec-map-namespace",
+      "status": "已完成",
+      "deps": [
+        "spec-model-core"
+      ],
+      "priority": 5,
+      "worktree": null,
+      "parent": "spec-wiki-v2",
+      "kind": "task",
+      "created": 1785381913,
+      "confirmed": 1785594107,
+      "started": 1785594113,
+      "checked": 1785594885,
+      "finished": 1785607356
     },
     {
       "id": "spec-migrate",

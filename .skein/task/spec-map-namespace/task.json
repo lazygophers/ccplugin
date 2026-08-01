@@ -2,7 +2,7 @@
   "id": "spec-map-namespace",
   "name": "map namespace: 骨架现算 + anchors 断链",
   "desc": "git ls-files 目录树 + 正则抓顶层符号现算不落盘(纯 stdlib, ponytail 标 ceiling) + 语义页 anchors + 断链判据扩到 anchors 失效",
-  "status": "检查中",
+  "status": "已完成",
   "deps": [
     "spec-model-core"
   ],
@@ -142,15 +142,8 @@
   "priority": 5,
   "estimate": 2.5,
   "repos": [],
-  "worktree": ".worktrees/skein-spec-map-namespace",
-  "worktrees": [
-    {
-      "repo": ".",
-      "wt": ".worktrees/skein-spec-map-namespace",
-      "branch": "skein/spec-map-namespace",
-      "merged": false
-    }
-  ],
+  "worktree": null,
+  "worktrees": [],
   "branch": "skein/spec-map-namespace",
   "parent": "spec-wiki-v2",
   "kind": "task",
@@ -158,7 +151,7 @@
   "started": 1785594113,
   "confirmed": 1785594107,
   "checked": 1785594885,
-  "finished": null,
-  "updated": 1785607305,
+  "finished": 1785607356,
+  "updated": 1785607356,
   "confirmed_by": "user"
 }
