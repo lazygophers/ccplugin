@@ -1,20 +1,19 @@
-"""config 包 — YAML 解析 + 默认值 + hooks 校验 + config 操作。
+"""config 包 — YAML 解析 + 默认值 + hooks 校验 + Config 单例 class。
 
-原 config.py 拆为四个子模块:
+四个子模块:
 - yaml.py: mini-YAML 解析器
 - defaults.py: CONFIG_DEFAULTS + 常量 + HOOKS_SKELETON
 - hooks.py: hooks 结构校验
-- manager.py: config 操作函数 (effective/backfill/get/set/coerce)
+- manager.py: Config 单例 class + 包级兼容函数
 
-__init__.py re-export 全部公开 API, 消费方 `from skeinlib.config import X` 零改动兼容。
-旧下划线前缀函数名 (如 _yaml_load / _cfg_effective) 保留为 alias, 渐进迁移到无下划线名。
+消费方推荐: `from skeinlib.config import Config` → `Config(path).effective()`。
+旧 `from skeinlib.config import _yaml_load, _cfg_effective` 等仍兼容 (alias)。
 """
 from __future__ import annotations
 
 # YAML 解析器
 from skeinlib.config.yaml import (
     yaml_load, yaml_dump, yaml_bad,
-    # 兼容旧下划线别名
     yaml_load as _yaml_load,
     yaml_dump as _yaml_dump,
 )
@@ -26,26 +25,26 @@ from skeinlib.config.defaults import (
     HOOK_ENTRY_TYPES, HOOK_ENTRY_FIELDS, HOOK_ENTRY_REQUIRED,
     HOOKS_SKELETON,
     CFG_LEGACY,
-    # 兼容旧下划线别名
     CFG_LEGACY as _CFG_LEGACY,
 )
 
 # hooks 校验
 from skeinlib.config.hooks import hooks_schema_errors
 
-# config 操作
+# Config 单例 class + 兼容函数
 from skeinlib.config.manager import (
-    cfg_paths, cfg_effective, cfg_backfill, cfg_get_path, cfg_set_path, coerce_config,
-    # 兼容旧下划线别名
+    Config,
+    cfg_paths, coerce_config,
     cfg_paths as _cfg_paths,
-    cfg_effective as _cfg_effective,
-    cfg_backfill as _cfg_backfill,
-    cfg_get_path as _cfg_get_path,
-    cfg_set_path as _cfg_set_path,
     coerce_config as _coerce_config,
 )
 
+# 旧散函数兼容 — 消费方渐进迁移到 Config class
+from skeinlib.config.manager import _effective as _cfg_effective, _backfill as _cfg_backfill, _get_path as _cfg_get_path, _set_path as _cfg_set_path
+
 __all__ = [
+    # Config class (推荐用法)
+    "Config",
     # YAML
     "yaml_load", "yaml_dump", "yaml_bad",
     # 默认值
@@ -55,6 +54,6 @@ __all__ = [
     "HOOKS_SKELETON", "CFG_LEGACY",
     # hooks 校验
     "hooks_schema_errors",
-    # config 操作
-    "cfg_paths", "cfg_effective", "cfg_backfill", "cfg_get_path", "cfg_set_path", "coerce_config",
+    # 包级函数
+    "cfg_paths", "coerce_config",
 ]
