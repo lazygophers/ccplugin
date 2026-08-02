@@ -90,7 +90,7 @@ def test_top_level_skein_py_start_rejected() -> None:
     r = subprocess.run(["python3", str(SCRIPTS_DIR / "skein.py"), "start", "foo"],
                         capture_output=True, text=True)
     assert r.returncode != 0
-    assert "invalid choice" in r.stderr or "invalid choice" in r.stdout
+    assert "No such command" in r.stderr or "invalid choice" in r.stderr or "invalid choice" in r.stdout
 
 
 # ---------- 3. `max_active` 配置键零残留 (代码层, 不含 config.yaml 运行时值) ----------

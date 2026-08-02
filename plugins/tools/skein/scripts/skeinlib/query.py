@@ -14,10 +14,8 @@ if TYPE_CHECKING:
 from skeinlib.task.dag import _sub_pct, _task_pct
 from skeinlib.errors import SkeinError
 from skeinlib.task.model import (PRIORITY_DEFAULT, SubtaskStatus, TaskStatus, _STATUS_ALIAS)
-from skeinlib.views import _fmt_ts
-from skeinlib.worktree import worktrees_of
 
-import json
+from skeinlib.worktree import worktrees_of
 
 
 class Query:
@@ -26,34 +24,27 @@ class Query:
     def __init__(self, ws: "Workspace") -> None:
         self.ws = ws
 
-    def current(self, a: argparse.Namespace) -> None:
+    def current(self, a: argparse.Namespace) -> dict[str, Any]:
         active = self.ws.store.active()
-        if not active:
-            print("无 active task")
-            return
         wt_col = self.ws._wt_shown()
-        for t in active:
-            if wt_col:
-                print(f"{t['id']}\t{t['status']}\t{t['name']}\t{t.get('worktree') or '-'}")
-            else:
-                print(f"{t['id']}\t{t['status']}\t{t['name']}")
+        return {
+            "tasks": [{
+                "id": t["id"],
+                "status": t["status"],
+                "name": t["name"],
+                **({"worktree": t.get("worktree") or None} if wt_col else {}),
+            } for t in active],
+        }
 
-    def ready(self, a: argparse.Namespace) -> None:
-        # task 级可 confirm 批 (脚本算, 非 AI 判): 待处理态 + 前置全 done。task 级并发上限已取消
-        # (design.md §3: 按 subtask 计数后是冗余的), 故此处不再折算槽位, 只看 deps 是否清。
+    def ready(self, a: argparse.Namespace) -> dict[str, Any]:
         picked = [t for t in self.ws.store.all_tasks()
                  if t["status"] == TaskStatus.PENDING
                  and not any(self.ws._dep_unfinished(d) for d in t["deps"])]
-        if not picked:
-            print("无可 confirm task (待处理态均有未完成前置, 或无待处理态)")
-            return
-        print("可 confirm task (只读预览, 激活用 `skein.py confirm <id> --approved`):")
-        for t in picked:
-            deps = ",".join(t["deps"]) or "-"
-            print(f"{t['id']}\t{t['name']}\t前置: {deps}")
+        return {
+            "tasks": [{"id": t["id"], "name": t["name"], "deps": t["deps"]} for t in picked],
+        }
 
-    def status(self, a: argparse.Namespace) -> None:
-        # 只读查态: `status <tid>` 出 task 态 + subtask 汇总; `status <tid> <sid>` 出单个 subtask 明细。
+    def status(self, a: argparse.Namespace) -> dict[str, Any]:
         t = self.ws.store.load(a.tid)
         subs = t.get("subtasks", [])
         if getattr(a, "sid", None):
@@ -61,42 +52,10 @@ class Query:
             if not s:
                 raise SkeinError(f"subtask 不存在: {a.tid}/{a.sid} "
                                  f"(现有: {', '.join(x['sid'] for x in subs) or '无'})")
-            if getattr(a, "json", False):
-                print(json.dumps(s, ensure_ascii=False, separators=(",", ":")))
-                return
-            deps = ",".join(s.get("depends_on", [])) or "-"
-            chk = "; ".join(s.get("acceptance", [])) or "-"
-            sk = ",".join(s.get("skills", [])) or "-"
-            print(f"task\t{t['id']}\t{t['status']}\t{t['name']}")
-            print(f"subtask\t{s['sid']}\t{s['status']}\t{_sub_pct(s)}%\t{s['name']}")
-            print(f"desc\t{s.get('desc') or '-'}")
-            print(f"依赖\t{deps}\tskills:{sk}")
-            print(f"验收\t{chk}")
-            print(f"时间\tcreated:{_fmt_ts(s.get('created'))}\t"
-                  f"started:{_fmt_ts(s.get('started'))}\tfinished:{_fmt_ts(s.get('finished'))}")
-            return
-        if getattr(a, "json", False):
-            print(json.dumps(self._brief(t), ensure_ascii=False, separators=(",", ":")))
-            return
-        pct = _task_pct(t)
-        deps = ",".join(t.get("deps", [])) or "-"
-        prio = t.get("priority") or PRIORITY_DEFAULT
-        print(f"task\t{t['id']}\t{t['status']}\t{pct}%\t{prio}\t{t['name']}")
-        if self.ws._wt_shown():
-            print(f"worktree\t{t.get('worktree') or '-'}\t前置:{deps}")
-        else:
-            print(f"前置:{deps}")
-        if not subs:
-            print("subtask\t无")
-            return
-        print(f"subtask ({len(subs)}):")
-        for s in subs:
-            sdeps = ",".join(s.get("depends_on", [])) or "-"
-            print(f"  {s['sid']}\t{s['status']}\t{_sub_pct(s)}%\t{s['name']}\t依赖:{sdeps}")
+            return {"task": t["id"], "subtask": s}
+        return {"task": self._brief(t)}
 
     def _brief(self, t: dict[str, Any]) -> dict[str, Any]:
-        # 压缩任务摘要 (exec 取未完成任务用, 省 token): 仅调度所需字段, 不含全量 subtask 明细。
-        # subs 数组固定序 [已完成, 运行中, 待处理, 失败]; ready = 该 待处理 task 前置全 done (可 confirm)。
         subs = t.get("subtasks", [])
         cnt = [0, 0, 0, 0]
         idx: dict[str, int] = {SubtaskStatus.DONE: 0, SubtaskStatus.RUNNING: 1, SubtaskStatus.PENDING: 2, SubtaskStatus.FAILED: 3}
@@ -116,7 +75,7 @@ class Query:
                 "priority": t.get("priority") or PRIORITY_DEFAULT,
                 "pct": pct, "subs": cnt, "ready": ready}
 
-    def list_(self, a: argparse.Namespace) -> None:
+    def list_(self, a: argparse.Namespace) -> dict[str, Any]:
         tasks = self.ws.store.all_tasks()
         st = (getattr(a, "status", None) or "").strip()
         if st:
@@ -131,9 +90,4 @@ class Query:
                         f"待处理/调研中/进行中/检查中/收尾中/已完成 "
                         f"(或 pending/research/active/check/finishing/done), open=全部未完成")
                 tasks = [t for t in tasks if t["status"] in wanted]
-        if getattr(a, "json", False):
-            print(json.dumps([self._brief(t) for t in tasks],
-                             ensure_ascii=False, separators=(",", ":")))
-            return
-        for t in tasks:
-            print(f"{t['id']}\t{t['status']}\t{t.get('priority') or PRIORITY_DEFAULT}\t{t['name']}")
+        return {"tasks": [self._brief(t) for t in tasks]}

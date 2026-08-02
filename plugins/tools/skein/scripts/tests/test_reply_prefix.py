@@ -38,10 +38,14 @@ def _session_ctx(cwd: Path) -> str:
 
 
 def _fill_prd(ws: Path, tid: str) -> None:
-    """写规范 prd.md 过 start 的 _validate_prd 门 (章节齐 + 无 TODO 占位)。"""
+    """写规范 prd.md + design.md (全 7 章齐) 过 confirm 的 _validate_prd + _validate_seam 门。"""
     (ws / ".skein" / "task" / tid / "prd.md").write_text(
         f"# {tid} — PRD\n\n## 目标\n- 解决 X\n\n"
-        "## 边界\n- a\n\n## 验收标准\n- 通过\n\n## 索引\n- design.md\n")
+        "## 边界\n- a\n\n## User Stories\n1. As a u, I want x\n\n"
+        "## 验收标准\n- 通过\n\n## 验证方式\n- 跑 pytest\n\n"
+        "## Testing Decisions\n- 只测外部行为\n\n## 索引\n- design.md\n")
+    (ws / ".skein" / "task" / tid / "design.md").write_text(
+        f"# {tid} — 详细设计\n\n## 测试接缝 (seam)\n- [x] API 层\n")
 
 
 def _start_task(skein_cli: SkeinCli, ws: Path, tid: str) -> None:

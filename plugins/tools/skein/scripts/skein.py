@@ -44,13 +44,11 @@ _HERE = os.path.dirname(os.path.realpath(__file__))
 if _HERE not in sys.path:
     sys.path.insert(0, _HERE)
 
-from skeinlib.cli import main  # noqa: E402
-from skeinlib.commands import Skein  # noqa: E402  对外符号: 测试与 hooks 按名取用
-from skeinlib.errors import SkeinError  # noqa: E402
 
-__all__ = ["Skein", "SkeinError", "main"]
+def _run_main() -> None:
+    from skeinlib.cli import main
+    from skeinlib.errors import SkeinError
 
-if __name__ == "__main__":
     try:
         main()
     except (SkeinError, ValueError) as e:
@@ -58,3 +56,17 @@ if __name__ == "__main__":
         # ValueError (见 config._yaml_bad) —— 库里不碰 SystemExit, 测试才能进程内 pytest.raises。
         # 消息原样落 stderr: 套件 71 处 stderr 断言靠它, 禁在此加前缀/包装/翻译。
         raise SystemExit(str(e)) from None
+
+
+def main() -> None:
+    _run_main()
+
+
+if __name__ != "__main__":
+    from skeinlib.commands import Skein  # noqa: E402  对外符号: 测试与 hooks 按名取用
+    from skeinlib.errors import SkeinError  # noqa: E402
+    __all__ = ["Skein", "SkeinError", "main"]
+
+
+if __name__ == "__main__":
+    main()

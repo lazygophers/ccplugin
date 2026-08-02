@@ -10,7 +10,7 @@ prd 有固定六章结构 (`PRD_SECTIONS_V6`), 而 `confirm` 的硬门按章节�
 from __future__ import annotations
 
 import argparse
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from skeinlib.workspace import Workspace
@@ -28,7 +28,7 @@ class Artifacts:
     def __init__(self, ws: "Workspace") -> None:
         self.ws = ws
 
-    def fmt(self, a: argparse.Namespace) -> None:
+    def fmt(self, a: argparse.Namespace) -> dict[str, Any]:
         # 规范化 .skein/task/<id>/prd.md: 各章节内一级 `- ` list 项补 `- [ ]` todo (已勾选态保留),
         # 校验六标准章节齐备且顺序正确, 不规范报错非零退出;
         # 仅内容变化才写 (天然幂等 + 防 hook 循环)。
@@ -69,12 +69,11 @@ class Artifacts:
                 out.append(ln)
         new = "\n".join(out)
         if new == orig:
-            print(f"prd 已规范, 无变化: {prd}")
-            return
+            return {"id": tid, "formatted": False, "changes": 0}
         prd.write_text(new)
-        print(f"prd 已规范化: {prd} (补 {changed} 项 todo)")
+        return {"id": tid, "formatted": True, "changes": changed}
 
-    def prd(self, a: argparse.Namespace) -> None:
+    def prd(self, a: argparse.Namespace) -> dict[str, Any]:
         """prd 章节 CLI 入口: read/write/add/check/uncheck <id> --type <章节> [--list TEXT]。
         task 必须存在 (经 _load 守); --type 经 PRD_TYPE_ALIAS 归一到中文章节名。"""
         tid = a.id.strip()
@@ -86,34 +85,30 @@ class Artifacts:
         act = a.action
         if act == "read":
             body = section_read(self.ws.tasks, tid, section)
-            print(body)
-            return
+            return {"id": tid, "section": section, "body": body}
         if not a.list:
             raise SkeinError(f"{act} 需要 --list (文本内容, \\n 多行)")
         if act == "add":
             section_add(self.ws.tasks, tid, section, a.list)
-            print(f"{tid}「{section}」章节 +{len(a.list.split(chr(10)))} 条 (追加, 已有保留)")
+            return {"id": tid, "section": section, "action": "add",
+                    "lines": len(a.list.split(chr(10)))}
         elif act == "write":
             section_write(self.ws.tasks, tid, section, a.list)
-            print(f"{tid}「{section}」章节整章重建")
+            return {"id": tid, "section": section, "action": "write"}
         elif act == "check":
             n = section_check(self.ws.tasks, tid, section, a.list, flag=True)
-            print(f"{tid}「{section}」勾选 {n} 条 (匹配「{a.list}」)")
+            return {"id": tid, "section": section, "action": "check", "matched": n}
         elif act == "uncheck":
             n = section_check(self.ws.tasks, tid, section, a.list, flag=False)
-            print(f"{tid}「{section}」反勾选 {n} 条 (匹配「{a.list}」)")
+            return {"id": tid, "section": section, "action": "uncheck", "matched": n}
         else:
             raise SkeinError(f"未知 prd 动作: {act}")
 
-    def contract(self, a: argparse.Namespace) -> None:
+    def contract(self, a: argparse.Namespace) -> dict[str, Any]:
         t = self.ws.store.load(a.id)
         t.setdefault("contracts", [])
         if a.add:
             t["contracts"].append(a.add)
             self.ws.store.save(t)
-            print(f"{a.id} 契约 +1 (共 {len(t['contracts'])})")
-        elif not t["contracts"]:
-            print("无契约")
-        else:
-            for i, c in enumerate(t["contracts"], 1):
-                print(f"{i}. {c}")
+            return {"id": a.id, "action": "add", "total": len(t["contracts"])}
+        return {"id": a.id, "contracts": t["contracts"]}

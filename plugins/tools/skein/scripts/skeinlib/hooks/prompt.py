@@ -26,7 +26,7 @@ def _run_config(dir_: str) -> tuple[bool, int, bool]:
     默认从 skeinlib.config.CONFIG_DEFAULTS (hook 不硬编码)。"""
     from skeinlib.config import CONFIG_DEFAULTS, Config  # lazy: 仅已初始化热路径需要; 默认真值唯一来源
     try:
-        cfg = Config(os.path.join(dir_, "config.yaml")).effective()
+        cfg = Config(os.path.join(dir_, "config.yaml")).cfg.model_dump(by_alias=True)
     except (OSError, ValueError):
         cfg = CONFIG_DEFAULTS
     uw = bool(cfg["worktree"]["enabled"])

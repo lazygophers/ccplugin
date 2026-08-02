@@ -14,3 +14,12 @@ spec/.archive/
 
 # trash 归档 (可逆归档, 不入库)
 trash/
+
+# skein 衍生/临时文件 (init 自动补缺)
+vision.md
+.edit-tally
+.edit-tally.warned
+index.html
+.priority-migration-backup/
+.ready-migration-backup/
+serve.log

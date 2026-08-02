@@ -25,6 +25,10 @@ Typer 原生支持全局 option 放在命令前。为兼容旧调用习惯，入
 
 `plugins/tools/skein/bin/` 是插件市场对外入口。除 `bin/skein serve` 持久服务直通外，`bin/skein`、`bin/skein-spec`、`bin/skein-hooks` 统一经 `_jsonwrap.run_json()` 包装脚本执行结果，stdout 只输出一个 JSON object。wrapper 同时捕获 `sys.stdout` 与 fd 1，覆盖 Rich/Console 等已缓存 stdout handle 的输出路径；原脚本 stdout 能解析 JSON 时放入 `data`，否则放入 `stdout`。
 
+## CLI JSON-only direct entry
+
+`scripts/skein.py` 本身也是对外入口: 用户可直接 `python3 plugins/tools/skein/scripts/skein.py ...`，marketplace alias 也可能绕过 `bin/`。因此 direct entry 与 `bin/skein` 使用同一 JSON-only contract: 除 `serve` 外捕获 stdout 并只输出单个 JSON object；`serve` 保持直通，避免长驻看板被包装吞掉交互输出。`claim --dry-run` 不走中文 stdout 包装，调度层直接打印结构化 JSON，入口 wrapper 解析后放入 `data.exec` / `data.check`，保留 ready 列表、空批原因、计数和后续认领命令。
+
 ## 测试接缝 (seam)
 check 阶段验证的是`行为对不对`而非`跑没跑起来`, 全靠这里选对接缝。三条规则:
 1. 优先复用现有接缝, 不新建

@@ -5,12 +5,13 @@
 """
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import sys
 
 from types import SimpleNamespace
-from typing import Annotated, Optional
+from typing import Annotated, Any, Optional
 
 try:
     import typer
@@ -75,10 +76,16 @@ def _dispatch(a: SimpleNamespace) -> None:
     DBG.kv({k: v for k, v in vars(a).items() if k not in ("cmd", "debug") and v not in (None, False)}, title="参数")
     if a.cmd in MUTATING:
         with _workspace_lock(sk.dir / ".lock"):
-            dispatch[a.cmd](a)
+            result = dispatch[a.cmd](a)
     else:
-        dispatch[a.cmd](a)
+        result = dispatch[a.cmd](a)
     DBG.log(f"✓ {a.cmd} 完成", style="bold green")
+    # 业务方法返回 dict → 统一 JSON 输出; 返回 None → 静默 (已自行输出或无输出)
+    if isinstance(result, dict):
+        print(json.dumps(result, ensure_ascii=False))
+    elif result is not None:
+        # 非 dict 返回值 (如 str) → 包装
+        print(json.dumps({"data": result}, ensure_ascii=False))
 
 
 def _run(cmd: str, **kwargs: object) -> None:

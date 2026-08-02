@@ -6,7 +6,7 @@
       "finished": 1999900000,
       "id": "old1",
       "name": "Old 任务",
-      "status": "已完成",
+      "status": "done",
       "subs": 1
     }
   ],
@@ -89,13 +89,13 @@
         "spct": 38,
         "stage": "exec",
         "started": 1999992000,
-        "status": "进行中",
+        "status": "active",
         "stotal": 4,
         "subNodes": [
           [
             "s1",
             "子-s1",
-            "已完成",
+            "done",
             [],
             100,
             "desc-s1"
@@ -103,7 +103,7 @@
           [
             "s2",
             "子-s2",
-            "运行中",
+            "running",
             [],
             50,
             "desc-s2"
@@ -111,7 +111,7 @@
           [
             "s3",
             "子-s3",
-            "待处理",
+            "pending",
             [
               "s1"
             ],
@@ -121,7 +121,7 @@
           [
             "s4",
             "子-s4",
-            "待处理",
+            "pending",
             [
               "s2"
             ],
@@ -142,7 +142,7 @@
             "sid": "s1",
             "skills": [],
             "started": 1999993000,
-            "status": "已完成"
+            "status": "done"
           },
           {
             "acc": [],
@@ -156,7 +156,7 @@
             "sid": "s2",
             "skills": [],
             "started": 1999997000,
-            "status": "运行中"
+            "status": "running"
           },
           {
             "acc": [],
@@ -174,7 +174,7 @@
             "sid": "s3",
             "skills": [],
             "started": null,
-            "status": "待处理"
+            "status": "pending"
           },
           {
             "acc": [],
@@ -192,7 +192,7 @@
             "sid": "s4",
             "skills": [],
             "started": null,
-            "status": "待处理"
+            "status": "pending"
           }
         ],
         "worktree": null
@@ -219,7 +219,7 @@
         "spct": 47,
         "stage": "exec",
         "started": 1999991500,
-        "status": "进行中",
+        "status": "active",
         "stotal": 0,
         "subNodes": [],
         "subtable": [],
@@ -247,13 +247,13 @@
         "spct": 95,
         "stage": "check",
         "started": 1999993000,
-        "status": "检查中",
+        "status": "check",
         "stotal": 1,
         "subNodes": [
           [
             "b1",
             "子-b1",
-            "已完成",
+            "done",
             [],
             100,
             "desc-b1"
@@ -272,7 +272,7 @@
             "sid": "b1",
             "skills": [],
             "started": 1999993500,
-            "status": "已完成"
+            "status": "done"
           }
         ],
         "worktree": null
@@ -299,13 +299,13 @@
         "spct": 0,
         "stage": "plan",
         "started": null,
-        "status": "待处理",
+        "status": "pending",
         "stotal": 1,
         "subNodes": [
           [
             "d1",
             "子-d1",
-            "待处理",
+            "pending",
             [],
             2,
             "desc-d1"
@@ -324,7 +324,7 @@
             "sid": "d1",
             "skills": [],
             "started": null,
-            "status": "待处理"
+            "status": "pending"
           }
         ],
         "worktree": null
@@ -351,13 +351,13 @@
         "spct": 0,
         "stage": "plan",
         "started": null,
-        "status": "待处理",
+        "status": "pending",
         "stotal": 1,
         "subNodes": [
           [
             "g1",
             "子-g1",
-            "待处理",
+            "pending",
             [],
             2,
             "desc-g1"
@@ -376,7 +376,7 @@
             "sid": "g1",
             "skills": [],
             "started": null,
-            "status": "待处理"
+            "status": "pending"
           }
         ],
         "worktree": null
@@ -403,7 +403,7 @@
         "spct": 2,
         "stage": "plan",
         "started": null,
-        "status": "待处理",
+        "status": "pending",
         "stotal": 0,
         "subNodes": [],
         "subtable": [],
@@ -435,13 +435,13 @@
         "spct": 0,
         "stage": "plan",
         "started": null,
-        "status": "待处理",
+        "status": "pending",
         "stotal": 1,
         "subNodes": [
           [
             "z1",
             "子-z1",
-            "待处理",
+            "pending",
             [],
             2,
             "desc-z1"
@@ -460,7 +460,7 @@
             "sid": "z1",
             "skills": [],
             "started": null,
-            "status": "待处理"
+            "status": "pending"
           }
         ],
         "worktree": null
@@ -487,13 +487,13 @@
         "spct": 100,
         "stage": "done",
         "started": 1999991000,
-        "status": "已完成",
+        "status": "done",
         "stotal": 1,
         "subNodes": [
           [
             "e1",
             "子-e1",
-            "已完成",
+            "done",
             [],
             100,
             "desc-e1"
@@ -512,7 +512,7 @@
             "sid": "e1",
             "skills": [],
             "started": 1999992000,
-            "status": "已完成"
+            "status": "done"
           }
         ],
         "worktree": null
@@ -534,12 +534,12 @@
         }
       },
       "stats": {
-        "已完成": 1,
-        "待处理": 4,
-        "收尾中": 0,
-        "检查中": 1,
-        "调研中": 0,
-        "进行中": 2
+        "active": 2,
+        "check": 1,
+        "done": 1,
+        "finishing": 0,
+        "pending": 4,
+        "research": 0
       },
       "taskCount": 8
     },
@@ -554,7 +554,7 @@
         "name": "Alpha 任务",
         "pct": 38,
         "sdone": 1,
-        "status": "进行中",
+        "status": "active",
         "stotal": 4
       },
       {
@@ -563,7 +563,7 @@
         "name": "Super 任务",
         "pct": 47,
         "sdone": 0,
-        "status": "进行中",
+        "status": "active",
         "stotal": 0
       }
     ],
@@ -574,7 +574,7 @@
         "name": "Beta 任务",
         "pct": 95,
         "sdone": 1,
-        "status": "检查中",
+        "status": "check",
         "stotal": 1
       }
     ],
@@ -587,7 +587,7 @@
         "estimate": null,
         "id": "alpha",
         "spct": 38,
-        "status": "进行中",
+        "status": "active",
         "subtable": [
           {
             "dependsOn": [],
@@ -596,7 +596,7 @@
             "pct": 100,
             "sid": "s1",
             "started": 1999993000,
-            "status": "已完成"
+            "status": "done"
           },
           {
             "dependsOn": [],
@@ -605,7 +605,7 @@
             "pct": 50,
             "sid": "s2",
             "started": 1999997000,
-            "status": "运行中"
+            "status": "running"
           },
           {
             "dependsOn": [
@@ -616,7 +616,7 @@
             "pct": 2,
             "sid": "s3",
             "started": null,
-            "status": "待处理"
+            "status": "pending"
           },
           {
             "dependsOn": [
@@ -627,7 +627,7 @@
             "pct": 2,
             "sid": "s4",
             "started": null,
-            "status": "待处理"
+            "status": "pending"
           }
         ]
       },
@@ -636,7 +636,7 @@
         "estimate": null,
         "id": "super1",
         "spct": 47,
-        "status": "进行中",
+        "status": "active",
         "subtable": []
       },
       {
@@ -644,7 +644,7 @@
         "estimate": null,
         "id": "beta",
         "spct": 95,
-        "status": "检查中",
+        "status": "check",
         "subtable": [
           {
             "dependsOn": [],
@@ -653,7 +653,7 @@
             "pct": 100,
             "sid": "b1",
             "started": 1999993500,
-            "status": "已完成"
+            "status": "done"
           }
         ]
       },
@@ -662,7 +662,7 @@
         "estimate": null,
         "id": "delta",
         "spct": 0,
-        "status": "待处理",
+        "status": "pending",
         "subtable": [
           {
             "dependsOn": [],
@@ -671,7 +671,7 @@
             "pct": 2,
             "sid": "d1",
             "started": null,
-            "status": "待处理"
+            "status": "pending"
           }
         ]
       },
@@ -680,7 +680,7 @@
         "estimate": null,
         "id": "gamma",
         "spct": 0,
-        "status": "待处理",
+        "status": "pending",
         "subtable": [
           {
             "dependsOn": [],
@@ -689,7 +689,7 @@
             "pct": 2,
             "sid": "g1",
             "started": null,
-            "status": "待处理"
+            "status": "pending"
           }
         ]
       },
@@ -698,7 +698,7 @@
         "estimate": null,
         "id": "ghost1",
         "spct": 2,
-        "status": "待处理",
+        "status": "pending",
         "subtable": []
       },
       {
@@ -708,7 +708,7 @@
         "estimate": null,
         "id": "zeta",
         "spct": 0,
-        "status": "待处理",
+        "status": "pending",
         "subtable": [
           {
             "dependsOn": [],
@@ -717,7 +717,7 @@
             "pct": 2,
             "sid": "z1",
             "started": null,
-            "status": "待处理"
+            "status": "pending"
           }
         ]
       },
@@ -726,7 +726,7 @@
         "estimate": null,
         "id": "epsilon",
         "spct": 100,
-        "status": "已完成",
+        "status": "done",
         "subtable": [
           {
             "dependsOn": [],
@@ -735,7 +735,7 @@
             "pct": 100,
             "sid": "e1",
             "started": 1999992000,
-            "status": "已完成"
+            "status": "done"
           }
         ]
       }
@@ -761,7 +761,7 @@
         "id": "beta",
         "name": "Beta 任务",
         "started": 1999993000,
-        "status": "检查中"
+        "status": "check"
       },
       {
         "created": 1999990000,
@@ -770,7 +770,7 @@
         "id": "alpha",
         "name": "Alpha 任务",
         "started": 1999992000,
-        "status": "进行中"
+        "status": "active"
       },
       {
         "created": 1999990000,
@@ -779,7 +779,7 @@
         "id": "super1",
         "name": "Super 任务",
         "started": 1999991500,
-        "status": "进行中"
+        "status": "active"
       },
       {
         "created": 1999990000,
@@ -788,7 +788,7 @@
         "id": "delta",
         "name": "Delta 任务",
         "started": null,
-        "status": "待处理"
+        "status": "pending"
       },
       {
         "created": 1999990000,
@@ -797,7 +797,7 @@
         "id": "gamma",
         "name": "Gamma 任务",
         "started": null,
-        "status": "待处理"
+        "status": "pending"
       },
       {
         "created": 1999990000,
@@ -806,7 +806,7 @@
         "id": "zeta",
         "name": "Zeta 任务",
         "started": null,
-        "status": "待处理"
+        "status": "pending"
       },
       {
         "created": null,
@@ -815,7 +815,7 @@
         "id": "ghost1",
         "name": "ghost1",
         "started": null,
-        "status": "待处理"
+        "status": "pending"
       }
     ],
     "recentDone": [
@@ -826,7 +826,7 @@
         "id": "epsilon",
         "name": "Epsilon 任务",
         "started": 1999991000,
-        "status": "已完成"
+        "status": "done"
       }
     ],
     "runningSubs": [
@@ -838,17 +838,17 @@
       }
     ],
     "statusDist": {
-      "已完成": 1,
-      "待处理": 4,
-      "收尾中": 0,
-      "检查中": 1,
-      "调研中": 0,
-      "进行中": 2
+      "active": 2,
+      "check": 1,
+      "done": 1,
+      "finishing": 0,
+      "pending": 4,
+      "research": 0
     },
     "subStatusDist": {
-      "已完成": 3,
-      "待处理": 5,
-      "运行中": 1
+      "done": 3,
+      "pending": 5,
+      "running": 1
     },
     "taskCount": 8,
     "toPlanTasks": [
@@ -880,7 +880,7 @@
         "name": "Alpha 任务",
         "pct": 38,
         "sdone": 1,
-        "status": "进行中",
+        "status": "active",
         "stotal": 4
       },
       {
@@ -889,7 +889,7 @@
         "name": "Super 任务",
         "pct": 47,
         "sdone": 0,
-        "status": "进行中",
+        "status": "active",
         "stotal": 0
       },
       {
@@ -898,7 +898,7 @@
         "name": "Beta 任务",
         "pct": 95,
         "sdone": 1,
-        "status": "检查中",
+        "status": "check",
         "stotal": 1
       }
     ],
@@ -913,7 +913,7 @@
         "name": "子-s3",
         "ready": true,
         "sid": "s3",
-        "status": "待处理",
+        "status": "pending",
         "ti": 0,
         "tid": "alpha",
         "trank": 0
@@ -928,7 +928,7 @@
         "name": "子-s4",
         "ready": false,
         "sid": "s4",
-        "status": "待处理",
+        "status": "pending",
         "ti": 0,
         "tid": "alpha",
         "trank": 0
@@ -941,7 +941,7 @@
         "name": "子-d1",
         "ready": false,
         "sid": "d1",
-        "status": "待处理",
+        "status": "pending",
         "ti": 3,
         "tid": "delta",
         "trank": 1
@@ -954,7 +954,7 @@
         "name": "子-g1",
         "ready": false,
         "sid": "g1",
-        "status": "待处理",
+        "status": "pending",
         "ti": 4,
         "tid": "gamma",
         "trank": 1
@@ -967,7 +967,7 @@
         "name": "子-z1",
         "ready": false,
         "sid": "z1",
-        "status": "待处理",
+        "status": "pending",
         "ti": 6,
         "tid": "zeta",
         "trank": 2
@@ -982,7 +982,7 @@
         "priority": null,
         "spct": 38,
         "started": 1999992000,
-        "status": "进行中"
+        "status": "active"
       },
       {
         "created": 1999990000,
@@ -992,7 +992,7 @@
         "priority": null,
         "spct": 47,
         "started": 1999991500,
-        "status": "进行中"
+        "status": "active"
       },
       {
         "created": 1999990000,
@@ -1002,7 +1002,7 @@
         "priority": null,
         "spct": 95,
         "started": 1999993000,
-        "status": "检查中"
+        "status": "check"
       },
       {
         "created": 1999990000,
@@ -1012,7 +1012,7 @@
         "priority": null,
         "spct": 0,
         "started": null,
-        "status": "待处理"
+        "status": "pending"
       },
       {
         "created": 1999990000,
@@ -1022,7 +1022,7 @@
         "priority": null,
         "spct": 0,
         "started": null,
-        "status": "待处理"
+        "status": "pending"
       },
       {
         "created": null,
@@ -1032,7 +1032,7 @@
         "priority": "normal",
         "spct": 2,
         "started": null,
-        "status": "待处理"
+        "status": "pending"
       },
       {
         "created": 1999990000,
@@ -1042,7 +1042,7 @@
         "priority": null,
         "spct": 0,
         "started": null,
-        "status": "待处理"
+        "status": "pending"
       }
     ],
     "readySubtasks": [
@@ -1053,7 +1053,7 @@
         "desc": "desc-s3",
         "name": "子-s3",
         "sid": "s3",
-        "status": "待处理",
+        "status": "pending",
         "tid": "alpha"
       }
     ],
@@ -1118,7 +1118,7 @@
         "desc": "被阻塞",
         "id": "zeta",
         "name": "Zeta 任务",
-        "status": "待处理"
+        "status": "pending"
       }
     ],
     "docs": {
@@ -1197,7 +1197,7 @@
         "sid": "s1",
         "skills": [],
         "started": 1999993000,
-        "status": "已完成",
+        "status": "done",
         "验收": []
       },
       {
@@ -1208,7 +1208,7 @@
         "sid": "s2",
         "skills": [],
         "started": 1999997000,
-        "status": "运行中",
+        "status": "running",
         "验收": []
       },
       {
@@ -1220,7 +1220,7 @@
         "name": "子-s3",
         "sid": "s3",
         "skills": [],
-        "status": "待处理",
+        "status": "pending",
         "验收": []
       },
       {
@@ -1232,7 +1232,7 @@
         "name": "子-s4",
         "sid": "s4",
         "skills": [],
-        "status": "待处理",
+        "status": "pending",
         "验收": []
       }
     ],
@@ -1247,7 +1247,7 @@
       "id": "alpha",
       "name": "Alpha 任务",
       "started": 1999992000,
-      "status": "进行中",
+      "status": "active",
       "subtasks": [
         {
           "created": 1999991000,
@@ -1258,7 +1258,7 @@
           "sid": "s1",
           "skills": [],
           "started": 1999993000,
-          "status": "已完成",
+          "status": "done",
           "验收": []
         },
         {
@@ -1269,7 +1269,7 @@
           "sid": "s2",
           "skills": [],
           "started": 1999997000,
-          "status": "运行中",
+          "status": "running",
           "验收": []
         },
         {
@@ -1281,7 +1281,7 @@
           "name": "子-s3",
           "sid": "s3",
           "skills": [],
-          "status": "待处理",
+          "status": "pending",
           "验收": []
         },
         {
@@ -1293,7 +1293,7 @@
           "name": "子-s4",
           "sid": "s4",
           "skills": [],
-          "status": "待处理",
+          "status": "pending",
           "验收": []
         }
       ],
@@ -1317,7 +1317,7 @@
       "desc": "聚合",
       "id": "super1",
       "name": "Super 任务",
-      "status": "进行中"
+      "status": "active"
     },
     "prd": [],
     "progress": 0,
@@ -1331,7 +1331,7 @@
         "name": "子-d1",
         "sid": "d1",
         "skills": [],
-        "status": "待处理",
+        "status": "pending",
         "验收": []
       }
     ],
@@ -1343,7 +1343,7 @@
       "id": "delta",
       "name": "Delta 任务",
       "parent": "super1",
-      "status": "待处理",
+      "status": "pending",
       "subtasks": [
         {
           "created": 1999991000,
@@ -1352,7 +1352,7 @@
           "name": "子-d1",
           "sid": "d1",
           "skills": [],
-          "status": "待处理",
+          "status": "pending",
           "验收": []
         }
       ],
@@ -1385,7 +1385,7 @@
         "name": "子-o1",
         "sid": "o1",
         "skills": [],
-        "status": "已完成",
+        "status": "done",
         "验收": []
       }
     ],
@@ -1397,7 +1397,7 @@
       "finished": 1999900000,
       "id": "old1",
       "name": "Old 任务",
-      "status": "已完成",
+      "status": "done",
       "subtasks": [
         {
           "created": 1999991000,
@@ -1406,7 +1406,7 @@
           "name": "子-o1",
           "sid": "o1",
           "skills": [],
-          "status": "已完成",
+          "status": "done",
           "验收": []
         }
       ],
@@ -1421,7 +1421,7 @@
         "id": "delta",
         "name": "Delta 任务",
         "progress": 0,
-        "status": "待处理"
+        "status": "pending"
       }
     ],
     "contracts": [],
@@ -1448,7 +1448,7 @@
       "kind": "supertask",
       "name": "Super 任务",
       "started": 1999991500,
-      "status": "进行中",
+      "status": "active",
       "subtasks": [],
       "updated": 1999995000,
       "worktree": "wt/super1"

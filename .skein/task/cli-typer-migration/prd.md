@@ -6,6 +6,7 @@
 - [ ] `skein claim --dry-run`、`skein claim exec --dry-run`、`skein claim check --dry-run` 等现有调用继续可用。
 - [ ] 迁移后命令分发仍复用现有 `Skein` command 对象，不顺手重写业务逻辑。
 - [ ] plugins/tools/skein/bin/ 下除 serve 外全部 wrapper stdout 必须是 JSON-only。
+- [ ] `plugins/tools/skein/scripts/skein.py` direct-run 除 serve 外 stdout 也必须是 JSON-only；`claim --dry-run` 必须返回结构化 `data`，不能把原中文输出塞进 `stdout` 字符串。
 ## 边界
 范围内 / 范围外 (非目标) / 已知约束:
 - [ ] 范围内: `plugins/tools/skein/scripts/skeinlib/cli.py` parser 从 argparse 改为 Typer。
@@ -30,6 +31,7 @@
 - [x] 现有 smoke / DAG CLI 测试覆盖的核心命令仍通过，或失败项明确是既有非本任务问题。
 - [x] 写盘命令仍经过 `_workspace_lock`，纯读命令仍免锁。
 - [x] bin/skein、bin/skein-spec、bin/skein-hooks 输出均为单个 JSON 对象；bin/skein serve 例外直通。
+- [x] `python3 plugins/tools/skein/scripts/skein.py claim --dry-run` 输出单个 JSON 对象，结果在结构化 `data.exec` / `data.check` 内；`serve` 例外直通。
 ## Testing Decisions
 什么算好测试 (只测外部行为不测实现细节) / 测哪些模块 / codebase 内的同类测试先例:
 - [ ] 复用 `plugins/tools/skein/scripts/tests/test_skein.py` 的端到端 CLI smoke。

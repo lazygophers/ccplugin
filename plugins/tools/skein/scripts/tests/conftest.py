@@ -7,6 +7,7 @@
 """
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
 import sys
@@ -29,7 +30,6 @@ SkeinCli = Callable[..., subprocess.CompletedProcess[str]]
 MemCli = Callable[..., subprocess.CompletedProcess[str]]
 HooksCli = Callable[..., subprocess.CompletedProcess[str]]
 
-
 # ── 模块级实现 (可直接 import, 不依赖 pytest) ──────────────────────────────────
 def run_git(cwd: Path, *args: str) -> None:
     """git 调用: 失败即抛 (check=True)。"""
@@ -49,8 +49,11 @@ def run_skein(cwd: Path, *args: str, check: bool = True,
     """
     if args and args[0] == "confirm" and "--summary" not in args and "--approved" not in args:
         args = (*args, "--approved")
-    return subprocess.run([sys.executable, str(SKEIN), *args], cwd=cwd,
-                          capture_output=True, text=True, check=check, input=inp)
+    r = subprocess.run([sys.executable, str(SKEIN), *args], cwd=cwd,
+                       capture_output=True, text=True, check=False, input=inp)
+    if check and r.returncode:
+        raise subprocess.CalledProcessError(r.returncode, r.args, output=r.stdout, stderr=r.stderr)
+    return r
 
 
 def run_spec(cwd: Path, *args: str, inp: Optional[str] = None,

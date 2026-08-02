@@ -92,9 +92,10 @@ def test_status_json_worktree_null_when_disabled(skein_cli: SkeinCli, ws: Path) 
     _fill_prd(ws, tid)
     skein_cli(ws, "estimate", tid, "--set", "1")  # estimate 硬门: confirm 前须填实工时
     skein_cli(ws, "confirm", tid)
-    data = json.loads(skein_cli(ws, "status", tid, "--json").stdout.strip())
-    assert data.get("worktree") is None, f"禁用态 worktree 非 null: {data.get('worktree')!r}"
-    assert data.get("worktrees", []) == [], f"禁用态 worktrees 非空: {data.get('worktrees')!r}"
+    data = json.loads(skein_cli(ws, "status", tid).stdout)
+    task = data.get("task", data)
+    assert task.get("worktree") is None, f"禁用态 worktree 非 null: {task.get('worktree')!r}"
+    assert task.get("worktrees", []) == [], f"禁用态 worktrees 非空: {task.get('worktrees')!r}"
 
 
 def test_current_no_worktree_col_when_disabled(skein_cli: SkeinCli, ws: Path) -> None:

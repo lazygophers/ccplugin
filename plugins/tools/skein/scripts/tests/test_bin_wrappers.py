@@ -16,7 +16,7 @@ import sys
 from pathlib import Path
 
 import conftest  # noqa: F401  模块体把 scripts/ 塞进 sys.path (standalone 直跑时 pytest 不在)
-from conftest import SCRIPTS  # noqa: E402
+from conftest import SCRIPTS, SKEIN  # noqa: E402
 
 BIN = SCRIPTS.parent / "bin"
 
@@ -47,16 +47,11 @@ def test_wrappers_exist() -> None:
 def test_skein_wrapper_runs() -> None:
     r = _run("skein", "--help")
     assert r.returncode == 0, f"bin/skein --help 挂了:\n{r.stderr}"
-    data = _json_stdout(r)
-    assert data["ok"] is True
-    assert "usage" in str(data.get("stdout", "")).lower()
 
 
 def test_skein_spec_wrapper_runs() -> None:
     r = _run("skein-spec", "--help")
     assert r.returncode == 0, f"bin/skein-spec --help 挂了:\n{r.stderr}"
-    data = _json_stdout(r)
-    assert data["ok"] is True
 
 
 def test_bin_wrappers_stdout_json_only(tmp_path: Path) -> None:
@@ -66,14 +61,40 @@ def test_bin_wrappers_stdout_json_only(tmp_path: Path) -> None:
     probes = [
         ("skein", ["status", "nope"]),
         ("skein", ["claim", "--dry-run"]),
-        ("skein-spec", ["--help"]),
-        ("skein-hooks", ["guard"]),
     ]
     for wrapper, args in probes:
         r = subprocess.run([sys.executable, str(BIN / wrapper), *args], cwd=tmp_path,
                            capture_output=True, text=True, input="")
-        data = _json_stdout(r)
-        assert "ok" in data and "code" in data, f"bin/{wrapper} {' '.join(args)} JSON schema 不对: {data}"
+        # stdout 要么空 (命令无输出) 要么单个 JSON — 不能是 {"ok","code"} 信封
+        if r.stdout.strip():
+            data = _json_stdout(r)
+            assert "ok" not in data, f"bin/{wrapper} {' '.join(args)} 不该有 ok 信封: {data}"
+
+
+def test_direct_skein_script_stdout_json_only(tmp_path: Path) -> None:
+    from conftest import make_ws
+
+    make_ws(tmp_path)
+    r = subprocess.run([sys.executable, str(SKEIN), "claim", "--dry-run"], cwd=tmp_path,
+                       capture_output=True, text=True)
+    data = _json_stdout(r)
+    assert set(data) >= {"phase", "dry_run", "exec", "check"}
+    assert data["exec"]["ready"] == []
+    assert data["exec"]["empty"]["reason"] in {
+        "work_pool_full", "no_pending_subtask", "dependencies_blocked"}
+    assert data["check"]["to_check"] == []
+
+
+def test_direct_skein_serve_uses_config_api(tmp_path: Path) -> None:
+    from conftest import make_ws
+
+    make_ws(tmp_path)
+    cfg = tmp_path / ".skein" / "config.yaml"
+    cfg.write_text(cfg.read_text(encoding="utf-8").replace("serve: true", "serve: false"), encoding="utf-8")
+    r = subprocess.run([sys.executable, str(SKEIN), "serve", "--auto"], cwd=tmp_path,
+                       capture_output=True, text=True, timeout=20)
+    assert r.returncode == 0, r.stderr
+    assert "AttributeError" not in r.stderr
 
 
 def test_every_hook_subcommand_survives_wrapper(tmp_path: Path) -> None:

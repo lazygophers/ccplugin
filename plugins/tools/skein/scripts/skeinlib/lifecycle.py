@@ -39,7 +39,7 @@ class Lifecycle:
         self._doctor = doctor
 
     # 下面这些是从 Skein 搬过来的方法体, 原样保留 —— 只把 self.X 改成 self.ws.X (见文件末尾说明)。
-    def create(self, a: argparse.Namespace) -> None:
+    def create(self, a: argparse.Namespace) -> dict[str, Any]:
         tid = a.id.strip()
         # 可读 id: 人工传入, 必须是 slug (kebab-case, 兼作 git 分支名 + 目录名)
         if not SLUG_RE.match(tid):
@@ -96,7 +96,7 @@ class Lifecycle:
         self.ws.store.save(t)  # _save 已渲染子任务看板
         self.ws.store.sync()  # 刷新顶层 tasks 索引 + 看板 + html
         self.ws._stage_hooks("create", "after", self.ws._hook_ctx(tid, t=t))
-        print(f"{tid}\t{self.ws.tasks / tid}")
+        return {"id": tid, "path": str(self.ws.tasks / tid)}
 
     def _scaffold(self, tid: str, name: str) -> None:
         """落 planning 双工件脚手架 (prd 主入口 / design 详细设计).
@@ -140,12 +140,10 @@ class Lifecycle:
             if not p.exists():
                 p.write_text(body)
 
-    def repos(self, a: argparse.Namespace) -> None:
-        # 查/声明 task 的目标子 git (planning 声明: 每个各开 worktree)。仅 pending 可改 (start 后 worktree 已定)
+    def repos(self, a: argparse.Namespace) -> dict[str, Any]:
         t = self.ws.store.load(a.id)
         if a.set is None:
-            print("\n".join(t.get("repos") or []) or "(未声明子 git — 单根/原地模式)")
-            return
+            return {"id": a.id, "repos": t.get("repos") or []}
         if not self.ws.config()["worktree"]["enabled"]:
             raise SkeinError(f"{a.id} config worktree.enabled=false — worktree 禁用, 不可声明 repos")
         if t["status"] not in (TaskStatus.PENDING, TaskStatus.RESEARCH):
@@ -153,20 +151,15 @@ class Lifecycle:
         t["repos"] = parse_repos(a.set)
         self.ws.store.save(t)
         self.ws.store.sync()
-        print(f"{a.id} repos = {', '.join(t['repos']) or '(空)'}")
+        return {"id": a.id, "repos": t["repos"]}
 
-    def estimate(self, a: argparse.Namespace) -> None:
-        # 查/填 task 预计工时(小时)。plan 阶段必填, confirm 硬门校验 (见 _validate_estimate)。
-        # 仅 pending/ready 可改 (start 后执行已启动, 工时估算不再变更调度)。
+    def estimate(self, a: argparse.Namespace) -> dict[str, Any]:
         t = self.ws.store.load(a.id)
         if a.set is None:
             est = t.get("estimate")
             subsum = _sub_estimate_sum(t)
-            print(f"{est} h" if est else "(未估算)")
-            if subsum:
-                print(f"  subtask 合计 {subsum} h + plan/check 自身开销 "
-                      f"{round((est or 0) - subsum, 2)} h")
-            return
+            return {"id": a.id, "estimate": est, "subtask_sum": subsum,
+                    "overhead": round((est or 0) - subsum, 2) if subsum else None}
         if t["status"] not in (TaskStatus.PENDING, TaskStatus.RESEARCH):
             raise SkeinError(f"{a.id} 状态 {t['status']}, estimate 只能在 confirm 前 (待处理/调研中) 设置")
         try:
@@ -178,28 +171,21 @@ class Lifecycle:
         t["estimate"] = val
         self.ws.store.save(t)
         self.ws.store.sync()
-        print(f"{a.id} estimate = {val} h")
+        return {"id": a.id, "estimate": val}
 
-    def priority(self, a: argparse.Namespace) -> None:
-        # 查/改 task 优先级。调度旋钮而非规划契约 (design.md) — 不锁状态, 任意状态均可改;
-        # 只改字段不碰执行中的槽, 故「不打断已在跑的」是结构性成立, 不需要额外校验。
+    def priority(self, a: argparse.Namespace) -> dict[str, Any]:
         t = self.ws.store.load(a.id)
         if a.set is None:
-            print(t.get("priority") or PRIORITY_DEFAULT)
-            return
+            return {"id": a.id, "priority": t.get("priority") or PRIORITY_DEFAULT}
         t["priority"] = validate_priority(a.set)
         self.ws.store.save(t)
         self.ws.store.sync()
-        print(f"{a.id} priority = {t['priority']}")
+        return {"id": a.id, "priority": t["priority"]}
 
-    def deps(self, a: argparse.Namespace) -> None:
-        # 查/补 task 级前置 DAG (dedup 排序用: 给散落 task 之间补执行序, 织成完整 DAG)。
-        # 仅 pending 可改 (start 后调度已定); 且仅当现有 deps 为空才允许写 —
-        # dedup 只对无依赖的 task 补新序, 既有依赖一律不碰 (防覆盖人工/plan 声明的前置)。
+    def deps(self, a: argparse.Namespace) -> dict[str, Any]:
         t = self.ws.store.load(a.id)
         if a.set is None:
-            print(",".join(t.get("deps") or []) or "(无前置)")
-            return
+            return {"id": a.id, "deps": t.get("deps") or []}
         if t["status"] not in (TaskStatus.PENDING, TaskStatus.RESEARCH):
             raise SkeinError(f"{a.id} 状态 {t['status']}, deps 只能在 confirm 前 (待处理/调研中) 设置")
         if t.get("deps"):
@@ -238,24 +224,18 @@ class Lifecycle:
         t["deps"] = new
         self.ws.store.save(t)
         self.ws.store.sync()
-        print(f"{a.id} deps = {', '.join(new) or '(空)'}")
+        return {"id": a.id, "deps": new}
 
-    def parent(self, a: argparse.Namespace) -> None:
-        # 查/改既有 task 的 parent 挂载 (给存量 task 补/改父, 摘除=--set 空串)。校验复用 create
-        # 那条 parent 链检查 (父存在/非自引用/父自身非 child, 即不超 2 层)。额外补一条本命令特有的:
-        # 本 task 若已有 child (别的 task parent 指向它), 挂父会让那些 child 变 3 层, 先拒。
-        # parent 与 deps 正交, 全程不碰任何 deps。不限状态 (parent 不涉 worktree/branch, 任意态可改)。
+    def parent(self, a: argparse.Namespace) -> dict[str, Any]:
         t = self.ws.store.load(a.id)
         if a.set is None:
-            print(t.get("parent") or "(无父)")
-            return
+            return {"id": a.id, "parent": t.get("parent")}
         new_parent = a.set.strip() or None
         if new_parent is None:
             t["parent"] = None
             self.ws.store.save(t)
             self.ws.store.sync()
-            print(f"{a.id} parent = (已摘除)")
-            return
+            return {"id": a.id, "parent": None}
         if new_parent == a.id:
             raise SkeinError(f"{a.id} parent 自引用")
         p = self.ws.store.load(new_parent)  # 不存在 → SkeinError「task 不存在」(parent 引用完整性)
@@ -273,7 +253,7 @@ class Lifecycle:
         t["parent"] = new_parent
         self.ws.store.save(t)
         self.ws.store.sync()
-        print(f"{a.id} parent = {new_parent}")
+        return {"id": a.id, "parent": new_parent}
 
     def _validate_estimate(self, tid: str, t: dict[str, Any]) -> None:
         # confirm 硬门: 预计工时(小时)必须已填且为正数, 缺失/默认空 → 拒绝开工。
@@ -290,7 +270,7 @@ class Lifecycle:
                 f"task 工时须 ≥ Σ subtask + plan/check 自身开销, "
                 f"`skein estimate {tid} --set <≥{subsum}>`")
 
-    def research(self, a: argparse.Namespace) -> None:
+    def research(self, a: argparse.Namespace) -> dict[str, Any]:
         # 待处理 → 调研中: 至少登记一个 phase=research 的 subtask (无调研诉求就不该进这态)。
         t = self.ws.store.load(a.id)
         if t["status"] != TaskStatus.PENDING:
@@ -305,9 +285,9 @@ class Lifecycle:
         self.ws.store.save(t)
         self.ws.store.sync()
         self.ws._stage_hooks("research", "after", self.ws._hook_ctx(a.id, t=t))
-        print(f"{a.id} 调研中")
+        return {"id": a.id, "status": TaskStatus.RESEARCH}
 
-    def plan(self, a: argparse.Namespace) -> None:
+    def plan(self, a: argparse.Namespace) -> dict[str, Any]:
         # 调研中 → 待处理: research subtask 须全 done, 调研的产出才算收敛成可规划的信息。
         # 调研中禁止直达开工态 —— confirm 会在 status=调研中 时直接拒绝, 提示先 plan。
         t = self.ws.store.load(a.id)
@@ -322,9 +302,9 @@ class Lifecycle:
         self.ws.store.save(t)
         self.ws.store.sync()
         self.ws._stage_hooks("plan", "after", self.ws._hook_ctx(a.id, t=t))
-        print(f"{a.id} 待处理 (调研收敛, 回规划)")
+        return {"id": a.id, "status": TaskStatus.PENDING}
 
-    def confirm(self, a: argparse.Namespace) -> None:
+    def confirm(self, a: argparse.Namespace) -> dict[str, Any]:
         """用户确认门 (待处理→进行中), **吸收原 `start` 的全部职责**: planning 完成 (prd 填齐 +
         ≥1 subtask + 预计工时) 且用户评审通过后, doctor 体检 + 前置 deps 校验 + 建 worktree,
         一步直接把 task 推进「进行中」——「就绪」中间态已删 (人审通过的下一秒就该开工, 没人真
@@ -343,19 +323,15 @@ class Lifecycle:
         validate_seam(self.ws.tasks, a.id)
         self._validate_estimate(a.id, t)
         if getattr(a, "summary", False):
-            # 只出摘要不改状态 — main 拿它塞进 AskUserQuestion。放在结构门之后: 结构不全时
-            # 该先报缺什么, 而不是让用户去审一份残缺的 PRD。
-            print(review_summary(self.ws.tasks, a.id, t))
-            return
+            return {"summary": review_summary(self.ws.tasks, a.id, t)}
         channel = self._require_user_review(a.id, bool(getattr(a, "approved", False)))
         # 吸收原 start 的前置校验: doctor 体检 + deps + prd double-check (confirm 后被改空的兜底)
-        print("confirm 前置体检 (doctor):")
         self._doctor(a)
+        self.ws._stage_hooks("confirm", "before", self.ws._hook_ctx(a.id, t=t))
         undone = [d for d in t["deps"] if self.ws._dep_unfinished(d)]
         if undone:
             raise SkeinError(f"前置未完成: {', '.join(undone)} — 先 finish 它们")
         validate_prd(self.ws.tasks, a.id)
-        self.ws._stage_hooks("confirm", "before", self.ws._hook_ctx(a.id, t=t))
         t["status"] = TaskStatus.ACTIVE
         t["confirmed"] = now()
         t["confirmed_by"] = channel  # 审核渠道留痕: ask (AskUserQuestion) / user-tty (终端交互)
@@ -384,14 +360,9 @@ class Lifecycle:
             t["started"] = now()  # exec 时刻 (首次 confirm; 重复不覆盖)
         self.ws.store.save(t)
         self.ws.store.sync()
-        if t["worktrees"]:
-            loc = "\n".join(f"worktree: {w['wt']} (子 git: {w['repo']}, branch: {w['branch']})"
-                            for w in t["worktrees"])
-        else:
-            reason = "config worktree.enabled=false" if self.ws.git else "非 git 仓库"
-            loc = f"{reason}: 原地执行 (无 worktree 隔离)"
         self.ws._stage_hooks("confirm", "after", self.ws._hook_ctx(a.id, t=t))
-        print(f"{a.id} 进行中 (confirm 吸收 start: 已建 worktree)\n{loc}")
+        return {"id": a.id, "status": TaskStatus.ACTIVE, "confirmed": True,
+                "worktrees": t["worktrees"], "worktree": t["worktree"]}
 
     # ---- 人审门 (待处理→进行中 的最后一道) ----
     def _require_user_review(self, tid: str, approved: bool) -> str:
@@ -424,9 +395,12 @@ class Lifecycle:
             f"批准 → `skein confirm {tid} --approved`\n"
             f"  🛑 没真问过用户就传 --approved = 伪造审核, 属流程错误")
 
-    def check(self, a: argparse.Namespace) -> None:
+    def check(self, a: argparse.Namespace) -> dict[str, Any]:
         # 进行中→检查中: 记 checked 时刻 (board 展示等待/执行时间用)。仅 active 可进检查。
         t = self.ws.store.load(a.id)
+        if t["status"] == TaskStatus.CHECK:
+            # 幂等: `claim` 已把 task 收进检查中, checker 自跑本命令不该报错 (flow-loop.md §3)
+            return {"id": a.id, "status": TaskStatus.CHECK, "idempotent": True}
         if t["status"] != TaskStatus.ACTIVE:
             raise SkeinError(f"{a.id} 状态 {t['status']}, 只有进行中 task 能进检查")
         self.ws._stage_hooks("check", "before", self.ws._hook_ctx(a.id, t=t))
@@ -435,9 +409,9 @@ class Lifecycle:
         self.ws.store.save(t)
         self.ws.store.sync()
         self.ws._stage_hooks("check", "after", self.ws._hook_ctx(a.id, t=t))
-        print(f"{a.id} checked")
+        return {"id": a.id, "status": TaskStatus.CHECK}
 
-    def finishing(self, a: argparse.Namespace) -> None:
+    def finishing(self, a: argparse.Namespace) -> dict[str, Any]:
         # 检查中 → 收尾中: 占 gate 槽 (状态∈{检查中,收尾中} 计数, 上限 pools.gate)。
         # 拆成「先占槽标收尾中 → main 派 finisher → finisher 跑 finish 释放槽」两步,
         # 是因为 finisher 是 main 派出去的 agent, 引擎看不见, 限不了并行 finisher 数 —
@@ -457,9 +431,9 @@ class Lifecycle:
         self.ws.store.save(t)
         self.ws.store.sync()
         self.ws._stage_hooks("finishing", "after", self.ws._hook_ctx(a.id, t=t))
-        print(f"{a.id} 收尾中 (占 gate 槽) — main 派 skein-finisher 完成 finish")
+        return {"id": a.id, "status": TaskStatus.FINISHING}
 
-    def finish(self, a: argparse.Namespace) -> None:
+    def finish(self, a: argparse.Namespace) -> dict[str, Any]:
         tid = a.id
         t = self.ws.store.load(tid)
         if t["status"] != TaskStatus.FINISHING:
@@ -522,12 +496,11 @@ class Lifecycle:
             commit_all(self.ws.root, f"skein({tid}): {t['name']}")
         cfg = self.ws.config()
         rest = self.ws.store.active()
-        tail = (f", 剩余 active: {', '.join(x['id'] for x in rest)}" if rest else ", 无剩余 active")
-        keep = "已归档" if archived else f"保留 {cfg.get('retain_days', 7)} 天后自动归档"
         self.ws._stage_hooks("finish", "after", self.ws._hook_ctx(tid, t=t))
-        print(f"{tid} finished ({keep})" + tail)
+        return {"id": tid, "status": TaskStatus.DONE, "archived": archived,
+                "remaining": [x["id"] for x in rest]}
 
-    def archive(self, a: argparse.Namespace) -> None:
+    def archive(self, a: argparse.Namespace) -> dict[str, Any]:
         # 归档 = 丢弃 (不 merge): 先销 worktree/branch, 免残留悬挂
         f = self.ws.tasks / a.id / "task.json"
         t = json.loads(f.read_text()) if f.exists() else None
@@ -542,9 +515,9 @@ class Lifecycle:
         self.ws.store.archive_task(a.id)
         self.ws.store.sync()  # 重写顶层 tasks 索引 (去掉已归档 task)
         self.ws._stage_hooks("archive", "after", self.ws._hook_ctx(a.id, t=t))
-        print(f"{a.id} archived")
+        return {"id": a.id, "archived": True}
 
-    def del_(self, a: argparse.Namespace) -> None:
+    def del_(self, a: argparse.Namespace) -> dict[str, Any]:
         # 删 task (软删 → .skein/trash/<id>.<date>/, 可恢复) 或单 subtask (直接移除, 不进 trash)
         tid = a.task_id
         src = self.ws.tasks / tid
@@ -559,22 +532,20 @@ class Lifecycle:
             if len(new_subs) == len(subs):
                 raise SkeinError(f"subtask 不存在: {tid}/{sid}")
             if a.dry_run:
-                print(f"[dry-run] 将从 {tid} 移除 subtask {sid} (task 目录与其余 subtask 不动)")
-                return
+                return {"dry_run": True, "action": "remove_subtask", "task": tid,
+                        "subtask": sid, "remaining": len(new_subs)}
             t["subtasks"] = new_subs
             self.ws.store.save(t)  # _save 渲染子任务看板
             self.ws.store.sync()   # 刷顶层索引 + 看板
-            print(f"{tid}/{sid} removed ({len(new_subs)} subtask 剩余)")
-            return
+            return {"id": tid, "subtask": sid, "removed": True, "remaining": len(new_subs)}
 
         if a.dry_run:
-            lines = [f"[dry-run] 将删 task {tid} ({t['name']}):",
-                     f"  软删: {src} → {self.ws.trash_dir}/{tid}.{datetime.datetime.now().strftime('%Y%m%d')}/"]
+            result: dict[str, Any] = {"dry_run": True, "action": "delete_task", "task": tid,
+                                       "name": t["name"]}
             if t["status"] in STATUS_INFLIGHT:
-                for w in worktrees_of(t):
-                    lines.append(f"  销 worktree: {w['wt']}  分支: {w['branch']}  (子 git {w['repo']})")
-            print("\n".join(lines))
-            return
+                result["worktrees"] = [{"wt": w["wt"], "branch": w["branch"], "repo": w["repo"]}
+                                       for w in worktrees_of(t)]
+            return result
 
         # 在途 task (进行中/检查中/收尾中) 先销 worktree/分支 (finish/archive 同策略, 免悬挂); 待处理/调研中/done 无 worktree, 跳过
         if t["status"] in STATUS_INFLIGHT:
@@ -585,9 +556,9 @@ class Lifecycle:
             shutil.rmtree(dst)
         shutil.move(str(src), str(dst))
         self.ws.store.sync()  # 刷顶层索引 (移除该 task) + 看板
-        print(f"{tid} deleted (软删可恢复: {dst})")
+        return {"id": tid, "deleted": True, "trash_path": str(dst)}
 
-    def rename(self, a: argparse.Namespace) -> None:
+    def rename(self, a: argparse.Namespace) -> dict[str, Any]:
         # 重命名 task/subtask 的 id 或 name (至少给一个 --id / --name)。
         # - 无 sid: 改 task。--name 改显示名 (任意状态); --id 改 id (仅 pending, 同步目录/branch/别 task deps/child parent/顶层索引)
         # - 带 sid: 改 subtask。--name 改子任务名; --id 改 sid (同步同 task 内别 subtask 的 depends_on 引用)
@@ -618,10 +589,9 @@ class Lifecycle:
                     x["depends_on"] = [new_id if d == old_sid else d for d in x.get("depends_on", [])]
             self.ws.store.save(t)
             self.ws.store.sync()
-            print(f"{tid}/{a.sid} renamed"
-                  + (f" → sid={new_id}" if new_id else "")
-                  + (f" name={new_name!r}" if new_name is not None else ""))
-            return
+            return {"task": tid, "subtask": new_id or a.sid,
+                    "sid": new_id or a.sid,
+                    "name": new_name if new_name is not None else s["name"]}
 
         # 改 task
         if new_name is not None:
@@ -629,8 +599,7 @@ class Lifecycle:
         if not new_id:  # 仅改 name
             self.ws.store.save(t)
             self.ws.store.sync()
-            print(f"{tid} renamed: name={t['name']!r}")
-            return
+            return {"id": tid, "name": t["name"]}
         # 改 id: 仅 pre-confirm (待处理/调研中 无 live worktree; active/check/finishing 改 id 需迁分支+移 worktree, 风险高不支持)
         if t["status"] not in (TaskStatus.PENDING, TaskStatus.RESEARCH):
             raise SkeinError(
@@ -662,4 +631,4 @@ class Lifecycle:
             if changed:
                 self.ws.store.save(other)
         self.ws.store.sync()
-        print(f"{old_id} renamed → {new_id}")
+        return {"old_id": old_id, "new_id": new_id}

@@ -57,7 +57,7 @@ class Admin:
     def __init__(self, ws: "Workspace") -> None:
         self.ws = ws
 
-    def init(self, _: argparse.Namespace) -> None:
+    def init(self, _: argparse.Namespace) -> dict[str, Any]:
         self.ws.dir.mkdir(exist_ok=True)
         self.ws.tasks.mkdir(exist_ok=True)
         self.ws.archive_dir.mkdir(parents=True, exist_ok=True)
@@ -87,9 +87,9 @@ class Admin:
         if not (self.ws.dir / "task.json").exists():
             self.ws.store.sync()
         self.ws.store._write_board()
-        print(f"已初始化 SKEIN 工作区: {self.ws.dir}")
+        return {"initialized": True, "path": str(self.ws.dir)}
 
-    def setup(self, a: argparse.Namespace) -> None:
+    def setup(self, a: argparse.Namespace) -> dict[str, Any]:
         # 默认兼容: 拷 spec/task 入 .skein + 删 trellis 接线 (避免双注入), 留 .trellis 数据。
         # --full: 兼容全套 + 整删 .trellis/ (spec/task 已拷走)。
         trellis = self.ws.root / ".trellis"
@@ -134,74 +134,54 @@ class Admin:
             "trellis_removed": trellis_removed,
             "settings_need_manual_edit": settings_trellis_notes(self.ws.root),
         }
-        print(json.dumps(manifest, ensure_ascii=False, indent=2))
+        return manifest
 
-    def config_cmd(self, a: argparse.Namespace) -> None:
+    def config_cmd(self, a: argparse.Namespace) -> dict[str, Any]:
         cfg_path = self.ws.dir / "config.yaml"
         config = Config(cfg_path)
         action = getattr(a, "action", None)
         if action is None:  # 无参 → 展示全部生效配置
-            cfg = self.ws.config()
-            if getattr(a, "json", False):
-                print(json.dumps(cfg, ensure_ascii=False))
-                return
-            for path, val in _flatten_cfg(config.cfg):
-                print(f"{path}={val}")
-            return
+            return {path: val for path, val in _flatten_cfg(config.cfg)}
         if action == "reset":
             config.reset()
-            print("已重置全部配置为默认值:")
-            for path, val in _flatten_cfg(config.cfg):
-                print(f"{path}={val}")
-            return
+            return {"reset": True, "config": {path: val for path, val in _flatten_cfg(config.cfg)}}
         key = a.key
         try:
             config.set(key, a.value)
         except (KeyError, ValueError, TypeError) as e:
             raise SkeinError(f"配置键或值类型错误: {key}={a.value!r} — {e}")
-        print(f"{key} = {a.value}")
+        return {"key": key, "value": a.value}
 
-    def clean(self, a: argparse.Namespace) -> None:
+    def clean(self, a: argparse.Namespace) -> dict[str, Any]:
         # 用户主动清理 (skein-clean skill 唯一入口): 归档完成超 --days 天的 task。
         # ponytail: --days 只能比 config retain_days 更激进 (更小); 更大值被 _sync 的自动 ceiling 归档抵消。
         archived = self.ws.store.autoclean(days=a.days)
         self.ws.store.sync()
         d = a.days if a.days is not None else self.ws.config().get("retain_days", 7)
-        if archived:
-            print(f"已归档 {len(archived)} 个完成 task (超 {d} 天保留期): {', '.join(archived)}")
-        else:
-            print(f"无超 {d} 天保留期的完成 task 可归档")
         rest = self.ws.store.all_tasks()
         blocked = self.ws.store._unfinished_related(rest)  # 关联链护栏在落盘层 (store.py)
         held = sorted(t["id"] for t in rest if t["id"] in blocked and t["status"] == TaskStatus.DONE)
-        if held:
-            print(f"跳过 {len(held)} 个完成 task (关联链上仍有未完成): {', '.join(held)}")
+        return {"archived": archived or [], "days": d, "held": held}
 
-    def board(self, a: argparse.Namespace) -> None:
+    def board(self, a: argparse.Namespace) -> dict[str, Any]:
         self.ws.store._write_board()
-        print(f"看板已更新: {self.ws.dir / 'task.md'}")
+        return {"updated": str(self.ws.dir / "task.md")}
 
-    def migrate_priority(self, a: argparse.Namespace) -> None:
+    def migrate_priority(self, a: argparse.Namespace) -> dict[str, Any]:
         # 一次性: 存量 0-10 数字优先级 → 四档枚举。改前备份原文件, 幂等 (已迁移的跳过, 可重跑)。
         result = migrate_priority_values(self.ws.root, self.ws.tasks, self.ws.archive_dir)
         migrated = result["migrated"]
         if not migrated:
-            print("无待迁移 task (全部已是四档枚举或无 priority 字段)")
-            return
+            return {"migrated": [], "backup_dir": result.get("backup_dir")}
         self.ws.store.sync()  # 刷新顶层镜像索引, 免看板/查询继续读到旧值
-        print(f"已迁移 {len(migrated)} 个 task.json (备份于 {result['backup_dir']}):")
-        for p in migrated:
-            print(f"  {p}")
+        return {"migrated": migrated, "backup_dir": result["backup_dir"]}
 
-    def migrate_ready(self, a: argparse.Namespace) -> None:
+    def migrate_ready(self, a: argparse.Namespace) -> dict[str, Any]:
         # 一次性: 存量「就绪」status → 待处理 (confirm 已吸收 start, 迁进行中会批量建 worktree
         # 副作用太大, 见 readystate.py 头注)。改前备份原文件, 幂等 (已迁移的跳过, 可重跑)。
         result = migrate_ready_status(self.ws.root, self.ws.tasks, self.ws.archive_dir)
         migrated = result["migrated"]
         if not migrated:
-            print("无待迁移 task (无「就绪」status 残留)")
-            return
+            return {"migrated": [], "backup_dir": result.get("backup_dir")}
         self.ws.store.sync()  # 刷新顶层镜像索引, 免看板/查询继续读到旧值
-        print(f"已迁移 {len(migrated)} 个 task.json (待处理, 备份于 {result['backup_dir']}):")
-        for p in migrated:
-            print(f"  {p}")
+        return {"migrated": migrated, "backup_dir": result["backup_dir"]}
