@@ -13,14 +13,14 @@ check 全绿后的**收尾门**。验收/完成度核对已在 check 阶段做�
 2. **读结果, 按 verdict 分流** — finisher 回传 `收尾干净 | 需处理`:
    - **收尾干净** → 已闭环 (finish 已由 finisher 自跑成功), 直接进第 3 步。
    - **需处理** → 按 `needs_main`/`dangling`/`tool_failures` 定位问题 (悬挂残留清不掉 / `skein finish` 报错 / 无改动异常), 处理后视情况重派 finisher 或人工介入, 见下方失败模式表。
-3. **sediment (main 保留项, 异步 fire-and-forget)** — finish 闭环后异步派 `skein-specer`, main 不等回传即结束回合。细节见 [sediment-protocol.md](sediment-protocol.md)。
+3. **sediment + amend 双动作 (main 保留项, 异步 fire-and-forget)** — finish 闭环后异步派 `skein-specer`, main 不等回传即结束回合。specer 自跑两件事: ① 常规 sediment (决策/规则沉淀); ② product wiki 回写候选 (`skein-spec finish-candidates <tid>` 三路降级, 无候选禁硬凑, 有候选按结果走 `amend`/`sediment --namespace product`)。细节见 [sediment-protocol.md](sediment-protocol.md)。
 4. **auto-fix 双保险 (main 保留项, 异步 fire-and-forget)** — sediment 派出后, main 检测 `.skein/spec/.pending-fix` 标记 (Stop hook 回合结束若检出 spec 问题所写, 详见 `/skein-spec` skill 的 auto-fix 模式)。标记存在 → 异步 bg 派 `skein-specer` 跑 `skein-spec maintain --apply` 全自动修, 与 sediment 同批 fire-and-forget。标记不存在 → 跳过。
 
 ## 完成判据
 
 - [ ] finisher 回传 verdict=收尾干净 (或「需处理」已按失败模式表处理完并重派确认干净)
 - [ ] `skein finish` 已成功 (finisher 自跑, commit→merge→销 worktree→标记完成)
-- [ ] sediment 已异步派出 (不等回传)
+- [ ] sediment + amend 双动作已异步派出 (不等回传; product 候选三路降级跑过, 无候选亦算已跑不算遗漏)
 - [ ] `.pending-fix` 标记已检测 (有则 auto-fix bg 已派, 无则跳过)
 
 ## 失败模式
