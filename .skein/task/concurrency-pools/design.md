@@ -302,3 +302,70 @@ boardsource.py` → **Success: no issues found in 4 source files**。
 ### subtask list s6 行 (worktree 内亲跑)
 `s6	已完成	100%	1.5h	看板 + Web 视图	依赖:s1,s2	验收:看板显示 work 与 gate 两行;
 Web 视图 JSON 含两池字段; 新状态在看板有正确排序位	skills:-`
+
+## s4 交付记录 — 调度器: 两池计数 + 加权打分 (`0af0c95ee` + `258112f51`)
+
+### 改动 (按文件, `scheduling.py`)
+- `_score(s, crit_val)` (模块级新函数): 打分 = 关键路径权重×`_W_CRIT`(100) + 等待小时数×
+  `_W_WAIT`(1) + (phase==exec ? `_W_EXEC`(1) : 0)。三常数放模块级不进 config (design §4 原文
+  要求)。`_W_CRIT` 远大于其余两项 → 同优先级档内退化为「关键路径优先, 全同分按登记序」,
+  与打分引入前零回归。
+- `_ready()` (单 task 就绪批, line 41-56): 排序键 `-crit` 换成 `-_score(s, crit)`。
+- `_global_ready()` (跨 task 就绪批, line 66-93): cand 元组第 5 项由 `crit` 换成
+  `_score(s, crit)`, 排序键 `(-prio, -score, ti, i)` —— **p3 的排序键结构完全不动**, 只是把
+  原来单纯的 crit 换成 crit+wait+phase 的加权分, prio 仍是最外层。
+- `_claim_check()` (line 179-197): **修一处死代码** —— 原用 `self.ws.store.active()`
+  (`STATUS_ACTIVE = {进行中,调研中,收尾中}`, model.py:22, **不含「检查中」**) 遍历, 导致
+  「检查中→收尾中」这一路 (`elif t["status"] == S_CHECK`) 永远遍历不到候选, gate 池的
+  claim-check 半条腿是死的。改用 `self.ws.store.all_tasks()` + 显式过滤
+  `status in (S_ACTIVE, S_CHECK)`。此 bug 非本次引入 (s3 交付时 lifecycle.finishing 本身
+  正确, 只是 scheduling.py 没接对候选源), 在写 s4 验收测试时发现并顺手修 (同一文件同一路径,
+  拆两个 PR 反而增加解释成本)。
+- 满槽提示指明池名 (design §4 验收第 4 条): 新增 `_empty_batch_msg()` 帮助函数, 区分「work
+  池已满」/「无待处理 subtask」/「依赖未全部完成」三种成因; `_claim_exec` 两处空批分支
+  (dry-run + 正式) 统一调用; 单 task `subtask ready/claim` 空批分支同步改「work 池已满」。
+  gate 侧本就有 `lifecycle.py:449` 的 `gate 池已满 ({occupied}/{gate})`, 未改动 (已合规)。
+
+### 4 条验收逐条自证 (`tests/test_dag.py`, 4 个新测试, 均测 `claim` 外部输出, 不碰打分内部数值)
+1. **两池独立 (work 满仍可 check)**: `test_two_pools_independent_work_full_check_still_claimable`
+   —— `pools.work=1` 占满后, `claim exec --dry-run` 报 work 池已满, 同时另一 task 全 subtask
+   done 直接 `claim check` 仍成功收进检查中 (`"已认领进检查" in out`)。
+2. **exec 同分优先**: `test_exec_wins_over_research_on_tie` —— 两 task 各 1 subtask, crit/优先级/
+   等待时长 (创建时刻紧邻) 全等, phase=exec 的排在 phase=research 前面 (`_dry_run_order` 断言
+   index 顺序)。
+3. **等久的 research 能翻盘**: `test_long_waiting_research_overtakes_fresh_exec` —— research
+   subtask 用新增 helper `_backdate_created()` 把 `created` 拨前 3h (> `_W_EXEC` 等价的 1h),
+   同分场景下反超刚登记的 exec subtask, `_dry_run_order` 断言顺序反转。
+4. **满槽提示指明池名**: `test_empty_batch_message_names_which_pool_is_full` —— work 满时
+   `claim exec --dry-run` 输出含「work 池已满」; gate 压到 0 后二次 `claim check` (第一次先把
+   task 转「检查中」, 第二次才撞 gate 门) 输出含「gate 池已满」, 两处均非泛泛「满槽」。
+
+### 两池计数真值来源 & 与 s6 展示口径核对
+- **work 池**: `_global_ready()`/`_ready()` 用 `sum(... s["status"]==SS_RUNNING)`
+  (`scheduling.py:73-74`, `47`); s6 的 `views.py` `work_running` 算法同样是「全局 running
+  subtask 数」(`design.md` s6 交付记录: `_view_board_data` 计算 `work_running`) —— **两处
+  独立实现但计数口径一致** (状态=运行中的全局 subtask, 不分 exec/research, 因两态均落在
+  work 池)。未做代码共享抽公共函数: 各自只有一行 `sum()`, 抽公共函数增加的间接成本高于
+  重复这一行的成本 (ponytail: 两行重复 < 一层新抽象)。
+- **gate 池**: `lifecycle.finishing()` (`lifecycle.py:446-447`) 用
+  `sum(... x["status"] in (S_CHECK, S_FINISHING))` 全量 `all_tasks()`; s6 的 `views.py`
+  `gate_running` 算法为 `cnt[检查中]+cnt[收尾中]` —— 同一口径 (状态∈{检查中,收尾中} 的 task 数)。
+
+### 加权打分与 p3 优先级排序共存
+p3 (task-priority) 在 `_global_ready()` 加了最外层排序键「优先级降序」(`cand.sort(key=lambda
+x: (-x[5], -x[4], x[2], x[3]))` 中的 `x[5]`)。s4 只把第二排序键 `x[4]` 从纯 `crit` 换成
+`_score(s, crit)` —— **优先级仍压过一切** (标了 urgent 就先跑, `test_priority_beats_topo_depth`
+仍绿), s4 的加权打分只在**同优先级档内**生效, 不越过优先级, 也不改动 `(ti, i)` 兜底稳定序。
+`_W_CRIT=100` 远大于 `_W_WAIT`/`_W_EXEC` 的量级, 保证「关键路径优先」这条 p2 时代就有的性质
+在加权打分引入后仍是同优先级档内的主导因子, `test_zero_regression_all_same_priority` 与
+`test_claim_order_stable_on_repeat` 两个既有零回归测试全绿, 未见语义漂移。
+
+### golden 归因
+未改动 `views.py`/`board.py` 等展示层文件, `views_golden.json` 未重生成, `git status` 干净
+(改动仅 `scheduling.py` + `tests/test_dag.py`)。
+
+### 质量门
+`python3 -m pytest plugins/tools/skein/scripts/tests/ -q` → **412 passed, 0 failed**
+(基线 408 passed；净 +4 = 本次新增 4 个验收测试)。
+`python3 -m mypy plugins/tools/skein/scripts/skeinlib/` → **Success: no issues found in 48
+source files**。
