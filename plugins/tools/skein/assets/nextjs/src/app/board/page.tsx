@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Sidebar, Topbar } from "@/components/layout";
 import { StatusBadge, StatusDot, ST_META, ST_ORDER } from "@/components/status";
 import { api, ApiError, type Task } from "@/lib/api";
-import { normalizeTasks, normalizeStatus, applyTaskChanged, PRIORITY_LABEL, PRIORITY_COLOR_VAR, type NormTask, type NormSubtask } from "@/lib/model";
+import { normalizeTasks, normalizeStatus, applyTaskChangedBatch, PRIORITY_LABEL, PRIORITY_COLOR_VAR, type NormTask, type NormSubtask } from "@/lib/model";
 import { subscribe } from "@/lib/live";
 import { cn } from "@/lib/utils";
 import { fmtRelative, fmtTime } from "@/lib/format";
@@ -207,15 +207,26 @@ export default function BoardPage() {
   }, []);
 
   // 逐 task 变更消息 → 局部更新卡片 (不整页重载); 全局 "reload"/"data" 兜底仍由 LiveBootstrap 处理整页刷。
+  // 批量抗抖: 同一帧内收到的多条消息攒进 pending, 用 rAF 合并成一次 setAllTasks (一次重排),
+  // 避免批量调度场景下每条消息各自触发一次昂贵的 DAG 布局重算。
   useEffect(() => {
-    const unsub = subscribe((msg) => {
-      if (msg.type !== "task-changed") return;
+    const pending: { id: string; card: Record<string, unknown> | null }[] = [];
+    let flushHandle: number | null = null;
+    const flush = () => {
+      flushHandle = null;
+      if (!pending.length) return;
+      const batch = pending.splice(0, pending.length);
       setAllTasks(prev => {
         const maxActive = (prev[0] as Record<string, unknown> | undefined)?.maxActive ?? 2;
-        return applyTaskChanged(prev, msg, { maxActive });
+        return applyTaskChangedBatch(prev, batch, { maxActive });
       });
+    };
+    const unsub = subscribe((msg) => {
+      if (msg.type !== "task-changed") return;
+      pending.push(msg);
+      if (flushHandle == null) flushHandle = requestAnimationFrame(flush);
     });
-    return unsub;
+    return () => { unsub(); if (flushHandle != null) cancelAnimationFrame(flushHandle); };
   }, []);
 
   // Measure available canvas width

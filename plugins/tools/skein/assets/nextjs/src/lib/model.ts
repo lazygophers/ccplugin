@@ -132,3 +132,14 @@ export function applyTaskChanged(
   copy[idx] = next;
   return copy;
 }
+
+// 批量抗抖: 同一轮攒到一起的多条 task-changed 消息一次性折叠成一次卡片集变化,
+// 避免每条消息各自触发一次重排 (布局计算随 task 数增长, 大量消息连发时逐条重排会卡死)。
+// 纯函数, 语义等价于依次调用 applyTaskChanged, 仅合并成一次输出。
+export function applyTaskChangedBatch(
+  tasks: NormTask[],
+  msgs: { id: string; card: Record<string, unknown> | null }[],
+  extra: Record<string, unknown> = {}
+): NormTask[] {
+  return msgs.reduce((acc, msg) => applyTaskChanged(acc, msg, extra), tasks);
+}
