@@ -98,6 +98,7 @@ def test_plan_back_to_pending(skein_cli: SkeinCli, ws: Path) -> None:
 
 def test_confirm_active_builds_worktree(skein_cli: SkeinCli, ws: Path) -> None:
     """confirm(吸收 start, 须 --approved) → active: 建 worktree + 状态直接切进行中。"""
+    skein_cli(ws, "config", "set", "worktree.enabled", "true")  # worktree 默认 false，测试需显式启用
     tid = _mk(skein_cli, ws, sub=True)
     skein_cli(ws, "estimate", tid, "--set", "1")
     r = skein_cli(ws, "confirm", tid, "--approved")

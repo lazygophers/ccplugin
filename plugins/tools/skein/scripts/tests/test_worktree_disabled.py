@@ -66,7 +66,8 @@ def test_repos_set_rejected_when_disabled(skein_cli: SkeinCli, ws: Path) -> None
 
 def test_create_repos_allowed_when_enabled(skein_cli: SkeinCli, git_cmd: GitCmd,
                                            ws: Path) -> None:
-    """启用态 (默认) create --repos 行为不变 (对照组, 证拒仅由禁用态触发)。"""
+    """启用态 (显式启用) create --repos 行为不变 (对照组, 证拒仅由禁用态触发)。"""
+    skein_cli(ws, "config", "set", "worktree.enabled", "true")  # worktree 默认 false，测试需显式启用
     sub = ws / "sub-a"
     sub.mkdir()
     git_cmd(sub, "init", "-q")

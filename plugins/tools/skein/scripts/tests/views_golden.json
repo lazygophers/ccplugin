@@ -195,7 +195,7 @@
             "status": "待处理"
           }
         ],
-        "worktree": "wt/alpha"
+        "worktree": null
       },
       {
         "assignee": "t",
@@ -223,7 +223,7 @@
         "stotal": 0,
         "subNodes": [],
         "subtable": [],
-        "worktree": "wt/super1"
+        "worktree": null
       },
       {
         "assignee": "t",
@@ -275,7 +275,7 @@
             "status": "已完成"
           }
         ],
-        "worktree": "wt/beta"
+        "worktree": null
       },
       {
         "assignee": "t",

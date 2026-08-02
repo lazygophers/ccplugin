@@ -11,7 +11,7 @@ use_worktree 配置、探测方式、两种模式 (worktree 模式 vs 原地模�
 | 项 | 值 | 说明 |
 |---|---|---|
 | 配置名 | `use_worktree` | 布尔值 |
-| 默认值 | `true` | 默认启用 worktree 隔离 |
+| 默认值 | `false` | 默认禁用 worktree 隔离 (原地模式) |
 | 存储位置 | `.skein/config.json` | 仓库级配置 |
 
 ### 1.2 探测方式

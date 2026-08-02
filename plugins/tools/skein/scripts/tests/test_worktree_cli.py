@@ -73,6 +73,7 @@ def _advance_to_finishing(skein_cli: SkeinCli, ws: Path, tid: str) -> None:
 def test_start_builds_worktree_dir_and_branch(skein_cli: SkeinCli, git_cmd: GitCmd,
                                               ws: Path) -> None:
     """confirm(吸收 start): 建 worktree 物理目录 + skein/<tid> 分支 (根仓模式)。"""
+    skein_cli(ws, "config", "set", "worktree.enabled", "true")  # worktree 默认 false，测试需显式启用
     tid = _mk(skein_cli, ws)
     wt = ws / ".worktrees" / f"skein-{tid}"
     assert wt.exists() and wt.is_dir(), "worktree 物理目录未建"
@@ -82,6 +83,7 @@ def test_start_builds_worktree_dir_and_branch(skein_cli: SkeinCli, git_cmd: GitC
 def test_finish_destroys_worktree_and_merges_branch(skein_cli: SkeinCli, git_cmd: GitCmd,
                                                      ws: Path) -> None:
     """finish: worktree 目录销毁 + 分支 merge 回主 (分支删除, 提交并入 HEAD)。"""
+    skein_cli(ws, "config", "set", "worktree.enabled", "true")  # worktree 默认 false，测试需显式启用
     tid = _mk(skein_cli, ws)
     wt = ws / ".worktrees" / f"skein-{tid}"
     # worktree 内造改动 + 提交, 验 finish 后 merge 回主
@@ -96,6 +98,7 @@ def test_finish_destroys_worktree_and_merges_branch(skein_cli: SkeinCli, git_cmd
 
 def test_start_finish_roundtrip_clean(skein_cli: SkeinCli, git_cmd: GitCmd, ws: Path) -> None:
     """confirm(建 worktree) → finish 往返干净: 目录删 + 分支删 + task 落 done。"""
+    skein_cli(ws, "config", "set", "worktree.enabled", "true")  # worktree 默认 false，测试需显式启用
     tid = _mk(skein_cli, ws, "feat-rt")
     assert (ws / ".worktrees" / f"skein-{tid}").exists()
     _advance_to_finishing(skein_cli, ws, tid)
@@ -124,6 +127,7 @@ def _mk_sub_git(git_cmd: GitCmd, ws: Path, name: str) -> Path:
 
 def test_multi_repos_each_gets_worktree(skein_cli: SkeinCli, git_cmd: GitCmd, ws: Path) -> None:
     """create --repos a,b → confirm(吸收 start) 为每子 git 各建 worktree + 分支 (落各仓内)。"""
+    skein_cli(ws, "config", "set", "worktree.enabled", "true")  # worktree 默认 false，测试需显式启用
     _mk_sub_git(git_cmd, ws, "sub-a")
     _mk_sub_git(git_cmd, ws, "sub-b")
     tid = "feat-multi"
@@ -142,6 +146,7 @@ def test_multi_repos_each_gets_worktree(skein_cli: SkeinCli, git_cmd: GitCmd, ws
 
 def test_multi_repos_finish_merges_each(skein_cli: SkeinCli, git_cmd: GitCmd, ws: Path) -> None:
     """多子 git finish: 各仓 worktree 销 + 分支 merge (改动并入各子仓主)。"""
+    skein_cli(ws, "config", "set", "worktree.enabled", "true")  # worktree 默认 false，测试需显式启用
     _mk_sub_git(git_cmd, ws, "sub-a")
     _mk_sub_git(git_cmd, ws, "sub-b")
     tid = "feat-mfin"
@@ -168,6 +173,7 @@ def test_multi_repos_finish_merges_each(skein_cli: SkeinCli, git_cmd: GitCmd, ws
 def test_repos_plain_subdir_rejected(skein_cli: SkeinCli, git_cmd: GitCmd, ws: Path) -> None:
     """--repos 声明根仓普通子目录 (非独立 git) → confirm(吸收 start) 拒: 须 git 顶层。
     普通子目录 show-toplevel = 根仓 ≠ sub, 若误放行 worktree 会错落到外层根仓。"""
+    skein_cli(ws, "config", "set", "worktree.enabled", "true")  # worktree 默认 false，测试需显式启用
     (ws / "plainsub").mkdir()  # 普通子目录, 属根仓工作树, 非独立 git
     tid = "feat-plain"
     skein_cli(ws, "create", tid, "--name", tid, "--desc", "d", "--repos", "plainsub")
@@ -182,6 +188,7 @@ def test_repos_plain_subdir_rejected(skein_cli: SkeinCli, git_cmd: GitCmd, ws: P
 
 def test_repos_deep_nested_git_gets_worktree(skein_cli: SkeinCli, git_cmd: GitCmd, ws: Path) -> None:
     """--repos 声明任意深度嵌套的独立 git → confirm(吸收 start) 在该子 git 顶层内建 worktree + 分支。"""
+    skein_cli(ws, "config", "set", "worktree.enabled", "true")  # worktree 默认 false，测试需显式启用
     deep = ws / "a" / "b" / "nested-git"
     deep.mkdir(parents=True)
     git_cmd(deep, "init", "-q")
@@ -205,6 +212,7 @@ def test_repos_deep_nested_git_gets_worktree(skein_cli: SkeinCli, git_cmd: GitCm
 
 def test_cli_create_parse_name_desc_repos(skein_cli: SkeinCli, ws: Path) -> None:
     """create 参数解析: --name/--desc/--repos 落盘正确。"""
+    skein_cli(ws, "config", "set", "worktree.enabled", "true")  # worktree 默认 false，--repos 需启用
     skein_cli(ws, "create", "feat-p", "--name", "N", "--desc", "D", "--repos", "x,y")
     t = _task_json(ws, "feat-p")
     assert t["name"] == "N"
@@ -299,6 +307,7 @@ def test_doctor_dep_self_reference_exit1(skein_cli: SkeinCli, ws: Path) -> None:
 def test_doctor_active_missing_worktree_exit1(skein_cli: SkeinCli, git_cmd: GitCmd,
                                               ws: Path) -> None:
     """违规: active task 但 worktree 物理目录被删 → doctor exit 1。"""
+    skein_cli(ws, "config", "set", "worktree.enabled", "true")  # worktree 默认 false，测试需显式启用
     tid = _mk(skein_cli, ws)
     # 删 worktree 目录但保留 task active 态 (模拟残留/手删)
     wt = ws / ".worktrees" / f"skein-{tid}"

@@ -366,6 +366,7 @@ def test_multirepo() -> None:
             (sub / "f.txt").write_text(f"base-{r}\n")
             git(sub, "add", "-A"); git(sub, "commit", "-qm", "init")
         sk(d, "init")
+        sk(d, "config", "set", "worktree.enabled", "true")  # worktree 默认 false，测试需显式启用
         sk(d, "create", "feat", "--name", "跨仓", "--desc", "改两仓", "--repos", "repoA,repoB")
         rl = sk(d, "repos", "feat").stdout
         assert "repoA" in rl and "repoB" in rl, rl
