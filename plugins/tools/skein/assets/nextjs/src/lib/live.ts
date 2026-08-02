@@ -3,13 +3,13 @@
 // 协议:
 //   {type:"reload"}               → 整页刷
 //   {type:"data"}                 → 软刷全部订阅者
-//   {type:"task-changed", id}     → 软刷订阅 id 的页
+//   {type:"task-changed", id, card}  → 软刷订阅 id 的页 (card 有值=新建/更新, null=归档/删除)
 //   {type:"spec-changed", path}   → spec 页软刷
 
 type LiveMessage =
   | { type: "reload" }
   | { type: "data" }
-  | { type: "task-changed"; id: string }
+  | { type: "task-changed"; id: string; card: Record<string, unknown> | null }
   | { type: "spec-changed"; path?: string };
 
 type Subscriber = (msg: LiveMessage) => void;

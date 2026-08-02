@@ -5,7 +5,8 @@ import Link from "next/link";
 import { Sidebar, Topbar } from "@/components/layout";
 import { StatusBadge, StatusDot, ST_META, ST_ORDER } from "@/components/status";
 import { api, ApiError, type Task } from "@/lib/api";
-import { normalizeTasks, normalizeStatus, PRIORITY_LABEL, PRIORITY_COLOR_VAR, type NormTask, type NormSubtask } from "@/lib/model";
+import { normalizeTasks, normalizeStatus, applyTaskChanged, PRIORITY_LABEL, PRIORITY_COLOR_VAR, type NormTask, type NormSubtask } from "@/lib/model";
+import { subscribe } from "@/lib/live";
 import { cn } from "@/lib/utils";
 import { fmtRelative, fmtTime } from "@/lib/format";
 import { renderMd } from "@/lib/md";
@@ -203,6 +204,18 @@ export default function BoardPage() {
       setAllTasks(tasks);
       setLoading(false);
     }).catch(() => setLoading(false));
+  }, []);
+
+  // 逐 task 变更消息 → 局部更新卡片 (不整页重载); 全局 "reload"/"data" 兜底仍由 LiveBootstrap 处理整页刷。
+  useEffect(() => {
+    const unsub = subscribe((msg) => {
+      if (msg.type !== "task-changed") return;
+      setAllTasks(prev => {
+        const maxActive = (prev[0] as Record<string, unknown> | undefined)?.maxActive ?? 2;
+        return applyTaskChanged(prev, msg, { maxActive });
+      });
+    });
+    return unsub;
   }, []);
 
   // Measure available canvas width
