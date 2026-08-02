@@ -109,7 +109,8 @@ def _judge_signal(prompt: str) -> list[str]:
         # (后者该由词表命中真信号 —— 掉进本兜底说明词表缺词, 是词表的 bug 不是阈值的)。
         ev.append("短句零信号(可能是对前文方案的授权 — 回看上文按那个方案的复杂度判档, 禁按字面当简单请求)")
     return ev
-_PHASE = {"待处理": "plan", "就绪": "ready", "进行中": "exec", "检查中": "check"}
+_PHASE = {"待处理": "plan", "调研中": "research", "进行中": "exec", "检查中": "check",
+          "收尾中": "finishing"}
 _PREFIX_RULE = """# 回复前缀 (强制)
 - 每条回复以 `[skein]` 开头; 正在处理某 task 时改用 `[skein|<taskId>|<阶段>]`
 - **本轮第一行必须是判定行**, 写清本轮要做什么 + 为什么 (判据见上方「任务判定」):
