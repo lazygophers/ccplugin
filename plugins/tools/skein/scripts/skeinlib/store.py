@@ -112,7 +112,14 @@ class TaskStore:
         f = self.tasks / tid / "task.json"
         if not f.exists():
             raise SkeinError(f"task 不存在: {tid}")
-        return cast(dict[str, Any], json.loads(f.read_text()))
+        t = cast(dict[str, Any], json.loads(f.read_text()))
+        # 迁移: 验收 → acceptance, 验收done → acceptance_done
+        for s in t.get("subtasks", []):
+            if "验收" in s:
+                s["acceptance"] = s.pop("验收")
+            if "验收done" in s:
+                s["acceptance_done"] = s.pop("验收done")
+        return t
 
     def save(self, t: dict[str, Any]) -> None:
         t["updated"] = now()
@@ -132,6 +139,12 @@ class TaskStore:
             if f.exists():
                 try:
                     t = json.loads(f.read_text())
+                    # 迁移: 验收 → acceptance, 验收done → acceptance_done
+                    for s in t.get("subtasks", []):
+                        if "验收" in s:
+                            s["acceptance"] = s.pop("验收")
+                        if "验收done" in s:
+                            s["acceptance_done"] = s.pop("验收done")
                 except (json.JSONDecodeError, OSError) as e:
                     # 单个 task.json 损坏 (半写/手改坏) 不该炸整个看板: 跳过并告警, 其余 task 照常渲染
                     DBG.log(f"跳过损坏 {f}: {e}", style="red")
