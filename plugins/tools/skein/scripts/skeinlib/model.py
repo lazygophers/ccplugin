@@ -65,5 +65,58 @@ PRIORITIES: tuple[str, ...] = (P_URGENT, P_HIGH, P_NORMAL, P_LOW)
 PRIORITY_DEFAULT = P_NORMAL  # 未指定落「中」
 # 排序权重 (数值越大越优先); 老代码的 `-(priority or 5)` 数字降序换成这张表, 相对顺序不变
 PRIORITY_RANK: dict[str, int] = {P_URGENT: 3, P_HIGH: 2, P_NORMAL: 1, P_LOW: 0}
+# ── task.json 中文 key 常量 ──
+# 所有落盘 key 用中文, 代码通过常量引用免散落字符串。
+# 迁移层 (store._migrate) 在 load 时自动把旧英文 key 搬到中文。
+K_NAME = "名称"
+K_DESC = "描述"
+K_STATUS = "状态"
+K_DEPS = "前置"
+K_CONTRACTS = "契约"
+K_SUBTASKS = "子任务"
+K_PRIORITY = "优先级"
+K_ESTIMATE = "预计工时"
+K_REPOS = "仓库"
+K_WORKTREE = "工作树"
+K_WORKTREES = "工作树列表"
+K_BRANCH = "分支"
+K_PARENT = "父任务"
+K_KIND = "类型"
+K_CREATED = "创建时间"
+K_CONFIRMED = "确认时间"
+K_CONFIRMED_BY = "确认人"
+K_EXEC_START = "执行开始"
+K_CHECK_START = "检查开始"
+K_CHECK_END = "检查结束"
+K_FINISHED = "完成时间"
+K_UPDATED = "更新时间"
+
+# subtask 级中文 key (部分与 task 共用: 名称/描述/状态/预计工时)
+K_SID = "标识"
+K_DEPENDS_ON = "依赖"
+K_ACCEPT_DONE = "验收完成"
+K_SKILLS = "技能"
+K_NOTE = "备注"
+K_EXEC_END = "执行结束"  # subtask 的执行结束 (= done/fail 时刻)
+
+# task 级 旧英文 → 中文 映射 (迁移用)
+TASK_KEY_MAP: dict[str, str] = {
+    "name": K_NAME, "desc": K_DESC, "status": K_STATUS, "deps": K_DEPS,
+    "contracts": K_CONTRACTS, "subtasks": K_SUBTASKS, "priority": K_PRIORITY,
+    "estimate": K_ESTIMATE, "repos": K_REPOS, "worktree": K_WORKTREE,
+    "worktrees": K_WORKTREES, "branch": K_BRANCH, "parent": K_PARENT,
+    "kind": K_KIND, "created": K_CREATED, "confirmed": K_CONFIRMED,
+    "confirmed_by": K_CONFIRMED_BY, "started": K_EXEC_START,
+    "checked": K_CHECK_START, "finished": K_FINISHED, "updated": K_UPDATED,
+}
+# subtask 级 旧英文 → 中文 映射
+SUB_KEY_MAP: dict[str, str] = {
+    "sid": K_SID, "name": K_NAME, "desc": K_DESC, "estimate": K_ESTIMATE,
+    "depends_on": K_DEPENDS_ON, "status": K_STATUS, "skills": K_SKILLS,
+    "created": K_CREATED, "started": K_EXEC_START, "finished": K_EXEC_END,
+    "note": K_NOTE, "验收done": K_ACCEPT_DONE,
+}
+
+
 def now() -> int:
     return int(time.time())  # Unix epoch 秒 — 所有落盘时间字段统一时间戳

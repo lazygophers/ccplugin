@@ -29,7 +29,8 @@ from typing import Any, Callable, Optional, cast
 from skeinlib.hooks.runner import DBG
 from skeinlib.board import render_board, render_task_board, render_vision
 from skeinlib.errors import SkeinError
-from skeinlib.model import PRIORITY_DEFAULT, PRIORITY_RANK, STATUS_ACTIVE, STATUS_ORDER, S_DONE, now
+from skeinlib.model import (K_SUBTASKS, PRIORITY_DEFAULT, PRIORITY_RANK, STATUS_ACTIVE,
+                            STATUS_ORDER, S_DONE, SUB_KEY_MAP, TASK_KEY_MAP, now)
 
 
 class TaskStore:
