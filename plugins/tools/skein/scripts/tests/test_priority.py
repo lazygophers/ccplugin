@@ -132,6 +132,18 @@ def test_migrate_priority_cli_then_doctor_passes(ws: Path, skein_cli: SkeinCli) 
     skein_cli(ws, "doctor")  # check=True 默认, 非 0 退出即抛
 
 
+def test_doctor_rejects_illegal_priority_value(ws: Path, skein_cli: SkeinCli) -> None:
+    """违规: task.json priority 非四档枚举值 (如未迁移的存量数字) → doctor exit 1。"""
+    skein_cli(ws, "create", "feat-x", "--name", "feat-x", "--desc", "d")
+    tj = ws / ".skein" / "task" / "feat-x" / "task.json"
+    t = json.loads(tj.read_text())
+    t["priority"] = 7  # 未经 migrate-priority 的存量数字, doctor 应判非法 (非 migrate 通道自己修)
+    tj.write_text(json.dumps(t, ensure_ascii=False))
+    r = skein_cli(ws, "doctor", check=False)
+    assert r.returncode == 1
+    assert "非法 priority" in r.stdout
+
+
 # ---------- CLI: create --priority + priority 改优先级命令 ----------
 
 def test_create_with_priority_flag_persists(ws: Path, skein_cli: SkeinCli) -> None:

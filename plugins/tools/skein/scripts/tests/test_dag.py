@@ -270,9 +270,10 @@ def test_priority_does_not_cross_unfinished_dep(skein_cli: SkeinCli, ws: Path) -
 
 
 def test_claim_order_stable_on_repeat(skein_cli: SkeinCli, ws: Path) -> None:
-    """同档内重复认领(只读预览)结果一致 — 稳定序。"""
-    _set_max_active(ws, 3)
-    for tid, prio in (("t-urgent", "urgent"), ("t-high", "high"), ("t-normal", "normal")):
+    """四档排序 + 同档内重复认领(只读预览)结果一致 — 覆盖全部四档且验证稳定序。"""
+    _set_max_active(ws, 4)
+    for tid, prio in (("t-low", "low"), ("t-urgent", "urgent"), ("t-normal", "normal"),
+                      ("t-high", "high")):  # 刻意打乱创建顺序, 排除「登记序恰好=优先级序」的巧合
         skein_cli(ws, "create", tid, "--name", tid, "--desc", "d", "--priority", prio)
         _add(skein_cli, ws, tid, "x")
         _fill_prd(ws, tid)
@@ -281,7 +282,7 @@ def test_claim_order_stable_on_repeat(skein_cli: SkeinCli, ws: Path) -> None:
         skein_cli(ws, "start", tid)
     first = _dry_run_order(skein_cli, ws)
     second = _dry_run_order(skein_cli, ws)
-    assert first == second == ["t-urgent/x", "t-high/x", "t-normal/x"]
+    assert first == second == ["t-urgent/x", "t-high/x", "t-normal/x", "t-low/x"]
 
 
 def test_zero_regression_all_same_priority(skein_cli: SkeinCli, ws: Path) -> None:
