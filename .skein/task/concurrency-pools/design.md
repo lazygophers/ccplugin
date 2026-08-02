@@ -189,3 +189,69 @@ s1 按裁定 B 只改 `model.py` 五张表、剔除表内「就绪」条目, `S_
 **s3 的收口义务**: s3 做完 (`S_READY` 彻底删除 + 6 个消费文件迁到新状态机) 后, 上述不一致必须消失
 —— 届时不该再有任何 task 落到「status 是就绪」这个值上。s3 完成时须复核 golden 里 gamma/zeta 两项
 的 `status`/`stage` 是否已收敛到新状态机的合法组合, 而不是继续停在 `status="就绪"`。
+
+## s3 收口完成记 (2026-08-02, redo 续做)
+
+接手时 (worktree `.worktrees/skein-concurrency-pools`) 引擎代码 (model/lifecycle/scheduling/
+dag/doctor/query/views/config/cli) 与部分测试已由前一执行者改完并自动提交
+(`1bf3e1de9`), 但 36 failed / 330 passed。逐一定位: 均为**测试/文档残留调用已删的
+`skein start` 或旧「就绪」态**, 非引擎逻辑错误 —— 判定为续做, 非回退。
+
+### 改动 (按文件)
+- `test_stage_hooks.py`: 删 `test_start_before_and_after_fire` (start 阶段钩子已不存在,
+  由 confirm 阶段钩子覆盖同语义); 全文件删 8 处冗余 `skein_cli(ws,"start",tid)` (ready=True
+  的 `_mk` 已经 confirm 直达进行中); `test_finish/archive_before_and_after_fire` 补
+  `check`→`finishing` 两步 (finish 仅收「收尾中」)。docstring "9 个阶段"→"8 个阶段"。
+- `test_worktree_disabled.py`: 删 3 处冗余 `skein_cli(ws,"start",tid)`。
+- `test_rename.py:91-99`: 断言文案 `"仅限 start 前"` → `"仅限 confirm 前"` (与
+  `lifecycle.py:582-584` 实际报错一致), 前置流程去掉冗余 `start`。
+- `test_supertask.py:141-155`: `confirm→start→finish` 改 `confirm→check→finishing→finish`;
+  手工造 supertask finish 门态从 `"进行中"` 改 `"收尾中"` (finish 硬门要求)。
+- `test_ready_scheduling.py`: **整文件删除**。该文件测的是"就绪 task 未 start 直接 claim
+  自动启动"这条特性 — `scheduling.py:11,62` 已明确记录该中间态随 confirm 吸收 start 一并
+  消失, 无就绪态可自动启动, 特性与测试前提均不复存在。
+- `test_views_char.py`: fixture gamma/zeta 的 `status="就绪"` → `"待处理"` (s3 收口义务),
+  连带更新顶层索引与模块 docstring; 重生成 `views_golden.json`。
+- `test_docs_commands.py` / `test_finish_autocommit.py` / `test_reply_prefix.py`: 排查后
+  发现已是绿, 无需改动 (前一执行者已修或本就未受影响, 之前的 36 红列表里带了级联噪音)。
+
+### golden 重生成归因审计
+逐字段 diff 旧新 `views_golden.json`, 全部变化可归两类:
+1. **gamma/zeta `就绪`→`待处理`** 直接导致: `status`/`stage` 字段本身、`board_data`/
+   `dashboard`/`queue` 里 `就绪`/`待处理` 统计数漂移 (2→None / 2→4)、`readyTasks`
+   清空 (1→0)、`toPlanTasks` 从 1 增到 3、card/queue/etaCards 因 `STATUS_ORDER` 无
+   「就绪」项而重排序 (ghost1/gamma/epsilon/zeta 互换位置, 内容逐项仍可对应, 非内容错乱)、
+   `task_detail_alpha.dependents[0].status` 同步跟随。
+2. **s1 已落地但此前从未被这份 golden 实测过的 `_TASK_PCT_RANGE` 重分布**
+   (`dag.py:26-27`): 新增调研中(5-10)/收尾中(95-98) 两态占位, 进行中区间从 (10,90) 收窄到
+   (10,85)、检查中从 (90,98) 收窄到 (85,95) —— alpha(进行中) pct 98→95、beta 类
+   (检查中) pct 同比下调, 纯算术推导, 无内容错乱。
+无法归因到以上两类的字段变化: 0。放行。
+
+### 7 条验收核对
+1. confirm 后直进「进行中」且建 worktree: `lifecycle.py:275-342`,
+   `test_worktree_cli.py::test_start_builds_worktree_dir_and_branch` 实测通过; 另手工脚本核过
+   (task.json status=进行中, worktree 非空)。
+2. 调研中调 confirm 报错提示先 plan: `lifecycle.py:282-283`, 手工脚本实测:
+   `feat-manual-check 调研中 — 先 \`skein plan feat-manual-check\`...`。
+3. research 未全 done 时 plan 被拒: `lifecycle.py:264-267`, 手工脚本实测:
+   `... 调研 subtask 未全完成: s1 — 先 done 它们再 plan`。
+4. finish 拒非「收尾中」态: `lifecycle.py:411-413`,
+   `test_statemachine.py` 系列 + `test_supertask.py::test_finish_aggregate_guard` 覆盖。
+5. `S_READY` 常量与全部消费点已彻底删除: `grep -rn "S_READY" plugins/tools/skein/scripts/` 全仓 0 命中。
+6. task 级并发上限已取消: `lifecycle.py` confirm 全文无任何「同时进行中 task 数」校验
+   (s2 只换 `max_active`→`pools.work` 取值来源, 校验本身在 s1 之前的 start 里就已随
+   start 整体删除, 未见残留)。
+7. golden gamma/zeta 收敛: 见上「golden 重生成归因审计」, 两项现落 `status="待处理"`,
+   `stage="plan"`, 无 task 落在 `status="就绪"`。
+
+### 质量门
+`python3 -m pytest plugins/tools/skein/scripts/tests/ -q` → **360 passed, 0 failed**
+(基线 359 passed; 净 +1 = 删 5 条 `test_ready_scheduling.py` 死测 + 前一执行者/本次新增/
+调整测试综合结果)。
+`python3 -m mypy plugins/tools/skein/scripts/skeinlib/` → **Success: no issues found in 46
+source files**。
+
+### subtask list s3 行 (main 亲跑, 主仓根)
+跑 `subtask done` 前状态: `s3	运行中	10%	...` (main 仓 .skein 尚未同步 worktree 内进度,
+待 `subtask done` 落盘后才反映)。

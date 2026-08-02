@@ -16,7 +16,7 @@
     },
     {
       "id": "task-priority",
-      "status": "进行中",
+      "status": "检查中",
       "deps": [],
       "priority": 5,
       "worktree": ".worktrees/skein-task-priority",
@@ -25,7 +25,7 @@
       "created": 1785599378,
       "confirmed": 1785600358,
       "started": 1785602048,
-      "checked": null,
+      "checked": 1785631734,
       "finished": null
     },
     {
@@ -92,34 +92,6 @@
       "started": null,
       "checked": null,
       "finished": null
-    },
-    {
-      "id": "dag-parent-nesting",
-      "status": "已完成",
-      "deps": [],
-      "priority": 5,
-      "worktree": null,
-      "parent": null,
-      "kind": "task",
-      "created": 1785596410,
-      "confirmed": 1785597112,
-      "started": 1785597112,
-      "checked": 1785602090,
-      "finished": 1785606498
-    },
-    {
-      "id": "master-green",
-      "status": "已完成",
-      "deps": [],
-      "priority": 5,
-      "worktree": null,
-      "parent": null,
-      "kind": "task",
-      "created": 1785597765,
-      "confirmed": 1785597858,
-      "started": 1785602098,
-      "checked": 1785602971,
-      "finished": 1785603465
     },
     {
       "id": "spec-hooks-adapt",

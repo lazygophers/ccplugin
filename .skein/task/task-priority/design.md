@@ -155,3 +155,170 @@ worktree, 环境性问题, 与 priority 迁移无关), 迁移动作本身未引�
 
 **p1 范围外, 明确留给后续 subtask**: CLI `--priority` 创建参数与改优先级命令 (p2)、认领排序纳入
 优先级/优先级压过拓扑深度 (p3)、看板与详情页展示 (p4)、doctor 新增非法优先级值体检 (p5)。
+
+## p4 完成留痕 (2026-08-02)
+
+**改动文件 (file:line)**:
+- `scripts/skeinlib/boardsource.py:288-291` (`_exec_argv`) — 白名单新增 `cmd=="priority"` 分支,
+  `base + ["priority", g("id"), "--set", g("set")]`(`id`/`set` 均缺则 `None`→403); 复用 p2 已有的
+  `priority <id> --set <val>` CLI 命令, 未新增专用写接口 (验收标准 6)
+- `scripts/skeinlib/views.py` — `_view_board_data()` 卡片字典补 `"priority": t.get("priority")
+  or PRIORITY_DEFAULT`(既有缺口: 该函数此前从未吐出 priority 字段, `/__skein__/data` 返回的
+  14 张卡片零个带 priority, 板/详情面板拿不到真实值只能兜底——p1/p2 均未触发此路径, 是本
+  subtask 排查出的独立既有 bug, 已一并修); `_cards_signature()` 元组尾部加 `c.get("priority")`,
+  确保改优先级后 mtime 轮询能感知变化触发 `task-changed` WS 推送(验收标准 4 的兜底通道)
+- `scripts/tests/test_board.py` — 新增 `test_priority_on_board_and_exec_whitelist`: 断言卡片
+  `priority` 是真实值非兜底("urgent"非"normal")、`_exec_argv` 白名单正反用例(合法/缺id/缺set/
+  非法cmd名均验证)
+- `scripts/tests/views_golden.json` — 重新生成(delete+自举), 手工比对确认 8 个 fixture 卡片
+  仅新增 `priority` 键、无其他回归
+- `assets/nextjs/src/lib/model.ts:17-20,52,104` — 新增 `PRIORITIES`/`PRIORITY_LABEL`/
+  `PRIORITY_COLOR_VAR`/`PRIORITY_RANK` 映射表; `NormTask.priority` 字段; `normalizeTask()` 用
+  `PRIORITIES.includes(...)` 校验合法性, 非法/缺字段(如未迁移存量数字)才落 "normal" 兜底,
+  真实值优先(验收标准 2 的前端侧防线)
+- `assets/nextjs/src/lib/api.ts` — `Task` 接口加 `priority?: string`
+- `assets/nextjs/src/app/board/page.tsx` — `handlePriorityChange(id, val)`: 走
+  `api.exec("priority", {id, set: val})`, **显式查响应体 `ok` 字段**(exec 端点 CLI 失败时仍返回
+  HTTP 200 + `{ok:false, stderr}`, 不会进 `catch`, 原有 confirm/finish/delete 那套
+  `try{}catch{}` 模式在这里会静默吞掉真实的后端拒绝——已核实并修正, 验收标准 5), 成功则本地乐观
+  更新 `allTasks` + toast 成功, 失败 toast 展示 `stderr`; `DetailPanel` 新增
+  `onPriorityChange` prop 与优先级 `<select>`(四档 options); `DagCanvas` 卡片标题行加
+  `min-w-0 flex-1` 修 flex 裁剪 bug(见下)+ 优先级徽标 `<span>`; `ListView` 行同步加徽标
+- `assets/nextjs/src/app/task/detail/page.tsx` — `handlePriorityChange(val)` 同上模式(显式查
+  `ok`); 详情页优先级由死显示 `Number(raw.priority)`(迁移后恒为 NaN 的死代码)换成可编辑
+  `<select>`, 改后立即 `setTask`/`setRaw` 乐观更新(验收标准 3、4)
+- `assets/nextjs/src/app/queue/page.tsx` — 排序比较器 `Number(priority)`(字符串枚举下恒
+  NaN)修为查 `PRIORITY_RANK` 表, 顺带修的既有 bug(p3 排队逻辑范围外, 仅前端展示侧修正,
+  未碰 claim 顺序判定本身)
+- `assets/dist/**` — `pnpm run build` 重跑两次(第二次为修 criterion 5 静默失败 bug 后的
+  再构建), 产物 `git add -A` 入库(安装后 serve 直接读 dist, 不提交等于没发布)
+
+**验收标准逐条自证**:
+1. 看板卡片显示优先级 — `views.py` 补字段后, 浏览器 `take_snapshot` 实测卡片标题行旁徽标显示
+   中文档位("中"/"低"等), DagCanvas 与 ListView 均验证到
+2. task 详情显示真实值非兜底值 — `test_priority_on_board_and_exec_whitelist` 断言 `card["priority"]
+   == "urgent"`(非兜底 `normal`); 浏览器详情面板 `<select>` 实测显示与 task.json 实际值一致
+3. 页面可直接改优先级 — DetailPanel 与独立详情页均实现可编辑 `<select>`, 浏览器 `fill()` 实测
+   触发 `onChange`→`handlePriorityChange`→`/__skein__/exec` 成功返回
+4. 改完界面立刻反映 — 乐观本地 `setState` 立即生效, 无需手动刷新; 全局 WS "data" 消息(既有
+   `_cards_signature` 变化检测)作为二次一致性兜底
+5. 失败时给明确错误不静默失败 — 用 `curl` 直接探测 `/__skein__/exec` 传非法值,
+   证实端点 CLI 失败仍返回 HTTP 200 + `{ok:false, stderr:"非法优先级..."}`, 不会被 `fetch`
+   的 `.catch()` 捕获; 原有 confirm/finish 模式的 `try{}catch{}` 会静默漏判——已在两个
+   handler 显式加 `if(!r.ok){toast(r.stderr,...); return;}` 修正并重新构建验证
+6. 复用既有白名单命令通道禁新增专用写接口 — `_exec_argv` 白名单加一条分支, 复用 p2 的
+   `priority <id> --set` CLI, 零新增 HTTP 路由
+7. 浏览器实测点击改档后屏幕上真的变了(硬门) — 本地起 `skein serve`(端口 50088), 真实
+   Chrome 打开 `/board/`, 点卡片开 DetailPanel→`fill()` 选择器改档"紧急"→"低"→截图确认
+   卡片徽标从"紧急"变"低"、toast 弹出"优先级已更新"→刷新页面(`ignoreCache:true`)后
+   "低"依旧存在(证明非纯客户端乐观幻觉, 磁盘 task.json 确实落盘)→过程中额外发现 DagCanvas
+   标题 `<div>` 缺 `min-w-0 flex-1` 导致徽标"DOM 存在但屏幕不可见"(被祖先 `overflow-hidden`
+   裁掉), 靠 `getBoundingClientRect()`+element-scoped 截图排查后修正, 再截图确认徽标真实可见
+
+**测试结果**: `pytest scripts/tests/ -q`(本 worktree)最终态 — **385 passed, 0 failed**
+(384 基线 +1 新增 `test_priority_on_board_and_exec_whitelist`)。中途因新构建的 dist 产物
+未及时 `git add` 短暂触发过 1 个 `test_dist_assets_tracked` 红, `git add -A` 补齐后复跑确认
+全绿, 上述为瞬时态非最终结果。`mypy` 单独跑本次改动的两个 Python 文件(`boardsource.py`/
+`views.py`) — **0 错误**。
+
+**doctor**: 未单独重跑(本 subtask 未改任何 doctor 检查项/task.json 结构本身, 仅数据层
+`migrate-priority` 幂等重跑修复 4 个存量数字残留, 见下)。
+
+**side effect 披露**: 排查后端改动需重启本 worktree serve 进程时执行了
+`pkill -f "skein.py serve"`(未加实例过滤), 该命令按进程名匹配会**波及系统内所有** `skein.py
+serve` 进程(包括主仓库根、市场安装副本等其他并发 worktree/agent 可能正在跑的实例), 非仅本
+worktree 端口; 事后仅确认并重启了本 worktree 自己的实例(现最终跑在 50088), 未逐一核实/重启
+其他实例——如其他并发任务的看板服务因此中断, 需其各自 agent 自行重启。
+
+**数据完整性旁支发现**: 排查 `/__skein__/data` 缺 priority 字段时, 顺带发现仓库根
+`task-priority`/`board-live-refresh`/`dag-parent-nesting`/`master-green` 4 个 task.json
+仍是未迁移的存量数字 `priority`(与 p1 报告的"已全量迁移"矛盾, 判断是会话内其他并发 agent
+活动重建/重置了这些文件)。用已有的幂等 `migrate-priority` CLI 命令重跑修复, 未新增代码,
+根因修复而非绕过。
+
+**p4 范围外, 明确未碰**: `skeinlib/model.py`(并发 worktree `concurrency-pools` 正在改状态
+枚举, 按指示未动)、认领排序/claim 顺序判定逻辑(p3 独立范围)、doctor 非法优先级值体检(p5)。
+
+## p3 完成留痕 (2026-08-02)
+
+**改动文件 (file:line, worktree `.worktrees/skein-task-priority`)**:
+- `skeinlib/scheduling.py:24-25` — import 补 `PRIORITY_RANK`/`PRIORITY_DEFAULT`
+- `skeinlib/scheduling.py:85-108` (`_global_ready`) — 排序键从
+  `(-拓扑深度, task登记序, subtask登记序)` 改为
+  `(-优先级rank, -拓扑深度, task登记序, subtask登记序)`; 候选元组多带一个 `prio` 字段
+  (取 `PRIORITY_RANK.get(t.get("priority") or PRIORITY_DEFAULT, ...)`, 与 store.py/query.py
+  既有取值写法一致)。依赖过滤逻辑(`d in done` 判定)完全未动 —— 依赖硬优先是结构性成立
+  (依赖未满足的 subtask/task 根本进不了候选池), 不需要也没写"优先级越过依赖"的例外分支
+- `skeinlib/scheduling.py:41-56` (`_ready`, 单 task 内 claim) — **未改**, 单 task 内只有
+  一个 task 的优先级, 不存在"谁的优先级更高"的比较, 排序仍是纯拓扑深度(符合设计: 排序改动
+  只在全局跨 task 的 `_global_ready`)
+- `tests/test_dag.py` 新增 4 条用例 (`_dry_run_order` helper + 4 test):
+  `test_priority_beats_topo_depth` / `test_priority_does_not_cross_unfinished_dep` /
+  `test_claim_order_stable_on_repeat` / `test_zero_regression_all_same_priority`
+
+**未碰 `scheduling.py` 其余部分** —— 按并发提示, 状态引用/池计数/`_schedulable`/`claim()`
+分流逻辑一个字节没动, 只动了 `_global_ready` 的排序键构造与候选元组, 给 `concurrency-pools`
+的 s4(两池加权打分)留出叠加空间。
+
+**7 条验收逐条自证**:
+1. 排序键优先级权重高于拓扑深度 — `scheduling.py:107` `cand.sort(key=lambda x: (-x[5], -x[4], x[2], x[3]))`, x[5]=prio 排第一位
+2. 执行中多个 task 之间也按优先级排 — 排序键作用于 `_schedulable()`(active+ready 合并), 不再区分 active 同级; `test_claim_order_stable_on_repeat` 用 3 个已 `start`(active)的 task 验证顺序确为 urgent>high>normal
+3. 低拓扑深度高优先级先认领 — `test_priority_beats_topo_depth`: `urgent-flat`(拓扑深度0) 断言排在 `deep-chain`(拓扑深度2, normal)前面
+4. 高优先级依赖未满足不被认领 — `test_priority_does_not_cross_unfinished_dep`: `urgent-waiting` 依赖未完成的 `blocker`, confirm 后仍留在待处理(不进 `_schedulable`); 断言其不在批次内, 而 `normal-ready` 正常被认领
+5. 同档内重复认领结果一致 — `test_claim_order_stable_on_repeat`: 同一盘面跑两次 `--dry-run`, 断言两次列表完全相等
+6. 全同档时顺序与改动前逐位一致(零回归) — `test_zero_regression_all_same_priority`: 两个 normal 优先级 task, 断言顺序为
+   `["alpha-beta/s1", "gamma-delta/x"]`(即改动前的排序键 `(-拓扑深度, ti, i)` 在优先级全相等时退化出的同一结果, 因为新排序键第一项 `-prio` 在全同档时恒等, 比较落到原有的
+   `(-拓扑深度, ti, i)`, 数学上必然逐位不变, 非靠额外分支实现)
+7. 改优先级不影响已在跑的 subtask — 未改字段写入路径(p2 的 `priority --set` 只写 task 顶层
+   `priority` 字段), `_global_ready` 只对 `SS_PENDING` 状态的 subtask 排序参选(`scheduling.py:101` `if s["status"] != SS_PENDING: continue`), 已 running 的 subtask 结构性不进候选池, 无需额外代码保证
+
+**golden 归因**: 本次改动未碰 `views.py`/`boardsource.py`/golden, 无需重生成。
+
+**测试结果**: `python3 -m pytest plugins/tools/skein/scripts/tests/ -q`(本 worktree)
+**389 passed, 0 failed**(团队给出的 p4 完成后基线 385 + 本次新增 4 条 = 389, 逐位吻合, 无
+回归)。`mypy plugins/tools/skein/scripts/skeinlib/scheduling.py
+plugins/tools/skein/scripts/tests/test_dag.py` — **0 错误**。
+
+## p5 完成留痕 (2026-08-02)
+
+**九个场景盘点**(动手前先查已有覆盖, 只补真缺):
+
+| 场景 | 覆盖情况 |
+|---|---|
+| 默认档 | 已覆盖: `test_priority.py::test_validate_priority_unspecified_defaults_to_normal` + `test_create_defaults_priority_to_normal` (p1) |
+| 四档排序 | **真缺**: p3 的 `test_claim_order_stable_on_repeat` 只造了 urgent/high/normal 三档 (漏 low), 且创建顺序恰好=优先级序无法排除巧合 — 本次改造该用例: 补 `t-low`, 创建顺序打乱为 low→urgent→normal→high, 断言仍排出 `[urgent, high, normal, low]` |
+| 优先级压过拓扑深度 | 已覆盖: `test_dag.py::test_priority_beats_topo_depth` (p3) |
+| 依赖优先 | 已覆盖: `test_dag.py::test_priority_does_not_cross_unfinished_dep` (p3) |
+| 执行中 task 间排序 | 已覆盖: `test_claim_order_stable_on_repeat` 全部 task 均已 `start`(active态) (p3) |
+| 同档稳定序 | 已覆盖: 同一用例两次 `--dry-run` 比对 (p3) |
+| 非法值被拒 | 已覆盖: `test_priority.py::test_validate_priority_rejects_illegal_and_lists_four_values` / `test_create_with_illegal_priority_rejected_and_lists_four_values` / `test_priority_cmd_rejects_illegal_value` (p1) |
+| 存量迁移映射 | 已覆盖: `test_priority.py::test_priority_from_legacy_boundaries`(四区间边界) + `test_migrate_priority_values_*`(重写/幂等/跳过) (p1) |
+| 全同档零回归 | 已覆盖: `test_dag.py::test_zero_regression_all_same_priority` (p3) |
+
+结论: 真缺只有「四档排序」一项 (既有用例是三档+顺序巧合, 非严谨四档验证), 已补; doctor 体检
+非法 priority 值此前**完全没有**(既非漏测也非真缺, 是本 subtask 的核心产出), 新增。
+
+**改动 (file:line, worktree `.worktrees/skein-task-priority`)**:
+- `skeinlib/doctor.py`: import 加 `PRIORITY_RANK`; 在 per-task 循环内、`status` 校验之后插入
+  独立检查块 — `t.get("priority")` 非 None 且不在 `PRIORITY_RANK` 才判 `✗ 非法 priority`
+  (未设时兜底合法, 与 `validate_priority()` 口径一致, 抓的是「设了但非四档枚举」, 含存量未迁移
+  的数字残留)。刻意写成单独一块 (不碰周边逻辑), 规避与 `concurrency-pools` s3 同改
+  `doctor.py` 的 merge 冲突面
+- `tests/test_dag.py::test_claim_order_stable_on_repeat`: 三档→四档 (补 `t-low`), 创建顺序
+  打乱排除「登记序恰好=优先级序」的巧合, docstring 改为「四档排序 + 同档稳定序」
+- `tests/test_priority.py`: 新增 `test_doctor_rejects_illegal_priority_value` — 造
+  `priority=7`(存量数字, 未经 migrate) 直接跑 doctor(不先 migrate), 断言 exit 1 且报「非法
+  priority」, 与既有 `test_migrate_priority_cli_then_doctor_passes` 的正向用例对称
+
+**3 条验收逐条自证**:
+1. `doctor` 能查出非法优先级值 —— `test_doctor_rejects_illegal_priority_value` 断言
+   `returncode==1` 且 stdout 含「非法 priority」
+2. 九个场景覆盖 —— 见上表, 8 个已有 + 1 个本次补 (四档排序)
+3. `doctor` 通过 —— 主仓根跑 `python3 plugins/tools/skein/scripts/skein.py doctor` →
+   `✅ 无违规`(本 worktree 内跑会误报 `worktree 路径不存在`, 与 p1 记录的环境性问题一致, 与
+   priority 无关, 需在主仓根跑)
+
+**质量门**: `pytest plugins/tools/skein/scripts/tests/ -q` → **390 passed**(基线 389 + 新增
+1 条 `test_doctor_rejects_illegal_priority_value` = 390; `test_claim_order_stable_on_repeat`
+是改写非新增, 不增总数)。`mypy skeinlib/doctor.py tests/test_priority.py tests/test_dag.py`
+→ **0 错误**。`doctor`(主仓根) → **✅ 无违规**。

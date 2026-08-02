@@ -65,12 +65,18 @@
         "research 未全 done 时 plan 被拒",
         "finish 拒非收尾中态"
       ],
-      "验收done": [],
-      "status": "运行中",
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785512383,
       "started": 1785607222,
-      "finished": null
+      "finished": 1785631922,
+      "note": "exec-s3b 死于 API Error: ECONNRESET (2026-08-02), 零推进。中间态已由 main 提交存档 1bf3e1de9。第三次重派。"
     },
     {
       "sid": "s4",
@@ -88,10 +94,10 @@
         "满槽提示指明池名"
       ],
       "验收done": [],
-      "status": "待处理",
+      "status": "运行中",
       "skills": [],
       "created": 1785512383,
-      "started": null,
+      "started": 1785632455,
       "finished": null
     },
     {
@@ -130,10 +136,10 @@
         "新状态在看板有正确排序位"
       ],
       "验收done": [],
-      "status": "待处理",
+      "status": "运行中",
       "skills": [],
       "created": 1785512383,
-      "started": null,
+      "started": 1785632077,
       "finished": null
     },
     {
@@ -199,6 +205,6 @@
   "confirmed": 1785515070,
   "checked": null,
   "finished": null,
-  "updated": 1785607222,
+  "updated": 1785632455,
   "confirmed_by": "user"
 }

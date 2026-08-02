@@ -2,7 +2,7 @@
   "id": "task-priority",
   "name": "task 优先级: 创建时指定 + 参与调度排序",
   "desc": "create 时指定优先级, 优先级参与 claim 取任务的排队顺序判断 (依赖满足前提下按优先级排)",
-  "status": "进行中",
+  "status": "检查中",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -82,12 +82,20 @@
         "全部同档时认领顺序与改动前一致",
         "改优先级不影响已在跑的 subtask"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785601507,
-      "started": null,
-      "finished": null
+      "started": 1785630155,
+      "finished": 1785631059
     },
     {
       "sid": "p4",
@@ -106,12 +114,20 @@
         "复用既有白名单命令通道未新增专用写接口",
         "浏览器实测点击改档后屏幕上真的变了"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785601507,
       "started": null,
-      "finished": null
+      "finished": 1785609517
     },
     {
       "sid": "p5",
@@ -127,12 +143,16 @@
         "用例覆盖默认档/四档排序/优先级压过拓扑深度/依赖优先/执行中task间排序/同档稳定序/非法值被拒/存量迁移映射/全同档零回归",
         "doctor 通过"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785601507,
-      "started": null,
-      "finished": null
+      "started": 1785631135,
+      "finished": 1785631676
     },
     {
       "sid": "p6",
@@ -146,12 +166,17 @@
         "查清顺序变化的确切成因并写明",
         "全同档时排序结果与改动前逐位相同"
       ],
-      "验收done": [],
-      "status": "运行中",
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785606410,
       "started": 1785606416,
-      "finished": null
+      "finished": 1785631721
     }
   ],
   "priority": 5,
@@ -172,8 +197,8 @@
   "created": 1785599378,
   "started": 1785602048,
   "confirmed": 1785600358,
-  "checked": null,
+  "checked": 1785631734,
   "finished": null,
-  "updated": 1785606416,
+  "updated": 1785632449,
   "confirmed_by": "user"
 }
