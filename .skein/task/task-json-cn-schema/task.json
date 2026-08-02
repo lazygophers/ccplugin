@@ -1,8 +1,8 @@
 {
   "id": "task-json-cn-schema",
   "name": "task.json 中文化 + 阶段时间双戳",
-  "desc": "所有 key 改中文; 每个阶段记录 start/end 双时间戳 (exec_start=首个 subtask 开始, exec_end=最后 subtask 完成), 可算等待时间和实际执行耗时",
-  "status": "检查中",
+  "desc": "task.json key 英文化 (验收→acceptance) + 阶段时间双戳",
+  "status": "进行中",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -14,12 +14,13 @@
       "depends_on": [],
       "验收": [],
       "验收done": [],
-      "status": "已完成",
+      "status": "失败",
       "phase": "exec",
       "skills": [],
       "created": 1785662065,
       "started": 1785662593,
-      "finished": 1785662695
+      "finished": 1785666123,
+      "note": "PRD 改方向: key 英文化非中文化, 此 subtask 作废重做"
     },
     {
       "sid": "s2",
@@ -29,12 +30,13 @@
       "depends_on": [],
       "验收": [],
       "验收done": [],
-      "status": "已完成",
+      "status": "失败",
       "phase": "exec",
       "skills": [],
       "created": 1785662072,
       "started": 1785662593,
-      "finished": 1785663149
+      "finished": 1785666123,
+      "note": "PRD 改方向: 作废重做"
     },
     {
       "sid": "s3",
@@ -44,12 +46,13 @@
       "depends_on": [],
       "验收": [],
       "验收done": [],
-      "status": "已完成",
+      "status": "失败",
       "phase": "exec",
       "skills": [],
       "created": 1785662072,
       "started": 1785663151,
-      "finished": 1785663540
+      "finished": 1785666123,
+      "note": "PRD 改方向: 作废重做"
     },
     {
       "sid": "s4",
@@ -59,12 +62,53 @@
       "depends_on": [],
       "验收": [],
       "验收done": [],
-      "status": "已完成",
+      "status": "失败",
       "phase": "exec",
       "skills": [],
       "created": 1785662072,
       "started": 1785663151,
-      "finished": 1785663602
+      "finished": 1785666123,
+      "note": "PRD 改方向: 作废重做"
+    },
+    {
+      "sid": "s5",
+      "name": "验收→acceptance / 验收done→acceptance_done 重命名 + 迁移",
+      "desc": "grep 全量 验收 / 验收done 引用, 改成 acceptance / acceptance_done; store.py 加迁移 (读到旧中文 key 回填英文)",
+      "estimate": 2.0,
+      "depends_on": [],
+      "验收": [
+        "grep 验收 skeinlib/ 零命中",
+        "grep 验收done skeinlib/ 零命中",
+        "pytest 通过",
+        "旧 task.json 自动迁移"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "phase": "exec",
+      "skills": [],
+      "created": 1785666140,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "s6",
+      "name": "时间戳扩展: 检查结束 (checked_end) 字段",
+      "desc": "model.py 加 TS_CHECKED_END 常量; lifecycle.py check 时写 checked_end; 可算检查耗时",
+      "estimate": 1.0,
+      "depends_on": [
+        "s5"
+      ],
+      "验收": [
+        "task.json 含 checked_end 字段",
+        "pytest 通过"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "phase": "exec",
+      "skills": [],
+      "created": 1785666140,
+      "started": null,
+      "finished": null
     }
   ],
   "priority": "normal",
@@ -87,6 +131,6 @@
   "confirmed": 1785662125,
   "checked": 1785664437,
   "finished": null,
-  "updated": 1785664437,
+  "updated": 1785666140,
   "confirmed_by": "user"
 }
