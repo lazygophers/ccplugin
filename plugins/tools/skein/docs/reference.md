@@ -62,7 +62,8 @@
 
 | 键 | 默认 | 说明 |
 | --- | --- | --- |
-| max_active | 2 | 同时活跃 task 数 (subtask 并发复用同一键) |
+| pools.work | 2 | exec+research 共享的全局 running subtask 槽 |
+| pools.gate | 3 | 检查中+收尾中共享的全局 task 槽 |
 | retain_days | 7 | 归档保留天数 |
 | auto_commit | true | 原地模式 finish 时自动 git commit; worktree 模式恒强制 commit, 本键不参与判定 |
 | worktree_root | `.worktrees` | worktree 路径 |
@@ -91,7 +92,7 @@
 | 1 | 单功能开发 | 加手机号登录 | brainstorm 选型, grill, contract |
 | 2 | 破坏式重构 | User→UserDTO | 全站 grep 一次改, worktree 可丢弃 |
 | 3 | 调研选型 | 选队列方案 | researcher 只读, 结论→sediment |
-| 4 | 多 task 并行 | 导出+样式 | `--deps` 声明, max_active=2 |
+| 4 | 多 task 并行 | 导出+样式 | `--deps` 声明, pools.work=2 |
 | 5 | 根因 bug | 金额差 1 分 | 共享函数修, 补回归测试 |
 | 6 | 模糊请求 | — | 自动按信号路由 |
 | 7 | 中途出问题 | exec/check 卡住 | 自愈→根因复盘|archive |
