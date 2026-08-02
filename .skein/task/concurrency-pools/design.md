@@ -369,3 +369,78 @@ x: (-x[5], -x[4], x[2], x[3]))` 中的 `x[5]`)。s4 只把第二排序键 `x[4]`
 (基线 408 passed；净 +4 = 本次新增 4 个验收测试)。
 `python3 -m mypy plugins/tools/skein/scripts/skeinlib/` → **Success: no issues found in 48
 source files**。
+
+## s7 交付记录 — 注入文案 + skill/agent/文档同步 (`068d42252`..`f0ce75796`, 22 个提交)
+
+### 改动范围
+仅文档/skill 层, 未碰 `.py`/`.ts` (代码层归 s1-s6/s9, `.skein/config.yaml` 是本仓运行时实际配置
+排除在外, 见「排除项」)。按目录分组:
+
+**`plugins/tools/skein/` 顶层文档**: `CONTEXT.md`(状态机一句话概述)、`docs/reference.md`(config
+键表)、`docs/skein.md`(Phase2/Claim模型/调度约束表, 补 `finishing` 收尾步骤)、
+`docs/examples/sample-skein/config.yaml`(`max_active`→`pools.work/gate` 嵌套)、`README.md`(目录树
+注释)、`commands/skein-doctor.md`(doctor 查项从「active 数超 max_active」改「两池超限+残留
+max_active 提示」)。
+
+**`skills/skein-flow/`**: `SKILL.md`(路由表/硬门/redo 分流表/二次判定段落全量重写)、
+`references/for-redo.md`(起点分流表: 待处理/调研中/进行中/检查中/收尾中/已完成 六态, 删「检查中
+二次判定验证中 vs 收尾中」——该判定随 `finishing` 落地为独立状态已失效)、`dag-scheduling.md`(§8
+「全局单池模型」标题与内容改「全局双池模型」, plan-ahead 段落 `max_active`→`pools.work`)、
+`carrier-rules.md`/`worktree-convention.md`/`subtask-state-machine.md`(散点 `max_active`→
+`pools.work`)、`rollback-protocol.md`(删「不退回就绪」残留)、`estimate-gate.md`(confirm 转移改
+「待处理→进行中」, 编辑窗口改「待处理/调研中」)、`for-plan.md`(「停在就绪」→「停在规划完成态」)。
+
+**`skills/skein-setup/SKILL.md`**: 结构维护表「并发上限 (max_active)」→「(pools.work/pools.gate)」。
+
+**`.skein/spec/`**: `core/planning/gate.md`(plan 完成判据门 + prd 硬门两节, confirm 吸收 start 全部
+职责, double-check 改为同一 `confirm` 调用内两次)、`recall/impl/claim.md`(`占 max_active`→
+`占 pools.work`)、`recall/planning/workflow.md`(工作流连线标题与铁律全量重写, 加 finish 前置
+`finishing` 占 gate 槽的硬约束)、`task-flow.md`(五态机→新状态机, 双池计数替代单一 max_active,
+在途 worktree 态补「收尾中」)、`discipline.md`(状态先行三环节硬门表同步)。
+
+**`skills/skill-dev/plugin-dev/references/advanced-components.md`**: user_config 示例键
+`max_active`→`pool_limit`(JSON key 不能写成 `pools.work` 嵌套形式, 改用中性名 + 正文改引
+`pools.work` 为真实范例)。
+
+### 零残留扫描 (命令 + 输出见下, 排除项已单独说明)
+```
+rtk grep -rln "就绪态\|skein start\b\|max_active" --include="*.md" --include="*.yaml" --include="*.yml" . \
+  | grep -v "\.git/" | grep -v "/task/archive/" | grep -v "design\.md$" | grep -v "concurrency-pools/prd\.md$"
+→ ./plugins/tools/skein/commands/skein-doctor.md   （命中的是「配置残留 max_active(已废弃, ⚠)」——
+  doctor 主动检测该残留串并告警, 是 s5 交付的功能本体, 保留是正确行为, 非未改完）
+→ ./.skein/config.yaml   （见下「排除项」）
+```
+`.py`/`.ts` 侧另跑一次 (仅确认现状, 不属本 subtask 改动范围):
+```
+rtk grep -rln "就绪态\|skein start\b\|max_active" --include="*.py" --include="*.ts" --include="*.tsx" .
+→ boardsource.py(kwarg 名仍叫 max_active, 传值已是 pools["work"])/cli.py(ready 命令 help 里的
+  「就绪态」描述的是「可启动」概念非旧 task 状态)/hooks/prompt.py(docstring)/scheduling.py(docstring)/
+  doctor.py(s5 的检测代码本体)/views.py(maxActive 前端兼容字段, design.md s6 记录为刻意保留)/
+  skein.py:10(模块 docstring 未同步)/多个 tests/*.py（测试文件名/夹具字段名）
+```
+
+### 排除项 (刻意不改, 逐条给理由)
+1. **`subtask start`**: 子 action 仍存在, 语义与被删的顶层 `skein start` 不同, 全文保留未误删。
+2. **archive/*.md、`concurrency-pools/prd.md`、本 `design.md` 自身**: 历史记录类文档, 记的是「改造前
+   长什么样」/「要把 max_active 改成什么」, 保留旧词是描述历史事实, 不是残留。
+3. **`.skein/config.yaml`（本仓运行时配置, 非 `docs/examples/` 下的示例）**: 里面确实有
+   `max_active: 2` 残留（与 `pools.work/gate` 并存），但这是**当前仓库正在跑的 skein 引擎实际读的
+   配置**——本 subtask 的任务边界是「skill/agent/文档」，改动运行时配置有改变本 session 自身调度行为
+   的风险（这份 config 正被跑着 s1-s9 的同一 skein 实例读取）。已用 `doctor.py` 的新检测能力核实过
+   （s5 交付）：留着它只会触发一条 ⚠ 提示，不影响功能（代码已全量切到 `pools.work` 读取）。判定：
+   **需要: 是否要我顺手清掉 `.skein/config.yaml` 的 `max_active` 残留键**——运行时数据改动，交 main/
+   用户裁定是否连带清，不擅自动。
+4. **`.py`/`.ts` 内的全部命中**: 见上「零残留扫描」注释逐条, 均为(a)代码层归属 s1-s6/s9/s8 的
+   zero-residual 扫描测试, 不归 s7；(b) doctor.py/views.py 里的命中是刻意保留的检测/兼容代码,
+   design.md 已记录理由；(c) `skein.py:10` 模块 docstring 与 `boardsource.py:59` 的 kwarg 名
+   `max_active=` 属遗漏（值已是 `pools["work"]`, 只是形参名未跟着改), 记在这里供 s8 零残留扫描测试
+   收口时一并处理。
+
+### 质量门 (claude -p 三次一致性核验)
+本次核验被 API 端点连续 ConnectionRefused 阻断 (`bmjg1ljby`/`be0l28rdi`/`btcq3r8vu`/`b441eil55`/
+`bh2epcj59` 五次尝试, 跨约 8 分钟, 非单次抖动) —— `skein-flow/SKILL.md`、`skein-setup/SKILL.md`、
+`commands/skein-doctor.md`、`skein-flow/references/for-redo.md` 四个改动最重的文件均未能跑通
+`claude -p --bare` 质量门。**需要: 端点恢复后请对上述 4 个文件补跑质量门** (命令见项目 CLAUDE.md
+「代码质量检查规范」), 本次未验证的是 AI 能否正确识别新状态机描述, 内容正确性已按 lifecycle.py 逐行
+核对过 (S_PENDING/S_RESEARCH 常量、confirm/finishing 实现、estimate 编辑窗口校验), 但未过 AI 理解
+门。
