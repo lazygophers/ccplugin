@@ -27,7 +27,7 @@ dispatch prompt 指定 5 类写路径之一 (sediment / amend / reconstruct·mai
 ### 0. 开工钩子 (第一步, 失败不阻断; 跑在下述 5 类写路径之前, 与选定 mode 无关)
 
 ```
-python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-start --agent skein-specer
+skein-hooks agent-start --agent skein-specer
 ```
 
 ### 1. sediment · 主动落盘记忆·决策
@@ -38,7 +38,7 @@ python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-start --agent skein-sp
 skein-spec sediment --namespace=<ns> [--inclusion=always|auto] --category=<类目> --topic=<主题>
 skein-spec reindex
 # 写盘可能致 always 页超 budget → 就地体检修 (不留 .pending-fix 给 Stop hook 二次派)
-python3 scripts/spec.py maintain --apply
+skein-spec maintain --apply
 ```
 
 - 两个正交维度, 别混: **namespace** = 内容类型 (放哪个目录 — rules 硬约束 / product 需求 / map 代码地图 / external 外部参考, 自由可扩展); **inclusion** = 加载策略 (frontmatter 字段 — `always` 常驻注入 SessionStart / `auto` 按需召回 / `fileMatch` 按 globs 命中注入 / `manual` 纯手动检索)。
@@ -70,7 +70,7 @@ skein-spec reindex
 skein-spec archive [--namespace <ns>]   # 可逆清库 (旧规则进 .archive/<ts>/)
 skein-spec maintain       # 全量体检: 超预算/stale/断链/重复/废弃
 # reconstruct/maintain 收尾显式 --apply 一次, 确保写盘后 spec 不超预算
-python3 scripts/spec.py maintain --apply
+skein-spec maintain --apply
 ```
 
 - 全库动作 (reconstruct / 大批 maintain) 跑前经 main 征用户同意; archive 可逆前置。
@@ -83,7 +83,7 @@ python3 scripts/spec.py maintain --apply
 ```
 skein-spec archive <slug>    # stale/keywords 重复/废弃/断链, 可逆不删, protected 跳过
 # 归档后确认 always 页不超预算 (prune 已减量, 跑一次收尾确认)
-python3 scripts/spec.py maintain --apply
+skein-spec maintain --apply
 ```
 
 - always 页总字符超预算 (默认 1000 字符, 见 config.yaml `spec.always_budget`) → 把最少复用的规则 `inclusion` 降 always→auto (只改 frontmatter 一行, 文件不搬)。
@@ -105,7 +105,7 @@ skein-spec reindex
 ### 6. 收工钩子 (跑在所选 mode 的写路径完成之后)
 
 ```
-python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-stop --agent skein-specer
+skein-hooks agent-stop --agent skein-specer
 ```
 
 ## Checkpoints

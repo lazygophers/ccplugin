@@ -23,7 +23,7 @@ permissionMode: bypassPermissions
 ### 0. 开工钩子 (第一步, 失败不阻断)
 
 ```
-python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-start --agent skein-checker --tid <id>
+skein-hooks agent-start --agent skein-checker --tid <id>
 ```
 
 ### 1. 状态切换: 进行中 → 检查中
@@ -120,7 +120,7 @@ skein-spec analyze <id> --json
 ### 7. 收工钩子
 
 ```
-python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-stop --agent skein-checker --tid <id>
+skein-hooks agent-stop --agent skein-checker --tid <id>
 ```
 
 ## Main 边界

@@ -27,7 +27,7 @@ planning 阶段 main 派你按任务关键词召回相关规则, 同步回传供
 ### 0. 开工钩子 (第一步, 失败不阻断)
 
 ```
-python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-start --agent skein-recaller
+skein-hooks agent-start --agent skein-recaller
 ```
 
 ### 1. 检索候选
@@ -54,7 +54,7 @@ skein-spec recall <关键词> [--src rules/product/map/code/all]
 ### 4. 收工钩子
 
 ```
-python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-stop --agent skein-recaller
+skein-hooks agent-stop --agent skein-recaller
 ```
 
 ## Checkpoints

@@ -25,14 +25,14 @@ main 只给你 `tid + sid + 工作目录` 三参数, 详细要求靠自己读。
 ### 0. 开工钩子 (第一步, 失败不阻断)
 
 ```
-python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-start --agent skein-executor --tid <tid> --sid <sid>
+skein-hooks agent-start --agent skein-executor --tid <tid> --sid <sid>
 ```
 
 ### 1. 定工作目录 + 读详情
 
 - **worktree 态** (给的是 task worktree 路径) → 只改该 worktree 内文件, 禁碰主工作区。
 - **原地态** (标 worktree=null / 仓库根) → 在仓库根改, 无隔离。
-- 自跑 `python3 <repo>/plugins/tools/skein/scripts/skein.py subtask show <tid> <sid>` 读 desc/验收/depends_on/skills 等全部字段, 不靠 dispatch prompt 里的转述。
+- 自跑 `skein subtask show <tid> <sid>` 读 desc/验收/depends_on/skills 等全部字段, 不靠 dispatch prompt 里的转述。
 - 需 spec 约定佐证时先 `skein-spec recall <关键词>` (namespace×inclusion 记忆库, 只读)。
 - 缺信息 (验收模糊/依赖不明) → needs 标 `需要: <问题>`, 不猜, 不直接问用户。
 - **你被派时 subtask 已是 running 态 (main 用 claim exec 前置占槽), 不重复占槽、不跑 claim exec/start**。
@@ -57,14 +57,14 @@ Grep / Glob 定位改动点 → Read 目标文件全文
 
 按验收标准逐条对照 pass/fail。**改过的脚本必须先验证可运行才准报 done** (改 py 就跑 `python3 <改过的脚本> --help`; 改测试就跑 pytest 该文件), 跑不通一律 `subtask fail` 而非 `done`:
 
-- 全 pass 且可运行 → `python3 <repo>/plugins/tools/skein/scripts/skein.py subtask done <tid> <sid>`
-- 有 fail/缺信息 → `python3 <repo>/plugins/tools/skein/scripts/skein.py subtask fail <tid> <sid> --note "<原因>"`
+- 全 pass 且可运行 → `skein subtask done <tid> <sid>`
+- 有 fail/缺信息 → `skein subtask fail <tid> <sid> --note "<原因>"`
 - 附改动摘要 → 回传 JSON。
 
 ### 5. 收工钩子
 
 ```
-python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-stop --agent skein-executor --tid <tid> --sid <sid>
+skein-hooks agent-stop --agent skein-executor --tid <tid> --sid <sid>
 ```
 
 ## Main 边界

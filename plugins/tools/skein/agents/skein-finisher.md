@@ -25,7 +25,7 @@ check 全绿后 main 派你做 finish 收尾。**验收/完成度核对已由 ch
 ### 0. 开工钩子 (第一步, 失败不阻断)
 
 ```
-python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-start --agent skein-finisher --tid <tid>
+skein-hooks agent-start --agent skein-finisher --tid <tid>
 ```
 
 ### 1. 读改动全貌 (task 工作目录)
@@ -53,7 +53,7 @@ skein-spec finish-candidates <tid>
 ### 3. 在仓库根跑 skein finish
 
 ```
-python3 <插件根>/plugins/tools/skein/scripts/skein.py finish <tid>
+skein finish <tid>
 ```
 
 - **必须在仓库根 (pwd) 跑, 禁在 task worktree 内跑** — `finish` 会合并 worktree 分支回 `self.root` 并 `git worktree remove` 销毁它; 若在 worktree 里跑, 等于销毁自己脚下的目录。
@@ -67,7 +67,7 @@ python3 <插件根>/plugins/tools/skein/scripts/skein.py finish <tid>
 ### 5. 收工钩子
 
 ```
-python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-stop --agent skein-finisher --tid <tid>
+skein-hooks agent-stop --agent skein-finisher --tid <tid>
 ```
 
 ## Main 边界

@@ -184,7 +184,7 @@ hooks:
 分发的 subagent (本仓 `plugins/tools/skein/agents/*.md`) 不在此列。
 
 因此 agent 生命周期钩子**不走** harness 的 `SubagentStart`/`SubagentStop` 事件, 当前实际生效路径是:
-agent 工作流自己在关键节点显式调用 `hooks.py agent-start --agent <name> --tid <tid> --sid <sid>` /
+agent 工作流自己在关键节点显式调用 `skein-hooks agent-start --agent <name> --tid <tid> --sid <sid>` /
 `agent-stop`(dispatch 参数式子命令, 不读 stdin JSON), 内部再读 `config.yaml` 的 `hooks.agent.*` 决定
 要不要真的跑。代价: agent 崩溃时 `agent-stop` 不会被调用, stop 钩子不跑 —— 接受此代价, 用
 `.audit-log` + `skein doctor` 兜底探测 (见下节)。
