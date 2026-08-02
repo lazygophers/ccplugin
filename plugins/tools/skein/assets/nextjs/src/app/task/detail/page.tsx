@@ -199,8 +199,8 @@ function TaskDetailContent() {
                     <IconApprove size={18} />
                   </button>
                 )}
-                {(st === "active" || st === "check") && (
-                  <button onClick={() => setConfirmAction({ type: "finish" })} data-tip="强制完成" className="icon-btn flex items-center justify-center rounded-md border border-primary/40 p-2 text-primary hover:bg-primary/10">
+                {st === "check" && (
+                  <button onClick={() => setConfirmAction({ type: "finish" })} data-tip="完成收尾" className="icon-btn flex items-center justify-center rounded-md border border-primary/40 p-2 text-primary hover:bg-primary/10">
                     <IconFinish size={18} />
                   </button>
                 )}
@@ -356,9 +356,9 @@ function TaskDetailContent() {
                       <i className="fa fa-check mr-1.5" />确认规划 → 执行
                     </button>
                   )}
-                  {(st === "active" || st === "check") && (
+                  {st === "check" && (
                     <button onClick={() => setConfirmAction({ type: "finish" })} className="w-full rounded-md border border-primary px-3 py-2 text-xs font-medium text-primary transition-colors hover:bg-primary/10">
-                      <i className="fa fa-flag-checkered mr-1.5" />强制完成
+                      <i className="fa fa-flag-checkered mr-1.5" />完成收尾
                     </button>
                   )}
                   <button onClick={() => setConfirmAction({ type: "delete" })} className="w-full rounded-md border border-destructive px-3 py-2 text-xs font-medium text-destructive transition-colors hover:bg-destructive/10">
@@ -436,10 +436,10 @@ function TaskDetailContent() {
       </div>
       <ConfirmDialog
         open={!!confirmAction}
-        title={confirmAction?.type === "delete" ? "删除任务" : "强制完成"}
+        title={confirmAction?.type === "delete" ? "删除任务" : "完成收尾"}
         message={confirmAction?.type === "delete"
           ? `确认删除 "${task?.title || task?.name || id}"？删除后可从回收站恢复。`
-          : `确认强制完成 "${task?.title || task?.name || id}"？将合并 worktree 并标记为已完成。`}
+          : `确认完成 "${task?.title || task?.name || id}" 的收尾？将合并 worktree 并标记为已完成。`}
         confirmText={confirmAction?.type === "delete" ? "删除" : "完成"}
         destructive={confirmAction?.type === "delete"}
         onCancel={() => setConfirmAction(null)}
@@ -449,7 +449,7 @@ function TaskDetailContent() {
           if (!task) return;
           try {
             if (type === "delete") { await api.exec("del", { id: task.id }); toast("已删除", "success"); setTimeout(() => { window.location.href = "/board/"; }, 800); }
-            else if (type === "finish") { await api.exec("finish", { id: task.id }); toast("已完成", "success"); setTimeout(load, 500); }
+            else if (type === "finish") { await api.finish(task.id); toast("已完成", "success"); setTimeout(load, 500); }
           } catch { toast("操作失败", "error"); }
         }}
       />
