@@ -255,3 +255,50 @@ source files**。
 ### subtask list s3 行 (main 亲跑, 主仓根)
 跑 `subtask done` 前状态: `s3	运行中	10%	...` (main 仓 .skein 尚未同步 worktree 内进度,
 待 `subtask done` 落盘后才反映)。
+
+## s6 交付记录 — 看板 + Web 视图 (`a9ae96628` + `5799c9cc9`)
+
+### 改动 file:line
+- `board.py:62-79` `render_task_board(t, work_active, gate_active)` — 双参, 底部两行
+  「work 池上限」「gate 池上限」(旧单行「并发上限」删)
+- `store.py:244-246` `_write_task_board` 同步双参调用
+- `views.py:29-34` `Snapshot.__init__` 加 `gate_active` 字段; `views.py:163-166,257-260`
+  `_view_board_data` 计算 `work_running`(全局 running subtask 数)/`gate_running`
+  (`cnt[检查中]+cnt[收尾中]`), `overview` 新增 `pools: {work:{limit,running},
+  gate:{limit,running}}`; `maxActive` 旧字段原样保留 (前端 ETA 折算并行墙钟仍依赖它)
+- `boardsource.py:52-58` `_snapshot()` 传 `pools["work"]`/`pools["gate"]` 两值
+- 前端 `status.tsx:4-16` `ST_META`/`ST_ORDER` 加 `research`(调研中)/`finishing`(收尾中),
+  `ST_ORDER` 按生命周期时序: planning→research→ready→active→check→finishing→done
+- 前端 `model.ts` `STATUS_MAP` 补「调研中」→`research`、「收尾中」→`finishing`
+- 前端 `globals.css` 明暗两套加 `--st-research`(ocean-600/800)/`--st-finishing`(reef-600/800)
+- 前端 `board/page.tsx`: `ALL_STATUSES`/`DEFAULT_FILTER`/`toggleAll` 同步两新态; 新增
+  `pools` state 接线 `overview.pools`, 头部渲染 work/gate 两行占用条 (running/limit, 满槽加粗)
+
+### 3 条验收逐条自证
+1. **看板显示 work 与 gate 两行**: CLI 侧 `board.py` 单 task 看板底部两行 (「work 池上限」
+   「gate 池上限」); Web 侧 `board/page.tsx` 头部新增 work/gate 两行占用条组件, 手工脚本核
+   `_view_board_data` 输出 `overview.pools` 非空验证接线通。
+2. **Web 视图 JSON 含两池字段**: `_run(); out['board_data']['overview']['pools']` 实测输出
+   `{"work": {"limit": 2, "running": 1}, "gate": {"limit": 3, "running": 1}}`。
+3. **新状态在看板有正确排序位**: 前端 `ST_ORDER`/`ALL_STATUSES` 新插 `research`/`finishing`
+   于 `ready`/`check` 后对应位置, `ListView` 逐 `ALL_STATUSES` 渲染列 → 两态各得一新列, 位置
+   随生命周期时序, 非追加在末尾。
+
+### golden 归因审计
+`views_golden.json` 重生成前后逐 key diff: 唯一变化是 `board_data.overview` 新增 `pools`
+字段 (`{"work":{"limit":2,"running":1},"gate":{"limit":3,"running":1}}` ← 原为不存在);
+`cards`/其余全部视图逐字节相等 (`o['cards']==g['cards']` 实测 `True`)。无法归因字段数: 0。
+
+### dist 重建
+`pnpm run build` 成功 (Turbopack, 无 TS 错误), `assets/dist` 产物随源码一并 `git add` 入库
+(102 files changed, 含 chunk 文件名因内容 hash 正常轮换)。
+
+### 质量门
+`python3 -m pytest plugins/tools/skein/scripts/tests/ -q` → **360 passed, 0 failed**
+(与基线一致, 无新增/删除测试)。
+`python3 -m mypy plugins/tools/skein/scripts/skeinlib/board.py store.py views.py
+boardsource.py` → **Success: no issues found in 4 source files**。
+
+### subtask list s6 行 (worktree 内亲跑)
+`s6	已完成	100%	1.5h	看板 + Web 视图	依赖:s1,s2	验收:看板显示 work 与 gate 两行;
+Web 视图 JSON 含两池字段; 新状态在看板有正确排序位	skills:-`

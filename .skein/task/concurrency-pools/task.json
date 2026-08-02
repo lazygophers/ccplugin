@@ -135,12 +135,16 @@
         "Web 视图 JSON 含两池字段",
         "新状态在看板有正确排序位"
       ],
-      "验收done": [],
-      "status": "运行中",
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785512383,
       "started": 1785632077,
-      "finished": null
+      "finished": 1785632876
     },
     {
       "sid": "s7",
@@ -205,6 +209,6 @@
   "confirmed": 1785515070,
   "checked": null,
   "finished": null,
-  "updated": 1785632455,
+  "updated": 1785632876,
   "confirmed_by": "user"
 }
