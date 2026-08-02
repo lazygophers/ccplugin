@@ -33,6 +33,7 @@ DERIVATIVES: list[Derivative] = [
     Derivative("index.html", "assets/nextjs `pnpm build` (Next.js static export → assets/dist/)"),
     Derivative(".priority-migration-backup/", "priority.py migrate_priority_values 迁移前快照, 供回滚"),
     Derivative(".ready-migration-backup/", "readystate.py migrate_ready_status 迁移前快照, 供回滚"),
+    Derivative("serve.log", "boardsource.py _run_server serve 崩溃日志"),
 ]
 
 
