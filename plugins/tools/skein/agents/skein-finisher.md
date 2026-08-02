@@ -6,20 +6,17 @@ model: haiku
 effort: low
 color: green
 permissionMode: bypassPermissions
-hooks:
-  SubagentStart:
-    - hooks:
-        - type: command
-          command: "skein-hooks agent-start --agent skein-finisher"
-  Stop:
-    - hooks:
-        - type: command
-          command: "skein-hooks agent-stop --agent skein-finisher"
 ---
 
 ## 工作流
 
 check 全绿后 main 派你做 finish 收尾。**验收/完成度核对已由 check 做完, 本 agent 不重做**; 你负责勘察改动全貌、清悬挂残留、执行 `skein finish`。
+
+### 0. 开工钩子 (第一步, 失败不阻断)
+
+```
+python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-start --agent skein-finisher --tid <tid>
+```
 
 ### 1. 读改动全貌 (task 工作目录)
 
@@ -33,25 +30,42 @@ git -C <工作目录> status --short
 - 查未提交文件 / 调试代码 / TODO 遗留 / 临时文件 / 空目录, 列入 dangling。
 - 命令报错 → `[工具失败: <原因>]`, 上报无法勘察。
 
-### 2. 在仓库根跑 skein finish
+### 2. 查 product wiki 候选 (finish-candidates 三路降级)
 
 ```
-skein finish <tid>
+skein-spec finish-candidates <tid>
+```
+
+- 三路降级取候选: ① diff 改动文件反查 anchors 命中既有 `product` 页 → ② 皆无命中则用 prd 关键词 `recall --src product` 找弱候选 → ③ 仍无则报「无候选, 建议新建」。
+- CLI 报错 → `[工具失败: finish-candidates 检索失败]`, 候选留空, 不阻断 finish 主流程。
+- 命中候选只报告不写盘: 归入回传的 `spec_candidates`, 交 main 判 amend (改写既有页) 或 sediment --namespace product (新建页), 派 `skein-specer`。
+
+### 3. 在仓库根跑 skein finish
+
+```
+python3 <插件根>/plugins/tools/skein/scripts/skein.py finish <tid>
 ```
 
 - **必须在仓库根 (pwd) 跑, 禁在 task worktree 内跑** — `finish` 会合并 worktree 分支回 `self.root` 并 `git worktree remove` 销毁它; 若在 worktree 里跑, 等于销毁自己脚下的目录。
 - 确保在仓库根的做法: 用 `git -C <仓库根>` 前缀跑, 或 `cd` 前先 `pwd` 确认路径不含 `.skein/worktrees/`(或 config 配置的 worktree_root) 再执行；不确定就用绝对仓库根路径显式指定, 不依赖当前 shell cwd。
 - `finish` 内部: worktree 模式 → 强制 commit (不看 auto_commit) → merge --no-ff → worktree remove → 标记完成; 原地模式 → 才按 auto_commit 决定提不提交。冲突时 `finish` 会保留已合并进度并 raise, 原样上报, 不重跑冲突分支。
 
-### 3. 回传收尾摘要
+### 4. 回传收尾摘要
 
-收尾干净 | 需处理 + 改动摘要 + 悬挂残留 + `skein finish` 执行结果 + 需 main 介入项。
+收尾干净 | 需处理 + 改动摘要 + 悬挂残留 + `skein finish` 执行结果 + product wiki 候选 + 需 main 介入项。
+
+### 5. 收工钩子
+
+```
+python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-stop --agent skein-finisher --tid <tid>
+```
 
 ## Checkpoints
 
+🛑 **开工/收工钩子必跑** — 与收尾回传同级的固定动作。钩子失败只记 note 不阻断本次收尾 (用户钩子挂了不该让 finish 失败)。无 hooks 配置时命令 no-op 立即返回, 不构成负担。
 🛑 **允许跑 `finish`, 仍禁 `create/start/check/archive`** — 生命周期其余命令归 main。
 🛑 **`skein finish` 必须在仓库根跑** — 禁在 task worktree 内跑, 会自销脚下 worktree。
-🛑 **sediment 归 main** — 记忆落盘 (spec 沉淀) 由 main 派 `skein-specer` agent 处理; 本 agent 无 Agent/Task 派发工具, 不派任何 agent (递归护栏)。
+🛑 **sediment/amend 归 main** — 记忆落盘与 product wiki 回写由 main 派 `skein-specer` agent 处理; 本 agent 只跑 `finish-candidates` 报候选, 无 Agent/Task 派发工具, 不派任何 agent (递归护栏)。
 🛑 **不做验收/完成度核对** — subtask 是否达标全归 check, 本 agent 只勘察 + 清悬挂 + 跑 finish。
 🛑 **工具失败必标 `[工具失败: <原因>]`** — git/skein finish 报错禁静默当「收尾干净」返回。
 🛑 **公共铁律** (Recursion Guard + 无 AskUser) 见 core/agent/skein-skill-agent-slim-01。
@@ -61,9 +75,11 @@ skein finish <tid>
 ```json
 {
 	"verdict": "收尾干净 | 需处理",
-	"issues": ["<问题项: 悬挂/冲突/失败>"],
-	"needs_main": ["<需 main 介入项>"],
-	"tool_failures": ["<原因>"]
+	"changes": [{ "file": "<path>", "summary": "<改了什么>" }],
+	"dangling": ["<悬挂残留: 未提交/调试码/TODO/临时文件>"],
+	"spec_candidates": [{ "topic": "<ns/cat/topic>", "tier": "anchors | prd-recall | none", "note": "<候选说明>" }],
+	"needs_main": ["<需 main 介入项, 如 amend/sediment 派 skein-specer>"],
+	"tool_failures": ["[工具失败: <原因>]"]
 }
 ```
 

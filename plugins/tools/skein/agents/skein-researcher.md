@@ -57,7 +57,8 @@ mkdir -p .skein/task/<task-id>/research
 
 扫代码库提炼既有约定为候选规则:
 
-- 扫五维 (命名 / 错误处理 / 测试 / 架构边界 / 构建), 只提既有约定 (≥2 处一致证据), 命令式化描述。
+- 扫五维 (命名 / 错误处理 / 测试 / 架构边界 / 构建), 只提既有约定 (≥2 处一致证据), 命令式化描述, 产 rules namespace 候选。
+- **第六项 product overview** (与前五维性质不同): 额外扫一遍 `README` / `docs/` / 顶层入口文件, 提炼当前系统是什么 (产品定位/核心功能域/主要用户流程), 产 1 篇 product namespace 现状快照候选 (非规则, 不要求 ≥2 处一致证据); 无 README/docs 可提炼 → 该项留空, 禁硬猜。
 - 落盘 `.skein/task/bootstrap/research/conventions.md`; 层判定/取舍归 main+用户。
 
 ## Checkpoints

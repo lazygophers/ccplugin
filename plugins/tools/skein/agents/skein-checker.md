@@ -6,18 +6,15 @@ model: haiku
 effort: medium
 color: green
 permissionMode: bypassPermissions
-hooks:
-  SubagentStart:
-    - hooks:
-        - type: command
-          command: "skein-hooks agent-start --agent skein-checker"
-  Stop:
-    - hooks:
-        - type: command
-          command: "skein-hooks agent-stop --agent skein-checker"
 ---
 
 ## 工作流
+
+### 0. 开工钩子 (第一步, 失败不阻断)
+
+```
+python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-start --agent skein-checker --tid <id>
+```
 
 ### 1. 状态切换: 进行中 → 检查中
 
@@ -74,20 +71,25 @@ skein contract <id>
 - 任一 fail → 上报 (main 派修复), 禁放过。
 - CLI 报错 → `[工具失败: 契约读取失败]`。
 
-### 5. 一致性核查 (subtask 产物间冲突)
+### 5. 一致性核查 (调 skein-spec analyze)
 
-逐条报冲突对:
+```
+skein-spec analyze <id> --json
+```
 
-- 接口签名对不上 (A 调 B 参数/返回类型不符)
-- 重复实现同一职责
-- 命名/约定相斥
-- 数据流断裂 (字段缺失/上游产出下游不消费)
-- 契约互相矛盾
+- 五类只读检查 (验收覆盖率 / 硬规冲突 / 范围蔓延 / proposed 置信度 / 接缝存在性), 全启发式候选, **禁断言违规**, 零命中即如实报零冲突。
+- `--json` 直接消费, 不再手工 diff 比对; 权威定义见 skein-spec SKILL.md「analyze」章节, 本 agent 不重复实现比对逻辑。
+- CLI 报错 → `[工具失败: analyze 检索失败]`, consistency 标 MANUAL 需人审, 不阻断其余硬门。
 
-冲突记: 哪两处 `file:line` + 冲突点。
+### 6. 收工钩子
+
+```
+python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-stop --agent skein-checker --tid <id>
+```
 
 ## Checkpoints
 
+🛑 **开工/收工钩子必跑** — 与状态切换/回传同级的固定动作。钩子失败只记 note 不阻断本次验证 (用户钩子挂了不该让检查失败)。无 hooks 配置时命令 no-op 立即返回, 不构成负担。
 🛑 **硬门全跑完才回传** — 状态切换 / checkpoint 核对 (task+subtask 验收) / 场景内置 check (按项目自适应命中类: 编程/小说/数据ETL/文档知识/配置基建/设计前端) / 契约 / 一致性 缺一回传 = 漏检, main 会据不全报告误放行。
 🛑 **工具失败必标 `[工具失败: <原因>]`** — Bash 超时/Read 不存在/CLI 报错, 禁把错误输出当结果返回 (main 消费错误摘要当有效数据 → 静默降级)。
 🛑 **只验证不修复, 修复循环归 main** — 无 Write/Edit, 全部写盘经 `skein prd check` CLI 完成 (仅限勾选验收项, 不改内容); 查出代码/文本问题原样上报, 禁就地改、禁自行加 subtask、禁绕过 main 重派 executor。FAIL/冲突 → needs_main 写清方向供 main 走 grill/AskUserQuestion 定夺。
@@ -99,11 +101,38 @@ skein contract <id>
 
 ```json
 {
+	"task_id": "<id>",
 	"verdict": "PASS | FAIL | 冲突",
-	"failures": ["<file:line: 问题>"],
-	"conflicts": ["<冲突点: a vs b>"],
+	"hard_gates": [
+		{
+			"cmd": "<命令>",
+			"exit": 0,
+			"summary": "<结果摘要>",
+			"failures": [{ "file": "<path>:<line>", "snippet": "<原文>" }]
+		}
+	],
+	"acceptance": [
+		{
+			"item": "<未勾验收项文本>",
+			"result": "PASS | FAIL | MANUAL",
+			"note": "<依据 file:line 或原因>"
+		}
+	],
+	"contracts": [
+		{
+			"contract": "<契约条>",
+			"result": "pass | fail",
+			"evidence": "<file:line>"
+		}
+	],
+	"consistency": {
+		"analyze_candidates": [
+			{ "category": "验收覆盖率|硬规冲突|范围蔓延|proposed置信度|接缝存在性", "note": "<候选说明, file:line>" }
+		],
+		"clean": false
+	},
 	"needs_main": ["<需 main 介入项>"],
-	"tool_failures": ["<原因>"]
+	"tool_failures": ["[工具失败: <原因>]"]
 }
 ```
 

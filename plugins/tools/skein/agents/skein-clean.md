@@ -68,6 +68,7 @@ git branch --merged
 ## Checkpoints
 
 🛑 **只清已完成/已合并** — 未 finish 的 active task、未合并分支一律不删; 存疑项先报用户裁定, 禁自行删。
+🛑 **不碰 spec 迁移快照** — `.skein/spec/.archive/<ts>/` 是 `skein-spec restructure`/旧结构 migrate 流程的可回滚快照 (`restore <ts>` 依赖其存在), 不属 task/worktree/分支清理范围, 一律不删, 不因「看起来是备份」纳入清扫。
 🛑 **写盘只经 CLI** — `skein clean` / `git worktree remove` / `git branch -D`, 禁手改 `.skein/` 下 task.json (hook 硬阻); 归档走 `skein clean --days` 保留期语义, 禁手动 `rm .skein/task/<id>` 当归档。
 🛑 **存疑必报用户** — 无对应 task 记录的 worktree、未合并分支、`remove`/`-D` 失败项, 一律保留 + 报用户; 禁 `--force` 强删活跃 worktree。
 🛑 **看板无需手动刷** — `clean` 已触发 `_sync` 自动重渲染; 孤儿 worktree/分支清理不涉 task.json, 不影响看板。

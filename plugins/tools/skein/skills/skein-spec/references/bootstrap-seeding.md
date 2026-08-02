@@ -34,9 +34,17 @@ researcher bootstrap 模式扫以下五维, 每维产 0..N 条候选 (无信号�
 | **架构边界** | 分层/模块依赖方向, 禁止的跨层访问, 目录职责 |
 | **构建** | 构建/依赖/发布命令, lint/format 工具, CI 约定 |
 
+#### product overview (第六项, 与前五维性质不同)
+
+前五维产 **rules namespace** 候选 (决策/约定, 命令式契约)。researcher 额外扫一遍 `README` / `docs/` / 顶层入口文件, 提炼**当前系统是什么** (产品定位/核心功能域/主要用户流程), 产 **1 篇** product namespace 的 overview 候选 (非规则, 是现状快照)。
+
+- 只产**一篇总览页**, 不逐功能域拆 (功能域切页是后续 finish 时 `finish-candidates` 增量产生的, bootstrap 不越俎代庖)。
+- 无 README/文档可提炼 (纯代码无说明) → 播空, 不硬凑「猜测的产品定位」。
+- 落盘走 sediment 流程但 `--namespace product`, 见下文。
+
 ### ② main 读回候选, 逐条定 namespace × inclusion
 
-读 researcher 回传 + 落盘全量, 每条判 **core / recall / drop** (分层判据同 [sediment-workflow §2](sediment-workflow.md))。bootstrap 证据来自静态扫描 (非踩坑实证), **从严控 core**: 默认全归 recall, 仅"违反必炸"硬约束 (如 DB 层禁裸 SQL) 进 core; 弱信号/一次性/语言通识 drop。
+读 researcher 回传 + 落盘全量, 前五维候选逐条判 **namespace=rules 下的 inclusion: always / auto / drop** (判据同 [sediment-workflow §2](sediment-workflow.md))。bootstrap 证据来自静态扫描 (非踩坑实证), **从严控 always**: 默认全归 auto, 仅"违反必炸"硬约束 (如 DB 层禁裸 SQL) 进 always; 弱信号/一次性/语言通识 drop。product overview 候选固定 `namespace=product, inclusion=auto` (需求现状默认按需召回, 不常驻)。
 
 ### ③ 经 sediment 写盘流程落盘
 
@@ -45,6 +53,7 @@ researcher bootstrap 模式扫以下五维, 每维产 0..N 条候选 (无信号�
 - main 逐项输出 trace (层 + 类目 + 标题 + 触发项) 供审阅, 不硬停。
 - 写盘: `skein-spec sediment --namespace <ns> --inclusion always|auto|fileMatch|manual --category <类目> --topic <主题> --title T --keywords "a,b" --body-file <正文.md>` (追加为主题文件章节 + 自动 reindex)。
 - 同主题规则并入同一 `<类目>/<主题>.md`, 禁一规则一文件; 关联写 `[[主题#规则标题]]`。
+- product overview 单独一条: `skein-spec sediment --namespace product --inclusion auto --category overview --topic overview --title "系统现状总览" --body-file <正文.md>` (参照 [templates/product.md.tmpl](templates/product.md.tmpl) 填现状/边界/为什么这样/anchors)。
 
 ## 一次性边界
 
@@ -68,6 +77,7 @@ researcher bootstrap 模式扫以下五维, 每维产 0..N 条候选 (无信号�
 | 自动跑 bootstrap 不问用户 | `AskUserQuestion` 征同意 |
 | 无约定硬凑规则填满库 | 播空/少量, 老实说明 |
 | 候选跳过判定门盲写 | 逐条走 sediment 判定门 (通过即自动写) |
-| 什么都塞 core 常驻 | 默认 recall, 仅硬约束进 core |
+| 什么都塞 always 常驻 | 默认 auto, 仅硬约束进 always |
+| 产品定位无文档硬猜 | product overview 无 README/docs 可提炼则播空 |
 | 为 bootstrap 改 skein-spec / 加新脚本 | 复用现有 researcher + sediment |
 | 跑完 bootstrap 又反复补播 | 一次性, 后续走 finish sediment |

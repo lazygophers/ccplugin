@@ -66,6 +66,7 @@ brainstorm 前先定**是否需要派 skein-researcher**, 按信号分档自动�
    - 默认**倾向归一** —— 相关工作散成多 task 会丢共享上下文一致性, 归一拆 subtask 才守住。
 2. **登记** — 全新 → `skein create <id> --name <标题> --desc <一句话> [--deps ..]` (`<id>`/`--name`/`--desc` 三者必填), `<id>` 须为**可读描述性 slug** (kebab-case, 如 `order-create-api`), **禁 `t01`/`t2` 字母+数字代号** (脚本硬拒)。得工件目录。
 3. **brainstorm 需求/方案** (main 交互式) — 逐问澄清: 目标 / 用户价值 / 边界 / 非目标 / 验收基准 / 方案取舍。禁 main 自行凭空设计。用 `AskUserQuestion` 拍板关键分歧。提问法内置 relentless interview 纪律 (插件内闭环, 原生自足; 装了 ask-matt `/grill-with-docs` / `/grill-me` 可选增强): 一次一问等反馈、每问带 2-3 推荐答案让用户裁、事实自查 (Read/Grep)、决策交用户、共识才放行。
+   - **🧭 brainstorm 前先拉现状 wiki** — `skein-spec recall "<任务关键词>" --src product` 召回 product namespace 既有现状页, 有命中先读现状再问 (防重复设计已有能力/凭空臆断现状); 无命中视为新功能域, 正常 brainstorm。
    - **🛑 findings.md 由 researcher 边研边增量写 (调研才生)** — researcher 每完成一主题即把收敛结论追加进 `findings.md`, research/ 存过程证据。main 收 researcher 回传后**只读 findings.md 做跨主题复核/补漏, 不重读 research/**。findings.md = 调研最终交付物; 未调研则 **findings.md/research/ 均不产出** (create 也不预建空壳)。
    - **🧭 愿景翻译 (cold-start 命中才跑; 清晰输入跳过, 零增量)**:
      - **Job Story 三段草拟** — main 套用户原话填 "When [情境], I want [动机], so I can [预期成果]", `AskUserQuestion` 让用户确认/修正三段, 锁定 outcome 再谈 solution。
@@ -76,8 +77,9 @@ brainstorm 前先定**是否需要派 skein-researcher**, 按信号分档自动�
    - **锁定契约** — grill/brainstorm 里梳理出的不变量 (MUST/禁/边界条件) 由 main 用脚本逐条锁进 task.json (main 同步跑脚本, 不派 agent):
      - `skein contract <id> --add "契约文本"` (每条一次) / `skein contract <id>` (列出核对)
 5. **产出工件** — `create` 落 prd/design 双脚手架 (本步填正文); 调度落 task.json (脚本):
-   - `prd.md` (主入口) — 分章节: **目标 / 边界 / 验收标准 / 索引**。每章节自带 `- [ ] TODO: 填X` 占位, 填写 = 把占位**整行替换**为真实内容 (`prd write` 自动完成), **不是把它勾成 `- [x]`**。**目标/验收标准两章条目 planning 期一律保持 `- [ ]` 未勾** — 勾选权归 check 阶段验证通过后回写, planning 预勾即流程错误。**prd 章节内容经脚本写, 禁裸 Edit prd.md**: `skein prd write <id> --type={目标|goal|边界|scope|验收标准|acceptance} --list "<多行文本>"` / `skein prd add` (追加) / `skein prd check <id> --type=acceptance --list "<条目>"` (勾选)。
-   - `design.md` — 详细设计: 架构 / 数据流 / 取舍 / 技术选型 (**不含调度图**) + **可能性分支** section。**写入界限: 仅 planning 阶段写 (含 check 失败回 planning 的二次进入); exec / check / finish 阶段禁动 design.md**。exec/check 发现方案需调整 → 回 planning 改 design 后重派。
+   - `prd.md` (主入口) — 标准**六段** (`PRD_SECTIONS_V6`): **目标 / 边界 / User Stories / 验收标准 / Testing Decisions / 索引**。每章节自带 `- [ ] TODO: 填X` 占位, 填写 = 把占位**整行替换**为真实内容, **不是把它勾成 `- [x]`**。**目标/验收标准两章条目 planning 期一律保持 `- [ ]` 未勾** — 勾选权归 check 阶段验证通过后回写, planning 预勾即流程错误。三段 (目标/边界/验收标准) 经脚本写, 禁裸 Edit: `skein prd write <id> --type={目标|goal|边界|scope|验收标准|acceptance} --list "<多行文本>"` (`prd write` 自动完成整行替换) / `skein prd add` (追加) / `skein prd check <id> --type=acceptance --list "<条目>"` (勾选); User Stories / Testing Decisions 两段无脚本 `--type`, 直接 Edit 填正文 (占位整行替换同规则)。旧四段 task 兼容态可用, `confirm` 提示建议迁六段但不硬拦。
+   - `design.md` — 详细设计: 架构 / 数据流 / 取舍 / 技术选型 (**不含调度图**) + `## 测试接缝 (seam)` + **可能性分支** section。**写入界限: 仅 planning 阶段写 (含 check 失败回 planning 的二次进入); exec / check / finish 阶段禁动 design.md**。exec/check 发现方案需调整 → 回 planning 改 design 后重派。
+     - **🛑 测试接缝 (seam) 门 (confirm 硬校验)** — 脚手架自带 `## 测试接缝 (seam)` 段, 三条规则: 优先复用现有接缝不新建 / 取最高接缝 (越靠外部行为越好) / 越少越好理想 1 个。**必须填实, 禁留占位** — `skein confirm` 跑 `validate_seam` 硬校验该段非占位 (旧 task 兼容态仅警告不拦), 与 `estimate-gate.md` 同级硬门。接缝质量 (选得对不对) 靠 grill 门与 `skein-spec analyze` 兜, confirm 只拦「没填」。
      - **当前方案 = 精简守现状 (YAGNI)** — design.md 正文只写满足当前需求的最小可行设计, 禁塞"以后可能要"的扩展点。
      - **可能性分支 section (研究期允许过度探索, 仅留痕)** — 现状之外的扩展方案 / 未来约束变化时的演进分支 / 被否决的备选, 写入「可能性分支」section, 每条**必须标触发条件**。不进最终设计方案正文, 不进 task.json DAG, 不生成 subtask。
      - **难逆决策实时记 ADR**: 跨子系统 / 破坏式重构 / 选型类 task, 难逆决策当场记进「取舍」/「可能性分支」段 (选了什么 · 否了什么 · 为什么), 防回退代价高的决策无痕迹蒸发。
@@ -92,9 +94,9 @@ brainstorm 前先定**是否需要派 skein-researcher**, 按信号分档自动�
 ## 完成判据
 
 - [ ] task 已 `create` (含可读 slug)
-- [ ] prd.md 已填完 (四章 `- [ ] TODO: 填X` 占位**已全部整行替换**为真实内容; **目标/验收标准两章条目一律保持 `- [ ]` 未勾 — 勾选归 check 阶段**)
+- [ ] prd.md 已填完 (六段 `- [ ] TODO: 填X` 占位**已全部整行替换**为真实内容; **目标/验收标准两章条目一律保持 `- [ ]` 未勾 — 勾选归 check 阶段**)
 - [ ] subtask 已规划 (`subtask add` 落 task.json DAG)
-- [ ] 设计方案已定 (design.md 正文; 或 main 判定豁免)
+- [ ] 设计方案已定 (design.md 正文含 `## 测试接缝 (seam)` 段已填实; 或 main 判定豁免)
 - [ ] 预计工时已填 (`skein estimate <id> --set <小时数>`; `skein confirm` 硬校验非空正数, 规则详见 [estimate-gate.md](estimate-gate.md))
 
 未勾满 = planning 未收敛, 禁 `skein confirm` / 禁转 exec。`skein confirm` 会逐项硬拒 (subtask/prd/预计工时任一缺失即报错阻断)。
