@@ -1,4 +1,6 @@
-max_active: 2
+pools:
+  work: 2
+  gate: 3
 retain_days: 7
 auto_commit: true
 worktree_root: .worktrees
