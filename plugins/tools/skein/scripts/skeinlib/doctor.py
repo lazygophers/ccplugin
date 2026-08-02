@@ -26,7 +26,7 @@ from skeinlib.hooks.runner import budget_guard
 from skeinlib.config import hooks_schema_errors, _yaml_load
 from skeinlib.errors import SkeinError
 from skeinlib.model import (PHASE_OF, PRIORITY_RANK, SLUG_RE, SS_DONE, SS_FAILED, SS_PENDING,
-                            SS_RUNNING, STATUS_ACTIVE, STATUS_INFLIGHT, S_ACTIVE, S_CHECK,
+                            SS_RUNNING, STATUS_INFLIGHT, S_ACTIVE, S_CHECK,
                             S_DONE, S_FINISHING, S_PENDING, S_RESEARCH)
 from skeinlib.worktree import worktrees_of
 from skeinlib.paths import SCRIPTS_DIR

@@ -21,7 +21,7 @@ from skeinlib.config import _yaml_dump, _yaml_load
 from skeinlib.dag import _sub_pct, _task_pct
 from skeinlib.errors import SkeinError
 from skeinlib.model import (SS_DONE, SS_FAILED, SS_PENDING, SS_RUNNING,
-                            S_ACTIVE, S_CHECK, S_DONE, S_FINISHING, S_PENDING, S_RESEARCH)
+                            S_ACTIVE, S_CHECK, S_DONE, S_PENDING, S_RESEARCH)
 from skeinlib.views import _view_board_data
 
 
