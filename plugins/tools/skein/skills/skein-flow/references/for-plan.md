@@ -98,6 +98,7 @@ brainstorm 前先定**是否需要派 skein-researcher**, 按信号分档自动�
 - [ ] subtask 已规划 (`subtask add` 落 task.json DAG)
 - [ ] 设计方案已定 (design.md 正文含 `## 测试接缝 (seam)` 段已填实; 或 main 判定豁免)
 - [ ] 预计工时已填 (`skein estimate <id> --set <小时数>`; `skein confirm` 硬校验非空正数, 规则详见 [estimate-gate.md](estimate-gate.md))
+- [ ] **验证方式已确认 — plan 阶段必须确认每条验收标准的验证方式和通过标准, 禁留空**
 
 未勾满 = planning 未收敛, 禁 `skein confirm` / 禁转 exec。`skein confirm` 会逐项硬拒 (subtask/prd/预计工时任一缺失即报错阻断)。
 
