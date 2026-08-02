@@ -30,6 +30,22 @@ from typing import TYPE_CHECKING as _TC
 if _TC:
     from skeinlib.lifecycle import Lifecycle
 
+# work 池出线打分 (design.md §4) —— 常数放模块级不进 config: 三个可调旋钮 = 三个没人知道
+# 该填什么的旋钮, 真需要调再说。关键路径权重占绝对主导 (W_CRIT 远大于其余两项), 保证这套打分
+# 在 p3 (task 优先级) 之下退化为原本的「关键路径优先, 同权重按登记序」——不破坏零回归。
+# W_WAIT 让等待够久的活能翻盘 (防饿死); W_EXEC 是「软优先」而非硬抢占: exec 同分先走, 但等待
+# 时长差超过一个 W_EXEC (=1 小时等价分) 时 research 能反超, 不会被无限期饿死。
+_W_CRIT = 100.0
+_W_WAIT = 1.0
+_W_EXEC = 1.0
+
+
+def _score(s: dict[str, Any], crit_val: int) -> float:
+    """打分 = 关键路径权重×W_CRIT + 等待小时数×W_WAIT + (exec ? W_EXEC : 0)。"""
+    wait_h = (now() - (s.get("created") or now())) / 3600.0
+    exec_bonus = _W_EXEC if s.get("phase", SS_PHASE_EXEC) == SS_PHASE_EXEC else 0.0
+    return crit_val * _W_CRIT + wait_h * _W_WAIT + exec_bonus
+
 
 class Scheduler:
     """subtask DAG 就绪判定 + 认领。"""
@@ -39,8 +55,9 @@ class Scheduler:
         self.lifecycle = lifecycle
 
     def _ready(self, t: dict[str, Any]) -> list[dict[str, Any]]:
-        """就绪批: pending + 依赖全 done, 按统筹学关键路径权重降序排序后截到空闲槽位
-        (关键路径优先 = 最长下游链先派, 最小化 makespan; 并行只看 depends_on DAG, 无写文件冲突自算)。"""
+        """就绪批: pending + 依赖全 done, 按打分降序排序后截到空闲槽位 (见 _score:
+        关键路径优先 = 最长下游链先派, 最小化 makespan; 并行只看 depends_on DAG, 无写文件冲突自算;
+        同分按登记序稳定)。"""
         subs = t.get("subtasks", [])
         done = {s["sid"] for s in subs if s["status"] == SS_DONE}
         running = [s for s in subs if s["status"] == SS_RUNNING]
@@ -51,8 +68,8 @@ class Scheduler:
         cand = [(i, s) for i, s in enumerate(subs)
                 if s["status"] == SS_PENDING
                 and all(d in done for d in s.get("depends_on", []))]
-        # 关键路径优先: 权重降序, 同权重按登记序稳定 (i 升序)
-        cand.sort(key=lambda p: (-crit.get(p[1]["sid"], 0), p[0]))
+        # 打分降序, 同分按登记序稳定 (i 升序)
+        cand.sort(key=lambda p: (-_score(p[1], crit.get(p[1]["sid"], 0)), p[0]))
         return [s for _, s in cand[:slots]]
 
     def _schedulable(self) -> list[dict[str, Any]]:
@@ -64,10 +81,12 @@ class Scheduler:
         return self.ws.store.active()
 
     def _global_ready(self) -> list[tuple[dict[str, Any], dict[str, Any]]]:
-        """全局跨 task 就绪批: 所有**可调度** task (进行中 + 就绪) 的 ready subtask 合池,
-        按 (优先级降序, 拓扑深度降序, task 登记序, subtask 登记序) 排序, 截到全局 max_active - 全局
-        running 槽。优先级权重高于拓扑深度 (用户裁定: 标了紧急就真的先跑, 代价是关键路径优化被冲淡)。
-        依赖未满足的不入候选池 (见下方过滤), 优先级再高也不越过依赖。
+        """全局跨 task 就绪批: 所有**可调度** task (进行中 + 调研中 + 收尾中) 的 ready subtask
+        合池, 按 (优先级降序, 打分降序, task 登记序, subtask 登记序) 排序, 截到全局 work 池
+        (`pools.work`) - 全局 running 槽。优先级权重高于打分 (用户裁定: 标了紧急就真的先跑,
+        代价是关键路径优化被冲淡)。依赖未满足的不入候选池 (见下方过滤), 优先级再高也不越过依赖。
+        打分本身见 `_score` (关键路径×W_CRIT + 等待小时×W_WAIT + exec 加分 W_EXEC) —— W_CRIT
+        远大于其余两项, 同优先级档内退化为「关键路径优先, 全同分按登记序」, 与打分引入前零回归。
         返回 [(task_obj, subtask_obj), ...]。"""
         tasks = self._schedulable()
         global_running = sum(
@@ -75,7 +94,7 @@ class Scheduler:
         slots = self.ws.config()["pools"]["work"] - global_running
         if slots <= 0:
             return []
-        cand: list[tuple[dict[str, Any], dict[str, Any], int, int, int, int]] = []
+        cand: list[tuple[dict[str, Any], dict[str, Any], int, int, float, int]] = []
         for ti, t in enumerate(tasks):
             subs = t.get("subtasks", [])
             done = {s["sid"] for s in subs if s["status"] == SS_DONE}
@@ -86,9 +105,9 @@ class Scheduler:
                     continue
                 if not all(d in done for d in s.get("depends_on", [])):
                     continue  # 依赖未全 done 不入池 (依赖硬优先, 优先级不越过)
-                cand.append((t, s, ti, i, crit.get(s["sid"], 0), prio))
-        # 优先级降序 → 拓扑深度降序 → task 登记序 → subtask 登记序 (active task 也按优先级排,
-        # 不再"同级不分"; 全同档时首项相等, 退化为改动前的顺序 → 零回归)
+                cand.append((t, s, ti, i, _score(s, crit.get(s["sid"], 0)), prio))
+        # 优先级降序 → 打分降序 → task 登记序 → subtask 登记序 (active task 也按优先级排,
+        # 不再"同级不分"; 全同分时首项相等, 退化为改动前的顺序 → 零回归)
         cand.sort(key=lambda x: (-x[5], -x[4], x[2], x[3]))
         return [(c[0], c[1]) for c in cand[:slots]]
 
@@ -103,16 +122,24 @@ class Scheduler:
         elif phase == "check":
             self._claim_check(a)
 
+    def _empty_batch_msg(self) -> str:
+        """work 池空批提示 —— 满槽/无待处理/依赖未完成三种成因分开报, 满槽明确指明「work 池」。"""
+        tasks = self._schedulable()
+        grun = sum(1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SS_RUNNING)
+        gpend = sum(1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SS_PENDING)
+        mp = self.ws.config()["pools"]["work"]
+        if grun >= mp:
+            return f"work 池已满 (running {grun}/{mp}) — 先等一个 subtask done 释放槽"
+        if gpend == 0:
+            return f"无待处理 subtask (work 池 running {grun}/{mp})"
+        return f"待处理 subtask 的依赖未全部完成 (work 池 running {grun}/{mp}, pending: {gpend})"
+
     def _claim_exec(self, a: argparse.Namespace) -> None:
         """exec 认领: ready subtask → running (与旧 claim 行为一致)。"""
         batch = self._global_ready()
         if getattr(a, "dry_run", False):
             if not batch:
-                tasks = self.ws.store.active()
-                grun = sum(1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SS_RUNNING)
-                gpend = sum(1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SS_PENDING)
-                mp = self.ws.config()["pools"]["work"]
-                print(f"无全局就绪 subtask (全局 running: {grun}/{mp}, pending: {gpend}) — 满槽或依赖未完成")
+                print(f"无全局就绪 subtask — {self._empty_batch_msg()}")
                 return
             print("全局就绪批 (只读预览, 不改状态) — 决定执行后去掉 --dry-run 认领:")
             for t, s in batch:
@@ -122,11 +149,7 @@ class Scheduler:
             print("— 认领整批: `skein.py claim exec`  或只占单个: `skein.py subtask start <tid> <sid>`")
             return
         if not batch:
-            tasks = self._schedulable()
-            grun = sum(1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SS_RUNNING)
-            gpend = sum(1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SS_PENDING)
-            mp = self.ws.config()["pools"]["work"]
-            print(f"无全局就绪 subtask (全局 running: {grun}/{mp}, pending: {gpend}) — 满槽或依赖未完成")
+            print(f"无全局就绪 subtask — {self._empty_batch_msg()}")
             return
         # 按 task 分组认领 (task 已全在 active 态, 无需就地启动)。
         by_tid: dict[str, list[str]] = {}
@@ -289,8 +312,12 @@ class Scheduler:
             if not batch:
                 run = [s["sid"] for s in t.get("subtasks", []) if s["status"] == SS_RUNNING]
                 pend = [s for s in t.get("subtasks", []) if s["status"] == SS_PENDING]
-                print(f"无就绪 subtask (running: {','.join(run) or '-'}, "
-                      f"pending: {len(pend)}) — 满槽或依赖未完成")
+                mp = self.ws.config()["pools"]["work"]
+                if len(run) >= mp:
+                    print(f"无就绪 subtask — work 池已满 (running {len(run)}/{mp})")
+                else:
+                    print(f"无就绪 subtask (running: {','.join(run) or '-'}, "
+                          f"pending: {len(pend)}) — 依赖未完成")
                 return
             if a.action == "claim":
                 # 一次性认领: 就绪批整体标 running, 免 main 逐个 start (少一轮往返 + 无竞态窗口)
