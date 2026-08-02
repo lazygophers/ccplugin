@@ -235,19 +235,21 @@ export default function HelpPage() {
 
 // ── SVG 流转图 ──
 function FlowDiagram() {
-  // 节点坐标 — 横向 5 节点, 弧形回退
+  // 节点坐标 — 主链横向 5 节点 (planning→active→check→finishing→done) + research 挂 planning 上方的双向支线
   const nodes = [
-    { x: 80, y: 60, w: 120, h: 44, status: "planning", label: "规划中" },
-        { x: 440, y: 60, w: 120, h: 44, status: "active", label: "执行中" },
-    { x: 620, y: 60, w: 120, h: 44, status: "check", label: "待验收" },
-    { x: 800, y: 60, w: 120, h: 44, status: "done", label: "已完成" },
+    { x: 30, y: 110, w: 120, h: 44, status: "planning", label: "规划中" },
+    { x: 270, y: 110, w: 120, h: 44, status: "active", label: "执行中" },
+    { x: 470, y: 110, w: 120, h: 44, status: "check", label: "检查中" },
+    { x: 670, y: 110, w: 120, h: 44, status: "finishing", label: "收尾中" },
+    { x: 870, y: 110, w: 120, h: 44, status: "done", label: "已完成" },
   ];
+  const researchNode = { x: 30, y: 20, w: 120, h: 40, status: "research", label: "调研中" };
 
   const meta = (st: string) => ST_META[st] || ST_META.planning;
 
   return (
     <div className="overflow-x-auto">
-      <svg viewBox="0 0 960 220" className="w-full min-w-[800px]" style={{ maxWidth: 960 }}>
+      <svg viewBox="0 0 1040 260" className="w-full min-w-[900px]" style={{ maxWidth: 1040 }}>
         <defs>
           <marker id="fd-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
             <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--muted-foreground)" />
@@ -257,7 +259,7 @@ function FlowDiagram() {
           </marker>
         </defs>
 
-        {/* 正向箭头: planning → active → check → done */}
+        {/* 主链正向箭头: planning → active → check → finishing → done */}
         {nodes.slice(0, -1).map((n, i) => {
           const next = nodes[i + 1];
           const y = n.y + n.h / 2;
@@ -271,25 +273,46 @@ function FlowDiagram() {
           );
         })}
 
-        {/* 正向箭头标注 */}
-        <text x="200" y="46" textAnchor="middle" className="fill-muted-foreground" style={{ fontSize: 10 }}>confirm</text>
-        <text x="380" y="46" textAnchor="middle" className="fill-muted-foreground" style={{ fontSize: 10 }}>claim exec</text>
-        <text x="560" y="46" textAnchor="middle" className="fill-muted-foreground" style={{ fontSize: 10 }}>claim check</text>
-        <text x="740" y="46" textAnchor="middle" className="fill-muted-foreground" style={{ fontSize: 10 }}>finish</text>
+        {/* 主链箭头标注 (confirm 已吸收原 start) */}
+        <text x="200" y="96" textAnchor="middle" className="fill-muted-foreground" style={{ fontSize: 10 }}>confirm</text>
+        <text x="400" y="96" textAnchor="middle" className="fill-muted-foreground" style={{ fontSize: 10 }}>check / claim check</text>
+        <text x="600" y="96" textAnchor="middle" className="fill-muted-foreground" style={{ fontSize: 10 }}>finishing / claim check</text>
+        <text x="800" y="96" textAnchor="middle" className="fill-muted-foreground" style={{ fontSize: 10 }}>finish</text>
+
+        {/* research 支线: planning ⇄ research, 调研可选, 不阻断直接 confirm */}
+        <line x1="75" y1="110" x2="75" y2="60" stroke="var(--muted-foreground)" strokeWidth="1.5" markerEnd="url(#fd-arrow)" />
+        <text x="45" y="88" textAnchor="middle" className="fill-muted-foreground" style={{ fontSize: 9 }}>research</text>
+        <line x1="105" y1="60" x2="105" y2="110" stroke="var(--muted-foreground)" strokeWidth="1.5" markerEnd="url(#fd-arrow)" />
+        <text x="135" y="88" textAnchor="middle" className="fill-muted-foreground" style={{ fontSize: 9 }}>plan</text>
 
         {/* 回退弧线: check → planning (FAIL) */}
         <path
-          d="M 680 104 Q 680 170, 500 170 Q 200 170, 140 104"
+          d="M 540 154 Q 540 220, 340 220 Q 90 220, 90 154"
           fill="none"
           stroke="var(--st-failed)" strokeWidth="1.5"
           strokeDasharray="6 3"
           markerEnd="url(#fd-arrow-fail)"
         />
-        <text x="410" y="186" textAnchor="middle" style={{ fill: "var(--st-failed)", fontSize: 10 }}>
+        <text x="340" y="236" textAnchor="middle" style={{ fill: "var(--st-failed)", fontSize: 10 }}>
           ✗ FAIL: 回 planning 重确认 → 改 prd/design → 加修复 subtask → 重 exec
         </text>
 
-        {/* 节点 */}
+        {/* research 节点 (支线) */}
+        {(() => {
+          const n = researchNode;
+          const m = meta(n.status);
+          return (
+            <g key={n.status}>
+              <rect x={n.x} y={n.y} width={n.w} height={n.h} rx="8" fill={`var(${m.colorVar})`} fillOpacity={0.18} stroke={`var(${m.colorVar})`} strokeWidth={2} />
+              <circle cx={n.x + 16} cy={n.y + n.h / 2} r={5} fill={`var(${m.colorVar})`} />
+              <text x={n.x + n.w / 2 + 8} y={n.y + n.h / 2 + 5} textAnchor="middle" className="fill-foreground" style={{ fontSize: 12, fontWeight: 600 }}>
+                {n.label}
+              </text>
+            </g>
+          );
+        })()}
+
+        {/* 主链节点 */}
         {nodes.map((n) => {
           const m = meta(n.status);
           return (
