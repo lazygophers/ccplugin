@@ -1,6 +1,6 @@
 # 作用域边界与完成判定
 
-skein-flow 的作用域判定 (何时建 task / 归一 vs 分立 / worktree 豁免) 与完成判定。判定表见主文件「作用域边界」段, 本文件展开细则。
+skein-flow 的作用域判定 (何时建 task / 归一 vs 分立 / worktree 豁免) 与完成判定 —— 本文件是这三项的单一真值源。
 
 ## 归一 vs 分立 (相关工作优先归一 task 拆 subtask)
 
