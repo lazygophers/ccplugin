@@ -23,7 +23,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional
 
 from skeinlib.hooks.runner import budget_guard
-from skeinlib.config import hooks_schema_errors
+from skeinlib.config import hooks_schema_errors, _yaml_load
 from skeinlib.errors import SkeinError
 from skeinlib.model import (PHASE_OF, PRIORITY_RANK, SLUG_RE, SS_DONE, SS_FAILED, SS_PENDING,
                             SS_RUNNING, STATUS_ACTIVE, STATUS_INFLIGHT, S_ACTIVE, S_CHECK,
@@ -187,6 +187,30 @@ class DoctorMixin:
                     continue
                 errs.append(f"{iid}: 索引存在但 per-task 真值缺失 (task/{iid}/task.json 不存在) "
                             f"— 真值源丢失, 从含该目录的分支 checkout 恢复, 或删索引行清理")
+
+        # 两池超限体检 (design.md §5: work/gate 各自独立上限, 计数口径与 s4 调度器/s6 展示同源 —
+        # work = 全局 running subtask 数, gate = 全量 task 检查中+收尾中数; 各自一行 sum, 不抽
+        # 公共函数, 见 design.md s4 交付记录「两处重复成本低于抽象成本」, doctor 这里同理跟随)。
+        pools = self.config()["pools"]
+        work_running = sum(1 for t in tasks for s in t.get("subtasks", []) if s.get("status") == SS_RUNNING)
+        gate_running = sum(1 for t in tasks if t.get("status") in (S_CHECK, S_FINISHING))
+        if work_running > pools["work"]:
+            errs.append(f"work 池超限: running {work_running} > 上限 {pools['work']}")
+        if gate_running > pools["gate"]:
+            errs.append(f"gate 池超限: running {gate_running} > 上限 {pools['gate']}")
+
+        # 残留 max_active 体检: s2 裁定「直接删, 不留 fallback」— 该键已不在 _CFG_LEGACY 映射内,
+        # 留在 config.yaml 会被静默忽略 (并发上限已改读 pools.work), 用户会误以为它还生效。
+        cfg_file = self.dir / "config.yaml"
+        if cfg_file.exists():
+            try:
+                raw_cfg = _yaml_load(cfg_file.read_text())
+            except ValueError:
+                raw_cfg = {}
+            if "max_active" in raw_cfg:
+                warns.append(
+                    f"config.yaml 残留 max_active={raw_cfg['max_active']!r} — 已废弃且不再生效 "
+                    "(并发上限改读 pools.work), 删掉该键或迁到 `pools: {work: <值>}`")
 
         # agent 钩子配了但从未触发 (design.md §7 已知风险「agent 漏跑钩子」的唯一发现手段):
         # agent 钩子靠 agent 自己在工作流里调 dispatch (agent-start/agent-stop), 不像 harness
