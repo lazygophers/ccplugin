@@ -1,0 +1,23 @@
+{
+  "id": "flow-strict-exec",
+  "name": "skein 流程严格执行",
+  "desc": "创建 task 后不按 skein 要求执行、subtask 不自动派 exec agent",
+  "status": "待处理",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [],
+  "priority": "normal",
+  "estimate": null,
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/flow-strict-exec",
+  "parent": null,
+  "kind": "task",
+  "created": 1785664576,
+  "started": null,
+  "confirmed": null,
+  "checked": null,
+  "finished": null,
+  "updated": 1785664576
+}

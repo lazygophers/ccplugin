@@ -2,7 +2,7 @@
   "id": "spec-docs-examples",
   "name": "docs + examples 示例仓迁移",
   "desc": "sample-skein/spec 迁到四 namespace(加 product/map 示例页) + reference/skein/README/CONTEXT 同步 + skein-flow.mmd 加 wiki 回写分支",
-  "status": "收尾中",
+  "status": "已完成",
   "deps": [
     "spec-skills-agents-adapt"
   ],
@@ -90,15 +90,8 @@
   "priority": "high",
   "estimate": 1.5,
   "repos": [],
-  "worktree": ".worktrees/skein-spec-docs-examples",
-  "worktrees": [
-    {
-      "repo": ".",
-      "wt": ".worktrees/skein-spec-docs-examples",
-      "branch": "skein/spec-docs-examples",
-      "merged": false
-    }
-  ],
+  "worktree": null,
+  "worktrees": [],
   "branch": "skein/spec-docs-examples",
   "parent": "spec-wiki-v2",
   "kind": "task",
@@ -106,7 +99,7 @@
   "started": 1785663793,
   "confirmed": 1785663792,
   "checked": 1785664437,
-  "finished": null,
-  "updated": 1785664492,
+  "finished": 1785664521,
+  "updated": 1785664521,
   "confirmed_by": "user"
 }

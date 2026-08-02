@@ -1,6 +1,20 @@
 {
   "tasks": [
     {
+      "id": "board-realtime-fix",
+      "status": "进行中",
+      "deps": [],
+      "priority": "normal",
+      "worktree": ".worktrees/skein-board-realtime-fix",
+      "parent": null,
+      "kind": "task",
+      "created": 1785664573,
+      "confirmed": 1785664656,
+      "started": 1785664658,
+      "checked": null,
+      "finished": null
+    },
+    {
       "id": "task-json-cn-schema",
       "status": "检查中",
       "deps": [],
@@ -15,147 +29,60 @@
       "finished": null
     },
     {
-      "id": "spec-docs-examples",
-      "status": "收尾中",
-      "deps": [
-        "spec-skills-agents-adapt"
-      ],
-      "priority": "high",
-      "worktree": ".worktrees/skein-spec-docs-examples",
-      "parent": "spec-wiki-v2",
-      "kind": "task",
-      "created": 1785381925,
-      "confirmed": 1785663792,
-      "started": 1785663793,
-      "checked": 1785664437,
-      "finished": null
-    },
-    {
-      "id": "spec-wiki-v2",
+      "id": "agent-json-api",
       "status": "待处理",
       "deps": [],
       "priority": "normal",
       "worktree": null,
       "parent": null,
-      "kind": "supertask",
-      "created": 1785381895,
+      "kind": "task",
+      "created": 1785664578,
       "confirmed": null,
       "started": null,
       "checked": null,
       "finished": null
     },
     {
-      "id": "spec-skills-agents-adapt",
-      "status": "已完成",
-      "deps": [
-        "spec-model-core",
-        "spec-migrate",
-        "spec-hooks-adapt",
-        "spec-product-wiki",
-        "spec-map-namespace",
-        "spec-prd-analyze"
-      ],
-      "priority": "high",
-      "worktree": null,
-      "parent": "spec-wiki-v2",
-      "kind": "task",
-      "created": 1785381925,
-      "confirmed": 1785594118,
-      "started": 1785638941,
-      "checked": 1785662457,
-      "finished": 1785663011
-    },
-    {
-      "id": "spec-hooks-adapt",
-      "status": "已完成",
-      "deps": [
-        "spec-model-core"
-      ],
-      "priority": "normal",
-      "worktree": null,
-      "parent": "spec-wiki-v2",
-      "kind": "task",
-      "created": 1785381913,
-      "confirmed": 1785515075,
-      "started": 1785593344,
-      "checked": 1785593833,
-      "finished": 1785594073
-    },
-    {
-      "id": "spec-map-namespace",
-      "status": "已完成",
-      "deps": [
-        "spec-model-core"
-      ],
-      "priority": "normal",
-      "worktree": null,
-      "parent": "spec-wiki-v2",
-      "kind": "task",
-      "created": 1785381913,
-      "confirmed": 1785594107,
-      "started": 1785594113,
-      "checked": 1785594885,
-      "finished": 1785607356
-    },
-    {
-      "id": "spec-migrate",
-      "status": "已完成",
-      "deps": [
-        "spec-model-core"
-      ],
-      "priority": "normal",
-      "worktree": null,
-      "parent": "spec-wiki-v2",
-      "kind": "task",
-      "created": 1785381903,
-      "confirmed": 1785515083,
-      "started": 1785591635,
-      "checked": 1785592911,
-      "finished": 1785593254
-    },
-    {
-      "id": "spec-model-core",
-      "status": "已完成",
+      "id": "check-verify-standard",
+      "status": "待处理",
       "deps": [],
       "priority": "normal",
       "worktree": null,
-      "parent": "spec-wiki-v2",
+      "parent": null,
       "kind": "task",
-      "created": 1785381903,
-      "confirmed": 1785382122,
-      "started": 1785382122,
-      "checked": 1785513258,
-      "finished": 1785551934
+      "created": 1785664577,
+      "confirmed": null,
+      "started": null,
+      "checked": null,
+      "finished": null
     },
     {
-      "id": "spec-prd-analyze",
-      "status": "已完成",
+      "id": "config-claim-tweaks",
+      "status": "待处理",
       "deps": [],
       "priority": "normal",
       "worktree": null,
-      "parent": "spec-wiki-v2",
+      "parent": null,
       "kind": "task",
-      "created": 1785381925,
-      "confirmed": 1785382996,
-      "started": 1785382996,
-      "checked": 1785516327,
-      "finished": 1785552552
+      "created": 1785664578,
+      "confirmed": null,
+      "started": null,
+      "checked": null,
+      "finished": null
     },
     {
-      "id": "spec-product-wiki",
-      "status": "已完成",
-      "deps": [
-        "spec-model-core"
-      ],
+      "id": "flow-strict-exec",
+      "status": "待处理",
+      "deps": [],
       "priority": "normal",
       "worktree": null,
-      "parent": "spec-wiki-v2",
+      "parent": null,
       "kind": "task",
-      "created": 1785381913,
-      "confirmed": 1785594107,
-      "started": 1785594113,
-      "checked": 1785594885,
-      "finished": 1785596660
+      "created": 1785664576,
+      "confirmed": null,
+      "started": null,
+      "checked": null,
+      "finished": null
     }
   ]
 }
