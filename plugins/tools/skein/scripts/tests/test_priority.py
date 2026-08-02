@@ -126,7 +126,8 @@ def test_migrate_priority_cli_then_doctor_passes(ws: Path, skein_cli: SkeinCli) 
     tj.write_text(json.dumps(t, ensure_ascii=False))
 
     r = skein_cli(ws, "migrate-priority")
-    assert "已迁移 1 个 task.json" in r.stdout
+    data = json.loads(r.stdout)
+    assert len(data["migrated"]) == 1
     assert json.loads(tj.read_text())["priority"] == "high"
 
     skein_cli(ws, "doctor")  # check=True 默认, 非 0 退出即抛
@@ -163,9 +164,11 @@ def test_create_with_illegal_priority_rejected_and_lists_four_values(ws: Path, s
 def test_priority_cmd_query_and_set(ws: Path, skein_cli: SkeinCli) -> None:
     skein_cli(ws, "create", "feat-q", "--name", "feat-q", "--desc", "d")
     r = skein_cli(ws, "priority", "feat-q")
-    assert r.stdout.strip() == "normal"  # 未指定落中档
+    data = json.loads(r.stdout)
+    assert data["priority"] == "normal"  # 未指定落中档
     r = skein_cli(ws, "priority", "feat-q", "--set", "high")
-    assert "high" in r.stdout
+    data2 = json.loads(r.stdout)
+    assert data2["priority"] == "high"
     t = json.loads((ws / ".skein" / "task" / "feat-q" / "task.json").read_text())
     assert t["priority"] == "high"
 
@@ -196,6 +199,6 @@ def test_status_and_list_show_priority(ws: Path, skein_cli: SkeinCli) -> None:
     assert "high" in r.stdout
     r = skein_cli(ws, "list")
     assert "high" in r.stdout
-    r = skein_cli(ws, "list", "--json")
-    rows = json.loads(r.stdout)
+    data = json.loads(skein_cli(ws, "list", "--json").stdout)
+    rows = data.get("tasks", data) if isinstance(data, dict) else data
     assert next(x for x in rows if x["id"] == "feat-s")["priority"] == "high"

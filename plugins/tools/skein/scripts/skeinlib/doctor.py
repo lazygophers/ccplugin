@@ -216,7 +216,33 @@ class DoctorMixin:
         # hook 有强制性 — 配了却漏调不会报错, 只能靠 .audit-log 里有无 action=agent-hook 行反推。
         # 判「配了」看**有无实际条目**, 不看键是否存在 —— ConfigData hooks 默认全空骨架,
         # 键必然存在; 只有非空列表才代表用户真配了钩子。
-        # hooks 结构校验由 pydantic ConfigData.model_validate 在 reload 时完成, 非法结构直接 ValidationError。
+        # hooks 结构校验: 读原始 YAML 检测非法阶段名和未知字段
+        # (Config 降级吞掉 ValidationError, 这里从原始 YAML 独立检测)
+        cfg_yaml = self.dir / "config.yaml"
+        if cfg_yaml.exists():
+            try:
+                import yaml as _yaml
+                raw_cfg = _yaml.safe_load(cfg_yaml.read_text(encoding="utf-8")) or {}
+                raw_hooks = raw_cfg.get("hooks", {}) if isinstance(raw_cfg, dict) else {}
+                from skeinlib.config import HooksConfig, HookEntry
+                legal_stages = set(HooksConfig.model_fields.keys()) | {
+                    info.alias for info in HooksConfig.model_fields.values() if info.alias}
+                for stage_name in raw_hooks:
+                    if stage_name == "agent":
+                        continue  # agent 钩子是动态键, 单独处理
+                    if stage_name not in legal_stages:
+                        errs.append(f"hooks.{stage_name}: 非法阶段名 (合法: {sorted(legal_stages)})")
+                        continue
+                    for when in ("before", "after"):
+                        for entry in raw_hooks[stage_name].get(when, []):
+                            if isinstance(entry, dict):
+                                legal_fields = set(HookEntry.model_fields.keys())
+                                for k in entry:
+                                    if k not in legal_fields:
+                                        errs.append(f"hooks.{stage_name}.{when}: 未知字段 {k!r}")
+            except Exception:
+                pass
+
         hooks_cfg = self._hooks_cfg()
 
         agents = hooks_cfg.get("agent")

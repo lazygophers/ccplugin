@@ -47,7 +47,7 @@ def _loaded(sub: str) -> set[str]:
         f"_resolve({sub!r})\n"
         "print(json.dumps([m for m in sys.modules if m.startswith('skeinlib.hooks')]))\n"
     )
-    r = subprocess.run([sys.executable, "-S", "-c", probe],
+    r = subprocess.run([sys.executable, "-c", probe],
                        capture_output=True, text=True, timeout=30)
     assert r.returncode == 0, r.stderr
     return set(json.loads(r.stdout.strip()))

@@ -91,10 +91,12 @@ def test_parent_query_no_set(skein_cli: SkeinCli, ws: Path) -> None:
     skein_cli(ws, "create", "epic-1", "--name", "e", "--desc", "d", "--kind", "supertask")
     skein_cli(ws, "create", "child-a", "--name", "c", "--desc", "d", "--parent", "epic-1")
     r = skein_cli(ws, "parent", "child-a")
-    assert r.returncode == 0 and "epic-1" in r.stdout, f"查询未回显 parent: {r.stdout!r}"
+    data = json.loads(r.stdout)
+    assert r.returncode == 0 and data.get("parent") == "epic-1", f"查询未回显 parent: {r.stdout!r}"
     skein_cli(ws, "create", "orphan-a", "--name", "o", "--desc", "d")
     r2 = skein_cli(ws, "parent", "orphan-a")
-    assert r2.returncode == 0 and "无父" in r2.stdout, f"无父查询应显式提示: {r2.stdout!r}"
+    data2 = json.loads(r2.stdout)
+    assert r2.returncode == 0 and data2.get("parent") is None, f"无父查询应显式提示: {r2.stdout!r}"
 
 
 # ---------- deps 不受影响 (parent 与 deps 正交) ----------

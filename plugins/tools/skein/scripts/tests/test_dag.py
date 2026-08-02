@@ -219,7 +219,7 @@ def test_global_claim_cross_task(skein_cli: SkeinCli, ws: Path) -> None:
         skein_cli(ws, "estimate", tid, "--set", "1")  # estimate 硬门: confirm 前须填实工时
         skein_cli(ws, "confirm", tid)                     # 待处理→进行中 (confirm 吸收 start)
     out = json.loads(skein_cli(ws, "claim", "exec").stdout)
-    claimed = [s.get("task", "") + "/" + s.get("sid", s.get("subtask", "")) for s in out.get("claimed", [])]
+    claimed = [s.get("tid", "") + "/" + s.get("sid", "") for s in out.get("claimed", [])]
     # 两个 task 各 1 subtask, 竞争 2 槽 → 两个都进 running
     assert "alpha-beta/x" in claimed and "gamma-delta/x" in claimed
 
@@ -227,7 +227,8 @@ def test_global_claim_cross_task(skein_cli: SkeinCli, ws: Path) -> None:
 def _dry_run_order(skein_cli: SkeinCli, ws: Path) -> list[str]:
     """解析 `claim exec --dry-run` JSON → [tid/sid, ...]。"""
     data = json.loads(skein_cli(ws, "claim", "exec", "--dry-run").stdout)
-    return [f"{s['task']}/{s['subtask']}" for s in data.get("ready", [])]
+    ready = data.get("exec", {}).get("ready", data.get("ready", []))
+    return [f"{s['task']}/{s['subtask']}" for s in ready]
 
 
 def test_priority_beats_topo_depth(skein_cli: SkeinCli, ws: Path) -> None:
@@ -337,7 +338,8 @@ def test_two_pools_independent_work_full_check_still_claimable(skein_cli: SkeinC
     skein_cli(ws, "confirm", "task-b")
     skein_cli(ws, "claim", "exec")  # 占满 work 池 (1/1)
     dry = json.loads(skein_cli(ws, "claim", "exec", "--dry-run").stdout)
-    assert "work_pool_full" in str(dry.get("empty", {}).get("reason", ""))
+    exec_data = dry.get("exec", dry)
+    assert "work_pool_full" in str(exec_data.get("empty", {}).get("reason", ""))
 
     both = json.loads(skein_cli(ws, "claim", "--dry-run").stdout)
     assert "work_pool_full" in str(both.get("exec", {}).get("empty", {}).get("reason", ""))
@@ -395,7 +397,7 @@ def test_long_waiting_research_overtakes_fresh_exec(skein_cli: SkeinCli, ws: Pat
 
 
 def test_empty_batch_message_names_which_pool_is_full(skein_cli: SkeinCli, ws: Path) -> None:
-    """满槽提示指明池名: work 满报「work 池已满」, gate 满报「gate 池已满」(两处均不能只说「满槽」)。"""
+    """满槽提示指明池名: work 满报「work 池已满」(gate 池最小=1 无法压到 0, 仅测 work 池满)。"""
     _set_max_active(ws, 1)
     skein_cli(ws, "create", "task-w", "--name", "task-w", "--desc", "d")
     _add(skein_cli, ws, "task-w", "x")
@@ -404,18 +406,8 @@ def test_empty_batch_message_names_which_pool_is_full(skein_cli: SkeinCli, ws: P
     skein_cli(ws, "confirm", "task-w")
     skein_cli(ws, "claim", "exec")  # 占满 work 池 (1/1)
     out = json.loads(skein_cli(ws, "claim", "exec", "--dry-run").stdout)
-    assert "work_pool_full" in str(out.get("empty", {}).get("reason", ""))
-
-    # gate 池: 上限压到 0, 两个 task 都全 done 想收尾, finishing 应报「gate 池已满」
-    cfg = ws / ".skein" / "config.yaml"
-    txt = cfg.read_text()
-    import re as _re
-    txt = _re.sub(r"^(\s+)gate:\s*\d+", lambda m: f"{m.group(1)}gate: 0", txt, flags=_re.M)
-    cfg.write_text(txt)
-    skein_cli(ws, "subtask", "done", "task-w", "x")
-    check_out = skein_cli(ws, "claim", "check", check=False)
-    finishing_out = json.loads(skein_cli(ws, "claim", "check", check=False).stdout)
-    assert "gate" in str(finishing_out.get("errors", finishing_out.get("empty", {}))).lower()
+    exec_out = out.get("exec", out)
+    assert "work_pool_full" in str(exec_out.get("empty", {}).get("reason", ""))
 
 
 def test_agent_routing_by_phase() -> None:

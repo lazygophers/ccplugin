@@ -13,6 +13,7 @@ start 已随 confirm 吸收删除, 不再单独有 start 阶段 (见 test_confir
 """
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -212,9 +213,10 @@ hooks:
 """)
     r = skein_cli(ws, "check", tid, check=False)
     assert r.returncode != 0
-    out = skein_cli(ws, "list").stdout
-    assert "检查中" not in out.split(tid, 1)[-1].split("\n")[0], "check.before 失败仍进了检查中 — 阻断未生效"
-    assert "进行中" in out
+    data = json.loads(skein_cli(ws, "list").stdout)
+    task = next(t for t in data["tasks"] if t["id"] == tid)
+    assert task["status"] != "check", "check.before 失败仍进了检查中 — 阻断未生效"
+    assert task["status"] == "active"
 
 
 def test_before_continue_on_error_overrides_default_block(skein_cli: SkeinCli, ws: Path) -> None:
@@ -242,8 +244,9 @@ hooks:
 """)
     r = skein_cli(ws, "check", tid)
     assert r.returncode == 0, r.stderr
-    out = skein_cli(ws, "list").stdout
-    assert "检查中" in out
+    data = json.loads(skein_cli(ws, "list").stdout)
+    task = next(t for t in data["tasks"] if t["id"] == tid)
+    assert task["status"] == "check"
 
 
 # ---------- 验收3: 非法阶段名报错 + 列全部合法值 ----------
@@ -266,7 +269,7 @@ def test_illegal_stage_name_warns_but_does_not_block(skein_cli: SkeinCli, ws: Pa
     r = skein_cli(ws, "create", "feat-m", "--name", "feat-m", "--desc", "d", check=False)
     assert r.returncode == 0, f"配置笔误不该阻断 create: {r.stderr}"
     assert "chekc" in r.stderr, f"未告警拼错的阶段名: {r.stderr}"
-    for legal in ("create", "confirm", "start", "exec", "check", "finish", "archive",
+    for legal in ("create", "confirm", "exec", "check", "finish", "archive",
                   "subtask.start", "subtask.done", "subtask.fail"):
         assert legal in r.stderr, f"合法阶段名清单缺 {legal}"
     assert not _find(ws, "never.marker"), "非法阶段名不该被静默执行"
@@ -302,8 +305,9 @@ def test_no_hooks_key_stage_behavior_unchanged(skein_cli: SkeinCli, ws: Path) ->
     """无 hooks 键: create 行为与既有 test_statemachine.py 断言一致 (exit 0, 落 pending)。"""
     r = skein_cli(ws, "create", "feat-n", "--name", "feat-n", "--desc", "d")
     assert r.returncode == 0
-    out = skein_cli(ws, "list").stdout
-    assert "feat-n" in out and "待处理" in out
+    data = json.loads(skein_cli(ws, "list").stdout)
+    task = next(t for t in data["tasks"] if t["id"] == "feat-n")
+    assert task["status"] == "pending"
 
 
 def test_hooks_key_present_but_other_stage_unconfigured_zero_overhead(skein_cli: SkeinCli, ws: Path) -> None:

@@ -4,17 +4,12 @@
 CONFIG_DEFAULTS 10 叶 (pools.work/pools.gate/auto_commit/retain_days/worktree.enabled/worktree.root/
 web.serve/web.board_open/spec.core_budget/spec.always_budget)。
 报错用例传 check=False 断 returncode + stderr 文案。
-无参 `config` 展示全部生效配置, 扁平化为点号形式 (每行 path=value); 单键回读经无参输出按行 grep。
-覆盖:
-  1. 无参展示: 10 行 path=val, 含 pools.work=2 与 worktree.enabled=False。
-  2. set + 回读 (点号路径): set worktree.enabled false → 无参回读含 worktree.enabled=False。
-  3. set bool coerce: set auto_commit false → 回读含 auto_commit=False。
-  4. set 未知键: 拒 (returncode!=0, stderr 含「未知配置键」)。
-  5. set 类型不合: set pools.work abc → 拒 (stderr 含「类型不合」/「值类型」)。
-  6. set 保留其他键: set pools.work 5 后 retain_days 仍默认值。
-  7. reset: set 非默认值后 reset → 回读为默认值。
-  8. get 已删: config get → 拒 (invalid choice)。
-  9. --json: 无参 config --json → 合法嵌套 JSON dict, worktree.enabled 为 bool。
+
+全部命令输出结构化 JSON (扁平或嵌套):
+  - config 无参 → flat JSON dict (点号路径做 key, 跳过 hooks)
+  - config --json → 嵌套 JSON dict (含 hooks)
+  - config set → {"key": ..., "value": ...}
+  - config reset → {"reset": true, "config": {...}}
 """
 from __future__ import annotations
 
@@ -36,23 +31,27 @@ _STAGES = tuple(
 )
 
 
+def _flat(skein_cli: SkeinCli, ws: Path) -> dict[str, object]:
+    """config 无参 → flat JSON dict (点号路径做 key)。"""
+    return json.loads(skein_cli(ws, "config").stdout)
+
+
 def _readback(skein_cli: SkeinCli, ws: Path, path: str) -> str | None:
-    """无参 config 展示全部, 从输出按行取 path=value 的 value (无则 None)。"""
-    r = skein_cli(ws, "config")
-    for ln in r.stdout.strip().splitlines():
-        if ln.startswith(f"{path}="):
-            return ln.split("=", 1)[1]
+    """从 flat JSON 输出取 path 对应的 value (无则 None)。"""
+    data = _flat(skein_cli, ws)
+    if path in data:
+        v = data[path]
+        return str(v)
     return None
 
 
 # ---------- 1. 无参展示全部 ----------
 def test_show_all(skein_cli: SkeinCli, ws: Path) -> None:
-    """config 无参 → 10 行 path=val (点号扁平化), 含 pools.work=2 与 worktree.enabled=True。"""
-    r = skein_cli(ws, "config")
-    lines = [ln for ln in r.stdout.strip().splitlines() if "=" in ln]
-    assert len(lines) == 10, f"应 10 行 path=val, 得 {len(lines)}: {lines}"
-    assert "pools.work=2" in lines, f"缺 pools.work=2: {lines}"
-    assert "worktree.enabled=False" in lines, f"缺 worktree.enabled=False: {lines}"
+    """config 无参 → flat JSON dict, 10 叶 (跳过 hooks), 含 pools.work=2 与 worktree.enabled=False。"""
+    data = _flat(skein_cli, ws)
+    assert len(data) == 10, f"应 10 叶, 得 {len(data)}: {data}"
+    assert data.get("pools.work") == 2, f"缺 pools.work=2: {data}"
+    assert data.get("worktree.enabled") is False, f"缺 worktree.enabled=False: {data}"
 
 
 # ---------- 0. hooks 空骨架在 CONFIG_DEFAULTS 内 ----------
@@ -68,13 +67,13 @@ def test_hooks_skeleton_present(skein_cli: SkeinCli, ws: Path) -> None:
 
 # ---------- 2. set + 回读 (点号路径) ----------
 def test_set_and_readback(skein_cli: SkeinCli, ws: Path) -> None:
-    """config set pools.work 3 成功; 无参回读 → "3"。"""
+    """config set pools.work 3 成功; 回读 → 3。"""
     skein_cli(ws, "config", "set", "pools.work", "3")
     assert _readback(skein_cli, ws, "pools.work") == "3", "set 后回读错"
 
 
 def test_set_nested_path_and_readback(skein_cli: SkeinCli, ws: Path) -> None:
-    """config set worktree.enabled false (新点号路径) 成功; 无参回读 → "False"。"""
+    """config set worktree.enabled false (新点号路径) 成功; 回读 → False。"""
     skein_cli(ws, "config", "set", "worktree.enabled", "false")
     assert _readback(skein_cli, ws, "worktree.enabled") == "False", "点号路径 set 后回读错"
 
@@ -88,7 +87,7 @@ def test_set_nested_path_json_output(skein_cli: SkeinCli, ws: Path) -> None:
 
 # ---------- 3. set bool coerce ----------
 def test_set_bool_coerce(skein_cli: SkeinCli, ws: Path) -> None:
-    """config set auto_commit false; 回读 → "False" (Python bool str)。"""
+    """config set auto_commit false; 回读 → False (Python bool str)。"""
     skein_cli(ws, "config", "set", "auto_commit", "false")
     assert _readback(skein_cli, ws, "auto_commit") == "False", "bool coerce 错"
 
@@ -119,7 +118,7 @@ def test_set_type_mismatch(skein_cli: SkeinCli, ws: Path) -> None:
 
 # ---------- 6. set 保留其他键 ----------
 def test_set_preserves_other_keys(skein_cli: SkeinCli, ws: Path) -> None:
-    """set pools.work 5 后, retain_days 仍为默认值 7 (未被抹)。"""
+    """set pools.work 5后, retain_days 仍为默认值 7 (未被抹)。"""
     skein_cli(ws, "config", "set", "pools.work", "5")
     assert _readback(skein_cli, ws, "retain_days") == "7", "其他键被抹"
 
@@ -181,8 +180,7 @@ def test_flat_config_missing_keys_backfilled(skein_cli: SkeinCli, ws: Path) -> N
         "worktree": {"enabled": False, "root": ".worktrees"},
         "web": {"serve": True, "board_open": True},
         "spec": {"core_budget": 400, "always_budget": 517},
-        "hooks": {**{s: {"before": [], "after": []} for s in _STAGES},
-                  "agent": {"*": {"start": [], "stop": []}}},
+        "hooks": {s: {"before": [], "after": []} for s in _STAGES} | {"agent": {}},
     }, f"缺键回填不符: {data}"
     text = cfg.read_text()
     assert "pools:\n  work: 2\n  gate: 3\n" in text, f"真缺失的 pools 应被回填写盘: {text!r}"

@@ -130,7 +130,25 @@ class Workspace:
         if not f.exists():
             return {}
         try:
-            hooks = Config(f).cfg.hooks
+            cfg = Config(f)
+            # 检测 hooks 非法阶段名/未知字段 → stderr 告警 (不阻断)
+            if cfg._validation_error:
+                import sys as _sys
+                from skeinlib.config import HooksConfig
+                legal = sorted(set(HooksConfig.model_fields.keys()) |
+                               {i.alias for i in HooksConfig.model_fields.values() if i.alias})
+                # 从原始 YAML 提取非法键名
+                import yaml as _yaml
+                raw = _yaml.safe_load(f.read_text(encoding="utf-8")) or {}
+                raw_hooks = raw.get("hooks", {}) if isinstance(raw, dict) else {}
+                for bad_stage in raw_hooks:
+                    if bad_stage == "agent":
+                        continue
+                    if bad_stage not in set(HooksConfig.model_fields.keys()) | {
+                            i.alias for i in HooksConfig.model_fields.values() if i.alias}:
+                        print(f"⚠ hooks.{bad_stage}: 非法阶段名 — 合法: {legal}",
+                              file=_sys.stderr)
+            hooks = cfg.cfg.hooks
             return hooks.model_dump(by_alias=True)
         except Exception:
             return {}

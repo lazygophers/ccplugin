@@ -138,7 +138,7 @@ def section_check(tasks_dir: Path, tid: str, section: str, match: str, flag: boo
 
 def validate_prd(tasks_dir: Path, tid: str) -> None:
     """start 前只读校验 prd.md 就绪 (不写盘, 区别于 fmt 的规范化写盘):
-    (1) prd.md 存在; (2) 六标准章节齐备且顺序为 目标/边界/User Stories/验收标准/Testing Decisions/索引;
+    (1) prd.md 存在; (2) 标准章节齐备且顺序为 目标/边界/User Stories/验收标准/验证方式/Testing Decisions/索引;
     (3) 无 `- [ ] TODO` 占位 (模板初始态, 说明该节未填实)。结构不通过 raise SkeinError 阻断。"""
     prd = tasks_dir / tid / "prd.md"
     if not prd.exists():

@@ -26,10 +26,9 @@ effort: medium
 
 ## 阶段作业手册
 
-这些文件只保留 planning / redo 的局部边界；exec / check / finish 的 agent 边界归对应 `plugins/tools/skein/agents/*.md`：
+这些文件只保留 planning 的局部边界；exec / check / finish 的 agent 边界归对应 `plugins/tools/skein/agents/*.md`，redo 全流程见 [flow-loop.md §8](references/flow-loop.md#8-redo-断点续跑)：
 
 - [references/for-plan.md](references/for-plan.md) — planning 产物职责。
-- [references/for-redo.md](references/for-redo.md) — redo 操作边界；续跑过程见 flow-loop。
 
 ## 通用规则索引
 
@@ -39,4 +38,3 @@ effort: medium
 - [references/estimate-gate.md](references/estimate-gate.md) — estimate 硬门。
 - [references/sediment-protocol.md](references/sediment-protocol.md) — finish 后沉淀。
 - [references/root-cause-protocol.md](references/root-cause-protocol.md) — 反复失败后的根因报告格式。
-- [references/rollback-protocol.md](references/rollback-protocol.md) — 回退/扭转术语边界；执行过程见 flow-loop。

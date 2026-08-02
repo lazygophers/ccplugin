@@ -140,15 +140,22 @@ class Admin:
         cfg_path = self.ws.dir / "config.yaml"
         config = Config(cfg_path)
         action = getattr(a, "action", None)
+        want_json = getattr(a, "json", False)
         if action is None:  # 无参 → 展示全部生效配置
+            if want_json:
+                return config.cfg.model_dump(by_alias=True)
             return {path: val for path, val in _flatten_cfg(config.cfg)}
         if action == "reset":
             config.reset()
+            if want_json:
+                return {"reset": True, "config": config.cfg.model_dump(by_alias=True)}
             return {"reset": True, "config": {path: val for path, val in _flatten_cfg(config.cfg)}}
         key = a.key
         try:
             config.set(key, a.value)
-        except (KeyError, ValueError, TypeError) as e:
+        except (AttributeError, KeyError) as e:
+            raise SkeinError(f"未知配置键: {key} — 合法路径: {', '.join(p for p, _ in _flatten_cfg(config.cfg))}")
+        except (ValueError, TypeError) as e:
             raise SkeinError(f"配置键或值类型错误: {key}={a.value!r} — {e}")
         return {"key": key, "value": a.value}
 

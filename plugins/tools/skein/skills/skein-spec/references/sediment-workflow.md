@@ -45,6 +45,14 @@ skein-spec sediment --namespace rules --inclusion always|auto --category git --t
 
 always↔auto 频率驱动自动升降级暂不实现 (YAGNI)。手动改: 编辑规则文件 frontmatter 的 `inclusion:` 一行 + `skein-spec reindex`; 或 `skein-spec degrade <cat>/<name>` (always→auto)。**搬文件不改加载策略** — 目录 = namespace(内容类型), inclusion 是 frontmatter 字段, 两者正交。换类目/namespace 才需要移动文件。
 
+## status 转态 (proposed → active / superseded)
+
+`sediment --status` 四值: `active`(默认) / `proposed` / `deprecated` / `superseded`。plan 阶段沉淀的未验证决策 (grill/design 推出但当轮 check 没验过) 落 `proposed`, 供 `analyze` 的置信度检查识别。
+
+- **proposed → active** (决策后续被验证成立): **无法**靠再跑一次默认 `sediment` 达成 —— `write.py` 只在显式传**非** `active` 值时才覆盖既有 status (防常规追加意外抹掉 deprecated/superseded 标记), 传 `--status active` 等同默认值, 不生效。改法: 直接 Edit 该主题文件 frontmatter 的 `status:` 行, 再跑 `skein-spec reindex`。spec 规则文件不在 PreToolUse 硬阻名单 (只挡 task.json/task.md), 直接 Edit 允许。
+- **proposed → superseded** (决策被新方案取代): 跑 `sediment --namespace <ns> --category <cat> --topic <同 topic> --status superseded ...` 显式传非 active 值, 正常覆盖写盘 + 自动 reindex, **无需**手改 frontmatter。
+- 只换状态字段用上述两条; 正文也要同步改写走 `amend`。
+
 ## 5. amend vs sediment 抉择树
 
 同是「写盘更新记忆」, 两条命令语义不同, 选错会把现状 wiki 写成无限堆叠的历史日志:

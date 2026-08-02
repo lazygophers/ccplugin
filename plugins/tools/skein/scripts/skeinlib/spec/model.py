@@ -86,20 +86,43 @@ def _validate_budget(budget: int) -> None:
 
 def always_budget_tokens() -> int:
     """会话常驻注入 token 软预算: 读 .skein/config.yaml spec.always_budget (字符),
-    用换算系数转为 token。缺失/非正整数 → 默认 517 字符 ≈ 300 token。"""
-    from skeinlib.token_conversion import estimate_tokens_from_chars
+    用换算系数转为 token。
+    always_budget 缺失/非正整数 → fallback 到 spec.core_budget (字符) → 默认 517 字符 ≈ 300 token。
 
-    try:
-        from skeinlib.config import Config  # 局部 import
-        cfg_path = spec_root().parent / "config.yaml"
-        if cfg_path.exists():
-            chars = Config(cfg_path).cfg.spec.always_budget
-            tokens = estimate_tokens_from_chars(chars)  # 字符 → token
-            _validate_budget(tokens)  # 守卫: 非正数预算被挡下
+    读原始 YAML (非 pydantic Config) 以区分「用户显式设了」和「pydantic 补了默认值」。"""
+    from skeinlib.token_conversion import estimate_tokens_from_chars
+    import yaml as _yaml
+
+    cfg_path = spec_root().parent / "config.yaml"
+    raw_spec: dict = {}
+    if cfg_path.exists():
+        try:
+            raw = _yaml.safe_load(cfg_path.read_text(encoding="utf-8")) or {}
+            raw_spec = raw.get("spec", {}) if isinstance(raw, dict) else {}
+        except Exception:
+            pass
+
+    # 优先 always_budget (原始 YAML 值, 非 pydantic 补的默认)
+    ab = raw_spec.get("always_budget")
+    if isinstance(ab, (int, float)) and ab > 0:
+        tokens = estimate_tokens_from_chars(int(ab))
+        try:
+            _validate_budget(tokens)
             return tokens
-    except Exception:
-        pass
-    # 默认 517 字符 ≈ 300 token (517 × 0.58 = 299.86, ceil = 300)
+        except Exception:
+            pass
+
+    # fallback: core_budget
+    cb = raw_spec.get("core_budget")
+    if isinstance(cb, (int, float)) and cb > 0:
+        tokens = estimate_tokens_from_chars(int(cb))
+        try:
+            _validate_budget(tokens)
+            return tokens
+        except Exception:
+            pass
+
+    # 默认 517 字符 ≈ 300 token
     default_tokens = estimate_tokens_from_chars(517)
     _validate_budget(default_tokens)
     return default_tokens

@@ -1,7 +1,7 @@
 """`Artifacts` — task 工件读写: prd.md 章节、prd 规范化、契约清单。
 
 ## 为什么不让 AI 直接 Edit prd.md
-prd 有固定六章结构 (`PRD_SECTIONS_V6`), 而 `confirm` 的硬门按章节校验。裸 Edit 很容易把结构
+prd 有固定七章结构 (`PRD_SECTIONS_V6`), 而 `confirm` 的硬门按章节校验。裸 Edit 很容易把结构
 改坏, 于是 confirm 报一个和实际操作对不上的错。走 `prd read/write/add/check` 这组命令, 章节
 边界由 `skeinlib.task.prd` 统一维护, 结构永远合法。
 
@@ -30,7 +30,7 @@ class Artifacts:
 
     def fmt(self, a: argparse.Namespace) -> dict[str, Any]:
         # 规范化 .skein/task/<id>/prd.md: 各章节内一级 `- ` list 项补 `- [ ]` todo (已勾选态保留),
-        # 校验六标准章节齐备且顺序正确, 不规范报错非零退出;
+        # 校验标准章节齐备且顺序正确, 不规范报错非零退出;
         # 仅内容变化才写 (天然幂等 + 防 hook 循环)。
         tid = a.id.strip()
         prd = self.ws.tasks / tid / "prd.md"
@@ -38,7 +38,7 @@ class Artifacts:
             raise SkeinError(f"prd 不存在: {prd}")
         orig = prd.read_text()
         lines = orig.split("\n")
-        # 校验: 至少一个一级标题 (# ...) + 六标准章节齐备且顺序正确
+        # 校验: 至少一个一级标题 (# ...) + 标准章节齐备且顺序正确
         if not any(re.match(r"^#\s+\S", ln) for ln in lines):
             raise SkeinError(f"prd 不规范: 缺一级标题 (# ...) — {prd}")
         sections = [m.group(1).strip() for ln in lines

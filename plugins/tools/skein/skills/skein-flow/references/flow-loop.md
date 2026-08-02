@@ -99,7 +99,7 @@ for task in Bash("list --status=pending"):
 2. 判 direct-fix / standard / heavy；跨文件、多步、外部调研或文档交付必须走 task。
 3. 必要时派 `skein-researcher` 只读调研；结论落 `.skein/task/<id>/research/` 和 `findings.md`。
 4. 用 `AskUserQuestion` 做 brainstorm / 关键取舍 / grill 后补齐。
-5. 写 PRD 六段、design、subtask DAG、estimate、contracts。
+5. 写 PRD 七段、design、subtask DAG、estimate、contracts。
 6. subtask DAG 先定共享契约，再并行实现；`subtask add` 必须有 sid/name/desc/estimate/check。
 7. 跑 grill 硬门；弱点补齐后才可进入 confirm。
 8. `skein confirm --summary` 给用户审；用户批准后才 `skein confirm --approved`。
@@ -137,7 +137,7 @@ plan-ahead 只预备非焦点 pending task 到 confirm 门前，不替非焦点 
 
 ## 8. redo 断点续跑
 
-redo 用于 session 意外结束后清 running 死槽。它只改状态，不删除、不撤销上一轮已产出的文件改动。
+redo 解的是 session 意外结束后的状态卡死，不是回滚：只改 subtask 状态，不删除、不撤销上一轮已产出的文件改动，也不新增引擎命令（复位就用现有 `subtask fail` + `subtask start` 拼法）。
 
 动手前必须说明：redo 期间禁止有 agent 在跑；全部 running subtask 一律当孤儿，不做心跳/存活探测/时长阈值。
 
@@ -181,7 +181,12 @@ skein subtask start <tid> <sid>
 
 ### 9.4 回退协议
 
-SKEIN 的「回退」是流程扭转，不是状态倒退：task 保持 `active`，通过追加修复 subtask 前进式修补。契约只在 planning 阶段可改；exec/check 发现契约错误，必须经用户裁定后重回 planning 或新建 task。
+SKEIN 的「回退」是流程扭转，不是状态倒退：task 保持 `active`，通过追加修复 subtask 前进式修补。
+
+- 原失败 subtask 历史保留，不删除毁迹。
+- 能小修不大修，能定点修不重拆 task。
+- 契约只在 planning 阶段可改；exec/check 发现契约错误，必须经用户裁定后重回 planning 或新建 task。
+- 孤立失败（实现 bug / 环境 / 测试错）走 §9.1、§9.2 就地修；一致性冲突加 §9.3 根因；方案性缺陷与需求理解偏差一律停手交用户裁定，不自行改 PRD 或 design 后继续跑。
 
 ## 10. 停顿白名单
 

@@ -38,8 +38,17 @@ PRD = """# {tid} — PRD
 ## 边界
 - 不动 start
 
+## User Stories
+1. As a user, I want confirm gated
+
 ## 验收标准
 - [ ] 无 --approved 被拒
+
+## 验证方式
+- 跑 pytest
+
+## Testing Decisions
+- 只测外部行为
 
 ## 索引
 - design.md
@@ -51,9 +60,8 @@ def _ready_task(ws: Path, tid: str = "feat-x") -> str:
     run_skein(ws, "create", tid, "--name", "任务X", "--desc", "d")
     run_skein(ws, "subtask", "add", tid, "s1", "--name", "子一", "--desc", "d", "--estimate", "2")
     (ws / ".skein/task" / tid / "prd.md").write_text(PRD.format(tid=tid))
-    design = ws / ".skein/task" / tid / "design.md"
-    design.write_text(design.read_text().replace(
-        "- [ ] TODO: 填测试接缝", "- [x] 复用 tests/test_statemachine.py"))
+    (ws / ".skein/task" / tid / "design.md").write_text(
+        f"# {tid} — 详细设计\n\n## 测试接缝 (seam)\n- [x] 复用 tests/test_statemachine.py\n")
     run_skein(ws, "estimate", tid, "--set", "4")
     return tid
 
@@ -80,7 +88,7 @@ def test_bare_confirm_is_refused_and_names_both_channels(ws: Path) -> None:
     assert "看板点击" in r.stderr, f"未提看板通道: {r.stderr}"
     assert "--summary" in r.stderr and "AskUserQuestion" in r.stderr and "--approved" in r.stderr, \
         f"未提对话通道: {r.stderr}"
-    assert _task(ws, tid)["status"] == "待处理", "被拒后状态不该变"
+    assert _task(ws, tid)["status"] == "pending", "被拒后状态不该变"
 
 
 def test_cli_never_blocks_on_stdin(ws: Path) -> None:
@@ -101,14 +109,17 @@ def test_summary_prints_and_does_not_change_state(ws: Path) -> None:
     tid = _ready_task(ws)
     r = _raw(ws, "confirm", tid, "--summary")
     assert r.returncode == 0, r.stderr
-    assert "## 目标" in r.stdout and "## subtask" in r.stdout, f"摘要不完整: {r.stdout}"
-    assert _task(ws, tid)["status"] == "待处理", "--summary 不该改状态"
+    data = json.loads(r.stdout)
+    summary = data.get("summary", "")
+    assert "## 目标" in summary and "## subtask" in summary, f"摘要不完整: {summary}"
+    assert _task(ws, tid)["status"] == "pending", "--summary 不该改状态"
 
 
 def test_summary_shows_what_user_needs_to_judge(ws: Path) -> None:
     """摘要要够用户判断该不该放行: 目标 / 边界 / 验收 / subtask 拆解 / 工时。"""
     tid = _ready_task(ws)
-    out = _raw(ws, "confirm", tid, "--summary").stdout
+    data = json.loads(_raw(ws, "confirm", tid, "--summary").stdout)
+    out = data.get("summary", "")
     for must in ("目标", "边界", "验收标准", "subtask", "预计工时",
                  "让 confirm 真的需要人看", "[s1]"):
         assert must in out, f"摘要缺 {must!r}:\n{out}"
@@ -120,7 +131,7 @@ def test_approved_passes_and_records_channel(ws: Path) -> None:
     r = _raw(ws, "confirm", tid, "--approved")
     assert r.returncode == 0, f"--approved 仍被拒: {r.stderr}"
     t = _task(ws, tid)
-    assert t["status"] == "进行中"  # confirm 吸收 start: 待处理→进行中, 无就绪中间态
+    assert t["status"] == "active"  # confirm 吸收 start: 待处理→进行中, 无就绪中间态
     assert t.get("confirmed_by") == "user", f"审核渠道记错: {t.get('confirmed_by')}"
     assert t.get("confirmed"), "未记录审核时间"
 

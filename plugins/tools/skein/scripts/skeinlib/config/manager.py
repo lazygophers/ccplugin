@@ -40,6 +40,7 @@ class SpecConfig(BaseModel):
 
 class HookEntry(BaseModel):
     """单个 hook 条目 — 一条 shell 命令 + 执行参数。"""
+    model_config = {"extra": "forbid"}
     type: str = Field(default="command", description="条目类型 (目前仅 command)")
     command: str = Field(description="要执行的 shell 命令 (必填)")
     timeout: int = Field(default=60, gt=0, description="超时秒数, 缺省 60")
@@ -60,10 +61,10 @@ class AgentHooks(BaseModel):
 
 
 class HooksConfig(BaseModel):
-    """hooks 完整结构 — 阶段钩子 + subtask 事件钩子。
+    """hooks 完整结构 — 阶段钩子 + subtask 事件钩子 + agent 钩子。
 
     合法 scope = STAGE_NAMES (9 个阶段 + 3 个 subtask 事件)。
-    agent 钩子不在 ConfigData 内 — agent 名是动态的, 由 hooks/runner.py 运行时解析。
+    agent 钩子键名是动态 agent 名 (如 skein-executor), 值为 AgentHooks。
     """
     # 阶段钩子
     create: StageHooks = Field(default_factory=StageHooks)
@@ -79,8 +80,10 @@ class HooksConfig(BaseModel):
     subtask_start: StageHooks = Field(default_factory=StageHooks, alias="subtask.start", description="subtask 启动时")
     subtask_done: StageHooks = Field(default_factory=StageHooks, alias="subtask.done", description="subtask 完成时")
     subtask_fail: StageHooks = Field(default_factory=StageHooks, alias="subtask.fail", description="subtask 失败时")
+    # agent 钩子 — 键名是动态 agent 名 (如 skein-executor)
+    agent: dict[str, AgentHooks] = Field(default_factory=dict, description="agent 钩子 (键=agent 名)")
 
-    model_config = {"populate_by_name": True}
+    model_config = {"populate_by_name": True, "extra": "forbid"}
 
 
 class ConfigData(BaseModel):
@@ -108,18 +111,30 @@ class Config:
     # ---- 类级字段 ----
     _path: Path
     _cfg: ConfigData              # 生效配置 (pydantic 校验后的完整结构)
+    _validation_error: str | None = None  # 校验错误 (hooks 非法键等, 供 doctor 检测)
 
     def __init__(self, path: Path | str) -> None:
         self._path = Path(path)
+        self._validation_error = None
         self.reload()
 
     # ---- 读 ----
 
     def reload(self) -> ConfigData:
-        """读盘 → pydantic 校验+补默认值 → 缓存。文件不存在则写入默认配置。"""
+        """读盘 → pydantic 校验+补默认值 → 缓存。文件不存在或缺失键时回写。"""
         if self._path.exists():
             result = yaml.safe_load(self._path.read_text(encoding="utf-8"))
-            self._cfg = ConfigData.model_validate(result if isinstance(result, dict) else {})
+            raw = result if isinstance(result, dict) else {}
+            try:
+                self._cfg = ConfigData.model_validate(raw)
+                self._validation_error = None
+            except Exception as e:
+                # hooks 非法键/未知字段 → 降级为默认配置, 保留错误供 doctor 检测
+                self._cfg = ConfigData()
+                self._validation_error = str(e)
+            # 缺失顶层键 → pydantic 补了默认值 → 回写盘保持文件完整
+            if raw and not raw.keys() >= {f for f in ConfigData.model_fields}:
+                self._write()
         else:
             self._cfg = ConfigData()
             self._write()
