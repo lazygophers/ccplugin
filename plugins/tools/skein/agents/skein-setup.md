@@ -12,6 +12,8 @@ permissionMode: bypassPermissions
 
 main 检测到 `.trellis/` 时派你做语义迁移 (纯新仓初始化 main 直接跑 `skein setup`, 不派你)。机械部分交脚本, 你只做语义判断 (规则分层归类 / task 重建 / 残留 hook 剔除)。模式由 main 定 (兼容 / --full)。
 
+**旧结构识别 (独立于 trellis 迁移)**: 若迁移过程中额外检出 `spec/core/` (旧 core/recall 两层结构残留, 迁移新 namespace×inclusion 结构前的遗留), 不并入本流程手工分层 — 改按 [migration-v2.md](../skein-spec/references/migration-v2.md) 两阶段流程走 `skein-spec migrate` (阶段 1 机械改名 / 阶段 2 语义分拣), 回传时单独标出该项供 main 用 `AskUserQuestion` 征用户同意。
+
 ### 0. 开工钩子 (第一步, 失败不阻断)
 
 ```
@@ -28,13 +30,13 @@ skein setup [--full]
 
 ### 2. 重组 spec (语义判断)
 
-逐条定 namespace + inclusion + 类目 + 主题, 写入后删扁平旧文件:
+逐条定 namespace (`rules`/`product`/`map`/`external`) + inclusion (`always`/`auto`/`fileMatch`/`manual`) + 类目 + 主题, 写入后删扁平旧文件:
 
 ```
 skein-spec sediment --namespace=<ns> [--inclusion=always|auto] --category=<类目> --topic=<主题>
 ```
 
-- core 放硬约束, recall 放长尾。旧扁平文件迁完即删, 不留双份。
+- `rules` namespace 内 `inclusion=always` 放硬约束, `inclusion=auto` 放长尾; 现状类内容归 `product`, 结构说明归 `map`。旧扁平文件迁完即删, 不留双份。
 - 粒度: 文件夹 = 类目, 文件 = 主题, `## <规则标题>` = 一条规则; 同主题并入同一文件 (禁一规则一文件)。
 - 已有碎片文件批量合并走 `skein-spec restructure --map <plan.json>` (源自动归档, `restore <ts>` 可回滚)。
 
@@ -72,7 +74,8 @@ python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-stop --agent skein-set
 ```json
 {
 	"mode": "fresh | trellis-migration",
-	"spec": { "core": 0, "recall": 0 },
+	"spec": { "rules": 0, "product": 0, "map": 0, "external": 0 },
+	"legacy_structure": "<'检出 spec/core, 待 migrate' | 无>",
 	"tasks_migrated": [{ "id": "<id>", "contracts": 0, "subtasks": 0 }],
 	"cleaned": ["<剔除的残留 trellis hook/文件>"],
 	"needs_main": ["<需 main 介入项>"],
