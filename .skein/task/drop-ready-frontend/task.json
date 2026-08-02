@@ -15,13 +15,15 @@
       "验收": [
         "同名不同义三处 (edge kind / ready-to-schedule 布尔 / 首页文案) 原样保留"
       ],
-      "验收done": [],
-      "status": "运行中",
+      "验收done": [
+        1
+      ],
+      "status": "已完成",
       "phase": "exec",
       "skills": [],
       "created": 1785647864,
       "started": 1785648133,
-      "finished": null
+      "finished": 1785648700
     },
     {
       "sid": "f2",
@@ -33,11 +35,11 @@
         "描述与当前 CLI --help 实际输出一致"
       ],
       "验收done": [],
-      "status": "待处理",
+      "status": "运行中",
       "phase": "exec",
       "skills": [],
       "created": 1785647864,
-      "started": null,
+      "started": 1785648455,
       "finished": null
     },
     {
@@ -102,6 +104,6 @@
   "confirmed": 1785648132,
   "checked": null,
   "finished": null,
-  "updated": 1785648133,
+  "updated": 1785648700,
   "confirmed_by": "user"
 }
