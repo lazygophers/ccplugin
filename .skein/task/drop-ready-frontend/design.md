@@ -43,3 +43,24 @@ check 阶段验证的是`行为对不对`而非`跑没跑起来`, 全靠这里�
 - 描述与当前 CLI `--help` 实际输出一致 — 卡片/表格/SVG 三处均对照实测 `--help` 输出改写
 
 `npx tsc --noEmit` 零报错。越界自查: `git diff --stat 26916c89d..HEAD` 与 `c10a001b9^..HEAD` 均只涉 `src/app/help/page.tsx`, 未碰 f1 的 status.tsx/model.ts/board.tsx/globals.css。
+
+## f3 执行记录 (零残留扫描测试 + 反向验证)
+
+落在既有文件 `plugins/tools/skein/scripts/tests/test_zero_residual.py`(concurrency-pools s8 建立的扫描模式), 未另起一套, 加第 4 节「前端 `ready` task 状态零残留」:
+
+- 扫描面: 全部 `src/**/*.ts`、`src/**/*.tsx`, 正则 `\bready\b`(词边界, 大小写不敏感)
+- 豁免机制: `_READY_TS_ALLOW_LINES`(按文件→精确行内容排除, 不按行号, 抗重排), 三处豁免点及理由写在断言函数 docstring 与上方注释块里:
+  1. `lib/api.ts:59` `ready?: boolean;` — task 的 ready-to-schedule 布尔标记(可被调度器认领), 非状态枚举值
+  2. `lib/depdag.ts:13,41` — 依赖图 edge kind(上游已完成→连线配色), 非 task 状态
+  3. `app/help/page.tsx` 两处 "ready subtask" 文案 — 描述 subtask 级 ready-to-schedule 语义(可被 `claim exec` 认领), 与 1 同一概念的自然语言表述, 非状态字面量
+  - 首页 `app/page.tsx`「脚手架已就绪」是中文, 天然不落在英文词边界扫描范围内, 无需登记
+- 新增测试: `test_no_ready_task_status_in_frontend`
+
+反向验证: 临时在 `src/components/status.tsx` 的 `ST_META` 里加回 `ready: { label: "待执行", ... }`(旧样子), 单独跑该测试 → 转红(`AssertionError: 前端仍有 ready 作为 task 状态残留... status.tsx:7: ready: { label: "待执行", ...`), 证明断言真的会抓。`git checkout --` 还原, `git status` 确认工作区干净后再收尾。
+
+验收自证:
+- 扫描断言落在 `test_zero_residual.py`, 未另起一套 — 见上
+- 豁免点(3 处)显式列出且写了理由 — 见注释块 + docstring
+- 反向验证: 改回旧样子断言转红, 改回绿 — 见上方记录
+
+commit: `042c09ad0 wip(skein): f3 加前端 ready task 状态零残留扫描 (3 处豁免)`
