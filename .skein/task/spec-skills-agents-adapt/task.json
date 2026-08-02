@@ -85,12 +85,17 @@
         "plugin.json description 已更新",
         "git diff 确认 hooks 键未出现在 diff 中"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785382888,
       "started": null,
-      "finished": null
+      "finished": 1785647997
     },
     {
       "sid": "d5",
@@ -130,6 +135,6 @@
   "confirmed": 1785594118,
   "checked": null,
   "finished": null,
-  "updated": 1785633287,
+  "updated": 1785647997,
   "confirmed_by": "user"
 }
