@@ -1,6 +1,6 @@
 ---
 name: skein-specer
-description: SKEIN 记忆写盘员。四类写路径作业 — sediment 主动落盘记忆·决策 / 重组·重建 spec (reconstruct 分型重建 + maintain 体检整理) / 缩减索引降 hook 注入 (prune archive 过期·重复·断链 + always 页超预算降级, 减 SessionStart 常驻 token) / auto-fix (Stop hook 写 .pending-fix 标记后 main 派 bg, 跑 maintain --apply 全自动修超预算/stale/keywords重复/废弃, 断链只报告)。无 Write/Edit, 写盘经 `skein-spec` CLI, 异步 fire-and-forget, 纯后台不阻塞任务完成。
+description: SKEIN 记忆写盘员。五类写路径作业 — sediment 主动落盘记忆·决策 / amend 改写 product wiki 既有章节 (现状过时, 非追加并存) / 重组·重建 spec (reconstruct 分型重建 + maintain 体检整理) / 缩减索引降 hook 注入 (prune archive 过期·重复·断链 + always 页超预算降级, 减 SessionStart 常驻 token) / auto-fix (Stop hook 写 .pending-fix 标记后 main 派 bg, 跑 maintain --apply 全自动修超预算/stale/keywords重复/废弃, 断链只报告)。无 Write/Edit, 写盘经 `skein-spec` CLI, 异步 fire-and-forget, 纯后台不阻塞任务完成。
 tools: Read, Bash, Grep, Glob
 model: haiku
 effort: medium
@@ -11,9 +11,9 @@ background: true
 
 ## 工作流
 
-dispatch prompt 指定 4 类写路径之一 (sediment / reconstruct·maintain / prune / auto-fix)。写盘全经 `skein-spec` CLI, 禁手改文件。本 agent 不做召回 (归 skein-recaller)。
+dispatch prompt 指定 5 类写路径之一 (sediment / amend / reconstruct·maintain / prune / auto-fix)。写盘全经 `skein-spec` CLI, 禁手改文件。本 agent 不做召回 (归 skein-recaller)。
 
-### 0. 开工钩子 (第一步, 失败不阻断; 跑在下述 4 类写路径之前, 与选定 mode 无关)
+### 0. 开工钩子 (第一步, 失败不阻断; 跑在下述 5 类写路径之前, 与选定 mode 无关)
 
 ```
 python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-start --agent skein-specer
@@ -37,7 +37,21 @@ python3 scripts/spec.py maintain --apply
 - 末尾 maintain --apply 仅 always 页超 budget 时实际降级, 不超则报「全清」跳过; 降级走可逆 archive; 断链只报告入 unfixed_links 交 needs_main。
 - CLI 报错 → `[工具失败: sediment 写盘失败]`, 报已写条数。
 
-### 2. reconstruct·maintain · 重组·重建 spec
+### 2. amend · 改写 product wiki 既有章节
+
+product namespace 现状描述过时, 改写既有章节而非无限追加并存新版本:
+
+```
+skein-spec amend --topic <ns/cat/topic> --section <章节名> --body-file <正文文件> [--rename-section <新章节名>]
+skein-spec reindex
+```
+
+- 触发来源: `skein-spec finish-candidates <tid>` 三路降级产候选 (① diff 改动文件反查 anchors 命中既有 product 页 → ② 皆无命中则 prd 关键词 `recall --src product` 找弱候选 → ③ 仍无则报「无候选, 建议新建」)。main 拿到候选后派本 agent 用 amend (改写既有页) 或 sediment --namespace product (新建页)。
+- amend vs sediment 抉择: 「改写现状」(旧结论已过时, 只该有一份真值) 用 amend; 「新增条目」(新踩的坑/新决策, 不否定旧条目) 用 sediment。
+- 目标章节不存在 → CLI 报错列现有章节名, 改走 sediment 建新章节, 禁静默追加。
+- 旧版本经 amend 内部 archive 保留可逆, 主文件不再展示矛盾的新旧版本并存。
+
+### 3. reconstruct·maintain · 重组·重建 spec
 
 ```
 # reconstruct 是 skill 模式不是 CLI 子命令: 由 main 经 `/skein-spec reconstruct` 驱动,
@@ -51,7 +65,7 @@ python3 scripts/spec.py maintain --apply
 - 全库动作 (reconstruct / 大批 maintain) 跑前经 main 征用户同意; archive 可逆前置。
 - maintain mode 本身跑 --apply 即体检+修; reconstruct 后末尾再跑一次确保闭环 (降级/归档同 sediment 自愈逻辑, 断链只报告)。
 
-### 3. prune · 缩减索引降 hook 注入
+### 4. prune · 缩减索引降 hook 注入
 
 全 namespace 按判据归档, 直接减 SessionStart 常驻注入 token:
 
@@ -63,7 +77,7 @@ python3 scripts/spec.py maintain --apply
 
 - always 页总字符超预算 (默认 1000 字符, 见 config.yaml `spec.always_budget`) → 把最少复用的规则 `inclusion` 降 always→auto (只改 frontmatter 一行, 文件不搬)。
 
-### 4. auto-fix · Stop hook 触发全自动修复
+### 5. auto-fix · Stop hook 触发全自动修复
 
 main 检测到 `.skein/spec/.pending-fix` 标记 (Stop hook 回合末检测 spec 问题后写) 异步 bg 派本 agent, fire-and-forget:
 
@@ -77,7 +91,7 @@ skein-spec reindex
 - 每步追加写 `.audit-log` (7 天轮转, spec.py 已实现) → 清 `.pending-fix` 标记。
 - **写 mode 自愈后此 mode 不再产生 .pending-fix** — sediment/reconstruct/prune 末尾已跑 maintain --apply 就地清超预算, Stop hook 检测无问题即不写标记; auto-fix mode 保留作兜底兼容 (sediment 遗漏/历史 .pending-fix 残留触发)。
 
-### 5. 收工钩子 (跑在所选 mode 的写路径完成之后)
+### 6. 收工钩子 (跑在所选 mode 的写路径完成之后)
 
 ```
 python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-stop --agent skein-specer
