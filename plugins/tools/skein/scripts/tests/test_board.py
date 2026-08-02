@@ -119,6 +119,34 @@ def test_prd_and_efficiency() -> None:
             os.chdir(cwd0)
 
 
+def test_priority_on_board_and_exec_whitelist() -> None:
+    """p4: 看板卡片显示真实优先级 (非兜底值) + 页面改优先级复用白名单 exec 通道 (未新增专用写接口)。"""
+    with tempfile.TemporaryDirectory() as td:
+        d = Path(td)
+        _init_ws(d)
+        sk(d, "create", "prio-demo", "--name", "任务优先级", "--desc", "d", "--priority", "urgent")
+        m = _load()
+        cwd0 = os.getcwd()
+        os.chdir(d)
+        try:
+            sk_obj = m.Skein()
+            card = next(c for c in _view_board_data(sk_obj._snapshot())["cards"] if c["id"] == "prio-demo")
+            assert card["priority"] == "urgent", "看板卡片应显示真实优先级 (非兜底 normal)"
+
+            # 白名单: 合法改优先级请求 → 固定 argv (id/set 均需给, 绝不 shell 拼串)
+            argv = sk_obj._exec_argv({"cmd": "priority", "id": "prio-demo", "set": "low"})
+            assert argv is not None and argv[-4:] == ["priority", "prio-demo", "--set", "low"]
+
+            # 缺 set / 缺 id 均拒 (不静默放行半截请求)
+            assert sk_obj._exec_argv({"cmd": "priority", "id": "prio-demo"}) is None
+            assert sk_obj._exec_argv({"cmd": "priority", "set": "low"}) is None
+
+            # 白名单外命令一律拒 (禁越权写)
+            assert sk_obj._exec_argv({"cmd": "priority-hack", "id": "prio-demo", "set": "low"}) is None
+        finally:
+            os.chdir(cwd0)
+
+
 def test_serve_http() -> None:
     with tempfile.TemporaryDirectory() as td:
         d = Path(td)

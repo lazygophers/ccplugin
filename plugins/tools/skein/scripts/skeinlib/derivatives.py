@@ -31,6 +31,7 @@ DERIVATIVES: list[Derivative] = [
     Derivative(".edit-tally", "hooks/postwrite.py cmd_flow_gate 计数标记"),
     Derivative(".edit-tally.warned", "hooks/postwrite.py cmd_flow_gate 已提醒标记"),
     Derivative("index.html", "assets/nextjs `pnpm build` (Next.js static export → assets/dist/)"),
+    Derivative(".priority-migration-backup/", "priority.py migrate_priority_values 迁移前快照, 供回滚"),
 ]
 
 

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Sidebar, Topbar } from "@/components/layout";
 import { StatusBadge, StatusDot } from "@/components/status";
 import { api, type QueueItem } from "@/lib/api";
-import { normalizeTasks } from "@/lib/model";
+import { normalizeTasks, PRIORITY_RANK } from "@/lib/model";
 
 export default function QueuePage() {
   const [items, setItems] = useState<QueueItem[]>([]);
@@ -14,8 +14,8 @@ export default function QueuePage() {
     api.queue().then((r) => {
       const tasks = normalizeTasks(((r as Record<string, unknown>).queueTasks || []) as Record<string, unknown>[]);
       tasks.sort((a, b) => {
-        const pa = (a as Record<string, unknown>).priority != null ? Number((a as Record<string, unknown>).priority) : 5;
-        const pb = (b as Record<string, unknown>).priority != null ? Number((b as Record<string, unknown>).priority) : 5;
+        const pa = PRIORITY_RANK[a.priority] ?? PRIORITY_RANK.normal;
+        const pb = PRIORITY_RANK[b.priority] ?? PRIORITY_RANK.normal;
         if (pa !== pb) return pb - pa;
         return (b.createdAt || 0) - (a.createdAt || 0);
       });

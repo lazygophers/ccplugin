@@ -1,0 +1,74 @@
+{
+  "id": "max-parallel-cleanup",
+  "name": "清理 max_parallel 幽灵配置名 (skein-flow 目录外 9 处)",
+  "desc": "skein.py:167 唯一并发配置名是 max_active, 全脚本无 max_parallel。但目录外仍有 9 处写 max_parallel, 会误导 AI 与用户: docs/reference.md:63, docs/skein.md:101/185/193, docs/examples/sample-skein/config.yaml:2, docs/examples/index.html:1749, scripts/test_skein.py:215, scripts/tests/test_dag.py:8, skills/skein-setup/SKILL.md:42。来源: task skein-flow-slim 的 s6 核验发现, 因契约 8 限定作业面未处理, 用户裁定另开独立 task。注意 config.yaml 与 test_*.py 需先确认 skein.py 是否真读该键, 避免改坏测试。",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "非 spec 9 处替换",
+      "desc": "config.yaml x2 + docs x5 + SKILL.md x1 + 测试注释 x2",
+      "depends_on": [],
+      "验收": [
+        "两处 config.yaml 的 max_parallel 键已删且 max_active 未动",
+        "docs 5 处语义正确改为 max_active",
+        "SKILL.md:42 改毕",
+        "两处测试注释改毕",
+        "pytest tests/ 全绿",
+        "skein.py list 无报错"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785255330,
+      "started": 1785255353,
+      "finished": 1785291291
+    },
+    {
+      "sid": "s2",
+      "name": "spec 2 处替换",
+      "desc": "recall/planning/discipline.md + recall/impl/claim.md",
+      "depends_on": [
+        "s1"
+      ],
+      "验收": [
+        "两处 spec 文件 max_parallel 改为 max_active 且语义正确",
+        "全仓 grep 仅剩 task.json 的 task id"
+      ],
+      "验收done": [
+        1,
+        2
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785255330,
+      "started": 1785291291,
+      "finished": 1785291459
+    }
+  ],
+  "priority": 5,
+  "estimate": 0.5,
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/max-parallel-cleanup",
+  "parent": null,
+  "kind": "task",
+  "created": 1785250215,
+  "started": 1785255352,
+  "confirmed": 1785255330,
+  "checked": 1785291459,
+  "finished": 1785292038,
+  "updated": 1785292038
+}

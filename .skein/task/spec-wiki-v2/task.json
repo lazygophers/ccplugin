@@ -6,7 +6,7 @@
   "deps": [],
   "contracts": [],
   "subtasks": [],
-  "priority": 5,
+  "priority": "normal",
   "estimate": null,
   "repos": [],
   "worktree": null,

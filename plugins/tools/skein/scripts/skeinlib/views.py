@@ -12,8 +12,8 @@ from pathlib import Path
 from typing import Any, Callable, Optional, Protocol, cast
 
 from skeinlib.dag import _pending_queue, _sub_pct, _task_pct, _task_stage
-from skeinlib.model import (SS_DONE, SS_PENDING, SS_RUNNING, STATUS_ACTIVE, STATUS_ORDER,
-                            S_ACTIVE, S_CHECK, S_DONE, S_PENDING, S_READY, now)
+from skeinlib.model import (PRIORITY_DEFAULT, SS_DONE, SS_PENDING, SS_RUNNING, STATUS_ACTIVE,
+                            STATUS_ORDER, S_ACTIVE, S_CHECK, S_DONE, S_PENDING, S_READY, now)
 from skeinlib.worktree import git
 
 class Snapshot:
@@ -239,6 +239,7 @@ def _view_board_data(snap: Snapshot) -> dict[str, Any]:
             "finished": t.get("finished"),
             "elapsed": elapsed_of(t),
             "estimate": t.get("estimate"),  # task 预计工时(小时) = Σ subtask + plan/check 自身开销
+            "priority": t.get("priority") or PRIORITY_DEFAULT,  # 看板卡片/详情面板优先级 (真实值; 未存则中档)
             "sdone": sdone, "stotal": len(subs), "spct": task_pct(t),
             "prd": prd_data(t["id"]),
             "subtable": subtable,
@@ -572,5 +573,5 @@ def _cards_signature(data: dict[str, Any]) -> dict[str, tuple[Any, ...]]:
     for c in data.get("cards", []):
         out[c["id"]] = (c.get("status"), c.get("spct"), c.get("sdone"), c.get("stotal"),
                         c.get("started"), c.get("finished"), c.get("worktree"),
-                        c.get("nextUp"), c.get("stage"))
+                        c.get("nextUp"), c.get("stage"), c.get("priority"))
     return out

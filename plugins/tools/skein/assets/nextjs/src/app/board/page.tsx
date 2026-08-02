@@ -4,8 +4,8 @@ import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import Link from "next/link";
 import { Sidebar, Topbar } from "@/components/layout";
 import { StatusBadge, StatusDot, ST_META, ST_ORDER } from "@/components/status";
-import { api, type Task } from "@/lib/api";
-import { normalizeTasks, normalizeStatus, type NormTask, type NormSubtask } from "@/lib/model";
+import { api, ApiError, type Task } from "@/lib/api";
+import { normalizeTasks, normalizeStatus, PRIORITY_LABEL, PRIORITY_COLOR_VAR, type NormTask, type NormSubtask } from "@/lib/model";
 import { cn } from "@/lib/utils";
 import { fmtRelative, fmtTime } from "@/lib/format";
 import { renderMd } from "@/lib/md";
@@ -240,6 +240,19 @@ export default function BoardPage() {
 
   const cleanDone = () => setConfirmAction({ type: "clean", id: "", name: "" });
 
+  // 页面直接改优先级: 复用白名单 exec 通道; 成功后本地乐观更新 (无需等 mtime 轮询), 失败给明确错误。
+  // exec 端点 CLI 失败时仍返回 HTTP 200 (body.ok=false + stderr), 不会走 fetch 的 catch — 必须显式查 ok。
+  const handlePriorityChange = async (id: string, val: string) => {
+    try {
+      const r = await api.exec("priority", { id, set: val }) as { ok: boolean; stderr?: string };
+      if (!r.ok) { toast(r.stderr?.trim() || "优先级更新失败", "error"); return; }
+      setAllTasks(prev => prev.map(t => t.id === id ? { ...t, priority: val } : t));
+      toast("优先级已更新", "success");
+    } catch (e) {
+      toast(e instanceof ApiError ? e.message : "优先级更新失败", "error");
+    }
+  };
+
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
@@ -315,6 +328,7 @@ export default function BoardPage() {
                 onConfirm={async (id) => { try { await api.exec("confirm", { id }); toast("已确认规划", "success"); } catch { toast("确认失败", "error"); } }}
                 onFinish={(id, name) => setConfirmAction({ type: "finish", id, name })}
                 onDelete={(id, name) => setConfirmAction({ type: "delete", id, name })}
+                onPriorityChange={handlePriorityChange}
                 onSelectTask={setSelectedId}
               />
             )}
@@ -460,7 +474,10 @@ function DagCanvas({ layout, statusSet, onSelect, selectedId }: {
                   <div className="truncate text-xs leading-none text-foreground">{t.title || t.name || t.id}</div>
                 ) : (
                   <>
-                    <div className="truncate text-xs font-semibold leading-tight text-foreground">{t.title || t.name || "(未命名)"}</div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="min-w-0 flex-1 truncate text-xs font-semibold leading-tight text-foreground">{t.title || t.name || "(未命名)"}</div>
+                      <span className="flex-shrink-0 rounded border px-1 text-[9px] font-medium leading-tight" style={{ color: `var(${PRIORITY_COLOR_VAR[t.priority] || "--muted-foreground"})`, borderColor: `var(${PRIORITY_COLOR_VAR[t.priority] || "--muted-foreground"})` }}>{PRIORITY_LABEL[t.priority] || t.priority || "中"}</span>
+                    </div>
                     <div className="flex items-center text-[10px] leading-tight text-muted-foreground">
                       <span className="truncate font-mono">#{t.id}</span>
                       {subs.length > 0 && <span className="flex-shrink-0 ml-1">{subDone}/{subs.length}</span>}
@@ -528,6 +545,7 @@ function ListView({ tasks, statusSet, onSelect }: { tasks: NormTask[]; statusSet
                     <div className="truncate text-sm text-foreground">{t.title || t.name || "(未命名)"}</div>
                     <div className="truncate font-mono text-xs text-muted-foreground">#{t.id}</div>
                   </div>
+                  <span className="flex-shrink-0 rounded border px-1 text-[9px] font-medium" style={{ color: `var(${PRIORITY_COLOR_VAR[t.priority] || "--muted-foreground"})`, borderColor: `var(${PRIORITY_COLOR_VAR[t.priority] || "--muted-foreground"})` }}>{PRIORITY_LABEL[t.priority] || t.priority || "中"}</span>
                 </div>
               )) : <div className="py-6 text-center text-xs text-muted-foreground">暂无</div>}
             </div>
@@ -539,9 +557,10 @@ function ListView({ tasks, statusSet, onSelect }: { tasks: NormTask[]; statusSet
 }
 
 // ── Detail Panel ──
-function DetailPanel({ task, allTasks, onClose, onConfirm, onFinish, onDelete, onSelectTask }: {
+function DetailPanel({ task, allTasks, onClose, onConfirm, onFinish, onDelete, onPriorityChange, onSelectTask }: {
   task: NormTask; allTasks: NormTask[]; onClose: () => void;
-  onConfirm: (id: string) => void; onFinish: (id: string, name: string) => void; onDelete: (id: string, name: string) => void; onSelectTask: (id: string) => void;
+  onConfirm: (id: string) => void; onFinish: (id: string, name: string) => void; onDelete: (id: string, name: string) => void;
+  onPriorityChange: (id: string, val: string) => void; onSelectTask: (id: string) => void;
 }) {
   const st = task.status || "planning";
   const meta = ST_META[st] || ST_META.planning;
@@ -578,7 +597,12 @@ function DetailPanel({ task, allTasks, onClose, onConfirm, onFinish, onDelete, o
       <div className="flex-1 space-y-4 overflow-y-auto p-6">
         {/* Basic info */}
         <DetailCard title="基本信息">
-          <InfoRow label="优先级" value={String(task.priority ?? 5)} />
+          <InfoRow label="优先级" value={
+            <select value={task.priority} onChange={(e) => onPriorityChange(task.id, e.target.value)}
+              className="rounded-md border border-border bg-card/60 px-2 py-1 text-sm text-foreground">
+              {Object.entries(PRIORITY_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select>
+          } />
           <InfoRow label="预估工时" value={task.estimate ? `${task.estimate} h` : "—"} />
           <InfoRow label="进度" value={<ProgressBar value={Number((task as Record<string, unknown>).spct ?? task.progress ?? (st === "done" ? 100 : 0))} colorVar={meta.colorVar} />} />
           {st === "done" ? (() => { const a = actualOf(task as unknown as Parameters<typeof actualOf>[0]); if (!a) return null; const dt = deltaText(a.delta); return <InfoRow label="实际耗时" value={`${fmtHours(a.hours)}${dt ? ` (${dt})` : ""}`} />; })()

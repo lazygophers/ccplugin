@@ -106,7 +106,7 @@
       "note": "redo 孤儿复位: session 意外退出, 全部运行中一律当孤儿"
     }
   ],
-  "priority": 5,
+  "priority": "normal",
   "estimate": 5.0,
   "repos": [],
   "worktree": null,

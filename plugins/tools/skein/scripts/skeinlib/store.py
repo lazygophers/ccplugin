@@ -29,7 +29,7 @@ from typing import Any, Callable, Optional, cast
 from skeinlib.hooks.runner import DBG
 from skeinlib.board import render_board, render_task_board, render_vision
 from skeinlib.errors import SkeinError
-from skeinlib.model import STATUS_ACTIVE, STATUS_ORDER, S_DONE, now
+from skeinlib.model import PRIORITY_DEFAULT, PRIORITY_RANK, STATUS_ACTIVE, STATUS_ORDER, S_DONE, now
 
 
 class TaskStore:
@@ -93,7 +93,7 @@ class TaskStore:
         # 每次变更重算, 免各处同步。无 task 级 focus — 无未完成前置的 task 皆可并行 (DAG 就绪即跑)。
         self.autoclean()  # 惰性归档超保留期的完成 task, 再重算索引
         tasks = [{"id": t["id"], "status": t["status"], "deps": t["deps"],
-                  "priority": t.get("priority", 5),
+                  "priority": t.get("priority") or PRIORITY_DEFAULT,
                   "worktree": t.get("worktree"),
                   "parent": t.get("parent"), "kind": t.get("kind", "task"),
                   "created": t.get("created"),
@@ -139,9 +139,9 @@ class TaskStore:
                 DBG.log(f"读 {f}  → id={t.get('id')} status={t.get('status')} "
                         f"subtasks={len(t.get('subtasks', []))} deps={t.get('deps') or '-'} "
                         f"contracts={len(t.get('contracts', []))}", style="dim")
-        # 状态优先排序 (进行中>检查中>就绪>待处理>已完成), 同状态内按优先级降序 (数字越大越靠前), 同优先级按 id 序
+        # 状态优先排序 (进行中>检查中>就绪>待处理>已完成), 同状态内按优先级降序 (紧急>高>中>低), 同优先级按 id 序
         out.sort(key=lambda t: (STATUS_ORDER.get(t.get("status", ""), 9),
-                                -(t.get("priority") or 5),
+                                -PRIORITY_RANK.get(t.get("priority", ""), PRIORITY_RANK[PRIORITY_DEFAULT]),
                                 t.get("id") or ""))
         return out
 
@@ -168,7 +168,7 @@ class TaskStore:
                 if r["id"] in have:  # per-task 明细已覆盖 → 保留明细, 跳过镜像骨架
                     continue
                 tasks.append({"id": r["id"], "name": r.get("name", r["id"]), "status": r["status"],
-                              "priority": r.get("priority", 5),
+                              "priority": r.get("priority") or PRIORITY_DEFAULT,
                               "deps": r.get("deps", []), "worktree": r.get("worktree"),
                               "parent": r.get("parent"), "kind": r.get("kind", "task")})
                 mirrored += 1
@@ -176,7 +176,7 @@ class TaskStore:
         else:
             DBG.log(f"顶层镜像 {mirror} 不存在, 仅用 per-task 明细", style="dim")
         tasks.sort(key=lambda t: (STATUS_ORDER.get(t["status"], 9),
-                                  -(t.get("priority") or 5),
+                                  -PRIORITY_RANK.get(t.get("priority", ""), PRIORITY_RANK[PRIORITY_DEFAULT]),
                                   t["id"]))
         by_status: dict[str, int] = {}
         sub_total = 0

@@ -13,6 +13,12 @@ const STATUS_MAP: Record<string, string> = {
 
 export function normalizeStatus(s: string): string { return STATUS_MAP[s] || s; }
 
+// 优先级: 四档枚举 (机器值 urgent/high/normal/low, 展示层映射中文) — 与 skeinlib/model.py PRIORITIES 对齐
+export const PRIORITIES = ["urgent", "high", "normal", "low"] as const;
+export const PRIORITY_LABEL: Record<string, string> = { urgent: "紧急", high: "高", normal: "中", low: "低" };
+export const PRIORITY_COLOR_VAR: Record<string, string> = { urgent: "--destructive", high: "--st-check", normal: "--muted-foreground", low: "--muted-foreground" };
+export const PRIORITY_RANK: Record<string, number> = { urgent: 3, high: 2, normal: 1, low: 0 };
+
 export interface NormSubtask {
   sid: string;
   id: string;
@@ -43,6 +49,7 @@ export interface NormTask {
   contracts: { id: string; desc?: string }[];
   kind: string;
   parent: string | null;
+  priority: string;
   createdAt: number | null;
   confirmedAt: number | null;
   startedAt: number | null;
@@ -93,6 +100,8 @@ export function normalizeTask(t: Record<string, unknown>): NormTask {
     deps: (t.deps || []) as string[],
     subtasks: ((t.subtasks || t.subtable || []) as Record<string, unknown>[]).map(normalizeSubtask),
     contracts: (t.contracts || []) as { id: string; desc?: string }[],
+    // 真实值优先, 仅缺字段/非四档合法值 (如未迁移的存量数字) 时落中档兜底, 防选择器渲染出不存在的档位
+    priority: PRIORITIES.includes(t.priority as typeof PRIORITIES[number]) ? (t.priority as string) : 'normal',
     kind: (t.kind || 'task') as string,
     parent: (t.parent || null) as string | null,
     createdAt: createdTs,

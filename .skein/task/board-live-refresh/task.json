@@ -93,7 +93,7 @@
       "finished": null
     }
   ],
-  "priority": 5,
+  "priority": "normal",
   "estimate": 6.5,
   "repos": [],
   "worktree": null,

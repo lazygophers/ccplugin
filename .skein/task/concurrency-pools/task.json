@@ -179,7 +179,7 @@
       "finished": null
     }
   ],
-  "priority": 5,
+  "priority": "normal",
   "estimate": 13.0,
   "repos": [],
   "worktree": ".worktrees/skein-concurrency-pools",
