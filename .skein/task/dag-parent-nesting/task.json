@@ -200,7 +200,7 @@
       "finished": 1785601765
     }
   ],
-  "priority": 5,
+  "priority": "normal",
   "estimate": 12.5,
   "repos": [],
   "worktree": ".worktrees/skein-dag-parent-nesting",

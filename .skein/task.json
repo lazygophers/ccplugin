@@ -4,7 +4,7 @@
       "id": "task-priority",
       "status": "进行中",
       "deps": [],
-      "priority": 5,
+      "priority": "normal",
       "worktree": ".worktrees/skein-task-priority",
       "parent": null,
       "kind": "task",
@@ -18,7 +18,7 @@
       "id": "dag-parent-nesting",
       "status": "检查中",
       "deps": [],
-      "priority": 5,
+      "priority": "normal",
       "worktree": ".worktrees/skein-dag-parent-nesting",
       "parent": null,
       "kind": "task",
@@ -32,7 +32,7 @@
       "id": "master-green",
       "status": "检查中",
       "deps": [],
-      "priority": 5,
+      "priority": "normal",
       "worktree": ".worktrees/skein-master-green",
       "parent": null,
       "kind": "task",
@@ -48,7 +48,7 @@
       "deps": [
         "spec-model-core"
       ],
-      "priority": 5,
+      "priority": "normal",
       "worktree": ".worktrees/skein-spec-map-namespace",
       "parent": "spec-wiki-v2",
       "kind": "task",
@@ -62,7 +62,7 @@
       "id": "board-live-refresh",
       "status": "就绪",
       "deps": [],
-      "priority": 5,
+      "priority": "normal",
       "worktree": null,
       "parent": null,
       "kind": "task",
@@ -76,7 +76,7 @@
       "id": "concurrency-pools",
       "status": "就绪",
       "deps": [],
-      "priority": 5,
+      "priority": "normal",
       "worktree": ".worktrees/skein-concurrency-pools",
       "parent": null,
       "kind": "task",
@@ -92,7 +92,7 @@
       "deps": [
         "spec-skills-agents-adapt"
       ],
-      "priority": 5,
+      "priority": "normal",
       "worktree": null,
       "parent": "spec-wiki-v2",
       "kind": "task",
@@ -113,7 +113,7 @@
         "spec-map-namespace",
         "spec-prd-analyze"
       ],
-      "priority": 5,
+      "priority": "normal",
       "worktree": null,
       "parent": "spec-wiki-v2",
       "kind": "task",
@@ -127,7 +127,7 @@
       "id": "spec-wiki-v2",
       "status": "待处理",
       "deps": [],
-      "priority": 5,
+      "priority": "normal",
       "worktree": null,
       "parent": null,
       "kind": "supertask",
@@ -143,7 +143,7 @@
       "deps": [
         "spec-model-core"
       ],
-      "priority": 5,
+      "priority": "normal",
       "worktree": null,
       "parent": "spec-wiki-v2",
       "kind": "task",
@@ -159,7 +159,7 @@
       "deps": [
         "spec-model-core"
       ],
-      "priority": 5,
+      "priority": "normal",
       "worktree": null,
       "parent": "spec-wiki-v2",
       "kind": "task",
@@ -173,7 +173,7 @@
       "id": "spec-model-core",
       "status": "已完成",
       "deps": [],
-      "priority": 5,
+      "priority": "normal",
       "worktree": null,
       "parent": "spec-wiki-v2",
       "kind": "task",
@@ -187,7 +187,7 @@
       "id": "spec-prd-analyze",
       "status": "已完成",
       "deps": [],
-      "priority": 5,
+      "priority": "normal",
       "worktree": null,
       "parent": "spec-wiki-v2",
       "kind": "task",
@@ -203,7 +203,7 @@
       "deps": [
         "spec-model-core"
       ],
-      "priority": 5,
+      "priority": "normal",
       "worktree": null,
       "parent": "spec-wiki-v2",
       "kind": "task",

@@ -121,7 +121,7 @@
       "finished": null
     }
   ],
-  "priority": 5,
+  "priority": "normal",
   "estimate": 9.0,
   "repos": [],
   "worktree": ".worktrees/skein-task-priority",
@@ -141,6 +141,6 @@
   "confirmed": 1785600358,
   "checked": null,
   "finished": null,
-  "updated": 1785602073,
+  "updated": 1785608880,
   "confirmed_by": "user"
 }
