@@ -1,4 +1,3 @@
-max_active: 2
 auto_commit: false
 use_worktree: true
 worktree_root: .worktrees

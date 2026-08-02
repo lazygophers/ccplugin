@@ -37,7 +37,7 @@
     },
     {
       "id": "spec-docs-examples",
-      "status": "就绪",
+      "status": "待处理",
       "deps": [
         "spec-skills-agents-adapt"
       ],

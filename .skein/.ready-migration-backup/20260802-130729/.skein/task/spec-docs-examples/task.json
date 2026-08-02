@@ -2,7 +2,7 @@
   "id": "spec-docs-examples",
   "name": "docs + examples 示例仓迁移",
   "desc": "sample-skein/spec 迁到四 namespace(加 product/map 示例页) + reference/skein/README/CONTEXT 同步 + skein-flow.mmd 加 wiki 回写分支",
-  "status": "待处理",
+  "status": "就绪",
   "deps": [
     "spec-skills-agents-adapt"
   ],
