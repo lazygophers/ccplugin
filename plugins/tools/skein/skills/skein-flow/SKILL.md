@@ -24,17 +24,10 @@ effort: medium
 | `finish` | 收尾门 | [flow-loop.md §7](references/flow-loop.md#7-finish-过程) |
 | `redo <tid> [--plan]` | 断点续跑 | [flow-loop.md §8](references/flow-loop.md#8-redo-断点续跑) |
 
-## 阶段作业手册
+## 索引
 
-这些文件只保留 planning 的局部边界；exec / check / finish 的 agent 边界归对应 `plugins/tools/skein/agents/*.md`，redo 全流程见 [flow-loop.md §8](references/flow-loop.md#8-redo-断点续跑)：
-
-- [references/for-plan.md](references/for-plan.md) — planning 产物职责。
-
-## 通用规则索引
+只列入口必读三份；阶段细节（DAG 拆分与调度、estimate 硬门、根因报告、sediment 判定门）由 flow-loop 和 for-plan 在用到的地方就地引用，不在这里平铺。exec / check / finish 的 agent 边界归 `plugins/tools/skein/agents/*.md`。
 
 - [references/flow-loop.md](references/flow-loop.md) — 执行过程唯一真值源：状态模型与推进命令、状态硬门、主循环骨架与派发载体、四阶段过程、redo、失败扭转。
-- [references/scope-boundary.md](references/scope-boundary.md) — 何时建 task、何时 inline 豁免。
-- [references/dag-scheduling.md](references/dag-scheduling.md) — subtask 怎么拆、依赖怎么挂、落盘模板；ready 判定、排序、双池、claim 命令族。
-- [references/estimate-gate.md](references/estimate-gate.md) — estimate 硬门。
-- [references/sediment-protocol.md](references/sediment-protocol.md) — finish 后沉淀。
-- [references/root-cause-protocol.md](references/root-cause-protocol.md) — 反复失败后的根因报告格式。
+- [references/scope-boundary.md](references/scope-boundary.md) — 入口判定：何时建 task、何时 inline 豁免、何时算完成。
+- [references/for-plan.md](references/for-plan.md) — planning 四件工件（prd / design / contracts / DAG+estimate）的写法。

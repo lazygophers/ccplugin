@@ -117,6 +117,8 @@ plan-ahead 只预备非焦点 pending task 到 confirm 门前，不替非焦点 
 6. claim 为空但仍有 pending 时，查 depends_on、槽位、DAG 环；必要时回 plan 改 DAG。
 7. 全 subtask done 后，进入 check。
 
+ready 判定、排序权重、双池与 claim 命令族见 [dag-scheduling.md](dag-scheduling.md)。
+
 ## 6. check 过程
 
 1. `skein claim` 把全 subtask done 的 `active` task 收进 `check` 并回传 `skein-checker`；照单派。
@@ -134,6 +136,8 @@ plan-ahead 只预备非焦点 pending task 到 confirm 门前，不替非焦点 
 5. `verdict=需处理`：按 dangling/tool_failures/needs_main 清理后重派 finisher；清不掉则停手上报。
 6. 检测 `.skein/spec/.pending-fix`，存在则异步跑 maintain auto-fix（同样 fire-and-forget）。
 7. 未 finish 闭环不得宣告 Done。
+
+specer 的 sediment / amend 判定门见 [sediment-protocol.md](sediment-protocol.md)。
 
 ## 8. redo 断点续跑
 
@@ -177,7 +181,7 @@ skein subtask start <tid> <sid>
 
 ### 9.3 根因复盘
 
-按 5 维由外到内定位：需求理解偏差、方案设计缺陷、实现 bug、环境/依赖、测试本身错误。每维给证据；多维命中取最外层。实现/环境/测试问题回 exec 定向修；需求/设计问题停手交用户裁定是否重回 planning 或新建 task。
+按 5 维由外到内定位：需求理解偏差、方案设计缺陷、实现 bug、环境/依赖、测试本身错误。每维给证据；多维命中取最外层。实现/环境/测试问题回 exec 定向修；需求/设计问题停手交用户裁定是否重回 planning 或新建 task。报告模板见 [root-cause-protocol.md](root-cause-protocol.md)。
 
 ### 9.4 回退协议
 
