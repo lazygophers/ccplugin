@@ -6,23 +6,23 @@ keywords: [workflow,连线,阶段,确认,confirm,就绪,ready,start,自动,状�
 status: active
 ---
 
-## skein 工作流连线（create → plan → confirm(就绪) → start → exec → check → finish）
+## skein 工作流连线（create → plan → confirm(吸收 start, 直进进行中) → exec → check → finishing → finish）
 
 ### 铁律
 
-- MUST：skein 工作流必须明确连线：create(待处理) → plan → `skein confirm`(用户确认门→就绪) → `skein start`(占槽→进行中) → exec → `skein check`(→检查中) → finish(→已完成)
-- MUST：plan 阶段完成后需**明确的用户确认门 `skein confirm <id>`**（验 prd + ≥1 subtask）将 task 从**待处理→就绪**；确认是独立阶段/独立状态，不隐含在 start 内
-- MUST：**就绪**是独立状态（规划完成待启动，**不占 max_active 槽**）；只有**就绪** task 可 `skein start`，待处理(规划中) 必须先 confirm 过门
-- MUST：`skein start` 仅验 deps + 空槽（prd/subtask 已在 confirm 校验），start 后 task→进行中并进入 exec（无需额外用户操作）
+- MUST：skein 工作流必须明确连线：create(待处理) → plan → `skein confirm --approved`(用户确认门, **吸收原 start 全部职责**, 一步占 worktree→进行中) → exec → `skein check`(→检查中) → `skein finishing`(占 gate 槽→收尾中) → finish(→已完成)
+- MUST：plan 阶段完成后需**明确的用户确认门 `skein confirm <id>`**（验 prd + ≥1 subtask + 预计工时）将 task 从**待处理→进行中**；确认门与开工是同一次调用，无独立中间状态
+- MUST：**「就绪」中间态已删** —— 人审通过的下一秒就该开工，没人真的会停在那儿 (design.md §1)；`confirm` 本身**不占任何池**，真正的资源约束落在 work 池 (subtask 运行中) 与 gate 池 (检查中/收尾中)
+- MUST：`skein confirm` 校验 deps + doctor 体检（prd/subtask/工时已在同一次调用内校验），通过后 task→进行中并进入 exec（无需额外用户操作、无需额外命令）
 - MUST：各阶段职责明确，阶段间状态转移在脚本中硬编码（非隐式推断）
 
 ### 反例表
 | 禁 | 改为 |
 |---|---|
-| plan 直接自动 start | plan 完成后须先 `skein confirm` 过用户门(→就绪) 再 start |
-| 待处理 task 直接 start | 仅就绪 task 可 start；待处理须先 confirm |
-| 确认门隐含在 start 内 | confirm 是独立命令/独立状态(待处理→就绪)，与 start 分离 |
-| 就绪/检查中 占 max_active 槽 | 仅进行中占槽；就绪/检查中不占 |
+| plan 直接自动 confirm | plan 完成后须先走人审门 `skein confirm --approved`（用户批准）再开工 |
+| 待处理 task 跳过用户批准直接开工 | 必须先 `skein confirm --approved`，无批准即拒 |
+| 期待「就绪」独立命令/独立状态 | confirm 已吸收原 start 全部职责，无就绪中间态 |
+| 就绪/检查中 占 pools.work 槽 | 仅进行中占 work 槽；检查中/收尾中占 gate 槽 |
 | 阶段转移隐式进行 | 阶段转移在代码中明确处理 |
 
 ### 触发场景
@@ -92,6 +92,7 @@ status: active
 
 ### 铁律
 
+- MUST：`skein finish` 只接受**收尾中**态入参（check 全绿后须先 `skein finishing` 占 gate 槽把 task 转收尾中，finish 才能跑），检查中态直接 finish 会被拒
 - MUST：skein-finish 必须按以下四步序执行：
   - ①合并 worktree 到主分支（git merge）
   - ②删除 worktree（git worktree remove）
