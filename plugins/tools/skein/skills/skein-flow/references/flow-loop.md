@@ -53,7 +53,7 @@ worktree：由 config `worktree.enabled` 决定（默认 false）。启用时 co
 | check 级   | `skein claim` 收进 `check` 后派 `skein-checker`          | main 在 `active` 态直接跑验证并宣告通过。   |
 | finish 级  | `skein claim` 收进 `finishing` 后派 `skein-finisher`     | 未进入 `finishing` 就跑 finish。            |
 
-借口不是状态命令。「简单」「省一步」「马上就做」不构成豁免。
+状态先行是铁律：动手前必须先让对应 `skein` 状态命令成功落盘，能过脚本状态门才算合法。借口不是状态命令，「简单」「省一步」「马上就做」不构成豁免。
 
 ## 3. 主循环骨架
 
@@ -79,6 +79,19 @@ for task in Bash("list --status=pending"):
 2. 派哪个 agent 只看 claim 回传，不靠 main 自己判断：subtask 行的 `agent:` 列（`phase=research` → `skein-researcher`，否则 `skein-executor`）、task 行的 `agents`（进检查 → `skein-checker`；进收尾 → `skein-finisher` + `skein-specer`）。
 3. 全部 agent 一律 async 派出即结束回合，不等回传串行卡住。
 4. claim 结束后再扫 `skein list --status pending` 调度 plan，不与上面的派发抢顺序。
+
+### 3.1 派发载体
+
+`subagent_type` 必须带插件前缀：`skein:skein-executor` / `skein-checker` / `skein-finisher` / `skein-researcher` / `skein-specer`。裸名无效。
+
+- 「派 agent」= 真实 `Agent` tool_use。无 tool_use 禁说已派。禁 teammate / agent-team / `SendMessage` 派 teammate / `team_name`。
+- main 默认禁写源码：改源码派 executor，验证派 checker，收尾派 finisher。`skein` CLI 由 main 同步跑（create/confirm/subtask/finish/archive 是记录管理，不派 agent）。
+- dispatch prompt 六字段自包含：目标 / 已知（含 `Active task: <id>` 与工作目录）/ 工作目录与范围 / 输出格式 / 验收标准 / 失败处理。**exec 是唯一例外**：只给 tid、sid、工作目录，executor 自读 `skein subtask show`。
+- 用户交互决策归 main 用 `AskUserQuestion`；subagent 缺信息回传 `需要: <问题>`，main 转达。
+- subagent 完成或阻塞，main 立即回传摘要，禁批量延迟汇总。
+- 看板由脚本自动刷，禁直接编辑 task.md / task.html。
+- 文案/格式类变更先给样例确认；逻辑/bug 修复不受此限。
+- 并发多个 flow 请求不得互相覆盖：先登记 durable task，再串行处理需要用户交互的 planning。
 
 ## 4. plan 过程
 

@@ -242,7 +242,8 @@ def remove(ctx: typer.Context, dry_run: Annotated[bool, typer.Option("--dry-run"
 
 
 @app.command()
-def rename(tid: str, sid: Optional[str] = None,
+def rename(tid: str,
+           sid: Annotated[Optional[str], typer.Argument()] = None,
            id: Annotated[Optional[str], typer.Option("--id")] = None,
            name: Annotated[Optional[str], typer.Option("--name")] = None) -> None:
     """重命名 task/subtask。"""

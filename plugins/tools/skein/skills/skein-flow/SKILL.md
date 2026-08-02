@@ -33,14 +33,11 @@ effort: medium
 
 ## 通用规则索引
 
-- [references/flow-loop.md](references/flow-loop.md) — 执行过程唯一真值源。
-- [references/carrier-rules.md](references/carrier-rules.md) — Agent 载体、派发形式、dispatch 字段。
+- [references/flow-loop.md](references/flow-loop.md) — 执行过程唯一真值源：状态模型与推进命令、状态硬门、主循环骨架与派发载体、四阶段过程、redo、失败扭转。
 - [references/scope-boundary.md](references/scope-boundary.md) — 何时建 task、何时 inline 豁免。
 - [references/dispatch-graph.md](references/dispatch-graph.md) — subtask 拆分与 DAG 落盘模板。
 - [references/dag-scheduling.md](references/dag-scheduling.md) — DAG 算法、ready 判定、排序、池模型。
-- [references/subtask-operations.md](references/subtask-operations.md) — subtask CLI 参数表。
 - [references/estimate-gate.md](references/estimate-gate.md) — estimate 硬门。
 - [references/sediment-protocol.md](references/sediment-protocol.md) — finish 后沉淀。
 - [references/root-cause-protocol.md](references/root-cause-protocol.md) — 反复失败后的根因报告格式。
 - [references/rollback-protocol.md](references/rollback-protocol.md) — 回退/扭转术语边界；执行过程见 flow-loop。
-- [references/state-before-action.md](references/state-before-action.md) — 动手前先推状态；状态与命令语义查 `skein --help` / `skein subtask --help`，执行过程见 flow-loop。

@@ -54,7 +54,7 @@ skein contract <id>
 - 共享契约先行：接口、类型、协议、schema 等共享面优先抽成前置 subtask。
 - 下游实现只依赖共享契约 subtask，彼此不互挂，除非确有真实顺序依赖。
 - 每个 subtask 必有 sid/name/desc/estimate/check。
-- 登记模板见 [dispatch-graph.md](dispatch-graph.md)，参数表见 [subtask-operations.md](subtask-operations.md)。
+- 登记模板见 [dispatch-graph.md](dispatch-graph.md)，参数查 `skein subtask --help`。
 
 ### estimate
 

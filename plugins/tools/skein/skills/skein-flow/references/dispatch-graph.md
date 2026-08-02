@@ -20,7 +20,7 @@ skein subtask add <tid> st2 --name "改调用站点" --desc "调用站点透传�
 skein subtask add <tid> st3 --name "加测试"     --desc "覆盖新旧字段两条路径" --estimate 1 --deps st1 --check "覆盖新旧字段两条路径"
 ```
 
-`sid`/`--name`/`--desc`/`--estimate` 四者必填 (缺一即报错退出)。字段全表与四场景操作规范详见 [subtask-operations.md](subtask-operations.md)。
+`sid`/`--name`/`--desc`/`--estimate` 四者必填 (缺一即报错退出)。字段全表查 `skein subtask --help`，DAG 挂边约束见 [dag-scheduling.md §2](dag-scheduling.md#2-唯一边源原则)。
 
 - `depends_on` 是唯一显式边源: st2/st3 依赖 st1 → st1 未 done 前不 ready; st2/st3 互不依赖 → 可并行 (并发上限 2)。
 - 并行与否只看这张 DAG, 不靠脚本猜写文件重叠 (拆分时把真正有序的关系写进 `--deps`)。

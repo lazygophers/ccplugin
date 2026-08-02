@@ -18,7 +18,15 @@ SKEIN 只认显式依赖边，不推测隐式顺序。
 - 并行与否只看显式 DAG。
 - 有序关系必须在 planning 阶段写入 `depends_on`。
 - 无真实顺序依赖就不加边；共享契约用单个前置 subtask 承载。
-- subtask 参数表见 [subtask-operations.md](subtask-operations.md)。
+- subtask DAG 是调度真值源，不得用 markdown 图替代落盘；参数查 `skein subtask --help`（`sid`/`--name`/`--desc`/`--estimate` 必填，`--deps` 逗号分隔，`--check` 分号分隔）。
+
+`--deps` 必须保持无环，三个常见挂错：
+
+| 陷阱 | 示例 | 正确做法 |
+|---|---|---|
+| 互相依赖 | A depends_on B，B depends_on A | 拆共享前置 C，A/B 都依赖 C。 |
+| 修复 subtask 挂错 | fix depends_on 失败项，导致原失败项无法重跑 | fix 挂失败项原前置；原失败项再依赖 fix。 |
+| 跨层跳挂 | 下游直接挂源头，绕过中间真实依赖 | 按真实数据/接口依赖挂边。 |
 
 ## 3. ready 判定
 
@@ -83,4 +91,4 @@ layer(node) = max(layer(dep)) + 1
 
 ## 8. dispatch 参数
 
-exec 统一派 `skein:skein-executor`。dispatch 只给 tid、sid、工作目录；executor 自读 `skein subtask show <tid> <sid>`。完整载体规则见 [carrier-rules.md](carrier-rules.md)。
+exec 统一派 `skein:skein-executor`。dispatch 只给 tid、sid、工作目录；executor 自读 `skein subtask show <tid> <sid>`。完整载体规则见 [flow-loop.md §3.1](flow-loop.md#31-派发载体)。
