@@ -95,7 +95,11 @@ function TaskDetailContent() {
   // 的 title 字段, 若拿它做合并基底, 陈旧的 title 会盖掉 card 新来的 name (normalizeTask 优先取 title)。
   useEffect(() => {
     if (!id) return;
-    return subscribe((msg) => {
+    // 订阅全局消息 (data) + 本 task 消息 (task-changed)
+    const unsubGlobal = subscribe((msg) => {
+      if (msg.type === "data") load(); // 整页刷新
+    });
+    const unsubTask = subscribe((msg) => {
       if (msg.type !== "task-changed") return;
       if (!msg.card) { setNotFound(true); setTask(null); return; }
       const card = msg.card;
@@ -105,7 +109,8 @@ function TaskDetailContent() {
         return next;
       });
     }, { taskId: id });
-  }, [id]);
+    return () => { unsubGlobal(); unsubTask(); };
+  }, [id, load]);
 
   // 页面直接改优先级: 复用白名单 exec 通道; 成功后本地乐观更新, 失败给明确错误 (不静默失败)。
   // exec 端点 CLI 失败时仍返回 HTTP 200 (body.ok=false + stderr), 不会走 fetch 的 catch — 必须显式查 ok。
