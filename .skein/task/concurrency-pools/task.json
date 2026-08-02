@@ -169,10 +169,10 @@
         "文案经 claude -p 三次一致性验证"
       ],
       "验收done": [],
-      "status": "待处理",
+      "status": "运行中",
       "skills": [],
       "created": 1785512383,
-      "started": null,
+      "started": 1785637392,
       "finished": null
     },
     {
@@ -212,12 +212,17 @@
         "迁移后 doctor 零非法 status",
         "迁移映射规则写进 design.md"
       ],
-      "验收done": [],
-      "status": "运行中",
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785636507,
       "started": 1785636511,
-      "finished": null
+      "finished": 1785637443
     }
   ],
   "priority": "normal",
@@ -240,6 +245,6 @@
   "confirmed": 1785515070,
   "checked": null,
   "finished": null,
-  "updated": 1785636511,
+  "updated": 1785637443,
   "confirmed_by": "user"
 }

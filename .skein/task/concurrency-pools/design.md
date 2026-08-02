@@ -344,3 +344,63 @@ boardsource.py` → **Success: no issues found in 4 source files**。
 ### subtask list s6 行 (worktree 内亲跑)
 `s6	已完成	100%	1.5h	看板 + Web 视图	依赖:s1,s2	验收:看板显示 work 与 gate 两行;
 Web 视图 JSON 含两池字段; 新状态在看板有正确排序位	skills:-`
+
+## s9 交付记录 — 存量「就绪」status 迁移 (`dc7740446` + `b3c6cec64`)
+
+main 在 exec 期间发现的缺口: s1 删了 `S_READY`, s3 让 confirm 吸收 start, 但存量
+task.json 里还有 `status="就绪"` 的 task, 没有任何迁移代码 —— 这些 task 一旦读进新状态机,
+`doctor` 判它 100% 非法。实测: 本 worktree `.skein/task/` 下 `board-live-refresh` /
+`spec-docs-examples` / `spec-skills-agents-adapt` 三个 task 就是活例子。
+
+### 迁移目标态: 「待处理」而非「进行中」(关键决策)
+旧「就绪」= 已 confirm、等 start 触发。s3 后 confirm 直接吸收 start (人审门 = 一步到位,
+见本文件「1. 状态机」)。若迁到「进行中」等价于替这批存量 task 自动重跑一次 confirm ——
+副作用是**批量建 worktree**, 迁移脚本不该替用户做这么大的决定, 也不该在无人在场时凭空
+在磁盘上开一堆工作树。迁到「待处理」退回未 confirm 态: 无副作用, 用户看到后自己决定要不要
+`confirm`。代价是这些 task 需要用户手动重新走一次确认 —— 但这本就是「人审门」的本意, 不算
+额外负担, 只是把"当初那道门其实没在新语义下真正跑过"的现实摆明。
+
+### 改动 (按文件)
+- `skeinlib/readystate.py` (新文件): `migrate_ready_status(root, tasks_dir, archive_dir)`,
+  照抄 `priority.py::migrate_priority_values` 的范式 —— 只认 `status=="就绪"` 的
+  task.json, 改前原样拷进 `.skein/.ready-migration-backup/<时间戳>/`, 改后写回 `status="待处理"`,
+  已迁移/非就绪一律跳过 (幂等)。
+- `skeinlib/admin.py:189-` `migrate_ready()`: CLI 处理函数, 照抄 `migrate_priority()` 的
+  空迁移/非空迁移两条打印分支, 迁移后 `self.ws.store.sync()` 刷新顶层索引。
+- `skeinlib/cli.py`: 三处注册 —— parser (`sub.add_parser("migrate-ready", ...)`, 紧邻
+  `migrate-priority` 之后)、分发字典 (`"migrate-ready": sk.admin.migrate_ready`)、
+  `MUTATING` 集合 (追加 `"migrate-ready"`)。
+- `skeinlib/derivatives.py`: 补登记 `.ready-migration-backup/` (照抄
+  `.priority-migration-backup/` 那行), 否则撞 `test_derivatives_guard.py` 的未登记衍生物守卫。
+- `tests/test_readystate.py` (新文件): 5 个测试, 照抄 `test_priority.py` 的结构 —— 迁移改写+
+  备份可回滚、幂等、非就绪/缺字段跳过、CLI 端到端后 doctor 通过、CLI 空迁移分支文案。
+
+### 4 条验收逐条自证
+1. **存量「就绪」status 迁移到新状态机对应态**: `readystate.py::migrate_ready_status` 把
+   `status=="就绪"` 改写为 `S_PENDING`("待处理"); `test_migrate_ready_status_rewrites_to_pending_and_backs_up`
+   断言改写结果, 非就绪状态 (如「进行中」) 不受影响。
+2. **迁移前自动备份且幂等可重跑**: 改写前 `shutil.copy2` 到
+   `.skein/.ready-migration-backup/<时间戳>/`, 备份内容与原文件逐字比对通过
+   (`test_migrate_ready_status_rewrites_to_pending_and_backs_up` 断言); 幂等见
+   `test_migrate_ready_status_idempotent` (二次跑 `migrated==[]`, `backup_dir is None`)。
+3. **迁移后 doctor 零非法 status**: 在本 worktree 自己的 `.skein/` 上实跑 (未碰主仓根,
+   见下方「本 worktree 实跑记录」), 迁移前 `✗ 非法 status '就绪'` 三条, 迁移后**零条**
+   status 相关错误 (残留错误均为 `task-priority` 非法 priority / worktree 路径不存在,
+   与本次改动无关, 见 s5 交付记录同类既有发现)。
+4. **迁移映射规则写进 design.md**: 即本节「迁移目标态」小节。
+
+### 本 worktree 实跑记录 (验证后已还原, 未提交)
+`python3 skein.py migrate-ready`(本 worktree 根跑) 迁移了 `board-live-refresh` /
+`spec-docs-examples` / `spec-skills-agents-adapt` 三个 task.json, 迁移后 `doctor` 由
+6 错误降到 3 错误 (少的 3 条全是「非法 status '就绪'」, 剩余 3 条与本次改动无关)。**验证后
+用 `git checkout` 还原了这三个 task.json + 顶层 `task.json` 索引, 删了临时生成的
+`.ready-migration-backup/`** —— 这三个 task 属于其他并发运行中的 agent (`board-live-refresh`
+的 exec-b4 等), 提交这批状态改动会在分支合并时和它们的实时改动打架, 不属于 s9 的改动边界
+(s9 只交付迁移*工具*, 不代运行迁移*本体* —— 那是合并到 master 后由用户/master 维护者一次性跑的
+动作)。
+
+### 质量门
+`python3 -m pytest plugins/tools/skein/scripts/tests/ -q` → **417 passed, 0 failed**
+(基线 412 passed；净 +5 = 本次新增 5 个验收测试)。
+`python3 -m mypy plugins/tools/skein/scripts/skeinlib/` → **Success: no issues found in
+49 source files**。
