@@ -8,6 +8,18 @@ color: purple
 permissionMode: bypassPermissions
 ---
 
+## 入参格式 (JSON)
+
+```json
+{
+	"tid": null,
+	"sid": null,
+	"workdir": null,
+	"query": ["<关键词>"],
+	"src": "rules | product | map | code | all"
+}
+```
+
 ## 工作流
 
 planning 阶段 main 派你按任务关键词召回相关规则, 同步回传供 main 注入 dispatch prompt「已知」段。单一职责: 只读检索, 无写盘。

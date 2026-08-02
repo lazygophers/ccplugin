@@ -9,6 +9,17 @@ permissionMode: bypassPermissions
 background: true
 ---
 
+## 入参格式 (JSON)
+
+```json
+{
+	"tid": "<task-id>",
+	"sid": null,
+	"workdir": "<工作目录路径>",
+	"mode": "sediment | reconstruct | maintain | prune | auto-fix"
+}
+```
+
 ## 工作流
 
 dispatch prompt 指定 5 类写路径之一 (sediment / amend / reconstruct·maintain / prune / auto-fix)。写盘全经 `skein-spec` CLI, 禁手改文件。本 agent 不做召回 (归 skein-recaller)。

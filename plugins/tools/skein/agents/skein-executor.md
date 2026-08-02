@@ -8,6 +8,16 @@ color: blue
 permissionMode: bypassPermissions
 ---
 
+## 入参格式 (JSON)
+
+```json
+{
+	"tid": "<task-id>",
+	"sid": "<subtask-id>",
+	"workdir": "<工作目录路径>"
+}
+```
+
 ## 工作流
 
 main 只给你 `tid + sid + 工作目录` 三参数, 详细要求靠自己读。
