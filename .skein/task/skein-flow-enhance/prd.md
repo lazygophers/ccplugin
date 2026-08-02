@@ -22,17 +22,11 @@
 - [ ] flow 全空模式扫到待处理且缺 subtask 的 task → 自动补 plan
 - [ ] 全量测试通过
 
-## 验证方式
-- 前端 finish: 浏览器点击验证 (serve 起后 task 详情页有按钮, 点击后状态变完成)
-- supertask auto-check: 造 supertask + 2 child task, child 全 done 后 grep supertask 状态变检查中
-- plan 补全: 造待处理 task 无 subtask, 跑 flow 清空模式, 确认自动补 plan
-- 全量: `python3 -m pytest plugins/tools/skein/scripts/tests/ -q`
-
 ## Testing Decisions
-- serve endpoint: 跟现有 POST endpoint 测试模式一致 (test_serve_routes.py)
-- supertask auto-check: 生命周期测试, 跟 test_parent_mount.py 模式一致
-- plan 补全: 编排层逻辑, 可用 skein-flow skill 文件 grep 验证措辞
+- [ ] serve endpoint: 跟现有 POST endpoint 测试模式一致 (test_serve_routes.py)
+- [ ] supertask auto-check: 生命周期测试, 跟 test_parent_mount.py 模式一致
+- [ ] plan 补全: 编排层逻辑, 可用 skein-flow skill 文件 grep 验证措辞
 
 ## 索引
-- 详细设计: [design.md](design.md)
-- 任务/子任务/调度: task.json (脚本真值, `skein.py subtask list skein-flow-enhance`)
+- [ ] 详细设计: [design.md](design.md)
+- [ ] 任务/子任务/调度: task.json (脚本真值, `skein.py subtask list skein-flow-enhance`)
