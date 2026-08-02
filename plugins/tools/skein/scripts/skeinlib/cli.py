@@ -354,7 +354,14 @@ def subtask(
     passed: Annotated[Optional[str], typer.Option("--passed")] = None,
     skills: Annotated[Optional[str], typer.Option("--skills")] = None,
 ) -> None:
-    """单 task 内 subtask DAG 调度。"""
+    """单 task 内 subtask DAG 调度。
+
+    用法: subtask <action> <tid> [sid]
+
+    action: add(→待处理) / claim(ready→运行中, 批量) / start(待处理·失败→运行中, 单个) /
+    done(运行中→已完成) / fail(运行中→失败) / check(勾验收, 不改状态) /
+    ready(只读预览) / show(单条详情) / list(全表)
+    """
     args = list(ctx.args)
     if len(args) < 2 or len(args) > 3:
         raise typer.BadParameter("subtask 用法: subtask <action> <tid> [sid]")

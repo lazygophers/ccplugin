@@ -34,7 +34,7 @@ skein subtask add <tid> <sid> \
 - task estimate 须覆盖 subtask estimate 总和。
 - `--deps` 不得形成环。
 - subtask DAG 是调度真值源；不得用 markdown 图替代落盘。
-- 正式状态流转见 [subtask-state-machine.md](subtask-state-machine.md)。
+- 正式状态流转见 [flow-loop.md §1.2](flow-loop.md#12-subtask-状态)；命令语义查 `skein subtask --help`。
 
 ## DAG 一致性
 

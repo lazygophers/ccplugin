@@ -43,4 +43,4 @@ effort: medium
 - [references/sediment-protocol.md](references/sediment-protocol.md) — finish 后沉淀。
 - [references/root-cause-protocol.md](references/root-cause-protocol.md) — 反复失败后的根因报告格式。
 - [references/rollback-protocol.md](references/rollback-protocol.md) — 回退/扭转术语边界；执行过程见 flow-loop。
-- [references/state-before-action.md](references/state-before-action.md) / [references/task-state-machine.md](references/task-state-machine.md) / [references/subtask-state-machine.md](references/subtask-state-machine.md) — 状态说明索引；执行过程见 flow-loop。
+- [references/state-before-action.md](references/state-before-action.md) — 动手前先推状态；状态与命令语义查 `skein --help` / `skein subtask --help`，执行过程见 flow-loop。
