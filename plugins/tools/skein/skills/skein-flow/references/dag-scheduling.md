@@ -50,7 +50,7 @@ subtask.ready = (∀ dep ∈ subtask.depends_on: dep.status == done)
 ```
 
 - **前置全 done**：所有被依赖的 subtask 都处于 `已完成` 态
-- **有空闲槽**：全局 running subtask 数 < `max_active`
+- **有空闲槽**：全局 (exec+research) running subtask 数 < `pools.work`
 
 ### 2.2 deps 阻塞的范围
 
@@ -156,11 +156,11 @@ while skein claim exec 返回非空:       # 全局跨 task 合池竞争
 
 ### 6.1 优先级总纲: 派异步优先, 同步 plan 填余力
 
-**铁律: 优先把槽位占满异步执行, 同步 plan 只在槽位已满 / 无可调度 subtask 时跑。** subagent 跑起来后是异步占槽, 同步 plan 不抢这个槽 —— 所以每回合先 `claim exec` 把能派的 subtask 派出去 (占满 `max_active` 槽), 槽位满或 `claim exec` 返回空时才做 plan-ahead, 用同步空档把 pending task 推到就绪, 保证一有槽位释放即有 ready task 接上, 流水线不断档。
+**铁律: 优先把槽位占满异步执行, 同步 plan 只在槽位已满 / 无可调度 subtask 时跑。** subagent 跑起来后是异步占槽, 同步 plan 不抢这个槽 —— 所以每回合先 `claim exec` 把能派的 subtask 派出去 (占满 `pools.work` 槽), 槽位满或 `claim exec` 返回空时才做 plan-ahead, 用同步空档把 pending task 推到规划完成态, 保证一有槽位释放即有 ready task 接上, 流水线不断档。
 
 ```
 每回合:
-  1. skein claim exec  → 有就绪 subtask 就派, 占满 max_active 槽 (异步, 立即回手)
+  1. skein claim exec  → 有就绪 subtask 就派, 占满 pools.work 槽 (异步, 立即回手)
   2. 槽位满 OR claim exec 返回空 → 加载 plan-ahead 推 pending task 到就绪
   3. plan 每步间回探 claim exec → 有 subtask 可派立即中断 plan 回去派
 ```
@@ -176,8 +176,8 @@ skein list --status open --json
   → 加载 /skein-flow plan 阶段 推到 planning-ready
 ```
 
-- **目标**：用 exec 空闲窗口把排队 task 备到「一有 slot 即可 start」，流水线不断档
-- **推到哪里停**：至多推到 `skein confirm`/`start` 门前 (planning-complete 待处理态)
+- **目标**：用 exec 空闲窗口把排队 task 备到「一有 slot 即可 confirm 开工」，流水线不断档
+- **推到哪里停**：至多推到 `skein confirm` 门前 (planning-complete 待处理态)
 - **不自动过用户门**：confirm 是用户确认门，plan-ahead 不自动 confirm。**注**: 这条只约束 plan-ahead 预备的**非焦点 pending task** (exec 空闲时顺手推进的排队 task)。循环当前焦点 task 的 confirm 行为以 [flow-loop.md](flow-loop.md) 为准 (flow 主循环视 confirm 为非阻塞门, 判据勾满自动过); 该 pending task 一旦被 claim exec/exec 选为焦点, 即按 flow-loop.md 自动过 confirm, 不再受本条限制。
 
 ### 6.3 必让位 subtask
@@ -251,14 +251,15 @@ skein subtask add <tid> <fix-sid> \
 
 ---
 
-## 8. 全局单池模型
+## 8. 全局双池模型 (详见 §4)
 
 ### 8.1 跨 task 合池
 
-所有可调度 task (进行中 + 就绪) 的 ready subtask 竞争**同一 `max_active` 槽**，不是 per-task 各占 max_active。task 级 max_active 同时限制能有多少个 task 处于进行中 —— 满槽时就绪 task 不会被自动启动。
+所有进行中/调研中 task 的 ready subtask 竞争**同一 `pools.work` 槽**，不是 per-task 各占一份；
+task 级并发上限已取消 (§4), 不再有「就绪 task 因满槽不被自动启动」这类中间态需要处理。
 
 ```
-总并发 = task1.running + task2.running + ... ≤ max_active
+总并发 = task1.running + task2.running + ... ≤ pools.work
 ```
 
 ### 8.2 排序
