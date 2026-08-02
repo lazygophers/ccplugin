@@ -20,14 +20,14 @@
 
 ### 1.1 task 状态
 
-| 落盘值      | 展示名 | 阶段     | 池           | 进入命令                | 含义                                                          |
-| ----------- | ------ | -------- | ------------ | ----------------------- | ------------------------------------------------------------- |
-| `pending`   | 待处理 | plan     | 无           | `create` / `plan`       | 已 create，PRD/design/subtask/estimate/grill/人审尚未全收敛。 |
-| `research`  | 调研中 | research | work         | `research`              | research subtask 在跑；全 done 后 `plan` 收敛回 `pending`。   |
-| `active`    | 进行中 | exec     | 无 task 级池 | `confirm --approved`    | 已 confirm，worktree 已建，subtask 可经 claim 派发。          |
-| `check`     | 检查中 | check    | gate         | `claim`（或 `check`）   | 全 subtask done 后进入验证。                                  |
-| `finishing` | 收尾中 | finish   | gate         | `claim`（或 `finishing`）| check 全绿后占 gate 槽，等待/运行 finisher。                 |
-| `done`      | 已完成 | 完结     | 无           | `finish`                | finish 成功，worktree 已销，闭环结束；`archive` 移入归档。    |
+| 落盘值      | 展示名 | 阶段     | 池           | 进入命令                  | 含义                                                          |
+| ----------- | ------ | -------- | ------------ | ------------------------- | ------------------------------------------------------------- |
+| `pending`   | 待处理 | plan     | 无           | `create` / `plan`         | 已 create，PRD/design/subtask/estimate/grill/人审尚未全收敛。 |
+| `research`  | 调研中 | research | work         | `research`                | research subtask 在跑；全 done 后 `plan` 收敛回 `pending`。   |
+| `active`    | 进行中 | exec     | 无 task 级池 | `confirm --approved`      | 已 confirm，worktree 已建，subtask 可经 claim 派发。          |
+| `check`     | 检查中 | check    | gate         | `claim`（或 `check`）     | 全 subtask done 后进入验证。                                  |
+| `finishing` | 收尾中 | finish   | gate         | `claim`（或 `finishing`） | check 全绿后占 gate 槽，等待/运行 finisher。                  |
+| `done`      | 已完成 | 完结     | 无           | `finish`                  | finish 成功，worktree 已销，闭环结束；`archive` 移入归档。    |
 
 worktree：由 config `worktree.enabled` 决定（默认 false）。启用时 confirm 建 task worktree（多子 git 落各仓 `<repo>/.worktrees/skein-<id>`），finish 合并后销毁；禁用则全程原地在仓库根做。派 agent 时把工作目录直接写进 dispatch，agent 不自己探测。
 
@@ -35,12 +35,12 @@ worktree：由 config `worktree.enabled` 决定（默认 false）。启用时 co
 
 ### 1.2 subtask 状态
 
-| 落盘值    | 展示名 | 占 `pools.work` | 进入命令                        | 含义                                                   |
-| --------- | ------ | --------------- | ------------------------------- | ------------------------------------------------------ |
-| `pending` | 待处理 | 否              | `subtask add`                   | 已登记，等待 depends_on 全 done 和 claim。             |
-| `running` | 运行中 | 是              | `claim` / `subtask start`       | 已认领占槽，executor/researcher 正在执行。             |
-| `done`    | 已完成 | 否              | `subtask done`                  | 执行完成并释放槽；正式验收仍归 check。                 |
-| `failed`  | 失败   | 否              | `subtask fail`                  | 执行失败并释放槽，可 start 重派或补修复 subtask。      |
+| 落盘值    | 展示名 | 占 `pools.work` | 进入命令                  | 含义                                              |
+| --------- | ------ | --------------- | ------------------------- | ------------------------------------------------- |
+| `pending` | 待处理 | 否              | `subtask add`             | 已登记，等待 depends_on 全 done 和 claim。        |
+| `running` | 运行中 | 是              | `claim` / `subtask start` | 已认领占槽，executor/researcher 正在执行。        |
+| `done`    | 已完成 | 否              | `subtask done`            | 执行完成并释放槽；正式验收仍归 check。            |
+| `failed`  | 失败   | 否              | `subtask fail`            | 执行失败并释放槽，可 start 重派或补修复 subtask。 |
 
 验收勾选用 `subtask check <tid> <sid>`（不改状态）。池：`pools.work` 只数 running subtask，`pools.gate` 数 `check`/`finishing` task。参数与更多子命令查 `skein --help` / `skein subtask --help`，不在文档里重抄。
 
@@ -63,7 +63,7 @@ for row in Bash("skein claim"):                       # 一次 claim, 两路认�
     async Agent(row.agent,  {"tid": row.tid, "sid": row.sid, "workdir": wd})
   elif row.kind == "task":                            # check 路: task 已进 check / finishing
     for a in row.agents:                              # 检查中 → [checker]; 收尾中 → [finisher, specer]
-      async Agent(a,        {"tid": row.tid, "sid": None, "workdir": wd})
+      async Agent(a, {"tid": row.tid, "sid": None, "workdir": wd})
 
 for task in Bash("skein list --status pending --json"):
   # 调度 plan
