@@ -207,11 +207,14 @@ export default function HelpPage() {
                 <tbody className="divide-y divide-border/20">
                   {[
                     ["skein create <id>", "新建 task (kebab-case slug)"],
-                    ["skein confirm <id>", "确认规划, 直接激活执行"],
-                    ["skein claim exec", "全局认领就绪 subtask (自动 start task)"],
-                    ["skein claim check", "全 done 的 task 进检查"],
-                    ["skein subtask done/fail", "标记 subtask 完成/失败"],
+                    ["skein research <id>", "待处理→调研中: 发起调研"],
+                    ["skein plan <id>", "调研中→待处理: 收敛调研回规划"],
+                    ["skein confirm <id>", "用户确认门 (待处理→进行中, 吸收原 start)"],
+                    ["skein claim exec", "认领 ready subtask → running, 竞争 pools.work 槽 (不改 task 状态)"],
+                    ["skein claim check", "进行中→检查中(全 subtask done) 或 检查中→收尾中(占 pools.gate 槽)"],
+                    ["skein finishing <id>", "检查中→收尾中: 占 gate 槽"],
                     ["skein finish <id>", "收尾: commit→merge→销 worktree→标记完成"],
+                    ["skein subtask done/fail", "标记 subtask 完成/失败"],
                     ["skein list --status open", "列出全部未完成 task"],
                     ["skein subtask list <id>", "列出 task 的全部 subtask + 状态"],
                   ].map(([cmd, desc]) => (
