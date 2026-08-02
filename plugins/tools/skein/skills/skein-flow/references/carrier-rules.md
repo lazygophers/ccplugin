@@ -42,7 +42,7 @@ Agent(
 - ❌ 裸名 `subagent_type="skein-executor"` (缺 `skein:` 前缀)
 - ❌ 只在文字里写「派 skein-executor 执行」而无真实 tool_use — 宣称 ≠ 调用
 
-**并发**: 同一回复里发多个 `Agent` 调用 = 并行执行; 受 `max_active` (缺省 2) 限, 由 main 按 `skein claim exec` 结果决定这一批派几个, 不靠工具侧限流。
+**并发**: 同一回复里发多个 `Agent` 调用 = 并行执行; 受 `pools.work` (缺省 2) 限, 由 main 按 `skein claim exec` 结果决定这一批派几个, 不靠工具侧限流。
 
 ## ✅ 正向配方 (命中反面=流程错误)
 
