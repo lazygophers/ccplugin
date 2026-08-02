@@ -1,7 +1,7 @@
 ---
 title: worktree-state
 category: arch
-keywords: [worktree,状态,分叉,快照,同步,主仓,分工,skip]
+keywords: [worktree, 状态, 分叉, 快照, 同步, 主仓, 分工, skip]
 status: active
 inclusion: auto
 ---
@@ -30,6 +30,17 @@ inclusion: auto
 ### 调试建议
 状态分叉往往沉默：看 task 的 status 字段是否与实际执行相符。检查 worktree 内 `.skein/` 修改时间戳，与主仓 `.skein/` 对比。
 
-## worktree 分支合并三方合并 + 独有改动归因审计（禁批量 --theirs）
+## worktree 与主仓根 .skein/task/ 各自漂移 — cwd 决定读写哪份, agent 回传 done 不能采信
 
+### 触发场景
+agent 在 worktree 里跑完 `subtask done` 后回传「已完成」，main 需要判断能否采信、下一步怎么读状态。
 
+### 机制
+`skein` 从进程 **cwd** 解析仓库根，不是从固定路径。worktree 与主仓根各有一份独立的 `.skein/task/`。agent 在 worktree 里跑 `subtask done` 只写 worktree 那份，主仓根读到的仍是旧状态；反过来主仓根的更新也不会自动同步进 worktree。
+
+### 陷阱-正解
+**陷阱**：agent 回传「我已 done」后直接采信，不在主仓根核实。曾在同一 session 里因此对错状态两次（不同 subtask），main 自己也因为一时 cwd 落在 worktree 里，读到过一次相反的结论。
+**正解**：agent 回传完成后，main 必须在**主仓根**（确认 cwd，不是 worktree）自己核一次实际状态；若发现主仓根未同步，须补跑一次 `subtask done`，不能只凭 agent 的自然语言回传就当作最终真相。
+
+### 关联
+- [[worktree 与主仓 .skein/ 状态分叉]] — 同一分叉机制，此条补充 cwd 根因 + 事后核验的具体动作
