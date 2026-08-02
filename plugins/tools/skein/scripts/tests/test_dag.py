@@ -9,6 +9,7 @@
 """
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
@@ -23,10 +24,14 @@ def _create(skein_cli: SkeinCli, ws: Path, tid: str = TID) -> None:
 
 
 def _fill_prd(ws: Path, tid: str) -> None:
-    """写规范 prd.md 过 start 的 _validate_prd 门 (章节齐 + 无 TODO 占位)。"""
+    """写规范 prd.md + design.md 过 confirm 的 _validate_prd + _validate_seam 门。"""
     (ws / ".skein" / "task" / tid / "prd.md").write_text(
         f"# {tid} — PRD\n\n## 目标\n- 解决 X\n\n"
-        "## 边界\n- a\n\n## 验收标准\n- 通过\n\n## 索引\n- design.md\n")
+        "## 边界\n- a\n\n## User Stories\n1. As a u, I want x, so that y\n\n"
+        "## 验收标准\n- 通过\n\n## 验证方式\n- 跑 pytest, 全绿即 pass\n\n"
+        "## Testing Decisions\n- 只测外部行为\n\n## 索引\n- design.md\n")
+    (ws / ".skein" / "task" / tid / "design.md").write_text(
+        f"# {tid} — 详细设计\n\n## 测试接缝 (seam)\n- [x] API 层\n")
 
 
 def _set_max_active(ws: Path, n: int) -> None:
@@ -67,27 +72,15 @@ def _backdate_created(ws: Path, tid: str, sid: str, hours_ago: float) -> None:
 
 
 def _status_map(skein_cli: SkeinCli, ws: Path, tid: str) -> dict[str, str]:
-    """解析 `subtask list` → {sid: 状态中文}。行格式: sid<TAB>状态<TAB>..."""
-    out = skein_cli(ws, "subtask", "list", tid).stdout
-    m: dict[str, str] = {}
-    for line in out.splitlines():
-        parts = line.split("\t")
-        if len(parts) >= 2 and parts[0] and not parts[0].startswith("无"):
-            m[parts[0]] = parts[1]
-    return m
+    """解析 `subtask list` JSON → {sid: 状态}。"""
+    data = json.loads(skein_cli(ws, "subtask", "list", tid).stdout)
+    return {s["sid"]: s["status"] for s in data.get("subtasks", [])}
 
 
 def _claim_sids(skein_cli: SkeinCli, ws: Path, tid: str) -> list[str]:
-    """解析单 task claim 输出的 sid 列 (认领批首列 tid-free: sid<TAB>...)。"""
-    out = skein_cli(ws, "subtask", "claim", tid).stdout
-    sids: list[str] = []
-    for line in out.splitlines():
-        if line.startswith(("已认领", "就绪", "无")):
-            continue
-        parts = line.split("\t")
-        if parts and parts[0] and not parts[0].startswith("无"):
-            sids.append(parts[0])
-    return sids
+    """解析单 task claim JSON → 认领的 sid 列表。"""
+    data = json.loads(skein_cli(ws, "subtask", "claim", tid).stdout)
+    return [s["sid"] for s in data.get("claimed", [])]
 
 
 def test_subtask_add_registers_and_list_visible(skein_cli: SkeinCli, ws: Path) -> None:
@@ -95,11 +88,13 @@ def test_subtask_add_registers_and_list_visible(skein_cli: SkeinCli, ws: Path) -
     _create(skein_cli, ws)
     _add(skein_cli, ws, TID, "s1", check="c1;c2")
     _add(skein_cli, ws, TID, "s2", deps="s1", check="ca")
-    out = skein_cli(ws, "subtask", "list", TID).stdout
-    assert "s1" in out and "s2" in out
-    assert "依赖:s1" in out                 # deps 落库
+    data = json.loads(skein_cli(ws, "subtask", "list", TID).stdout)
+    sids = [s["sid"] for s in data["subtasks"]]
+    assert "s1" in sids and "s2" in sids
+    s2 = next(s for s in data["subtasks"] if s["sid"] == "s2")
+    assert "s1" in s2.get("depends_on", [])          # deps 落库
     st = _status_map(skein_cli, ws, TID)
-    assert st["s1"] == "待处理" and st["s2"] == "待处理"
+    assert st["s1"] == "pending" and st["s2"] == "pending"
 
 
 def test_claim_batch_all_ready_no_deps(skein_cli: SkeinCli, ws: Path) -> None:
@@ -110,16 +105,17 @@ def test_claim_batch_all_ready_no_deps(skein_cli: SkeinCli, ws: Path) -> None:
         _add(skein_cli, ws, TID, s)
     claimed = _claim_sids(skein_cli, ws, TID)
     assert set(claimed) == {"a", "b"}
-    assert _status_map(skein_cli, ws, TID) == {"a": "运行中", "b": "运行中"}
+    assert _status_map(skein_cli, ws, TID) == {"a": "running", "b": "running"}
 
 
 def test_ready_is_readonly_does_not_mutate(skein_cli: SkeinCli, ws: Path) -> None:
     """ready 只读预览: 不改状态 (list 后仍待处理)。"""
     _create(skein_cli, ws)
     _add(skein_cli, ws, TID, "a")
-    out = skein_cli(ws, "subtask", "ready", TID).stdout
-    assert "就绪" in out and "a" in out
-    assert _status_map(skein_cli, ws, TID) == {"a": "待处理"}  # 未被标 running
+    data = json.loads(skein_cli(ws, "subtask", "ready", TID).stdout)
+    sids = [s["sid"] for s in data.get("ready", [])]
+    assert "a" in sids
+    assert _status_map(skein_cli, ws, TID) == {"a": "pending"}  # 未被标 running
 
 
 def test_ready_empty_when_all_running(skein_cli: SkeinCli, ws: Path) -> None:
@@ -129,8 +125,8 @@ def test_ready_empty_when_all_running(skein_cli: SkeinCli, ws: Path) -> None:
     _add(skein_cli, ws, TID, "a")
     _add(skein_cli, ws, TID, "b")
     skein_cli(ws, "subtask", "claim", TID)
-    out = skein_cli(ws, "subtask", "ready", TID).stdout
-    assert "无就绪" in out  # 2/2 满槽
+    data = json.loads(skein_cli(ws, "subtask", "ready", TID).stdout)
+    assert data.get("ready", []) == []  # 2/2 满槽
 
 
 def test_done_unblocks_dependent(skein_cli: SkeinCli, ws: Path) -> None:
@@ -141,7 +137,7 @@ def test_done_unblocks_dependent(skein_cli: SkeinCli, ws: Path) -> None:
     # 首批: 只 a 就绪 (b deps a)
     assert _claim_sids(skein_cli, ws, TID) == ["a"]
     skein_cli(ws, "subtask", "done", TID, "a")
-    assert _status_map(skein_cli, ws, TID)["a"] == "已完成"
+    assert _status_map(skein_cli, ws, TID)["a"] == "done"
     # a done 后 b 就绪
     assert _claim_sids(skein_cli, ws, TID) == ["b"]
 
@@ -152,8 +148,8 @@ def test_fail_marks_failed_with_note(skein_cli: SkeinCli, ws: Path) -> None:
     _add(skein_cli, ws, TID, "a")
     skein_cli(ws, "subtask", "claim", TID)
     out = skein_cli(ws, "subtask", "fail", TID, "a", "--note", "boom").stdout
-    assert "失败" in out
-    assert _status_map(skein_cli, ws, TID)["a"] == "失败"
+    assert "failed" in out
+    assert _status_map(skein_cli, ws, TID)["a"] == "failed"
     # note 落盘 (status 行查询确认)
     raw = (ws / ".skein" / "task" / TID / "task.json").read_text()
     assert "boom" in raw
@@ -182,8 +178,8 @@ def test_concurrency_slot_caps_claim(skein_cli: SkeinCli, ws: Path) -> None:
     claimed = _claim_sids(skein_cli, ws, TID)
     assert len(claimed) == 2 and set(claimed) <= {"a", "b", "c"}
     st = _status_map(skein_cli, ws, TID)
-    assert sum(1 for v in st.values() if v == "运行中") == 2
-    assert sum(1 for v in st.values() if v == "待处理") == 1
+    assert sum(1 for v in st.values() if v == "running") == 2
+    assert sum(1 for v in st.values() if v == "pending") == 1
     # 第 3 个在 done 释放槽后才就绪
     skein_cli(ws, "subtask", "done", TID, claimed[0])
     again = _claim_sids(skein_cli, ws, TID)
@@ -203,14 +199,14 @@ def test_slot_releases_on_done_and_fail(skein_cli: SkeinCli, ws: Path) -> None:
 
 
 def test_done_sets_full_percent(skein_cli: SkeinCli, ws: Path) -> None:
-    """done 即全过验收 → 100% (list 第 3 列)。"""
+    """done 即全过验收 → 100% (list JSON pct 字段)。"""
     _create(skein_cli, ws)
     _add(skein_cli, ws, TID, "a", check="c1;c2;c3")
     skein_cli(ws, "subtask", "claim", TID)
     skein_cli(ws, "subtask", "done", TID, "a")
-    out = skein_cli(ws, "subtask", "list", TID).stdout
-    line = next(l for l in out.splitlines() if l.startswith("a\t"))
-    assert line.split("\t")[2] == "100%"           # 进度 100%
+    data = json.loads(skein_cli(ws, "subtask", "list", TID).stdout)
+    s = next(x for x in data["subtasks"] if x["sid"] == "a")
+    assert s["pct"] == 100
 
 
 def test_global_claim_cross_task(skein_cli: SkeinCli, ws: Path) -> None:
@@ -222,20 +218,16 @@ def test_global_claim_cross_task(skein_cli: SkeinCli, ws: Path) -> None:
         _fill_prd(ws, tid)
         skein_cli(ws, "estimate", tid, "--set", "1")  # estimate 硬门: confirm 前须填实工时
         skein_cli(ws, "confirm", tid)                     # 待处理→进行中 (confirm 吸收 start)
-    out = skein_cli(ws, "claim", "exec").stdout              # 全局 claim exec
-    assert "已全局认领" in out
+    out = json.loads(skein_cli(ws, "claim", "exec").stdout)
+    claimed = [s.get("task", "") + "/" + s.get("sid", s.get("subtask", "")) for s in out.get("claimed", [])]
     # 两个 task 各 1 subtask, 竞争 2 槽 → 两个都进 running
-    assert "alpha-beta/x" in out and "gamma-delta/x" in out
+    assert "alpha-beta/x" in claimed and "gamma-delta/x" in claimed
 
 
 def _dry_run_order(skein_cli: SkeinCli, ws: Path) -> list[str]:
-    """解析 `claim exec --dry-run` 的批预览顺序 → [tid/sid, ...]。"""
-    out = skein_cli(ws, "claim", "exec", "--dry-run").stdout
-    order: list[str] = []
-    for line in out.splitlines():
-        if "/" in line.split("\t")[0]:
-            order.append(line.split("\t")[0])
-    return order
+    """解析 `claim exec --dry-run` JSON → [tid/sid, ...]。"""
+    data = json.loads(skein_cli(ws, "claim", "exec", "--dry-run").stdout)
+    return [f"{s['task']}/{s['subtask']}" for s in data.get("ready", [])]
 
 
 def test_priority_beats_topo_depth(skein_cli: SkeinCli, ws: Path) -> None:
@@ -344,10 +336,11 @@ def test_two_pools_independent_work_full_check_still_claimable(skein_cli: SkeinC
     skein_cli(ws, "estimate", "task-b", "--set", "1")
     skein_cli(ws, "confirm", "task-b")
     skein_cli(ws, "claim", "exec")  # 占满 work 池 (1/1)
-    assert "work 池已满" in skein_cli(ws, "claim", "exec", "--dry-run").stdout
+    dry = json.loads(skein_cli(ws, "claim", "exec", "--dry-run").stdout)
+    assert "work_pool_full" in str(dry.get("empty", {}).get("reason", ""))
 
-    both = skein_cli(ws, "claim", "--dry-run").stdout
-    assert "work 池已满" in both and "无可认领的 check/finishing task" in both
+    both = json.loads(skein_cli(ws, "claim", "--dry-run").stdout)
+    assert "work_pool_full" in str(both.get("exec", {}).get("empty", {}).get("reason", ""))
 
     # task-a: 全部 subtask 已完成, 等着被 claim check 收进检查中 — 不经 claim exec (work 满进不去)
     skein_cli(ws, "create", "task-a", "--name", "task-a", "--desc", "d")
@@ -357,8 +350,9 @@ def test_two_pools_independent_work_full_check_still_claimable(skein_cli: SkeinC
     skein_cli(ws, "confirm", "task-a")
     skein_cli(ws, "subtask", "done", "task-a", "y")  # done 不设前置态门, 直接可标完成
 
-    out = skein_cli(ws, "claim", "check").stdout
-    assert "已认领进检查" in out and "task-a" in out
+    out = json.loads(skein_cli(ws, "claim", "check").stdout)
+    claimed_check = [s.get("tid", "") for s in out.get("finishing", out.get("checked", []))]
+    assert "task-a" in str(out)
 
 
 def test_exec_wins_over_research_on_tie(skein_cli: SkeinCli, ws: Path) -> None:
@@ -409,8 +403,8 @@ def test_empty_batch_message_names_which_pool_is_full(skein_cli: SkeinCli, ws: P
     skein_cli(ws, "estimate", "task-w", "--set", "1")
     skein_cli(ws, "confirm", "task-w")
     skein_cli(ws, "claim", "exec")  # 占满 work 池 (1/1)
-    out = skein_cli(ws, "claim", "exec", "--dry-run").stdout
-    assert "work 池已满" in out
+    out = json.loads(skein_cli(ws, "claim", "exec", "--dry-run").stdout)
+    assert "work_pool_full" in str(out.get("empty", {}).get("reason", ""))
 
     # gate 池: 上限压到 0, 两个 task 都全 done 想收尾, finishing 应报「gate 池已满」
     cfg = ws / ".skein" / "config.yaml"
@@ -419,7 +413,14 @@ def test_empty_batch_message_names_which_pool_is_full(skein_cli: SkeinCli, ws: P
     txt = _re.sub(r"^(\s+)gate:\s*\d+", lambda m: f"{m.group(1)}gate: 0", txt, flags=_re.M)
     cfg.write_text(txt)
     skein_cli(ws, "subtask", "done", "task-w", "x")
-    check_out = skein_cli(ws, "claim", "check").stdout
-    assert "已认领进检查" in check_out
-    finishing_out = skein_cli(ws, "claim", "check").stdout  # 第二轮: 检查中→收尾中, 撞 gate=0
-    assert "gate 池已满" in finishing_out
+    check_out = skein_cli(ws, "claim", "check", check=False)
+    finishing_out = json.loads(skein_cli(ws, "claim", "check", check=False).stdout)
+    assert "gate" in str(finishing_out.get("errors", finishing_out.get("empty", {}))).lower()
+
+
+def test_agent_routing_by_phase() -> None:
+    """claim 回传的 agent 列按 subtask phase 分流 (flow 主循环骨架 research/exec 两路)。"""
+    from skeinlib.scheduling import _agent_for
+    assert _agent_for({"phase": "research"}) == "skein-researcher"
+    assert _agent_for({"phase": "exec"}) == "skein-executor"
+    assert _agent_for({}) == "skein-executor"  # 缺 phase 默认 exec

@@ -4,15 +4,15 @@
 
 ## 0. 参数路由
 
-| `$1` | 阶段 | 行为 |
-|---|---|---|
-| 全空 | flow · 清空模式 | 不新建 task，取 `skein list --status open --json`，按可推进顺序清空全部未完成 task。无 open task 则报「无待执行 task」。 |
-| `flow` / 缺省 / 任务描述 | flow 默认闭环 | 有任务描述先走 plan 建/并入 task；之后自动续 exec→check→finish。 |
-| `plan` | 仅规划 | 只推到规划完成态，停在 `skein confirm` 前。 |
-| `exec` | 续执行 | 驱动待处理/在途 task 继续闭环到 finish。 |
-| `check` | 质量门 | 派 `skein-checker` 验证；失败按本文件「失败扭转」。 |
-| `finish` | 收尾门 | check 全绿后派 `skein-finisher` 完成 `skein finish` 和异步 sediment。 |
-| `redo <tid> [--plan]` | 断点续跑 | 复位孤儿 running subtask，再按当前状态续跑；`--plan` 只对规划中起点有效。 |
+| `$1`                     | 阶段            | 行为                                                                                                                     |
+| ------------------------ | --------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| 全空                     | flow · 清空模式 | 不新建 task，取 `skein list --status open --json`，按可推进顺序清空全部未完成 task。无 open task 则报「无待执行 task」。 |
+| `flow` / 缺省 / 任务描述 | flow 默认闭环   | 有任务描述先走 plan 建/并入 task；之后自动续 exec→check→finish。                                                         |
+| `plan`                   | 仅规划          | 只推到规划完成态，停在 `skein confirm` 前。                                                                              |
+| `exec`                   | 续执行          | 驱动待处理/在途 task 继续闭环到 finish。                                                                                 |
+| `check`                  | 质量门          | 派 `skein-checker` 验证；失败按本文件「失败扭转」。                                                                      |
+| `finish`                 | 收尾门          | check 全绿后派 `skein-finisher` 完成 `skein finish` 和异步 sediment。                                                    |
+| `redo <tid> [--plan]`    | 断点续跑        | 复位孤儿 running subtask，再按当前状态续跑；`--plan` 只对规划中起点有效。                                                |
 
 硬规：无参/任务描述不是 `plan`。flow 默认一路做完；只有显式 `plan` 才停在 confirm 前。
 
@@ -20,63 +20,61 @@
 
 ### 1.1 task 状态
 
-| 落盘值 | 展示名 | 阶段 | 池 | 含义 |
-|---|---|---|---|---|
-| `pending` | 待处理 | plan | 无 | 已 create，PRD/design/subtask/estimate/grill/人审尚未全收敛。 |
-| `research` | 调研中 | research | work | research subtask 在跑或待收敛回 plan。 |
-| `active` | 进行中 | exec | 无 task 级池 | 已 confirm，worktree 已建，subtask 可经 claim exec 派发。 |
-| `check` | 检查中 | check | gate | 全 subtask done 后进入验证。 |
-| `finishing` | 收尾中 | finish | gate | check 全绿后占 gate 槽，等待/运行 finisher。 |
-| `done` | 已完成 | 完结 | 无 | finish 成功，worktree 已销，闭环结束。 |
+| 落盘值      | 展示名 | 阶段     | 池           | 含义                                                          |
+| ----------- | ------ | -------- | ------------ | ------------------------------------------------------------- |
+| `pending`   | 待处理 | plan     | 无           | 已 create，PRD/design/subtask/estimate/grill/人审尚未全收敛。 |
+| `research`  | 调研中 | research | work         | research subtask 在跑或待收敛回 plan。                        |
+| `active`    | 进行中 | exec     | 无 task 级池 | 已 confirm，worktree 已建，subtask 可经 claim exec 派发。     |
+| `check`     | 检查中 | check    | gate         | 全 subtask done 后进入验证。                                  |
+| `finishing` | 收尾中 | finish   | gate         | check 全绿后占 gate 槽，等待/运行 finisher。                  |
+| `done`      | 已完成 | 完结     | 无           | finish 成功，worktree 已销，闭环结束。                        |
 
 状态单向前进：`pending`⇄`research` 例外；`active` 后不退回 `pending`。check 失败不是状态回滚，而是在同 task 内追加修复 subtask，回 exec 前进式修补。
 
 ### 1.2 subtask 状态
 
-| 落盘值 | 展示名 | 占 `pools.work` | 含义 |
-|---|---|---|---|
-| `pending` | 待处理 | 否 | 已登记，等待 depends_on 全 done 和 claim。 |
-| `running` | 运行中 | 是 | 已 claim/start，占槽，executor 正在执行。 |
-| `done` | 已完成 | 否 | executor 完成并释放槽；正式验收仍归 check。 |
-| `failed` | 失败 | 否 | executor 失败并释放槽，可 start 重派或补修复 subtask。 |
+| 落盘值    | 展示名 | 占 `pools.work` | 含义                                                   |
+| --------- | ------ | --------------- | ------------------------------------------------------ |
+| `pending` | 待处理 | 否              | 已登记，等待 depends_on 全 done 和 claim。             |
+| `running` | 运行中 | 是              | 已 claim/start，占槽，executor 正在执行。              |
+| `done`    | 已完成 | 否              | executor 完成并释放槽；正式验收仍归 check。            |
+| `failed`  | 失败   | 否              | executor 失败并释放槽，可 start 重派或补修复 subtask。 |
 
 ## 2. 状态先行硬门
 
-| 硬门 | 先跑 | 禁止 |
-|---|---|---|
-| task 级 | `skein confirm <tid> --approved`，且批准来自真实用户动作 | 未 confirm 就派 exec。 |
-| subtask 级 | `skein claim exec` / `skein subtask start <tid> <sid>` | pending/failed 直接派 executor。 |
-| check 级 | 派 `skein-checker`，checker 自跑 `skein check <tid>` | main 在 `active` 态直接跑验证并宣告通过。 |
-| finish 级 | `skein finishing <tid>` 后派 `skein-finisher` | 未进入 `finishing` 就跑 finish。 |
+| 硬门       | 先跑                                                     | 禁止                                        |
+| ---------- | -------------------------------------------------------- | ------------------------------------------- |
+| task 级    | `skein confirm <tid> --approved`，且批准来自真实用户动作 | 未 confirm 就派 exec。                      |
+| subtask 级 | `skein claim` / `skein subtask start <tid> <sid>`        | pending/failed 直接派 executor/researcher。 |
+| check 级   | `skein claim` 收进 `check` 后派 `skein-checker`          | main 在 `active` 态直接跑验证并宣告通过。   |
+| finish 级  | `skein claim` 收进 `finishing` 后派 `skein-finisher`     | 未进入 `finishing` 就跑 finish。            |
 
 借口不是状态命令。「简单」「省一步」「马上就做」不构成豁免。
 
 ## 3. 主循环骨架
 
 ```text
-入口：有任务描述则先 plan 建/并入 task；无参则扫描 open task
-while 有可推进 task:
-  pending/research:
-    跑 plan 或续 research
-    规划判据全满后，经真实人审门 confirm
-    flow 焦点 task confirm 后直接续 exec；显式 plan 停在 confirm 前
-  active:
-    claim exec
-    对每个 claimed subtask 派 skein-executor
-    任一 executor 回传后立刻 done/fail，再 claim 补槽
-    全 subtask done 后进入 check
-  check:
-    派 skein-checker
-    PASS 则进入 finishing
-    FAIL/冲突/needs_main 则走失败扭转，补修复 subtask 回 exec
-  finishing:
-    确认本 task 后台 agent 已结束
-    派 skein-finisher 跑 skein finish
-    成功后异步派 skein-specer 做 sediment / pending-fix maintain
-  done:
-    回循环头取下一个 open task
-无可推进：报「无待执行 task」
+for task in Bash("skein claim"):
+  if task.status == TaskStatus.RESEARCH:
+    async Agent(subagent_type="skein-researcher", desc=task.desc+"|研究中", task_id=task.id,  research_id=research_id)
+  elif task.status == TaskStatus.ACTIVE:
+    async Agent(subagent_type="skein-executor", desc=task.desc+"|进行中", task_id=task.id,  subtask_id=active_id)
+  elif task.status == TaskStatus.CHECK:
+    async Agent(subagent_type="skein-checker", desc=task.desc+"|检查中", task_id=task.id)
+  elif task.status == TaskStatus.FINISHING:
+    async Agent(subagent_type="skein-finisher", desc=task.desc+"|收尾中", task_id=task.id)
+    async Agent(subagent_type="skein-specer", desc=task.desc+"|spec", task_id=task.id)
+
+for task in Bash("list --status=pending"):
+  # 调度 plan
 ```
+
+骨架是 flow 每一轮的唯一驱动，硬规：
+
+1. 每轮先跑一次 `skein claim`（不带 phase）——它同时认领 exec 与 check 两路：ready subtask 标 `running`，全 done 的 `active` task 进 `check`，全 done 的 `check` task 进 `finishing`。
+2. 派哪个 agent 只看 claim 回传，不靠 main 自己判断：subtask 行的 `agent:` 列（`phase=research` → `skein-researcher`，否则 `skein-executor`）、task 行的 `agents`（进检查 → `skein-checker`；进收尾 → `skein-finisher` + `skein-specer`）。
+3. 全部 agent 一律 async 派出即结束回合，不等回传串行卡住。
+4. claim 结束后再扫 `skein list --status pending` 调度 plan，不与上面的派发抢顺序。
 
 ## 4. plan 过程
 
@@ -94,30 +92,30 @@ plan-ahead 只预备非焦点 pending task 到 confirm 门前，不替非焦点 
 
 ## 5. exec 过程
 
-1. 只对 `active` task 跑 `skein claim exec`。
+1. 认领走主循环的 `skein claim`（只想单跑 exec 一路时用 `skein claim exec`）。
 2. claim 返回即已把 ready subtask 标 `running` 并占 `pools.work` 槽。
-3. 每个 claimed subtask 派 `Agent(subagent_type="skein:skein-executor")`；exec 派发只给 tid/sid/工作目录，executor 自读 `subtask show`。
-4. executor 回传 done/fail 后，main 只负责记录状态；正式验收勾选留给 check。
-5. 任一槽释放立刻再次 `claim exec`，不等整批跑完。
-6. `claim exec` 为空但仍有 pending 时，查 depends_on、槽位、DAG 环；必要时回 plan 改 DAG。
+3. 每个 claimed subtask 按其 `agent:` 列派 `skein:skein-executor` 或 `skein:skein-researcher`；派发只给 tid/sid/工作目录，agent 自读 `subtask show`。
+4. executor/researcher 回传 done/fail 后，main 只负责记录状态；正式验收勾选留给 check。
+5. 任一槽释放立刻回循环头再 claim，不等整批跑完。
+6. claim 为空但仍有 pending 时，查 depends_on、槽位、DAG 环；必要时回 plan 改 DAG。
 7. 全 subtask done 后，进入 check。
 
 ## 6. check 过程
 
-1. 确认 task 处于 `active`，派 `skein-checker`。
-2. checker 自跑 `skein check <tid>` 进入 `check`，再执行 PRD 验收、subtask checklist、契约、场景测试、一致性核查。
+1. `skein claim` 把全 subtask done 的 `active` task 收进 `check` 并回传 `skein-checker`；照单派。
+2. checker 自跑 `skein check <tid>`（已在 `check` 则幂等），再执行 PRD 验收、subtask checklist、契约、场景测试、一致性核查。
 3. checker 回传 `PASS` 且无 `needs_main`：跑 `skein finishing <tid>`，进入 finish。
 4. checker 回传 `FAIL` / 冲突 / `needs_main`：走「失败扭转」。
 5. 修复 subtask 全 done 后重派 checker；未全绿不得 finish。
 
 ## 7. finish 过程
 
-1. 只从 `check` 且全绿 task 进入；先跑 `skein finishing <tid>` 占 gate 槽。
+1. 只从 `check` 且全绿 task 进入；`skein claim` 已把它收进 `finishing` 占好 gate 槽（单独推时用 `skein finishing <tid>`）。
 2. main 确认本 task 后台 agent 全部结束；仍有悬挂则禁派 finisher。
-3. 派 `skein-finisher`；finisher 勘察 diff、处理悬挂、在仓库根跑 `skein finish <tid>`。
+3. 派 `skein-finisher`；finisher 勘察 diff、处理悬挂、在仓库根跑 `skein finish <tid>`。同轮异步并发派 `skein-specer` 做 sediment / product amend，两者互不等待。
 4. `verdict=收尾干净`：视为 task 已 `done`，worktree 已销。
 5. `verdict=需处理`：按 dangling/tool_failures/needs_main 清理后重派 finisher；清不掉则停手上报。
-6. finish 成功后异步派 `skein-specer` 做 sediment/product amend；检测 `.skein/spec/.pending-fix`，存在则异步跑 maintain auto-fix。
+6. 检测 `.skein/spec/.pending-fix`，存在则异步跑 maintain auto-fix（同样 fire-and-forget）。
 7. 未 finish 闭环不得宣告 Done。
 
 ## 8. redo 断点续跑
@@ -126,14 +124,14 @@ redo 用于 session 意外结束后清 running 死槽。它只改状态，不删
 
 动手前必须说明：redo 期间禁止有 agent 在跑；全部 running subtask 一律当孤儿，不做心跳/存活探测/时长阈值。
 
-| 起点状态 | redo 行为 |
-|---|---|
-| `pending` | 无 running 可复位；续 plan 到收敛。带 `--plan` 时停在 confirm 前。 |
-| `research` | 复位 running research subtask；续 research 到 done，再 `skein plan` 回 pending。带 `--plan` 时停在 confirm 前。 |
-| `active` | 复位全部 running subtask，再回 exec 调度。 |
-| `check` | 无 subtask 可复位；直接重派 `skein-checker`。带 `--plan` 时说明已过规划阶段，参数未生效。 |
-| `finishing` | 无 subtask 可复位；直接重派 `skein-finisher`。带 `--plan` 时说明已过规划阶段，参数未生效。 |
-| `done` | 报已闭环，无事可做。 |
+| 起点状态    | redo 行为                                                                                                       |
+| ----------- | --------------------------------------------------------------------------------------------------------------- |
+| `pending`   | 无 running 可复位；续 plan 到收敛。带 `--plan` 时停在 confirm 前。                                              |
+| `research`  | 复位 running research subtask；续 research 到 done，再 `skein plan` 回 pending。带 `--plan` 时停在 confirm 前。 |
+| `active`    | 复位全部 running subtask，再回 exec 调度。                                                                      |
+| `check`     | 无 subtask 可复位；直接重派 `skein-checker`。带 `--plan` 时说明已过规划阶段，参数未生效。                       |
+| `finishing` | 无 subtask 可复位；直接重派 `skein-finisher`。带 `--plan` 时说明已过规划阶段，参数未生效。                      |
+| `done`      | 报已闭环，无事可做。                                                                                            |
 
 active 起点复位固定拼法：
 

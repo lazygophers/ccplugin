@@ -84,8 +84,9 @@ PRD_TYPE_ALIAS: dict[str, str] = {
 PRD_SECTIONS: tuple[str, ...] = ("目标", "边界", "验收标准")
 # 写入时补 `- [ ]` checkbox 的章节 (验收条目都该可勾); 边界只补 `- ` list marker 不补 checkbox
 PRD_TODO_SECTIONS: set[str] = {"目标", "验收标准"}
-# prd 标准六段 (对齐 `/to-spec`: 目标/边界 承接 Problem+Solution, User Stories/Testing Decisions 新增, 索引脚本维护)
-PRD_SECTIONS_V6: list[str] = ["目标", "边界", "User Stories", "验收标准", "Testing Decisions", "索引"]
+# prd 标准段 (对齐 `/to-spec`: 目标/边界 承接 Problem+Solution, User Stories/Testing Decisions 新增, 索引脚本维护)
+# 「验证方式」由 235b7ca84 加进 scaffold 模板但漏了这里 —— 不补则每个新建 task 的模板都过不了 confirm 门
+PRD_SECTIONS_V6: list[str] = ["目标", "边界", "User Stories", "验收标准", "验证方式", "Testing Decisions", "索引"]
 # task 优先级: 四档枚举, 落盘存机读值 (urgent/high/normal/low)
 class TaskPriority(StrEnum):
     URGENT = "urgent"

@@ -15,6 +15,7 @@ subtask 认领时**就地启动**, 故这里不再需要 `Lifecycle._start_task`
 from __future__ import annotations
 
 import argparse
+import json
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -38,6 +39,12 @@ if _TC:
 _W_CRIT = 100.0
 _W_WAIT = 1.0
 _W_EXEC = 1.0
+
+
+def _agent_for(s: dict[str, Any]) -> str:
+    """subtask phase → main 该派的 agent (flow 主循环骨架 research/exec 分流)。"""
+    return ("skein-researcher" if s.get("phase", SubtaskPhase.EXEC) == SubtaskPhase.RESEARCH
+            else "skein-executor")
 
 
 def _score(s: dict[str, Any], crit_val: int) -> float:
@@ -111,33 +118,79 @@ class Scheduler:
         cand.sort(key=lambda x: (-x[5], -x[4], x[2], x[3]))
         return [(c[0], c[1]) for c in cand[:slots]]
 
-    def claim(self, a: argparse.Namespace) -> None:
+    def claim(self, a: argparse.Namespace) -> dict[str, Any]:
         """全局跨 task 认领批, 按 phase 分流:
         - exec: 所有可调度 task 的 ready subtask 合池竞争 pools.work 槽 → 整批标 running (旧 claim 行为)
         - check: 进行中 task 全 subtask done → 检查中; 检查中 task 全 subtask done 且 check 全绿 → 已完成 (finish)
         `--dry-run`: 只读预览, 不改状态。"""
         phase = getattr(a, "phase", None)
+        if getattr(a, "dry_run", False):
+            data: dict[str, Any] = {"phase": phase or "all", "dry_run": True}
+            if phase in (None, "exec"):
+                data["exec"] = self._claim_exec_preview(a)
+            if phase in (None, "check"):
+                data["check"] = self._claim_check_preview()
+            return data
+        results: dict[str, Any] = {}
         if phase is None:
-            self._claim_exec(a)
-            self._claim_check(a)
+            results["exec"] = self._claim_exec(a)
+            results["check"] = self._claim_check(a)
         elif phase == "exec":
-            self._claim_exec(a)
+            return self._claim_exec(a)
         elif phase == "check":
-            self._claim_check(a)
+            return self._claim_check(a)
+        return results
 
-    def _empty_batch_msg(self) -> str:
-        """work 池空批提示 —— 满槽/无待处理/依赖未完成三种成因分开报, 满槽明确指明「work 池」。"""
+    def _empty_batch_info(self) -> dict[str, Any]:
+        """work 池空批原因 —— 满槽/无待处理/依赖未完成三种成因分开报。"""
         tasks = self._schedulable()
         grun = sum(1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SubtaskStatus.RUNNING)
         gpend = sum(1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SubtaskStatus.PENDING)
         mp = self.ws.config()["pools"]["work"]
+        info: dict[str, Any] = {"running": grun, "capacity": mp, "pending": gpend}
         if grun >= mp:
-            return f"work 池已满 (running {grun}/{mp}) — 先等一个 subtask done 释放槽"
-        if gpend == 0:
-            return f"无待处理 subtask (work 池 running {grun}/{mp})"
-        return f"待处理 subtask 的依赖未全部完成 (work 池 running {grun}/{mp}, pending: {gpend})"
+            info.update({"reason": "work_pool_full", "message": "work 池已满 — 先等一个 subtask done 释放槽"})
+        elif gpend == 0:
+            info.update({"reason": "no_pending_subtask", "message": "无待处理 subtask"})
+        else:
+            info.update({"reason": "dependencies_blocked", "message": "待处理 subtask 的依赖未全部完成"})
+        return info
 
-    def _claim_exec(self, a: argparse.Namespace) -> None:
+    def _empty_batch_msg(self) -> str:
+        info = self._empty_batch_info()
+        if info["reason"] == "work_pool_full":
+            return f"work 池已满 (running {info['running']}/{info['capacity']}) — 先等一个 subtask done 释放槽"
+        if info["reason"] == "no_pending_subtask":
+            return f"无待处理 subtask (work 池 running {info['running']}/{info['capacity']})"
+        return (f"待处理 subtask 的依赖未全部完成 (work 池 running {info['running']}/{info['capacity']}, "
+                f"pending: {info['pending']})")
+
+    def _claim_exec_preview(self, a: argparse.Namespace) -> dict[str, Any]:
+        batch = self._global_ready()
+        task_filter = getattr(a, "task", None)
+        if task_filter:
+            batch = [(t, s) for t, s in batch if t["id"] == task_filter]
+        items = [{
+            "task": t["id"],
+            "subtask": s["sid"],
+            "name": s["name"],
+            "phase": s.get("phase", SubtaskPhase.EXEC),
+            "agent": _agent_for(s),
+            "skills": s.get("skills", []),
+            "acceptance": s.get("acceptance", []),
+        } for t, s in batch]
+        data: dict[str, Any] = {
+            "ready": items,
+            "count": len(items),
+            "task_filter": task_filter,
+            "claim_command": "skein.py claim exec",
+            "single_claim_command": "skein.py subtask start <tid> <sid>",
+        }
+        if not items:
+            data["empty"] = {"reason": "task_filter_no_ready", "task": task_filter} if task_filter else self._empty_batch_info()
+        return data
+
+    def _claim_exec(self, a: argparse.Namespace) -> dict[str, Any]:
         """exec 认领: ready subtask → running (与旧 claim 行为一致)。"""
         batch = self._global_ready()
         # --task 过滤: 只保留指定 task 的 subtask
@@ -145,25 +198,10 @@ class Scheduler:
         if task_filter:
             batch = [(t, s) for t, s in batch if t["id"] == task_filter]
         if getattr(a, "dry_run", False):
-            if not batch:
-                if task_filter:
-                    print(f"task {task_filter} 无就绪 subtask")
-                else:
-                    print(f"无全局就绪 subtask — {self._empty_batch_msg()}")
-                return
-            print("全局就绪批 (只读预览, 不改状态) — 决定执行后去掉 --dry-run 认领:")
-            for t, s in batch:
-                sk = ",".join(s.get("skills", [])) or "-"
-                chk = "; ".join(s.get("acceptance", [])) or "-"
-                print(f"{t['id']}/{s['sid']}\t{s['name']}\tskills: {sk}\t验收: {chk}")
-            print("— 认领整批: `skein.py claim exec`  或只占单个: `skein.py subtask start <tid> <sid>`")
-            return
+            return self._claim_exec_preview(a)
         if not batch:
-            if task_filter:
-                print(f"task {task_filter} 无就绪 subtask")
-            else:
-                print(f"无全局就绪 subtask — {self._empty_batch_msg()}")
-            return
+            return {"claimed": [], "count": 0,
+                    "reason": "task_filter_no_ready" if task_filter else self._empty_batch_info()}
         # 按 task 分组认领 (task 已全在 active 态, 无需就地启动)。
         by_tid: dict[str, list[str]] = {}
         order: list[str] = []
@@ -172,7 +210,7 @@ class Scheduler:
                 by_tid[t["id"]] = []
                 order.append(t["id"])
             by_tid[t["id"]].append(s["sid"])
-        claimed: list[tuple[str, dict[str, Any]]] = []
+        claimed: list[dict[str, Any]] = []
         for tid in order:
             t = next(x for x, _ in batch if x["id"] == tid)
             subs = {s["sid"]: s for s in t.get("subtasks", [])}
@@ -181,19 +219,13 @@ class Scheduler:
                 s["status"] = SubtaskStatus.RUNNING
                 if not s.get("started"):
                     s["started"] = now()  # exec 时刻 (首次认领, 重认领不覆盖)
-                claimed.append((tid, s))
+                claimed.append({"tid": tid, "sid": sid, "name": s["name"],
+                                "agent": _agent_for(s), "skills": s.get("skills", []),
+                                "acceptance": s.get("acceptance", [])})
             self.ws.store.save(t)
-        print("已全局认领 (running) — main 逐个派 skein-executor（dispatch 只给 tid + sid + 工作目录）, 完成即 subtask done/fail:")
-        for tid, s in claimed:
-            sk = ",".join(s.get("skills", [])) or "-"
-            chk = "; ".join(s.get("acceptance", [])) or "-"
-            print(f"{tid}/{s['sid']}\t{s['name']}\tskills: {sk}\t验收: {chk}")
+        return {"claimed": claimed, "count": len(claimed)}
 
-    def _claim_check(self, a: argparse.Namespace) -> None:
-        """check 认领: 两路合并 —
-        1. 进行中 task 全 subtask done → 检查中 (交给 skein-checker 验收)
-        2. 检查中 task 全 subtask done → 收尾中 (finishing, 占 gate 槽; main 收到后派 skein-finisher 完成 finish)
-        --dry-run 只读预览。"""
+    def _check_candidates(self) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         to_check: list[dict[str, Any]] = []
         to_finishing: list[dict[str, Any]] = []
         # 不能用 self.ws.store.active(): STATUS_ACTIVE = {进行中,调研中,收尾中} 不含「检查中」
@@ -212,46 +244,59 @@ class Scheduler:
             elif t["status"] == TaskStatus.CHECK:
                 # 检查中 + 全 done: 可收尾 (验收是否全绿由 skein-checker 保证, 这里只看状态)
                 to_finishing.append(t)
+        return to_check, to_finishing
+
+    def _claim_check_preview(self) -> dict[str, Any]:
+        to_check, to_finishing = self._check_candidates()
+        data: dict[str, Any] = {
+            "to_check": [{"task": t["id"], "name": t["name"], "next_status": TaskStatus.CHECK,
+                          "agents": ["skein-checker"]} for t in to_check],
+            "to_finishing": [{"task": t["id"], "name": t["name"], "next_status": TaskStatus.FINISHING,
+                              "agents": ["skein-finisher", "skein-specer"]} for t in to_finishing],
+            "check_count": len(to_check),
+            "finishing_count": len(to_finishing),
+            "claim_command": "skein.py claim check",
+        }
+        if not to_check and not to_finishing:
+            data["empty"] = {"reason": "no_check_or_finishing_ready", "message": "进行中 task 须全 subtask done 才认领"}
+        return data
+
+    def _claim_check(self, a: argparse.Namespace) -> dict[str, Any]:
+        """check 认领: 两路合并 —
+        1. 进行中 task 全 subtask done → 检查中 (交给 skein-checker 验收)
+        2. 检查中 task 全 subtask done → 收尾中 (finishing, 占 gate 槽; main 收到后派 skein-finisher 完成 finish)
+        --dry-run 只读预览。"""
+        to_check, to_finishing = self._check_candidates()
         dry = getattr(a, "dry_run", False)
         if not to_check and not to_finishing:
-            print("无可认领的 check/finishing task — 进行中 task 须全 subtask done 才认领")
-            return
+            return {"checked": [], "finishing": [], "errors": [],
+                    "empty": {"reason": "no_check_or_finishing_ready",
+                              "message": "进行中 task 须全 subtask done 才认领"}}
         if dry:
-            if to_check:
-                print("待进检查 (只读预览, 不改状态) — 去掉 --dry-run 认领:")
-                for t in to_check:
-                    print(f"  {t['id']}\t{t['name']} → 检查中")
-            if to_finishing:
-                print("待收尾 (只读预览, 不改状态) — 去掉 --dry-run 认领:")
-                for t in to_finishing:
-                    print(f"  {t['id']}\t{t['name']} → 收尾中 (占 gate 槽)")
-            return
+            return self._claim_check_preview()
         # 执行认领: 先 check 后 finishing (finishing 的 gate 槽校验依赖 check 已就位)
-        claimed_check: list[str] = []
+        checked: list[str] = []
+        errors: list[dict[str, str]] = []
         for t in to_check:
-            t["status"] = TaskStatus.CHECK
-            t["checked"] = now()
-            self.ws.store.save(t)
-            claimed_check.append(t["id"])
-        if claimed_check:
-            self.ws.store.sync()
-            print(f"已认领进检查 ({len(claimed_check)} task) — main 派 skein-checker 验收:")
-            for tid in claimed_check:
-                print(f"  {tid}")
+            try:
+                self.lifecycle.check(argparse.Namespace(id=t["id"]))  # 走同一道门, 带 stage hooks
+                checked.append(t["id"])
+            except SkeinError as e:
+                errors.append({"tid": t["id"], "action": "check", "error": str(e)})
         # 收尾路调 lifecycle.finishing (占 gate 槽; gate 满则该 task 留检查中, 下次 claim 重试)
-        claimed_finishing: list[str] = []
+        finishing: list[str] = []
         for t in to_finishing:
             try:
                 self.lifecycle.finishing(argparse.Namespace(id=t["id"]))
-                claimed_finishing.append(t["id"])
+                finishing.append(t["id"])
             except SkeinError as e:
-                print(f"  {t['id']}: 收尾失败 — {e}")
-        if claimed_finishing:
-            print(f"已认领收尾 ({len(claimed_finishing)} task) — main 派 skein-finisher 完成 finish:")
-            for tid in claimed_finishing:
-                print(f"  {tid}")
+                errors.append({"tid": t["id"], "action": "finishing", "error": str(e)})
+        result: dict[str, Any] = {"checked": checked, "finishing": finishing}
+        if errors:
+            result["errors"] = errors
+        return result
 
-    def subtask(self, a: argparse.Namespace) -> None:
+    def subtask(self, a: argparse.Namespace) -> dict[str, Any]:
         if a.action == "add":
             t = self.ws.store.load(a.tid)
             subs = t.setdefault("subtasks", [])
@@ -277,65 +322,29 @@ class Scheduler:
                 "finished": None,   # 完成时刻 (done 时置)
             })
             self.ws.store.save(t)  # _save 已渲染子任务看板
-            print(f"{a.tid}/{a.sid} 已登记 ({est} h; 共 {len(subs)} subtask, "
-                  f"合计 {_sub_estimate_sum(t)} h)")
-            return
+            return {"tid": a.tid, "sid": a.sid, "estimate": est,
+                    "total": len(subs), "subtask_sum": _sub_estimate_sum(t)}
         if a.action == "list":
             t = self.ws.store.load(a.tid)
             subs = t.get("subtasks", [])
-            if not subs:
-                print("无 subtask")
-                return
-            for s in subs:
-                deps = ",".join(s.get("depends_on", [])) or "-"
-                chk = "; ".join(s.get("acceptance", [])) or "-"
-                sk = ",".join(s.get("skills", [])) or "-"
-                est_v = s.get("estimate")  # est_v 而非 est: 避免与本函数 add 分支的 est(float) 同名混型
-                print(f"{s['sid']}\t{s['status']}\t{_sub_pct(s)}%\t{est_v if est_v else '-'}h\t{s['name']}"
-                      f"\t依赖:{deps}\t验收:{chk}\tskills:{sk}")
-            return
+            return {"tid": a.tid, "subtasks": [{"sid": s["sid"], "status": s["status"],
+                    "name": s["name"], "pct": _sub_pct(s),
+                    "estimate": s.get("estimate"),
+                    "depends_on": s.get("depends_on", []),
+                    "acceptance": s.get("acceptance", []),
+                    "skills": s.get("skills", [])} for s in subs]}
         if a.action == "show":
             t = self.ws.store.load(a.tid)
             s = self.ws._sub(t, a.sid)
-            crit = s.get("acceptance", [])
-            doneidx = set(s.get("acceptance_done", []))
-            est_v = s.get("estimate")  # est_v 而非 est: 避免与本函数 add 分支的 est(float) 同名混型
-            elapsed = None
-            if s.get("started") and s.get("finished"):
-                elapsed = round((s["finished"] - s["started"]) / 60, 1)  # 分钟
-            print(f"sid: {s['sid']}")
-            print(f"name: {s['name']}")
-            print(f"desc: {s.get('desc') or '-'}")
-            print(f"status: {s['status']}")
-            print(f"estimate: {est_v if est_v else '-'} h")
-            print(f"实际耗时: {elapsed if elapsed is not None else '-'} min")
-            print(f"depends_on: {','.join(s.get('depends_on', [])) or '-'}")
-            print(f"skills: {','.join(s.get('skills', [])) or '-'}")
-            if crit:
-                print("验收:")
-                for i, c in enumerate(crit, 1):
-                    mark = "x" if i in doneidx else " "
-                    print(f"  [{mark}] {i}. {c}")
-            else:
-                print("验收: -")
-            print(f"note: {s.get('note') or '-'}")
-            print(f"created: {_fmt_ts(s.get('created'))}")
-            print(f"started: {_fmt_ts(s.get('started'))}")
-            print(f"finished: {_fmt_ts(s.get('finished'))}")
-            return
+            return {"tid": a.tid, "subtask": s}
         if a.action in ("ready", "claim"):
             t = self.ws.store.load(a.tid)
             batch = self._ready(t)
             if not batch:
                 run = [s["sid"] for s in t.get("subtasks", []) if s["status"] == SubtaskStatus.RUNNING]
-                pend = [s for s in t.get("subtasks", []) if s["status"] == SubtaskStatus.PENDING]
                 mp = self.ws.config()["pools"]["work"]
-                if len(run) >= mp:
-                    print(f"无就绪 subtask — work 池已满 (running {len(run)}/{mp})")
-                else:
-                    print(f"无就绪 subtask (running: {','.join(run) or '-'}, "
-                          f"pending: {len(pend)}) — 依赖未完成")
-                return
+                reason = "work_pool_full" if len(run) >= mp else "dependencies_blocked"
+                return {"ready": [], "reason": reason, "running": len(run), "capacity": mp}
             if a.action == "claim":
                 # 一次性认领: 就绪批整体标 running, 免 main 逐个 start (少一轮往返 + 无竞态窗口)
                 for s in batch:
@@ -343,15 +352,12 @@ class Scheduler:
                     if not s.get("started"):
                         s["started"] = now()  # exec 时刻 (首次认领, 重认领不覆盖)
                 self.ws.store.save(t)  # _save 已渲染子任务看板
-                print("已认领 (running) — main 逐个派 skein-executor（dispatch 只给 tid + sid + 工作目录）, 完成即 subtask done/fail:")
-            else:
-                print("就绪 (只读预览, 认领用 `subtask claim`):")
-            for s in batch:
-                sk = ",".join(s.get("skills", [])) or "-"
-                chk = "; ".join(s.get("acceptance", [])) or "-"
-                print(f"{s['sid']}\t{s['name']}\tskills: {sk}\t验收: {chk}")
-            return
-        # start / done / fail 均针对单 sid
+            return {"tid": a.tid, "action": a.action,
+                    "claimed" if a.action == "claim" else "ready": [
+                        {"sid": s["sid"], "name": s["name"], "agent": _agent_for(s),
+                         "skills": s.get("skills", []), "acceptance": s.get("acceptance", [])}
+                        for s in batch]}
+        # start / done / fail / check 均针对单 sid
         t = self.ws.store.load(a.tid)
         s = self.ws._sub(t, a.sid)
         if a.action == "start":
@@ -382,8 +388,8 @@ class Scheduler:
                     raise SkeinError(f"验收序号越界: {bad} (共 {len(crit)} 条)")
             s["acceptance_done"] = idx
             self.ws.store.save(t)  # _save 已渲染子任务看板
-            print(f"{a.tid}/{a.sid} 验收 {len(idx)}/{len(crit)} ({_sub_pct(s)}%)")
-            return
+            return {"tid": a.tid, "sid": a.sid, "accepted": len(idx),
+                    "total": len(crit), "pct": _sub_pct(s)}
         elif a.action == "done":
             self.ws._stage_hooks("subtask.done", "before", self.ws._hook_ctx(a.tid, a.sid, t=t))
             s["status"] = SubtaskStatus.DONE
@@ -398,4 +404,4 @@ class Scheduler:
         self.ws.store.save(t)  # _save 已渲染子任务看板
         if a.action in ("start", "done", "fail"):
             self.ws._stage_hooks(f"subtask.{a.action}", "after", self.ws._hook_ctx(a.tid, a.sid, t=t))
-        print(f"{a.tid}/{a.sid} → {s['status']}")
+        return {"tid": a.tid, "sid": a.sid, "status": s["status"]}

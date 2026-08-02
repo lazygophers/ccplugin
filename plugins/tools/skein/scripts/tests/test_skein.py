@@ -62,7 +62,7 @@ def main() -> None:
             (d / ".skein/task" / tid / "prd.md").write_text(
                 f"# {tid} — PRD\n\n## 目标\n- 解决 X\n\n## 边界\n- 范围内: a\n\n"
                 "## User Stories\n1. As a user, I want X\n\n"
-                "## 验收标准\n- 用例通过\n\n## Testing Decisions\n- 复用现有单测\n\n## 索引\n- design.md\n")
+                "## 验收标准\n- 用例通过\n\n## 验证方式\n- 跑 pytest, 全绿即 pass\n\n## Testing Decisions\n- 复用现有单测\n\n## 索引\n- design.md\n")
             # 填实测试接缝段 (confirm 硬门): scaffold 落的是占位, 不填会被 _validate_seam 挡在工时门之前
             design = d / ".skein/task" / tid / "design.md"
             design.write_text(re.sub(
@@ -377,7 +377,7 @@ def test_multirepo() -> None:
         (d / ".skein/task/feat/prd.md").write_text(
             "# feat — PRD\n\n## 目标\n- 改两仓\n\n## 边界\n- 范围内: a\n\n"
             "## User Stories\n1. As a user, I want cross-repo changes\n\n"
-            "## 验收标准\n- 用例通过\n\n## Testing Decisions\n- 复用现有单测\n\n## 索引\n- design.md\n")
+            "## 验收标准\n- 用例通过\n\n## 验证方式\n- 跑 pytest, 全绿即 pass\n\n## Testing Decisions\n- 复用现有单测\n\n## 索引\n- design.md\n")
         design = d / ".skein/task/feat/design.md"
         design.write_text(re.sub(
             r"- \[ \] TODO: 填测试接缝", "- [x] 复用 `test_x.py::test_y` 现有单测", design.read_text()))
@@ -413,7 +413,7 @@ def test_seam_gate() -> None:
             (d / ".skein/task" / tid / "prd.md").write_text(
                 f"# {tid} — PRD\n\n## 目标\n- 解决 X\n\n## 边界\n- 范围内: a\n\n"
                 "## User Stories\n1. As a user, I want X\n\n"
-                "## 验收标准\n- 用例通过\n\n## Testing Decisions\n- 复用现有单测\n\n## 索引\n- design.md\n")
+                "## 验收标准\n- 用例通过\n\n## 验证方式\n- 跑 pytest, 全绿即 pass\n\n## Testing Decisions\n- 复用现有单测\n\n## 索引\n- design.md\n")
 
         def _ready(tid: str) -> None:
             sk(d, "create", tid, "--name", tid, "--desc", "d")
@@ -466,7 +466,7 @@ def test_prd_section_gate() -> None:
         _ready("v6-task",
                "# v6-task — PRD\n\n## 目标\n- 解决 X\n\n## 边界\n- 范围内: a\n\n"
                "## User Stories\n1. As a user, I want X\n\n"
-               "## 验收标准\n- 用例通过\n\n## Testing Decisions\n- 复用现有单测\n\n"
+               "## 验收标准\n- 用例通过\n\n## 验证方式\n- 跑 pytest, 全绿即 pass\n\n## Testing Decisions\n- 复用现有单测\n\n"
                "## 索引\n- design.md\n")
         r = sk(d, "confirm", "v6-task", check=False)
         assert r.returncode == 0, f"标准六段不该被拒: {r.stderr}"

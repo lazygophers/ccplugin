@@ -71,7 +71,7 @@ layer(node) = max(layer(dep)) + 1
 
 | 命令 | 范围 | 语义 |
 |---|---|---|
-| `skein claim` | 全局跨 task | 同时处理 exec + check 两路。 |
+| `skein claim` | 全局跨 task | 同时处理 exec + check 两路；回传自带 agent 路由（subtask 行 `agent:` 列 = `skein-executor`/`skein-researcher`，task 行 `agents` = `skein-checker` 或 `skein-finisher`+`skein-specer`），main 照单派。 |
 | `skein claim --dry-run` | 全局跨 task | 同时预览 exec ready subtask 与 check/finishing task，不改态。 |
 | `skein claim exec` | 全局跨 task | 批量认领 ready subtask 并标 `running`。 |
 | `skein claim exec --dry-run` | 全局跨 task | 只读预览 exec ready subtask，不改态。 |
