@@ -29,6 +29,8 @@
 | `finishing` | 收尾中 | finish   | gate         | check 全绿后占 gate 槽，等待/运行 finisher。                  |
 | `done`      | 已完成 | 完结     | 无           | finish 成功，worktree 已销，闭环结束。                        |
 
+worktree：由 config `worktree.enabled` 决定（默认 false）。启用时 confirm 建 task worktree（多子 git 落各仓 `<repo>/.worktrees/skein-<id>`），finish 合并后销毁；禁用则全程原地在仓库根做。派 agent 时把工作目录直接写进 dispatch，agent 不自己探测。
+
 状态单向前进：`pending`⇄`research` 例外；`active` 后不退回 `pending`。check 失败不是状态回滚，而是在同 task 内追加修复 subtask，回 exec 前进式修补。
 
 ### 1.2 subtask 状态

@@ -40,7 +40,6 @@ effort: medium
 - [references/dag-scheduling.md](references/dag-scheduling.md) — DAG 算法、ready 判定、排序、池模型。
 - [references/subtask-operations.md](references/subtask-operations.md) — subtask CLI 参数表。
 - [references/estimate-gate.md](references/estimate-gate.md) — estimate 硬门。
-- [references/worktree-convention.md](references/worktree-convention.md) — worktree 约定。
 - [references/sediment-protocol.md](references/sediment-protocol.md) — finish 后沉淀。
 - [references/root-cause-protocol.md](references/root-cause-protocol.md) — 反复失败后的根因报告格式。
 - [references/rollback-protocol.md](references/rollback-protocol.md) — 回退/扭转术语边界；执行过程见 flow-loop。
