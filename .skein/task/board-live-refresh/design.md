@@ -81,3 +81,20 @@
 7. 纯函数 — `applyTaskChanged(tasks, msg, extra)` 无副作用, 三类 + extra 共 4 组用例
 
 b2 (签名补齐展示字段)/b3(断线追赶+抗抖)/b4(详情页订阅+浏览器验证) 留给后续 subtask, 未做。
+
+## b3 完成留痕 — 断线追赶 + 批量抗抖
+
+- **断线提示**: `live.ts` 的 `ws.onclose` 首次转为断线时立即 `subs.forEach(cb => cb({type:"offline"}))`,
+  不再等 5 分钟 `giveUp()` 超时才发声。`live-bootstrap.tsx` 订阅该消息渲染顶部横幅「连接已断开, 正在重连…」,
+  非阻塞、不遮挡操作。原有 5 分钟兜底 (`giveUp`) 保留不动。
+- **断线追赶**: 复用既有整页刷路径 —— `live.ts:ws.onopen` 里 `if (seen) location.reload()` 在初版脚手架
+  (`cff9bd0b2`) 就已存在, 重连后整页重载即重新拉全量数据, 断线期间丢失的 task-changed 消息靠这次全量对齐
+  补齐。未新增追赶协议, 未改这段逻辑, 只加了 `offline=false` 复位。
+- **批量抗抖**: `model.ts` 新增纯函数 `applyTaskChangedBatch(tasks, msgs, extra)`, 对消息数组依次 reduce
+  `applyTaskChanged`, 语义与逐条应用等价但只产出一次新卡片集。`board/page.tsx` 的订阅回调把消息推进
+  `pending` 数组, 用 `requestAnimationFrame` 合并同一帧内到达的多条消息为一次 `setAllTasks`, 避免每条消息
+  各自触发一次 `layoutDAG` 重排。
+- **测试**: `src/lib/__tests__/apply-task-changed-batch.test.ts` — 批量与逐条依次应用结果等价 / 同 id 多次
+  变更去重只留最后一次 / 空批次原样返回, 共 8 assert 全过。既有 `apply-task-changed.test.ts` 回归 10 assert
+  全过。「不整页重载」「短时间不卡死」这类需要真实浏览器人工核对的项按 prd.md Testing Decisions 不写脆弱断言。
+- **未动**: `views.py` 变更签名 (b2 交付, 未改)、`serve.py` 推送逻辑 (范围外)、详情页订阅接线 (b4 范围)。
