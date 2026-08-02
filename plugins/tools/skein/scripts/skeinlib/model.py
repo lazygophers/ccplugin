@@ -91,6 +91,15 @@ K_CHECK_END = "检查结束"
 K_FINISHED = "完成时间"
 K_UPDATED = "更新时间"
 
+# 时间戳英文 key (用于代码逻辑，落盘 key 用上面中文常量)
+TS_CREATED = "created"
+TS_CONFIRMED = "confirmed"
+TS_STARTED = "started"
+TS_CHECKED = "checked"
+TS_CHECKED_END = "checked_end"
+TS_FINISHED = "finished"
+TS_UPDATED = "updated"
+
 # subtask 级中文 key (部分与 task 共用: 名称/描述/状态/预计工时)
 K_SID = "标识"
 K_DEPENDS_ON = "依赖"

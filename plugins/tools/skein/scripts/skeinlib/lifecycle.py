@@ -21,7 +21,7 @@ from skeinlib.dag import _sub_estimate_sum
 from skeinlib.errors import SkeinError
 from skeinlib.model import (CODE_ID_RE, PRIORITY_DEFAULT, SLUG_RE, SS_DONE, SS_PHASE_RESEARCH,
                             STATUS_INFLIGHT, S_ACTIVE, S_CHECK, S_DONE, S_FINISHING,
-                            S_PENDING, S_RESEARCH, now)
+                            S_PENDING, S_RESEARCH, TS_CHECKED_END, now)
 from skeinlib.prd import review_summary, validate_prd, validate_seam
 from skeinlib.priority import validate_priority
 from skeinlib.worktree import commit_all, destroy_worktrees, git, make_worktree, parse_repos, worktrees_of
@@ -91,6 +91,7 @@ class Lifecycle:
             "started": None,         # exec 时刻 (start 时置)
             "confirmed": None,       # confirm (吸收 start) 时刻
             "checked": None,         # 进入检查阶段时刻 (check 命令置)
+            "checked_end": None,     # 检查结束时刻 (finishing 时置)
             "finished": None,        # 完成时刻 (finish 时置; 保留期从此计)
             "updated": now(),
         }
@@ -448,6 +449,8 @@ class Lifecycle:
         if occupied >= gate:
             raise SkeinError(f"gate 池已满 ({occupied}/{gate}) — 先 finish 一个再收尾")
         self.ws._stage_hooks("finishing", "before", self.ws._hook_ctx(a.id, t=t))
+        if not t.get(TS_CHECKED_END):
+            t[TS_CHECKED_END] = now()
         t["status"] = S_FINISHING
         self.ws.store.save(t)
         self.ws.store.sync()
