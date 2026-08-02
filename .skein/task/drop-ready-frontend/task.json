@@ -23,11 +23,7 @@
       "skills": [],
       "created": 1785647864,
       "started": 1785648133,
-<<<<<<< HEAD
       "finished": 1785648700
-=======
-      "finished": 1785648441
->>>>>>> skein/drop-ready-frontend
     },
     {
       "sid": "f2",
@@ -45,13 +41,8 @@
       "phase": "exec",
       "skills": [],
       "created": 1785647864,
-<<<<<<< HEAD
       "started": 1785648455,
       "finished": 1785649141
-=======
-      "started": null,
-      "finished": 1785649021
->>>>>>> skein/drop-ready-frontend
     },
     {
       "sid": "f3",
@@ -72,13 +63,8 @@
       "phase": "exec",
       "skills": [],
       "created": 1785647877,
-<<<<<<< HEAD
       "started": 1785649141,
       "finished": 1785650017
-=======
-      "started": null,
-      "finished": 1785650186
->>>>>>> skein/drop-ready-frontend
     },
     {
       "sid": "f4",
@@ -124,10 +110,6 @@
   "confirmed": 1785648132,
   "checked": 1785662457,
   "finished": null,
-<<<<<<< HEAD
   "updated": 1785662765,
-=======
-  "updated": 1785650186,
->>>>>>> skein/drop-ready-frontend
   "confirmed_by": "user"
 }
