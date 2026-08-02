@@ -36,6 +36,10 @@ def main() -> None:
                    help="task 类型: task=普通/独立(默认) | supertask=父聚合层 (parent 必须 None, 限 2 层: supertask→task→subtask)")
     c.add_argument("--parent", help="父 supertask id (建 child task; 父须为 supertask, 即其 parent 为 None — 禁 child 作父)")
     c.add_argument("--estimate", type=float, help="预计工时(小时); 亦可后续用 skein estimate <id> --set 补 (confirm 前必填)")
+    c.add_argument("--priority", help="优先级: urgent/high/normal/low (省略落 normal/中)")
+    pr = sub.add_parser("priority", help="查/改 task 优先级 (urgent/high/normal/low; 任意状态均可改, 不打断已在跑的)")
+    pr.add_argument("id", help="task id")
+    pr.add_argument("--set", help="设置优先级 (urgent/high/normal/low); 省略则查看当前值")
     es = sub.add_parser("estimate", help="查/填 task 预计工时(小时); confirm 硬门校验必填, 仅 pending/ready 可改")
     es.add_argument("id", help="task id")
     es.add_argument("--set", help="设置预计工时(小时, 正数); 省略则查看当前值")
@@ -45,6 +49,9 @@ def main() -> None:
     dp = sub.add_parser("deps", help="查/补 task 级前置 DAG (dedup 排序用; 仅 pending 且无既有 deps 可写)")
     dp.add_argument("id", help="task id")
     dp.add_argument("--set", help="设置前置 task id (逗号分隔; 仅当该 task 现无 deps 时允许); 省略则列出")
+    pt = sub.add_parser("parent", help="查/改既有 task 的 parent 挂载 (与 deps 正交, 不碰任何 deps; 摘除=--set 空串)")
+    pt.add_argument("id", help="task id")
+    pt.add_argument("--set", help="设置父 supertask/task id (空串=摘除, 省略则查看当前值)")
     rs = sub.add_parser("research", help="待处理→调研中: 发起调研 (须先登记 ≥1 个 --phase research 的 subtask)")
     rs.add_argument("id", help="task id")
     pl = sub.add_parser("plan", help="调研中→待处理: 收敛调研回规划 (须 research subtask 全 done; 调研中不可直接 confirm)")
@@ -86,6 +93,7 @@ def main() -> None:
     cfg_sub.add_parser("reset", help="重置全部配置为默认值")
     cl = sub.add_parser("clean", help="[用户主动] 归档完成超保留期的 task (skein-clean skill 入口)")
     cl.add_argument("--days", type=int, help="保留范围: 归档完成超此天数的 task (省略用 config retain_days; 0=全部完成 task 立即归档)")
+    sub.add_parser("migrate-priority", help="[一次性] 存量 0-10 数字优先级迁移为四档枚举; 迁移前自动备份原文件, 幂等可重跑")
     sub.add_parser("current", help="列全部 active task (无 focus, 就绪皆可并行)")
     sub.add_parser("ready", help="脚本算可启动 task 批 (就绪态+前置全done+有空闲槽, 只读预览)")
     cm = sub.add_parser("claim", help="全局跨 task 认领批; phase 必填区分阶段")
@@ -96,7 +104,7 @@ def main() -> None:
     li.add_argument("--status", help="过滤: 待处理/调研中/进行中/检查中/收尾中/已完成 "
                                      "(或 pending/research/active/check/finishing/done), open=全部未完成; 逗号多选")
     li.add_argument("--json", action="store_true",
-                    help="压缩单行 JSON (exec 取未完成任务用, 省 token); 每项 {id,status,name,desc,deps,worktree,pct,subs:[done,run,pend,fail],ready}")
+                    help="压缩单行 JSON (exec 取未完成任务用, 省 token); 每项 {id,status,name,desc,deps,worktree,priority,pct,subs:[done,run,pend,fail],ready}")
     _doc = sub.add_parser("doctor", help="纯脚本体检 task/subtask 不变量违规 (有错 exit 1, 可 CI/hook 门禁); --quality 再跑 mypy+pytest 质量门")
     _doc.add_argument("-Q", "--quality", action="store_true",
                       help="体检后再跑质量门: mypy --strict 全源码 0 错 + pytest 全 suite pass (慢, CI/hook 按需调)")
@@ -177,13 +185,15 @@ def main() -> None:
         # Admin: 工作区级 (不带 task id)
         "init": sk.admin.init, "setup": sk.admin.setup, "config": sk.admin.config_cmd,
         "clean": sk.admin.clean, "board": sk.admin.board,
+        "migrate-priority": sk.admin.migrate_priority,
         # Lifecycle: 单 task 状态机 + 计划字段
         "create": sk.lifecycle.create, "confirm": sk.lifecycle.confirm,
         "research": sk.lifecycle.research, "plan": sk.lifecycle.plan,
         "check": sk.lifecycle.check, "finishing": sk.lifecycle.finishing,
         "finish": sk.lifecycle.finish, "archive": sk.lifecycle.archive,
         "repos": sk.lifecycle.repos, "deps": sk.lifecycle.deps,
-        "estimate": sk.lifecycle.estimate, "rename": sk.lifecycle.rename,
+        "parent": sk.lifecycle.parent,
+        "estimate": sk.lifecycle.estimate, "priority": sk.lifecycle.priority, "rename": sk.lifecycle.rename,
         "del": sk.lifecycle.del_, "delete": sk.lifecycle.del_,
         "rm": sk.lifecycle.del_, "remove": sk.lifecycle.del_,
         # Scheduler: subtask DAG 调度
@@ -200,8 +210,9 @@ def main() -> None:
     # 纯读命令 (current/ready/list/board/view) 免锁。subtask 含读 action 但整体加锁最省事。
     MUTATING = {"init", "setup", "create", "confirm", "research", "plan", "check", "finishing",
                 "finish", "fmt", "archive", "clean",
-                "contract", "repos", "deps", "estimate", "subtask", "claim", "prd", "del", "delete", "rm", "remove",
-                "rename", "config"}
+                "contract", "repos", "deps", "parent", "estimate", "priority", "subtask", "claim",
+                "prd", "del", "delete", "rm", "remove",
+                "rename", "config", "migrate-priority"}
     if a.cmd in MUTATING:
         with _workspace_lock(sk.dir / ".lock"):
             dispatch[a.cmd](a)

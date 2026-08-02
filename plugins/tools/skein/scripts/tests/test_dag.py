@@ -30,10 +30,15 @@ def _fill_prd(ws: Path, tid: str) -> None:
 
 
 def _set_max_active(ws: Path, n: int) -> None:
-    """改写 .skein/config.yaml 的 max_active (单/双层并发共用此键)。"""
+    """改写 .skein/config.yaml 的 work 池上限 (subtask 并发槽)。
+
+    s2 把 `max_active` 拆成 `pools: {work, gate}` 后, 原来的 `^max_active:` 正则在新
+    config.yaml 上匹配不到任何东西 —— 该 helper 会**静默变成空操作**, 上限仍是默认 2,
+    表现为「明明设了 4 却只预览出 2 个」。故改写 pools.work。
+    """
     cfg = ws / ".skein" / "config.yaml"
     txt = cfg.read_text()
-    txt = re.sub(r"^max_active:\s*\d+", f"max_active: {n}", txt, flags=re.M)
+    txt = re.sub(r"^(\s+)work:\s*\d+", lambda m: f"{m.group(1)}work: {n}", txt, flags=re.M)
     cfg.write_text(txt)
 
 
@@ -209,6 +214,101 @@ def test_global_claim_cross_task(skein_cli: SkeinCli, ws: Path) -> None:
     assert "alpha-beta/x" in out and "gamma-delta/x" in out
 
 
+def _dry_run_order(skein_cli: SkeinCli, ws: Path) -> list[str]:
+    """解析 `claim exec --dry-run` 的批预览顺序 → [tid/sid, ...]。"""
+    out = skein_cli(ws, "claim", "exec", "--dry-run").stdout
+    order: list[str] = []
+    for line in out.splitlines():
+        if "/" in line.split("\t")[0]:
+            order.append(line.split("\t")[0])
+    return order
+
+
+def test_priority_beats_topo_depth(skein_cli: SkeinCli, ws: Path) -> None:
+    """优先级压过拓扑深度: 低拓扑深度但 urgent 的 task 排在高拓扑深度但 normal 的前面。"""
+    _set_max_active(ws, 2)
+    # deep-chain: s1 无 dep, s2 依赖 s1, s3 依赖 s2 → s1 拓扑深度=2 (正常优先级)
+    skein_cli(ws, "create", "deep-chain", "--name", "deep-chain", "--desc", "d")
+    _add(skein_cli, ws, "deep-chain", "s1")
+    _add(skein_cli, ws, "deep-chain", "s2", deps="s1")
+    _add(skein_cli, ws, "deep-chain", "s3", deps="s2")
+    _fill_prd(ws, "deep-chain")
+    skein_cli(ws, "estimate", "deep-chain", "--set", "3")
+    skein_cli(ws, "confirm", "deep-chain")
+    # urgent-flat: 单 subtask, 拓扑深度=0, 但 urgent
+    skein_cli(ws, "create", "urgent-flat", "--name", "urgent-flat", "--desc", "d",
+              "--priority", "urgent")
+    _add(skein_cli, ws, "urgent-flat", "x")
+    _fill_prd(ws, "urgent-flat")
+    skein_cli(ws, "estimate", "urgent-flat", "--set", "1")
+    skein_cli(ws, "confirm", "urgent-flat")
+    order = _dry_run_order(skein_cli, ws)
+    assert order.index("urgent-flat/x") < order.index("deep-chain/s1")
+
+
+def test_priority_does_not_cross_unfinished_dep(skein_cli: SkeinCli, ws: Path) -> None:
+    """依赖硬优先: urgent 但 task 级依赖未完成的 task 不进候选池, 就绪的 normal task 正常被认领。"""
+    _set_max_active(ws, 2)
+    skein_cli(ws, "create", "blocker", "--name", "blocker", "--desc", "d")
+    _add(skein_cli, ws, "blocker", "b1")
+    _fill_prd(ws, "blocker")
+    skein_cli(ws, "estimate", "blocker", "--set", "1")
+    skein_cli(ws, "confirm", "blocker")  # 就绪但未完成 (status != S_DONE)
+    skein_cli(ws, "create", "urgent-waiting", "--name", "urgent-waiting", "--desc", "d",
+              "--priority", "urgent", "--deps", "blocker")
+    _add(skein_cli, ws, "urgent-waiting", "u1")
+    _fill_prd(ws, "urgent-waiting")
+    skein_cli(ws, "estimate", "urgent-waiting", "--set", "1")
+    # s3 后 confirm 吸收 start, deps 未完成时 confirm 直接被拒 (旧流程是 confirm 成功、
+    # start 时才拦)。两种流程下该 task 都进不了候选池 —— 这正是「依赖硬优先」要保的性质。
+    skein_cli(ws, "confirm", "urgent-waiting", check=False)
+    skein_cli(ws, "create", "normal-ready", "--name", "normal-ready", "--desc", "d")
+    _add(skein_cli, ws, "normal-ready", "n1")
+    _fill_prd(ws, "normal-ready")
+    skein_cli(ws, "estimate", "normal-ready", "--set", "1")
+    skein_cli(ws, "confirm", "normal-ready")
+    order = _dry_run_order(skein_cli, ws)
+    assert "normal-ready/n1" in order
+    assert "urgent-waiting/u1" not in order
+
+
+def test_claim_order_stable_on_repeat(skein_cli: SkeinCli, ws: Path) -> None:
+    """四档排序 + 同档内重复认领(只读预览)结果一致 — 覆盖全部四档且验证稳定序。"""
+    _set_max_active(ws, 4)
+    for tid, prio in (("t-low", "low"), ("t-urgent", "urgent"), ("t-normal", "normal"),
+                      ("t-high", "high")):  # 刻意打乱创建顺序, 排除「登记序恰好=优先级序」的巧合
+        skein_cli(ws, "create", tid, "--name", tid, "--desc", "d", "--priority", prio)
+        _add(skein_cli, ws, tid, "x")
+        _fill_prd(ws, tid)
+        skein_cli(ws, "estimate", tid, "--set", "1")
+        skein_cli(ws, "confirm", tid)
+    first = _dry_run_order(skein_cli, ws)
+    second = _dry_run_order(skein_cli, ws)
+    assert first == second == ["t-urgent/x", "t-high/x", "t-normal/x", "t-low/x"]
+
+
+def test_zero_regression_all_same_priority(skein_cli: SkeinCli, ws: Path) -> None:
+    """全部同档 (默认 normal) 时排序仍由拓扑深度→登记序决定, 与改动前逐位一致。"""
+    _set_max_active(ws, 3)
+    skein_cli(ws, "create", "alpha-beta", "--name", "alpha-beta", "--desc", "d")
+    _add(skein_cli, ws, "alpha-beta", "s1")
+    _add(skein_cli, ws, "alpha-beta", "s2", deps="s1")
+    _fill_prd(ws, "alpha-beta")
+    skein_cli(ws, "estimate", "alpha-beta", "--set", "2")
+    skein_cli(ws, "confirm", "alpha-beta")
+    skein_cli(ws, "create", "gamma-delta", "--name", "gamma-delta", "--desc", "d")
+    _add(skein_cli, ws, "gamma-delta", "x")
+    _fill_prd(ws, "gamma-delta")
+    skein_cli(ws, "estimate", "gamma-delta", "--set", "1")
+    skein_cli(ws, "confirm", "gamma-delta")
+    order = _dry_run_order(skein_cli, ws)
+    # alpha-beta 先登记 (ti=0) 且 s1 拓扑深度=1 > gamma-delta/x 的 0 → alpha-beta/s1 先
+    assert order == ["alpha-beta/s1", "gamma-delta/x"]
+
+
+def test_two_level_task_level_cap_blocks_start(skein_cli: SkeinCli, ws: Path) -> None:
+    """双层: task 级 max_active=2, 第 3 个 task start 被阻 (exit≠0)。"""
+    _set_max_active(ws, 2)
 def test_task_level_cap_removed_all_can_go_active(skein_cli: SkeinCli, ws: Path) -> None:
     """task 级并发上限已取消 (design item #6): N 个 task 可同时 confirm→进行中, 无阻拦。"""
     _set_max_active(ws, 2)  # 仅 subtask 级槽位, 与 task 级并发无关

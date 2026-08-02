@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 from skeinlib.dag import _crit_weight, _split, _split_semi, _sub_estimate_sum, _sub_pct
 from skeinlib.errors import SkeinError
 from skeinlib.model import (SS_DONE, SS_FAILED, SS_PENDING, SS_PHASE_EXEC, SS_RUNNING,
-                            S_ACTIVE, S_CHECK, now)
+                            S_ACTIVE, S_CHECK, PRIORITY_RANK, PRIORITY_DEFAULT, now)
 from skeinlib.views import _fmt_ts
 
 from typing import TYPE_CHECKING as _TC
@@ -65,7 +65,9 @@ class Scheduler:
 
     def _global_ready(self) -> list[tuple[dict[str, Any], dict[str, Any]]]:
         """全局跨 task 就绪批: 所有**可调度** task (进行中 + 就绪) 的 ready subtask 合池,
-        按 (拓扑深度降序, task 登记序, subtask 登记序) 排序, 截到全局 max_active - 全局 running 槽。
+        按 (优先级降序, 拓扑深度降序, task 登记序, subtask 登记序) 排序, 截到全局 max_active - 全局
+        running 槽。优先级权重高于拓扑深度 (用户裁定: 标了紧急就真的先跑, 代价是关键路径优化被冲淡)。
+        依赖未满足的不入候选池 (见下方过滤), 优先级再高也不越过依赖。
         返回 [(task_obj, subtask_obj), ...]。"""
         tasks = self._schedulable()
         global_running = sum(
@@ -73,19 +75,21 @@ class Scheduler:
         slots = self.ws.config()["pools"]["work"] - global_running
         if slots <= 0:
             return []
-        cand: list[tuple[dict[str, Any], dict[str, Any], int, int, int]] = []
+        cand: list[tuple[dict[str, Any], dict[str, Any], int, int, int, int]] = []
         for ti, t in enumerate(tasks):
             subs = t.get("subtasks", [])
             done = {s["sid"] for s in subs if s["status"] == SS_DONE}
             crit = _crit_weight(subs)
+            prio = PRIORITY_RANK.get(t.get("priority") or PRIORITY_DEFAULT, PRIORITY_RANK[PRIORITY_DEFAULT])
             for i, s in enumerate(subs):
                 if s["status"] != SS_PENDING:
                     continue
                 if not all(d in done for d in s.get("depends_on", [])):
-                    continue  # 依赖未全 done 不入池
-                cand.append((t, s, ti, i, crit.get(s["sid"], 0)))
-        # 拓扑深度降序 → task 登记序 → subtask 登记序 (active task 同级, 不再分 task 优先级)
-        cand.sort(key=lambda x: (-x[4], x[2], x[3]))
+                    continue  # 依赖未全 done 不入池 (依赖硬优先, 优先级不越过)
+                cand.append((t, s, ti, i, crit.get(s["sid"], 0), prio))
+        # 优先级降序 → 拓扑深度降序 → task 登记序 → subtask 登记序 (active task 也按优先级排,
+        # 不再"同级不分"; 全同档时首项相等, 退化为改动前的顺序 → 零回归)
+        cand.sort(key=lambda x: (-x[5], -x[4], x[2], x[3]))
         return [(c[0], c[1]) for c in cand[:slots]]
 
     def claim(self, a: argparse.Namespace) -> None:

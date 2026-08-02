@@ -61,6 +61,7 @@ export interface Task {
   contracts?: { id: string; desc?: string }[];
   kind?: string;
   parent?: string | null;
+  priority?: string;
   started?: number | null;
   confirmed?: number | null;
   finished?: number | null;

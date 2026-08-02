@@ -96,3 +96,13 @@ map --skeleton
 | 与 p4 的 anchors 判定重复实现 | 判据表单一实现归 `spec-model-core` s6, 本 task 只填行 (见 §5) |
 | 大 monorepo 骨架输出过大挤爆上下文 | 骨架现算, 可加深度/目录过滤参数; 顶层地图页才是常驻的那份, 骨架按需跑 |
 | `map` 页 anchors 大量失效后被批量 archive | archive 可逆 (`restore <ts>`); 且骨架兜底不丢定位能力 |
+
+## 9. k5 收尾留痕 (mypy --strict 清零)
+
+- map.py 13 处 + index.py 1 处, 实测与派发时给出的分布一致
+- 修法: `dict`→`dict[str, object]` 补泛型参数 (4处); `_parse_frontmatter` 返回值统一标注 `dict[str, str | list[str]]` 并显式声明局部变量, 修掉 `list→str`/`str无append`/`object不可索引` 一串——根因是 `meta: dict = {}` 被 mypy 按首次赋值推断成 `dict[str, str]`, 后续赋 list 类型冲突; 不是双类型运行时 bug, 纯标注缺失
+- `_merge_with_map_semantic` 里 `merged["semantic"]` 同理: 顶层 dict 字面量类型被推窄, 改为局部 `semantic: dict[str, list[dict[str, object]]]` 变量收集完再一次性组装返回值
+- index.py:388 `anchor_counter: Counter[str] = Counter()` 补类型参数
+- line 71 `# type: ignore[attr-defined]` 删除 (无谓, self.root 已由 TYPE_CHECKING 块声明为 Path)
+- 结果: `mypy --strict plugins/tools/skein/scripts/skeinlib/` → `Success: no issues found in 47 source files`; `pytest plugins/tools/skein/scripts/tests` → 367 passed, 0 failed
+- 未调低严格度配置, 未加新 type: ignore

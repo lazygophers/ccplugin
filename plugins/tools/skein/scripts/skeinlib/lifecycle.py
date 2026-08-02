@@ -19,9 +19,11 @@ if TYPE_CHECKING:
 
 from skeinlib.dag import _sub_estimate_sum
 from skeinlib.errors import SkeinError
-from skeinlib.model import (CODE_ID_RE, SLUG_RE, SS_DONE, SS_PHASE_RESEARCH, STATUS_INFLIGHT,
-                            S_ACTIVE, S_CHECK, S_DONE, S_FINISHING, S_PENDING, S_RESEARCH, now)
+from skeinlib.model import (CODE_ID_RE, PRIORITY_DEFAULT, SLUG_RE, SS_DONE, SS_PHASE_RESEARCH,
+                            STATUS_INFLIGHT, S_ACTIVE, S_CHECK, S_DONE, S_FINISHING,
+                            S_PENDING, S_RESEARCH, now)
 from skeinlib.prd import review_summary, validate_prd, validate_seam
+from skeinlib.priority import validate_priority
 from skeinlib.worktree import commit_all, destroy_worktrees, git, make_worktree, parse_repos, worktrees_of
 
 import datetime
@@ -79,7 +81,7 @@ class Lifecycle:
         t = {
             "id": tid, "name": a.name, "desc": a.desc,
             "status": S_PENDING, "deps": deps, "contracts": [], "subtasks": [],
-            "priority": getattr(a, "priority", 5) or 5,  # 0-10, 默认 5 (中)
+            "priority": validate_priority(getattr(a, "priority", None)),  # 四档枚举, 未指定落中档
             "estimate": getattr(a, "estimate", None),  # 预计工时(小时), plan 阶段必填, confirm 硬门校验
             "repos": repos,          # planning 声明的目标子 git (rel 路径; 空=单根/原地模式)
             "worktree": None, "worktrees": [], "branch": f"skein/{tid}",
@@ -175,6 +177,18 @@ class Lifecycle:
         self.ws.store.sync()
         print(f"{a.id} estimate = {val} h")
 
+    def priority(self, a: argparse.Namespace) -> None:
+        # 查/改 task 优先级。调度旋钮而非规划契约 (design.md) — 不锁状态, 任意状态均可改;
+        # 只改字段不碰执行中的槽, 故「不打断已在跑的」是结构性成立, 不需要额外校验。
+        t = self.ws.store.load(a.id)
+        if a.set is None:
+            print(t.get("priority") or PRIORITY_DEFAULT)
+            return
+        t["priority"] = validate_priority(a.set)
+        self.ws.store.save(t)
+        self.ws.store.sync()
+        print(f"{a.id} priority = {t['priority']}")
+
     def deps(self, a: argparse.Namespace) -> None:
         # 查/补 task 级前置 DAG (dedup 排序用: 给散落 task 之间补执行序, 织成完整 DAG)。
         # 仅 pending 可改 (start 后调度已定); 且仅当现有 deps 为空才允许写 —
@@ -222,6 +236,41 @@ class Lifecycle:
         self.ws.store.save(t)
         self.ws.store.sync()
         print(f"{a.id} deps = {', '.join(new) or '(空)'}")
+
+    def parent(self, a: argparse.Namespace) -> None:
+        # 查/改既有 task 的 parent 挂载 (给存量 task 补/改父, 摘除=--set 空串)。校验复用 create
+        # 那条 parent 链检查 (父存在/非自引用/父自身非 child, 即不超 2 层)。额外补一条本命令特有的:
+        # 本 task 若已有 child (别的 task parent 指向它), 挂父会让那些 child 变 3 层, 先拒。
+        # parent 与 deps 正交, 全程不碰任何 deps。不限状态 (parent 不涉 worktree/branch, 任意态可改)。
+        t = self.ws.store.load(a.id)
+        if a.set is None:
+            print(t.get("parent") or "(无父)")
+            return
+        new_parent = a.set.strip() or None
+        if new_parent is None:
+            t["parent"] = None
+            self.ws.store.save(t)
+            self.ws.store.sync()
+            print(f"{a.id} parent = (已摘除)")
+            return
+        if new_parent == a.id:
+            raise SkeinError(f"{a.id} parent 自引用")
+        p = self.ws.store.load(new_parent)  # 不存在 → SkeinError「task 不存在」(parent 引用完整性)
+        if p.get("parent"):
+            raise SkeinError(
+                f"深度超限: parent {new_parent} 本身是 child (其 parent={p.get('parent')!r}) — "
+                f"不可再嵌套 (限 2 层: supertask→task→subtask)")
+        if p.get("kind") not in ("supertask", None, "task"):
+            raise SkeinError(f"parent {new_parent} kind={p.get('kind')!r} 非法 — 仅允许 task|supertask")
+        children = [c["id"] for c in self.ws.store.all_tasks() if c.get("parent") == a.id]
+        if children:
+            raise SkeinError(
+                f"{a.id} 已是 {len(children)} 个 task 的父 ({','.join(children)}) — "
+                f"挂父会使这些 child 超 2 层 (先摘除这些 child 的 parent 或改挂别处)")
+        t["parent"] = new_parent
+        self.ws.store.save(t)
+        self.ws.store.sync()
+        print(f"{a.id} parent = {new_parent}")
 
     def _validate_estimate(self, tid: str, t: dict[str, Any]) -> None:
         # confirm 硬门: 预计工时(小时)必须已填且为正数, 缺失/默认空 → 拒绝开工。

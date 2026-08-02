@@ -84,6 +84,7 @@
             "name": "验收标准"
           }
         ],
+        "priority": "normal",
         "sdone": 1,
         "spct": 38,
         "stage": "exec",
@@ -213,6 +214,7 @@
         "nextUp": false,
         "parent": null,
         "prd": [],
+        "priority": "normal",
         "sdone": 0,
         "spct": 47,
         "stage": "exec",
@@ -240,6 +242,7 @@
         "nextUp": false,
         "parent": null,
         "prd": [],
+        "priority": "normal",
         "sdone": 1,
         "spct": 95,
         "stage": "check",
@@ -291,6 +294,7 @@
         "nextUp": false,
         "parent": "super1",
         "prd": [],
+        "priority": "normal",
         "sdone": 0,
         "spct": 0,
         "stage": "plan",
@@ -342,6 +346,7 @@
         "nextUp": false,
         "parent": null,
         "prd": [],
+        "priority": "normal",
         "sdone": 0,
         "spct": 0,
         "stage": "plan",
@@ -393,6 +398,7 @@
         "nextUp": false,
         "parent": null,
         "prd": [],
+        "priority": "normal",
         "sdone": 0,
         "spct": 2,
         "stage": "plan",
@@ -424,6 +430,7 @@
         "nextUp": false,
         "parent": null,
         "prd": [],
+        "priority": "normal",
         "sdone": 0,
         "spct": 0,
         "stage": "plan",
@@ -475,6 +482,7 @@
         "nextUp": false,
         "parent": null,
         "prd": [],
+        "priority": "normal",
         "sdone": 1,
         "spct": 100,
         "stage": "done",
@@ -1021,7 +1029,7 @@
         "desc": "",
         "id": "ghost1",
         "name": "ghost1",
-        "priority": 5,
+        "priority": "normal",
         "spct": 2,
         "started": null,
         "status": "待处理"
@@ -1293,6 +1301,64 @@
       "worktree": "wt/alpha"
     }
   },
+  "task_detail_delta": {
+    "archived": false,
+    "childTasks": [],
+    "contracts": [],
+    "depTasks": [],
+    "dependents": [],
+    "docs": {
+      "design": null,
+      "findings": null,
+      "prd": null
+    },
+    "maxActive": 2,
+    "parentTask": {
+      "desc": "聚合",
+      "id": "super1",
+      "name": "Super 任务",
+      "status": "进行中"
+    },
+    "prd": [],
+    "progress": 0,
+    "research": {},
+    "stage": "plan",
+    "subtasks": [
+      {
+        "created": 1999991000,
+        "depends_on": [],
+        "desc": "desc-d1",
+        "name": "子-d1",
+        "sid": "d1",
+        "skills": [],
+        "status": "待处理",
+        "验收": []
+      }
+    ],
+    "task": {
+      "contracts": [],
+      "created": 1999990000,
+      "deps": [],
+      "desc": "规划中",
+      "id": "delta",
+      "name": "Delta 任务",
+      "parent": "super1",
+      "status": "待处理",
+      "subtasks": [
+        {
+          "created": 1999991000,
+          "depends_on": [],
+          "desc": "desc-d1",
+          "name": "子-d1",
+          "sid": "d1",
+          "skills": [],
+          "status": "待处理",
+          "验收": []
+        }
+      ],
+      "updated": 1999995000
+    }
+  },
   "task_detail_ghost1": null,
   "task_detail_old1": {
     "archived": true,
@@ -1345,6 +1411,47 @@
         }
       ],
       "updated": 1999995000
+    }
+  },
+  "task_detail_super1": {
+    "archived": false,
+    "childTasks": [
+      {
+        "desc": "规划中",
+        "id": "delta",
+        "name": "Delta 任务",
+        "progress": 0,
+        "status": "待处理"
+      }
+    ],
+    "contracts": [],
+    "depTasks": [],
+    "dependents": [],
+    "docs": {
+      "design": null,
+      "findings": null,
+      "prd": null
+    },
+    "maxActive": 2,
+    "parentTask": null,
+    "prd": [],
+    "progress": 47,
+    "research": {},
+    "stage": "exec",
+    "subtasks": [],
+    "task": {
+      "contracts": [],
+      "created": 1999990000,
+      "deps": [],
+      "desc": "聚合",
+      "id": "super1",
+      "kind": "supertask",
+      "name": "Super 任务",
+      "started": 1999991500,
+      "status": "进行中",
+      "subtasks": [],
+      "updated": 1999995000,
+      "worktree": "wt/super1"
     }
   }
 }

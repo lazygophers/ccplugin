@@ -4,13 +4,14 @@ import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import Link from "next/link";
 import { Sidebar, Topbar } from "@/components/layout";
 import { StatusBadge, StatusDot, ST_META, ST_ORDER } from "@/components/status";
-import { api, type Task } from "@/lib/api";
-import { normalizeTasks, normalizeStatus, type NormTask, type NormSubtask } from "@/lib/model";
+import { api, ApiError, type Task } from "@/lib/api";
+import { normalizeTasks, normalizeStatus, PRIORITY_LABEL, PRIORITY_COLOR_VAR, type NormTask, type NormSubtask } from "@/lib/model";
 import { cn } from "@/lib/utils";
 import { fmtRelative, fmtTime } from "@/lib/format";
 import { renderMd } from "@/lib/md";
 import { etaOf, etaText, fmtHours, actualOf, deltaText, overallSummary } from "@/lib/eta";
-import { drawEdgesPaths, buildDepDAG, type DagNode, type DagEdge } from "@/lib/depdag";
+import { drawEdgesPaths, buildDepDAG, type DagEdge } from "@/lib/depdag";
+import { layoutTiered, layoutDAG, type LayoutNode, type GroupBox, type Density } from "@/lib/board-layout";
 import { ProgressBar } from "@/components/progress-bar";
 import { useToast } from "@/components/toast";
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -21,7 +22,6 @@ const DEFAULT_ACTIVE = ["planning", "ready", "research", "active", "check", "fin
 const DEFAULT_FILTER = new Set(DEFAULT_ACTIVE);
 
 // ── Sugiyama layout (ported from old board.js) ──
-interface LayoutNode extends DagNode { task: NormTask; rowH: number; }
 interface LayoutEdge extends DagEdge {}
 
 interface SugiOpts { colW: number; rowH: number; padX: number; padY: number; gapX: number; gapY: number; }
@@ -180,77 +180,6 @@ function sugiyama(ids: string[], depsOf: (id: string) => string[], opt: SugiOpts
   return { layers, edges, bandCols: usedCols, bandsInfo, width: usedCols * colW + padX * 2, height: maxY + padY };
 }
 
-// ── Tiered layout (from old board.js layoutTiered) ──
-const DAG_DENSITY = {
-  large:   { w: 260, h: 76, gapX: 54, gapY: 39, padX: 120, padY: 45 },
-  compact: { w: 190, h: 52, gapX: 42, gapY: 33, padX: 120, padY: 45 },
-  mini:    { w: 120, h: 32, gapX: 42, gapY: 33, padX: 120, padY: 45 },
-};
-type Density = keyof typeof DAG_DENSITY;
-
-function layoutTiered(ids: string[], depsOf: (id: string) => string[], s: typeof DAG_DENSITY[Density], maxW: number, extraOf: (id: string) => Record<string, unknown>) {
-  const nw = s.w, nh = s.h;
-  const inSet = new Set(ids);
-  const lay = new Map<string, number>();
-  const topo: string[] = [];
-  {
-    const deps = new Map(ids.map(id => [id, depsOf(id).filter(d => inSet.has(d))]));
-    const left = new Map(ids.map(id => [id, deps.get(id)!.length]));
-    const succ = new Map(ids.map(id => [id, [] as string[]]));
-    for (const id of ids) for (const d of deps.get(id)!) succ.get(d)!.push(id);
-    const q = ids.filter(id => left.get(id) === 0);
-    const seen = new Set<string>();
-    while (q.length) { const cur = q.shift()!; seen.add(cur); topo.push(cur); for (const nx of succ.get(cur)!) { left.set(nx, left.get(nx)! - 1); if (left.get(nx) === 0) q.push(nx); } }
-    for (const id of ids) if (!seen.has(id)) topo.push(id);
-  }
-  for (const id of topo) lay.set(id, Math.max(0, ...depsOf(id).map(d => (lay.get(d) ?? -1) + 1)));
-  const tiers: string[][] = [];
-  for (const id of topo) (tiers[lay.get(id)!] || (tiers[lay.get(id)!] = [])).push(id);
-  const perRow = Math.max(1, Math.floor((maxW - s.padX * 2 + s.gapX) / (nw + s.gapX)));
-  const rowH = nh + 6;
-  const pos = new Map<string, { x: number; y: number }>();
-  const bary = (id: string) => { const ps = depsOf(id).map(d => pos.get(d)).filter(Boolean) as { x: number }[]; return ps.length ? ps.reduce((a, p) => a + p.x, 0) / ps.length : Infinity; };
-  let y = s.padY;
-  for (let pass = 0; pass < 2; pass++) {
-    y = s.padY;
-    for (const tier of tiers) {
-      if (!tier) continue;
-      if (pass) tier.sort((a, b) => bary(a) - bary(b));
-      const rows = Math.ceil(tier.length / perRow);
-      const cnt = Math.ceil(tier.length / rows);
-      tier.forEach((id, i) => {
-        const r = Math.floor(i / cnt), c = i % cnt;
-        const rowN = Math.min(cnt, tier.length - r * cnt);
-        const x0 = s.padX + (maxW - s.padX * 2 - (rowN * (nw + s.gapX) - s.gapX)) / 2;
-        pos.set(id, { x: Math.max(s.padX, x0) + c * (nw + s.gapX), y: y + r * rowH });
-      });
-      y += rows * rowH - 6 + s.gapY;
-    }
-  }
-  const nodes = topo.map(id => ({ id, ...pos.get(id)!, w: nw, h: nh, rowH: nh, band: 0, tier: lay.get(id), ...extraOf(id) }));
-  const nmap = new Map(nodes.map(n => [n.id, n]));
-  const edges: DagEdge[] = [];
-  for (const id of ids) {
-    for (const d of depsOf(id)) {
-      const from = nmap.get(d), to = nmap.get(id);
-      if (from && to) edges.push({ from, to, bends: [], cross: false, laneY: 0 });
-    }
-  }
-  return { nodes, edges, width: Math.max(...nodes.map(n => n.x + n.w)) + s.padX, height: y - s.gapY + s.padY };
-}
-
-function layoutDAG(tasks: NormTask[], view: { w: number; h: number }, density: Density) {
-  if (!tasks.length) return { nodes: [] as LayoutNode[], edges: [] as DagEdge[], width: 0, height: 0, density };
-  const byId = new Map(tasks.map(t => [t.id, t]));
-  const depsOf = (id: string) => (byId.get(id)?.deps || []).filter(d => byId.has(d));
-  const ids = tasks.map(t => t.id);
-  const maxW = view.w || 1200;
-  const extraOf = (id: string) => ({ task: byId.get(id)! });
-  const s = DAG_DENSITY[density] || DAG_DENSITY.compact;
-  const result = layoutTiered(ids, depsOf, s, maxW, extraOf);
-  return { ...result, density } as unknown as { nodes: LayoutNode[]; edges: DagEdge[]; width: number; height: number; density: Density };
-}
-
 // ── Components ──
 
 export default function BoardPage() {
@@ -315,6 +244,19 @@ export default function BoardPage() {
   const toggleAll = () => setStatusSet(allSelected ? new Set(DEFAULT_ACTIVE) : new Set(ALL_STATUSES));
 
   const cleanDone = () => setConfirmAction({ type: "clean", id: "", name: "" });
+
+  // 页面直接改优先级: 复用白名单 exec 通道; 成功后本地乐观更新 (无需等 mtime 轮询), 失败给明确错误。
+  // exec 端点 CLI 失败时仍返回 HTTP 200 (body.ok=false + stderr), 不会走 fetch 的 catch — 必须显式查 ok。
+  const handlePriorityChange = async (id: string, val: string) => {
+    try {
+      const r = await api.exec("priority", { id, set: val }) as { ok: boolean; stderr?: string };
+      if (!r.ok) { toast(r.stderr?.trim() || "优先级更新失败", "error"); return; }
+      setAllTasks(prev => prev.map(t => t.id === id ? { ...t, priority: val } : t));
+      toast("优先级已更新", "success");
+    } catch (e) {
+      toast(e instanceof ApiError ? e.message : "优先级更新失败", "error");
+    }
+  };
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -411,6 +353,7 @@ export default function BoardPage() {
                 onConfirm={async (id) => { try { await api.exec("confirm", { id }); toast("已确认规划", "success"); } catch { toast("确认失败", "error"); } }}
                 onFinish={(id, name) => setConfirmAction({ type: "finish", id, name })}
                 onDelete={(id, name) => setConfirmAction({ type: "delete", id, name })}
+                onPriorityChange={handlePriorityChange}
                 onSelectTask={setSelectedId}
               />
             )}
@@ -462,12 +405,12 @@ export default function BoardPage() {
 
 // ── DAG Canvas ──
 function DagCanvas({ layout, statusSet, onSelect, selectedId }: {
-  layout: { nodes: LayoutNode[]; edges: DagEdge[]; width: number; height: number; density: Density };
+  layout: { nodes: LayoutNode[]; edges: DagEdge[]; groups: GroupBox[]; width: number; height: number; density: Density };
   statusSet: Set<string>;
   onSelect: (id: string) => void;
   selectedId: string | null;
 }) {
-  const { nodes, edges, width, height, density } = layout;
+  const { nodes, edges, groups, width, height, density } = layout;
   const { paths, markers } = useMemo(() => drawEdgesPaths(edges, (e) => ({
     dimmed: !(statusSet.has((e.from as LayoutNode).task?.status || "planning") && statusSet.has((e.to as LayoutNode).task?.status || "planning")),
   })), [edges, statusSet]);
@@ -508,6 +451,29 @@ function DagCanvas({ layout, statusSet, onSelect, selectedId }: {
           />
         ))}
       </svg>
+      {groups.map(g => {
+        const st = g.parent.status || "planning";
+        const meta = ST_META[st] || ST_META.planning;
+        const doneCount = g.children.filter(c => c.status === "done").length;
+        const pct = g.children.length ? Math.round((doneCount / g.children.length) * 100) : 0;
+        return (
+          <div key={g.id} className="dag-group-box absolute rounded-lg border-2 border-dashed"
+            style={{ left: g.x, top: g.y, width: g.w, height: g.h, borderColor: `var(${meta.colorVar})`, backgroundColor: `color-mix(in srgb, var(${meta.colorVar}) 6%, transparent)` }}>
+            <div
+              onClick={(e) => { e.preventDefault(); onSelect(g.id); }}
+              className={cn("dag-group-header flex cursor-pointer items-center gap-2 overflow-hidden rounded-t-md border-b px-2", selectedId === g.id && "ring-2 ring-primary")}
+              style={{ height: g.headerH, borderColor: `var(${meta.colorVar})`, backgroundColor: `color-mix(in srgb, var(${meta.colorVar}) 22%, var(--card))` }}
+            >
+              <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: `var(${meta.colorVar})` }} />
+              <span className="truncate text-xs font-semibold text-foreground">{g.parent.title || g.parent.name || g.id}</span>
+              <span className="ml-auto flex-shrink-0 font-mono text-[10px] text-muted-foreground">{doneCount}/{g.children.length}</span>
+              <div className="ml-1 h-1.5 w-12 flex-shrink-0 overflow-hidden rounded-full bg-muted">
+                <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: `var(${meta.colorVar})` }} />
+              </div>
+            </div>
+          </div>
+        );
+      })}
       {nodes.map(n => {
         const t = n.task; if (!t) return null;
         const st = t.status || "planning";
@@ -533,7 +499,10 @@ function DagCanvas({ layout, statusSet, onSelect, selectedId }: {
                   <div className="truncate text-xs leading-none text-foreground">{t.title || t.name || t.id}</div>
                 ) : (
                   <>
-                    <div className="truncate text-xs font-semibold leading-tight text-foreground">{t.title || t.name || "(未命名)"}</div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="min-w-0 flex-1 truncate text-xs font-semibold leading-tight text-foreground">{t.title || t.name || "(未命名)"}</div>
+                      <span className="flex-shrink-0 rounded border px-1 text-[9px] font-medium leading-tight" style={{ color: `var(${PRIORITY_COLOR_VAR[t.priority] || "--muted-foreground"})`, borderColor: `var(${PRIORITY_COLOR_VAR[t.priority] || "--muted-foreground"})` }}>{PRIORITY_LABEL[t.priority] || t.priority || "中"}</span>
+                    </div>
                     <div className="flex items-center text-[10px] leading-tight text-muted-foreground">
                       <span className="truncate font-mono">#{t.id}</span>
                       {subs.length > 0 && <span className="flex-shrink-0 ml-1">{subDone}/{subs.length}</span>}
@@ -601,6 +570,7 @@ function ListView({ tasks, statusSet, onSelect }: { tasks: NormTask[]; statusSet
                     <div className="truncate text-sm text-foreground">{t.title || t.name || "(未命名)"}</div>
                     <div className="truncate font-mono text-xs text-muted-foreground">#{t.id}</div>
                   </div>
+                  <span className="flex-shrink-0 rounded border px-1 text-[9px] font-medium" style={{ color: `var(${PRIORITY_COLOR_VAR[t.priority] || "--muted-foreground"})`, borderColor: `var(${PRIORITY_COLOR_VAR[t.priority] || "--muted-foreground"})` }}>{PRIORITY_LABEL[t.priority] || t.priority || "中"}</span>
                 </div>
               )) : <div className="py-6 text-center text-xs text-muted-foreground">暂无</div>}
             </div>
@@ -612,9 +582,10 @@ function ListView({ tasks, statusSet, onSelect }: { tasks: NormTask[]; statusSet
 }
 
 // ── Detail Panel ──
-function DetailPanel({ task, allTasks, onClose, onConfirm, onFinish, onDelete, onSelectTask }: {
+function DetailPanel({ task, allTasks, onClose, onConfirm, onFinish, onDelete, onPriorityChange, onSelectTask }: {
   task: NormTask; allTasks: NormTask[]; onClose: () => void;
-  onConfirm: (id: string) => void; onFinish: (id: string, name: string) => void; onDelete: (id: string, name: string) => void; onSelectTask: (id: string) => void;
+  onConfirm: (id: string) => void; onFinish: (id: string, name: string) => void; onDelete: (id: string, name: string) => void;
+  onPriorityChange: (id: string, val: string) => void; onSelectTask: (id: string) => void;
 }) {
   const st = task.status || "planning";
   const meta = ST_META[st] || ST_META.planning;
@@ -651,7 +622,12 @@ function DetailPanel({ task, allTasks, onClose, onConfirm, onFinish, onDelete, o
       <div className="flex-1 space-y-4 overflow-y-auto p-6">
         {/* Basic info */}
         <DetailCard title="基本信息">
-          <InfoRow label="优先级" value={String(task.priority ?? 5)} />
+          <InfoRow label="优先级" value={
+            <select value={task.priority} onChange={(e) => onPriorityChange(task.id, e.target.value)}
+              className="rounded-md border border-border bg-card/60 px-2 py-1 text-sm text-foreground">
+              {Object.entries(PRIORITY_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select>
+          } />
           <InfoRow label="预估工时" value={task.estimate ? `${task.estimate} h` : "—"} />
           <InfoRow label="进度" value={<ProgressBar value={Number((task as Record<string, unknown>).spct ?? task.progress ?? (st === "done" ? 100 : 0))} colorVar={meta.colorVar} />} />
           {st === "done" ? (() => { const a = actualOf(task as unknown as Parameters<typeof actualOf>[0]); if (!a) return null; const dt = deltaText(a.delta); return <InfoRow label="实际耗时" value={`${fmtHours(a.hours)}${dt ? ` (${dt})` : ""}`} />; })()

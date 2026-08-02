@@ -190,6 +190,8 @@ def _capture(m: ModuleType, d: Path) -> dict[str, Any]:
             "task_detail_alpha": _view_task_detail(sk._snapshot(), "alpha"),
             "task_detail_old1": _view_task_detail(sk._snapshot(), "old1"),  # 走归档回落
             "task_detail_ghost1": _view_task_detail(sk._snapshot(), "ghost1"),  # 幽灵骨架 → None
+            "task_detail_super1": _view_task_detail(sk._snapshot(), "super1"),  # supertask → childTasks 含真实 progress
+            "task_detail_delta": _view_task_detail(sk._snapshot(), "delta"),  # child → parentTask
             "search_alpha": _view_search(sk._snapshot(), "alpha"),
             "search_snapshot": _view_search(sk._snapshot(), "视图"),
             "search_empty": _view_search(sk._snapshot(), ""),

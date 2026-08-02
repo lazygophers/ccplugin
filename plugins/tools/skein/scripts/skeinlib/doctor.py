@@ -25,9 +25,9 @@ from typing import TYPE_CHECKING, Any, Optional
 from skeinlib.hooks.runner import budget_guard
 from skeinlib.config import hooks_schema_errors
 from skeinlib.errors import SkeinError
-from skeinlib.model import (PHASE_OF, SLUG_RE, SS_DONE, SS_FAILED, SS_PENDING, SS_RUNNING,
-                            STATUS_INFLIGHT, S_ACTIVE, S_CHECK, S_DONE, S_FINISHING,
-                            S_PENDING, S_RESEARCH)
+from skeinlib.model import (PHASE_OF, PRIORITY_RANK, SLUG_RE, SS_DONE, SS_FAILED, SS_PENDING,
+                            SS_RUNNING, STATUS_ACTIVE, STATUS_INFLIGHT, S_ACTIVE, S_CHECK,
+                            S_DONE, S_FINISHING, S_PENDING, S_RESEARCH)
 from skeinlib.worktree import worktrees_of
 from skeinlib.paths import SCRIPTS_DIR
 
@@ -92,6 +92,11 @@ class DoctorMixin:
                 errs.append(f"{tid}: id 非 kebab-case slug")
             if t.get("status") not in {S_PENDING, S_RESEARCH, S_ACTIVE, S_CHECK, S_FINISHING, S_DONE}:
                 errs.append(f"{tid}: 非法 status {t.get('status')!r}")
+            # priority 体检 (task-priority p5): 未设时兜底为默认档合法, 只有「设了但不在四档枚举
+            # 内」才判错 (含存量未迁移的 0-10 数字残留) —— 与 validate_priority() 校验口径一致。
+            prio = t.get("priority")
+            if prio is not None and prio not in PRIORITY_RANK:
+                errs.append(f"{tid}: 非法 priority {prio!r} — 仅允许 {sorted(PRIORITY_RANK)}")
             # task 级父子层 (受控字段 parent/kind): 允许 supertask↔task 父子聚合 (parent 指回 supertask id,
             # kind 区分父聚合层 vs 普通独立 task)。仅禁未登记的父子字段名 (parent_id/children/subtask_of)。
             for k in ("parent_id", "children", "subtask_of"):

@@ -1,8 +1,22 @@
 {
   "tasks": [
     {
-      "id": "task-priority",
+      "id": "concurrency-pools",
       "status": "进行中",
+      "deps": [],
+      "priority": 5,
+      "worktree": ".worktrees/skein-concurrency-pools",
+      "parent": null,
+      "kind": "task",
+      "created": 1785511640,
+      "confirmed": 1785515070,
+      "started": 1785559720,
+      "checked": null,
+      "finished": null
+    },
+    {
+      "id": "task-priority",
+      "status": "检查中",
       "deps": [],
       "priority": 5,
       "worktree": ".worktrees/skein-task-priority",
@@ -11,51 +25,7 @@
       "created": 1785599378,
       "confirmed": 1785600358,
       "started": 1785602048,
-      "checked": null,
-      "finished": null
-    },
-    {
-      "id": "dag-parent-nesting",
-      "status": "检查中",
-      "deps": [],
-      "priority": 5,
-      "worktree": ".worktrees/skein-dag-parent-nesting",
-      "parent": null,
-      "kind": "task",
-      "created": 1785596410,
-      "confirmed": 1785597112,
-      "started": 1785597112,
-      "checked": 1785602090,
-      "finished": null
-    },
-    {
-      "id": "master-green",
-      "status": "检查中",
-      "deps": [],
-      "priority": 5,
-      "worktree": ".worktrees/skein-master-green",
-      "parent": null,
-      "kind": "task",
-      "created": 1785597765,
-      "confirmed": 1785597858,
-      "started": 1785602098,
-      "checked": 1785602971,
-      "finished": null
-    },
-    {
-      "id": "spec-map-namespace",
-      "status": "检查中",
-      "deps": [
-        "spec-model-core"
-      ],
-      "priority": 5,
-      "worktree": ".worktrees/skein-spec-map-namespace",
-      "parent": "spec-wiki-v2",
-      "kind": "task",
-      "created": 1785381913,
-      "confirmed": 1785594107,
-      "started": 1785594113,
-      "checked": 1785594885,
+      "checked": 1785631734,
       "finished": null
     },
     {
@@ -69,20 +39,6 @@
       "created": 1785599378,
       "confirmed": 1785600387,
       "started": null,
-      "checked": null,
-      "finished": null
-    },
-    {
-      "id": "concurrency-pools",
-      "status": "就绪",
-      "deps": [],
-      "priority": 5,
-      "worktree": ".worktrees/skein-concurrency-pools",
-      "parent": null,
-      "kind": "task",
-      "created": 1785511640,
-      "confirmed": 1785515070,
-      "started": 1785559720,
       "checked": null,
       "finished": null
     },
@@ -152,6 +108,22 @@
       "started": 1785593344,
       "checked": 1785593833,
       "finished": 1785594073
+    },
+    {
+      "id": "spec-map-namespace",
+      "status": "已完成",
+      "deps": [
+        "spec-model-core"
+      ],
+      "priority": 5,
+      "worktree": null,
+      "parent": "spec-wiki-v2",
+      "kind": "task",
+      "created": 1785381913,
+      "confirmed": 1785594107,
+      "started": 1785594113,
+      "checked": 1785594885,
+      "finished": 1785607356
     },
     {
       "id": "spec-migrate",

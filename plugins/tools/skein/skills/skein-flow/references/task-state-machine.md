@@ -77,7 +77,7 @@ SKEIN task 生命周期的 7 个状态、流转规则、操作命令与合法性
 | `skein confirm <id>` | 待处理 | 进行中 | ≥1 subtask 登记 + prd 三章节齐 + 无 TODO 占位 + 预计工时 + **用户审核** (看板点「确认规划」, 或 `--summary` → `AskUserQuestion` → `--approved`) + doctor 体检过 + deps 全完成 | 置 `confirmed` + `confirmed_by=user` + 建 worktree + 置 `started` 时间戳 (吸收原 `start`)。调研中 task 直接 confirm 会被拒，须先 `plan` |
 | `skein check <id>` | 进行中 | 检查中 | (无额外校验，只要状态对) | 置 `checked` 时间戳 |
 | `skein finishing <id>` | 检查中 | 收尾中 | gate 池有空槽 (`pools.gate`) | 占 gate 槽，main 收到后派 skein-finisher |
-| `skein finish <id>` | **仅收尾中** | 已完成 | (无 subtask 完成校验，脚本不卡) | merge 回主仓 + 销 worktree + 置 `finished` 时间戳，释放 gate 槽 |
+| `skein finish <id>` | **仅收尾中** | 已完成 | (无 subtask 完成校验，脚本不卡)；**`kind=supertask` 例外**：`parent` 指向它的 child task 须全部已完成，否则拒 | merge 回主仓 + 销 worktree + 置 `finished` 时间戳，释放 gate 槽 |
 | `skein archive <id>` | 已完成 | (归档) | 已完成 | 移到 `archive/<年>/<月-日>/<id>/` |
 
 > **检查未过回退**: check 阶段发现问题 → **task 保持「进行中」** (不回退状态)，直接同 task `subtask add` 加修复子任务回 exec 重派。再次全绿后重新 `skein check` 进检查中。

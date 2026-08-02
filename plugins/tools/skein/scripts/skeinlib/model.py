@@ -55,5 +55,15 @@ PRD_TODO_SECTIONS: set[str] = {"目标", "验收标准"}
 PRD_SECTIONS_V6: list[str] = ["目标", "边界", "User Stories", "验收标准", "Testing Decisions", "索引"]
 # 旧四段 (存量 task 兼容态) — 校验只 warning 不阻断, 新建 task 一律走 V6
 PRD_SECTIONS_V4: list[str] = ["目标", "边界", "验收标准", "索引"]
+# task 优先级: 四档枚举, 落盘存机读值 (urgent/high/normal/low) — 文案会改, 落盘值不该跟着变
+# (中文档位/展示层映射归调用方)。存量 0-10 数字迁移映射见 skeinlib.priority.priority_from_legacy。
+P_URGENT = "urgent"
+P_HIGH = "high"
+P_NORMAL = "normal"
+P_LOW = "low"
+PRIORITIES: tuple[str, ...] = (P_URGENT, P_HIGH, P_NORMAL, P_LOW)
+PRIORITY_DEFAULT = P_NORMAL  # 未指定落「中」
+# 排序权重 (数值越大越优先); 老代码的 `-(priority or 5)` 数字降序换成这张表, 相对顺序不变
+PRIORITY_RANK: dict[str, int] = {P_URGENT: 3, P_HIGH: 2, P_NORMAL: 1, P_LOW: 0}
 def now() -> int:
     return int(time.time())  # Unix epoch 秒 — 所有落盘时间字段统一时间戳

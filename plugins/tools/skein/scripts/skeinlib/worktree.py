@@ -86,7 +86,14 @@ def make_worktree(t: dict[str, Any], repo: str, cfg: dict[str, Any], root: Path)
     # 每子仓各自 .worktrees 目录, 天然无碰撞 (旧版全塞 root, 现落各仓内)。
     base = wt_root if repo == "." else f"{repo}/{wt_root}"
     wt_rel = f"{base}/skein-{t['id']}"
-    git("worktree", "add", "-b", t["branch"], str(root / wt_rel), "HEAD", cwd=sub)
+    # start→fail→重 start 时分支与目录都还在, 无条件 `add -b` 会 exit 255 让 task 永久卡死,
+    # 故分支/目录各自存在与否分三路: 都在=复用, 分支在目录没了=挂回该分支, 都不在=原路建。
+    wt_abs = root / wt_rel
+    has_branch = git("rev-parse", "--verify", f"refs/heads/{t['branch']}", cwd=sub, check=False).returncode == 0
+    if not has_branch:
+        git("worktree", "add", "-b", t["branch"], str(wt_abs), "HEAD", cwd=sub)
+    elif not wt_abs.exists():
+        git("worktree", "add", str(wt_abs), t["branch"], cwd=sub)
     if repo != ".":
         ignore_worktree_dir(sub, cfg)  # 子仓自忽略; 根仓已由 init 补
     return {"repo": repo, "wt": wt_rel, "branch": t["branch"], "merged": False}

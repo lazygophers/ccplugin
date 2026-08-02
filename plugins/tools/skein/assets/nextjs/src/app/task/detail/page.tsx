@@ -5,8 +5,8 @@ import { Suspense, useEffect, useState, useCallback, useMemo, useRef } from "rea
 import Link from "next/link";
 import { Sidebar, Topbar } from "@/components/layout";
 import { StatusBadge, StatusDot, ST_META } from "@/components/status";
-import { api } from "@/lib/api";
-import { normalizeTask, normalizeTasks, type NormTask, type NormSubtask } from "@/lib/model";
+import { api, ApiError } from "@/lib/api";
+import { normalizeTask, normalizeTasks, PRIORITY_LABEL, type NormTask, type NormSubtask } from "@/lib/model";
 import { fmtRelative, fmtTime } from "@/lib/format";
 import { renderMd } from "@/lib/md";
 import { etaOf, etaText, fmtHours, actualOf, deltaText, type EtaResult } from "@/lib/eta";
@@ -68,7 +68,11 @@ function TaskDetailContent() {
     api.task(id).then((r) => {
       const resp = r as unknown as Record<string, unknown>;
       const taskRaw = resp.task
-        ? { ...(resp.task as Record<string, unknown>), docs: resp.docs, research: resp.research, prd: resp.prd, progress: resp.progress, stage: resp.stage }
+        ? {
+            ...(resp.task as Record<string, unknown>), docs: resp.docs, research: resp.research,
+            prd: resp.prd, progress: resp.progress, stage: resp.stage,
+            parentTask: resp.parentTask, childTasks: resp.childTasks,
+          }
         : (resp.card || resp);
       setRaw(taskRaw as Record<string, unknown>);
       setTask(normalizeTask(taskRaw as Record<string, unknown>));
@@ -83,6 +87,21 @@ function TaskDetailContent() {
   }, [id]);
 
   useEffect(() => { load(); }, [load]);
+
+  // 页面直接改优先级: 复用白名单 exec 通道; 成功后本地乐观更新, 失败给明确错误 (不静默失败)。
+  // exec 端点 CLI 失败时仍返回 HTTP 200 (body.ok=false + stderr), 不会走 fetch 的 catch — 必须显式查 ok。
+  const handlePriorityChange = async (val: string) => {
+    if (!task) return;
+    try {
+      const r = await api.exec("priority", { id: task.id, set: val }) as { ok: boolean; stderr?: string };
+      if (!r.ok) { toast(r.stderr?.trim() || "优先级更新失败", "error"); return; }
+      setTask(prev => prev ? { ...prev, priority: val } : prev);
+      setRaw(prev => prev ? { ...prev, priority: val } : prev);
+      toast("优先级已更新", "success");
+    } catch (e) {
+      toast(e instanceof ApiError ? e.message : "优先级更新失败", "error");
+    }
+  };
 
   const depAll = useMemo(() => task ? [task, ...depTasks, ...dependents] : [], [task, depTasks, dependents]);
 
@@ -175,7 +194,12 @@ function TaskDetailContent() {
             <div className="min-w-0 space-y-4">
               {/* Basic info */}
               <Card title="基本信息">
-                <InfoRow label="优先级" value={(raw?.priority != null ? Number(raw.priority) : 5)} />
+                <InfoRow label="优先级" value={
+                  <select value={task.priority} onChange={(e) => handlePriorityChange(e.target.value)}
+                    className="rounded-md border border-border bg-card/60 px-2 py-1 text-sm text-foreground">
+                    {Object.entries(PRIORITY_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                  </select>
+                } />
                 {task.assignee ? <InfoRow label="负责人" value={String(task.assignee)} /> : null}
                 <InfoRow label="预估工时" value={task.estimate ? `${task.estimate} 小时` : "—"} />
                 <InfoRow label="进度" value={<ProgressBar value={Number(task.progress ?? (st === "done" ? 100 : 0))} colorVar={meta.colorVar} />} />
@@ -260,6 +284,7 @@ function TaskDetailContent() {
                         <StatusDot status={pt.status as string} className="mt-1.5" />
                         <div className="min-w-0 flex-1">
                           <div className="text-sm text-foreground">{pt.name as string}</div>
+                          <div className="text-[10px] text-muted-foreground">{ST_META[pt.status as string]?.label || (pt.status as string)}</div>
                         </div>
                       </Link>
                     </div>
@@ -273,6 +298,10 @@ function TaskDetailContent() {
                             <StatusDot status={c.status as string} className="mt-1.5" />
                             <div className="min-w-0 flex-1">
                               <div className="text-sm text-foreground">{c.name as string}</div>
+                              <div className="flex items-center gap-2">
+                                <div className="text-[10px] text-muted-foreground">{ST_META[c.status as string]?.label || (c.status as string)}</div>
+                                <div className="flex-1"><ProgressBar value={Number(c.progress) || 0} colorVar={(ST_META[c.status as string] || ST_META.planning).colorVar} showLabel={false} /></div>
+                              </div>
                             </div>
                           </Link>
                         ))}
@@ -540,6 +569,10 @@ function DepDagView({ taskId, allTasks }: { taskId: string; allTasks: NormTask[]
   return (
     <div className="overflow-x-auto">
       <div className="relative" style={{ width: dag.width, height: dag.height }}>
+        {/* 父子包裹: 用容器框表达归属, 不画箭头边 (与看板同规则) */}
+        {dag.groups.map(g => (
+          <div key={g.id} className="pointer-events-none absolute rounded-lg border border-dashed border-primary/30 bg-primary/[0.03]" style={{ left: g.x, top: g.y, width: g.w, height: g.h }} />
+        ))}
         <svg className="pointer-events-none absolute inset-0" style={{ width: "100%", height: "100%" }}>
           <defs>
             {markers.map(m => <marker key={m.id} id={m.id} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill={`var(--${m.color})`} /></marker>)}

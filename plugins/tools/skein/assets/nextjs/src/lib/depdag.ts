@@ -164,7 +164,7 @@ export function drawEdgesPaths(edges: DagEdge[], getEdgeInfo?: (e: DagEdge) => E
 export function buildDepDAG(taskId: string, allTasks: NormTask[]) {
   const byId = new Map(allTasks.map(t => [t.id, t]));
   const task = byId.get(taskId);
-  if (!task) return { nodes: [] as DepDagNode[], edges: [] as DagEdge[], width: 0, height: 0, centerId: taskId };
+  if (!task) return { nodes: [] as DepDagNode[], edges: [] as DagEdge[], groups: [] as DepDagGroup[], width: 0, height: 0, centerId: taskId };
 
   const visited = new Set<string>([taskId]);
   const upstream: string[] = [];
@@ -296,16 +296,41 @@ export function buildDepDAG(taskId: string, allTasks: NormTask[]) {
       const src = nodes.find(x => x.id === depId);
       if (src) edges.push({ from: src, to: n, bends: [], cross: false, laneY: 0 });
     }
-    // parent → child 边 (父子关系, 非 deps)
-    if (n.task.parent) {
-      const src = nodes.find(x => x.id === n.task.parent);
-      if (src) edges.push({ from: src, to: n, bends: [], cross: false, laneY: 0 });
+    // 父子关系不再生成边 (看板同规则) —— 改用下面的包裹分组表达
+  }
+
+  // 父子包裹分组: 与看板同规则, 父子关系用包裹而非箭头表达。
+  // 这里的节点坐标来自 BFS 分层 (与看板的 Sugiyama 分层是两套不同算法), 故不复用 board-layout 的
+  // GroupBox 生成逻辑, 而是在已算好的节点坐标上直接求包围盒 —— 对这个小图足够且不引入第二套布局引擎。
+  const nodeById = new Map(nodes.map(n => [n.id, n]));
+  const childrenByParent = new Map<string, string[]>();
+  for (const n of nodes) {
+    if (n.task.parent && nodeById.has(n.task.parent)) {
+      if (!childrenByParent.has(n.task.parent)) childrenByParent.set(n.task.parent, []);
+      childrenByParent.get(n.task.parent)!.push(n.id);
     }
   }
+  const groups: DepDagGroup[] = [];
+  for (const [pid, kidIds] of childrenByParent) {
+    const members = [pid, ...kidIds].map(id => nodeById.get(id)!).filter(Boolean);
+    if (members.length < 2) continue; // 无 child 落图内的父不成组, 不画空容器
+    const x0 = Math.min(...members.map(m => m.x)) - GROUP_PAD;
+    const y0 = Math.min(...members.map(m => m.y)) - GROUP_PAD;
+    const x1 = Math.max(...members.map(m => m.x + m.w)) + GROUP_PAD;
+    const y1 = Math.max(...members.map(m => m.y + m.h)) + GROUP_PAD;
+    groups.push({ id: pid, x: x0, y: y0, w: x1 - x0, h: y1 - y0 });
+  }
+
   const numLayers = layers.size;
   const maxRows = Math.max(1, ...[...layers.values()].map(l => l.length));
-  return { nodes, edges, width: padX * 2 + numLayers * colW, height: padY * 2 + maxRows * rowH, centerId: taskId };
+  const width = Math.max(padX * 2 + numLayers * colW, ...groups.map(g => g.x + g.w), 0);
+  const height = Math.max(padY * 2 + maxRows * rowH, ...groups.map(g => g.y + g.h), 0);
+  return { nodes, edges, groups, width, height, centerId: taskId };
 }
+
+const GROUP_PAD = 10;
+
+export interface DepDagGroup { id: string; x: number; y: number; w: number; h: number }
 
 export interface DepDagNode {
   id: string; task: NormTask;

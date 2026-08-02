@@ -26,26 +26,26 @@
 
 ### 骨架现算
 - [x] `spec.py map --skeleton` 输出: 目录树 + 每文件顶层符号名 + 行数, **不写任何文件**
-- [ ] 文件清单来自 `git ls-files`; 非 git 仓 (无 git 二进制或非仓) 降级 `rglob` 且复用既有衍生文件排除范式 (`__pycache__` / `.mypy_cache` / `.ruff_cache` 等)
-- [ ] 符号抓取覆盖: Python (`def` / `class` / `async def`) + JS/TS (`function` / `class` / `export function` / `export const`) + Go (`func` / `type`)
-- [ ] 抓取代码处有 `ponytail:` 注释, 写明「正则非 AST, 装饰器/嵌套/多行签名抓不准, 升级路径 tree-sitter」
-- [ ] 大仓性能: 1000 文件规模下 `map --skeleton` < 3s
-- [ ] `map` (不带 `--skeleton`) 输出骨架 + `map` namespace 语义页合并的地图
+- [x] 文件清单来自 `git ls-files`; 非 git 仓 (无 git 二进制或非仓) 降级 `rglob` 且复用既有衍生文件排除范式 (`__pycache__` / `.mypy_cache` / `.ruff_cache` 等)
+- [x] 符号抓取覆盖: Python (`def` / `class` / `async def`) + JS/TS (`function` / `class` / `export function` / `export const`) + Go (`func` / `type`)
+- [x] 抓取代码处有 `ponytail:` 注释, 写明「正则非 AST, 装饰器/嵌套/多行签名抓不准, 升级路径 tree-sitter」
+- [x] 大仓性能: 1000 文件规模下 `map --skeleton` < 3s
+- [x] `map` (不带 `--skeleton`) 输出骨架 + `map` namespace 语义页合并的地图
 
 ### map namespace
-- [ ] `spec/map/<category>/<topic>.md` 语义页, frontmatter 带 `anchors` 列表
-- [ ] `init` 建 `spec/map/` 空目录; 无 map 页时 `map` 命令只输出骨架 (零回归)
-- [ ] `recall "<q>" --src code` 返回: map 语义页 BM25 命中 + 命中页的 anchors 汇总
-- [ ] `always` 顶层地图约定: `map/` 下可放**一页** `inclusion: always` 的极简顶层地图 (顶层目录 → 职责一行), 因这条每次开工都要用且极短
+- [x] `spec/map/<category>/<topic>.md` 语义页, frontmatter 带 `anchors` 列表
+- [x] `init` 建 `spec/map/` 空目录; 无 map 页时 `map` 命令只输出骨架 (零回归)
+- [x] `recall "<q>" --src code` 返回: map 语义页 BM25 命中 + 命中页的 anchors 汇总
+- [x] `always` 顶层地图约定: `map/` 下可放**一页** `inclusion: always` 的极简顶层地图 (顶层目录 → 职责一行), 因这条每次开工都要用且极短
 
 ### anchors 断链
-- [ ] `maintain` 断链判据扩到 `anchors`: 路径不存在即报为断链问题项
-- [ ] `map` namespace 的 anchors 失效 → `maintain --apply` **可** archive (骨架现算, 语义页失效无损)
-- [ ] `product` namespace 的 anchors 失效 → **只报告不 archive** (与 `spec-product-wiki` 一致, 两 task 若都实现需保持同一处逻辑不重复)
-- [ ] anchors 支持 `path` 与 `path:symbol` 两种写法; `:symbol` 部分失效 (文件在但符号没了) 报为**弱断链**, 与文件整个不存在的强断链区分
+- [x] `maintain` 断链判据扩到 `anchors`: 路径不存在即报为断链问题项
+- [x] `map` namespace 的 anchors 失效 → `maintain --apply` **可** archive (骨架现算, 语义页失效无损)
+- [x] `product` namespace 的 anchors 失效 → **只报告不 archive** (与 `spec-product-wiki` 一致, 两 task 若都实现需保持同一处逻辑不重复)
+- [x] anchors 支持 `path` 与 `path:symbol` 两种写法; `:symbol` 部分失效 (文件在但符号没了) 报为**弱断链**, 与文件整个不存在的强断链区分
 
 ### 兜底
-- [ ] 新增用例覆盖: 骨架现算不落盘 / 三语言符号抓取 / 非 git 仓降级 / anchors 强弱断链 / map 可 archive 而 product 不可 / recall --src code
+- [x] 新增用例覆盖: 骨架现算不落盘 / 三语言符号抓取 / 非 git 仓降级 / anchors 强弱断链 / map 可 archive 而 product 不可 / recall --src code
 - [ ] `python3 scripts/skein.py doctor --quality` 通过
 
 ## 索引
