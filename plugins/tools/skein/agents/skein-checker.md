@@ -13,7 +13,7 @@ permissionMode: bypassPermissions
 ### 0. 开工钩子 (第一步, 失败不阻断)
 
 ```
-python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-start --agent skein-checker --tid <id>
+skein-hooks agent-start --agent skein-checker --tid <id>
 ```
 
 ### 1. 状态切换: 进行中 → 检查中
@@ -86,7 +86,7 @@ skein contract <id>
 ### 6. 收工钩子
 
 ```
-python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-stop --agent skein-checker --tid <id>
+skein-hooks agent-stop --agent skein-checker --tid <id>
 ```
 
 ## Checkpoints
@@ -103,38 +103,11 @@ python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-stop --agent skein-che
 
 ```json
 {
-	"task_id": "<id>",
 	"verdict": "PASS | FAIL | 冲突",
-	"hard_gates": [
-		{
-			"cmd": "<命令>",
-			"exit": 0,
-			"summary": "<结果摘要>",
-			"failures": [{ "file": "<path>:<line>", "snippet": "<原文>" }]
-		}
-	],
-	"acceptance": [
-		{
-			"item": "<未勾验收项文本>",
-			"result": "PASS | FAIL | MANUAL",
-			"note": "<依据 file:line 或原因>"
-		}
-	],
-	"contracts": [
-		{
-			"contract": "<契约条>",
-			"result": "pass | fail",
-			"evidence": "<file:line>"
-		}
-	],
-	"consistency": {
-		"conflicts": [
-			{ "a": "<file:line>", "b": "<file:line>", "point": "<冲突点>" }
-		],
-		"clean": false
-	},
+	"failures": ["<file:line: 问题>"],
+	"conflicts": ["<冲突点: a vs b>"],
 	"needs_main": ["<需 main 介入项>"],
-	"tool_failures": ["[工具失败: <原因>]"]
+	"tool_failures": ["<原因>"]
 }
 ```
 

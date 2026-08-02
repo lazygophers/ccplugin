@@ -15,7 +15,7 @@ main 检测到 `.trellis/` 时派你做语义迁移 (纯新仓初始化 main 直
 ### 0. 开工钩子 (第一步, 失败不阻断)
 
 ```
-python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-start --agent skein-setup
+skein-hooks agent-start --agent skein-setup
 ```
 
 ### 1. 跑脚手架
@@ -55,7 +55,7 @@ JSON 编辑剔除残留 trellis hook 接线 → 复核 `.skein/` 结构完整 �
 ### 5. 收工钩子
 
 ```
-python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-stop --agent skein-setup
+skein-hooks agent-stop --agent skein-setup
 ```
 
 ## Checkpoints
@@ -72,11 +72,9 @@ python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-stop --agent skein-set
 ```json
 {
 	"mode": "fresh | trellis-migration",
-	"spec": { "core": 0, "recall": 0 },
-	"tasks_migrated": [{ "id": "<id>", "contracts": 0, "subtasks": 0 }],
-	"cleaned": ["<剔除的残留 trellis hook/文件>"],
-	"needs_main": ["<需 main 介入项>"],
-	"tool_failures": ["[工具失败: <原因>]"]
+	"migrated": "<task 数>",
+	"cleaned": ["<剔除项>"],
+	"tool_failures": ["<原因>"]
 }
 ```
 

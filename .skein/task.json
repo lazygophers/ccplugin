@@ -1,20 +1,6 @@
 {
   "tasks": [
     {
-      "id": "concurrency-pools",
-      "status": "进行中",
-      "deps": [],
-      "priority": "urgent",
-      "worktree": ".worktrees/skein-concurrency-pools",
-      "parent": null,
-      "kind": "task",
-      "created": 1785511640,
-      "confirmed": 1785515070,
-      "started": 1785559720,
-      "checked": null,
-      "finished": null
-    },
-    {
       "id": "spec-skills-agents-adapt",
       "status": "进行中",
       "deps": [
@@ -33,6 +19,20 @@
       "confirmed": 1785594118,
       "started": 1785638941,
       "checked": null,
+      "finished": null
+    },
+    {
+      "id": "concurrency-pools",
+      "status": "检查中",
+      "deps": [],
+      "priority": "urgent",
+      "worktree": ".worktrees/skein-concurrency-pools",
+      "parent": null,
+      "kind": "task",
+      "created": 1785511640,
+      "confirmed": 1785515070,
+      "started": 1785559720,
+      "checked": 1785641244,
       "finished": null
     },
     {

@@ -39,7 +39,7 @@ agent: skein-dedup
 
 | 触发 | 一线修复 | 仍失败兜底 |
 |---|---|---|
-| `skein` CLI 不可用 (alias 在 subagent 无定义) | 换 `python3 $CLAUDE_PLUGIN_ROOT/scripts/skein.py` | `[工具失败: CLI 不可用]`, 空处置回传, 禁手改 task.json |
+| `skein` CLI 不可用 | 重试 1 次 | `[工具失败: CLI 不可用]`, 空处置回传, 禁手改 task.json |
 | `deps` 报成环 / 自引用 | 换方向或跳过该连 | skipped 标「非法连法」+ 原因, 禁强连 |
 | 两 task 疑似重复但判据弱 | 保守不归并 | 记 skipped, 宁漏归并不误删有效 task |
 | 目标 task 状态为进行中/检查中 | 跳过其执行序编排 | skipped 标「已 start, 调度已定」 |

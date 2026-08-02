@@ -456,7 +456,14 @@ function TaskDetailContent() {
 // ── Sub-task execution timeline (from old app.js subTimelineView) ──
 function SubTimeline({ subs, taskId }: { subs: NormSubtask[]; taskId: string }) {
   const [open, setOpen] = useState(true);
-  const ordered = [...subs].sort((a, b) => (a.startedAt || Infinity) - (b.startedAt || Infinity));
+  const ordered = [...subs].sort((a, b) => {
+    // done 按 finishedAt 降序排最前; 其余按 startedAt 升序在后
+    const ad = a.status === "done" ? 0 : 1;
+    const bd = b.status === "done" ? 0 : 1;
+    if (ad !== bd) return ad - bd;
+    if (ad === 0) return (b.finishedAt || 0) - (a.finishedAt || 0);
+    return (a.startedAt || Infinity) - (b.startedAt || Infinity);
+  });
   return (
     <details className="mt-1" open={open} onToggle={(e) => setOpen((e.target as HTMLDetailsElement).open)}>
       <summary className="cursor-pointer select-none text-[10px] text-muted-foreground">子任务执行过程</summary>
@@ -471,9 +478,16 @@ function SubTimeline({ subs, taskId }: { subs: NormSubtask[]; taskId: string }) 
             const dt = est ? deltaText(act / est - 1) : null;
             dur = `实际 ${fmtHours(act)}` + (est ? ` / 预估 ${fmtHours(est)}` : "") + (dt ? ` (${dt})` : "");
           } else if (est) { dur = `预估 ${fmtHours(est)}`; }
+          const isDone = st === "done";
           return (
             <div key={s.sid} className="flex items-start gap-2">
-              <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full" style={{ backgroundColor: `var(${meta.colorVar})` }} />
+              {isDone ? (
+                <span className="mt-0.5 flex h-3.5 w-3.5 flex-shrink-0 items-center justify-center rounded-full text-[8px] text-white" style={{ backgroundColor: `var(${meta.colorVar})` }}>
+                  <i className="fa fa-check" />
+                </span>
+              ) : (
+                <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full" style={{ backgroundColor: `var(${meta.colorVar})` }} />
+              )}
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="truncate text-xs text-foreground">{s.title || s.name || s.sid}</span>

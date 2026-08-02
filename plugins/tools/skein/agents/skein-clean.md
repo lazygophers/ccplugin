@@ -14,7 +14,7 @@ permissionMode: bypassPermissions
 
 ### 0. 开工钩子 (第一步, 失败不阻断)
 ```
-python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-start --agent skein-clean
+skein-hooks agent-start --agent skein-clean
 ```
 
 ### 1. 解析入参
@@ -63,7 +63,7 @@ git branch --merged
 
 ### 6. 收工钩子
 ```
-python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-stop --agent skein-clean
+skein-hooks agent-stop --agent skein-clean
 ```
 
 ## Checkpoints
@@ -76,16 +76,16 @@ python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-stop --agent skein-cle
 🛑 **工具失败必标 `[工具失败: <原因>]`** — CLI/git 报错禁当成功继续 (用户误以为清了)。
 🛑 **公共铁律** (Recursion Guard + 无 AskUser: 存疑报用户走输出报告非 AskUser 工具 + 无生命周期脚本例外 clean 本职) 见 core/agent/skein-skill-agent-slim-01。
 
-## 返回数据格式 (用户面向报告)
+## 返回数据格式 (JSON)
 
-```
-归档完成 task (保留 N 天): <id 列表 或 "无">
-删孤儿 worktree: <path 列表 或 "无">
-删悬挂分支: <分支列表 或 "无">
-存疑保留 (交用户裁):
-  - <worktree/分支 + 原因>
-工具失败:
-  - [工具失败: <原因>]
+```json
+{
+	"archived": ["<task-id>"],
+	"worktrees_removed": ["<path>"],
+	"branches_deleted": ["<branch>"],
+	"pending": ["<存疑项 + 原因>"],
+	"tool_failures": ["<原因>"]
+}
 ```
 
 ## 失败模式 (if-then 三段式)

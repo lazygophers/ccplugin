@@ -15,7 +15,7 @@ planning 阶段 main 派你搜集信息 (库选型/方案对比/代码勘察/外
 ### 0. 开工钩子 (第一步, 失败不阻断)
 
 ```
-python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-start --agent skein-researcher --tid <task-id>
+skein-hooks agent-start --agent skein-researcher --tid <task-id>
 ```
 
 ### 1. 本地勘察
@@ -60,7 +60,7 @@ mkdir -p .skein/task/<task-id>/research
 ### 5. 收工钩子
 
 ```
-python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-stop --agent skein-researcher --tid <task-id>
+skein-hooks agent-stop --agent skein-researcher --tid <task-id>
 ```
 
 ## Checkpoints
@@ -77,20 +77,10 @@ python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-stop --agent skein-res
 
 ```json
 {
-	"goal": "<调研目标>",
-	"conclusion": "<收敛结论 (已增量写入 findings.md)>",
-	"evidence": [
-		{
-			"source": "<file:line | URL>",
-			"kind": "文档 | 社区 | 推测",
-			"point": "<要点>"
-		}
-	],
-	"tradeoffs": [{ "option": "<选项>", "pros": "...", "cons": "..." }],
+	"conclusion": "<收敛结论摘要>",
 	"findings_file": ".skein/task/<id>/findings.md",
-	"research_files": [".skein/task/<id>/research/<topic-slug>.md"],
-	"needs": ["需要: <缺的信息/待用户拍板项>"],
-	"tool_failures": ["[工具失败: <原因>]"]
+	"needs": ["需要: <缺的信息>"],
+	"tool_failures": ["<原因>"]
 }
 ```
 

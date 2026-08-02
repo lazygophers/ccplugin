@@ -764,11 +764,25 @@ function TaskTimeline({ task, eta, subs }: { task: NormTask; eta: { main: string
                 <details open className="mt-1 ml-2">
                   <summary className="cursor-pointer select-none text-[10px] text-muted-foreground">子任务</summary>
                   <div className="mt-1 space-y-1 border-l border-border/30 pl-3">
-                    {subs.map(sub => {
+                    {[...subs].sort((a, b) => {
+                      // done 按 finishedAt 降序排最前; 其余按原序在后
+                      const ad = a.status === "done" ? 0 : 1;
+                      const bd = b.status === "done" ? 0 : 1;
+                      if (ad !== bd) return ad - bd;
+                      if (ad === 0) return (b.finishedAt || 0) - (a.finishedAt || 0);
+                      return 0;
+                    }).map(sub => {
                       const sm = ST_META[sub.status] || ST_META.planning;
+                      const isDone = sub.status === "done";
                       return (
                         <div key={sub.sid} className="flex items-start gap-2">
-                          <span className="mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full" style={{ backgroundColor: `var(${sm.colorVar})` }} />
+                          {isDone ? (
+                            <span className="mt-0.5 flex h-3.5 w-3.5 flex-shrink-0 items-center justify-center rounded-full text-[8px] text-white" style={{ backgroundColor: `var(${sm.colorVar})` }}>
+                              <i className="fa fa-check" />
+                            </span>
+                          ) : (
+                            <span className="mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full" style={{ backgroundColor: `var(${sm.colorVar})` }} />
+                          )}
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
                               <span className="truncate text-[11px] text-foreground">{sub.title || sub.name || sub.sid}</span>

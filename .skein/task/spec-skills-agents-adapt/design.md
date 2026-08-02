@@ -122,3 +122,30 @@ d1 新增 product wiki 章节时第一次在文档里写 `finish-candidates`, �
 
 **exec-d1b 的处理是对的**: 它守住「纯文档/提示词, 脚本缺能力报告不顺手改」的边界, 报告而非自行动手。
 这条 bug 的成因需跨文件判断 (cli.py 注册了 vs 测试正则抓不到), 不是执行者边界内该拍板的。
+
+## 9. d2 执行留痕 (2026-08-02)
+
+worktree `/Users/luoxin/persons/lyxamour/ccplugin/.worktrees/skein-spec-skills-agents-adapt`, commit 序列
+`7e5b77b41` → `add6bef3e` → `32455a98f` → `4169c64f2` → `60e8e523d` → `42ff93093` → `be25f550c`。
+
+**改动**:
+- 模板重命名: `core.md.tmpl`→`rules-always.md.tmpl` / `recall.md.tmpl`→`rules-auto.md.tmpl` (`git mv`, 无引用需跟改, SKILL.md 早已用新名)。
+- 新建 3 文件: `templates/product.md.tmpl` (现状/边界/为什么这样/anchors/关联)、`templates/map.md.tmpl` (职责/入口/数据流/anchors)、`prune-workflow.md` (补 SKILL.md:83 现存断链, 全局判据+按 namespace 分表+保护标记+反例)。
+- `sediment-workflow.md`: §2 由「core/recall 层」改「namespace × inclusion 正交两维」判定, 新增 §5 amend vs sediment 抉择树 (含决策树图 + product/rules 场景对照)。
+- `maintain.md`: 判据表拆「全局」+「按 namespace 分表」(rules/external/product/map), product 行明写只报告禁自动 archive; 预算数值改引用 `spec.always_budget` 键名, 删写死的 `1000 字符`。
+- `reconstruct-memory.md`: 三档 (recall/full/deep) 扩六档 (recall/low/full/deep/max/high, 对齐 SKILL.md:164-173 表), 8 个项目类型分型段落各加「product 产物」行 (给该类型建议的现状页内容+anchors 来源), 全文残留的 `core`/`recall` 层级措辞 (§3/§5.2/§5.3/§5.5/§5.6/§5.8/反例表) 一并改 `always`/`auto`。
+- `bootstrap-seeding.md`: 五维扫描后加「product overview」第六项 (单篇总览页, 非逐功能域拆, 无 README/docs 则播空), §2 判定改「namespace=rules 下的 inclusion」措辞, 写盘命令补一条 product overview 落盘示例, 反例表补一行。
+- 新建 `migration-v2.md` (SKILL.md:152 引用): 两阶段流程 (阶段1 机械改名 core→rules/always, recall→rules/auto, 无损可先提交; 阶段2 语义分拣 product/map 信号, 无硬性完成线) + 触发确认 + 失败回滚 + 反例。
+
+**验收自证**:
+1. 5 references 均已改: sediment-workflow.md / maintain.md / reconstruct-memory.md / bootstrap-seeding.md 改动 + prune-workflow.md 新建, 共 5 个 commit 分别对应。
+2. prune-workflow.md 已建且 SKILL.md 引用可达: `grep -on '\[[^]]*\]([^)]*\.md[^)]*)' SKILL.md references/*.md` 全量扫描 SKILL.md + references/*.md 的相对链接, 逐条核对目标文件存在, 零断链 (输出见下)。
+3. 两模板已重命名且无旧名残留: `grep -rn "core\.md\.tmpl\|recall\.md\.tmpl" plugins/tools/skein/` 零命中。
+4. 3 个新文件齐备: `find references -type f` 确认 product.md.tmpl / map.md.tmpl / migration-v2.md 均在。
+5. 无断链: 见 2, 全部 8 处链接 (SKILL.md 12 处 + references 内部 8 处) 目标文件均存在。
+
+**质量门 (`claude -p --bare`)**: 按 CLAUDE.md 规范跑 sediment-workflow.md 一次, 触发 API 端点 120s 内未响应转后台 (与 d1 记录的同一环境级故障一致, 非本轮新问题)。按 main 此前裁定, 质量门验证并入 d5, 本条不重复申请。
+
+**越界自查**: 未碰 d3 (`skills/skein-flow/` `skills/skein-setup/`) 与 d4 (`agents/*.md` `plugin.json`) 范围内任何文件, `git diff --stat` 确认改动全落在 `skills/skein-spec/references/` 下。
+
+**pytest**: `python3 -m pytest plugins/tools/skein/scripts/tests/ -q` → 407 passed, 0 failed (与基线一致, 无回归)。

@@ -439,4 +439,81 @@ s7 扫到主仓根 `.skein/config.yaml` 仍有 `max_active: 2` 与 `pools.work/g
 
 它要等本分支合入 master 之后才变成真残留, 那时 s5 写的 doctor 警告会提示。**归 finish 阶段收口。**
 
+## s8 交付记录 — 行为测试 + 三个代码层零残留扫描 (`543ac04a9`+`4108fa07a`+`69b24406a`)
+
+### 收口 s7 遗留的两处 (worktree 内亲跑核实)
+- `skein.py:10` docstring: `.skein/config.yaml 设置 (max_active / ...)` → `(pools.work/gate / ...)`。
+- `boardsource.py:59` kwarg: `Snapshot(..., max_active=pools["work"], ...)` → `pool_work=pools["work"]`。
+  改名溯源到唯一定义点 `views.py:30` (`Snapshot.__init__` 形参) + `self.max_active`
+  属性 (`views.py:33`) + 3 处内部读取点 (`views.py:264/326/431` 的 `snap.max_active`) 一并
+  改 `pool_work` — grep `Snapshot(` 确认全仓只有 `boardsource.py:55` 这一处调用点, 无遗漏。
+  JSON 输出字段名 `"maxActive"` (前端契约) **刻意不改** — 那是给前端的兼容字段名, 与 Python
+  端内部标识符是两回事, 已有注释「兼容旧字段」标注, 改了会破前端。
+
+### 顺手核实到的另外两处 stale 文案 (代码层扫描中发现, 非 s7 清单内, 判定为真残留一并收)
+- `scheduling.py:116` docstring 仍写「竞争 max_active 槽」→ 改「竞争 pools.work 槽」。
+- `hooks/prompt.py:25` docstring 仍写「读 config.yaml 的 ... + max_active + ...」→ 改
+  `+ pools.work +`（该函数体本身早已读 `cfg["pools"]["work"]`, 纯文档滞后于实现）。
+
+### 三个代码层零残留扫描 → 落成 `tests/test_zero_residual.py` (8 个测试)
+命令: `grep -rn "S_READY\|max_active" plugins/tools/skein/scripts/skeinlib/ plugins/tools/skein/scripts/skein.py`
++ `grep -rn "就绪" ...` + `grep -rln "max_active" --include=*.ts --include=*.tsx plugins/tools/skein/`
+（完整输出见本次对话, 精简判定表如下）：
+
+| 命中 | 判定 | 理由 |
+|---|---|---|
+| `S_READY` | 0 命中 | 全仓已无, s1 彻底删 |
+| `readystate.py` 内 `status=="就绪"` | 合理保留 | 一次性迁移工具, 必须认字面量 |
+| `admin.py` 迁移命令注释里的「就绪」 | 合理保留 | 描述迁移对象, 非活代码路径消费 |
+| 其余全部 `.py` 里的中文「就绪」(dag.py/scheduling.py/prd.py/views.py/cli.py 等 20+ 处) | 合理保留 | 是「DAG 就绪判定/就绪批/prd 就绪校验」等通用调度语义形容词, 与被删的**task 级 status 值**是两回事, 从未消费 `status=="就绪"` |
+| `doctor.py:210-212` `"max_active" in raw_cfg` | 合理保留 | 故意认残留旧键做体检提示 (s5 设计) |
+| `hooks/prompt.py` / `workspace.py` 的 `CLAUDE_PLUGIN_OPTION_MAX_ACTIVE` | 合理保留 | 公开插件 env 选项名, 是对外 API 面, 改名是破坏性变更, 不在 s8 范围 |
+| `boardsource.py:59` kwarg `max_active=` | **真残留 → 已改** `pool_work=` |
+| `scheduling.py:116` / `hooks/prompt.py:25` 文档字符串 | **真残留 → 已改** |
+| `settings.tsx` 的 `max_active` 字段 (共 4 处) | **真残留且是真 bug → 已改** | GET `/__skein__/config` 早已返回 `pools:{work,gate}` 嵌套结构 (s2), 前端表单仍读 `form.max_active` 恒为 `undefined`, `parseInt(undefined)`→`NaN`, 触发「并发上限须为 ≥1 整数」永久校验失败, **设置弹窗的并发上限字段合并前就是不可用的死表单**。改为 `pools.work`/`pools.gate` 两个字段各自读写, `tsc --noEmit` 过 |
+| `test_dag.py` 顶部模块 docstring 的 `max_active` | **真残留 → 已改** | 描述性文字, 改成 `pools.work` |
+| `test_dag.py:323-325` `test_two_level_task_level_cap_blocks_start` | **真残留 (死壳测试) → 已删** | 函数体只有 docstring + 一行 `_set_max_active` 调用, 无任何 assert, 且 docstring 断言的行为 (「task 级上限阻挡第 3 个 start」) 与紧邻下一条 `test_task_level_cap_removed_all_can_go_active`（断言 task 级上限已取消）**互相矛盾** — 前者是 s3 改造前的旧测试残骸, 从未被清过, 一直空转不报错也不测任何东西 |
+
+### 行为测试 (状态转换门/两池独立/exec同分优先/等待翻盘/池上限)
+design.md 要的 5 类行为测试 **s4 已在 `test_dag.py:338-425` 交付** (`test_two_pools_independent_work_full_check_still_claimable` /
+`test_exec_wins_over_research_on_tie` / `test_long_waiting_research_overtakes_fresh_exec` /
+`test_empty_batch_message_names_which_pool_is_full` 等), 状态转换门散布在既有
+`test_dag.py`/`test_skein.py`/`test_supertask.py` 里, 实测跑通, s8 未重复造。
+
+### 3 条验收逐条核对
+1. **全量测试通过**: `pytest plugins/tools/skein/scripts/tests/ -q` → **424 passed, 0 failed**
+   (基线 417 + 8 新增 `test_zero_residual.py` − 1 删除的死壳测试 = 424, 算术对得上)。
+2. **每个新测试反向验证过**: 见下方逐个记录, 8/8 全部「改回旧行为 → 真变红 → 改回来 → 复绿」。
+3. **ruff F/E9 清白**: 全仓 `ruff check . --select F,E9` 报 14 条, 但**全部落在本 subtask
+   未触碰的文件** (`doctor.py`/`hooks/gate.py`/`hooks/stopcheck.py`/`spec/write.py`/
+   `test_hooks_h1h3.py`/`test_product_wiki.py`/`test_skein.py`/`test_spec.py` — 这些属于同一
+   worktree 里并发跑的 `spec-map-namespace`/`spec-product-wiki` 等其他 task 的既有产物, 与本
+   subtask 无关)。**本 subtask 实际touch 的文件单独跑**
+   `ruff check skein.py skeinlib/views.py skeinlib/boardsource.py skeinlib/scheduling.py
+   skeinlib/hooks/prompt.py tests/test_dag.py tests/test_zero_residual.py tests/test_readystate.py
+   --select F,E9` → **All checks passed!**
+
+### 反向验证记录 (8/8, 改回旧行为→红→改回→绿)
+1. `test_s_ready_constant_fully_removed`: 临时在 `model.py` 插入 `S_READY = "就绪"` → 红
+   (`S_READY 残留: [...model.py]`) → 删除还原 → 绿。
+2. `test_no_live_code_path_treats_ready_as_task_status`: 临时在 `scheduling.py` 插入
+   `t["status"] == "就绪"` 消费点 → 首版正则未命中 (漏检, 已收紧为 `[=!]=\s*["\']就绪["\']`
+   通用匹配) → 收紧后重跑变红 → 还原 → 绿。
+3. `test_no_top_level_start_subcommand`: 临时在 `cli.py` 插入 `sub.add_parser("start", ...)`
+   → 红 → 还原 → 绿。
+4. `test_top_level_skein_py_start_rejected`: 同一处改动下真跑 `python3 skein.py start foo`
+   → 退出码/报错文案变化, 断言随之变红 → 还原 → 绿。
+5. `test_max_active_not_in_config_defaults`: 临时在 `config.py` 的 `_CFG_LEGACY` 里插入
+   `"max_active": ("pools","work")` → 红 → 还原 → 绿。
+6. `test_snapshot_kwarg_renamed_from_max_active`: 临时把 `views.py`+`boardsource.py` 换回
+   s7 遗留前的旧内容 (`git show` 取改动前版本覆盖) → 红 → 换回新内容 → 绿。
+7. `test_no_stray_max_active_dict_key_in_active_code`: 临时在 `lifecycle.py` 插入
+   `_stray_probe = {"max_active": 2}["max_active"]` → 红 → 还原 → 绿。
+8. `test_no_max_active_in_frontend_ts`: 临时把 `settings.tsx` 换回改动前内容 → 红 → 换回
+   新内容 → 绿。
+
+### mypy
+`python3 -m mypy plugins/tools/skein/scripts/skeinlib/` → **Success: no issues found in
+49 source files** (基线同为 49 files 0 错, 未退化)。
+
 同理 s8 的代码层零残留断言**不得包含这个 key**, 否则测试在合并前会一直红。

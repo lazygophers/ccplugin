@@ -49,8 +49,8 @@ const TASK_FLOW = [
 ];
 
 const SUBTASK_FLOW = [
-  { status: "pending", label: "待处理", desc: "已登记, 等待前置 deps done", color: "--st-planning" },
-  { status: "running", label: "运行中", desc: "被 claim exec 认领, executor 正在执行", color: "--st-active" },
+  { status: "planning", label: "待处理", desc: "已登记, 等待前置 deps done", color: "--st-planning" },
+  { status: "active", label: "运行中", desc: "被 claim exec 认领, executor 正在执行", color: "--st-active" },
   { status: "done", label: "已完成", desc: "executor 回传, 自跑 subtask done", color: "--st-done" },
   { status: "failed", label: "失败", desc: "报错/缺信息, 进入自愈或挂起", color: "--st-failed" },
 ];

@@ -2,11 +2,11 @@
 
 > 脚本渲染, 禁直接编辑; child task 状态变更即自动刷。整体完成率 = child _task_pct 均值。
 
-**整体进度**: 77% · **child**: 6/8 已完成
+**整体进度**: 78% · **child**: 6/8 已完成
 
 | child | 名称 | 状态 | subtask 完成 | 进度 |
 |---|---|---|---|---|
-| spec-skills-agents-adapt | skills + agents 全量适配 | 进行中 | 0/5 | 11% |
+| spec-skills-agents-adapt | skills + agents 全量适配 | 进行中 | 1/5 | 26% |
 | spec-docs-examples | docs + examples 示例仓迁移 | 就绪 | 0/3 | 5% |
 | spec-hooks-adapt | hooks.py 适配 + fileMatch 注入 + 修两现存 bug | 已完成 | 4/4 | 100% |
 | spec-map-namespace | map namespace: 骨架现算 + anchors 断链 | 已完成 | 5/5 | 100% |

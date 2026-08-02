@@ -2,7 +2,7 @@
   "id": "concurrency-pools",
   "name": "并发池重构: work/gate 双池 + research 状态",
   "desc": "max_active 单数字换成 work(2, exec+research 共享, exec 优先)/gate(3, check+finish 共享) 双池; subtask 加 phase 字段; task 状态机加 research 态 (plan⇄research, research 禁直转就绪)",
-  "status": "进行中",
+  "status": "检查中",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -193,12 +193,16 @@
         "每个新测试反向验证过(改回旧行为即红)",
         "ruff F/E9 清白"
       ],
-      "验收done": [],
-      "status": "运行中",
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785512383,
       "started": 1785640130,
-      "finished": null
+      "finished": 1785641190
     },
     {
       "sid": "s9",
@@ -246,8 +250,8 @@
   "created": 1785511640,
   "started": 1785559720,
   "confirmed": 1785515070,
-  "checked": null,
+  "checked": 1785641244,
   "finished": null,
-  "updated": 1785640130,
+  "updated": 1785641244,
   "confirmed_by": "user"
 }
