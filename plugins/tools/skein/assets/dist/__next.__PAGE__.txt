@@ -1,7 +1,7 @@
 1:"$Sreact.fragment"
-2:I[96499,["/_next/static/chunks/215s0q0vn28ez.js","/_next/static/chunks/035nsswbrdshv.js","/_next/static/chunks/3u_l0lmmvy7pw.js"],"Sidebar"]
-3:I[96499,["/_next/static/chunks/215s0q0vn28ez.js","/_next/static/chunks/035nsswbrdshv.js","/_next/static/chunks/3u_l0lmmvy7pw.js"],"Topbar"]
-4:I[86181,["/_next/static/chunks/215s0q0vn28ez.js","/_next/static/chunks/035nsswbrdshv.js"],"OutletBoundary"]
+2:I[22951,["/_next/static/chunks/37-3rfh6yx5je.js","/_next/static/chunks/36kp5bqfwvsku.js","/_next/static/chunks/179da1wyytfss.js"],"Sidebar"]
+3:I[22951,["/_next/static/chunks/37-3rfh6yx5je.js","/_next/static/chunks/36kp5bqfwvsku.js","/_next/static/chunks/179da1wyytfss.js"],"Topbar"]
+4:I[73978,["/_next/static/chunks/37-3rfh6yx5je.js","/_next/static/chunks/36kp5bqfwvsku.js"],"OutletBoundary"]
 5:"$Sreact.suspense"
-0:{"rsc":["$","$1","c",{"children":[["$","div",null,{"className":"flex min-h-screen","children":[["$","$L2",null,{}],["$","div",null,{"className":"flex flex-1 flex-col lg:ml-[220px]","children":[["$","$L3",null,{}],["$","main",null,{"className":"flex-1 p-6","children":[["$","h1",null,{"className":"text-2xl font-bold text-foreground","children":"SKEIN Dashboard"}],["$","p",null,{"className":"mt-2 text-sm text-muted-foreground","children":"脚手架已就绪，等待页面迁移。"}]]}]]}]]}],[["$","script","script-0",{"src":"/_next/static/chunks/3u_l0lmmvy7pw.js","async":true}]],["$","$L4",null,{"children":["$","$5",null,{"name":"Next.MetadataOutlet","children":"$@6"}]}]]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"NEqd8FTElb8y-ZyGpnCdS"}
+0:{"rsc":["$","$1","c",{"children":[["$","div",null,{"className":"flex min-h-screen","children":[["$","$L2",null,{}],["$","div",null,{"className":"flex flex-1 flex-col lg:ml-[220px]","children":[["$","$L3",null,{}],["$","main",null,{"className":"flex-1 p-6","children":[["$","h1",null,{"className":"text-2xl font-bold text-foreground","children":"SKEIN Dashboard"}],["$","p",null,{"className":"mt-2 text-sm text-muted-foreground","children":"脚手架已就绪，等待页面迁移。"}]]}]]}]]}],[["$","script","script-0",{"src":"/_next/static/chunks/179da1wyytfss.js","async":true}]],["$","$L4",null,{"children":["$","$5",null,{"name":"Next.MetadataOutlet","children":"$@6"}]}]]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"VDcSdnIoEDVuhcEA-y0JA"}
 6:null
