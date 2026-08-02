@@ -56,13 +56,15 @@
       "验收": [
         "反向验证: 改回旧样子断言转红, 改回绿"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1
+      ],
+      "status": "已完成",
       "phase": "exec",
       "skills": [],
       "created": 1785647877,
       "started": null,
-      "finished": null
+      "finished": 1785650186
     },
     {
       "sid": "f4",
@@ -106,6 +108,6 @@
   "confirmed": 1785648132,
   "checked": null,
   "finished": null,
-  "updated": 1785649021,
+  "updated": 1785650186,
   "confirmed_by": "user"
 }
