@@ -321,11 +321,13 @@ class BoardSourceMixin:
         auto = getattr(a, "auto", False)
         f = self.dir / "config.yaml"
         if not f.exists():
-            DBG.log(f"无 .skein 工作区 ({f} 不存在) — serve 空跑退出", style="yellow")
+            # auto 是每 session 起的 monitor — 无 .skein 的项目里每次都喊会刷屏, 只 --debug 才说;
+            # 手动跑是用户显式意图, 必须告诉他为什么没起来 (否则看着像静默失败)。
+            (DBG.log if auto else DBG.warn)(f"无 .skein 工作区 ({f} 不存在) — serve 空跑退出")
             return  # 无 .skein 工作区 — 无 task 项目里空跑 (手动/monitor 皆退, 无盘可服务)
         cfg = Config(f).cfg.model_dump(by_alias=True)  # 独立 argv 入口, 不走 self.config() (免其未初始化即报错的前置)
         if auto and not cfg["web"]["serve"]:
-            DBG.log("config.yaml web.serve=false — monitor 自动起已关闭 (手动 `serve` 仍可强起)", style="yellow")
+            DBG.log("config.yaml web.serve=false — monitor 自动起已关闭 (手动 `serve` 仍可强起)")
             return  # 仅 monitor 自动起遵此开关; 手动 serve 无视
         # 看板不落盘 — 页面每请求实时从 task.json 渲染 (do_GET)。
         # tty 区分: 手动终端跑 (tty) 印启动 URL 且遵 board_open 自动开浏览器; monitor 管道 (非 tty) 静默且绝不弹窗 (每 session when:always, 弹窗会骚扰)。

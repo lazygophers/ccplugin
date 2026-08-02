@@ -7,7 +7,7 @@
 //   {type:"spec-changed", path}   → spec 页软刷
 //
 // 协议 (客户端本地状态, 不来自服务端 — 由 startLive 自己派发):
-//   {type:"offline"}              → 连接断开, 正在重连 (非静默失效的提示信号)
+//   {type:"offline"}              → 连接断开, 正在重连 (非静默失效的提示信号; 只提示, 永不放弃重连)
 //
 // 断线追赶: 重连成功 (ws.onopen 且此前已连过一次) 直接整页重载, 保证断线期间丢失的
 // task-changed 消息靠重新拉全量数据补齐 —— 不额外发明追赶协议, 复用既有整页刷兜底路径。
@@ -36,15 +36,6 @@ export function subscribe(cb: Subscriber, opts?: { taskId?: string }): Unsubscri
   return () => subs.delete(cb);
 }
 
-const GRACE = 5 * 60 * 1000;
-
-function giveUp() {
-  try { window.close(); } catch {}
-  document.documentElement.innerHTML =
-    '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font:16px/1.6 \'Maple Mono\',\'Maple Mono NF\',monospace;color:#666;text-align:center">' +
-    "SKEIN 看板服务已停止<br>(5 分钟未恢复, 请重开 <code>skein serve</code>)</div>";
-}
-
 let started = false;
 
 export function startLive() {
@@ -52,7 +43,6 @@ export function startLive() {
   started = true;
   let seen = false;
   let offline = false;
-  let deadTimer: ReturnType<typeof setTimeout> | null = null;
 
   function dispatch(payload: string) {
     if (payload === "reload") return location.reload();
@@ -70,16 +60,14 @@ export function startLive() {
   (function conn() {
     const ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/__skein__/live`);
     ws.onopen = () => {
-      if (deadTimer) { clearTimeout(deadTimer); deadTimer = null; }
       offline = false;
       if (seen) location.reload(); else seen = true;
     };
     ws.onmessage = (e) => dispatch(e.data as string);
     ws.onclose = () => {
-      // 首次转为断线时立刻提示, 不等 5 分钟兜底超时才发声 (静默重试期间用户不该以为一切正常)
+      // 首次转为断线时立刻提示 (静默重试期间用户不该以为一切正常)
       if (!offline) { offline = true; subs.forEach(cb => cb({ type: "offline" })); }
-      if (!deadTimer) deadTimer = setTimeout(giveUp, GRACE);
-      setTimeout(conn, 2000);
+      setTimeout(conn, 2000);  // 无限重连 — 服务端停多久都只挂横幅, 不自毁页面 (用户可能只是重启 serve)
     };
     ws.onerror = () => { try { ws.close(); } catch {} };
   })();

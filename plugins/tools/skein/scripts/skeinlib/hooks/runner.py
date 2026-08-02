@@ -54,8 +54,28 @@ class Debug:
                 self.c = None  # rich 缺失 → 纯文本降级
 
     def log(self, msg: str, style: Optional[str] = None) -> None:
+        """debug / info 级 — 只有 --debug (或 SKEIN_DEBUG) 才输出。"""
         if not self.enabled:
             return
+        self._emit(msg, style)
+
+    def warn(self, msg: str) -> None:
+        """warn 级 — **无视 --debug 永远输出**。用户需要知道命令为何没干活 (空跑退出、
+        降级、跳过) 时用这个; 只有 --debug 才说的实现细节仍走 log()。"""
+        self._emit(msg, "yellow")
+
+    def error(self, msg: str) -> None:
+        """error 级 — 无视 --debug 永远输出。数据损坏 / 操作失败。"""
+        self._emit(msg, "red")
+
+    def _emit(self, msg: str, style: Optional[str] = None) -> None:
+        # rich Console 只在 enable(True) 时建; warn/error 可能先于 --debug 触发 → 惰性补建。
+        if self.c is None:
+            try:
+                from rich.console import Console
+                self.c = Console(stderr=True)
+            except Exception:
+                pass
         if self.c:
             self.c.print(msg, style=style, markup=False, highlight=False)
         else:

@@ -134,7 +134,7 @@ class TaskStore:
                     t = json.loads(f.read_text())
                 except (json.JSONDecodeError, OSError) as e:
                     # 单个 task.json 损坏 (半写/手改坏) 不该炸整个看板: 跳过并告警, 其余 task 照常渲染
-                    DBG.log(f"跳过损坏 {f}: {e}", style="red")
+                    DBG.error(f"跳过损坏 {f}: {e}")
                     continue
                 out.append(t)
                 DBG.log(f"读 {f}  → id={t.get('id')} status={t.get('status')} "
@@ -173,7 +173,7 @@ class TaskStore:
                               "deps": r.get("deps", []), "worktree": r.get("worktree"),
                               "parent": r.get("parent"), "kind": r.get("kind", "task")})
                 mirrored += 1
-                DBG.log(f"  + 镜像补齐幽灵骨架 {r['id']} (per-task 目录缺失, 仅顶层索引可用)", style="yellow")
+                DBG.warn(f"  + 镜像补齐幽灵骨架 {r['id']} (per-task 目录缺失, 仅顶层索引可用)")
         else:
             DBG.log(f"顶层镜像 {mirror} 不存在, 仅用 per-task 明细", style="dim")
         tasks.sort(key=lambda t: (STATUS_ORDER.get(t["status"], 9),
