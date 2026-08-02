@@ -11,47 +11,47 @@ status: active
 
 ### 铁律
 - MUST：plan 阶段完成判据门勾满才转 exec（4 条 checklist 全勾）
-- MUST：判据门为硬约束，未勾满禁 `skein start`
+- MUST：判据门为硬约束，未勾满禁 `skein confirm`
 - MUST：4 条判据：①task 已 create (含可读 slug) ②prd.md 已填完 (各章 `- [ ] TODO` 全勾) ③subtask 已规划 (`subtask add` 落 task.json DAG) ④设计方案已定 (design.md 正文; 或 main 豁免)
 - MUST：豁免条件仅 main 可判定（简单任务可略设计方案，但其余 3 条仍须勾）
 
 ### 反例表
 | 禁 | 改为 |
 |---|---|
-| prd TODO 未勾完即 start | 勾满 4 条才 start |
+| prd TODO 未勾完即 confirm | 勾满 4 条才 confirm |
 | 无 subtask 规划即转 exec | 至少拆分 subtask 并登记 DAG |
-| 设计方案未定即 start | 填完 design.md 正文 (或 main 判定豁免) |
+| 设计方案未定即 confirm | 填完 design.md 正文 (或 main 判定豁免) |
 | 自降判据标准「差不多就行」 | 4 条逐条硬核验 |
 
 ### 触发场景
 - plan 阶段收尾前自查 4 条 checklist
-- `skein start` 前脚本校验判据门（未过拒 start）
+- `skein confirm` 前脚本校验判据门（未过拒 confirm）
 - planning 流程 checkpoint
 
 ### 关联
-- 铁律: prd 硬门（主门在 confirm，start 兜底）(core/planning/task-detail-enhance-52.md) — 互补，本门是 plan 完成判据，prd 门在 confirm 主校验
+- 铁律: prd 硬门（confirm 内两道校验）(core/planning/task-detail-enhance-52.md) — 互补，本门是 plan 完成判据，prd 门在 confirm 内主校验
 - 实现细节: skein-plan SKILL.md §✅ plan 阶段完成判据 (2026-07-21落地)
 
-## prd 硬门（主门在 confirm，start 兜底 double-check）
+## prd 硬门（confirm 单命令内两道校验：审前 + 用户批准后 double-check）
 
 ### 铁律
-- MUST：prd 硬门**主校验在 `skein confirm`**（待处理→就绪）：prd 章节齐 + 无占位 + ≥1 subtask，通过才进就绪
+- MUST：prd 硬门**全在 `skein confirm`**（待处理→进行中，`confirm` 已吸收原 `start` 全部职责）：prd 章节齐 + 无占位 + ≥1 subtask，通过才进进行中
 - MUST：prd.md 存在且四标准章节齐备（目标/边界/验收标准/索引），无 `- [ ] TODO` 占位（模板初始态）
-- MUST：`skein start`（就绪→进行中）**兜底 double-check `_validate_prd`**，防 confirm 后 prd 被改空
-- MUST：不通过 raise SystemExit 阻断（confirm 阻进就绪 / start 阻进行中）
+- MUST：`confirm --approved`（用户批准后）**兜底 double-check `_validate_prd`**，防用户审阅摘要与实际批准之间 prd 被改空 —— 校验分两次跑在同一 `confirm` 调用内 (审前一次 + 批准后一次), 不再拆到独立命令
+- MUST：不通过 raise SystemExit 阻断（confirm 阻进进行中）
 
 ### 反例表
 | 禁 | 改为 |
 |---|---|
-| confirm 不检查 prd/subtask 就进就绪 | confirm 跑 _validate_prd + ≥1 subtask 校验 |
+| confirm 不检查 prd/subtask 就进进行中 | confirm 跑 _validate_prd + ≥1 subtask 校验 |
 | prd 章节残缺仍允许 confirm | 检查四标准章节齐备且顺序一致 |
-| prd 含 TODO 占位仍 confirm | 检测占位并拒绝进就绪 |
-| start 完全信任 confirm 不复检 prd | start 仍兜底 _validate_prd 防中途被改空 |
+| prd 含 TODO 占位仍 confirm | 检测占位并拒绝进进行中 |
+| 用户批准后不复检 prd 直接开工 | `confirm --approved` 仍兜底 _validate_prd 防批准前后被改空 |
 
 ### 关联
-- task.json status 状态机（待处理 →confirm→ 就绪 →start→ 进行中 守卫）
+- task.json status 状态机（待处理 ⇄调研中 →confirm→ 进行中 守卫，无就绪中间态）
 - subtask 拆分前置门（confirm 前须有 ≥1 subtask 登记）
-- 铁律: skein 工作流连线（confirm 用户确认门）
+- 铁律: skein 工作流连线（confirm 用户确认门, 吸收原 start 全部职责）
 
 ## 显式 slash 命令跳过 hook 路由启发
 
