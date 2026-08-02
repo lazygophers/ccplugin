@@ -45,7 +45,9 @@ def _top_subs(script: Path) -> list[str]:
             started = True
             continue
         if started:
-            m = re.match(r"^    ([a-z][a-z0-9\-_]*)\s{2,}", ln)
+            # 名字过长时 argparse 把 help 文字挤到下一行, 该行只有子命令名、行尾无空格 ——
+            # 只认 `\s{2,}` 会漏掉这类 (如 finish-candidates), 故补 `$` 分支。
+            m = re.match(r"^    ([a-z][a-z0-9\-_]*)(?:\s{2,}|$)", ln)
             if m:
                 out.append(m.group(1))
             elif ln.strip().startswith(("options:", "optional")):
