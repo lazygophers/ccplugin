@@ -2,7 +2,7 @@
   "id": "board-realtime-fix",
   "name": "看板实时性 + serve 崩溃修复",
   "desc": "task 详情页不实时更新、/ 不跳 board、serve 莫名退出、跨 task 调度不可视化、子任务 DAG 悬浮高亮",
-  "status": "进行中",
+  "status": "已完成",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -82,35 +82,31 @@
         "引用完整性 0 missing",
         "pytest ≥ 425"
       ],
-      "验收done": [],
-      "status": "运行中",
+      "验收done": [
+        1,
+        2
+      ],
+      "status": "已完成",
       "phase": "exec",
       "skills": [],
       "created": 1785664629,
       "started": 1785664856,
-      "finished": null
+      "finished": 1785665174
     }
   ],
   "priority": "normal",
   "estimate": 2.2,
   "repos": [],
-  "worktree": ".worktrees/skein-board-realtime-fix",
-  "worktrees": [
-    {
-      "repo": ".",
-      "wt": ".worktrees/skein-board-realtime-fix",
-      "branch": "skein/board-realtime-fix",
-      "merged": false
-    }
-  ],
+  "worktree": null,
+  "worktrees": [],
   "branch": "skein/board-realtime-fix",
   "parent": null,
   "kind": "task",
   "created": 1785664573,
   "started": 1785664658,
   "confirmed": 1785664656,
-  "checked": null,
-  "finished": null,
-  "updated": 1785664856,
+  "checked": 1785665640,
+  "finished": 1785666225,
+  "updated": 1785666225,
   "confirmed_by": "user"
 }

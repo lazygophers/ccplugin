@@ -2,7 +2,7 @@
   "id": "task-json-cn-schema",
   "name": "task.json 中文化 + 阶段时间双戳",
   "desc": "task.json key 英文化 (验收→acceptance) + 阶段时间双戳",
-  "status": "进行中",
+  "status": "已完成",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -82,13 +82,18 @@
         "pytest 通过",
         "旧 task.json 自动迁移"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
       "phase": "exec",
       "skills": [],
       "created": 1785666140,
       "started": null,
-      "finished": null
+      "finished": 1785666674
     },
     {
       "sid": "s6",
@@ -102,35 +107,31 @@
         "task.json 含 checked_end 字段",
         "pytest 通过"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2
+      ],
+      "status": "已完成",
       "phase": "exec",
       "skills": [],
       "created": 1785666140,
       "started": null,
-      "finished": null
+      "finished": 1785666930
     }
   ],
   "priority": "normal",
   "estimate": 9.5,
   "repos": [],
-  "worktree": ".worktrees/skein-task-json-cn-schema",
-  "worktrees": [
-    {
-      "repo": ".",
-      "wt": ".worktrees/skein-task-json-cn-schema",
-      "branch": "skein/task-json-cn-schema",
-      "merged": false
-    }
-  ],
+  "worktree": null,
+  "worktrees": [],
   "branch": "skein/task-json-cn-schema",
   "parent": null,
   "kind": "task",
   "created": 1785662060,
   "started": 1785662126,
   "confirmed": 1785662125,
-  "checked": 1785664437,
-  "finished": null,
-  "updated": 1785666140,
+  "checked": 1785666947,
+  "finished": 1785667131,
+  "updated": 1785667131,
   "confirmed_by": "user"
 }

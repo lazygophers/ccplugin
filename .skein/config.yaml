@@ -32,3 +32,4 @@ stop: []
 pools:
   work: 2
   gate: 3
+max_active: 2

@@ -1,0 +1,66 @@
+{
+  "id": "check-verify-standard",
+  "name": "check 完整验证标准",
+  "desc": "check 必须是完整验证 (CI/CD/部署/本地验证), plan 阶段就确认验证方式",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "v1",
+      "name": "PRD 模板 + flow 加验证方式",
+      "desc": "PRD 模板加验证方式字段; for-plan/for-check 加验证方式确认门",
+      "estimate": 0.5,
+      "depends_on": [],
+      "验收": [
+        "PRD 模板有验证方式",
+        "for-plan/for-check 有相关措辞"
+      ],
+      "验收done": [
+        1
+      ],
+      "status": "已完成",
+      "phase": "exec",
+      "skills": [],
+      "created": 1785664970,
+      "started": 1785665177,
+      "finished": 1785665221
+    },
+    {
+      "sid": "v2",
+      "name": "skein-checker agent 强化",
+      "desc": "checker agent 按验收方式逐条验证, 不只跑 pytest",
+      "estimate": 0.3,
+      "depends_on": [
+        "v1"
+      ],
+      "验收": [
+        "checker agent 含验证方式执行逻辑"
+      ],
+      "验收done": [
+        1
+      ],
+      "status": "已完成",
+      "phase": "exec",
+      "skills": [],
+      "created": 1785664970,
+      "started": null,
+      "finished": 1785666253
+    }
+  ],
+  "priority": "normal",
+  "estimate": 0.8,
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/check-verify-standard",
+  "parent": null,
+  "kind": "task",
+  "created": 1785664577,
+  "started": 1785665065,
+  "confirmed": 1785665064,
+  "checked": 1785666266,
+  "finished": 1785666420,
+  "updated": 1785666420,
+  "confirmed_by": "user"
+}

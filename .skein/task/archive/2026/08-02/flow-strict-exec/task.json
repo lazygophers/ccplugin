@@ -1,0 +1,67 @@
+{
+  "id": "flow-strict-exec",
+  "name": "skein 流程严格执行",
+  "desc": "创建 task 后不按 skein 要求执行、subtask 不自动派 exec agent",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "f1",
+      "name": "flow skill 强化流程约束",
+      "desc": "for-plan/for-exec/for-check 三章节加硬约束: 禁跳步、禁 main 手写代码、subtask done 即 claim check",
+      "estimate": 0.5,
+      "depends_on": [],
+      "验收": [
+        "三章节均有禁跳步措辞"
+      ],
+      "验收done": [
+        1
+      ],
+      "status": "已完成",
+      "phase": "exec",
+      "skills": [],
+      "created": 1785664961,
+      "started": 1785665140,
+      "finished": 1785665200
+    },
+    {
+      "sid": "f2",
+      "name": "结构性验证 + 测试",
+      "desc": "grep 硬约束措辞; docs_commands 通过",
+      "estimate": 0.3,
+      "depends_on": [
+        "f1"
+      ],
+      "验收": [
+        "grep 全命中",
+        "pytest 通过"
+      ],
+      "验收done": [
+        1,
+        2
+      ],
+      "status": "已完成",
+      "phase": "exec",
+      "skills": [],
+      "created": 1785664961,
+      "started": null,
+      "finished": 1785666720
+    }
+  ],
+  "priority": "normal",
+  "estimate": 0.8,
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/flow-strict-exec",
+  "parent": null,
+  "kind": "task",
+  "created": 1785664576,
+  "started": 1785665064,
+  "confirmed": 1785665063,
+  "checked": 1785666734,
+  "finished": 1785666740,
+  "updated": 1785666740,
+  "confirmed_by": "user"
+}
