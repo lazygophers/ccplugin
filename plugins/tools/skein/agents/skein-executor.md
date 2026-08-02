@@ -23,7 +23,7 @@ python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-start --agent skein-ex
 - **worktree 态** (给的是 task worktree 路径) → 只改该 worktree 内文件, 禁碰主工作区。
 - **原地态** (标 worktree=null / 仓库根) → 在仓库根改, 无隔离。
 - 自跑 `python3 <repo>/plugins/tools/skein/scripts/skein.py subtask show <tid> <sid>` 读 desc/验收/depends_on/skills 等全部字段, 不靠 dispatch prompt 里的转述。
-- 需 spec 约定佐证时先 `python3 <repo>/plugins/tools/skein/scripts/spec.py recall <关键词>`。
+- 需 spec 约定佐证时先 `skein-spec recall <关键词>` (namespace×inclusion 记忆库, 只读)。
 - 缺信息 (验收模糊/依赖不明) → needs 标 `需要: <问题>`, 不猜, 不直接问用户。
 - **你被派时 subtask 已是 running 态 (main 用 claim exec 前置占槽), 不重复占槽、不跑 claim exec/start**。
 
@@ -41,7 +41,7 @@ Grep / Glob 定位改动点 → Read 目标文件全文
 
 - 命令带 `cwd` 指向工作目录; 记 exit code + 结果摘要。
 - 命令失败 → `[工具失败: <命令 + 原因>]`, 不把报错当成功继续。
-- 踩到可复用约定 → `python3 <repo>/plugins/tools/skein/scripts/spec.py sediment ...` 落盘 (先 `spec.py sediment --help` 核实参数)。
+- 踩到可复用约定 → `skein-spec sediment --namespace=<ns> [--inclusion=always|auto] --category=<类目> --topic=<主题>` 落盘 (先 `skein-spec sediment --help` 核实参数)。
 
 ### 4. 自跑收尾 + 回传
 
