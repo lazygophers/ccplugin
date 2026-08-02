@@ -20,6 +20,8 @@ def main() -> None:
     )
     p.add_argument("-d", "--debug", action="store_true",
                    help="rich 美化叙事到 stderr — 展示 git/写盘/锁/状态迁移全过程 (stdout 保持机器纯净; 亦可 SKEIN_DEBUG=1)")
+    p.add_argument("-j", "--json", action="store_true",
+                   help="全局 JSON 输出模式 (核心命令压缩为机器可解析格式)")
     sub = p.add_subparsers(dest="cmd", required=True, metavar="<command>")
 
     sub.add_parser("init", help="初始化 .skein/ 工作区 (幂等)")
@@ -158,10 +160,12 @@ def main() -> None:
     st.add_argument("--passed", help="[check] 已通过验收标准序号(1-based), 逗号分隔; all=全过, none=清空")
     st.add_argument("--skills", help="[add] 关联 skills, 逗号分隔 (0-n, 省略即无)")
 
-    # --debug 可置子命令前后任意位置: 预剥离 argv (argparse 子解析器不认父级 flag), 再据此建 DBG
+    # --debug / --json 可置子命令前后任意位置: 预剥离 argv (argparse 子解析器不认父级 flag), 再据此建 DBG
     cli_debug = any(x in ("-d", "--debug") for x in sys.argv[1:])
-    sys.argv[1:] = [x for x in sys.argv[1:] if x not in ("-d", "--debug")]
+    cli_json = any(x in ("-j", "--json") for x in sys.argv[1:])
+    sys.argv[1:] = [x for x in sys.argv[1:] if x not in ("-d", "--debug", "-j", "--json")]
     a = p.parse_args()
+    a.json = cli_json  # 全局 json 模式 (与命令级 --json 或共存)
     DBG.enable(cli_debug or debug_enabled(None))  # 单例原地开关, 见 hooks.runner.Debug.enable
     DBG.rule(f"skein {a.cmd}")
     DBG.kv({k: v for k, v in vars(a).items() if k not in ("cmd", "debug") and v not in (None, False)},
