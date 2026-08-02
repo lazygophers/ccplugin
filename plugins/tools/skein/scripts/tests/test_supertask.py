@@ -138,20 +138,21 @@ def test_finish_aggregate_guard(skein_cli: SkeinCli, ws: Path) -> None:
         skein_cli(ws, "subtask", "add", cid, "s1", "--name", "x", "--desc", "d", "--estimate", "1")
         _fill_prd(ws, cid)
         skein_cli(ws, "estimate", cid, "--set", "1")  # estimate 硬门: confirm 前须填实工时
-        skein_cli(ws, "confirm", cid)  # 待处理→就绪
-        skein_cli(ws, "start", cid)
+        skein_cli(ws, "confirm", cid)  # 待处理→进行中 (confirm 吸收 start)
+        skein_cli(ws, "check", cid)
+        skein_cli(ws, "finishing", cid)  # 检查中→收尾中 (finish 仅接受收尾中态入参)
         skein_cli(ws, "finish", cid)
 
-    # supertask 自身无 worktree (聚合层不 exec), 需手动置 active 才走 finish 门
-    #   — 但 finish 要求 status in STATUS_ACTIVE; supertask create 即 pending。
+    # supertask 自身无 worktree (聚合层不 exec), 需手动置收尾中才走 finish 门
+    #   — 但 finish 要求 status == S_FINISHING; supertask create 即 pending。
     #   聚合归档门先于 worktree 合并, 验「child 全 done 才放行」语义:
     #   把一个 child 改回 active → super finish 应被聚合门挡并列出。
     ca = _task(ws, "child-a")
     ca["status"] = "进行中"
     _write_task(ws, "child-a", ca)
-    # super 也置 active 才进 finish 分支 (聚合门在 worktree 合并前, 无 worktree 不影响门验)
+    # super 也置收尾中才进 finish 分支 (聚合门在 worktree 合并前, 无 worktree 不影响门验)
     se = _task(ws, "epic-1")
-    se["status"] = "进行中"
+    se["status"] = "收尾中"
     _write_task(ws, "epic-1", se)
     skein_cli(ws, "board")  # 触发 _sync 重算索引
     r = skein_cli(ws, "finish", "epic-1", check=False)

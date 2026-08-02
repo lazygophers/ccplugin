@@ -45,13 +45,12 @@ def _fill_prd(ws: Path, tid: str) -> None:
 
 
 def _start_task(skein_cli: SkeinCli, ws: Path, tid: str) -> None:
-    """create + subtask + prd + confirm + start → task 进入进行中 (active)。"""
+    """create + subtask + prd + confirm → task 进入进行中 (active, confirm 吸收 start)。"""
     skein_cli(ws, "create", tid, "--name", "n", "--desc", "d")
     skein_cli(ws, "subtask", "add", tid, "s1", "--name", "x", "--desc", "d", "--estimate", "1")
     _fill_prd(ws, tid)
     skein_cli(ws, "estimate", tid, "--set", "1")  # estimate 硬门: confirm 前须填实工时
-    skein_cli(ws, "confirm", tid)  # 待处理→就绪 用户确认门
-    skein_cli(ws, "start", tid)
+    skein_cli(ws, "confirm", tid)  # 待处理→进行中 用户确认门 (吸收 start)
 
 
 # ---------- 1. user-prompt 注入前缀规则 ----------

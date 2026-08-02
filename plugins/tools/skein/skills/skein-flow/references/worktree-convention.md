@@ -51,7 +51,7 @@ fi
 | 隔离方式 | 每个 task 一个独立的 git worktree 分支 |
 | 工作目录 | `.worktrees/skein-<task-id>/` |
 | 主工作区 | 零改动，task 改动全部在 worktree 内 |
-| 建 worktree 时机 | `skein start` 时 (就绪→进行中) |
+| 建 worktree 时机 | `skein confirm` 时 (待处理→进行中，吸收原 start) |
 | 销 worktree 时机 | `skein finish` 时 (merge 回主仓后删除) |
 | 多子 git | `--repos` 声明的每个子 git 各建一个 worktree |
 
@@ -60,7 +60,7 @@ fi
 task 跨多个子 git 时 (planning `--repos` 声明)：
 
 ```
-skein start 为每个声明子 git 各建 worktree:
+skein confirm (吸收 start) 为每个声明子 git 各建 worktree:
 .worktrees/skein-<id>/<子git名1>/
 .worktrees/skein-<id>/<子git名2>/
 ```
@@ -191,11 +191,11 @@ worktree 态 → 只在此 worktree 内改、禁碰主工作区;
 | 阶段 | 进入前状态 | 工作目录 | 谁决定路径 |
 |---|---|---|---|
 | plan | 待处理 | 主工作区 (不写源码) | N/A |
-| start (建 worktree) | 就绪 → 进行中 | 建 worktree | skein start 脚本 |
+| confirm (建 worktree, 吸收 start) | 待处理 → 进行中 | 建 worktree | skein confirm 脚本 |
 | exec | 进行中 | task.worktree / 仓库根 | task.worktree 字段 |
 | check | 进行中 → 检查中 | 同 exec | task.worktree 字段 |
 | check 失败回炉 | 检查中 → 进行中 | 同 exec | task.worktree 字段 |
-| finish | 进行中 / 检查中 → 已完成 | worktree → 主仓 | skein finish 脚本 |
+| finish | 收尾中 → 已完成 | worktree → 主仓 | skein finish 脚本 |
 
 ---
 
