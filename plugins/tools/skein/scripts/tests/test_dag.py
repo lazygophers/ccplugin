@@ -410,9 +410,15 @@ def test_empty_batch_message_names_which_pool_is_full(skein_cli: SkeinCli, ws: P
     assert "work_pool_full" in str(exec_out.get("empty", {}).get("reason", ""))
 
 
-def test_agent_routing_by_phase() -> None:
-    """claim 回传的 agent 列按 subtask phase 分流 (flow 主循环骨架 research/exec 两路)。"""
-    from skeinlib.scheduling import _agent_for
-    assert _agent_for({"phase": "research"}) == "skein-researcher"
-    assert _agent_for({"phase": "exec"}) == "skein-executor"
-    assert _agent_for({}) == "skein-executor"  # 缺 phase 默认 exec
+def test_claim_returns_phase_not_agent(skein_cli: SkeinCli, ws: Path) -> None:
+    """claim 只回传 phase 这类事实数据, **不做 agent 路由** —— 派谁由 main 按 task 状态判
+    (flow-loop.md §3 硬规 2)。回传里冒出 agent 字段即是把路由决策漏回了引擎层。"""
+    skein_cli(ws, "create", "t-r", "--name", "t-r", "--desc", "d")
+    _add(skein_cli, ws, "t-r", "y", phase="research")
+    _fill_prd(ws, "t-r")
+    skein_cli(ws, "estimate", "t-r", "--set", "1")
+    skein_cli(ws, "confirm", "t-r")
+    out = json.loads(skein_cli(ws, "claim", "exec", "--dry-run").stdout)
+    ready = out.get("exec", out)["ready"]
+    assert [r["phase"] for r in ready] == ["research"]
+    assert "agent" not in json.dumps(out)

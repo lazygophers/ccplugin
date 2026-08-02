@@ -112,7 +112,7 @@ layer(source) = 0; layer(node) = max(layer(dep)) + 1                          # 
 
 | 命令 | 范围 | 语义 |
 |---|---|---|
-| `skein claim` | 全局跨 task | 同时处理 exec + check 两路；回传自带 agent 路由（subtask 行 `agent:` 列 = `skein-executor`/`skein-researcher`，task 行 `agents` = `skein-checker` 或 `skein-finisher`+`skein-specer`），main 照单派。 |
+| `skein claim` | 全局跨 task | 同时处理 exec + check 两路，只推状态不做路由；派谁由 main 按 task 状态判，见 [flow-loop.md §3](flow-loop.md#3-主循环骨架)。 |
 | `skein claim exec` | 全局跨 task | 只认领 ready subtask 并标 `running`。 |
 | `skein claim check` | 全局跨 task | 只认领可进 check / finishing 的 task。 |
 | `skein subtask claim <tid>` | 单 task | 单 task 内批量认领。 |

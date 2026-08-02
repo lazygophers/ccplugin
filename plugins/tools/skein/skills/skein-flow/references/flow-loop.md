@@ -58,25 +58,33 @@ worktree：由 config `worktree.enabled` 决定（默认 false）。启用时 co
 ## 3. 主循环骨架
 
 ```text
-for row in Bash("skein claim"):                       # 一次 claim, 两路认领
-  if row.kind == "subtask":                           # exec 路: ready subtask 已标 running
-    async Agent(row.agent,  {"tid": row.tid, "sid": row.sid, "workdir": wd})
-  elif row.kind == "task":                            # check 路: task 已进 check / finishing
-    for a in row.agents:                              # 检查中 → [checker]; 收尾中 → [finisher, specer]
-      async Agent(a, {"tid": row.tid, "sid": None, "workdir": wd})
+Bash("skein claim")                                   # 一次 claim, 两路认领: ready subtask 标 running;
+                                                      # 全 done 的 active→check, 全 done 的 check→finishing
+for task in Bash("skein list --status open --json"):  # 认领后按 task 状态分派
+  wd = task.worktree or repo_root
+  if task.status == "research":
+    for st in task.subtasks where st.status == "running" and st.phase == "research":
+      async Agent("skein:skein-researcher", {"tid": task.id, "sid": st.sid, "workdir": wd})
+  elif task.status == "active":
+    for st in task.subtasks where st.status == "running":
+      async Agent("skein:skein-executor",   {"tid": task.id, "sid": st.sid, "workdir": wd})
+  elif task.status == "check":
+    async Agent("skein:skein-checker",      {"tid": task.id, "sid": None, "workdir": wd})
+  elif task.status == "finishing":
+    async Agent("skein:skein-finisher",     {"tid": task.id, "sid": None, "workdir": wd})
+    async Agent("skein:skein-specer",       {"tid": task.id, "sid": None, "workdir": wd, "mode": "sediment"})
 
 for task in Bash("skein list --status pending --json"):
   # 调度 plan
 ```
 
-`row.agent` / `row.agents` 直接取自 claim 回传（§3 硬规 2），`wd` 是 §1.1 的工作目录。派发 payload 就是各 agent 文件「入参格式 (JSON)」那一行：**`tid` / `sid` / `workdir` 三个公共字段**，其余按 agent 各自扩展（researcher 加 `query`+`mode`，specer 加 `mode`，recaller 加 `query`+`src`，clean 加 `retain_days`）。非 claim 路径派的 agent（recaller / researcher 手动调研 / dedup / clean / setup）同格式，`tid`/`sid`/`workdir` 可为 `null`。
-
 骨架是 flow 每一轮的唯一驱动，硬规：
 
-1. 每轮先跑一次 `skein claim`（不带 phase）——它同时认领 exec 与 check 两路：ready subtask 标 `running`，全 done 的 `active` task 进 `check`，全 done 的 `check` task 进 `finishing`。
-2. 派哪个 agent 只看 claim 回传，不靠 main 自己判断：subtask 行的 `agent:` 列（`phase=research` → `skein-researcher`，否则 `skein-executor`）、task 行的 `agents`（进检查 → `skein-checker`；进收尾 → `skein-finisher` + `skein-specer`）。
-3. 全部 agent 一律 async 派出即结束回合，不等回传串行卡住。
-4. claim 结束后再扫 `skein list --status pending` 调度 plan，不与上面的派发抢顺序。
+1. 每轮先跑一次 `skein claim`（不带 phase）——它只做**状态推进**：ready subtask 标 `running`，全 done 的 `active` task 进 `check`，全 done 的 `check` task 进 `finishing`。**claim 不告诉你派谁**。
+2. 派哪个 agent 由 main 按 **task 状态**判定，映射固定：`research` → `skein-researcher`；`active` → `skein-executor`；`check` → `skein-checker`；`finishing` → `skein-finisher` + `skein-specer`。exec 路遍历该 task 下 claim 刚标成 `running` 的 subtask，一个 subtask 派一个 agent。
+3. 入参就是各 agent 文件「入参格式 (JSON)」那一行：`tid` / `sid` / `workdir` 三个公共字段（task 级 agent 的 `sid` 传 `null`），其余按 agent 各自扩展（researcher 加 `query`+`mode`，specer 加 `mode`，recaller 加 `query`+`src`，clean 加 `retain_days`）。`workdir` 见 §1.1（worktree 启用则 task worktree，否则仓库根）。
+4. 全部 agent 一律 async 派出即结束回合，不等回传串行卡住。
+5. claim 与派发结束后再扫 `skein list --status pending` 调度 plan，不与上面的派发抢顺序。
 
 ### 3.1 派发载体
 
@@ -110,7 +118,7 @@ plan-ahead 只预备非焦点 pending task 到 confirm 门前，不替非焦点 
 
 1. 认领走主循环的 `skein claim`（只想单跑 exec 一路时用 `skein claim exec`）。
 2. claim 返回即已把 ready subtask 标 `running` 并占 `pools.work` 槽。
-3. 每个 claimed subtask 按其 `agent:` 列派 `skein:skein-executor` 或 `skein:skein-researcher`；派发只给 tid/sid/工作目录，agent 自读 `subtask show`。
+3. 每个 claimed subtask 按 task 状态派：`research` 态派 `skein:skein-researcher`，`active` 态派 `skein:skein-executor`；入参只给 `tid`/`sid`/`workdir`，agent 自读 `subtask show`。
 4. executor/researcher 回传 done/fail 后，main 只负责记录状态；正式验收勾选留给 check。
 5. 任一槽释放立刻回循环头再 claim，不等整批跑完。
 6. claim 为空但仍有 pending 时，查 depends_on、槽位、DAG 环；必要时回 plan 改 DAG。
@@ -120,7 +128,7 @@ ready 判定、排序权重、双池与 claim 命令族见 [dag-scheduling.md](d
 
 ## 6. check 过程
 
-1. `skein claim` 把全 subtask done 的 `active` task 收进 `check` 并回传 `skein-checker`；照单派。
+1. `skein claim` 把全 subtask done 的 `active` task 推进 `check`；main 见 `check` 态即派 `skein:skein-checker`。
 2. checker 自跑 `skein check <tid>`（已在 `check` 则幂等），再执行 PRD 验收、subtask checklist、契约、场景测试、一致性核查。
 3. checker 回传 `PASS` 且无 `needs_main`：跑 `skein finishing <tid>`，进入 finish。
 4. checker 回传 `FAIL` / 冲突 / `needs_main`：走「失败扭转」。

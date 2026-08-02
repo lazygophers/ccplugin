@@ -41,12 +41,6 @@ _W_WAIT = 1.0
 _W_EXEC = 1.0
 
 
-def _agent_for(s: dict[str, Any]) -> str:
-    """subtask phase → main 该派的 agent (flow 主循环骨架 research/exec 分流)。"""
-    return ("skein-researcher" if s.get("phase", SubtaskPhase.EXEC) == SubtaskPhase.RESEARCH
-            else "skein-executor")
-
-
 def _score(s: dict[str, Any], crit_val: int) -> float:
     """打分 = 关键路径权重×W_CRIT + 等待小时数×W_WAIT + (exec ? W_EXEC : 0)。"""
     wait_h = (now() - (s.get("created") or now())) / 3600.0
@@ -175,7 +169,6 @@ class Scheduler:
             "subtask": s["sid"],
             "name": s["name"],
             "phase": s.get("phase", SubtaskPhase.EXEC),
-            "agent": _agent_for(s),
             "skills": s.get("skills", []),
             "acceptance": s.get("acceptance", []),
         } for t, s in batch]
@@ -220,7 +213,8 @@ class Scheduler:
                 if not s.get("started"):
                     s["started"] = now()  # exec 时刻 (首次认领, 重认领不覆盖)
                 claimed.append({"tid": tid, "sid": sid, "name": s["name"],
-                                "agent": _agent_for(s), "skills": s.get("skills", []),
+                                "phase": s.get("phase", SubtaskPhase.EXEC),
+                                "skills": s.get("skills", []),
                                 "acceptance": s.get("acceptance", [])})
             self.ws.store.save(t)
         return {"claimed": claimed, "count": len(claimed)}
@@ -249,10 +243,10 @@ class Scheduler:
     def _claim_check_preview(self) -> dict[str, Any]:
         to_check, to_finishing = self._check_candidates()
         data: dict[str, Any] = {
-            "to_check": [{"task": t["id"], "name": t["name"], "next_status": TaskStatus.CHECK,
-                          "agents": ["skein-checker"]} for t in to_check],
-            "to_finishing": [{"task": t["id"], "name": t["name"], "next_status": TaskStatus.FINISHING,
-                              "agents": ["skein-finisher", "skein-specer"]} for t in to_finishing],
+            "to_check": [{"task": t["id"], "name": t["name"], "next_status": TaskStatus.CHECK}
+                         for t in to_check],
+            "to_finishing": [{"task": t["id"], "name": t["name"], "next_status": TaskStatus.FINISHING}
+                             for t in to_finishing],
             "check_count": len(to_check),
             "finishing_count": len(to_finishing),
             "claim_command": "skein.py claim check",
@@ -354,7 +348,8 @@ class Scheduler:
                 self.ws.store.save(t)  # _save 已渲染子任务看板
             return {"tid": a.tid, "action": a.action,
                     "claimed" if a.action == "claim" else "ready": [
-                        {"sid": s["sid"], "name": s["name"], "agent": _agent_for(s),
+                        {"sid": s["sid"], "name": s["name"],
+                         "phase": s.get("phase", SubtaskPhase.EXEC),
                          "skills": s.get("skills", []), "acceptance": s.get("acceptance", [])}
                         for s in batch]}
         # start / done / fail / check 均针对单 sid
