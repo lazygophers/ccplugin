@@ -1,6 +1,6 @@
 # Subtask 状态机
 
-SKEIN subtask 的 4 个状态、流转规则、操作命令及与 `max_active` 并发槽的关系。
+SKEIN subtask 的 4 个状态、流转规则、操作命令及与 `pools.work` 并发槽的关系。
 状态落盘值为中文，`skein subtask list <id>` 可查。
 
 ---
@@ -10,7 +10,7 @@ SKEIN subtask 的 4 个状态、流转规则、操作命令及与 `max_active` �
 | 状态 (中文) | 英文别名 | 占并发槽 | 含义 |
 |---|---|---|---|
 | **待处理** | pending | 否 | 已登记 (`subtask add`)，依赖未全 done / 还没被认领，排队等待调度 |
-| **运行中** | running | **是** | 已 claim / start，占 `max_active` 槽，agent 正在执行 |
+| **运行中** | running | **是** | 已 claim / start，占 `pools.work` 槽，agent 正在执行 |
 | **已完成** | done | 否 | 执行成功，验收全过，释放槽位，下游依赖可解锁 |
 | **失败** | failed | 否 | 执行失败，释放槽位，等修复后重新 start / 重派 |
 
@@ -61,7 +61,7 @@ SKEIN subtask 的 4 个状态、流转规则、操作命令及与 `max_active` �
 - **目标状态**: 运行中 (running)
 - **范围**: 所有 active task 中 ready 的 subtask 竞争全局槽
 - **排序**: 拓扑深度降序 → task 登记序 → subtask 登记序
-- **数量**: 取前 `max_active - 当前全局 running数` 个
+- **数量**: 取前 `pools.work - 当前全局 running数` 个
 - **副作用**: 置 `status=running`，首次认领置 `started=now()`
 
 ### 3. `skein subtask claim <tid>` — 单 task 批量认领
@@ -78,7 +78,7 @@ SKEIN subtask 的 4 个状态、流转规则、操作命令及与 `max_active` �
 - **前置校验**:
   1. 状态必须是 pending 或 failed
   2. `depends_on` 列表中所有 subtask 必须全 done
-  3. **同 task 内** running 数 < `max_active` (单 task 并发不超上限)
+  3. **同 task 内** running 数 < `pools.work` (单 task 并发不超上限)
 - **副作用**: 置 `status=running`，首次 start 置 `started=now()`
 
 ### 5. `skein subtask done <tid> <sid>` — 完成
@@ -127,7 +127,7 @@ task 级「同时几个 task 进行中」上限已删。并发约束只剩 `pool
 1. 遍历所有「进行中」的 task
 2. 对每个 task，找出所有 `status=pending` 且依赖全 done 的 subtask (= ready 池)
 3. 按「拓扑深度降序 → task 登记序 → subtask 登记序」排序
-4. 取前 `N = max_active - 当前全局 running 数` 个
+4. 取前 `N = pools.work - 当前全局 running 数` 个
 5. 批量标 running + 各 task 各自 _save
 
 完成即派：每有一个 subtask done/fail → 立即 `skein claim exec` 补下一个，槽位不空转。
