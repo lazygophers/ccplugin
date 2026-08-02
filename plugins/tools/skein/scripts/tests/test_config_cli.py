@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
 from conftest import SkeinCli
 
@@ -31,9 +32,10 @@ _STAGES = tuple(
 )
 
 
-def _flat(skein_cli: SkeinCli, ws: Path) -> dict[str, object]:
+def _flat(skein_cli: SkeinCli, ws: Path) -> dict[str, Any]:
     """config 无参 → flat JSON dict (点号路径做 key)。"""
-    return json.loads(skein_cli(ws, "config").stdout)
+    data: dict[str, Any] = json.loads(skein_cli(ws, "config").stdout)
+    return data
 
 
 def _readback(skein_cli: SkeinCli, ws: Path, path: str) -> str | None:

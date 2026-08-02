@@ -58,29 +58,12 @@ sediment 只**追加**新章节 —— 现状类内容 (尤其 product wiki) 过
 
 ## prune (sediment 后自动精简, skein-specer) — 判定门 + 自主归档
 
-sediment 写盘后, skein-specer 顺带跑一轮精简: 扫全 namespace 规则, 按 maintain 判据检出 candidate, 对命中项自动 archive (可逆) 而非只报告。**异步 fire-and-forget**: 同 sediment, main 派即放手, 不等回传。
+sediment 写盘后 skein-specer 顺带跑一轮精简: 扫全 namespace, 按判据检出 candidate 并**自动 archive** (可逆) 而非只报告。**异步 fire-and-forget**: 同 sediment, main 派即放手, 不等回传。
 
-**全局判据** (与 namespace 无关, 恒跑):
-
-| 判据 | 触发 | 处置 |
-|---|---|---|
-| always 超预算 | `inclusion: always` 全文超 `spec.always_budget` (config.yaml) | 降级最少复用的 always 规则到 auto (`sediment` 调 inclusion) |
-| 断链 | `[[slug]]` 目标 stem 库内无匹配 | 只报告, 需人判断改链还是建目标 (不自动) |
-
-**按 namespace 分表** (自动 archive 或只报告, 判据集合按 namespace 不同):
-
-| namespace | 生效判据 | 处置 |
-|---|---|---|
-| **rules** (含未归类的历史目录, 默认判据集) | stale (超 180 天无更新) / keywords 重复 (同组 ≥3 条, 保留最新) / deprecated·superseded / orphan (无入度 + active + 超 180 天) | 命中任一即 `skein-spec archive <path>` (可逆) |
-| **external** | deprecated·superseded | `skein-spec archive <path>`; 无 stale / keywords 重复 / orphan 判据 |
-| **product** | anchors 失效 | **只报告, 禁自动 archive** (需求真值只有人知道该不该删); 无 stale / keywords 重复 / deprecated / orphan 判据 (需求真值无时效性、无入度要求) |
-| **map** | anchors 失效 | `skein-spec archive <path>` (骨架现算, 语义页失效无损) |
-
-- **archive 即可逆, 不删文件** — 全走 `skein-spec archive` 可逆归档到 `.skein/spec/.archive/<ts>/`, 如需恢复 `restore <ts>`。
-- **保护标记**: 规则头 `protected: true` 的跳过不精简 (手工核验后标记, 禁自动 archive)。
-- **无命中 → 跳过** — 未检出任何 candidate 则如实报「无精简项」, 不空跑 archive。
-
-完整流程见 [references/maintain.md](references/maintain.md)。
+- 判据分两层 —— 全局恒跑 (always 超预算 / 断链) + 按 namespace 分表 (product 只报告, 需求真值只有人知道该不该删)。**完整判据表与判定顺序见 [references/prune-workflow.md](references/prune-workflow.md)**, 本文件不重抄。
+- **archive 即可逆, 不删文件** — 归档到 `.skein/spec/.archive/<ts>/`, `restore <ts>` 可回滚。
+- **保护标记**: 规则头 `protected: true` 跳过不精简。
+- **无命中 → 跳过**, 如实报「无精简项」, 不空跑 archive。
 
 ## 写盘参照模板 (软骨架, 非强制)
 
@@ -161,16 +144,7 @@ skein-spec analyze <tid> [--json]
 
 既有记忆大面积失效 (大重构 / 换技术栈 / 记忆漂移 / 接手可疑旧库) 时, 把全库规则**可逆归档**后依当前代码 + 项目内容从零重建。区别于 bootstrap (仅空仓、纯增量): 重构多 `skein-spec archive` 前置 (可逆清库) + **按项目类型分型扫描**。
 
-**六档深度** (`reconstruct --deep=<recall|low|full|deep|max|high>`, 对应 ②archive 范围 + ④扫描深度):
-
-| 档 | archive 范围 | 扫描 | 适用 |
-|---|---|---|---|
-| **recall** | `archive --namespace <长尾 ns>` (其余 namespace 保留) | 五维基线 + 主类型侧重 | 漂移/污染集中长尾, always 页仍可信 |
-| **low** | `archive --namespace <长尾 ns>` (其余 namespace 保留) | 五维基线 | 轻量核查, 仅验证该 namespace 完整性 |
-| **full** | `archive` 全 namespace 归档 | 五维基线 + 主类型侧重 | 换栈/架构翻新, always 页也过期 |
-| **deep** | `archive` 全 namespace 归档 | 五维 + **全 8 型探针深扫** | 全面重建, 深挖长尾规则 |
-| **max** | `archive` 全 namespace 归档 | 五维 + 全 8 型 + 旧规则逐条比对 | 彻底重建, 交叉验证新旧规则 |
-| **high** | `archive` 全 namespace 归档 | 五维 + 全 8 型 + 旧规则逐条比对 + 交叉验证 | 接手可疑成熟仓/来源不明, 从零核 |
+**六档深度** (`--deep=<recall|low|full|deep|max|high>`, 默认 full): 档位同时决定 ②archive 范围 (长尾 namespace / 全库) 与 ④扫描深度 (五维基线 / 全 8 型探针 / 加旧规则逐条比对), 逐档明细见 [references/reconstruct-memory.md §1.5](references/reconstruct-memory.md)。
 
 ```
 skein-spec archive --namespace <ns>   # 只归档指定 namespace (recall/low 档)
@@ -222,17 +196,7 @@ skein-spec maintain --apply   # 同一次扫描自动修可修项 (product names
 
 1. **检测 (Stop hook)** — 回合结束 Stop hook 跑轻量 spec 体检, 检出任一可修项 (超预算 / stale / keywords 重复 / 废弃 / 断链) → 写 `.skein/spec/.pending-fix` 标记 (含命中项摘要 + ts)。
 2. **派发 (main)** — main 检测到 `.pending-fix` → 异步 bg 派 `skein-specer` (fire-and-forget, 派出即结束回合, 不等回传, 与 sediment 同模式)。
-3. **修复 (skein-specer)** — 读标记 → `skein-spec maintain --apply` 一次性自动修 (按上文「按 namespace 分表」判据, product namespace 不落此列):
-
-| 问题 | 处置 |
-|---|---|
-| 超预算 (`inclusion: always` 页超 `spec.always_budget`) | 循环降级 top-1 最大 always 页 → auto, 直到不超 |
-| stale (created > 180 天, rules namespace) | archive (可逆) |
-| keywords 重复 (同组 ≥ 3, rules namespace) | 保留最新, 余 archive (可逆) |
-| 废弃 (deprecated/superseded, rules/external namespace) | archive (可逆) |
-| 断链 (`[[slug]]` 目标缺失) | **只报告, 不修** — 需人判断修哪头 (改链or建目标) |
-| product namespace anchors 失效 | **只报告, 不修** — 需求真值只有人知道该不该删 |
-
+3. **修复 (skein-specer)** — 读标记 → `skein-spec maintain --apply` 一次性自动修可修项 (判据同 prune 分表, 见 [references/prune-workflow.md](references/prune-workflow.md); 处置动作见 [references/maintain.md](references/maintain.md) `--apply` 段)。
 4. **收尾** — reindex → 清 `.pending-fix` 标记。每步追加写 `.audit-log` (7 天轮转)。所有动作可逆 (archive 可 `restore <ts>` 回滚, inclusion 可改回), 误修后续手工纠正。
 
 **双保险**: skein-flow finish 阶段闭环后也检测一次 `.pending-fix` 标记 (防 Stop hook 漏检), 详见 skein-flow finish 阶段流程。

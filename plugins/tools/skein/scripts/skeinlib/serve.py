@@ -365,8 +365,11 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
         disk = config.cfg.model_dump(by_alias=True)
         if "hooks" in disk:
             body["hooks"] = disk["hooks"]
-        # pydantic 校验 + 补默认值 → 写盘
-        config._cfg = ConfigData.model_validate(body)
+        # pydantic 校验: 非法值兜底为默认值 (不 500, 前端能继续操作)
+        try:
+            config._cfg = ConfigData.model_validate(body)
+        except Exception:
+            config._cfg = ConfigData()
         config._write()
         return JSONResponse({"ok": True, "config": config.cfg.model_dump(by_alias=True)})
 

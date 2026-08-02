@@ -91,10 +91,10 @@ def always_budget_tokens() -> int:
 
     读原始 YAML (非 pydantic Config) 以区分「用户显式设了」和「pydantic 补了默认值」。"""
     from skeinlib.token_conversion import estimate_tokens_from_chars
-    import yaml as _yaml
+    import yaml as _yaml  # type: ignore[import-untyped]
 
     cfg_path = spec_root().parent / "config.yaml"
-    raw_spec: dict = {}
+    raw_spec: dict[str, Any] = {}
     if cfg_path.exists():
         try:
             raw = _yaml.safe_load(cfg_path.read_text(encoding="utf-8")) or {}

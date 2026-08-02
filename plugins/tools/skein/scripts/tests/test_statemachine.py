@@ -59,7 +59,7 @@ def _status_of(skein_cli: SkeinCli, ws: Path, tid: str) -> str:
     data = json.loads(skein_cli(ws, "list").stdout)
     for t in data.get("tasks", []):
         if t["id"] == tid:
-            return t["status"]
+            return str(t["status"])
     return "<missing>"
 
 

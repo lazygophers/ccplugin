@@ -23,8 +23,11 @@ SCRIPTS = Path(__file__).resolve().parent.parent
 
 
 def test_mypy_strict_clean() -> None:
+    # --disable-error-code=untyped-decorator: Typer @app.command() 装饰器无类型注解 (上游限制)
     proc = subprocess.run(
-        [sys.executable, "-m", "mypy", "--strict", str(SCRIPTS)],
+        [sys.executable, "-m", "mypy", "--strict",
+         "--disable-error-code=untyped-decorator",
+         str(SCRIPTS)],
         capture_output=True, text=True,
     )
     assert proc.returncode == 0, (

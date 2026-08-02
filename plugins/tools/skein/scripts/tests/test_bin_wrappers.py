@@ -14,6 +14,7 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
 import conftest  # noqa: F401  模块体把 scripts/ 塞进 sys.path (standalone 直跑时 pytest 不在)
 from conftest import SCRIPTS, SKEIN  # noqa: E402
@@ -32,9 +33,10 @@ def _run(wrapper: str, *args: str, stdin: str = "") -> subprocess.CompletedProce
                           capture_output=True, text=True, input=stdin)
 
 
-def _json_stdout(r: subprocess.CompletedProcess[str]) -> dict[str, object]:
+def _json_stdout(r: subprocess.CompletedProcess[str]) -> dict[str, Any]:
     try:
-        return json.loads(r.stdout)
+        data: dict[str, Any] = json.loads(r.stdout)
+        return data
     except json.JSONDecodeError as exc:
         raise AssertionError(f"stdout 不是单个 JSON: {r.stdout!r}") from exc
 

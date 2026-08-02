@@ -93,7 +93,7 @@ class ConfigData(BaseModel):
     缺键时由 pydantic Field default 回填。
     """
     auto_commit: bool = Field(default=True, description="是否自动 commit 改动 (worktree 模式下强制 True)")
-    retain_days: int = Field(default=7, ge=0, description="完成 task 保留天数, 超期自动归档")
+    retain_days: int = Field(default=7, ge=-1, description="完成 task 保留天数, 超期自动归档; -1=永不归档")
     pools: PoolsConfig = Field(default_factory=PoolsConfig)
     worktree: WorktreeConfig = Field(default_factory=WorktreeConfig)
     web: WebConfig = Field(default_factory=WebConfig)
@@ -180,6 +180,17 @@ class Config:
         return node
 
     # ---- 内部 ----
+
+    @staticmethod
+    def yaml_load(text: str) -> dict[str, Any]:
+        """YAML 文本 → dict (无校验, 纯解析)。"""
+        result = yaml.safe_load(text)
+        return result if isinstance(result, dict) else {}
+
+    @staticmethod
+    def yaml_dump(data: dict[str, Any]) -> str:
+        """dict → YAML 文本 (无校验, 纯序列化)。"""
+        return str(yaml.safe_dump(data, sort_keys=False, allow_unicode=True, default_flow_style=False))
 
     def _write(self) -> None:
         """序列化 _cfg → 写盘。"""

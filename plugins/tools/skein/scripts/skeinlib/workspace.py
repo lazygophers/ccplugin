@@ -138,7 +138,7 @@ class Workspace:
                 legal = sorted(set(HooksConfig.model_fields.keys()) |
                                {i.alias for i in HooksConfig.model_fields.values() if i.alias})
                 # 从原始 YAML 提取非法键名
-                import yaml as _yaml
+                import yaml as _yaml  # type: ignore[import-untyped]
                 raw = _yaml.safe_load(f.read_text(encoding="utf-8")) or {}
                 raw_hooks = raw.get("hooks", {}) if isinstance(raw, dict) else {}
                 for bad_stage in raw_hooks:

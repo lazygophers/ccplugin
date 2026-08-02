@@ -14,7 +14,7 @@ from types import SimpleNamespace
 from typing import Annotated, Any, Optional
 
 try:
-    import typer
+    import typer  # type: ignore[import-not-found]
 except ModuleNotFoundError:
     if os.environ.get("SKEIN_TYPER_BOOTSTRAPPED") != "1":
         env = dict(os.environ, SKEIN_TYPER_BOOTSTRAPPED="1")
@@ -76,9 +76,9 @@ def _dispatch(a: SimpleNamespace) -> None:
     DBG.kv({k: v for k, v in vars(a).items() if k not in ("cmd", "debug") and v not in (None, False)}, title="参数")
     if a.cmd in MUTATING:
         with _workspace_lock(sk.dir / ".lock"):
-            result = dispatch[a.cmd](a)
+            result = dispatch[a.cmd](a)  # type: ignore[arg-type]
     else:
-        result = dispatch[a.cmd](a)
+        result = dispatch[a.cmd](a)  # type: ignore[arg-type]
     DBG.log(f"✓ {a.cmd} 完成", style="bold green")
     # 业务方法返回 dict → 统一 JSON 输出; 返回 None → 静默 (已自行输出或无输出)
     if isinstance(result, dict):
