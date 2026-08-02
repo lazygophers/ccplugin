@@ -3,32 +3,48 @@
 import { Sidebar, Topbar } from "@/components/layout";
 import { ST_META } from "@/components/status";
 
-// task 状态流转: planning → active → check → done
+// task 状态流转: planning ⇄ research → active → check → finishing → done (confirm 已吸收原 start)
 // subtask 状态: planning → active → done/failed
 const TASK_FLOW = [
   {
     status: "planning",
     title: "规划中",
-    desc: "需求拆分、brainstorm、grill 硬门。产出 prd.md + design.md + subtask DAG。",
+    desc: "需求拆分、brainstorm、grill 硬门。产出 prd.md + design.md + subtask DAG。可选发起调研。",
     enter: "skein create",
-    exit: "skein confirm (人审门通过)",
+    exit: "skein research (发起调研) 或 skein confirm (人审门通过, 吸收原 start)",
     agent: "main (同步前台)",
+  },
+  {
+    status: "research",
+    title: "调研中",
+    desc: "跑 phase=research 的 subtask 做库选型/方案对比/代码勘察, 结论落盘。全 research subtask done 才可收敛。",
+    enter: "skein research (须先登记 ≥1 个 --phase research 的 subtask)",
+    exit: "skein plan (收敛调研回规划, 调研中不可直接 confirm)",
+    agent: "skein:skein-researcher (异步)",
   },
   {
     status: "active",
     title: "执行中",
-    desc: "subtask 按 DAG 依赖并行调度。每个 ready subtask 派 skein-executor 执行, done 即派下一个。",
-    enter: "skein claim exec",
-    exit: "全部 subtask done → skein claim check",
+    desc: "subtask 按 DAG 依赖并行调度。ready subtask 竞争 pools.work 槽, done 即释放槽派下一个。",
+    enter: "skein confirm (人审门通过, 吸收原 start)",
+    exit: "全部 subtask done → skein check 或 claim check",
     agent: "skein:skein-executor (异步并行)",
   },
   {
     status: "check",
-    title: "待验收",
-    desc: "skein-checker 逐条核对验收标准、契约、一致性。通过则放行 finish, FAIL 回 planning 重确认方向后加修复 subtask。",
-    enter: "skein check",
-    exit: "全绿 → finish; FAIL → 回 planning 重确认",
+    title: "检查中",
+    desc: "skein-checker 逐条核对验收标准、契约、一致性。通过则占 gate 槽进收尾, FAIL 回 planning 重确认方向后加修复 subtask。",
+    enter: "skein check 或 claim check",
+    exit: "全绿 → skein finishing 或 claim check (占 pools.gate 槽); FAIL → 回 planning 重确认",
     agent: "skein:skein-checker",
+  },
+  {
+    status: "finishing",
+    title: "收尾中",
+    desc: "占 gate 槽 (上限 pools.gate), main 收到后派 skein-finisher 完成合并。",
+    enter: "skein finishing 或 claim check",
+    exit: "skein finish",
+    agent: "skein:skein-finisher",
   },
   {
     status: "done",
