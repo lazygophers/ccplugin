@@ -151,10 +151,10 @@ class DoctorMixin:
                         errs.append(f"{tid}/{sid}: depends_on 自引用")
                     elif d not in sids:
                         errs.append(f"{tid}/{sid}: depends_on 指向不存在 subtask {d!r} (subtask DAG 仅限本 task 内)")
-                crit, doneidx = s.get("验收", []), s.get("验收done", [])
+                crit, doneidx = s.get("acceptance", []), s.get("acceptance_done", [])
                 bad = [i for i in doneidx if i < 1 or i > len(crit)]
                 if bad:
-                    errs.append(f"{tid}/{sid}: 验收done 越界 {bad} (共 {len(crit)} 条)")
+                    errs.append(f"{tid}/{sid}: acceptance_done 越界 {bad} (共 {len(crit)} 条)")
                 if s.get("status") == SS_DONE and crit and len(set(doneidx)) < len(crit):
                     warns.append(f"{tid}/{sid}: 已完成但验收未全勾 ({len(set(doneidx))}/{len(crit)})")
             # subtask DAG 环

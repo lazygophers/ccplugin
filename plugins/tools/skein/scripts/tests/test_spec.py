@@ -417,7 +417,7 @@ def test_analyze_no_conflicts_and_readonly(mem_ws: Path, mem_cli: MemCli) -> Non
     _write_task(
         mem_ws, tid,
         subtasks=[{"sid": "s1", "name": "实现日志写入", "desc": "写日志文件模块",
-                   "depends_on": [], "验收": ["日志文件权限只读"]}],
+                   "depends_on": [], "acceptance": ["日志文件权限只读"]}],
         prd=("# clean-task — PRD\n\n## 目标\n交付安全的日志写入模块。\n\n"
              "## 边界\n仅涉及日志写入。\n\n"
              "## 验收标准\n- [ ] 日志文件权限设为只读\n\n"
@@ -457,10 +457,10 @@ def test_analyze_five_kinds_hit(mem_ws: Path, mem_cli: MemCli) -> None:
         subtasks=[
             # 验收覆盖: 「日志文件权限设为只读」命中, 但下面 prd 会多一条无人覆盖的验收条
             {"sid": "s1", "name": "实现日志写入", "desc": "写日志文件模块",
-             "depends_on": [], "验收": ["日志可写"]},
+             "depends_on": [], "acceptance": ["日志可写"]},
             # 范围蔓延: 名/desc 与 prd 全文无关键词交集
             {"sid": "s2", "name": "搭建用户认证", "desc": "加OAuth登录流程",
-             "depends_on": [], "验收": []},
+             "depends_on": [], "acceptance": []},
         ],
         prd=("# dirty-task — PRD\n\n## 目标\n交付一个安全的日志模块。\n\n"
              "## 边界\n仅涉及日志写入。\n\n"

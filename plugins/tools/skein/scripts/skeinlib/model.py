@@ -91,9 +91,19 @@ K_CHECK_END = "检查结束"
 K_FINISHED = "完成时间"
 K_UPDATED = "更新时间"
 
+# 时间戳英文 key (用于代码逻辑，落盘 key 用上面中文常量)
+TS_CREATED = "created"
+TS_CONFIRMED = "confirmed"
+TS_STARTED = "started"
+TS_CHECKED = "checked"
+TS_CHECKED_END = "checked_end"
+TS_FINISHED = "finished"
+TS_UPDATED = "updated"
+
 # subtask 级中文 key (部分与 task 共用: 名称/描述/状态/预计工时)
 K_SID = "标识"
 K_DEPENDS_ON = "依赖"
+K_ACCEPTANCE = "acceptance"
 K_ACCEPT_DONE = "验收完成"
 K_SKILLS = "技能"
 K_NOTE = "备注"
@@ -114,7 +124,7 @@ SUB_KEY_MAP: dict[str, str] = {
     "sid": K_SID, "name": K_NAME, "desc": K_DESC, "estimate": K_ESTIMATE,
     "depends_on": K_DEPENDS_ON, "status": K_STATUS, "skills": K_SKILLS,
     "created": K_CREATED, "started": K_EXEC_START, "finished": K_EXEC_END,
-    "note": K_NOTE, "验收done": K_ACCEPT_DONE,
+    "note": K_NOTE, "验收done": K_ACCEPT_DONE, "验收": K_ACCEPTANCE,
 }
 
 

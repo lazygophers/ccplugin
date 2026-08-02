@@ -225,7 +225,7 @@ def _view_board_data(snap: Snapshot) -> dict[str, Any]:
             "skills": s.get("skills", []),
             "dependsOn": s.get("depends_on", []),
             "depNames": [sname_of.get(d, d) for d in s.get("depends_on", [])],
-            "acc": s.get("验收", []),
+            "acc": s.get("acceptance", []),
             "created": s.get("created"),
             "started": s.get("started"),
             "finished": s.get("finished"),

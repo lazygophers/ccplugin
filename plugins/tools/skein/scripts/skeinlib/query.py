@@ -66,7 +66,7 @@ class Query:
                 print(json.dumps(s, ensure_ascii=False, separators=(",", ":")))
                 return
             deps = ",".join(s.get("depends_on", [])) or "-"
-            chk = "; ".join(s.get("验收", [])) or "-"
+            chk = "; ".join(s.get("acceptance", [])) or "-"
             sk = ",".join(s.get("skills", [])) or "-"
             print(f"task\t{t['id']}\t{t['status']}\t{t['name']}")
             print(f"subtask\t{s['sid']}\t{s['status']}\t{_sub_pct(s)}%\t{s['name']}")

@@ -30,7 +30,7 @@ from skeinlib.hooks.runner import DBG
 from skeinlib.board import render_board, render_task_board, render_vision
 from skeinlib.errors import SkeinError
 from skeinlib.model import (K_SUBTASKS, PRIORITY_DEFAULT, PRIORITY_RANK, STATUS_ACTIVE,
-                            STATUS_ORDER, S_DONE, SUB_KEY_MAP, TASK_KEY_MAP, now)
+                            STATUS_ORDER, S_DONE, SUB_KEY_MAP, TASK_KEY_MAP, TS_CHECKED_END, now)
 
 
 class TaskStore:
@@ -101,6 +101,7 @@ class TaskStore:
                   "confirmed": t.get("confirmed"),
                   "started": t.get("started"),
                   "checked": t.get("checked"),
+                  "checked_end": t.get(TS_CHECKED_END),
                   "finished": t.get("finished")} for t in self.all_tasks()]
         self.write_if_changed(self.dir / "task.json",
             json.dumps({"tasks": tasks}, ensure_ascii=False, indent=2))
@@ -112,7 +113,14 @@ class TaskStore:
         f = self.tasks / tid / "task.json"
         if not f.exists():
             raise SkeinError(f"task 不存在: {tid}")
-        return cast(dict[str, Any], json.loads(f.read_text()))
+        t = cast(dict[str, Any], json.loads(f.read_text()))
+        # 迁移: 验收 → acceptance, 验收done → acceptance_done
+        for s in t.get("subtasks", []):
+            if "验收" in s:
+                s["acceptance"] = s.pop("验收")
+            if "验收done" in s:
+                s["acceptance_done"] = s.pop("验收done")
+        return t
 
     def save(self, t: dict[str, Any]) -> None:
         t["updated"] = now()
@@ -132,6 +140,12 @@ class TaskStore:
             if f.exists():
                 try:
                     t = json.loads(f.read_text())
+                    # 迁移: 验收 → acceptance, 验收done → acceptance_done
+                    for s in t.get("subtasks", []):
+                        if "验收" in s:
+                            s["acceptance"] = s.pop("验收")
+                        if "验收done" in s:
+                            s["acceptance_done"] = s.pop("验收done")
                 except (json.JSONDecodeError, OSError) as e:
                     # 单个 task.json 损坏 (半写/手改坏) 不该炸整个看板: 跳过并告警, 其余 task 照常渲染
                     DBG.log(f"跳过损坏 {f}: {e}", style="red")

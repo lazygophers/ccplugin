@@ -68,7 +68,7 @@ def render_task_board(t: dict[str, Any], work_active: int, gate_active: int) -> 
     rows: list[str] = []
     for s in t.get("subtasks", []):
         deps = ",".join(s.get("depends_on", [])) or "-"
-        chk = "; ".join(s.get("验收", [])) or "-"
+        chk = "; ".join(s.get("acceptance", [])) or "-"
         sk = ",".join(s.get("skills", [])) or "-"
         rows.append(f"| {s['sid']} | {s['name']} | {s['status']} | {_sub_pct(s)}% | {sk} | {deps} | {chk} |")
     body = "\n".join(rows) if rows else "| - | - | - | - | - | - | - |"

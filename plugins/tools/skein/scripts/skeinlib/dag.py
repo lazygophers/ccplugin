@@ -31,9 +31,9 @@ def _sub_pct(s: dict[str, Any]) -> int:
     if s["status"] == SS_DONE:
         return 100
     lo, hi = _SUB_PCT_RANGE.get(s["status"], (0, 5))
-    crit = s.get("验收", [])
+    crit = s.get("acceptance", [])
     if crit:
-        return int(lo + (hi - lo) * len(s.get("验收done", [])) / len(crit))
+        return int(lo + (hi - lo) * len(s.get("acceptance_done", [])) / len(crit))
     return (lo + hi) // 2
 def _task_pct(t: dict[str, Any]) -> int:
     # task 进度 = 状态区间 + subtask 完成度均值线性插值 (done 强制 100; 无 subs 取区间中点)。
