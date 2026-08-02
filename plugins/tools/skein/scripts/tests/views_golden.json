@@ -515,6 +515,16 @@
       "estMeta": "已耗 8h59m",
       "hasSub": true,
       "maxActive": 2,
+      "pools": {
+        "gate": {
+          "limit": 3,
+          "running": 1
+        },
+        "work": {
+          "limit": 2,
+          "running": 1
+        }
+      },
       "stats": {
         "已完成": 1,
         "待处理": 4,

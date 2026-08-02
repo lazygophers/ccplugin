@@ -59,8 +59,12 @@ def render_board(tasks: list[dict[str, Any]], wt_shown: bool) -> str:
     )
 
 
-def render_task_board(t: dict[str, Any], max_active: int) -> str:
-    """单 task 的子任务看板 `.skein/task/<id>/task.md`。"""
+def render_task_board(t: dict[str, Any], work_active: int, gate_active: int) -> str:
+    """单 task 的子任务看板 `.skein/task/<id>/task.md`。
+
+    两池上限分两行展示 (design.md §3): work = exec+research subtask 并发, gate = check+finishing
+    task 并发。此文件只列 subtask (work 池对象), gate 池是 task 级概念, 这里仅同时报上限供对照。
+    """
     rows: list[str] = []
     for s in t.get("subtasks", []):
         deps = ",".join(s.get("depends_on", [])) or "-"
@@ -74,7 +78,8 @@ def render_task_board(t: dict[str, Any], max_active: int) -> str:
         "| sid | 名称 | 状态 | 进度 | skills | 依赖 | 验收标准 |\n"
         "|---|---|---|---|---|---|---|\n"
         f"{body}\n\n"
-        f"并发上限: {max_active}\n"
+        f"work 池上限: {work_active}\n"
+        f"gate 池上限: {gate_active}\n"
     )
 
 

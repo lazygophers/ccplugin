@@ -51,11 +51,12 @@ class BoardSourceMixin:
     # ---- 看板可视化 (http 实时渲染, 不落盘; `skein.py view`/`serve` 起服务) ----
     def _snapshot(self) -> Snapshot:
         # 一次目录扫描 → 6 board 视图统一输入 (每请求构造一次)
+        pools = self.config()["pools"]
         return Snapshot(
             proj=self.proj, wt_shown=self._wt_shown(),
             tasks_fn=self.store.render_tasks, all_tasks_fn=self.store.all_tasks,
             tasks_dir=self.tasks, archive_dir=self.archive_dir,
-            spec_root=self._spec_root(), max_active=self.config()["pools"]["work"])
+            spec_root=self._spec_root(), max_active=pools["work"], gate_active=pools["gate"])
     def _webapp_html(self) -> str:
         # Next.js static export: 直接读 dist/index.html
         return (dist_dir() / "index.html").read_text(encoding="utf-8")

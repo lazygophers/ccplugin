@@ -27,10 +27,11 @@ class Snapshot:
                  tasks_fn: Callable[[], list[dict[str, Any]]],
                  all_tasks_fn: Callable[[], list[dict[str, Any]]],
                  tasks_dir: Path, archive_dir: Path, spec_root: Path,
-                 max_active: int = 2) -> None:
+                 max_active: int = 2, gate_active: int = 3) -> None:
         self.proj = proj
         self.wt_shown = wt_shown
-        self.max_active = max_active  # 并发上限; 前端 ETA 按此折算并行墙钟
+        self.max_active = max_active  # work 池上限; 前端 ETA 按此折算并行墙钟
+        self.gate_active = gate_active  # gate 池上限 (check+finishing task 并发)
         self._tasks_fn = tasks_fn      # _render_tasks(): 顶层索引 ∪ per-task 明细 (含幽灵骨架)
         self._all_fn = all_tasks_fn    # _all(): per-task 严格真值 (无幽灵骨架)
         self._tasks_dir = tasks_dir
@@ -197,6 +198,11 @@ def _view_board_data(snap: Snapshot) -> dict[str, Any]:
 
     est_meta = f'已耗 {fmt_dur(elapsed_total or None)}' if elapsed_total else ''
 
+    # 两池占用 (design.md §3): work = 全局 running subtask (phase exec+research 共用一池);
+    # gate = 检查中+收尾中 task 数。两池独立计数, 与 s4 调度器的槽位判定同一口径。
+    work_running = sum(1 for t in tasks for s in t.get("subtasks", []) if s.get("status") == SS_RUNNING)
+    gate_running = cnt.get(S_CHECK, 0) + cnt.get(S_FINISHING, 0)
+
     # 下一个可执行: 无进行中态 task 时, 首个依赖已清的待处理 task (可 skein confirm 开工)
     next_up_id: Optional[str] = None
     if not any(cnt.get(s, 0) for s in STATUS_ACTIVE):
@@ -254,7 +260,9 @@ def _view_board_data(snap: Snapshot) -> dict[str, Any]:
                       S_CHECK: cnt.get(S_CHECK, 0), S_FINISHING: cnt.get(S_FINISHING, 0),
                       S_RESEARCH: cnt.get(S_RESEARCH, 0), S_PENDING: cnt.get(S_PENDING, 0)},
             "estMeta": est_meta,
-            "maxActive": snap.max_active,
+            "maxActive": snap.max_active,  # 兼容旧字段: 前端 ETA 折算并行墙钟用, 语义即 pools.work.limit
+            "pools": {"work": {"limit": snap.max_active, "running": work_running},
+                      "gate": {"limit": snap.gate_active, "running": gate_running}},
             "combinedPct": combined_pct,
             "hasSub": has_sub,
         },
