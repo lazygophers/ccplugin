@@ -20,14 +20,14 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Optional, cast
 
 from skeinlib.hooks.runner import DBG
-from skeinlib.config import _cfg_effective, _yaml_load
+from skeinlib.config import Config
 from skeinlib.serve import (build_app, install_serve_deps, max_mtime, probe_same_project,
                             serve_deps_present, dist_dir)
 from skeinlib.views import Snapshot
 from skeinlib.paths import SCRIPTS_DIR, SKEIN_ENTRY
 
 if TYPE_CHECKING:
-    from skeinlib.store import TaskStore
+    from skeinlib.task.store import TaskStore
 
 
 class BoardSourceMixin:
@@ -323,7 +323,7 @@ class BoardSourceMixin:
         if not f.exists():
             DBG.log(f"无 .skein 工作区 ({f} 不存在) — serve 空跑退出", style="yellow")
             return  # 无 .skein 工作区 — 无 task 项目里空跑 (手动/monitor 皆退, 无盘可服务)
-        cfg = _cfg_effective(_yaml_load(f.read_text()))  # 独立 argv 入口, 不走 self.config() (免其未初始化即报错的前置)
+        cfg = Config(f).effective()  # 独立 argv 入口, 不走 self.config() (免其未初始化即报错的前置)
         if auto and not cfg["web"]["serve"]:
             DBG.log("config.yaml web.serve=false — monitor 自动起已关闭 (手动 `serve` 仍可强起)", style="yellow")
             return  # 仅 monitor 自动起遵此开关; 手动 serve 无视

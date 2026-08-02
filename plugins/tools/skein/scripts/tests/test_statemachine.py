@@ -8,7 +8,7 @@
 (须 research subtask 全 done); 待处理→进行中 经 confirm (吸收原 start: doctor 体检 + 建 worktree,
 一步直接开工, 不再有「就绪」中间态)。非法转换断言被拒 (exit 1 + 中文态校验信息); 幂等转换断言
 当前真实行为。
-状态常量来自 skeinlib.model (中文落盘): S_PENDING/S_RESEARCH/S_ACTIVE/S_CHECK/S_FINISHING/S_DONE。
+状态常量来自 skeinlib.model (中文落盘): TaskStatus.PENDING/TaskStatus.RESEARCH/TaskStatus.ACTIVE/TaskStatus.CHECK/TaskStatus.FINISHING/TaskStatus.DONE。
 task/subtask id 全用描述性 slug, 规避 skein CODE_ID_RE (^[a-z]{1,4}\\d+$) 对代号式 id 的拒绝。"""
 from __future__ import annotations
 
@@ -16,13 +16,7 @@ import subprocess
 from pathlib import Path
 from typing import Callable
 
-# 中文态常量 (与 skeinlib/model.py 落盘值一致, 测试只读不 import skein 内部)
-S_PENDING = "待处理"
-S_RESEARCH = "调研中"
-S_ACTIVE = "进行中"
-S_CHECK = "检查中"
-S_FINISHING = "收尾中"
-S_DONE = "已完成"
+from skeinlib.task.model import TaskStatus
 
 SkeinCli = Callable[..., subprocess.CompletedProcess[str]]
 
@@ -69,7 +63,7 @@ def test_create_pending(skein_cli: SkeinCli, ws: Path) -> None:
     """create → pending: 新 task 落盘态为待处理。"""
     r = skein_cli(ws, "create", "feat-add", "--name", "feat-add", "--desc", "d")
     assert r.returncode == 0
-    assert _status_of(skein_cli, ws, "feat-add") == S_PENDING
+    assert _status_of(skein_cli, ws, "feat-add") == TaskStatus.PENDING
 
 
 def test_research_to_researching(skein_cli: SkeinCli, ws: Path) -> None:
@@ -80,7 +74,7 @@ def test_research_to_researching(skein_cli: SkeinCli, ws: Path) -> None:
               "--estimate", "1", "--phase", "research")
     r = skein_cli(ws, "research", tid)
     assert r.returncode == 0, r.stderr
-    assert _status_of(skein_cli, ws, tid) == S_RESEARCH
+    assert _status_of(skein_cli, ws, tid) == TaskStatus.RESEARCH
 
 
 def test_plan_back_to_pending(skein_cli: SkeinCli, ws: Path) -> None:
@@ -93,7 +87,7 @@ def test_plan_back_to_pending(skein_cli: SkeinCli, ws: Path) -> None:
     skein_cli(ws, "subtask", "done", tid, "sub-r")
     r = skein_cli(ws, "plan", tid)
     assert r.returncode == 0, r.stderr
-    assert _status_of(skein_cli, ws, tid) == S_PENDING
+    assert _status_of(skein_cli, ws, tid) == TaskStatus.PENDING
 
 
 def test_confirm_active_builds_worktree(skein_cli: SkeinCli, ws: Path) -> None:
@@ -103,7 +97,7 @@ def test_confirm_active_builds_worktree(skein_cli: SkeinCli, ws: Path) -> None:
     skein_cli(ws, "estimate", tid, "--set", "1")
     r = skein_cli(ws, "confirm", tid, "--approved")
     assert r.returncode == 0, r.stderr
-    assert _status_of(skein_cli, ws, tid) == S_ACTIVE
+    assert _status_of(skein_cli, ws, tid) == TaskStatus.ACTIVE
     assert (ws / ".worktrees" / f"skein-{tid}").exists(), "worktree 未建"
 
 
@@ -112,7 +106,7 @@ def test_check_to_checking(skein_cli: SkeinCli, ws: Path) -> None:
     tid = _mk(skein_cli, ws, active=True)
     r = skein_cli(ws, "check", tid)
     assert r.returncode == 0
-    assert _status_of(skein_cli, ws, tid) == S_CHECK
+    assert _status_of(skein_cli, ws, tid) == TaskStatus.CHECK
 
 
 def test_finishing_to_finishing(skein_cli: SkeinCli, ws: Path) -> None:
@@ -121,7 +115,7 @@ def test_finishing_to_finishing(skein_cli: SkeinCli, ws: Path) -> None:
     skein_cli(ws, "check", tid)
     r = skein_cli(ws, "finishing", tid)
     assert r.returncode == 0, r.stderr
-    assert _status_of(skein_cli, ws, tid) == S_FINISHING
+    assert _status_of(skein_cli, ws, tid) == TaskStatus.FINISHING
 
 
 def test_finish_done_merges_and_destroys_worktree(skein_cli: SkeinCli, ws: Path) -> None:
@@ -131,7 +125,7 @@ def test_finish_done_merges_and_destroys_worktree(skein_cli: SkeinCli, ws: Path)
     skein_cli(ws, "finishing", tid)
     r = skein_cli(ws, "finish", tid)
     assert r.returncode == 0, r.stderr
-    assert _status_of(skein_cli, ws, tid) == S_DONE
+    assert _status_of(skein_cli, ws, tid) == TaskStatus.DONE
     assert not (ws / ".worktrees" / f"skein-{tid}").exists(), "worktree 未销"
 
 
@@ -149,13 +143,13 @@ def test_archive_removes_from_board(skein_cli: SkeinCli, ws: Path) -> None:
 def test_full_chain_create_to_archive(skein_cli: SkeinCli, ws: Path) -> None:
     """全链路: create → confirm(进行中) → check → finishing → finish → archive。"""
     tid = _mk(skein_cli, ws, "feat-chain", active=True)
-    assert _status_of(skein_cli, ws, tid) == S_ACTIVE
+    assert _status_of(skein_cli, ws, tid) == TaskStatus.ACTIVE
     skein_cli(ws, "check", tid)
-    assert _status_of(skein_cli, ws, tid) == S_CHECK
+    assert _status_of(skein_cli, ws, tid) == TaskStatus.CHECK
     skein_cli(ws, "finishing", tid)
-    assert _status_of(skein_cli, ws, tid) == S_FINISHING
+    assert _status_of(skein_cli, ws, tid) == TaskStatus.FINISHING
     skein_cli(ws, "finish", tid)
-    assert _status_of(skein_cli, ws, tid) == S_DONE
+    assert _status_of(skein_cli, ws, tid) == TaskStatus.DONE
     skein_cli(ws, "archive", tid)
     assert _status_of(skein_cli, ws, tid) == "<missing>"
 
@@ -168,7 +162,7 @@ def test_confirm_already_active_rejected(skein_cli: SkeinCli, ws: Path) -> None:
     r = skein_cli(ws, "confirm", tid, "--approved", check=False)
     assert r.returncode == 1
     assert "只能 confirm 待处理" in r.stdout + r.stderr
-    assert _status_of(skein_cli, ws, tid) == S_ACTIVE
+    assert _status_of(skein_cli, ws, tid) == TaskStatus.ACTIVE
 
 
 def test_confirm_during_research_rejected(skein_cli: SkeinCli, ws: Path) -> None:
@@ -181,7 +175,7 @@ def test_confirm_during_research_rejected(skein_cli: SkeinCli, ws: Path) -> None
     r = skein_cli(ws, "confirm", tid, "--approved", check=False)
     assert r.returncode == 1
     assert "先" in (r.stdout + r.stderr) and "plan" in (r.stdout + r.stderr)
-    assert _status_of(skein_cli, ws, tid) == S_RESEARCH
+    assert _status_of(skein_cli, ws, tid) == TaskStatus.RESEARCH
 
 
 def test_plan_rejects_unfinished_research(skein_cli: SkeinCli, ws: Path) -> None:
@@ -194,7 +188,7 @@ def test_plan_rejects_unfinished_research(skein_cli: SkeinCli, ws: Path) -> None
     r = skein_cli(ws, "plan", tid, check=False)
     assert r.returncode == 1
     assert "未全完成" in r.stdout + r.stderr
-    assert _status_of(skein_cli, ws, tid) == S_RESEARCH
+    assert _status_of(skein_cli, ws, tid) == TaskStatus.RESEARCH
 
 
 def test_research_without_research_subtask_rejected(skein_cli: SkeinCli, ws: Path) -> None:
@@ -203,7 +197,7 @@ def test_research_without_research_subtask_rejected(skein_cli: SkeinCli, ws: Pat
     r = skein_cli(ws, "research", tid, check=False)
     assert r.returncode == 1
     assert "无 research subtask" in r.stdout + r.stderr
-    assert _status_of(skein_cli, ws, tid) == S_PENDING
+    assert _status_of(skein_cli, ws, tid) == TaskStatus.PENDING
 
 
 def test_finish_pending_rejected(skein_cli: SkeinCli, ws: Path) -> None:
@@ -212,7 +206,7 @@ def test_finish_pending_rejected(skein_cli: SkeinCli, ws: Path) -> None:
     r = skein_cli(ws, "finish", tid, check=False)
     assert r.returncode == 1
     assert "只能 finish 收尾中" in r.stdout + r.stderr
-    assert _status_of(skein_cli, ws, tid) == S_PENDING
+    assert _status_of(skein_cli, ws, tid) == TaskStatus.PENDING
 
 
 def test_finish_active_rejected(skein_cli: SkeinCli, ws: Path) -> None:
@@ -221,7 +215,7 @@ def test_finish_active_rejected(skein_cli: SkeinCli, ws: Path) -> None:
     r = skein_cli(ws, "finish", tid, check=False)
     assert r.returncode == 1
     assert "只能 finish 收尾中" in r.stdout + r.stderr
-    assert _status_of(skein_cli, ws, tid) == S_ACTIVE
+    assert _status_of(skein_cli, ws, tid) == TaskStatus.ACTIVE
 
 
 def test_finishing_active_rejected(skein_cli: SkeinCli, ws: Path) -> None:
@@ -230,7 +224,7 @@ def test_finishing_active_rejected(skein_cli: SkeinCli, ws: Path) -> None:
     r = skein_cli(ws, "finishing", tid, check=False)
     assert r.returncode == 1
     assert "只能对检查中 task 收尾" in r.stdout + r.stderr
-    assert _status_of(skein_cli, ws, tid) == S_ACTIVE
+    assert _status_of(skein_cli, ws, tid) == TaskStatus.ACTIVE
 
 
 def test_confirm_no_subtask_rejected(skein_cli: SkeinCli, ws: Path) -> None:
@@ -240,7 +234,7 @@ def test_confirm_no_subtask_rejected(skein_cli: SkeinCli, ws: Path) -> None:
     r = skein_cli(ws, "confirm", tid, "--approved", check=False)
     assert r.returncode == 1
     assert "无 subtask" in r.stdout + r.stderr
-    assert _status_of(skein_cli, ws, tid) == S_PENDING
+    assert _status_of(skein_cli, ws, tid) == TaskStatus.PENDING
 
 
 def test_confirm_no_estimate_rejected(skein_cli: SkeinCli, ws: Path) -> None:
@@ -249,11 +243,11 @@ def test_confirm_no_estimate_rejected(skein_cli: SkeinCli, ws: Path) -> None:
     r = skein_cli(ws, "confirm", tid, "--approved", check=False)
     assert r.returncode == 1
     assert "预计工时未填" in r.stdout + r.stderr
-    assert _status_of(skein_cli, ws, tid) == S_PENDING
+    assert _status_of(skein_cli, ws, tid) == TaskStatus.PENDING
     # 填实后同一条 confirm 应放行 (直接进 active)
     skein_cli(ws, "estimate", tid, "--set", "1")
     skein_cli(ws, "confirm", tid, "--approved")
-    assert _status_of(skein_cli, ws, tid) == S_ACTIVE
+    assert _status_of(skein_cli, ws, tid) == TaskStatus.ACTIVE
 
 
 def test_subtask_add_requires_estimate(skein_cli: SkeinCli, ws: Path) -> None:
@@ -279,11 +273,11 @@ def test_confirm_estimate_below_subtask_sum_rejected(skein_cli: SkeinCli, ws: Pa
     r = skein_cli(ws, "confirm", tid, "--approved", check=False)
     assert r.returncode == 1
     assert "低于 subtask 合计 5" in r.stdout + r.stderr
-    assert _status_of(skein_cli, ws, tid) == S_PENDING
+    assert _status_of(skein_cli, ws, tid) == TaskStatus.PENDING
     # 补到含 plan/check 自身开销即放行
     skein_cli(ws, "estimate", tid, "--set", "6")
     skein_cli(ws, "confirm", tid, "--approved")
-    assert _status_of(skein_cli, ws, tid) == S_ACTIVE
+    assert _status_of(skein_cli, ws, tid) == TaskStatus.ACTIVE
 
 
 def test_confirm_prd_placeholder_rejected(skein_cli: SkeinCli, ws: Path) -> None:
@@ -297,7 +291,7 @@ def test_confirm_prd_placeholder_rejected(skein_cli: SkeinCli, ws: Path) -> None
     assert r.returncode == 1
     assert "prd 未就绪" in r.stdout + r.stderr
     assert "TODO" in r.stdout + r.stderr
-    assert _status_of(skein_cli, ws, tid) == S_PENDING
+    assert _status_of(skein_cli, ws, tid) == TaskStatus.PENDING
 
 
 def test_confirm_prd_checked_placeholder_rejected(skein_cli: SkeinCli, ws: Path) -> None:
@@ -312,7 +306,7 @@ def test_confirm_prd_checked_placeholder_rejected(skein_cli: SkeinCli, ws: Path)
     out = r.stdout + r.stderr
     assert "prd 未就绪" in out
     assert "2 处" in out, f"勾选态占位应全数计入: {out}"
-    assert _status_of(skein_cli, ws, tid) == S_PENDING
+    assert _status_of(skein_cli, ws, tid) == TaskStatus.PENDING
 
 
 def test_confirm_prd_ok_passes(skein_cli: SkeinCli, ws: Path) -> None:
@@ -321,7 +315,7 @@ def test_confirm_prd_ok_passes(skein_cli: SkeinCli, ws: Path) -> None:
     skein_cli(ws, "estimate", tid, "--set", "1")
     r = skein_cli(ws, "confirm", tid, "--approved")
     assert r.returncode == 0, r.stderr
-    assert _status_of(skein_cli, ws, tid) == S_ACTIVE
+    assert _status_of(skein_cli, ws, tid) == TaskStatus.ACTIVE
 
 
 def test_op_on_missing_task_rejected(skein_cli: SkeinCli, ws: Path) -> None:
@@ -341,7 +335,7 @@ def test_check_pending_rejected(skein_cli: SkeinCli, ws: Path) -> None:
     r = skein_cli(ws, "check", tid, check=False)
     assert r.returncode == 1
     assert "只有进行中" in r.stdout + r.stderr
-    assert _status_of(skein_cli, ws, tid) == S_PENDING
+    assert _status_of(skein_cli, ws, tid) == TaskStatus.PENDING
 
 
 # ---------- 幂等 / 边界 ----------
@@ -363,7 +357,7 @@ def test_finish_after_done_rejected(skein_cli: SkeinCli, ws: Path) -> None:
     r = skein_cli(ws, "finish", tid, check=False)
     assert r.returncode == 1
     assert "只能 finish 收尾中" in r.stdout + r.stderr
-    assert _status_of(skein_cli, ws, tid) == S_DONE
+    assert _status_of(skein_cli, ws, tid) == TaskStatus.DONE
 
 
 def test_archive_already_archived_idempotent(skein_cli: SkeinCli, ws: Path) -> None:

@@ -100,7 +100,7 @@ def test_degrade_single_file(mem_ws: Path, mem_cli: MemCli) -> None:
 def test_degrade_auto_loop_to_budget(mem_ws: Path, mem_cli: MemCli) -> None:
     """core 超 CORE_BUDGET → --auto 循环降 top-1 最大文件, 直到 core ≤ BUDGET 即停。"""
     # ponytail: 显式写 config 钉死预算, 不耦合全局默认 (默认已从 8000 降到 1000)
-    (_ws_root(mem_ws).parent / "config.yaml").write_text("spec_always_budget: 8000\n")
+    (_ws_root(mem_ws).parent / "config.yaml").write_text("spec:\n  always_budget: 8000\n")
     ts = int(time.time())
     chunk = "x" * 2000  # 5 条 × ~2000 ≈ 10000 字符 > 预算 8000
     for i in range(1, 6):
@@ -319,9 +319,9 @@ def _stop_check(mem_ws: Path) -> subprocess.CompletedProcess[str]:
 
 def test_stop_check_writes_pending_fix(mem_ws: Path, mem_cli: MemCli) -> None:
     """有问题 (断链) → .pending-fix 写出, JSON schema: ts/core_chars/core_tokens/budget_tokens/problems[]。"""
-    # ponytail: 显式写 config spec_core_budget=8000 隔离测试, 不耦合全局默认 (st1 改默认 1000)
+    # ponytail: 显式写 config spec.core_budget=8000 隔离测试, 不耦合全局默认 (st1 改默认 1000)
     cfg = _ws_root(mem_ws).parent / "config.yaml"
-    cfg.write_text("spec_core_budget: 8000\n")
+    cfg.write_text("spec:\n  core_budget: 8000\n")
     ts = int(time.time())
     _write_rule(mem_ws, "recall", "git", "t-00", title="linker", created=ts, updated=ts,
                 body="链 [[missing-target]]")

@@ -10,9 +10,7 @@
   6. 分组渲染: 有 supertask → task.md child 缩进; 无 supertask → 扁平 (零增量)。
   7. vision.md: supertask 下 child 进度聚合 (整体完成率 + 各 child 状态/subtask 比)。
   8. finish 聚合归档: super finish 有未 done child → 拒并列出; 全 done → 通过。
-  9. 向后兼容: 旧 task.json 无 parent/kind 字段不崩, 默认 parent=None/kind=task。
-
-状态中文常量与 skein.py:49-52 落盘值一致 (测试只读不 import 内部)。
+  9. 最新 task.json schema: parent/kind 字段由 create 落盘。
 """
 from __future__ import annotations
 
@@ -21,8 +19,7 @@ from pathlib import Path
 from typing import Any, cast
 
 from conftest import SkeinCli
-
-S_DONE = "已完成"
+from skeinlib.task.model import TaskStatus
 
 
 def _task(ws: Path, tid: str) -> dict[str, Any]:
@@ -34,7 +31,8 @@ def _fill_prd(ws: Path, tid: str) -> None:
     """写规范 prd.md 过 start 的 _validate_prd 门 (章节齐 + 无 TODO 占位)。"""
     (ws / ".skein" / "task" / tid / "prd.md").write_text(
         f"# {tid} — PRD\n\n## 目标\n- 解决 X\n\n"
-        "## 边界\n- a\n\n## 验收标准\n- 通过\n\n## 索引\n- design.md\n")
+        "## 边界\n- a\n\n## User Stories\n1. As a user, I want X\n\n"
+        "## 验收标准\n- 通过\n\n## Testing Decisions\n- 复用现有单测\n\n## 索引\n- design.md\n")
 
 
 def _write_task(ws: Path, tid: str, t: dict[str, Any]) -> None:
@@ -144,15 +142,15 @@ def test_finish_aggregate_guard(skein_cli: SkeinCli, ws: Path) -> None:
         skein_cli(ws, "finish", cid)
 
     # supertask 自身无 worktree (聚合层不 exec), 需手动置收尾中才走 finish 门
-    #   — 但 finish 要求 status == S_FINISHING; supertask create 即 pending。
+    #   — 但 finish 要求 status == TaskStatus.FINISHING; supertask create 即 pending。
     #   聚合归档门先于 worktree 合并, 验「child 全 done 才放行」语义:
     #   把一个 child 改回 active → super finish 应被聚合门挡并列出。
     ca = _task(ws, "child-a")
-    ca["status"] = "进行中"
+    ca["status"] = TaskStatus.ACTIVE
     _write_task(ws, "child-a", ca)
     # super 也置收尾中才进 finish 分支 (聚合门在 worktree 合并前, 无 worktree 不影响门验)
     se = _task(ws, "epic-1")
-    se["status"] = "收尾中"
+    se["status"] = TaskStatus.FINISHING
     _write_task(ws, "epic-1", se)
     skein_cli(ws, "board")  # 触发 _sync 重算索引
     r = skein_cli(ws, "finish", "epic-1", check=False)
@@ -160,36 +158,19 @@ def test_finish_aggregate_guard(skein_cli: SkeinCli, ws: Path) -> None:
         f"未 done child 未挡 super finish: {r.stderr!r}"
 
     # child-a 重回 done → super finish 通过聚合门 (无 worktree 合并即落 done)
-    ca["status"] = S_DONE
+    ca["status"] = TaskStatus.DONE
     _write_task(ws, "child-a", ca)
     skein_cli(ws, "board")
     r2 = skein_cli(ws, "finish", "epic-1", check=False)
     assert r2.returncode == 0, f"child 全 done 后 super finish 应通过: {r2.stderr!r}"
-    assert _task(ws, "epic-1")["status"] == S_DONE, "super finish 未置 done"
+    assert _task(ws, "epic-1")["status"] == TaskStatus.DONE, "super finish 未置 done"
 
 
-# ---------- 9. 向后兼容: 旧 task.json 无 parent/kind ----------
-def test_backward_compat_legacy_task_json(skein_cli: SkeinCli, ws: Path) -> None:
-    """旧 task.json 无 parent/kind 字段: 不崩, 默认 parent=None/kind=task。"""
-    skein_cli(ws, "create", "legacy", "--name", "老任务", "--desc", "d")
-    # 模拟旧数据: 剥掉 parent/kind 字段
-    t = _task(ws, "legacy")
-    for k in ("parent", "kind"):
-        t.pop(k, None)
-    _write_task(ws, "legacy", t)
-    # 顶层索引也模拟旧 (无 parent/kind)
-    top = json.loads((ws / ".skein" / "task.json").read_text())
-    for row in top["tasks"]:
-        row.pop("parent", None)
-        row.pop("kind", None)
-    (ws / ".skein" / "task.json").write_text(json.dumps({"tasks": top["tasks"]}, ensure_ascii=False))
-    # 触发 _sync 重算 + 看板渲染: 不崩, 且 .get 兜底默认
-    skein_cli(ws, "board")
-    board = (ws / ".skein" / "task.md").read_text()
-    assert "legacy" in board, "旧数据 task 未渲染"
-    # 重算后顶层索引补回默认值 (parent=None 不写 / kind=task)
-    top2 = json.loads((ws / ".skein" / "task.json").read_text())
-    row2 = next(x for x in top2["tasks"] if x["id"] == "legacy")
-    assert row2.get("kind", "task") == "task", "旧数据 kind 未兜底 task"
-    # doctor 不变量体检不因旧数据崩
-    skein_cli(ws, "doctor")
+# ---------- 9. 最新 task.json schema ----------
+def test_task_json_schema_fields(skein_cli: SkeinCli, ws: Path) -> None:
+    """create 写入最新 parent/kind/status schema。"""
+    skein_cli(ws, "create", "task-one", "--name", "任务", "--desc", "d")
+    t = _task(ws, "task-one")
+    assert t["parent"] is None, f"parent 应落 None: {t}"
+    assert t["kind"] == "task", f"kind 应落 task: {t}"
+    assert t["status"] == TaskStatus.PENDING, f"status 应落英文 enum: {t}"

@@ -32,7 +32,7 @@ from typing import Any
 
 from conftest import SKEIN, make_ws as _init_ws, run_skein as sk  # 单一实现, 见 conftest 顶部说明
 from skeinlib.views import _cards_signature, _view_board_data
-from skeinlib.store import TaskStore
+from skeinlib.task.store import TaskStore
 
 _STANDALONE: bool = False  # python3 test_board.py 直跑时置 True (免 _import_pytest skip 崩 __main__)
 

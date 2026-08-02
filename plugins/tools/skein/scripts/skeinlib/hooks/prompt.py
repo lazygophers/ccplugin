@@ -24,10 +24,9 @@ _EXPLICIT_PREFIX = ("/skein-", "/skein:skein-", "skein-")
 def _run_config(dir_: str) -> tuple[bool, int, bool]:
     """读 config.yaml 的 worktree.enabled + pools.work + auto_commit (旧扁平键 deprecated fallback 仍生效);
     默认从 skeinlib.config.CONFIG_DEFAULTS (hook 不硬编码)。"""
-    from skeinlib.config import CONFIG_DEFAULTS, _cfg_effective, _yaml_load  # lazy: 仅已初始化热路径需要; 默认真值唯一来源
+    from skeinlib.config import CONFIG_DEFAULTS, Config  # lazy: 仅已初始化热路径需要; 默认真值唯一来源
     try:
-        with open(os.path.join(dir_, "config.yaml"), encoding="utf-8") as f:
-            cfg = _cfg_effective(_yaml_load(f.read()))
+        cfg = Config(os.path.join(dir_, "config.yaml")).effective()
     except (OSError, ValueError):
         cfg = CONFIG_DEFAULTS
     uw = bool(cfg["worktree"]["enabled"])

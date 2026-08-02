@@ -7,9 +7,7 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from skeinlib.model import (PHASE_OF, SS_DONE, SS_FAILED, SS_PENDING, SS_RUNNING,
-                            STATUS_ACTIVE, S_ACTIVE, S_CHECK, S_DONE, S_FINISHING,
-                            S_PENDING, S_RESEARCH)
+from skeinlib.task.model import (PHASE_OF, SubtaskStatus, STATUS_ACTIVE, TaskStatus)
 
 def _split(s: Optional[str]) -> list[str]:
     return [x.strip() for x in (s or "").split(",") if x.strip()]
@@ -20,15 +18,15 @@ def _sub_estimate_sum(t: dict[str, Any]) -> float:
     # Σ subtask 预计工时 (小时)。老数据无 estimate 字段的按 0 计, 不阻断历史 task。
     vals = [s.get("estimate") for s in t.get("subtasks") or []]
     return round(sum(v for v in vals if isinstance(v, (int, float)) and v > 0), 2)
-_SUB_PCT_RANGE = {SS_PENDING: (0, 5), SS_RUNNING: (10, 90), SS_FAILED: (10, 90)}
+_SUB_PCT_RANGE = {SubtaskStatus.PENDING: (0, 5), SubtaskStatus.RUNNING: (10, 90), SubtaskStatus.FAILED: (10, 90)}
 # ponytail: 失败与运行同区间 — 用户裁定冻结在失败前进度, 重试不回跳。
-_TASK_PCT_RANGE = {S_PENDING: (0, 5), S_RESEARCH: (5, 10), S_ACTIVE: (10, 85),
-                   S_CHECK: (85, 95), S_FINISHING: (95, 98)}
+_TASK_PCT_RANGE = {TaskStatus.PENDING: (0, 5), TaskStatus.RESEARCH: (5, 10), TaskStatus.ACTIVE: (10, 85),
+                   TaskStatus.CHECK: (85, 95), TaskStatus.FINISHING: (95, 98)}
 
 def _sub_pct(s: dict[str, Any]) -> int:
     # subtask 完成百分比 = 状态区间 + 验收线性插值 (done 强制 100; 无验收项取区间中点)。
     # 全用 floor (int()), 禁 round() — 防 banker's rounding 与前端 JS Math.floor 分歧。
-    if s["status"] == SS_DONE:
+    if s["status"] == SubtaskStatus.DONE:
         return 100
     lo, hi = _SUB_PCT_RANGE.get(s["status"], (0, 5))
     crit = s.get("acceptance", [])
@@ -38,7 +36,7 @@ def _sub_pct(s: dict[str, Any]) -> int:
 def _task_pct(t: dict[str, Any]) -> int:
     # task 进度 = 状态区间 + subtask 完成度均值线性插值 (done 强制 100; 无 subs 取区间中点)。
     st = t.get("status", "")
-    if st == S_DONE:
+    if st == TaskStatus.DONE:
         return 100
     lo, hi = _TASK_PCT_RANGE.get(st, (0, 5))
     subs: list[dict[str, Any]] = t.get("subtasks", [])
@@ -49,7 +47,7 @@ def _task_pct(t: dict[str, Any]) -> int:
 def _task_stage(t: dict[str, Any]) -> str:
     # task 阶段标签 (plan/research/exec/check/finishing/done) 供 board card 渲染
     st = t.get("status", "")
-    if st == S_DONE:
+    if st == TaskStatus.DONE:
         return "done"
     return PHASE_OF.get(st, "plan")  # 待处理→plan / 调研中→research / 进行中→exec / 检查中→check / 收尾中→finishing
 def _crit_weight(subs: list[dict[str, Any]]) -> dict[str, int]:
@@ -78,18 +76,18 @@ def _pending_queue(tasks: list[dict[str, Any]], dep_unfinished: Any) -> list[dic
     真就绪 = task 处于 active 态且 subtask 依赖全 done (可立即派); 其余为排队中。"""
     q: list[dict[str, Any]] = []
     for ti, t in enumerate(tasks):
-        if t["status"] not in (S_PENDING, S_RESEARCH, S_ACTIVE, S_CHECK, S_FINISHING):
+        if t["status"] not in (TaskStatus.PENDING, TaskStatus.RESEARCH, TaskStatus.ACTIVE, TaskStatus.CHECK, TaskStatus.FINISHING):
             continue  # 已完成/失败 task 跳过
         subs = t.get("subtasks", [])
-        if not any(s["status"] == SS_PENDING for s in subs):
+        if not any(s["status"] == SubtaskStatus.PENDING for s in subs):
             continue
         active = t["status"] in STATUS_ACTIVE
         blocked = any(dep_unfinished(d) for d in t.get("deps", []))
         trank = 0 if active else (2 if blocked else 1)
-        done = {s["sid"] for s in subs if s["status"] == SS_DONE}
+        done = {s["sid"] for s in subs if s["status"] == SubtaskStatus.DONE}
         crit = _crit_weight(subs)
         for i, s in enumerate(subs):
-            if s["status"] != SS_PENDING:
+            if s["status"] != SubtaskStatus.PENDING:
                 continue
             ready = active and all(d in done for d in s.get("depends_on", []))
             q.append({

@@ -12,6 +12,8 @@ from __future__ import annotations
 import os
 import sys
 
+import yaml  # type: ignore[import-untyped]
+
 from skeinlib.hooks.util import git_root
 
 
@@ -28,11 +30,13 @@ def cmd_agent_hook(when: str) -> int:
     sid = opts.get("sid", "")
     root = git_root(opts.get("cwd") or os.getcwd())
     try:
-        from skeinlib.config import _yaml_load  # lazy: 仅本门需要
-        with open(os.path.join(root, ".skein", "config.yaml"), encoding="utf-8") as f:
-            cfg = _yaml_load(f.read())
-    except (OSError, ValueError, ImportError):
-        return 0  # 未初始化 / 配置语法错 / 导入失败 → 静默放行 (钩子永不阻断 agent)
+        cfg_path = os.path.join(root, ".skein", "config.yaml")
+        if not os.path.exists(cfg_path):
+            return 0
+        with open(cfg_path, encoding="utf-8") as fh:
+            cfg = yaml.safe_load(fh)
+    except (OSError, ValueError, yaml.YAMLError):
+        return 0  # 未初始化 / 配置语法错 → 静默放行 (钩子永不阻断 agent)
     spec = cfg.get("hooks")
     if not isinstance(spec, dict):
         return 0  # 无 hooks 键: 零开销直返, 不解析深层不 fork

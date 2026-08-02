@@ -10,7 +10,7 @@ import sys
 
 from skeinlib.hooks.runner import DBG, debug_enabled
 from skeinlib.commands import Skein, _persist_bash_cwd_env, _workspace_lock
-from skeinlib.model import PRD_TYPE_ALIAS
+from skeinlib.task.model import PRD_TYPE_ALIAS
 
 def main() -> None:
     p = argparse.ArgumentParser(

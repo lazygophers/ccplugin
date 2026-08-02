@@ -19,10 +19,9 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from skeinlib.workspace import Workspace
 
-from skeinlib.dag import _crit_weight, _split, _split_semi, _sub_estimate_sum, _sub_pct
+from skeinlib.task.dag import _crit_weight, _split, _split_semi, _sub_estimate_sum, _sub_pct
 from skeinlib.errors import SkeinError
-from skeinlib.model import (SS_DONE, SS_FAILED, SS_PENDING, SS_PHASE_EXEC, SS_RUNNING,
-                            S_ACTIVE, S_CHECK, PRIORITY_RANK, PRIORITY_DEFAULT, now)
+from skeinlib.task.model import (SubtaskStatus, SubtaskPhase, TaskStatus, PRIORITY_RANK, PRIORITY_DEFAULT, now)
 from skeinlib.views import _fmt_ts
 
 from typing import TYPE_CHECKING as _TC
@@ -43,7 +42,7 @@ _W_EXEC = 1.0
 def _score(s: dict[str, Any], crit_val: int) -> float:
     """打分 = 关键路径权重×W_CRIT + 等待小时数×W_WAIT + (exec ? W_EXEC : 0)。"""
     wait_h = (now() - (s.get("created") or now())) / 3600.0
-    exec_bonus = _W_EXEC if s.get("phase", SS_PHASE_EXEC) == SS_PHASE_EXEC else 0.0
+    exec_bonus = _W_EXEC if s.get("phase", SubtaskPhase.EXEC) == SubtaskPhase.EXEC else 0.0
     return crit_val * _W_CRIT + wait_h * _W_WAIT + exec_bonus
 
 
@@ -59,14 +58,14 @@ class Scheduler:
         关键路径优先 = 最长下游链先派, 最小化 makespan; 并行只看 depends_on DAG, 无写文件冲突自算;
         同分按登记序稳定)。"""
         subs = t.get("subtasks", [])
-        done = {s["sid"] for s in subs if s["status"] == SS_DONE}
-        running = [s for s in subs if s["status"] == SS_RUNNING]
+        done = {s["sid"] for s in subs if s["status"] == SubtaskStatus.DONE}
+        running = [s for s in subs if s["status"] == SubtaskStatus.RUNNING]
         slots = self.ws.config()["pools"]["work"] - len(running)
         if slots <= 0:
             return []  # 并发满 → 阻塞
         crit = _crit_weight(subs)
         cand = [(i, s) for i, s in enumerate(subs)
-                if s["status"] == SS_PENDING
+                if s["status"] == SubtaskStatus.PENDING
                 and all(d in done for d in s.get("depends_on", []))]
         # 打分降序, 同分按登记序稳定 (i 升序)
         cand.sort(key=lambda p: (-_score(p[1], crit.get(p[1]["sid"], 0)), p[0]))
@@ -90,18 +89,18 @@ class Scheduler:
         返回 [(task_obj, subtask_obj), ...]。"""
         tasks = self._schedulable()
         global_running = sum(
-            1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SS_RUNNING)
+            1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SubtaskStatus.RUNNING)
         slots = self.ws.config()["pools"]["work"] - global_running
         if slots <= 0:
             return []
         cand: list[tuple[dict[str, Any], dict[str, Any], int, int, float, int]] = []
         for ti, t in enumerate(tasks):
             subs = t.get("subtasks", [])
-            done = {s["sid"] for s in subs if s["status"] == SS_DONE}
+            done = {s["sid"] for s in subs if s["status"] == SubtaskStatus.DONE}
             crit = _crit_weight(subs)
             prio = PRIORITY_RANK.get(t.get("priority") or PRIORITY_DEFAULT, PRIORITY_RANK[PRIORITY_DEFAULT])
             for i, s in enumerate(subs):
-                if s["status"] != SS_PENDING:
+                if s["status"] != SubtaskStatus.PENDING:
                     continue
                 if not all(d in done for d in s.get("depends_on", [])):
                     continue  # 依赖未全 done 不入池 (依赖硬优先, 优先级不越过)
@@ -125,8 +124,8 @@ class Scheduler:
     def _empty_batch_msg(self) -> str:
         """work 池空批提示 —— 满槽/无待处理/依赖未完成三种成因分开报, 满槽明确指明「work 池」。"""
         tasks = self._schedulable()
-        grun = sum(1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SS_RUNNING)
-        gpend = sum(1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SS_PENDING)
+        grun = sum(1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SubtaskStatus.RUNNING)
+        gpend = sum(1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SubtaskStatus.PENDING)
         mp = self.ws.config()["pools"]["work"]
         if grun >= mp:
             return f"work 池已满 (running {grun}/{mp}) — 先等一个 subtask done 释放槽"
@@ -175,7 +174,7 @@ class Scheduler:
             subs = {s["sid"]: s for s in t.get("subtasks", [])}
             for sid in by_tid[tid]:
                 s = subs[sid]
-                s["status"] = SS_RUNNING
+                s["status"] = SubtaskStatus.RUNNING
                 if not s.get("started"):
                     s["started"] = now()  # exec 时刻 (首次认领, 重认领不覆盖)
                 claimed.append((tid, s))
@@ -196,17 +195,17 @@ class Scheduler:
         # 不能用 self.ws.store.active(): STATUS_ACTIVE = {进行中,调研中,收尾中} 不含「检查中」
         # (model.py:22) —— 用它会让下面的「检查中→收尾中」这一路永远遍历不到, 变成死代码。
         for t in self.ws.store.all_tasks():
-            if t["status"] not in (S_ACTIVE, S_CHECK):
+            if t["status"] not in (TaskStatus.ACTIVE, TaskStatus.CHECK):
                 continue
             subs = t.get("subtasks", [])
             if not subs:
                 continue
-            all_done = all(s["status"] == SS_DONE for s in subs)
+            all_done = all(s["status"] == SubtaskStatus.DONE for s in subs)
             if not all_done:
                 continue
-            if t["status"] == S_ACTIVE:
+            if t["status"] == TaskStatus.ACTIVE:
                 to_check.append(t)
-            elif t["status"] == S_CHECK:
+            elif t["status"] == TaskStatus.CHECK:
                 # 检查中 + 全 done: 可收尾 (验收是否全绿由 skein-checker 保证, 这里只看状态)
                 to_finishing.append(t)
         dry = getattr(a, "dry_run", False)
@@ -226,7 +225,7 @@ class Scheduler:
         # 执行认领: 先 check 后 finishing (finishing 的 gate 槽校验依赖 check 已就位)
         claimed_check: list[str] = []
         for t in to_check:
-            t["status"] = S_CHECK
+            t["status"] = TaskStatus.CHECK
             t["checked"] = now()
             self.ws.store.save(t)
             claimed_check.append(t["id"])
@@ -266,8 +265,8 @@ class Scheduler:
                 "depends_on": _split(a.deps),
                 "acceptance": _split_semi(a.check),  # 验收标准 checklist (字符串数组)
                 "acceptance_done": [],  # 已通过验收标准序号(1-based); 完成百分比 = len/len(acceptance)
-                "status": SS_PENDING,
-                "phase": getattr(a, "phase", None) or SS_PHASE_EXEC,  # exec(默认) | research
+                "status": SubtaskStatus.PENDING,
+                "phase": getattr(a, "phase", None) or SubtaskPhase.EXEC,  # exec(默认) | research
                 "skills": _split(a.skills),  # 关联 skills (0-n)
                 "created": now(),   # 创建时刻
                 "started": None,    # exec 时刻 (claim/start →运行中 时置)
@@ -324,8 +323,8 @@ class Scheduler:
             t = self.ws.store.load(a.tid)
             batch = self._ready(t)
             if not batch:
-                run = [s["sid"] for s in t.get("subtasks", []) if s["status"] == SS_RUNNING]
-                pend = [s for s in t.get("subtasks", []) if s["status"] == SS_PENDING]
+                run = [s["sid"] for s in t.get("subtasks", []) if s["status"] == SubtaskStatus.RUNNING]
+                pend = [s for s in t.get("subtasks", []) if s["status"] == SubtaskStatus.PENDING]
                 mp = self.ws.config()["pools"]["work"]
                 if len(run) >= mp:
                     print(f"无就绪 subtask — work 池已满 (running {len(run)}/{mp})")
@@ -336,7 +335,7 @@ class Scheduler:
             if a.action == "claim":
                 # 一次性认领: 就绪批整体标 running, 免 main 逐个 start (少一轮往返 + 无竞态窗口)
                 for s in batch:
-                    s["status"] = SS_RUNNING
+                    s["status"] = SubtaskStatus.RUNNING
                     if not s.get("started"):
                         s["started"] = now()  # exec 时刻 (首次认领, 重认领不覆盖)
                 self.ws.store.save(t)  # _save 已渲染子任务看板
@@ -352,17 +351,17 @@ class Scheduler:
         t = self.ws.store.load(a.tid)
         s = self.ws._sub(t, a.sid)
         if a.action == "start":
-            if s["status"] not in (SS_PENDING, SS_FAILED):
+            if s["status"] not in (SubtaskStatus.PENDING, SubtaskStatus.FAILED):
                 raise SkeinError(f"{a.sid} 状态 {s['status']}, 只能 start 待处理/失败")
-            done = {x["sid"] for x in t["subtasks"] if x["status"] == SS_DONE}
+            done = {x["sid"] for x in t["subtasks"] if x["status"] == SubtaskStatus.DONE}
             undone = [d for d in s.get("depends_on", []) if d not in done]
             if undone:
                 raise SkeinError(f"依赖未完成: {', '.join(undone)} — 先 done 它们")
-            run = [x for x in t["subtasks"] if x["status"] == SS_RUNNING]
+            run = [x for x in t["subtasks"] if x["status"] == SubtaskStatus.RUNNING]
             if len(run) >= self.ws.config()["pools"]["work"]:
                 raise SkeinError(f"并发已满 ({len(run)}) — 先 done 一个再 start")
             self.ws._stage_hooks("subtask.start", "before", self.ws._hook_ctx(a.tid, a.sid, t=t))
-            s["status"] = SS_RUNNING
+            s["status"] = SubtaskStatus.RUNNING
             if not s.get("started"):
                 s["started"] = now()  # exec 时刻 (首次 start, 重启不覆盖)
         elif a.action == "check":
@@ -383,12 +382,12 @@ class Scheduler:
             return
         elif a.action == "done":
             self.ws._stage_hooks("subtask.done", "before", self.ws._hook_ctx(a.tid, a.sid, t=t))
-            s["status"] = SS_DONE
+            s["status"] = SubtaskStatus.DONE
             s["finished"] = now()  # 完成时刻
             s["acceptance_done"] = list(range(1, len(s.get("acceptance", [])) + 1))  # 完成即全过 → 100%
         elif a.action == "fail":
             self.ws._stage_hooks("subtask.fail", "before", self.ws._hook_ctx(a.tid, a.sid, t=t))
-            s["status"] = SS_FAILED
+            s["status"] = SubtaskStatus.FAILED
             s["finished"] = now()  # 失败时刻 (与 done 对称)
             if a.note:
                 s["note"] = a.note  # 失败备注 (运行时, 非 planning schema)

@@ -18,7 +18,7 @@ from types import ModuleType
 from typing import Any
 
 import conftest  # noqa: F401  先 import 它: 模块体把 scripts/ 塞进 sys.path (standalone 直跑时 pytest 不在)
-from skeinlib.config import _yaml_load  # noqa: E402
+from skeinlib.config import Config  # noqa: E402
 from skeinlib.serve import build_app  # noqa: E402
 from test_views_char import TNOW, _load, _seed  # noqa: E402
 
@@ -177,7 +177,7 @@ def test_config_panel_shaped_payload_persists() -> None:
                 assert saved["spec"]["core_budget"] == 400  # 未编辑字段没被 CONFIG_DEFAULTS 兜底覆盖
 
                 # 真落盘: 直接读 config.yaml, 不止是响应体
-                on_disk = _yaml_load((sk.dir / "config.yaml").read_text())
+                on_disk = Config.yaml_load((sk.dir / "config.yaml").read_text())
                 assert on_disk["pools"]["work"] == 5
                 assert on_disk["worktree"]["root"] == "custom-wt"
                 assert on_disk["spec"]["core_budget"] == 400
@@ -213,7 +213,7 @@ def test_config_post_never_persists_hooks() -> None:
                 saved = r.json()["config"]
                 assert saved["hooks"] == before_hooks  # 恶意 hooks 负载被整块忽略
 
-                on_disk = _yaml_load((sk.dir / "config.yaml").read_text())
+                on_disk = Config.yaml_load((sk.dir / "config.yaml").read_text())
                 assert on_disk["hooks"] == before_hooks
                 assert "curl evil.sh" not in json.dumps(on_disk)
         finally:

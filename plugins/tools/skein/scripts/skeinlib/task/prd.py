@@ -6,12 +6,10 @@ prd.md 是 planning 阶段唯一的人写入口 (其余 .md 全是脚本渲染�
 from __future__ import annotations
 
 import re
-import sys
-from pathlib import Path
 from typing import Any
 
 from skeinlib.errors import SkeinError
-from skeinlib.model import (PRD_SECTIONS, PRD_SECTIONS_V4, PRD_SECTIONS_V6, PRD_TODO_SECTIONS)
+from skeinlib.task.model import PRD_SECTIONS, PRD_SECTIONS_V6, PRD_TODO_SECTIONS
 
 # ---- prd 章节 CLI (读/追加/覆盖写/勾选) ----
 # 公共方法 (带 self): CLI 和网页端后端复用, 禁复制逻辑。章节定位用 `## 章节名` 正则 (同 fmt/_validate_prd)。
@@ -140,8 +138,7 @@ def section_check(tasks_dir: Path, tid: str, section: str, match: str, flag: boo
 
 def validate_prd(tasks_dir: Path, tid: str) -> None:
     """start 前只读校验 prd.md 就绪 (不写盘, 区别于 fmt 的规范化写盘):
-    (1) prd.md 存在; (2) 六标准章节齐备且顺序为 目标/边界/User Stories/验收标准/Testing Decisions/索引
-    (旧四段 目标/边界/验收标准/索引 兼容态只 warning 不阻断 — 存量 task 迁移期保护);
+    (1) prd.md 存在; (2) 六标准章节齐备且顺序为 目标/边界/User Stories/验收标准/Testing Decisions/索引;
     (3) 无 `- [ ] TODO` 占位 (模板初始态, 说明该节未填实)。结构不通过 raise SkeinError 阻断。"""
     prd = tasks_dir / tid / "prd.md"
     if not prd.exists():
@@ -151,9 +148,7 @@ def validate_prd(tasks_dir: Path, tid: str) -> None:
         raise SkeinError(f"{tid} prd 未就绪: 缺一级标题 — 先填 prd 再 start")
     sections = [m.group(1).strip() for ln in lines
                 if (m := re.match(r"^##\s+(.+?)\s*$", ln))]
-    if sections == PRD_SECTIONS_V4:
-        print(f"{tid} prd 章节为旧四段 (兼容态, 建议迁六段模板: {PRD_SECTIONS_V6})", file=sys.stderr)
-    elif sections != PRD_SECTIONS_V6:
+    if sections != PRD_SECTIONS_V6:
         raise SkeinError(
             f"{tid} prd 未就绪: 二级章节须为 {PRD_SECTIONS_V6} (齐备且顺序一致), "
             f"实际 {sections} — 先填 prd 再 start")
@@ -167,26 +162,18 @@ def validate_prd(tasks_dir: Path, tid: str) -> None:
 
 
 def validate_seam(tasks_dir: Path, tid: str) -> None:
-    """confirm 前校验 design.md「测试接缝 (seam)」段非占位 (对齐 `/to-spec` 全流程唯一的用户确认点)。
-    旧 task (design.md 不存在 / 无此段 / 段落仍是模板占位) 一律只 warning 不阻断 — 存量 task 迁移期保护,
-    同 _validate_prd 的 V4 兼容态。接缝质量靠 grill 门与 analyze 兜, 不靠 confirm 硬拦。"""
+    """confirm 前校验 design.md「测试接缝 (seam)」段非占位。"""
     design = tasks_dir / tid / "design.md"
     if not design.exists():
-        print(f"{tid} design.md 不存在 — 无法校验测试接缝段", file=sys.stderr)
-        return
+        raise SkeinError(f"{tid} design.md 不存在 — 无法校验测试接缝段")
     text = design.read_text()
     m = re.search(r"^##\s+测试接缝\b.*$", text, re.MULTILINE)
     if not m:
-        print(
-            f"{tid} design.md 缺测试接缝段 (旧 task 兼容态, 建议补齐: 优先复用现有接缝/取最高接缝/越少越好) — {design}",
-            file=sys.stderr)
-        return
+        raise SkeinError(f"{tid} design.md 缺测试接缝段 — {design}")
     nxt = re.search(r"^##\s+", text[m.end():], re.MULTILINE)
     body = text[m.end():m.end() + nxt.start()] if nxt else text[m.end():]
     if re.search(r"-\s*\[[ xX]\]\s*TODO\b", body):
-        print(
-            f"{tid} design.md 测试接缝段仍是占位未填 (旧 task 兼容态, 建议先填实测试接缝) — {design}",
-            file=sys.stderr)
+        raise SkeinError(f"{tid} design.md 测试接缝段仍是占位未填 — {design}")
 
 
 def review_summary(tasks_dir: Path, tid: str, t: dict[str, Any]) -> str:

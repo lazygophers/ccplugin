@@ -104,10 +104,9 @@ _MAX_ACTIVE_ALLOW = {
 
 
 def test_max_active_not_in_config_defaults() -> None:
-    """`CONFIG_DEFAULTS` 与 `_CFG_LEGACY` 都不含 `max_active` 键 — s2 裁定直接删不留 fallback。"""
-    from skeinlib.config import CONFIG_DEFAULTS, _CFG_LEGACY
+    """`CONFIG_DEFAULTS` 不含 `max_active` 键 — s2 裁定直接删不留 fallback。"""
+    from skeinlib.config import CONFIG_DEFAULTS
     assert "max_active" not in CONFIG_DEFAULTS
-    assert "max_active" not in _CFG_LEGACY
     assert "pools" in CONFIG_DEFAULTS
 
 

@@ -23,11 +23,11 @@ import time
 from pathlib import Path
 from typing import Any, Iterator, Optional, cast
 
-from skeinlib.config import _cfg_backfill, _cfg_effective, _yaml_dump, _yaml_load, hooks_schema_errors
+from skeinlib.config import Config
 from skeinlib.errors import SkeinError
 from skeinlib.hooks.runner import DBG, HookBlocked, _run_hooks
-from skeinlib.model import S_DONE
-from skeinlib.store import TaskStore
+from skeinlib.task.model import TaskStatus
+from skeinlib.task.store import TaskStore
 from skeinlib.worktree import git, worktrees_of
 
 # 插件无法直接发货 settings.json 的 env 块 (plugin.json 无 env 字段)。
@@ -109,18 +109,11 @@ class Workspace:
                                self.config, self._wt_shown)
 
     def config(self) -> dict[str, Any]:
-        """返回生效配置, 结构固定同 CONFIG_DEFAULTS (每叶必存在, 调用点可直接索引 cfg["worktree"]["enabled"])。
-        磁盘可以是新嵌套/旧扁平/混合, 读取优先级: 嵌套新键 > 旧扁平键(deprecated) > 默认值。"""
+        """返回生效配置, 结构固定同 ConfigData。"""
         f = self.dir / "config.yaml"
         if not f.exists():
             raise SkeinError("未初始化 — 先跑 `skein.py init`")
-        raw: dict[str, Any] = _yaml_load(f.read_text())
-        # 缺键回填 (新增默认键时旧盘既无新嵌套键也无旧扁平键才补), 有变更才回写省磁盘; 已有旧扁平键的仓不被强制迁移
-        filled = _cfg_backfill(raw)
-        if filled != raw:
-            f.write_text(_yaml_dump(filled))
-            raw = filled
-        cfg = _cfg_effective(raw)
+        cfg = Config(f).cfg.model_dump(by_alias=True)
         # 用户在插件启用时确认的 userConfig 优先于 config.yaml (经 CLAUDE_PLUGIN_OPTION_* 传入)
         v = os.environ.get("CLAUDE_PLUGIN_OPTION_MAX_ACTIVE")
         if v and v.strip().isdigit():
@@ -128,29 +121,19 @@ class Workspace:
         return cfg
 
     def _hooks_cfg(self) -> dict[str, Any]:
-        """读 config.yaml 原始 `hooks` 键 (不入 CONFIG_DEFAULTS, self.config() 不含; 见 c3b)。
+        """读 config.yaml 的 hooks 配置 (dict 形式, 供 hooks/runner.py 执行)。
 
-        形状 = `hooks.<scope>.<when>`, scope 取 HOOK_SCOPES (9 个阶段名 + agent), 阶段名直接在
-        hooks 下, **无中间 `stage` 层** —— 与 CONFIG_DEFAULTS 骨架逐字一致 (曾经读取端多套了一层
-        `hooks.stage.<名>`, 于是照骨架填的配置静默不生效; 校验器接上后这类形状错会当场报出来)。
-
-        缺失/非法语法 → {} 静默 (钩子是可选特性, 不该拖垮主命令)。结构错只 stderr 告警不阻断:
-        本方法在钩子热路径上, 一个配置笔误不该让每条 skein 命令都退非零 (与 _yaml_bad 同策略)。
-        硬报错交 `doctor` —— 那里是专门查配置的地方, 用户主动跑、看得见。
+        缺失/非法语法 → {} 静默 (钩子是可选特性, 不该拖垮主命令)。
+        pydantic 校验在 Config.reload 时已完成, 非法结构会抛 ValidationError 被这里 catch。
         """
         f = self.dir / "config.yaml"
         if not f.exists():
             return {}
         try:
-            raw = _yaml_load(f.read_text())
-        except ValueError:
-            return {}  # 配置语法错误归 config()/doctor 报, 本处不重复阻断
-        spec = raw.get("hooks")
-        if not isinstance(spec, dict):
+            hooks = Config(f).cfg.hooks
+            return hooks.model_dump(by_alias=True)
+        except Exception:
             return {}
-        for e in hooks_schema_errors(spec):
-            sys.stderr.write(f"⚠️  config.yaml {e}\n")
-        return spec
 
     def _hook_ctx(self, tid: str, sid: str = "", t: Optional[dict[str, Any]] = None) -> dict[str, Any]:
         """阶段钩子 ctx: tid/sid/task_dir/worktree/repo_root, 供 hooks.runner._run_hooks 注入 env。"""
@@ -186,7 +169,7 @@ class Workspace:
         f = self.tasks / dep / "task.json"
         if not f.exists():
             return False  # 未知 dep 不阻塞
-        return cast(str, json.loads(f.read_text())["status"]) != S_DONE
+        return cast(str, json.loads(f.read_text())["status"]) != TaskStatus.DONE
 
     def _sub(self, t: dict[str, Any], sid: str) -> dict[str, Any]:
         for s in t.get("subtasks", []):

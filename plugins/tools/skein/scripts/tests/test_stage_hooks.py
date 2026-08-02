@@ -255,7 +255,7 @@ def test_illegal_stage_name_warns_but_does_not_block(skein_cli: SkeinCli, ws: Pa
     """拼错的阶段名: stderr 告警 + 列全部合法值, 但**不阻断**普通命令。
 
     告警不阻断是刻意的 —— _hooks_cfg 在钩子热路径上, 一个配置笔误不该让每条 skein 命令都退非零
-    (与 _yaml_bad 同策略)。硬判定归 doctor, 见下一条测试。
+    (与 yaml_bad 同策略)。硬判定归 doctor, 见下一条测试。
     """
     _append_hooks_yaml(ws, _BAD_STAGE)
     r = skein_cli(ws, "create", "feat-m", "--name", "feat-m", "--desc", "d", check=False)

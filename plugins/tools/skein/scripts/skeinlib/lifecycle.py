@@ -17,12 +17,10 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from skeinlib.workspace import Workspace
 
-from skeinlib.dag import _sub_estimate_sum
+from skeinlib.task.dag import _sub_estimate_sum
 from skeinlib.errors import SkeinError
-from skeinlib.model import (CODE_ID_RE, PRIORITY_DEFAULT, SLUG_RE, SS_DONE, SS_PHASE_RESEARCH,
-                            STATUS_INFLIGHT, S_ACTIVE, S_CHECK, S_DONE, S_FINISHING,
-                            S_PENDING, S_RESEARCH, TS_CHECKED_END, now)
-from skeinlib.prd import review_summary, validate_prd, validate_seam
+from skeinlib.task.model import (CODE_ID_RE, PRIORITY_DEFAULT, SLUG_RE, SubtaskStatus, SubtaskPhase, STATUS_INFLIGHT, TaskStatus, TS_CHECKED_END, now)
+from skeinlib.task.prd import review_summary, validate_prd, validate_seam
 from skeinlib.priority import validate_priority
 from skeinlib.worktree import commit_all, destroy_worktrees, git, make_worktree, parse_repos, worktrees_of
 
@@ -80,7 +78,7 @@ class Lifecycle:
         deps = [d.strip() for d in (a.deps or "").split(",") if d.strip()]
         t = {
             "id": tid, "name": a.name, "desc": a.desc,
-            "status": S_PENDING, "deps": deps, "contracts": [], "subtasks": [],
+            "status": TaskStatus.PENDING, "deps": deps, "contracts": [], "subtasks": [],
             "priority": validate_priority(getattr(a, "priority", None)),  # 四档枚举, 未指定落中档
             "estimate": getattr(a, "estimate", None),  # 预计工时(小时), plan 阶段必填, confirm 硬门校验
             "repos": repos,          # planning 声明的目标子 git (rel 路径; 空=单根/原地模式)
@@ -150,7 +148,7 @@ class Lifecycle:
             return
         if not self.ws.config()["worktree"]["enabled"]:
             raise SkeinError(f"{a.id} config worktree.enabled=false — worktree 禁用, 不可声明 repos")
-        if t["status"] not in (S_PENDING, S_RESEARCH):
+        if t["status"] not in (TaskStatus.PENDING, TaskStatus.RESEARCH):
             raise SkeinError(f"{a.id} 状态 {t['status']}, repos 只能在 confirm 前 (待处理/调研中) 声明")
         t["repos"] = parse_repos(a.set)
         self.ws.store.save(t)
@@ -169,7 +167,7 @@ class Lifecycle:
                 print(f"  subtask 合计 {subsum} h + plan/check 自身开销 "
                       f"{round((est or 0) - subsum, 2)} h")
             return
-        if t["status"] not in (S_PENDING, S_RESEARCH):
+        if t["status"] not in (TaskStatus.PENDING, TaskStatus.RESEARCH):
             raise SkeinError(f"{a.id} 状态 {t['status']}, estimate 只能在 confirm 前 (待处理/调研中) 设置")
         try:
             val = float(a.set)
@@ -202,7 +200,7 @@ class Lifecycle:
         if a.set is None:
             print(",".join(t.get("deps") or []) or "(无前置)")
             return
-        if t["status"] not in (S_PENDING, S_RESEARCH):
+        if t["status"] not in (TaskStatus.PENDING, TaskStatus.RESEARCH):
             raise SkeinError(f"{a.id} 状态 {t['status']}, deps 只能在 confirm 前 (待处理/调研中) 设置")
         if t.get("deps"):
             raise SkeinError(
@@ -295,15 +293,15 @@ class Lifecycle:
     def research(self, a: argparse.Namespace) -> None:
         # 待处理 → 调研中: 至少登记一个 phase=research 的 subtask (无调研诉求就不该进这态)。
         t = self.ws.store.load(a.id)
-        if t["status"] != S_PENDING:
+        if t["status"] != TaskStatus.PENDING:
             raise SkeinError(f"{a.id} 状态为 {t['status']}, 只能对待处理 (规划中) task 发起调研")
         subs = t.get("subtasks") or []
-        if not any(s.get("phase") == SS_PHASE_RESEARCH for s in subs):
+        if not any(s.get("phase") == SubtaskPhase.RESEARCH for s in subs):
             raise SkeinError(
                 f"{a.id} 无 research subtask — 先 "
                 f"`skein subtask add {a.id} <sid> --phase research ...` 登记再发起调研")
         self.ws._stage_hooks("research", "before", self.ws._hook_ctx(a.id, t=t))
-        t["status"] = S_RESEARCH
+        t["status"] = TaskStatus.RESEARCH
         self.ws.store.save(t)
         self.ws.store.sync()
         self.ws._stage_hooks("research", "after", self.ws._hook_ctx(a.id, t=t))
@@ -313,14 +311,14 @@ class Lifecycle:
         # 调研中 → 待处理: research subtask 须全 done, 调研的产出才算收敛成可规划的信息。
         # 调研中禁止直达开工态 —— confirm 会在 status=调研中 时直接拒绝, 提示先 plan。
         t = self.ws.store.load(a.id)
-        if t["status"] != S_RESEARCH:
+        if t["status"] != TaskStatus.RESEARCH:
             raise SkeinError(f"{a.id} 状态为 {t['status']}, 只能对调研中 task 收敛回规划")
         undone = [s["sid"] for s in t.get("subtasks") or []
-                 if s.get("phase") == SS_PHASE_RESEARCH and s["status"] != SS_DONE]
+                 if s.get("phase") == SubtaskPhase.RESEARCH and s["status"] != SubtaskStatus.DONE]
         if undone:
             raise SkeinError(f"{a.id} 调研 subtask 未全完成: {', '.join(undone)} — 先 done 它们再 plan")
         self.ws._stage_hooks("plan", "before", self.ws._hook_ctx(a.id, t=t))
-        t["status"] = S_PENDING
+        t["status"] = TaskStatus.PENDING
         self.ws.store.save(t)
         self.ws.store.sync()
         self.ws._stage_hooks("plan", "after", self.ws._hook_ctx(a.id, t=t))
@@ -333,9 +331,9 @@ class Lifecycle:
         停在那儿, 见 design.md §1)。
         """
         t = self.ws.store.load(a.id)
-        if t["status"] == S_RESEARCH:
+        if t["status"] == TaskStatus.RESEARCH:
             raise SkeinError(f"{a.id} 调研中 — 先 `skein plan {a.id}` 把调研收敛回规划再 confirm")
-        if t["status"] != S_PENDING:
+        if t["status"] != TaskStatus.PENDING:
             raise SkeinError(f"{a.id} 状态为 {t['status']}, 只能 confirm 待处理 (规划中) task")
         # planning 完成门: 无 subtask / prd 未填齐 / 预计工时未填 → 拒绝开工 (逼先补全规划)
         subs = t.get("subtasks") or []
@@ -358,7 +356,7 @@ class Lifecycle:
             raise SkeinError(f"前置未完成: {', '.join(undone)} — 先 finish 它们")
         validate_prd(self.ws.tasks, a.id)
         self.ws._stage_hooks("confirm", "before", self.ws._hook_ctx(a.id, t=t))
-        t["status"] = S_ACTIVE
+        t["status"] = TaskStatus.ACTIVE
         t["confirmed"] = now()
         t["confirmed_by"] = channel  # 审核渠道留痕: ask (AskUserQuestion) / user-tty (终端交互)
         cfg = self.ws.config()
@@ -429,10 +427,10 @@ class Lifecycle:
     def check(self, a: argparse.Namespace) -> None:
         # 进行中→检查中: 记 checked 时刻 (board 展示等待/执行时间用)。仅 active 可进检查。
         t = self.ws.store.load(a.id)
-        if t["status"] != S_ACTIVE:
+        if t["status"] != TaskStatus.ACTIVE:
             raise SkeinError(f"{a.id} 状态 {t['status']}, 只有进行中 task 能进检查")
         self.ws._stage_hooks("check", "before", self.ws._hook_ctx(a.id, t=t))
-        t["status"] = S_CHECK
+        t["status"] = TaskStatus.CHECK
         t["checked"] = now()
         self.ws.store.save(t)
         self.ws.store.sync()
@@ -445,17 +443,17 @@ class Lifecycle:
         # 是因为 finisher 是 main 派出去的 agent, 引擎看不见, 限不了并行 finisher 数 —
         # 只能靠这道占槽门间接限制 (design.md §1)。
         t = self.ws.store.load(a.id)
-        if t["status"] != S_CHECK:
+        if t["status"] != TaskStatus.CHECK:
             raise SkeinError(f"{a.id} 状态 {t['status']}, 只能对检查中 task 收尾")
         gate = self.ws.config()["pools"]["gate"]
         occupied = sum(1 for x in self.ws.store.all_tasks()
-                       if x["id"] != a.id and x["status"] in (S_CHECK, S_FINISHING))
+                       if x["id"] != a.id and x["status"] in (TaskStatus.CHECK, TaskStatus.FINISHING))
         if occupied >= gate:
             raise SkeinError(f"gate 池已满 ({occupied}/{gate}) — 先 finish 一个再收尾")
         self.ws._stage_hooks("finishing", "before", self.ws._hook_ctx(a.id, t=t))
         if not t.get(TS_CHECKED_END):
             t[TS_CHECKED_END] = now()
-        t["status"] = S_FINISHING
+        t["status"] = TaskStatus.FINISHING
         self.ws.store.save(t)
         self.ws.store.sync()
         self.ws._stage_hooks("finishing", "after", self.ws._hook_ctx(a.id, t=t))
@@ -464,13 +462,13 @@ class Lifecycle:
     def finish(self, a: argparse.Namespace) -> None:
         tid = a.id
         t = self.ws.store.load(tid)
-        if t["status"] != S_FINISHING:
+        if t["status"] != TaskStatus.FINISHING:
             raise SkeinError(f"{tid} 状态 {t['status']}, 只能 finish 收尾中 task — "
                              f"先 skein check 再 skein finishing 占 gate 槽")
         # supertask 聚合归档: finish 前所有 child task(parent 指向它)须全 done
         # ponytail: 遍历 tasks 过滤 parent==tid 找 child (不维护 child_ids 数组, 真值源单一)
         if t.get("kind") == "supertask":
-            pending = [c["id"] for c in self.ws.store.all_tasks() if c.get("parent") == tid and c["status"] != S_DONE]
+            pending = [c["id"] for c in self.ws.store.all_tasks() if c.get("parent") == tid and c["status"] != TaskStatus.DONE]
             if pending:
                 raise SkeinError(
                     f"{tid} 是 supertask, 仍有未完成 child task: {', '.join(pending)} — "
@@ -511,7 +509,7 @@ class Lifecycle:
             raise SkeinError(
                 f"{tid} 部分子 git 合并冲突, 已合并的保留、task 仍 active。"
                 f"解冲突后重跑 finish (幂等跳过已合并):\n{detail}")
-        t["status"] = S_DONE
+        t["status"] = TaskStatus.DONE
         t["worktree"] = None
         t["worktrees"] = []
         t["finished"] = now()  # 完成时刻 — 保留期从此计, 超 retain_days 由 _autoclean 归档
@@ -634,7 +632,7 @@ class Lifecycle:
             print(f"{tid} renamed: name={t['name']!r}")
             return
         # 改 id: 仅 pre-confirm (待处理/调研中 无 live worktree; active/check/finishing 改 id 需迁分支+移 worktree, 风险高不支持)
-        if t["status"] not in (S_PENDING, S_RESEARCH):
+        if t["status"] not in (TaskStatus.PENDING, TaskStatus.RESEARCH):
             raise SkeinError(
                 f"task id 重命名仅限 confirm 前 (待处理/调研中): {tid} 当前 {t['status']} "
                 "(在途 task 有 live worktree/branch, 不支持改 id; 先 finish/archive, 或只改 --name)")

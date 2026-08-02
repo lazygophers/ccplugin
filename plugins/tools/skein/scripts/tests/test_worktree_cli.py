@@ -17,10 +17,7 @@ from pathlib import Path
 from typing import Any
 
 from conftest import GitCmd, SkeinCli
-
-S_ACTIVE = "进行中"
-S_PENDING = "待处理"
-S_DONE = "已完成"
+from skeinlib.task.model import TaskStatus
 
 
 def _mk(skein_cli: SkeinCli, ws: Path, tid: str = "feat-wt", *, sub: bool = True) -> str:
@@ -323,7 +320,7 @@ def test_doctor_ghost_index_exit1(skein_cli: SkeinCli, ws: Path) -> None:
     _mk(skein_cli, ws)
     idx = ws / ".skein" / "task.json"
     data = json.loads(idx.read_text())
-    data["tasks"].append({"id": "ghost-no-body", "status": S_PENDING})
+    data["tasks"].append({"id": "ghost-no-body", "status": TaskStatus.PENDING})
     idx.write_text(json.dumps(data, ensure_ascii=False))
     r = skein_cli(ws, "doctor", check=False)
     assert r.returncode == 1

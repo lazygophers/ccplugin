@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from skeinlib.errors import SkeinError
-from skeinlib.model import PRIORITIES, PRIORITY_DEFAULT
+from skeinlib.task.model import PRIORITIES, PRIORITY_DEFAULT
 
 
 def validate_priority(raw: Optional[str]) -> str:

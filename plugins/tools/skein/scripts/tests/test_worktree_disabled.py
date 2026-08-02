@@ -24,7 +24,7 @@ HOOKS: Path = Path(__file__).resolve().parent.parent / "hooks.py"
 
 def _disable(skein_cli: SkeinCli, ws: Path) -> None:
     """置 config use_worktree=false (禁用态前置)。"""
-    skein_cli(ws, "config", "set", "use_worktree", "false")
+    skein_cli(ws, "config", "set", "worktree.enabled", "false")
 
 
 def _session_ctx(skein_cli: SkeinCli, ws: Path) -> str:

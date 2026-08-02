@@ -18,6 +18,8 @@ import re
 import subprocess
 from typing import Any, cast
 
+from pydantic import BaseModel, Field
+
 from skeinlib.errors import SkeinError
 from skeinlib.spec.text import _frontmatter
 
@@ -38,7 +40,7 @@ def _keywords(text: str) -> set[str]:
 
 def _prd_section(text: str, name: str) -> str:
     """从 prd 全文抠一个 `## name` 章节正文 (到下一 `## ` 或文件尾); 章节不存在返回空串。
-    不复用 skeinlib.prd.section_read — 那个要求 prd.md 必须落盘存在, analyze 只读内存文本更轻。"""
+    不复用 skeinlib.task.prd.section_read — 那个要求 prd.md 必须落盘存在, analyze 只读内存文本更轻。"""
     m = re.search(rf"^##\s+{re.escape(name)}\s*$", text, re.MULTILINE)
     if not m:
         return ""
@@ -52,6 +54,12 @@ def _design_section(text: str, name: str) -> str:
         return ""
     nxt = re.search(r"^##\s+", text[m.end():], re.MULTILINE)
     return text[m.end():m.end() + nxt.start()] if nxt else text[m.end():]
+
+
+class SpecFinding(BaseModel):
+    """spec analyze 候选问题。"""
+    kind: str = Field(description="问题类型")
+    text: str = Field(description="展示文本")
 
 
 class AnalyzeMixin:
@@ -71,7 +79,7 @@ class AnalyzeMixin:
         prd_text = (tdir / "prd.md").read_text() if (tdir / "prd.md").exists() else ""
         design_text = (tdir / "design.md").read_text() if (tdir / "design.md").exists() else ""
 
-        findings: list[dict[str, str]] = []
+        findings: list[SpecFinding] = []
         findings += self._analyze_coverage(prd_text, t)
         findings += self._analyze_hardrule(design_text)
         findings += self._analyze_scope(prd_text, t)
@@ -79,7 +87,7 @@ class AnalyzeMixin:
         findings += self._analyze_seam(design_text)
 
         if as_json:
-            print(json.dumps({"tid": tid, "count": len(findings), "findings": findings},
+            print(json.dumps({"tid": tid, "count": len(findings), "findings": [f.model_dump() for f in findings]},
                               ensure_ascii=False))
             return
         if not findings:
@@ -87,10 +95,10 @@ class AnalyzeMixin:
             return
         print(f"analyze {tid}: {len(findings)} 条候选 (启发式, 需人判):")
         for fd in findings:
-            print(f"  [{fd['kind']}] {fd['text']}")
+            print(f"  [{fd.kind}] {fd.text}")
 
     # ---- 1. 验收覆盖率: prd 验收标准条目 ↔ subtask 验收项 ----
-    def _analyze_coverage(self, prd_text: str, t: dict[str, Any]) -> list[dict[str, str]]:
+    def _analyze_coverage(self, prd_text: str, t: dict[str, Any]) -> list[SpecFinding]:
         section = _prd_section(prd_text, "验收标准")
         items = [m.group(1).strip() for ln in section.splitlines()
                  if (m := re.match(r"^-\s*\[[ xX]\]\s*(.+)$", ln.strip()))]
@@ -103,15 +111,15 @@ class AnalyzeMixin:
         out = []
         for item in items:
             if not (_keywords(item) & sub_kw):
-                out.append({"kind": "coverage",
-                             "text": f"[候选未覆盖] prd 验收条「{item}」未在任何 subtask 找到关键词对应"})
+                out.append(SpecFinding(kind="coverage",
+                                       text=f"[候选未覆盖] prd 验收条「{item}」未在任何 subtask 找到关键词对应"))
         return out
 
     # ---- 2. 硬规冲突: design.md ↔ inclusion=always 规则的否定式表述 (报候选交人判, 不断言) ----
-    def _analyze_hardrule(self, design_text: str) -> list[dict[str, str]]:
+    def _analyze_hardrule(self, design_text: str) -> list[SpecFinding]:
         if not design_text:
             return []
-        out: list[dict[str, str]] = []
+        out: list[SpecFinding] = []
         for ns in self._scan_namespaces():  # type: ignore[attr-defined]
             for f, title, body in self._rules(ns):  # type: ignore[attr-defined]
                 if self._inclusion(f) != "always":  # type: ignore[attr-defined]
@@ -127,14 +135,14 @@ class AnalyzeMixin:
                         line_start = design_text.rfind("\n", 0, dm.start()) + 1
                         line_end = design_text.find("\n", dm.start())
                         line = design_text[line_start:line_end if line_end != -1 else len(design_text)].strip()
-                        out.append({"kind": "hardrule",
-                                     "text": f"[候选,需人判] design.md 疑似违反硬规「{title}」"
-                                             f"({f.parent.parent.name}/{f.parent.name}/{f.stem}): "
-                                             f"规则要求「{m.group(0).strip()}」, design 上下文: {line}"})
+                        out.append(SpecFinding(kind="hardrule",
+                                               text=f"[候选,需人判] design.md 疑似违反硬规「{title}」"
+                                                    f"({f.parent.parent.name}/{f.parent.name}/{f.stem}): "
+                                                    f"规则要求「{m.group(0).strip()}」, design 上下文: {line}"))
         return out
 
     # ---- 3. 范围蔓延: subtask 名/desc ↔ prd 全文关键词 ----
-    def _analyze_scope(self, prd_text: str, t: dict[str, Any]) -> list[dict[str, str]]:
+    def _analyze_scope(self, prd_text: str, t: dict[str, Any]) -> list[SpecFinding]:
         if not prd_text:
             return []
         prd_kw = _keywords(prd_text)
@@ -142,13 +150,13 @@ class AnalyzeMixin:
         for s in t.get("subtasks") or []:
             sub_kw = _keywords(f"{s.get('name', '')} {s.get('desc', '')}")
             if sub_kw and not (sub_kw & prd_kw):
-                out.append({"kind": "scope",
-                             "text": f"[候选] subtask {s.get('sid')} 「{s.get('name', '')}」"
-                                     f"在 prd 全文无关键词对应, 疑似范围蔓延"})
+                out.append(SpecFinding(kind="scope",
+                                       text=f"[候选] subtask {s.get('sid')} 「{s.get('name', '')}」"
+                                            f"在 prd 全文无关键词对应, 疑似范围蔓延"))
         return out
 
     # ---- 4. 置信度: design 引用的规则 status=proposed ----
-    def _analyze_confidence(self, design_text: str) -> list[dict[str, str]]:
+    def _analyze_confidence(self, design_text: str) -> list[SpecFinding]:
         if not design_text:
             return []
         out = []
@@ -158,19 +166,19 @@ class AnalyzeMixin:
                     continue
                 meta = _frontmatter(f.read_text())
                 if meta.get("status") == "proposed":
-                    out.append({"kind": "confidence",
-                                 "text": f"[未验证] design.md 引用规则「{title}」"
-                                         f"({f.parent.parent.name}/{f.parent.name}/{f.stem}) "
-                                         f"status=proposed, 尚未验证"})
+                    out.append(SpecFinding(kind="confidence",
+                                       text=f"[未验证] design.md 引用规则「{title}」"
+                                            f"({f.parent.parent.name}/{f.parent.name}/{f.stem}) "
+                                            f"status=proposed, 尚未验证"))
         return out
 
     # ---- 5. 接缝存在性: design.md「测试接缝」段声明的路径/符号 ↔ codebase ----
-    def _analyze_seam(self, design_text: str) -> list[dict[str, str]]:
+    def _analyze_seam(self, design_text: str) -> list[SpecFinding]:
         body = _design_section(design_text, "测试接缝")
         if not body:
             return []
         repo_root = self.root.parent.parent  # type: ignore[attr-defined]  # .skein/spec → 仓库根
-        out: list[dict[str, str]] = []
+        out: list[SpecFinding] = []
         seen: set[str] = set()
         for tok in _BACKTICK_RE.findall(body):
             cand = tok.strip().split()[0].strip() if tok.strip() else ""
@@ -179,15 +187,15 @@ class AnalyzeMixin:
             seen.add(cand)
             if "/" in cand or re.search(r"\.\w{1,4}$", cand):  # 路径型
                 if not (repo_root / cand.lstrip("./")).exists():
-                    out.append({"kind": "seam",
-                                 "text": f"[缺失] design.md 声明接缝「{cand}」在 codebase 未找到该路径"})
+                    out.append(SpecFinding(kind="seam",
+                                               text=f"[缺失] design.md 声明接缝「{cand}」在 codebase 未找到该路径"))
                 continue
             try:  # 命令/符号型 → git grep 全库找引用
                 r = subprocess.run(["git", "grep", "-q", "-F", cand], cwd=repo_root,
                                    capture_output=True, timeout=10)
                 if r.returncode != 0:
-                    out.append({"kind": "seam",
-                                 "text": f"[缺失] design.md 声明接缝「{cand}」在 codebase 未找到引用 (git grep 无命中)"})
+                    out.append(SpecFinding(kind="seam",
+                                               text=f"[缺失] design.md 声明接缝「{cand}」在 codebase 未找到引用 (git grep 无命中)"))
             except (OSError, subprocess.TimeoutExpired):
                 pass  # 无 git 二进制/超时 — 跳过该候选, 不因环境问题误报
         return out

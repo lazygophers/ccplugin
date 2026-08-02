@@ -12,9 +12,37 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional, cast
 import re
 
+from pydantic import BaseModel, Field
+
 from skeinlib.errors import SkeinError
 from skeinlib.spec.text import _frontmatter, _slug, _strip_frontmatter, _sections
 
+
+class AnchorHit(BaseModel):
+    """finish-candidates anchor 命中。"""
+    file: str = Field(description="变更文件")
+    anchor: str = Field(description="命中的 anchor")
+    rule: str = Field(description="product 规则 ID")
+
+
+class KeywordCandidate(BaseModel):
+    """finish-candidates 关键词召回候选。"""
+    rule: str = Field(description="规则 ID")
+    title: str = Field(description="规则标题")
+    keywords: str = Field(description="规则关键词")
+    matched_keywords: list[str] = Field(description="命中的关键词")
+
+
+class FinishCandidatesResult(BaseModel):
+    """finish-candidates 输出结构。"""
+    tid: str
+    files: list[str] = Field(default_factory=list)
+    keywords: list[str] = Field(default_factory=list)
+    anchor_hits: list[AnchorHit] = Field(default_factory=list)
+    weak_candidates: list[KeywordCandidate] = Field(default_factory=list)
+    has_candidates: bool = False
+    message: str | None = None
+    suggestion: str | None = None
 
 class WriteMixin:
     # 仅供 mypy 用的属性声明: root/layer_dir/_scan_namespaces/_rules/_rule_files 由兄弟类
@@ -326,40 +354,35 @@ class WriteMixin:
                 )
                 changed_files = [f.strip() for f in proc.stdout.splitlines() if f.strip()]
 
-        result: dict[str, Any]
+        result: FinishCandidatesResult
         if not changed_files:
-            result = {
-                "tid": tid,
-                "candidates": [],
-                "weak_candidates": [],
-                "message": "无文件变更, 无法生成候选"
-            }
+            result = FinishCandidatesResult(tid=tid, message="无文件变更, 无法生成候选")
         else:
             # 第一路: anchors 反查 (高优先级)
             anchor_hits = self._reverse_lookup_anchors(changed_files)
 
             # 第二路: prd 关键词 recall --src product (弱候选)
-            weak_candidates = []
+            weak_candidates: list[KeywordCandidate] = []
             if keywords and not anchor_hits:
                 weak_candidates = self._recall_by_keywords(keywords)
 
             # 第三路: 皆无则如实报建议新建
-            result = {
-                "tid": tid,
-                "files": changed_files,
-                "keywords": keywords,
-                "anchor_hits": anchor_hits,
-                "weak_candidates": weak_candidates,
-                "has_candidates": bool(anchor_hits or weak_candidates)
-            }
+            result = FinishCandidatesResult(
+                tid=tid,
+                files=changed_files,
+                keywords=keywords,
+                anchor_hits=anchor_hits,
+                weak_candidates=weak_candidates,
+                has_candidates=bool(anchor_hits or weak_candidates),
+            )
 
             if not anchor_hits and not weak_candidates:
-                result["message"] = "无候选, 可能是新功能域, 建议新建 product wiki 页"
-                result["suggestion"] = f"可用: spec.py sediment --namespace product --category <类目> --topic <主题> --title <标题> --keywords \"{','.join(keywords)}\" --body-file <正文文件>"
+                result.message = "无候选, 可能是新功能域, 建议新建 product wiki 页"
+                result.suggestion = f"可用: spec.py sediment --namespace product --category <类目> --topic <主题> --title <标题> --keywords \"{','.join(keywords)}\" --body-file <正文文件>"
 
         # 输出结果
         if use_json:
-            print(json.dumps(result, ensure_ascii=False, indent=2))
+            print(json.dumps(result.model_dump(), ensure_ascii=False, indent=2))
         else:
             self._print_finish_candidates_result(result)
 
@@ -395,12 +418,9 @@ class WriteMixin:
 
         return sorted(keywords)
 
-    def _reverse_lookup_anchors(self, changed_files: list[str]) -> list[dict[str, str]]:
-        """反查 anchors: 从变更文件查找对应的 product wiki 页。
-
-        返回: [{file: <文件路径>, anchor: <匹配的anchor>, rule: <规则ID>}]
-        """
-        hits = []
+    def _reverse_lookup_anchors(self, changed_files: list[str]) -> list[AnchorHit]:
+        """反查 anchors: 从变更文件查找对应的 product wiki 页。"""
+        hits: list[AnchorHit] = []
 
         # 扫描 product namespace 的所有规则
         for rule_file, title, body in self._rules("product"):
@@ -418,11 +438,11 @@ class WriteMixin:
                         # 简单的路径匹配: 如果 anchor 是 changed_file 的前缀或包含关系
                         if self._path_matches_anchor(changed_file, anchor):
                             rule_id = f"product/{rule_file.parent.name}/{rule_file.stem}.md#{title}"
-                            hits.append({
-                                "file": changed_file,
-                                "anchor": anchor,
-                                "rule": rule_id
-                            })
+                            hits.append(AnchorHit(
+                                file=changed_file,
+                                anchor=anchor,
+                                rule=rule_id,
+                            ))
                             break  # 一个文件只匹配一次
             except Exception:
                 # 忽略解析错误
@@ -454,19 +474,12 @@ class WriteMixin:
 
         return False
 
-    def _recall_by_keywords(self, keywords: list[str]) -> list[dict[str, Any]]:
-        """基于关键词从 product namespace recall。
-
-        返回: [{rule: <规则ID>, title: <标题>, keywords: <关键词>}]
-        """
+    def _recall_by_keywords(self, keywords: list[str]) -> list[KeywordCandidate]:
+        """基于关键词从 product namespace recall。"""
         if not keywords:
             return []
 
-        # 使用现有的 recall 功能, 但限于 product namespace
-        query = " ".join(keywords)
-
-        # 模拟 recall 的结果解析
-        candidates = []
+        candidates: list[KeywordCandidate] = []
         keywords_lower = [k.lower() for k in keywords]
 
         for rule_file, title, body in self._rules("product"):
@@ -483,59 +496,59 @@ class WriteMixin:
 
                 if matched_keywords:
                     rule_id = f"product/{rule_file.parent.name}/{rule_file.stem}.md#{title}"
-                    candidates.append({
-                        "rule": rule_id,
-                        "title": title,
-                        "keywords": str(meta.get("keywords", "")),
-                        "matched_keywords": matched_keywords
-                    })
+                    candidates.append(KeywordCandidate(
+                        rule=rule_id,
+                        title=title,
+                        keywords=str(meta.get("keywords", "")),
+                        matched_keywords=matched_keywords,
+                    ))
             except Exception:
                 # 忽略解析错误
                 pass
 
         return candidates
 
-    def _print_finish_candidates_result(self, result: dict[str, Any]) -> None:
+    def _print_finish_candidates_result(self, result: FinishCandidatesResult) -> None:
         """以人类可读格式输出 finish-candidates 结果。"""
-        print(f"# Task {result['tid']} 的候选 Product Wiki 页")
+        print(f"# Task {result.tid} 的候选 Product Wiki 页")
         print()
 
-        if result.get("files"):
-            print(f"涉及文件 ({len(result['files'])}):")
-            for f in result['files'][:10]:  # 只显示前10个
+        if result.files:
+            print(f"涉及文件 ({len(result.files)}):")
+            for f in result.files[:10]:  # 只显示前10个
                 print(f"  - {f}")
-            if len(result['files']) > 10:
-                print(f"  ... 还有 {len(result['files']) - 10} 个文件")
+            if len(result.files) > 10:
+                print(f"  ... 还有 {len(result.files) - 10} 个文件")
             print()
 
-        if result.get("keywords"):
-            print(f"关键词: {', '.join(result['keywords'])}")
+        if result.keywords:
+            print(f"关键词: {', '.join(result.keywords)}")
             print()
 
-        anchor_hits = result.get("anchor_hits", [])
-        weak_candidates = result.get("weak_candidates", [])
+        anchor_hits = result.anchor_hits
+        weak_candidates = result.weak_candidates
 
         if anchor_hits:
             print(f"## Anchor 反查命中 ({len(anchor_hits)}) [高优先级]")
             for hit in anchor_hits:
-                print(f"  - 文件: {hit['file']}")
-                print(f"    anchor: {hit['anchor']}")
-                print(f"    规则: {hit['rule']}")
+                print(f"  - 文件: {hit.file}")
+                print(f"    anchor: {hit.anchor}")
+                print(f"    规则: {hit.rule}")
                 print()
 
         if weak_candidates:
             print(f"## 关键词召回候选 ({len(weak_candidates)}) [弱候选]")
             for candidate in weak_candidates:
-                print(f"  - 规则: {candidate['rule']}")
-                print(f"    标题: {candidate['title']}")
-                print(f"    关键词: {candidate['keywords']}")
-                print(f"    匹配关键词: {', '.join(candidate['matched_keywords'])}")
+                print(f"  - 规则: {candidate.rule}")
+                print(f"    标题: {candidate.title}")
+                print(f"    关键词: {candidate.keywords}")
+                print(f"    匹配关键词: {', '.join(candidate.matched_keywords)}")
                 print()
 
         if not anchor_hits and not weak_candidates:
             print("## 无候选")
-            print(result.get("message", "无候选, 可能是新功能域, 建议新建 product wiki 页"))
-            if result.get("suggestion"):
-                print(f"\n建议操作: {result['suggestion']}")
+            print(result.message or "无候选, 可能是新功能域, 建议新建 product wiki 页")
+            if result.suggestion:
+                print(f"\n建议操作: {result.suggestion}")
         else:
             print(f"总计: {len(anchor_hits) + len(weak_candidates)} 个候选")

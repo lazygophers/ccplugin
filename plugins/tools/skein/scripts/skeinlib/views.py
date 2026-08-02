@@ -11,10 +11,8 @@ import time
 from pathlib import Path
 from typing import Any, Callable, Optional, Protocol, cast
 
-from skeinlib.dag import _pending_queue, _sub_pct, _task_pct, _task_stage
-from skeinlib.model import (PRIORITY_DEFAULT, SS_DONE, SS_PENDING, SS_RUNNING, STATUS_ACTIVE,
-                            STATUS_INFLIGHT, STATUS_ORDER, S_ACTIVE, S_CHECK, S_DONE,
-                            S_FINISHING, S_PENDING, S_RESEARCH, now)
+from skeinlib.task.dag import _pending_queue, _sub_pct, _task_pct, _task_stage
+from skeinlib.task.model import (PRIORITY_DEFAULT, SubtaskStatus, STATUS_ACTIVE, STATUS_INFLIGHT, STATUS_ORDER, TaskStatus, now)
 from skeinlib.worktree import git
 
 class Snapshot:
@@ -70,7 +68,7 @@ class Snapshot:
             return False
         if dep not in all_ids:
             return False
-        return status_by_id[dep] != S_DONE
+        return status_by_id[dep] != TaskStatus.DONE
 
     def task_path(self, tid: str) -> Path:
         return self._tasks_dir / tid
@@ -144,12 +142,12 @@ def _view_board_data(snap: Snapshot) -> dict[str, Any]:
 
     def elapsed_of(t: dict[str, Any]) -> int:
         st = t.get("status")
-        if st in (S_PENDING, S_RESEARCH):
+        if st in (TaskStatus.PENDING, TaskStatus.RESEARCH):
             return 0
         start = t.get("started") or t.get("created")
         if not start:
             return 0
-        end = t.get("finished") if (st == S_DONE and t.get("finished")) else tnow
+        end = t.get("finished") if (st == TaskStatus.DONE and t.get("finished")) else tnow
         return cast(int, round((end - start) / 60))
 
     def task_pct(t: dict[str, Any]) -> int:
@@ -200,14 +198,14 @@ def _view_board_data(snap: Snapshot) -> dict[str, Any]:
 
     # 两池占用 (design.md §3): work = 全局 running subtask (phase exec+research 共用一池);
     # gate = 检查中+收尾中 task 数。两池独立计数, 与 s4 调度器的槽位判定同一口径。
-    work_running = sum(1 for t in tasks for s in t.get("subtasks", []) if s.get("status") == SS_RUNNING)
-    gate_running = cnt.get(S_CHECK, 0) + cnt.get(S_FINISHING, 0)
+    work_running = sum(1 for t in tasks for s in t.get("subtasks", []) if s.get("status") == SubtaskStatus.RUNNING)
+    gate_running = cnt.get(TaskStatus.CHECK, 0) + cnt.get(TaskStatus.FINISHING, 0)
 
     # 下一个可执行: 无进行中态 task 时, 首个依赖已清的待处理 task (可 skein confirm 开工)
     next_up_id: Optional[str] = None
     if not any(cnt.get(s, 0) for s in STATUS_ACTIVE):
         next_up_id = next((t["id"] for t in tasks
-                           if t["status"] == S_PENDING
+                           if t["status"] == TaskStatus.PENDING
                            and not any(snap.dep_unfinished(d) for d in t.get("deps", []))), None)
 
     prd_data: Callable[[str], list[dict[str, Any]]] = lambda tid: _prd_data(snap, tid)  # noqa: E731 — 实现提到模块级 _prd_data (detail 端点复用)
@@ -216,7 +214,7 @@ def _view_board_data(snap: Snapshot) -> dict[str, Any]:
     for t in tasks:
         subs = t.get("subtasks", [])
         sname_of = {s["sid"]: s.get("name", s["sid"]) for s in subs}
-        sdone = sum(1 for s in subs if s["status"] == SS_DONE)
+        sdone = sum(1 for s in subs if s["status"] == SubtaskStatus.DONE)
         snodes = [node(s["sid"], s.get("name", s["sid"]), s["status"], s.get("depends_on", []),
                        _sub_pct(s), s.get("desc", "")) for s in subs]
         subtable = [{
@@ -257,9 +255,9 @@ def _view_board_data(snap: Snapshot) -> dict[str, Any]:
         "proj": snap.proj,
         "overview": {
             "taskCount": len(tasks),
-            "stats": {S_DONE: cnt.get(S_DONE, 0), S_ACTIVE: cnt.get(S_ACTIVE, 0),
-                      S_CHECK: cnt.get(S_CHECK, 0), S_FINISHING: cnt.get(S_FINISHING, 0),
-                      S_RESEARCH: cnt.get(S_RESEARCH, 0), S_PENDING: cnt.get(S_PENDING, 0)},
+            "stats": {TaskStatus.DONE: cnt.get(TaskStatus.DONE, 0), TaskStatus.ACTIVE: cnt.get(TaskStatus.ACTIVE, 0),
+                      TaskStatus.CHECK: cnt.get(TaskStatus.CHECK, 0), TaskStatus.FINISHING: cnt.get(TaskStatus.FINISHING, 0),
+                      TaskStatus.RESEARCH: cnt.get(TaskStatus.RESEARCH, 0), TaskStatus.PENDING: cnt.get(TaskStatus.PENDING, 0)},
             "estMeta": est_meta,
             "maxActive": snap.pool_work,  # 兼容旧字段: 前端 ETA 折算并行墙钟用, 语义即 pools.work.limit
             "pools": {"work": {"limit": snap.pool_work, "running": work_running},
@@ -352,7 +350,7 @@ def _view_archive(snap: Snapshot) -> dict[str, Any]:
                "status": t["status"], "created": t.get("created"),
                "started": t.get("started"), "finished": t.get("finished"),
                "subs": len(t.get("subtasks", []))}
-              for t in snap.tasks if t["status"] == S_DONE]
+              for t in snap.tasks if t["status"] == TaskStatus.DONE]
     return {"tasks": tasks}
 def _view_dashboard(snap: Snapshot) -> dict[str, Any]:
     # 统计聚合: 复用 board_data overview + 补 subtask 状态分布 + 完成率
@@ -363,13 +361,13 @@ def _view_dashboard(snap: Snapshot) -> dict[str, Any]:
         for s in c.get("subtable", []):
             sub_stat[s["status"]] = sub_stat.get(s["status"], 0) + 1
     total = ov["taskCount"]
-    done = ov["stats"].get(S_DONE, 0)
-    # 进行中 subtask: active task 内 SS_RUNNING (含耗时)
+    done = ov["stats"].get(TaskStatus.DONE, 0)
+    # 进行中 subtask: active task 内 SubtaskStatus.RUNNING (含耗时)
     tnow = now()
     running_subs: list[dict[str, Any]] = []
     for t in snap.active:
         for s in t.get("subtasks", []):
-            if s.get("status") != SS_RUNNING:
+            if s.get("status") != SubtaskStatus.RUNNING:
                 continue
             started = s.get("started")
             running_subs.append({
@@ -379,9 +377,9 @@ def _view_dashboard(snap: Snapshot) -> dict[str, Any]:
     # 就绪 subtask: active task 内 pending 且依赖全 done (不受空闲槽限, 展示全量就绪)
     ready_subs: list[dict[str, Any]] = []
     for t in snap.active:
-        done_sids = {s["sid"] for s in t.get("subtasks", []) if s.get("status") == SS_DONE}
+        done_sids = {s["sid"] for s in t.get("subtasks", []) if s.get("status") == SubtaskStatus.DONE}
         for s in t.get("subtasks", []):
-            if s.get("status") != SS_PENDING:
+            if s.get("status") != SubtaskStatus.PENDING:
                 continue
             if not all(d in done_sids for d in s.get("depends_on", [])):
                 continue
@@ -394,17 +392,17 @@ def _view_dashboard(snap: Snapshot) -> dict[str, Any]:
     # 待 plan task: 所有 status=待处理 (含未 confirm; subCount=0 即 plan 未收敛)
     to_plan_tasks = [{"id": t["id"], "name": t.get("name", t["id"]),
                       "desc": t.get("desc", ""), "subCount": len(t.get("subtasks", []))}
-                     for t in snap.all_tasks if t["status"] == S_PENDING]
+                     for t in snap.all_tasks if t["status"] == TaskStatus.PENDING]
     # 执行中 / 检查中 task: 一趟遍历分流 (cards 已含 elapsed/sdone/stotal/pct, 不重算)
     active_tasks: list[dict[str, Any]] = []
     check_tasks: list[dict[str, Any]] = []
     for c in data["cards"]:
-        if c["status"] not in (S_ACTIVE, S_CHECK):
+        if c["status"] not in (TaskStatus.ACTIVE, TaskStatus.CHECK):
             continue
         row = {"id": c["id"], "name": c.get("name", c["id"]), "status": c["status"],
                "pct": c["spct"], "sdone": c["sdone"], "stotal": c["stotal"],
                "elapsed": c.get("elapsed")}
-        (active_tasks if c["status"] == S_ACTIVE else check_tasks).append(row)
+        (active_tasks if c["status"] == TaskStatus.ACTIVE else check_tasks).append(row)
     # 首页最近列表: 端点自足 (首页不再拉 /data 全量看板), 按最近活动时间倒序
     def brief(t: dict[str, Any]) -> dict[str, Any]:
         return {"id": t["id"], "name": t.get("name", t["id"]), "desc": t.get("desc", ""),
@@ -413,8 +411,8 @@ def _view_dashboard(snap: Snapshot) -> dict[str, Any]:
     recent = sorted(snap.tasks,
                     key=lambda t: -(t.get("finished") or t.get("started") or t.get("created") or 0))
     recent_active = [brief(t) for t in recent
-                     if t["status"] in (S_PENDING, S_RESEARCH, S_ACTIVE, S_CHECK, S_FINISHING)][:8]
-    recent_done = [brief(t) for t in recent if t["status"] == S_DONE][:5]
+                     if t["status"] in (TaskStatus.PENDING, TaskStatus.RESEARCH, TaskStatus.ACTIVE, TaskStatus.CHECK, TaskStatus.FINISHING)][:8]
+    recent_done = [brief(t) for t in recent if t["status"] == TaskStatus.DONE][:5]
     # 总览 ETA 的输入: 只挑 etaOf 真正要读的字段下发 (前端 normalizeTask 会把 subtable→subtasks、
     # spct→progress 适配好)。**不在 Python 侧算 ETA** —— 关键路径/并发折算/实测校准那套算法在
     # assets/nextjs/src/lib/eta.ts 已有一份, 再写一份必然漂移。
@@ -432,7 +430,7 @@ def _view_dashboard(snap: Snapshot) -> dict[str, Any]:
             "etaCards": eta_cards,
             "recentActive": recent_active, "recentDone": recent_done,
             "doneRate": round(done / total * 100) if total else 0,
-            "activeCount": ov["stats"].get(S_ACTIVE, 0) + ov["stats"].get(S_CHECK, 0),
+            "activeCount": ov["stats"].get(TaskStatus.ACTIVE, 0) + ov["stats"].get(TaskStatus.CHECK, 0),
             "combinedPct": ov["combinedPct"], "statusDist": ov["stats"],
             "subStatusDist": sub_stat, "estMeta": ov["estMeta"],
             "runningSubs": running_subs, "readySubs": ready_subs,
@@ -447,9 +445,9 @@ def _view_queue(snap: Snapshot) -> dict[str, Any]:
     # web 展示不受槽限: pending 且依赖全 done 即列 (与 dashboard readySubs 同, 受槽限只作用于 claim/exec 派发)
     ready_subs: list[dict[str, Any]] = []
     for t in snap.active:
-        done_sids = {s["sid"] for s in t.get("subtasks", []) if s.get("status") == SS_DONE}
+        done_sids = {s["sid"] for s in t.get("subtasks", []) if s.get("status") == SubtaskStatus.DONE}
         for s in t.get("subtasks", []):
-            if s.get("status") != SS_PENDING:
+            if s.get("status") != SubtaskStatus.PENDING:
                 continue
             if not all(d in done_sids for d in s.get("depends_on", [])):
                 continue
@@ -457,12 +455,12 @@ def _view_queue(snap: Snapshot) -> dict[str, Any]:
                                "name": s.get("name", s["sid"]),
                                "desc": s.get("desc", ""), "status": s["status"],
                                "depends_on": s.get("depends_on", [])})
-    # 执行中 task / running sub: 复用 tasks (已 _render_tasks) + active 内 SS_RUNNING
+    # 执行中 task / running sub: 复用 tasks (已 _render_tasks) + active 内 SubtaskStatus.RUNNING
     tnow = now()
     running_subs: list[dict[str, Any]] = []
     for t in snap.active:
         for s in t.get("subtasks", []):
-            if s.get("status") != SS_RUNNING:
+            if s.get("status") != SubtaskStatus.RUNNING:
                 continue
             started = s.get("started")
             running_subs.append({"tid": t["id"], "sid": s["sid"], "name": s.get("name", s["sid"]),
@@ -475,21 +473,21 @@ def _view_queue(snap: Snapshot) -> dict[str, Any]:
         subs = t.get("subtasks", [])
         st = t.get("status")
         start = t.get("started") or t.get("created")
-        if st == S_DONE and t.get("finished"):
+        if st == TaskStatus.DONE and t.get("finished"):
             end = t.get("finished")
         else:
             end = tnow
-        elapsed = round((end - start) / 60) if start and st != S_PENDING else 0
+        elapsed = round((end - start) / 60) if start and st != TaskStatus.PENDING else 0
         active_tasks.append({"id": t["id"], "name": t.get("name", t["id"]), "status": st,
                              "pct": _task_pct(t),
-                             "sdone": sum(1 for s in subs if s["status"] == SS_DONE),
+                             "sdone": sum(1 for s in subs if s["status"] == SubtaskStatus.DONE),
                              "stotal": len(subs), "elapsed": elapsed})
     # task 级队列: 未完成的全量 (端点自足, 队列页不再拉 /data 全量看板)
     queue_tasks = [{"id": t["id"], "name": t.get("name", t["id"]), "desc": t.get("desc", ""),
                     "status": t["status"], "priority": t.get("priority"),
                     "created": t.get("created"), "started": t.get("started"),
                     "spct": _task_pct(t)}
-                   for t in tasks if t["status"] in (S_PENDING, S_RESEARCH, S_ACTIVE, S_CHECK, S_FINISHING)]
+                   for t in tasks if t["status"] in (TaskStatus.PENDING, TaskStatus.RESEARCH, TaskStatus.ACTIVE, TaskStatus.CHECK, TaskStatus.FINISHING)]
     return {"pendingQueue": _pending_queue(tasks, snap.dep_unfinished),
             "queueTasks": queue_tasks,
             "readyTasks": ready_tasks, "readySubtasks": ready_subs,

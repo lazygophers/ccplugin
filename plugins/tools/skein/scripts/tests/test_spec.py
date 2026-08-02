@@ -264,9 +264,9 @@ def test_external_layer(mem_ws: Path, mem_cli: MemCli) -> None:
 
 
 def test_always_budget_fallback(mem_ws: Path) -> None:
-    """always_budget_tokens() 读 .skein/config.yaml spec_always_budget (新键, 字符),
-    用换算系数转 token; 缺该键时 fallback 旧键 spec_core_budget (deprecated);
-    两键皆缺/非正整数 → 默认 1000 字符 ≈ 580 token (design.md §2)。"""
+    """always_budget_tokens() 读 .skein/config.yaml spec.always_budget (字符),
+    用换算系数转 token; 缺该键时 fallback spec.core_budget;
+    两键皆缺/非正整数 → 默认 517 字符 ≈ 300 token。"""
     script_dir = str(MEM.parent)
 
     def _budget() -> int:
@@ -282,20 +282,20 @@ def test_always_budget_fallback(mem_ws: Path) -> None:
     # 两键皆缺 → 默认 517 字符 ≈ 300 token
     assert _budget() == 300, "无 config 未返默认 300 token (517 字符)"
 
-    # 仅旧键 → fallback 读旧键生效 (500 字符 ≈ 290 token)
-    cfg.write_text("spec_core_budget: 500\n")
-    assert _budget() == 290, "仅旧键 spec_core_budget 未 fallback 生效"
+    # 仅 core_budget → fallback 生效 (500 字符 ≈ 290 token)
+    cfg.write_text("spec:\n  core_budget: 500\n")
+    assert _budget() == 290, "仅 spec.core_budget 未 fallback 生效"
 
-    # 新键存在 (即便旧键也在) → 新键优先 (3000 字符 ≈ 1740 token)
-    cfg.write_text("spec_always_budget: 3000\nspec_core_budget: 500\n")
-    assert _budget() == 1740, "新键 spec_always_budget 未优先于旧键"
+    # always_budget 存在 (即便 core_budget 也在) → always_budget 优先 (3000 字符 ≈ 1740 token)
+    cfg.write_text("spec:\n  always_budget: 3000\n  core_budget: 500\n")
+    assert _budget() == 1740, "spec.always_budget 未优先于 spec.core_budget"
 
-    # 新键非正整数 → fallback 旧键
-    cfg.write_text("spec_always_budget: not-a-num\nspec_core_budget: 500\n")
-    assert _budget() == 290, "新键非法值未 fallback 到旧键"
+    # always_budget 非正整数 → fallback core_budget
+    cfg.write_text("spec:\n  always_budget: not-a-num\n  core_budget: 500\n")
+    assert _budget() == 290, "always_budget 非法值未 fallback 到 core_budget"
 
     # 两键皆非法/缺 → 回落默认 517 字符 ≈ 300 token
-    cfg.write_text("spec_always_budget: not-a-num\n")
+    cfg.write_text("spec:\n  always_budget: not-a-num\n")
     assert _budget() == 300, "两键皆缺/非法未回落默认 300 token"
 
 

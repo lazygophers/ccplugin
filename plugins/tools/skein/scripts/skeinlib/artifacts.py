@@ -3,7 +3,7 @@
 ## 为什么不让 AI 直接 Edit prd.md
 prd 有固定六章结构 (`PRD_SECTIONS_V6`), 而 `confirm` 的硬门按章节校验。裸 Edit 很容易把结构
 改坏, 于是 confirm 报一个和实际操作对不上的错。走 `prd read/write/add/check` 这组命令, 章节
-边界由 `skeinlib.prd` 统一维护, 结构永远合法。
+边界由 `skeinlib.task.prd` 统一维护, 结构永远合法。
 
 `fmt` 是幂等规范化 (补 `- [ ]`、校验章节)，PostToolUse hook 在 prd.md 写后自动跑它。
 """
@@ -16,11 +16,10 @@ if TYPE_CHECKING:
     from skeinlib.workspace import Workspace
 
 from skeinlib.errors import SkeinError
-from skeinlib.model import PRD_SECTIONS_V4, PRD_SECTIONS_V6, PRD_TYPE_ALIAS
-from skeinlib.prd import section_add, section_check, section_read, section_write
+from skeinlib.task.model import PRD_SECTIONS_V6, PRD_TYPE_ALIAS
+from skeinlib.task.prd import section_add, section_check, section_read, section_write
 
 import re
-import sys
 
 
 class Artifacts:
@@ -31,7 +30,7 @@ class Artifacts:
 
     def fmt(self, a: argparse.Namespace) -> None:
         # 规范化 .skein/task/<id>/prd.md: 各章节内一级 `- ` list 项补 `- [ ]` todo (已勾选态保留),
-        # 校验六标准章节齐备且顺序正确 (旧四段兼容 task 仅 warning), 不规范报错非零退出;
+        # 校验六标准章节齐备且顺序正确, 不规范报错非零退出;
         # 仅内容变化才写 (天然幂等 + 防 hook 循环)。
         tid = a.id.strip()
         prd = self.ws.tasks / tid / "prd.md"
@@ -39,14 +38,12 @@ class Artifacts:
             raise SkeinError(f"prd 不存在: {prd}")
         orig = prd.read_text()
         lines = orig.split("\n")
-        # 校验: 至少一个一级标题 (# ...) + 六标准章节齐备且顺序正确 (旧四段兼容态只 warning)
+        # 校验: 至少一个一级标题 (# ...) + 六标准章节齐备且顺序正确
         if not any(re.match(r"^#\s+\S", ln) for ln in lines):
             raise SkeinError(f"prd 不规范: 缺一级标题 (# ...) — {prd}")
         sections = [m.group(1).strip() for ln in lines
                     if (m := re.match(r"^##\s+(.+?)\s*$", ln))]
-        if sections == PRD_SECTIONS_V4:
-            print(f"prd 章节为旧四段 (兼容态, 建议迁六段模板: {PRD_SECTIONS_V6}) — {prd}", file=sys.stderr)
-        elif sections != PRD_SECTIONS_V6:
+        if sections != PRD_SECTIONS_V6:
             raise SkeinError(
                 f"prd 不规范: 二级章节须为 {PRD_SECTIONS_V6} (齐备且顺序一致), "
                 f"实际 {sections} — {prd}")

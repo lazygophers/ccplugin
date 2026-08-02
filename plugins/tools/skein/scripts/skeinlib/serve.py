@@ -19,8 +19,8 @@ from typing import Any, AsyncIterator, Callable, Iterable, Optional, cast
 
 from skeinlib.hooks.runner import debug_enabled
 from skeinlib.paths import PLUGIN_ROOT, SPEC_ENTRY
-from skeinlib.config import (CFG_REMOTE_DENY, CONFIG_DEFAULTS, _cfg_get_path, _coerce_config,
-                             _yaml_dump, _yaml_load)
+import yaml  # type: ignore[import-untyped]
+from skeinlib.config import Config, ConfigData
 from skeinlib.views import (DataSource, _cards_signature, _spec_frontmatter, _view_archive,
                             _view_board_data, _view_dashboard, _view_queue, _view_search,
                             _view_task_detail)
@@ -354,34 +354,21 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
         return JSONResponse(board.config())
 
     @app.post("/__skein__/config")
-    async def _cfg_save(request: Request) -> JSONResponse:  # 写 config.yaml (只认 CONFIG_DEFAULTS 路径; 前端全量提交嵌套结构)
-        # input 提交多为 str → 按叶的类型 coerce; 未知键/分组忽略 (防注入); 缺键补默认。
+    async def _cfg_save(request: Request) -> JSONResponse:  # 写 config.yaml (前端全量提交嵌套结构)
         try:
             body = json.loads(request.scope.get("skein_body") or b"{}")
         except Exception:
             return JSONResponse({"error": "bad request"}, status_code=400)
 
-        def _coerce(path: str, v: Any) -> Any:  # str→int/bool; 类型不合 → 默认值兜底 (不报错, 前端 debounce 全量提交)
-            try:
-                return _coerce_config(path, v)
-            except (TypeError, ValueError):
-                return _cfg_get_path(CONFIG_DEFAULTS, path)
-
-        full: dict[str, Any] = {}
-        raw_disk = _yaml_load((board.dir / "config.yaml").read_text()) if (board.dir / "config.yaml").exists() else {}
-        for k, dv in CONFIG_DEFAULTS.items():
-            if k in CFG_REMOTE_DENY:  # 值是 shell 命令 → 远程一律不可写, 保留盘上原值
-                if k in raw_disk:
-                    full[k] = raw_disk[k]
-                continue
-            if isinstance(dv, dict):
-                group_body = body.get(k) if isinstance(body.get(k), dict) else {}
-                full[k] = {gk: (_coerce(f"{k}.{gk}", group_body[gk]) if gk in group_body else gv)
-                           for gk, gv in dv.items()}
-            else:
-                full[k] = _coerce(k, body[k]) if k in body else dv
-        (board.dir / "config.yaml").write_text(_yaml_dump(full))
-        return JSONResponse({"ok": True, "config": board.config()})  # 返回读回值 (含 ENV override)
+        # hooks 禁远程写 (值是 shell 命令 = RCE), 保留盘上原值
+        config = Config(board.dir / "config.yaml")
+        disk = config.cfg.model_dump(by_alias=True)
+        if "hooks" in disk:
+            body["hooks"] = disk["hooks"]
+        # pydantic 校验 + 补默认值 → 写盘
+        config._cfg = ConfigData.model_validate(body)
+        config._write()
+        return JSONResponse({"ok": True, "config": config.cfg.model_dump(by_alias=True)})
 
     @app.get("/__skein__/archive")
     async def _archive() -> JSONResponse:  # 归档页: 已归档 + 已完成 task

@@ -11,10 +11,9 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from skeinlib.workspace import Workspace
 
-from skeinlib.dag import _sub_pct, _task_pct
+from skeinlib.task.dag import _sub_pct, _task_pct
 from skeinlib.errors import SkeinError
-from skeinlib.model import (PRIORITY_DEFAULT, SS_DONE, SS_FAILED, SS_PENDING, SS_RUNNING, S_ACTIVE, S_CHECK,
-                            S_DONE, S_FINISHING, S_PENDING, S_RESEARCH, _STATUS_ALIAS)
+from skeinlib.task.model import (PRIORITY_DEFAULT, SubtaskStatus, TaskStatus, _STATUS_ALIAS)
 from skeinlib.views import _fmt_ts
 from skeinlib.worktree import worktrees_of
 
@@ -43,7 +42,7 @@ class Query:
         # task 级可 confirm 批 (脚本算, 非 AI 判): 待处理态 + 前置全 done。task 级并发上限已取消
         # (design.md §3: 按 subtask 计数后是冗余的), 故此处不再折算槽位, 只看 deps 是否清。
         picked = [t for t in self.ws.store.all_tasks()
-                 if t["status"] == S_PENDING
+                 if t["status"] == TaskStatus.PENDING
                  and not any(self.ws._dep_unfinished(d) for d in t["deps"])]
         if not picked:
             print("无可 confirm task (待处理态均有未完成前置, 或无待处理态)")
@@ -100,13 +99,13 @@ class Query:
         # subs 数组固定序 [已完成, 运行中, 待处理, 失败]; ready = 该 待处理 task 前置全 done (可 confirm)。
         subs = t.get("subtasks", [])
         cnt = [0, 0, 0, 0]
-        idx: dict[str, int] = {SS_DONE: 0, SS_RUNNING: 1, SS_PENDING: 2, SS_FAILED: 3}
+        idx: dict[str, int] = {SubtaskStatus.DONE: 0, SubtaskStatus.RUNNING: 1, SubtaskStatus.PENDING: 2, SubtaskStatus.FAILED: 3}
         for s in subs:
             i = idx.get(s["status"])
             if i is not None:
                 cnt[i] += 1
         pct = _task_pct(t)
-        ready = t["status"] == S_PENDING and not any(
+        ready = t["status"] == TaskStatus.PENDING and not any(
             self.ws._dep_unfinished(d) for d in t.get("deps", []))
         wt_shown = self.ws._wt_shown()
         return {"id": t["id"], "status": t["status"], "name": t.get("name", ""),
@@ -122,10 +121,10 @@ class Query:
         st = (getattr(a, "status", None) or "").strip()
         if st:
             if st in ("open", "unfinished", "未完成"):
-                tasks = [t for t in tasks if t["status"] != S_DONE]
+                tasks = [t for t in tasks if t["status"] != TaskStatus.DONE]
             else:
                 wanted = {_STATUS_ALIAS.get(x.strip(), x.strip()) for x in st.split(",")}
-                bad = wanted - {S_PENDING, S_RESEARCH, S_ACTIVE, S_CHECK, S_FINISHING, S_DONE}
+                bad = wanted - {TaskStatus.PENDING, TaskStatus.RESEARCH, TaskStatus.ACTIVE, TaskStatus.CHECK, TaskStatus.FINISHING, TaskStatus.DONE}
                 if bad:
                     raise SkeinError(
                         f"未知 status: {', '.join(sorted(bad))} — 可选 "

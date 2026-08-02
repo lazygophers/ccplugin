@@ -25,8 +25,8 @@ from typing import Any
 
 from conftest import SKEIN, run_git as git  # 单一实现, 见 conftest 顶部说明
 import skeinlib.migrate as _mig_mod
-import skeinlib.model as _model_mod
-import skeinlib.store as _store_mod
+from skeinlib.task import model as _model_mod
+from skeinlib.task import store as _store_mod
 import skeinlib.views as views_mod
 
 
@@ -34,6 +34,7 @@ def _now_holders() -> list[Any]:
     """所有可能持有 `now` 名字的模块 (model 定义它, 其余 `from ... import now` 各存一份)。"""
     return [_model_mod, views_mod, _store_mod, _mig_mod]
 
+from skeinlib.task.model import SubtaskStatus, TaskStatus
 from skeinlib.views import (_view_archive_list, _view_board_data, _view_dashboard,
                             _view_queue, _view_search, _view_task_detail)
 
@@ -97,59 +98,59 @@ def _seed(d: Path) -> None:
     tdir = d / ".skein" / "task"
     # 进行中 + 混合态 subtask (done/running/ready-pending/blocked-pending)
     _write_task(tdir, _task_json(
-        id="alpha", name="Alpha 任务", status="进行中", desc="活跃任务",
+        id="alpha", name="Alpha 任务", status=TaskStatus.ACTIVE, desc="活跃任务",
         worktree="wt/alpha", started=TNOW - 8000,
         subtasks=[
-            _sub("s1", "已完成", started=TNOW - 7000, finished=TNOW - 6000),
-            _sub("s2", "运行中", started=TNOW - 3000),
-            _sub("s3", "待处理", depends_on=["s1"]),
-            _sub("s4", "待处理", depends_on=["s2"]),  # 依赖未 done → 阻塞
+            _sub("s1", SubtaskStatus.DONE, started=TNOW - 7000, finished=TNOW - 6000),
+            _sub("s2", SubtaskStatus.RUNNING, started=TNOW - 3000),
+            _sub("s3", SubtaskStatus.PENDING, depends_on=["s1"]),
+            _sub("s4", SubtaskStatus.PENDING, depends_on=["s2"]),  # 依赖未 done → 阻塞
         ],
         contracts=["契约A", "契约B"],
     ), prd=PRD_ALPHA)
     # 检查中 (subtask 全 done)
     _write_task(tdir, _task_json(
-        id="beta", name="Beta 任务", status="检查中", desc="待验收",
+        id="beta", name="Beta 任务", status=TaskStatus.CHECK, desc="待验收",
         worktree="wt/beta", started=TNOW - 7000, checked=TNOW - 1000,
-        subtasks=[_sub("b1", "已完成", started=TNOW - 6500, finished=TNOW - 6000)],
+        subtasks=[_sub("b1", SubtaskStatus.DONE, started=TNOW - 6500, finished=TNOW - 6000)],
     ))
     # 待处理 (依赖空 → 可 confirm)
     _write_task(tdir, _task_json(
-        id="gamma", name="Gamma 任务", status="待处理", desc="待启动",
-        subtasks=[_sub("g1", "待处理")],
+        id="gamma", name="Gamma 任务", status=TaskStatus.PENDING, desc="待启动",
+        subtasks=[_sub("g1", SubtaskStatus.PENDING)],
     ))
     # 待处理但依赖 alpha (未 done) → confirm 会被 deps 门拦
     _write_task(tdir, _task_json(
-        id="zeta", name="Zeta 任务", status="待处理", desc="被阻塞", deps=["alpha"],
-        subtasks=[_sub("z1", "待处理")],
+        id="zeta", name="Zeta 任务", status=TaskStatus.PENDING, desc="被阻塞", deps=["alpha"],
+        subtasks=[_sub("z1", SubtaskStatus.PENDING)],
     ))
     # 待处理 (plan 未收敛) — 且为 supertask 的 child
     _write_task(tdir, _task_json(
-        id="delta", name="Delta 任务", status="待处理", desc="规划中",
-        parent="super1", subtasks=[_sub("d1", "待处理")],
+        id="delta", name="Delta 任务", status=TaskStatus.PENDING, desc="规划中",
+        parent="super1", subtasks=[_sub("d1", SubtaskStatus.PENDING)],
     ))
     # 已完成
     _write_task(tdir, _task_json(
-        id="epsilon", name="Epsilon 任务", status="已完成", desc="完成态",
+        id="epsilon", name="Epsilon 任务", status=TaskStatus.DONE, desc="完成态",
         started=TNOW - 9000, finished=TNOW - 200,
-        subtasks=[_sub("e1", "已完成", started=TNOW - 8000, finished=TNOW - 7000)],
+        subtasks=[_sub("e1", SubtaskStatus.DONE, started=TNOW - 8000, finished=TNOW - 7000)],
     ))
     # supertask (含 child delta)
     _write_task(tdir, _task_json(
-        id="super1", name="Super 任务", status="进行中", desc="聚合", kind="supertask",
+        id="super1", name="Super 任务", status=TaskStatus.ACTIVE, desc="聚合", kind="supertask",
         worktree="wt/super1", started=TNOW - 8500,
     ))
 
     # 顶层索引 (_render_tasks mirror 源): 含全部 per-task + 一个幽灵骨架 ghost1
     index = {"tasks": [
-        {"id": "alpha", "status": "进行中", "deps": [], "worktree": "wt/alpha", "parent": None, "kind": "task"},
-        {"id": "beta", "status": "检查中", "deps": [], "worktree": "wt/beta", "parent": None, "kind": "task"},
-        {"id": "gamma", "status": "待处理", "deps": [], "worktree": None, "parent": None, "kind": "task"},
-        {"id": "zeta", "status": "待处理", "deps": ["alpha"], "worktree": None, "parent": None, "kind": "task"},
-        {"id": "delta", "status": "待处理", "deps": [], "worktree": None, "parent": "super1", "kind": "task"},
-        {"id": "epsilon", "status": "已完成", "deps": [], "worktree": None, "parent": None, "kind": "task"},
-        {"id": "super1", "status": "进行中", "deps": [], "worktree": "wt/super1", "parent": None, "kind": "supertask"},
-        {"id": "ghost1", "status": "待处理", "deps": [], "worktree": None, "parent": None, "kind": "task"},
+        {"id": "alpha", "status": TaskStatus.ACTIVE, "deps": [], "worktree": "wt/alpha", "parent": None, "kind": "task"},
+        {"id": "beta", "status": TaskStatus.CHECK, "deps": [], "worktree": "wt/beta", "parent": None, "kind": "task"},
+        {"id": "gamma", "status": TaskStatus.PENDING, "deps": [], "worktree": None, "parent": None, "kind": "task"},
+        {"id": "zeta", "status": TaskStatus.PENDING, "deps": ["alpha"], "worktree": None, "parent": None, "kind": "task"},
+        {"id": "delta", "status": TaskStatus.PENDING, "deps": [], "worktree": None, "parent": "super1", "kind": "task"},
+        {"id": "epsilon", "status": TaskStatus.DONE, "deps": [], "worktree": None, "parent": None, "kind": "task"},
+        {"id": "super1", "status": TaskStatus.ACTIVE, "deps": [], "worktree": "wt/super1", "parent": None, "kind": "supertask"},
+        {"id": "ghost1", "status": TaskStatus.PENDING, "deps": [], "worktree": None, "parent": None, "kind": "task"},
     ]}
     (d / ".skein" / "task.json").write_text(json.dumps(index, ensure_ascii=False, indent=2), encoding="utf-8")
 
@@ -157,8 +158,8 @@ def _seed(d: Path) -> None:
     ad = tdir / "archive" / "2033" / "01-01" / "old1"
     ad.mkdir(parents=True, exist_ok=True)
     (ad / "task.json").write_text(json.dumps(_task_json(
-        id="old1", name="Old 任务", status="已完成", desc="旧归档", finished=TNOW - 100000,
-        subtasks=[_sub("o1", "已完成")],
+        id="old1", name="Old 任务", status=TaskStatus.DONE, desc="旧归档", finished=TNOW - 100000,
+        subtasks=[_sub("o1", SubtaskStatus.DONE)],
     ), ensure_ascii=False, indent=2), encoding="utf-8")
 
     # spec 文件 (供 _search 命中)
@@ -172,7 +173,7 @@ def _capture(m: ModuleType, d: Path) -> dict[str, Any]:
     os.chdir(d)
     # 清 ENV override 保配置确定
     saved = {k: os.environ.pop(k) for k in list(os.environ) if k.startswith("CLAUDE_PLUGIN_OPTION_")}
-    # 冻结时间: 各模块都是 `from skeinlib.model import now`, 名字在 import 时就绑死了 ——
+    # 冻结时间: 各模块都是 `from skeinlib.task.model import now`, 名字在 import 时就绑死了 ——
     # 只 patch model.now 不生效, 必须逐个 patch **实际持有该名字的模块**。少 patch 一个的表现是
     # golden 里冒出真实时间戳, 所以这里按 `hasattr` 扫一遍, 新增模块不用回来改这里。
     frozen = [mod for mod in _now_holders() if hasattr(mod, "now")]

@@ -17,13 +17,17 @@
         "详情页有 finish 按钮",
         "pytest 通过"
       ],
-      "acceptance_done": [],
-      "status": "运行中",
+      "acceptance_done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
       "phase": "exec",
       "skills": [],
       "created": 1785668413,
       "started": 1785668470,
-      "finished": null
+      "finished": 1785668815
     },
     {
       "sid": "f2",
@@ -38,11 +42,11 @@
         "pytest 通过"
       ],
       "acceptance_done": [],
-      "status": "待处理",
+      "status": "运行中",
       "phase": "exec",
       "skills": [],
       "created": 1785668413,
-      "started": null,
+      "started": 1785668818,
       "finished": null
     },
     {
@@ -88,6 +92,6 @@
   "checked": null,
   "checked_end": null,
   "finished": null,
-  "updated": 1785668523,
+  "updated": 1785668818,
   "confirmed_by": "user"
 }

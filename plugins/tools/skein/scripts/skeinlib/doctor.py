@@ -22,17 +22,16 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional
 
+import yaml  # type: ignore[import-untyped]
+
 from skeinlib.hooks.runner import budget_guard
-from skeinlib.config import hooks_schema_errors, _yaml_load
 from skeinlib.errors import SkeinError
-from skeinlib.model import (PHASE_OF, PRIORITY_RANK, SLUG_RE, SS_DONE, SS_FAILED, SS_PENDING,
-                            SS_RUNNING, STATUS_INFLIGHT, S_ACTIVE, S_CHECK,
-                            S_DONE, S_FINISHING, S_PENDING, S_RESEARCH)
+from skeinlib.task.model import (PHASE_OF, PRIORITY_RANK, SLUG_RE, SubtaskStatus, STATUS_INFLIGHT, TaskStatus)
 from skeinlib.worktree import worktrees_of
 from skeinlib.paths import SCRIPTS_DIR
 
 if TYPE_CHECKING:
-    from skeinlib.store import TaskStore
+    from skeinlib.task.store import TaskStore
 
 SESSION_CTX_BUDGET_TOKENS = 400  # session-context 注入 token 硬预算 (active task ≤2, 正常远低于)
 
@@ -90,7 +89,7 @@ class DoctorMixin:
             tid = t.get("id", "?")
             if not SLUG_RE.match(str(tid)):
                 errs.append(f"{tid}: id 非 kebab-case slug")
-            if t.get("status") not in {S_PENDING, S_RESEARCH, S_ACTIVE, S_CHECK, S_FINISHING, S_DONE}:
+            if t.get("status") not in {TaskStatus.PENDING, TaskStatus.RESEARCH, TaskStatus.ACTIVE, TaskStatus.CHECK, TaskStatus.FINISHING, TaskStatus.DONE}:
                 errs.append(f"{tid}: 非法 status {t.get('status')!r}")
             # priority 体检 (task-priority p5): 未设时兜底为默认档合法, 只有「设了但不在四档枚举
             # 内」才判错 (含存量未迁移的 0-10 数字残留) —— 与 validate_priority() 校验口径一致。
@@ -127,7 +126,7 @@ class DoctorMixin:
                         errs.append(f"{tid}: worktree 路径不存在 (子 git {w['repo']}): {w['wt']}")
                 if not t.get("started"):
                     warns.append(f"{tid}: 在途但 started 未置")
-            if t.get("status") == S_DONE and not t.get("finished"):
+            if t.get("status") == TaskStatus.DONE and not t.get("finished"):
                 warns.append(f"{tid}: 已完成但 finished 时刻未置")
             # subtask 层
             subs = t.get("subtasks", [])
@@ -139,7 +138,7 @@ class DoctorMixin:
                 seen.add(sid); sids.add(sid)
             for s in subs:
                 sid = s.get("sid", "?")
-                if s.get("status") not in {SS_PENDING, SS_RUNNING, SS_DONE, SS_FAILED}:
+                if s.get("status") not in {SubtaskStatus.PENDING, SubtaskStatus.RUNNING, SubtaskStatus.DONE, SubtaskStatus.FAILED}:
                     errs.append(f"{tid}/{sid}: 非法 subtask status {s.get('status')!r}")
                 for f in ("sid", "name", "desc"):
                     if not s.get(f):
@@ -155,7 +154,7 @@ class DoctorMixin:
                 bad = [i for i in doneidx if i < 1 or i > len(crit)]
                 if bad:
                     errs.append(f"{tid}/{sid}: acceptance_done 越界 {bad} (共 {len(crit)} 条)")
-                if s.get("status") == SS_DONE and crit and len(set(doneidx)) < len(crit):
+                if s.get("status") == SubtaskStatus.DONE and crit and len(set(doneidx)) < len(crit):
                     warns.append(f"{tid}/{sid}: 已完成但验收未全勾 ({len(set(doneidx))}/{len(crit)})")
             # subtask DAG 环
             g = {s["sid"]: [d for d in s.get("depends_on", []) if d in sids]
@@ -192,22 +191,22 @@ class DoctorMixin:
         # work = 全局 running subtask 数, gate = 全量 task 检查中+收尾中数; 各自一行 sum, 不抽
         # 公共函数, 见 design.md s4 交付记录「两处重复成本低于抽象成本」, doctor 这里同理跟随)。
         pools = self.config()["pools"]
-        work_running = sum(1 for t in tasks for s in t.get("subtasks", []) if s.get("status") == SS_RUNNING)
-        gate_running = sum(1 for t in tasks if t.get("status") in (S_CHECK, S_FINISHING))
+        work_running = sum(1 for t in tasks for s in t.get("subtasks", []) if s.get("status") == SubtaskStatus.RUNNING)
+        gate_running = sum(1 for t in tasks if t.get("status") in (TaskStatus.CHECK, TaskStatus.FINISHING))
         if work_running > pools["work"]:
             errs.append(f"work 池超限: running {work_running} > 上限 {pools['work']}")
         if gate_running > pools["gate"]:
             errs.append(f"gate 池超限: running {gate_running} > 上限 {pools['gate']}")
 
-        # 残留 max_active 体检: s2 裁定「直接删, 不留 fallback」— 该键已不在 _CFG_LEGACY 映射内,
+        # 残留 max_active 体检: s2 裁定「直接删, 不留 fallback」— 该键已不在 CONFIG_DEFAULTS 内,
         # 留在 config.yaml 会被静默忽略 (并发上限已改读 pools.work), 用户会误以为它还生效。
         cfg_file = self.dir / "config.yaml"
         if cfg_file.exists():
             try:
-                raw_cfg = _yaml_load(cfg_file.read_text())
-            except ValueError:
+                raw_cfg = yaml.safe_load(cfg_file.read_text(encoding="utf-8"))
+            except (OSError, yaml.YAMLError):
                 raw_cfg = {}
-            if "max_active" in raw_cfg:
+            if isinstance(raw_cfg, dict) and "max_active" in raw_cfg:
                 warns.append(
                     f"config.yaml 残留 max_active={raw_cfg['max_active']!r} — 已废弃且不再生效 "
                     "(并发上限改读 pools.work), 删掉该键或迁到 `pools: {work: <值>}`")
@@ -215,12 +214,10 @@ class DoctorMixin:
         # agent 钩子配了但从未触发 (design.md §7 已知风险「agent 漏跑钩子」的唯一发现手段):
         # agent 钩子靠 agent 自己在工作流里调 dispatch (agent-start/agent-stop), 不像 harness
         # hook 有强制性 — 配了却漏调不会报错, 只能靠 .audit-log 里有无 action=agent-hook 行反推。
-        # 判「配了」看**有无实际条目**, 不看键是否存在 —— CONFIG_DEFAULTS 的 hooks 是完整骨架
-        # (全部 scope × 时机都列出, 列表为空), 键必然存在; 只有非空列表才代表用户真配了钩子。
-        # hooks 结构静态校验: 未知 scope / 拼错阶段名 / 非法字段一律列出。热路径 (_hooks_cfg) 只
-        # 告警, 硬判定放这里 —— 拼错的阶段名 = 钩子无声失效, 是最难查的一类故障 (design.md §7)。
+        # 判「配了」看**有无实际条目**, 不看键是否存在 —— ConfigData hooks 默认全空骨架,
+        # 键必然存在; 只有非空列表才代表用户真配了钩子。
+        # hooks 结构校验由 pydantic ConfigData.model_validate 在 reload 时完成, 非法结构直接 ValidationError。
         hooks_cfg = self._hooks_cfg()
-        errs += [f"config.yaml {e}" for e in hooks_schema_errors(hooks_cfg)] if hooks_cfg else []
 
         agents = hooks_cfg.get("agent")
         has_entry = isinstance(agents, dict) and any(

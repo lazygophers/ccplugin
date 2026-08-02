@@ -86,32 +86,17 @@ def _validate_budget(budget: int) -> None:
 
 def always_budget_tokens() -> int:
     """会话常驻注入 token 软预算: 读 .skein/config.yaml spec.always_budget (字符),
-    用换算系数转为 token。旧扁平键 spec_always_budget 仍生效 deprecated fallback;
-    缺该键时再 fallback 读 spec.core_budget (新嵌套) / spec_core_budget (旧扁平, deprecated);
-    两键皆缺/非正整数 → 默认 1000 字符 ≈ 580 token。
-
-    ⚠️ 默认值必须与 skeinlib.config.CONFIG_DEFAULTS["spec"]["always_budget"] 同步。
-
-    ponytail: 不用 skein._cfg_effective — 那个会给缺失叶回填默认值, 会吃掉「always_budget 本就
-    未设」这个信号, 令 core_budget 旧键 fallback 永远失效; 这里要保留「缺失」而非「已知默认」的区别,
-    故直读 raw 按 (嵌套>扁平) 取值, 取不到才是真缺失。懒求值, 每次调读盘, 支持热改。"""
+    用换算系数转为 token。缺失/非正整数 → 默认 517 字符 ≈ 300 token。"""
     from skeinlib.token_conversion import estimate_tokens_from_chars
 
     try:
-        from skeinlib.config import _yaml_load  # 局部 import
+        from skeinlib.config import Config  # 局部 import
         cfg_path = spec_root().parent / "config.yaml"
         if cfg_path.exists():
-            raw = _yaml_load(cfg_path.read_text())
-            spec_val = raw.get("spec")
-            spec_raw = spec_val if isinstance(spec_val, dict) else {}
-            v = spec_raw.get("always_budget", raw.get("spec_always_budget"))
-            if not isinstance(v, int) or v <= 0:
-                v = spec_raw.get("core_budget", raw.get("spec_core_budget"))  # deprecated fallback
-            if isinstance(v, int) and v > 0:
-                chars = v
-                tokens = estimate_tokens_from_chars(chars)  # 字符 → token
-                _validate_budget(tokens)  # 守卫: 非正数预算被挡下
-                return tokens
+            chars = Config(cfg_path).cfg.spec.always_budget
+            tokens = estimate_tokens_from_chars(chars)  # 字符 → token
+            _validate_budget(tokens)  # 守卫: 非正数预算被挡下
+            return tokens
     except Exception:
         pass
     # 默认 517 字符 ≈ 300 token (517 × 0.58 = 299.86, ceil = 300)

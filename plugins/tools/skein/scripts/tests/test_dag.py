@@ -267,7 +267,7 @@ def test_priority_does_not_cross_unfinished_dep(skein_cli: SkeinCli, ws: Path) -
     _add(skein_cli, ws, "blocker", "b1")
     _fill_prd(ws, "blocker")
     skein_cli(ws, "estimate", "blocker", "--set", "1")
-    skein_cli(ws, "confirm", "blocker")  # 就绪但未完成 (status != S_DONE)
+    skein_cli(ws, "confirm", "blocker")  # 就绪但未完成 (status != TaskStatus.DONE)
     skein_cli(ws, "create", "urgent-waiting", "--name", "urgent-waiting", "--desc", "d",
               "--priority", "urgent", "--deps", "blocker")
     _add(skein_cli, ws, "urgent-waiting", "u1")

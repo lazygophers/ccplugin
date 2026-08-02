@@ -12,7 +12,7 @@ import shutil
 from pathlib import Path
 from typing import Any
 
-from skeinlib.model import S_PENDING, now
+from skeinlib.task.model import TaskStatus, now
 
 # ---- setup: 初始化 / trellis 迁移 (机械部分; 语义 spec 重组由 skein-setup agent 做) ----
 # trellis 接线 (无条件删, 避免双注入 skein 独占): .trellis 下的 hook/脚本/settings
@@ -54,7 +54,7 @@ def migrate_trellis_tasks(trellis: Path, tasks_dir: Path, store: Any) -> list[di
         t = {
             "id": tid, "name": raw.get("title") or raw.get("name") or tid,
             "desc": raw.get("description") or raw.get("desc") or "",
-            "status": S_PENDING, "deps": deps, "contracts": [], "subtasks": [],
+            "status": TaskStatus.PENDING, "deps": deps, "contracts": [], "subtasks": [],
             "worktree": None, "branch": f"skein/{tid}",
             "created": now(), "started": None, "finished": None, "updated": now(),
         }

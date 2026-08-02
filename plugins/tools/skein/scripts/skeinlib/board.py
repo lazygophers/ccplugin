@@ -9,8 +9,22 @@ from __future__ import annotations
 
 from typing import Any
 
-from skeinlib.dag import _sub_pct, _task_pct
-from skeinlib.model import SS_DONE, S_DONE
+from skeinlib.task.dag import _sub_pct, _task_pct
+from skeinlib.task.model import SUBTASK_STATUS_DISPLAY, TASK_STATUS_DISPLAY, SubtaskStatus, TaskStatus
+
+
+def _task_status_label(value: Any) -> str:
+    try:
+        return TASK_STATUS_DISPLAY[TaskStatus(value)]
+    except ValueError:
+        return str(value)
+
+
+def _subtask_status_label(value: Any) -> str:
+    try:
+        return SUBTASK_STATUS_DISPLAY[SubtaskStatus(value)]
+    except ValueError:
+        return str(value)
 
 
 def render_board(tasks: list[dict[str, Any]], wt_shown: bool) -> str:
@@ -28,7 +42,7 @@ def render_board(tasks: list[dict[str, Any]], wt_shown: bool) -> str:
 
     def row(t: dict[str, Any]) -> str:
         deps = ",".join(t.get("deps", [])) or "-"
-        base = f"| {t['id']} | {t['name']} | {t['status']} | {deps} |"
+        base = f"| {t['id']} | {t['name']} | {_task_status_label(t['status'])} | {deps} |"
         return f"{base} {t.get('worktree') or '-'} |" if wt_shown else base
 
     if not supertasks:
@@ -40,7 +54,7 @@ def render_board(tasks: list[dict[str, Any]], wt_shown: bool) -> str:
             lines.append(row(st))
             seen.add(st["id"])
             for c in by_parent.get(st["id"], []):
-                crow = (f"| ↳ {c['id']} | {c['name']} | {c['status']} | "
+                crow = (f"| ↳ {c['id']} | {c['name']} | {_task_status_label(c['status'])} | "
                         f"{','.join(c.get('deps', [])) or '-'} |")
                 if wt_shown:
                     crow += f" {c.get('worktree') or '-'} |"
@@ -70,7 +84,7 @@ def render_task_board(t: dict[str, Any], work_active: int, gate_active: int) -> 
         deps = ",".join(s.get("depends_on", [])) or "-"
         chk = "; ".join(s.get("acceptance", [])) or "-"
         sk = ",".join(s.get("skills", [])) or "-"
-        rows.append(f"| {s['sid']} | {s['name']} | {s['status']} | {_sub_pct(s)}% | {sk} | {deps} | {chk} |")
+        rows.append(f"| {s['sid']} | {s['name']} | {_subtask_status_label(s['status'])} | {_sub_pct(s)}% | {sk} | {deps} | {chk} |")
     body = "\n".join(rows) if rows else "| - | - | - | - | - | - | - |"
     return (
         f"# SKEIN 子任务看板 — {t['id']} {t['name']}\n\n"
@@ -91,12 +105,12 @@ def render_vision(st: dict[str, Any], children: list[dict[str, Any]]) -> str:
     rows = []
     for c in children:
         subs = c.get("subtasks", [])
-        sdone = sum(1 for s in subs if s.get("status") == SS_DONE)
+        sdone = sum(1 for s in subs if s.get("status") == SubtaskStatus.DONE)
         sratio = f"{sdone}/{len(subs)}" if subs else "-"
-        rows.append(f"| {c['id']} | {c['name']} | {c['status']} | {sratio} | {_task_pct(c)}% |")
+        rows.append(f"| {c['id']} | {c['name']} | {_task_status_label(c['status'])} | {sratio} | {_task_pct(c)}% |")
     body = "\n".join(rows) if rows else "| - | - | - | - | - |"
     overall = (sum(_task_pct(c) for c in children) // len(children)) if children else 0
-    done_n = sum(1 for c in children if c.get("status") == S_DONE)
+    done_n = sum(1 for c in children if c.get("status") == TaskStatus.DONE)
     return (
         f"# SKEIN supertask 聚合看板 — {st['id']} {st.get('name') or st['id']}\n\n"
         "> 脚本渲染, 禁直接编辑; child task 状态变更即自动刷。整体完成率 = child _task_pct 均值。\n\n"

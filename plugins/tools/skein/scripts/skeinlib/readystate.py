@@ -19,7 +19,7 @@ import shutil
 from pathlib import Path
 from typing import Any
 
-from skeinlib.model import S_PENDING
+from skeinlib.task.model import TaskStatus
 
 _LEGACY_READY = "就绪"
 
@@ -46,7 +46,7 @@ def migrate_ready_status(root: Path, tasks_dir: Path, archive_dir: Path) -> dict
         dst = backup_dir / f.relative_to(root)
         dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(f, dst)
-        data["status"] = S_PENDING
+        data["status"] = TaskStatus.PENDING
         f.write_text(json.dumps(data, ensure_ascii=False, indent=2))
         migrated.append(str(f.relative_to(root)))
     return {"migrated": migrated,

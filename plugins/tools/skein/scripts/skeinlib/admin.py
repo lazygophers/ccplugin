@@ -7,16 +7,16 @@
 from __future__ import annotations
 
 import argparse
-from typing import TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from skeinlib.workspace import Workspace
 
-from skeinlib.config import (_CFG_LEGACY, CONFIG_DEFAULTS, HOOKS_SKELETON, _cfg_get_path,
-                             _cfg_paths, _cfg_set_path, _coerce_config, _yaml_dump, _yaml_load)
+import yaml  # type: ignore[import-untyped]
+from skeinlib.config import Config, ConfigData
 from skeinlib.derivatives import gi_entries
 from skeinlib.errors import SkeinError
-from skeinlib.model import S_DONE
+from skeinlib.task.model import TaskStatus
 from skeinlib.migrate import (disable_trellisx_plugin, migrate_trellis_tasks,
                               purge_trellis_hooks, purge_wiring, settings_trellis_notes)
 from skeinlib.paths import SPEC_ENTRY
@@ -32,6 +32,25 @@ import subprocess
 import sys
 
 
+from pydantic import BaseModel
+
+
+def _flatten_cfg(model: BaseModel, prefix: str = "") -> list[tuple[str, Any]]:
+    """递归遍历 pydantic model → [(点号路径, 值), ...] (跳过 hooks)。"""
+    out: list[tuple[str, Any]] = []
+    for name, info in type(model).model_fields.items():
+        if name == "hooks":
+            continue
+        key = info.alias or name
+        path = f"{prefix}.{key}" if prefix else key
+        val = getattr(model, name)
+        if isinstance(val, BaseModel):
+            out.extend(_flatten_cfg(val, path))
+        else:
+            out.append((path, val))
+    return out
+
+
 class Admin:
     """工作区级命令: init / setup / config / clean / board。"""
 
@@ -44,7 +63,7 @@ class Admin:
         self.ws.archive_dir.mkdir(parents=True, exist_ok=True)
         cfg = self.ws.dir / "config.yaml"
         if not cfg.exists():
-            cfg.write_text(_yaml_dump(dict(CONFIG_DEFAULTS)) + HOOKS_SKELETON)
+            Config(cfg).reload()  # reload 文件不存在时自动写默认配置
         # .skein/.gitignore — 条目从 derivatives.DERIVATIVES 单一登记处导出 (单一来源, 见该模块)
         gi = self.ws.dir / ".gitignore"
         GI_ENTRIES = gi_entries()
@@ -100,10 +119,7 @@ class Admin:
         # web 看板服务: 缺省启用 (init 已写 web.serve=true); --no-web 关闭。启用则打开看板一次 (监听服务由 monitor 起)。
         web_enabled = not getattr(a, "no_web", False)
         if not web_enabled:
-            cfgf = self.ws.dir / "config.yaml"
-            cfg = _yaml_load(cfgf.read_text())
-            cfg = _cfg_set_path(cfg, "web.serve", False)
-            cfgf.write_text(_yaml_dump(cfg))
+            Config(self.ws.dir / "config.yaml").set("web.serve", False)
         else:
             print("可视化看板: 运行 `skein view` 起 http 服务打开 (常驻服务由 monitor 起)。", file=sys.stderr)
         manifest = {
@@ -121,51 +137,29 @@ class Admin:
         print(json.dumps(manifest, ensure_ascii=False, indent=2))
 
     def config_cmd(self, a: argparse.Namespace) -> None:
-        cfg = self.ws.config()  # 生效值 (含 ENV override + 缺键回填), 结构固定同 CONFIG_DEFAULTS
+        cfg_path = self.ws.dir / "config.yaml"
+        config = Config(cfg_path)
         action = getattr(a, "action", None)
         if action is None:  # 无参 → 展示全部生效配置
-            if getattr(a, "json", False):  # --json: 机器可解析嵌套结构 (skein config --json | jq -r .worktree.enabled)
+            cfg = self.ws.config()
+            if getattr(a, "json", False):
                 print(json.dumps(cfg, ensure_ascii=False))
                 return
-            for path in _cfg_paths():  # 扁平化点号展示, 如 spec.always_budget=8000
-                print(f"{path}={_cfg_get_path(cfg, path)}")
+            for path, val in _flatten_cfg(config.cfg):
+                print(f"{path}={val}")
             return
-        if action == "reset":  # 全部重置为默认值 (覆写 config.yaml, 统一写回新嵌套格式)
-            (self.ws.dir / "config.yaml").write_text(_yaml_dump(dict(CONFIG_DEFAULTS)))
+        if action == "reset":
+            config.reset()
             print("已重置全部配置为默认值:")
-            for path in _cfg_paths():
-                print(f"{path}={_cfg_get_path(CONFIG_DEFAULTS, path)}")
-                flat_key = next((fk for fk, (gk, lk) in _CFG_LEGACY.items() if f"{gk}.{lk}" == path), None)
-                env_key = flat_key or path
-                if os.environ.get(f"CLAUDE_PLUGIN_OPTION_{env_key.upper()}"):
-                    print(f"注意: {path} 有 ENV override 生效, 实际读取仍为环境值 (写盘已重置)")
+            for path, val in _flatten_cfg(config.cfg):
+                print(f"{path}={val}")
             return
-        # set — 接受新点号路径 (如 worktree.enabled) 或旧扁平键 (如 use_worktree, deprecated 但仍生效)。
-        # 写盘策略: 纯扁平旧仓 (盘上无同组嵌套叶) 原样写回扁平, 不代劳迁移; 但若盘上已有同组嵌套叶
-        # (如 init 默认就写嵌套), 改写该嵌套叶而非另加扁平键 —— 否则嵌套读取优先级更高, 扁平 set 会被
-        # 遮蔽变相失效 (见 _cfg_effective 优先级: 嵌套新键 > 旧扁平键)。
         key = a.key
-        legacy = _CFG_LEGACY.get(key)  # 避免与上方 for-loop 变量 path (str) 同名混型 (mypy 按函数作用域统一变量类型)
-        path_str = f"{legacy[0]}.{legacy[1]}" if legacy else key
-        if path_str not in _cfg_paths():
-            raise SkeinError(f"未知配置键: {key} — 可用: {', '.join(_cfg_paths())}")
         try:
-            val = _coerce_config(path_str, a.value)
-        except (TypeError, ValueError):
-            expect = type(_cfg_get_path(CONFIG_DEFAULTS, path_str)).__name__
-            raise SkeinError(f"值类型不合: {key} 需 {expect}, 得 {a.value!r}")
-        f = self.ws.dir / "config.yaml"
-        raw = _yaml_load(f.read_text()) if f.exists() else {}
-        if legacy is not None and not (isinstance(raw.get(legacy[0]), dict) and legacy[1] in raw[legacy[0]]):
-            # 旧扁平键 且 盘上尚无同名嵌套叶: 原样写回扁平 (纯扁平旧仓零破坏, 不代劳迁移)。
-            raw[key] = val
-        else:
-            # 新点号路径, 或旧扁平键但盘上已有同组嵌套叶 (嵌套读取优先级更高, 不改嵌套则 set 会被遮蔽变相失效): 写嵌套结构。
-            raw = _cfg_set_path(raw, path_str, val)
-        f.write_text(_yaml_dump(raw))
-        print(f"{key} = {val}")
-        if os.environ.get(f"CLAUDE_PLUGIN_OPTION_{key.upper()}"):
-            print(f"注意: {key} 有 ENV override 生效, 实际读取仍为环境值 (写盘已更新)")
+            config.set(key, a.value)
+        except (KeyError, ValueError, TypeError) as e:
+            raise SkeinError(f"配置键或值类型错误: {key}={a.value!r} — {e}")
+        print(f"{key} = {a.value}")
 
     def clean(self, a: argparse.Namespace) -> None:
         # 用户主动清理 (skein-clean skill 唯一入口): 归档完成超 --days 天的 task。
@@ -179,7 +173,7 @@ class Admin:
             print(f"无超 {d} 天保留期的完成 task 可归档")
         rest = self.ws.store.all_tasks()
         blocked = self.ws.store._unfinished_related(rest)  # 关联链护栏在落盘层 (store.py)
-        held = sorted(t["id"] for t in rest if t["id"] in blocked and t["status"] == S_DONE)
+        held = sorted(t["id"] for t in rest if t["id"] in blocked and t["status"] == TaskStatus.DONE)
         if held:
             print(f"跳过 {len(held)} 个完成 task (关联链上仍有未完成): {', '.join(held)}")
 

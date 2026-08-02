@@ -8,7 +8,7 @@
 换成领域异常后, 同一个 implementation 拿到两个 adapter —— 生产走 `main()` 转退出码,
 测试走 `pytest.raises(SkeinError)` 直读。**两个 adapter 才算真 seam**, 不是假想的。
 
-先例在库内: `config._yaml_bad` 早就这么做了 (返回 `ValueError`, 由入口转 `SystemExit`),
+先例在库内: `Config.yaml_load` 早就这么做了 (返回 `ValueError`, 由入口转 `SystemExit`),
 理由是 hook 热路径的 `except (OSError, ValueError)` 能兜住, 一个 config 笔误不该让每个
 prompt 的 hook 都 exit 1。这里只是把那条已验证的决定推广到其余错误路径。
 

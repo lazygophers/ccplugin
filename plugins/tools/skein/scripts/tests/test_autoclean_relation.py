@@ -3,8 +3,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from skeinlib.model import S_DONE as DONE
-from skeinlib.store import TaskStore
+from skeinlib.task.model import TaskStatus as DONE
+from skeinlib.task.store import TaskStore
 
 BLOCKED = TaskStore._unfinished_related  # 关联链护栏在落盘层 (skeinlib/store.py)
 
