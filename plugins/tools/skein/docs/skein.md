@@ -260,13 +260,14 @@ repo/.worktrees/
 
 差异化核心: 每 task 踩过的坑自动落盘, 后续 task 自动带上。
 
-### 三层存储
+### 四层存储
 
-| 层 | 路径 | 用途 | 注入 |
+| namespace | 路径 | 用途 | inclusion 示例 |
 | --- | --- | --- | --- |
-| core | `spec/core/<cat>/` | 违反即错硬约束 | 每 session 自动 |
-| recall | `spec/recall/<cat>/` | 值得参考经验 | 按关键词召回 |
-| external | `spec/external/<cat>/` | 外部引用 | 仅手动 CLI |
+| rules | `spec/rules/<cat>/` | 硬规/契约 (违反即错) | `always` |
+| product | `spec/product/<cat>/` | 业务领域知识 | `auto` / `always` |
+| map | `spec/map/<cat>/` | 项目结构映像 | `fileMatch` |
+| external | `spec/external/<cat>/` | 外部引用 | `manual` |
 
 ### 类目
 

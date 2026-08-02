@@ -30,8 +30,10 @@ skein init    # 或由 skein-setup skill 自动触发
 | `task.json` | 状态汇总 | 脚本 (AI 禁读写) |
 | `task.md` / `task.html` | 看板 | 脚本渲染 |
 | `task/<id>/` | task 记录 | 脚本 + AI |
-| `spec/core/` | 常驻规则 | skein-spec |
-| `spec/recall/` | 按需规则 | skein-spec |
+| `spec/rules/` | 硬规/契约 | skein-spec |
+| `spec/product/` | 业务领域知识 | skein-spec |
+| `spec/map/` | 项目结构映像 | skein-spec |
+| `spec/external/` | 外部引用 | skein-spec |
 
 ## 首个 task
 

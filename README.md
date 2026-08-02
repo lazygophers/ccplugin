@@ -56,7 +56,7 @@ claude plugin install <插件名>@ccplugin-market
 | `trellisx` | Trellis 增强改造工具 - 跑一次 trellisx-apply 把 强推task / subtask拆分 / worktree隔离 / plan→exec→check→finish闭环 / task.md看板 注入 .trellis; 含 flow 强制task / orchestrate 编排 / workspace 看板 / spec 破坏式重构 | trellis, task-orchestration, worktree, subtask, spec |
 | `cortex` | 知识库 + 记忆管理插件 - 双层 vault、5 级记忆 (遗忘曲线)、8 skill (schema/ingest/lint/extract/history-digest/context-digest/evolve/recall) | knowledge-base, memory, vault, forgetting-curve, recall |
 | `novelist` | 小说写作全流程插件 - 从爆款题材/世界观/人物/大纲到章节编写、一致性检查、校对、去AIGC、重写、批量流水线的端到端工作流 | novel, writing, fiction, worldbuilding, continuity-check |
-| `skein` | SKEIN 独立任务管理插件 (零 trellis 依赖) - 强制 task 闭环 (plan→exec→check→finish) + 动态 DAG 编排调度 + worktree 隔离 + 两层×类目规则记忆 + 9 skill + 3 agent | task-management, dag-scheduling, worktree, rules-memory, kanban |
+| `skein` | SKEIN 独立任务管理插件 (零 trellis 依赖) - 强制 task 闭环 (plan→exec→check→finish) + 动态 DAG 编排调度 + worktree 隔离 + 四namespace×类目规则记忆 (rules/product/map/external × inclusion) + 9 skill + 3 agent | task-management, dag-scheduling, worktree, rules-memory, kanban |
 
 ## 安装示例
 

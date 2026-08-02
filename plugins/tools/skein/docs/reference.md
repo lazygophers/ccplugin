@@ -34,14 +34,26 @@
 | 命令 | 用途 |
 | --- | --- |
 | `init` | 初始化 spec 目录 |
-| `recall <query>` | 按关键词召回规则 |
-| `recall free <text>` | 全文模糊匹配 |
-| `sediment --namespace <ns> [--inclusion] [--category]` | 沉淀规则 |
-| `prune [--dry-run]` | 清理 stale/重复规则 |
-| `maintain` | 全量健康检查 |
-| `reconstruct` | 按项目类型重建 |
+| `inject-core` | 全文注入 rules 规则 (常驻) |
+| `session-start` | [hook 用] 每 session 注入 rules 规则索引 |
+| `subagent-start` | [hook 用] 每 subagent 注入 rules 全文 + spec 纪律 |
+| `reindex` | 重建各层 index.md + 顶层总索引 (改盘后同步) |
+| `recall <query>` | 按关键词 FTS5 BM25 排序 recall |
+| `sediment [--namespace <ns>] [--inclusion] [--category]` | 沉淀一条规则 + 自动 reindex |
+| `analyze` | [只读] 五类一致性核查: 验收覆盖率/硬规冲突/范围蔓延/proposed 置信度/接缝存在性 |
+| `list` | 列已存规则 |
+| `maintain [--apply]` | 全量体检 (按 namespace 判据分表: 超预算/stale/断链含anchors/keywords重复/废弃/孤立/配置问题); --apply 自动修复 (断链/配置问题/report类只报告) |
+| `degrade` | always→auto 单文件降级 (仅改 inclusion frontmatter + reindex + 审计, 不移动文件) |
+| `archive` | [完全重构前] 可逆归档旧规则到 .archive/<ts>/ + reindex |
+| `restore` | 从归档恢复规则 (撞名不覆盖新规则, 加 restored- 前缀并存) |
+| `restructure` | 按映射把碎片文件合并进主题文件 (源进 .archive/, 可 restore 回滚) |
+| `map` | [只读] 现算目录树+符号+行数 (不写盘) |
+| `amend` | 改写既有章节正文, 其余章节与 frontmatter 逐字不动; 改前 archive 旧版; --rename-section 同步更新反链; 后自动 reindex |
+| `finish-candidates` | [finish 用] 为 task 生成候选 product wiki 页 (三路降级: anchors反查→prd关键词recall→皆无建议新建) |
 | `bootstrap [--scan]` | 冷启动播种 |
-| `inject-core` | 全文注入 core 规则 |
+| `-d, --debug` | rich 美化叙事到 stderr — 展示命令与参数 (stdout 保持机器纯净; 亦可 SKEIN_DEBUG=1) |
+
+> **Deprecated 命令**: `prune` (改用 `maintain --apply`), `reconstruct` (改用 `maintain`), `recall free` (改用 `recall` 全文模式), `inject-core` (保留兼容, 内部已映射到 `inject-core` 规则 namespace)
 
 ### skein-hooks
 
@@ -67,7 +79,7 @@
 | retain_days | 7 | 归档保留天数 |
 | auto_commit | true | 原地模式 finish 时自动 git commit; worktree 模式恒强制 commit, 本键不参与判定 |
 | worktree_root | `.worktrees` | worktree 路径 |
-| spec.always_budget | 1000 | always 页常驻注入软预算 (char); 旧键 spec_core_budget 仍作 fallback |
+| spec.always_budget | 1000 | always 页常驻注入软预算 (char); 旧键 spec_core_budget 已废弃仍作 fallback |
 | board_theme/palette/mode | default/blue/light | 看板样式 |
 
 `hooks` (阶段钩子 + agent 钩子) 是可选特性, 不在 `CONFIG_DEFAULTS` 里 (无默认值, `init`/展示均不含),

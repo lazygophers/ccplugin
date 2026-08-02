@@ -28,8 +28,8 @@
 
 不同于 spec 式「按需沉淀单一文件」, SKEIN 记忆按两个正交维度组织:
 
-- **core (常驻)** — `.skein/spec/core/<类目>/*.md`: 每 session 自动注入的硬规 / 命令式契约。适合「后续同类任务必再踩」的强约束。
-- **recall (按需)** — `.skein/spec/recall/<类目>/*.md`: 存盘, 按任务语义相关性检索注入。适合长尾、上下文密集的经验, 不占常驻上下文。
+- **namespace (内容类型目录)** — `rules/` (硬规/契约) / `product/` (业务领域知识) / `map/` (项目结构映像) / `external/` (外部引用) 四类, 按 `SPEC_NAMESPACES` 开放不校验白名单
+- **inclusion (加载策略)** — `always` (常驻注入) / `auto` (按需召回) / `fileMatch` (按 globs 匹配注入正文) / `manual` (纯手动), 每条规则的 `inclusion` frontmatter 决定何时加载
 
 **namespace × 类目**: namespace 内按类目 (git/test/arch/build/style/domain/ops...) 分子目录, 自由取名按需建。索引: 每个 `<namespace>/index.md` (带 inclusion 列) + 顶层 `index.md` 聚合, sediment 写盘后自动 reindex。**加载策略不看目录, 看 frontmatter 的 `inclusion`** —— 两者正交。
 
@@ -49,9 +49,11 @@
     ├── <id>/          # 活跃 + 完成保留期内 task: prd.md(主入口) / design.md(详细设计) / findings.md(调研收敛) / research/ + task.json/task.md(脚本渲染)
     └── archive/<年>/<月-日>/<id>/   # 按完成日期分层归档 (完成超 retain_days 天自动移入)
 .skein/spec/
-├── index.md                      # 顶层索引 (全 namespace 聚合概览)
-├── core/{<类目>/*.md,index.md}   # 常驻规则 (按类目分子目录) + 层索引
-└── recall/{<类目>/*.md,index.md} # 按需召回规则 (按类目分子目录) + 层索引
+├── index.md                             # 顶层索引 (全 namespace 聚合概览)
+├── rules/{<类目>/*.md,index.md}        # 硬规/契约 (按类目分子目录) + 层索引
+├── product/{<类目>/*.md,index.md}      # 业务领域知识 (按类目分子目录) + 层索引
+├── map/{<类目>/*.md,index.md}          # 项目结构映像 (按类目分子目录) + 层索引
+└── external/{<类目>/*.md,index.md}    # 外部引用 (按类目分子目录) + 层索引
 ```
 
 > SKEIN 自包含: `skein` 自身即引擎, `config.yaml` 是纯设置, start/finish 直接干活 (hook 只做注入 / 护栏, 不驱动生命周期)。
