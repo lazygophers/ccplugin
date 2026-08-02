@@ -16,7 +16,7 @@ def main() -> None:
     p = argparse.ArgumentParser(
         prog="skein.py",
         description="SKEIN 任务管理引擎 — task 生命周期 + 看板 + 契约",
-        epilog="生命周期: init → create → start → (exec/check) → finish → archive",
+        epilog="生命周期: init → create → (research ⇄ plan) → confirm(吸收 start) → check → finishing → finish → archive",
     )
     p.add_argument("-d", "--debug", action="store_true",
                    help="rich 美化叙事到 stderr — 展示 git/写盘/锁/状态迁移全过程 (stdout 保持机器纯净; 亦可 SKEIN_DEBUG=1)")
@@ -45,18 +45,22 @@ def main() -> None:
     dp = sub.add_parser("deps", help="查/补 task 级前置 DAG (dedup 排序用; 仅 pending 且无既有 deps 可写)")
     dp.add_argument("id", help="task id")
     dp.add_argument("--set", help="设置前置 task id (逗号分隔; 仅当该 task 现无 deps 时允许); 省略则列出")
-    cf = sub.add_parser("confirm", help="用户确认门 (待处理→就绪): 须**用户本人**审核 PRD 后才放行, 两条通道见 --approved / 终端交互")
+    rs = sub.add_parser("research", help="待处理→调研中: 发起调研 (须先登记 ≥1 个 --phase research 的 subtask)")
+    rs.add_argument("id", help="task id")
+    pl = sub.add_parser("plan", help="调研中→待处理: 收敛调研回规划 (须 research subtask 全 done; 调研中不可直接 confirm)")
+    pl.add_argument("id", help="task id")
+    cf = sub.add_parser("confirm", help="用户确认门 (待处理→进行中, 吸收原 start): 须**用户本人**审核 PRD 后才放行, 两条通道见 --approved / 终端交互")
     cf.add_argument("id", help="task id")
     cf.add_argument("--summary", action="store_true",
                     help="只打印 PRD 审核摘要到 stdout 后退出, 不改状态 — 供 main 塞进 AskUserQuestion 给用户看")
     cf.add_argument("--approved", action="store_true",
                     help="用户已在 AskUserQuestion 里批准 (main 专用)。🛑 只准在真拿到用户批准后传, "
                          "自己传 = 伪造用户审核, 属流程错误")
-    s = sub.add_parser("start", help="激活就绪 task: 建 worktree + 进行中 (就绪须先经 confirm; 就绪即可并行, 无 focus)")
-    s.add_argument("id", help="task id")
     ck = sub.add_parser("check", help="标记 task 进入检查阶段 (进行中→检查中, 记 checked 时刻)")
     ck.add_argument("id", help="task id")
-    f = sub.add_parser("finish", help="收束 task: commit→merge→销 worktree→标记完成 (归档=保留期后自动)")
+    fi = sub.add_parser("finishing", help="检查中→收尾中: 占 gate 槽 (上限 pools.gate), main 收到后派 skein-finisher 完成 finish")
+    fi.add_argument("id", help="task id")
+    f = sub.add_parser("finish", help="收束 task (仅收尾中可调): commit→merge→销 worktree→标记完成 (归档=保留期后自动)")
     f.add_argument("id", help="task id")
     fm = sub.add_parser("fmt", help="规范化 prd.md: 章节内一级 list 补 - [ ] todo + 校验六标准章节 (旧四段兼容态 warning; 幂等)")
     fm.add_argument("id", help="task id")
@@ -86,10 +90,11 @@ def main() -> None:
     sub.add_parser("ready", help="脚本算可启动 task 批 (就绪态+前置全done+有空闲槽, 只读预览)")
     cm = sub.add_parser("claim", help="全局跨 task 认领批; phase 必填区分阶段")
     cm.add_argument("phase", choices=["exec", "check"],
-                    help="exec=认领 ready subtask → running (所有可调度 task 的 ready subtask 竞争 pools.work 槽); check=认领 全 subtask done 的 进行中 task → 检查中 + 认领 检查通过的 检查中 task → 已完成")
+                    help="exec=认领 ready subtask → running (所有可调度 task 的 ready subtask 竞争 pools.work 槽); check=认领 全 subtask done 的 进行中 task → 检查中 + 认领 全 subtask done 的 检查中 task → 收尾中(占 gate 槽)")
     cm.add_argument("--dry-run", action="store_true", help="只读预览认领批, 不改状态")
     li = sub.add_parser("list", help="列所有 task (含状态); --status 过滤 + --json 压缩输出")
-    li.add_argument("--status", help="过滤: 待处理/就绪/进行中/检查中/已完成 (或 pending/ready/active/check/done), open=全部未完成; 逗号多选")
+    li.add_argument("--status", help="过滤: 待处理/调研中/进行中/检查中/收尾中/已完成 "
+                                     "(或 pending/research/active/check/finishing/done), open=全部未完成; 逗号多选")
     li.add_argument("--json", action="store_true",
                     help="压缩单行 JSON (exec 取未完成任务用, 省 token); 每项 {id,status,name,desc,deps,worktree,pct,subs:[done,run,pend,fail],ready}")
     _doc = sub.add_parser("doctor", help="纯脚本体检 task/subtask 不变量违规 (有错 exit 1, 可 CI/hook 门禁); --quality 再跑 mypy+pytest 质量门")
@@ -137,6 +142,9 @@ def main() -> None:
     st.add_argument("--estimate", help="[add 必填] 预计工时(小时, 正数) — 按本 subtask 实际要做的事逐项估")
     st.add_argument("--deps", help="[add] 前置 subtask id, 逗号分隔 (依赖全 done 才就绪; 并行只看此 DAG)")
     st.add_argument("--check", help="[add] 验收标准 checklist, 分号分隔 (每条一个可验断言)")
+    st.add_argument("--phase", choices=["exec", "research"],
+                    help="[add] subtask 阶段: exec(改码/写产出, 默认) | research(查资料); "
+                         "≥1 个 research subtask 才可 `skein research` 发起调研")
     st.add_argument("--note", help="[fail] 失败备注")
     st.add_argument("--passed", help="[check] 已通过验收标准序号(1-based), 逗号分隔; all=全过, none=清空")
     st.add_argument("--skills", help="[add] 关联 skills, 逗号分隔 (0-n, 省略即无)")
@@ -171,7 +179,8 @@ def main() -> None:
         "clean": sk.admin.clean, "board": sk.admin.board,
         # Lifecycle: 单 task 状态机 + 计划字段
         "create": sk.lifecycle.create, "confirm": sk.lifecycle.confirm,
-        "start": sk.lifecycle.start, "check": sk.lifecycle.check,
+        "research": sk.lifecycle.research, "plan": sk.lifecycle.plan,
+        "check": sk.lifecycle.check, "finishing": sk.lifecycle.finishing,
         "finish": sk.lifecycle.finish, "archive": sk.lifecycle.archive,
         "repos": sk.lifecycle.repos, "deps": sk.lifecycle.deps,
         "estimate": sk.lifecycle.estimate, "rename": sk.lifecycle.rename,
@@ -189,7 +198,8 @@ def main() -> None:
     }
     # 会写 task.json / task.md 的命令加工作区写锁 (防多 skein 进程并发 read-modify-write)。
     # 纯读命令 (current/ready/list/board/view) 免锁。subtask 含读 action 但整体加锁最省事。
-    MUTATING = {"init", "setup", "create", "confirm", "start", "check", "finish", "fmt", "archive", "clean",
+    MUTATING = {"init", "setup", "create", "confirm", "research", "plan", "check", "finishing",
+                "finish", "fmt", "archive", "clean",
                 "contract", "repos", "deps", "estimate", "subtask", "claim", "prd", "del", "delete", "rm", "remove",
                 "rename", "config"}
     if a.cmd in MUTATING:

@@ -1,11 +1,11 @@
-"""`Lifecycle` — task 状态机: 待处理 → 就绪 → 进行中 → 检查中 → 已完成, 外加删/改名。
+"""`Lifecycle` — task 状态机: 待处理 ⇄ 调研中 → 进行中 → 检查中 → 收尾中 → 已完成, 外加删/改名。
 
 ## 这个类的边界
 只管**一个 task 自身的状态迁移与计划字段** (deps/estimate/repos)。不碰调度 (归 `Scheduler`)、
 不碰只读投影 (归 `Query`)、不碰 prd/契约正文 (归 `Artifacts`)、不碰工作区级命令 (归 `Admin`)。
 
 ## 依赖为什么是构造入参
-`ws` 给路径/配置/落盘/钩子, `doctor` 给 start 前置体检 —— 后者本来是 `DoctorMixin` 挂在门面
+`ws` 给路径/配置/落盘/钩子, `doctor` 给 confirm 前置体检 (confirm 吸收原 start 的启动职责) —— 后者本来是 `DoctorMixin` 挂在门面
 上的方法, 这里只要"能跑一次体检"这个能力, 不需要认识整个门面。注入一个可调用对象, 依赖就到此
 为止, 不会顺着 `self` 摸到别的东西。
 """
@@ -19,8 +19,8 @@ if TYPE_CHECKING:
 
 from skeinlib.dag import _sub_estimate_sum
 from skeinlib.errors import SkeinError
-from skeinlib.model import (CODE_ID_RE, SLUG_RE, STATUS_INFLIGHT, S_ACTIVE, S_CHECK,
-                            S_DONE, S_PENDING, S_READY, now)
+from skeinlib.model import (CODE_ID_RE, SLUG_RE, SS_DONE, SS_PHASE_RESEARCH, STATUS_INFLIGHT,
+                            S_ACTIVE, S_CHECK, S_DONE, S_FINISHING, S_PENDING, S_RESEARCH, now)
 from skeinlib.prd import review_summary, validate_prd, validate_seam
 from skeinlib.worktree import commit_all, destroy_worktrees, git, make_worktree, parse_repos, worktrees_of
 
@@ -87,7 +87,7 @@ class Lifecycle:
             "kind": kind,            # "task"(普通/独立, 默认) | "supertask"(父聚合层)
             "created": now(),        # 创建时刻
             "started": None,         # exec 时刻 (start 时置)
-            "confirmed": None,       # 就绪时刻 (confirm 命令置)
+            "confirmed": None,       # confirm (吸收 start) 时刻
             "checked": None,         # 进入检查阶段时刻 (check 命令置)
             "finished": None,        # 完成时刻 (finish 时置; 保留期从此计)
             "updated": now(),
@@ -143,8 +143,8 @@ class Lifecycle:
             return
         if not self.ws.config()["worktree"]["enabled"]:
             raise SkeinError(f"{a.id} config worktree.enabled=false — worktree 禁用, 不可声明 repos")
-        if t["status"] not in (S_PENDING, S_READY):
-            raise SkeinError(f"{a.id} 状态 {t['status']}, repos 只能在 start 前 (待处理/就绪) 声明")
+        if t["status"] not in (S_PENDING, S_RESEARCH):
+            raise SkeinError(f"{a.id} 状态 {t['status']}, repos 只能在 confirm 前 (待处理/调研中) 声明")
         t["repos"] = parse_repos(a.set)
         self.ws.store.save(t)
         self.ws.store.sync()
@@ -162,8 +162,8 @@ class Lifecycle:
                 print(f"  subtask 合计 {subsum} h + plan/check 自身开销 "
                       f"{round((est or 0) - subsum, 2)} h")
             return
-        if t["status"] not in (S_PENDING, S_READY):
-            raise SkeinError(f"{a.id} 状态 {t['status']}, estimate 只能在 start 前 (待处理/就绪) 设置")
+        if t["status"] not in (S_PENDING, S_RESEARCH):
+            raise SkeinError(f"{a.id} 状态 {t['status']}, estimate 只能在 confirm 前 (待处理/调研中) 设置")
         try:
             val = float(a.set)
         except ValueError:
@@ -183,8 +183,8 @@ class Lifecycle:
         if a.set is None:
             print(",".join(t.get("deps") or []) or "(无前置)")
             return
-        if t["status"] not in (S_PENDING, S_READY):
-            raise SkeinError(f"{a.id} 状态 {t['status']}, deps 只能在 start 前 (待处理/就绪) 设置")
+        if t["status"] not in (S_PENDING, S_RESEARCH):
+            raise SkeinError(f"{a.id} 状态 {t['status']}, deps 只能在 confirm 前 (待处理/调研中) 设置")
         if t.get("deps"):
             raise SkeinError(
                 f"{a.id} 已有前置 {','.join(t['deps'])} — 既有依赖不可改 (deps 只补无前置的 task)")
@@ -224,7 +224,7 @@ class Lifecycle:
         print(f"{a.id} deps = {', '.join(new) or '(空)'}")
 
     def _validate_estimate(self, tid: str, t: dict[str, Any]) -> None:
-        # confirm 硬门: 预计工时(小时)必须已填且为正数, 缺失/默认空 → 拒绝进就绪。
+        # confirm 硬门: 预计工时(小时)必须已填且为正数, 缺失/默认空 → 拒绝开工。
         # 且须自下而上累加: task 工时 ≥ Σ subtask 工时 (差额 = plan/check 等 task 自身开销),
         # 低于合计说明整体拍脑袋而非按实际要做的事逐项估。规则详见 estimate-gate.md。
         est = t.get("estimate")
@@ -238,13 +238,52 @@ class Lifecycle:
                 f"task 工时须 ≥ Σ subtask + plan/check 自身开销, "
                 f"`skein estimate {tid} --set <≥{subsum}>`")
 
-    def confirm(self, a: argparse.Namespace) -> None:
-        # 用户确认门 (待处理→就绪): planning 完成 (prd 填齐 + ≥1 subtask + 预计工时) 且用户评审通过后调用,
-        # 把 task 从「规划中」推到「就绪」(待启动)。就绪不占并发槽, 供 start 前排队。
+    def research(self, a: argparse.Namespace) -> None:
+        # 待处理 → 调研中: 至少登记一个 phase=research 的 subtask (无调研诉求就不该进这态)。
         t = self.ws.store.load(a.id)
         if t["status"] != S_PENDING:
+            raise SkeinError(f"{a.id} 状态为 {t['status']}, 只能对待处理 (规划中) task 发起调研")
+        subs = t.get("subtasks") or []
+        if not any(s.get("phase") == SS_PHASE_RESEARCH for s in subs):
+            raise SkeinError(
+                f"{a.id} 无 research subtask — 先 "
+                f"`skein subtask add {a.id} <sid> --phase research ...` 登记再发起调研")
+        self.ws._stage_hooks("research", "before", self.ws._hook_ctx(a.id, t=t))
+        t["status"] = S_RESEARCH
+        self.ws.store.save(t)
+        self.ws.store.sync()
+        self.ws._stage_hooks("research", "after", self.ws._hook_ctx(a.id, t=t))
+        print(f"{a.id} 调研中")
+
+    def plan(self, a: argparse.Namespace) -> None:
+        # 调研中 → 待处理: research subtask 须全 done, 调研的产出才算收敛成可规划的信息。
+        # 调研中禁止直达开工态 —— confirm 会在 status=调研中 时直接拒绝, 提示先 plan。
+        t = self.ws.store.load(a.id)
+        if t["status"] != S_RESEARCH:
+            raise SkeinError(f"{a.id} 状态为 {t['status']}, 只能对调研中 task 收敛回规划")
+        undone = [s["sid"] for s in t.get("subtasks") or []
+                 if s.get("phase") == SS_PHASE_RESEARCH and s["status"] != SS_DONE]
+        if undone:
+            raise SkeinError(f"{a.id} 调研 subtask 未全完成: {', '.join(undone)} — 先 done 它们再 plan")
+        self.ws._stage_hooks("plan", "before", self.ws._hook_ctx(a.id, t=t))
+        t["status"] = S_PENDING
+        self.ws.store.save(t)
+        self.ws.store.sync()
+        self.ws._stage_hooks("plan", "after", self.ws._hook_ctx(a.id, t=t))
+        print(f"{a.id} 待处理 (调研收敛, 回规划)")
+
+    def confirm(self, a: argparse.Namespace) -> None:
+        """用户确认门 (待处理→进行中), **吸收原 `start` 的全部职责**: planning 完成 (prd 填齐 +
+        ≥1 subtask + 预计工时) 且用户评审通过后, doctor 体检 + 前置 deps 校验 + 建 worktree,
+        一步直接把 task 推进「进行中」——「就绪」中间态已删 (人审通过的下一秒就该开工, 没人真
+        停在那儿, 见 design.md §1)。
+        """
+        t = self.ws.store.load(a.id)
+        if t["status"] == S_RESEARCH:
+            raise SkeinError(f"{a.id} 调研中 — 先 `skein plan {a.id}` 把调研收敛回规划再 confirm")
+        if t["status"] != S_PENDING:
             raise SkeinError(f"{a.id} 状态为 {t['status']}, 只能 confirm 待处理 (规划中) task")
-        # planning 完成门: 无 subtask / prd 未填齐 / 预计工时未填 → 拒绝进就绪 (逼先补全规划)
+        # planning 完成门: 无 subtask / prd 未填齐 / 预计工时未填 → 拒绝开工 (逼先补全规划)
         subs = t.get("subtasks") or []
         if len(subs) == 0:
             raise SkeinError(f"{a.id} 无 subtask 登记 — 先 skein subtask add 拆分再 confirm")
@@ -257,22 +296,58 @@ class Lifecycle:
             print(review_summary(self.ws.tasks, a.id, t))
             return
         channel = self._require_user_review(a.id, bool(getattr(a, "approved", False)))
+        # 吸收原 start 的前置校验: doctor 体检 + deps + prd double-check (confirm 后被改空的兜底)
+        print("confirm 前置体检 (doctor):")
+        self._doctor(a)
+        undone = [d for d in t["deps"] if self.ws._dep_unfinished(d)]
+        if undone:
+            raise SkeinError(f"前置未完成: {', '.join(undone)} — 先 finish 它们")
+        validate_prd(self.ws.tasks, a.id)
         self.ws._stage_hooks("confirm", "before", self.ws._hook_ctx(a.id, t=t))
-        t["status"] = S_READY
+        t["status"] = S_ACTIVE
         t["confirmed"] = now()
         t["confirmed_by"] = channel  # 审核渠道留痕: ask (AskUserQuestion) / user-tty (终端交互)
+        cfg = self.ws.config()
+        repos = t.get("repos") or []
+        wt_cfg = cfg["worktree"]["enabled"]
+        wt_on = self.ws.git and wt_cfg  # 单根 worktree: 需根仓是 git; 配置禁用→原地执行
+        # --repos 的 git 性由 _mkwt 逐子仓校验 (worktree 落各子仓内), 与父目录是否 git 无关 —
+        # 故只在 config 显式禁用时挡, 不吃 self.ws.git (支持非 git 父 + 多 git 子的微服务布局)。
+        if repos and not wt_cfg:
+            raise SkeinError(
+                f"{a.id} 声明了 --repos 但 config worktree.enabled=false — 多子 git 隔离需启用 worktree")
+        if repos:
+            # 多子 git: planning 声明的每个子 git 各开 worktree+branch (并列 repo / submodule 同理)
+            t["worktrees"] = [make_worktree(t, r, cfg, self.ws.root) for r in repos]
+            t["worktree"] = ", ".join(w["wt"] for w in t["worktrees"])  # 显示汇总
+        elif wt_on:
+            rel = f"{cfg['worktree']['root']}/skein-{a.id}"  # 相对 project root 存盘, 免机器绝对路径入库
+            git("worktree", "add", "-b", t["branch"], str(self.ws.root / rel), "HEAD", cwd=self.ws.root)
+            t["worktree"] = rel
+            t["worktrees"] = [{"repo": ".", "wt": rel, "branch": t["branch"], "merged": False}]
+        else:
+            t["worktree"] = None  # 非 git / config 禁用, 无 repos: 原地执行, 无 worktree 隔离
+            t["worktrees"] = []
+        if not t.get("started"):
+            t["started"] = now()  # exec 时刻 (首次 confirm; 重复不覆盖)
         self.ws.store.save(t)
         self.ws.store.sync()
+        if t["worktrees"]:
+            loc = "\n".join(f"worktree: {w['wt']} (子 git: {w['repo']}, branch: {w['branch']})"
+                            for w in t["worktrees"])
+        else:
+            reason = "config worktree.enabled=false" if self.ws.git else "非 git 仓库"
+            loc = f"{reason}: 原地执行 (无 worktree 隔离)"
         self.ws._stage_hooks("confirm", "after", self.ws._hook_ctx(a.id, t=t))
-        print(f"{a.id} 就绪 (规划完成, 待 skein start 启动)")
+        print(f"{a.id} 进行中 (confirm 吸收 start: 已建 worktree)\n{loc}")
 
-    # ---- 人审门 (待处理→就绪 的最后一道) ----
+    # ---- 人审门 (待处理→进行中 的最后一道) ----
     def _require_user_review(self, tid: str, approved: bool) -> str:
-        """PRD 必须经用户过目才允许进就绪。返回审核渠道 (写进 `confirmed_by`)。
+        """PRD 必须经用户过目才允许开工。返回审核渠道 (写进 `confirmed_by`)。
 
         ## 为什么要有这道门
         前面三道 (prd 填齐 / ≥1 subtask / 预计工时) 校验的都是**结构**, AI 自己就能填满然后
-        自己跑 confirm —— 于是「用户确认门」名存实亡, 一个没人看过的 PRD 直接进了就绪。
+        自己跑 confirm —— 于是「用户确认门」名存实亡, 一个没人看过的 PRD 直接开了工。
 
         ## 🛑 本方法禁读 stdin
         CLI 的定位是被 skill / agent 调用的, **任何交互都会把调用方挂住** (等一个永远不来的
@@ -291,82 +366,11 @@ class Lifecycle:
         if approved:
             return "user"
         raise SkeinError(
-            f"{tid} 需用户审核 PRD 后才能进就绪。两条路 (都要真实用户动作):\n"
+            f"{tid} 需用户审核 PRD 后才能开工。两条路 (都要真实用户动作):\n"
             f"  ① 看板点击 (最稳): 打开 task 详情, 点「确认规划」按钮\n"
             f"  ② 对话确认: `skein confirm {tid} --summary` 取摘要 → `AskUserQuestion` 请用户"
             f"批准 → `skein confirm {tid} --approved`\n"
             f"  🛑 没真问过用户就传 --approved = 伪造审核, 属流程错误")
-
-    def start(self, a: argparse.Namespace) -> None:
-        self._start_task(a.id, a)
-
-    def _start_task(self, tid: str, a: argparse.Namespace, *, quiet: bool = False) -> dict[str, Any]:
-        """就绪 → 进行中: 体检 + 并发校验 + 建 worktree + 打时间戳。返回启动后的 task。
-
-        抽成方法是为了给**自动启动**复用 —— `claim exec` / `subtask start` 认领到一个属于「就绪」
-        task 的 subtask 时会调它 (见 `_ensure_task_active`), 那条路必须走**完全相同**的副作用:
-        doctor 前置体检、task 级 max_active 校验、prd double-check、worktree 建立、started
-        时间戳、start 的 before/after 阶段钩子。少任何一样, 自动启动的 task 就与手工 start 的
-        不是同一种状态 —— 那类差异极难查 (表现是「有的 task 没 worktree」)。
-
-        `quiet=True` 只压掉给人看的输出, 不跳过任何校验。
-        """
-        # start 前置体检: 跑 doctor 结构不变量检查, 有 ✗ 错误 → doctor 内 raise SkeinError 阻止 start
-        if not quiet:
-            print("start 前置体检 (doctor):")
-        self._doctor(a)
-        t = self.ws.store.load(tid)
-        if t["status"] != S_READY:
-            raise SkeinError(
-                f"{tid} 状态为 {t['status']}, 只能 start 就绪 task — "
-                f"待处理(规划中) 须先 skein confirm 过用户确认门")
-        cfg = self.ws.config()
-        active = self.ws.store.active()
-        if len(active) >= cfg["pools"]["work"]:
-            raise SkeinError(
-                f"task 级并发上限 {cfg['pools']['work']} (当前 active: "
-                f"{', '.join(x['id'] for x in active)}), 先 finish 一个再 start")
-        undone = [d for d in t["deps"] if self.ws._dep_unfinished(d)]
-        if undone:
-            raise SkeinError(f"前置未完成: {', '.join(undone)} — 先 finish 它们")
-        # planning 完成门 (subtask + prd) 已在 confirm 时校验; 此处 double-check prd 防 confirm 后被改空
-        validate_prd(self.ws.tasks, tid)
-        self.ws._stage_hooks("start", "before", self.ws._hook_ctx(tid, t=t))
-        t["status"] = S_ACTIVE
-        repos = t.get("repos") or []
-        wt_cfg = cfg["worktree"]["enabled"]
-        wt_on = self.ws.git and wt_cfg  # 单根 worktree: 需根仓是 git; 配置禁用→原地执行
-        # --repos 的 git 性由 _mkwt 逐子仓校验 (worktree 落各子仓内), 与父目录是否 git 无关 —
-        # 故只在 config 显式禁用时挡, 不吃 self.ws.git (支持非 git 父 + 多 git 子的微服务布局)。
-        if repos and not wt_cfg:
-            raise SkeinError(
-                f"{tid} 声明了 --repos 但 config worktree.enabled=false — 多子 git 隔离需启用 worktree")
-        if repos:
-            # 多子 git: planning 声明的每个子 git 各开 worktree+branch (并列 repo / submodule 同理)
-            t["worktrees"] = [make_worktree(t, r, cfg, self.ws.root) for r in repos]
-            t["worktree"] = ", ".join(w["wt"] for w in t["worktrees"])  # 显示汇总
-        elif wt_on:
-            rel = f"{cfg['worktree']['root']}/skein-{tid}"  # 相对 project root 存盘, 免机器绝对路径入库
-            git("worktree", "add", "-b", t["branch"], str(self.ws.root / rel), "HEAD", cwd=self.ws.root)
-            t["worktree"] = rel
-            t["worktrees"] = [{"repo": ".", "wt": rel, "branch": t["branch"], "merged": False}]
-        else:
-            t["worktree"] = None  # 非 git / config 禁用, 无 repos: 原地执行, 无 worktree 隔离
-            t["worktrees"] = []
-        if not t.get("started"):
-            t["started"] = now()  # exec 时刻 (首次 start; 重启不覆盖)
-        self.ws.store.save(t)
-        self.ws.store.sync()
-        if t["worktrees"]:
-            loc = "\n".join(f"worktree: {w['wt']} (子 git: {w['repo']}, branch: {w['branch']})"
-                            for w in t["worktrees"])
-        else:
-            reason = "config worktree.enabled=false" if self.ws.git else "非 git 仓库"
-            loc = f"{reason}: 原地执行 (无 worktree 隔离)"
-        self.ws._stage_hooks("start", "after", self.ws._hook_ctx(tid, t=t))
-        if not quiet:
-            print(f"{tid} started\n{loc}")
-        return t
 
     def check(self, a: argparse.Namespace) -> None:
         # 进行中→检查中: 记 checked 时刻 (board 展示等待/执行时间用)。仅 active 可进检查。
@@ -381,11 +385,32 @@ class Lifecycle:
         self.ws._stage_hooks("check", "after", self.ws._hook_ctx(a.id, t=t))
         print(f"{a.id} checked")
 
+    def finishing(self, a: argparse.Namespace) -> None:
+        # 检查中 → 收尾中: 占 gate 槽 (状态∈{检查中,收尾中} 计数, 上限 pools.gate)。
+        # 拆成「先占槽标收尾中 → main 派 finisher → finisher 跑 finish 释放槽」两步,
+        # 是因为 finisher 是 main 派出去的 agent, 引擎看不见, 限不了并行 finisher 数 —
+        # 只能靠这道占槽门间接限制 (design.md §1)。
+        t = self.ws.store.load(a.id)
+        if t["status"] != S_CHECK:
+            raise SkeinError(f"{a.id} 状态 {t['status']}, 只能对检查中 task 收尾")
+        gate = self.ws.config()["pools"]["gate"]
+        occupied = sum(1 for x in self.ws.store.all_tasks()
+                       if x["id"] != a.id and x["status"] in (S_CHECK, S_FINISHING))
+        if occupied >= gate:
+            raise SkeinError(f"gate 池已满 ({occupied}/{gate}) — 先 finish 一个再收尾")
+        self.ws._stage_hooks("finishing", "before", self.ws._hook_ctx(a.id, t=t))
+        t["status"] = S_FINISHING
+        self.ws.store.save(t)
+        self.ws.store.sync()
+        self.ws._stage_hooks("finishing", "after", self.ws._hook_ctx(a.id, t=t))
+        print(f"{a.id} 收尾中 (占 gate 槽) — main 派 skein-finisher 完成 finish")
+
     def finish(self, a: argparse.Namespace) -> None:
         tid = a.id
         t = self.ws.store.load(tid)
-        if t["status"] not in STATUS_INFLIGHT:
-            raise SkeinError(f"{tid} 状态 {t['status']}, 非在途 (进行中/检查中) 无法 finish")
+        if t["status"] != S_FINISHING:
+            raise SkeinError(f"{tid} 状态 {t['status']}, 只能 finish 收尾中 task — "
+                             f"先 skein check 再 skein finishing 占 gate 槽")
         # supertask 聚合归档: finish 前所有 child task(parent 指向它)须全 done
         # ponytail: 遍历 tasks 过滤 parent==tid 找 child (不维护 child_ids 数组, 真值源单一)
         if t.get("kind") == "supertask":
@@ -497,7 +522,7 @@ class Lifecycle:
             print("\n".join(lines))
             return
 
-        # 在途 task (进行中/检查中) 先销 worktree/分支 (finish/archive 同策略, 免悬挂); 待处理/就绪/done 无 worktree, 跳过
+        # 在途 task (进行中/检查中/收尾中) 先销 worktree/分支 (finish/archive 同策略, 免悬挂); 待处理/调研中/done 无 worktree, 跳过
         if t["status"] in STATUS_INFLIGHT:
             destroy_worktrees(t, self.ws.root)
         dst = self.ws.trash_dir / f"{tid}.{datetime.datetime.now().strftime('%Y%m%d')}"
@@ -552,10 +577,10 @@ class Lifecycle:
             self.ws.store.sync()
             print(f"{tid} renamed: name={t['name']!r}")
             return
-        # 改 id: 仅 pre-start (待处理/就绪 无 live worktree; active/check 改 id 需迁分支+移 worktree, 风险高不支持)
-        if t["status"] not in (S_PENDING, S_READY):
+        # 改 id: 仅 pre-confirm (待处理/调研中 无 live worktree; active/check/finishing 改 id 需迁分支+移 worktree, 风险高不支持)
+        if t["status"] not in (S_PENDING, S_RESEARCH):
             raise SkeinError(
-                f"task id 重命名仅限 start 前 (待处理/就绪): {tid} 当前 {t['status']} "
+                f"task id 重命名仅限 confirm 前 (待处理/调研中): {tid} 当前 {t['status']} "
                 "(在途 task 有 live worktree/branch, 不支持改 id; 先 finish/archive, 或只改 --name)")
         if not SLUG_RE.match(new_id):
             raise SkeinError(f"非法 id: {new_id!r} — 须为 kebab-case slug (小写字母/数字/连字符, 字母数字开头)")

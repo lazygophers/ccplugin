@@ -2,14 +2,14 @@
 
 ## 两级调度
 `subtask claim <tid>` 是单 task 内的就绪批; `claim exec` (无 tid) 是**全局跨 task** 的就绪批 ——
-所有可调度 task 的 ready subtask 合池竞争同一个 `max_active`。两者共用 `_crit_weight`
+所有可调度 task 的 ready subtask 合池竞争同一个 `pools.work`。两者共用 `_crit_weight`
 关键路径权重排序: 最长下游链先派, 最小化 makespan。
 
-## 为什么要拿着 Lifecycle
-「就绪」task 的 subtask 被认领时要**就地启动**该 task, 而启动必须走与手工 `skein start`
-完全相同的那条路 (`Lifecycle._start_task`) —— doctor 体检、并发上限、prd double-check、
-worktree、started 时间戳、阶段钩子一个不少。少任何一样, 自动启动出来的 task 就和手工启动的
-不是同一种状态, 那类差异极难查。所以这里注入 `Lifecycle` 而不是自己复制一份启动逻辑。
+## 为什么还拿着 Lifecycle
+`claim check` 的第二路 (检查中 task 全 subtask done) 要把 task 收进「收尾中」, 走的是
+`Lifecycle.finishing` (占 gate 槽) —— 复用同一条门, 不在这里另起一份校验。
+`confirm` 吸收原 `start` 后, task 一旦过人审就直接进「进行中」, 不再有「就绪」态需要
+subtask 认领时**就地启动**, 故这里不再需要 `Lifecycle._start_task` 那条路。
 """
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 from skeinlib.dag import _crit_weight, _split, _split_semi, _sub_estimate_sum, _sub_pct
 from skeinlib.errors import SkeinError
-from skeinlib.model import (SS_DONE, SS_FAILED, SS_PENDING, SS_RUNNING, S_READY,
+from skeinlib.model import (SS_DONE, SS_FAILED, SS_PENDING, SS_PHASE_EXEC, SS_RUNNING,
                             S_ACTIVE, S_CHECK, now)
 from skeinlib.views import _fmt_ts
 
@@ -56,31 +56,12 @@ class Scheduler:
         return [s for _, s in cand[:slots]]
 
     def _schedulable(self) -> list[dict[str, Any]]:
-        """可被调度的 task: **进行中 + 就绪(前置已清)**, 按登记序。
+        """可被调度的 task: 全部 active 态 (进行中/调研中/收尾中), 按登记序。
 
-        「就绪」也算可调度是刻意的 —— 就绪 = 已过人审门、规划完成、只差开工。要求先手工
-        `skein start` 再派 subtask, 等于在已经确认过的东西上再要一次仪式, 而那一步没有任何
-        新信息进来。改为**首个 subtask 被认领时自动启动**该 task (见 `_ensure_task_active`)。
-
-        前置未完成的就绪 task 不进池 —— 与 `start` 的 deps 门同一判据, 免得自动启动绕过它。
+        `confirm` 吸收原 `start` 后, task 一过人审门就直接进「进行中」并建好 worktree ——
+        不再有「就绪但未启动」的中间态需要在这里补一次自动启动。
         """
-        active = self.ws.store.active()
-        active_ids = {t["id"] for t in active}
-        ready = [t for t in self.ws.store.all_tasks()
-                 if t["status"] == S_READY and t["id"] not in active_ids
-                 and not any(self.ws._dep_unfinished(d) for d in t.get("deps", []))]
-        return active + ready
-
-    def _ensure_task_active(self, t: dict[str, Any], a: argparse.Namespace) -> dict[str, Any]:
-        """若 task 还在「就绪」, 就地把它启动 (进行中 + worktree)。已是进行中则原样返回。
-
-        走的是与手工 `skein start` **完全相同**的 `_start_task`, 所以 doctor 体检、task 级
-        max_active、prd double-check、worktree、started 时间戳、start 阶段钩子一个不少。
-        task 级并发满时 `_start_task` 会抛 —— 自动启动**不得**绕过那道上限, 抛出来是对的。
-        """
-        if t["status"] != S_READY:
-            return t
-        return self.lifecycle._start_task(t["id"], a, quiet=True)
+        return self.ws.store.active()
 
     def _global_ready(self) -> list[tuple[dict[str, Any], dict[str, Any]]]:
         """全局跨 task 就绪批: 所有**可调度** task (进行中 + 就绪) 的 ready subtask 合池,
@@ -128,13 +109,6 @@ class Scheduler:
                 gpend = sum(1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SS_PENDING)
                 mp = self.ws.config()["pools"]["work"]
                 print(f"无全局就绪 subtask (全局 running: {grun}/{mp}, pending: {gpend}) — 满槽或依赖未完成")
-                if mp - len(tasks) > 0:
-                    for t in self.ws.store.all_tasks():
-                        if t["status"] != S_READY or any(self.ws._dep_unfinished(d) for d in t["deps"]):
-                            continue
-                        print(f"有就绪 task 待启动: {t['id']} ({t['name']})")
-                        print(f"— 直接启动执行: `skein.py start {t['id']}` (待处理 task 须先 skein confirm 过确认门)")
-                        break
                 return
             print("全局就绪批 (只读预览, 不改状态) — 决定执行后去掉 --dry-run 认领:")
             for t, s in batch:
@@ -150,9 +124,7 @@ class Scheduler:
             mp = self.ws.config()["pools"]["work"]
             print(f"无全局就绪 subtask (全局 running: {grun}/{mp}, pending: {gpend}) — 满槽或依赖未完成")
             return
-        # 按 task 分组认领: 属于「就绪」task 的, 先把该 task 就地启动 (进行中 + worktree),
-        # 再标 subtask running。启动会重写 task.json, 所以必须拿**启动后**的对象再找 subtask,
-        # 否则改的是一份马上被覆盖掉的旧副本 (改了等于没改, 且不报错)。
+        # 按 task 分组认领 (task 已全在 active 态, 无需就地启动)。
         by_tid: dict[str, list[str]] = {}
         order: list[str] = []
         for t, s in batch:
@@ -161,12 +133,8 @@ class Scheduler:
                 order.append(t["id"])
             by_tid[t["id"]].append(s["sid"])
         claimed: list[tuple[str, dict[str, Any]]] = []
-        started_now: list[str] = []
         for tid in order:
             t = next(x for x, _ in batch if x["id"] == tid)
-            if t["status"] == S_READY:
-                t = self._ensure_task_active(t, a)   # 满槽会抛 — 自动启动不绕并发上限
-                started_now.append(tid)
             subs = {s["sid"]: s for s in t.get("subtasks", [])}
             for sid in by_tid[tid]:
                 s = subs[sid]
@@ -175,8 +143,6 @@ class Scheduler:
                     s["started"] = now()  # exec 时刻 (首次认领, 重认领不覆盖)
                 claimed.append((tid, s))
             self.ws.store.save(t)
-        if started_now:
-            print(f"自动启动就绪 task (首个 subtask 被认领): {', '.join(started_now)}")
         print("已全局认领 (running) — main 逐个派 skein-executor（dispatch 只给 tid + sid + 工作目录）, 完成即 subtask done/fail:")
         for tid, s in claimed:
             sk = ",".join(s.get("skills", [])) or "-"
@@ -186,10 +152,10 @@ class Scheduler:
     def _claim_check(self, a: argparse.Namespace) -> None:
         """check 认领: 两路合并 —
         1. 进行中 task 全 subtask done → 检查中 (交给 skein-checker 验收)
-        2. 检查中 task 全 subtask done 且无失败 → 已完成 (finish, 合并+销 worktree)
+        2. 检查中 task 全 subtask done → 收尾中 (finishing, 占 gate 槽; main 收到后派 skein-finisher 完成 finish)
         --dry-run 只读预览。"""
         to_check: list[dict[str, Any]] = []
-        to_finish: list[dict[str, Any]] = []
+        to_finishing: list[dict[str, Any]] = []
         for t in self.ws.store.active():
             subs = t.get("subtasks", [])
             if not subs:
@@ -200,23 +166,23 @@ class Scheduler:
             if t["status"] == S_ACTIVE:
                 to_check.append(t)
             elif t["status"] == S_CHECK:
-                # 检查中 + 全 done: 可 finish (验收是否全绿由 skein-checker 保证, 这里只看状态)
-                to_finish.append(t)
+                # 检查中 + 全 done: 可收尾 (验收是否全绿由 skein-checker 保证, 这里只看状态)
+                to_finishing.append(t)
         dry = getattr(a, "dry_run", False)
-        if not to_check and not to_finish:
-            print("无可认领的 check/finish task — 进行中 task 须全 subtask done 才认领")
+        if not to_check and not to_finishing:
+            print("无可认领的 check/finishing task — 进行中 task 须全 subtask done 才认领")
             return
         if dry:
             if to_check:
                 print("待进检查 (只读预览, 不改状态) — 去掉 --dry-run 认领:")
                 for t in to_check:
                     print(f"  {t['id']}\t{t['name']} → 检查中")
-            if to_finish:
-                print("待 finish (只读预览, 不改状态) — 去掉 --dry-run 认领:")
-                for t in to_finish:
-                    print(f"  {t['id']}\t{t['name']} → 已完成")
+            if to_finishing:
+                print("待收尾 (只读预览, 不改状态) — 去掉 --dry-run 认领:")
+                for t in to_finishing:
+                    print(f"  {t['id']}\t{t['name']} → 收尾中 (占 gate 槽)")
             return
-        # 执行认领: 先 check 后 finish (finish 的 merge 依赖 check 完成)
+        # 执行认领: 先 check 后 finishing (finishing 的 gate 槽校验依赖 check 已就位)
         claimed_check: list[str] = []
         for t in to_check:
             t["status"] = S_CHECK
@@ -228,18 +194,17 @@ class Scheduler:
             print(f"已认领进检查 ({len(claimed_check)} task) — main 派 skein-checker 验收:")
             for tid in claimed_check:
                 print(f"  {tid}")
-        # finish 路直接调 lifecycle.finish (合并 + 销 worktree + 标记完成)
-        claimed_finish: list[str] = []
-        for t in to_finish:
+        # 收尾路调 lifecycle.finishing (占 gate 槽; gate 满则该 task 留检查中, 下次 claim 重试)
+        claimed_finishing: list[str] = []
+        for t in to_finishing:
             try:
-                a_f = argparse.Namespace(id=t["id"])
-                self.lifecycle.finish(a_f)
-                claimed_finish.append(t["id"])
+                self.lifecycle.finishing(argparse.Namespace(id=t["id"]))
+                claimed_finishing.append(t["id"])
             except SkeinError as e:
-                print(f"  {t['id']}: finish 失败 — {e}")
-        if claimed_finish:
-            print(f"已认领 finish ({len(claimed_finish)} task):")
-            for tid in claimed_finish:
+                print(f"  {t['id']}: 收尾失败 — {e}")
+        if claimed_finishing:
+            print(f"已认领收尾 ({len(claimed_finishing)} task) — main 派 skein-finisher 完成 finish:")
+            for tid in claimed_finishing:
                 print(f"  {tid}")
 
     def subtask(self, a: argparse.Namespace) -> None:
@@ -261,6 +226,7 @@ class Scheduler:
                 "验收": _split_semi(a.check),  # 验收标准 checklist (字符串数组)
                 "验收done": [],  # 已通过验收标准序号(1-based); 完成百分比 = len/len(验收)
                 "status": SS_PENDING,
+                "phase": getattr(a, "phase", None) or SS_PHASE_EXEC,  # exec(默认) | research
                 "skills": _split(a.skills),  # 关联 skills (0-n)
                 "created": now(),   # 创建时刻
                 "started": None,    # exec 时刻 (claim/start →运行中 时置)
@@ -350,12 +316,6 @@ class Scheduler:
             run = [x for x in t["subtasks"] if x["status"] == SS_RUNNING]
             if len(run) >= self.ws.config()["pools"]["work"]:
                 raise SkeinError(f"并发已满 ({len(run)}) — 先 done 一个再 start")
-            # task 还在「就绪」→ 就地启动 (与 claim 同一条路, 见 _ensure_task_active)。
-            # 启动会重写 task.json, 所以要拿启动后的对象重新定位 subtask, 否则改的是旧副本。
-            if t["status"] == S_READY:
-                t = self._ensure_task_active(t, a)
-                s = self.ws._sub(t, a.sid)
-                print(f"自动启动就绪 task: {a.tid}")
             self.ws._stage_hooks("subtask.start", "before", self.ws._hook_ctx(a.tid, a.sid, t=t))
             s["status"] = SS_RUNNING
             if not s.get("started"):

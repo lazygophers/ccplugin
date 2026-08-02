@@ -1,12 +1,11 @@
-"""subtask DAG 调度测试 — add/claim/ready/done/fail/依赖拓扑/并发槽/双层。
+"""subtask DAG 调度测试 — add/claim/ready/done/fail/依赖拓扑/并发槽。
 
 经 skein_cli fixture 跑 CLI + ws fixture 造隔离仓。每测独立 tmp_path, 禁碰真实 .skein/。
 
-双层并发模型 (真实行为):
-- task 级 `max_active` (.skein/config.yaml): start task 时限制同时 active task 数。
-- subtask 级 `max_active` (同键): 单/全局 ready/claim 批 = max_active - running subtask。
-  注: 历史上曾用 `max_parallel` 命名, 现已统一为 `max_active` — subtask 并发复用
-  `max_active` (skein.py:1701/1719/1744), 勿再引入独立键。
+并发模型 (真实行为): task 级并发上限已取消 (design.md §3: 按 subtask 计数后是冗余的,
+见 s3 concurrency-pools 重构) —— 只剩 subtask 级 `max_active` (.skein/config.yaml):
+单/全局 ready/claim 批 = max_active - running subtask。
+注: 历史上曾用 `max_parallel` 命名, 现已统一为 `max_active`, 勿再引入独立键。
 """
 from __future__ import annotations
 
@@ -203,26 +202,20 @@ def test_global_claim_cross_task(skein_cli: SkeinCli, ws: Path) -> None:
         _add(skein_cli, ws, tid, "x")
         _fill_prd(ws, tid)
         skein_cli(ws, "estimate", tid, "--set", "1")  # estimate 硬门: confirm 前须填实工时
-        skein_cli(ws, "confirm", tid)                     # 待处理→就绪
-        skein_cli(ws, "start", tid)                       # start 建立运行环境 + 占 active
+        skein_cli(ws, "confirm", tid)                     # 待处理→进行中 (confirm 吸收 start)
     out = skein_cli(ws, "claim", "exec").stdout              # 全局 claim exec
     assert "已全局认领" in out
     # 两个 task 各 1 subtask, 竞争 2 槽 → 两个都进 running
     assert "alpha-beta/x" in out and "gamma-delta/x" in out
 
 
-def test_two_level_task_level_cap_blocks_start(skein_cli: SkeinCli, ws: Path) -> None:
-    """双层: task 级 max_active=2, 第 3 个 task start 被阻 (exit≠0)。"""
-    _set_max_active(ws, 2)
+def test_task_level_cap_removed_all_can_go_active(skein_cli: SkeinCli, ws: Path) -> None:
+    """task 级并发上限已取消 (design item #6): N 个 task 可同时 confirm→进行中, 无阻拦。"""
+    _set_max_active(ws, 2)  # 仅 subtask 级槽位, 与 task 级并发无关
     for tid in ("alpha-beta", "gamma-delta", "epsilon-zeta"):
         skein_cli(ws, "create", tid, "--name", tid, "--desc", "d")
         _add(skein_cli, ws, tid, "x")
         _fill_prd(ws, tid)
         skein_cli(ws, "estimate", tid, "--set", "1")  # estimate 硬门: confirm 前须填实工时
-        skein_cli(ws, "confirm", tid)  # 全部推到就绪 (第 3 个也需就绪才能触并发上限)
-    skein_cli(ws, "start", "alpha-beta")
-    skein_cli(ws, "start", "gamma-delta")
-    # 第 3 个 start 应被并发上限拦截 (check=False 拿非零退出)
-    res = skein_cli(ws, "start", "epsilon-zeta", check=False)
-    assert res.returncode != 0
-    assert "并发上限" in res.stderr or "并发上限" in res.stdout
+        res = skein_cli(ws, "confirm", tid)  # 三个全部放行, 无第 3 个被拦
+        assert res.returncode == 0, res.stderr

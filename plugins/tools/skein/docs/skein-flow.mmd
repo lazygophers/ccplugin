@@ -67,9 +67,8 @@ graph TB
     DESIGN --> USER_CONFIRM
     DAG --> USER_CONFIRM
     CONTRACT_OUT --> USER_CONFIRM
-    USER_CONFIRM -->|通过| CONFIRM_CMD["skein confirm &lt;id&gt;<br/>用户确认门: 验 prd + ≥1 subtask<br/>待处理→就绪"]
-    CONFIRM_CMD --> READY_STATE["就绪<br/>(规划完成待启动, 不占槽)"]
-    READY_STATE -->|deps 已清 + 有空槽| START["skein start &lt;id&gt;<br/>占 active 槽 + 建 worktree<br/>就绪→进行中"]
+    USER_CONFIRM -->|通过| CONFIRM_CMD["skein confirm &lt;id&gt;<br/>用户确认门 (吸收 start): 验 prd + ≥1 subtask<br/>+ doctor 体检 + deps 校验 + 建 worktree<br/>待处理→进行中"]
+    CONFIRM_CMD --> START[进行中]
     USER_CONFIRM -->|驳回| P6
   end
 
@@ -179,7 +178,6 @@ graph TB
   style PRD fill:#f9f,color:#000
   style USER_CONFIRM fill:#ffeb3b,color:#000
   style CONFIRM_CMD fill:#ffb74d,color:#000
-  style READY_STATE fill:#b3e5fc,color:#000
   style CKPT fill:#8bc34a,color:#000
   style CONTRACT_CHK fill:#8bc34a,color:#000
   style CONSIST_CHK fill:#8bc34a,color:#000

@@ -9,9 +9,9 @@
 `root` / `dir` / `tasks` / `archive_dir` / `git` / `store` / `config()` / `_wt_shown()` /
 `_hooks_cfg()`。少任何一个都是运行时 AttributeError, 不是静态错 —— 动 mixin 前先看这行。
 
-## doctor 是 start 的前置门
-`start` 会先跑一遍 doctor, 有 ✗ 就抛 SkeinError 挡住启动。所以这里的检查项一旦误报, 表现是
-「task 起不来」而不是「体检不过」。加检查项时要想清楚这一层。
+## doctor 是 confirm 的前置门
+`confirm` (吸收原 `start`) 会先跑一遍 doctor, 有 ✗ 就抛 SkeinError 挡住开工。所以这里的检查项
+一旦误报, 表现是「task 开不了工」而不是「体检不过」。加检查项时要想清楚这一层。
 """
 from __future__ import annotations
 
@@ -26,7 +26,8 @@ from skeinlib.hooks.runner import budget_guard
 from skeinlib.config import hooks_schema_errors
 from skeinlib.errors import SkeinError
 from skeinlib.model import (PHASE_OF, SLUG_RE, SS_DONE, SS_FAILED, SS_PENDING, SS_RUNNING,
-                            STATUS_ACTIVE, S_ACTIVE, S_CHECK, S_DONE, S_PENDING, S_READY)
+                            STATUS_INFLIGHT, S_ACTIVE, S_CHECK, S_DONE, S_FINISHING,
+                            S_PENDING, S_RESEARCH)
 from skeinlib.worktree import worktrees_of
 from skeinlib.paths import SCRIPTS_DIR
 
@@ -89,7 +90,7 @@ class DoctorMixin:
             tid = t.get("id", "?")
             if not SLUG_RE.match(str(tid)):
                 errs.append(f"{tid}: id 非 kebab-case slug")
-            if t.get("status") not in {S_PENDING, S_READY, S_ACTIVE, S_CHECK, S_DONE}:
+            if t.get("status") not in {S_PENDING, S_RESEARCH, S_ACTIVE, S_CHECK, S_FINISHING, S_DONE}:
                 errs.append(f"{tid}: 非法 status {t.get('status')!r}")
             # task 级父子层 (受控字段 parent/kind): 允许 supertask↔task 父子聚合 (parent 指回 supertask id,
             # kind 区分父聚合层 vs 普通独立 task)。仅禁未登记的父子字段名 (parent_id/children/subtask_of)。
@@ -108,18 +109,19 @@ class DoctorMixin:
                     errs.append(f"{tid}: deps 自引用")
                 elif d not in used:
                     errs.append(f"{tid}: deps 指向不存在 task {d!r}")
-            # worktree 硬性 (仅执行中 + worktree 启用): 名在 start 定义并物理创建 (exec 前一步); pending 尚未创建、
-            # done 已销毁, 故只对执行中 (进行中/检查中) 校验。worktree 禁用时 (非 git / config worktree.enabled=false)
-            # 原地执行本就无 worktree, 遵守配置不查存在性。
+            # worktree 硬性 (仅在途 STATUS_INFLIGHT + worktree 启用): 名在 confirm(吸收 start) 定义并
+            # 物理创建 (exec 前一步); pending/调研中 尚未创建 (调研不占 worktree, 见 STATUS_INFLIGHT
+            # 定义)、done 已销毁, 故只对进行中/检查中/收尾中校验。worktree 禁用时 (非 git / config
+            # worktree.enabled=false) 原地执行本就无 worktree, 遵守配置不查存在性。
             wts = worktrees_of(t)
-            if t.get("status") in STATUS_ACTIVE:
+            if t.get("status") in STATUS_INFLIGHT:
                 if wt_on and not wts:
-                    errs.append(f"{tid}: 执行中 (进行中/检查中) 但无 worktree — start 应已创建")
+                    errs.append(f"{tid}: 在途 (进行中/检查中/收尾中) 但无 worktree — confirm 应已创建")
                 for w in wts:
                     if not (self.root / w["wt"]).exists():
                         errs.append(f"{tid}: worktree 路径不存在 (子 git {w['repo']}): {w['wt']}")
                 if not t.get("started"):
-                    warns.append(f"{tid}: active 但 started 未置")
+                    warns.append(f"{tid}: 在途但 started 未置")
             if t.get("status") == S_DONE and not t.get("finished"):
                 warns.append(f"{tid}: 已完成但 finished 时刻未置")
             # subtask 层
@@ -180,12 +182,6 @@ class DoctorMixin:
                     continue
                 errs.append(f"{iid}: 索引存在但 per-task 真值缺失 (task/{iid}/task.json 不存在) "
                             f"— 真值源丢失, 从含该目录的分支 checkout 恢复, 或删索引行清理")
-
-        # 全局并发上限
-        maxa = self.config()["pools"]["work"]
-        na = len(self.store.active())
-        if na > maxa:
-            errs.append(f"active task 数 {na} 超上限 {maxa}")
 
         # agent 钩子配了但从未触发 (design.md §7 已知风险「agent 漏跑钩子」的唯一发现手段):
         # agent 钩子靠 agent 自己在工作流里调 dispatch (agent-start/agent-stop), 不像 harness
@@ -349,7 +345,7 @@ class DoctorMixin:
         lines += ["", "# 回复前缀 (强制)",
                   "- 每条回复以 `[skein]` 开头",
                   "- 处理某 task 时用 `[skein|<tid，必须是已经注册的>|<阶段>]`",
-                  "- 阶段取值: plan / exec / check / research"]
+                  "- 阶段取值: plan / research / exec / check / finishing"]
         if prefix_tasks:
             lines.append(f"当前 active task: {prefix_tasks}")
         ctx = budget_guard("\n".join(lines), SESSION_CTX_BUDGET_TOKENS, "skein:session-context")

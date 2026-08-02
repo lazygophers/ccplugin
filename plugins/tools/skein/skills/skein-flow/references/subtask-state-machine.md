@@ -97,30 +97,29 @@ SKEIN subtask 的 4 个状态、流转规则、操作命令及与 `max_active` �
 
 ---
 
-## 与 max_active 并发槽的关系
+## 与 pools.work 并发槽的关系 (task 级并发上限已取消)
 
 ### 槽位定义
 
-`max_active` (config 参数，默认 2) 既是 **task 级并发上限**，也是 **subtask 级并发上限**：
+task 级「同时几个 task 进行中」上限已删。并发约束只剩 `pools.work` (config 参数，默认 2)：
 
 | 层面 | 约束 | 校验位置 |
 |---|---|---|
-| **task 级** | 同时「进行中」的 task 数 ≤ `max_active` | `skein start` 时 |
-| **单 task 内 subtask** | 单 task 内同时「运行中」的 subtask 数 ≤ `max_active` | `skein subtask start` 时 |
-| **全局 subtask** | 所有 active task 加起来的 running subtask 数 ≤ `max_active` | `skein claim exec` 全局认领时 |
+| **单 task 内 subtask** | 单 task 内同时「运行中」的 subtask 数 ≤ `pools.work` | `skein subtask start` 时 |
+| **全局 subtask** | 所有进行中 task 加起来的 running subtask 数 ≤ `pools.work` | `skein claim exec` 全局认领时 |
 
-> 注：单 task 内 subtask 用 `max_active` 作为并发上限，
-> 全局 claim exec 也用 `max_active`。两者是同一个配置值。
+> 注：单 task 内 subtask 与全局 claim exec 共用同一个 `pools.work` 值。
 
 ### 占槽 / 释槽时机
 
 | 事件 | 槽位变化 |
 |---|---|
-| `claim exec` / `subtask start` → running | **占** 1 个槽 |
-| `subtask done` / `subtask fail` | **释** 1 个槽 |
-| `skein start` (task 级) | task 占 1 个 active 槽 (与 subtask 槽是两套) |
+| `claim exec` / `subtask start` → running | **占** 1 个 work 池槽 |
+| `subtask done` / `subtask fail` | **释** 1 个 work 池槽 |
+| `skein confirm` (吸收 start) | 待处理→进行中, **不占任何池** (task 级并发上限已取消) |
+| `skein finishing` | 检查中→收尾中, 占 1 个 **gate 池**槽 (与 work 池是两套) |
 
-> **两套槽独立**: task 级 active 槽 (控制同时几个 task 在跑) 和 subtask 级 running 槽 (控制同时派几个 agent) 是**两套独立计数**，互不影响。
+> **两套池独立**: work 池 (控制同时几个 subtask 在跑) 和 gate 池 (控制同时几个 task 在收尾) 是**两套独立计数**，互不影响。
 
 ### 调度规则 (claim exec 算法)
 

@@ -237,10 +237,11 @@ def _yaml_dump(d: dict[str, Any], _indent: int = 0) -> str:
             lines.append(f"{pad}{key_str}: {_yaml_dump_scalar(v)}")
     return "\n".join(lines) + "\n"
 # config-hooks/c4: 阶段命令的合法阶段名 — hooks.<name> 的 <name> 唯一真值源, 校验/报错消息共用。
-# exec 无同名 CLI 命令 (skein 没有 `exec` 子命令) — 它是 flow 四阶段之一, 边界由 start/check
-# 两个命令夹出来: exec.before 在 start 成功后 (task 进 进行中), exec.after 在 check 前 (全 subtask
-# done, 退出 exec)。接入见 config-hooks/c12。
-STAGE_NAMES = ("create", "confirm", "start", "exec", "check", "finish", "archive",
+# exec 无同名 CLI 命令 (skein 没有 `exec` 子命令) — 它是 flow 四阶段之一, 边界由 confirm/check
+# 两个命令夹出来: exec.before 在 confirm 成功后 (confirm 吸收原 start, task 进 进行中), exec.after
+# 在 check 前 (全 subtask done, 退出 exec)。接入见 config-hooks/c12。
+# research/plan 是「调研中」态的入/出转换; finishing 是「检查中→收尾中」占 gate 槽转换 (finish 前一步)。
+STAGE_NAMES = ("create", "confirm", "research", "plan", "exec", "check", "finishing", "finish", "archive",
                "subtask.start", "subtask.done", "subtask.fail")
 # config.yaml 全部键的默认值 — init 写入 + config() 缺键自动回填的唯一真值源。
 # 带前缀的旧扁平键 (use_worktree/worktree_root/web_serve/board_open/spec_core_budget/spec_always_budget)
@@ -280,7 +281,11 @@ CONFIG_DEFAULTS: dict[str, Any] = {
             "before": [],
             "after": []
         },
-        "start": {
+        "research": {
+            "before": [],
+            "after": []
+        },
+        "plan": {
             "before": [],
             "after": []
         },
@@ -289,6 +294,10 @@ CONFIG_DEFAULTS: dict[str, Any] = {
             "after": []
         },
         "check": {
+            "before": [],
+            "after": []
+        },
+        "finishing": {
             "before": [],
             "after": []
         },
@@ -330,7 +339,7 @@ CFG_NO_PATH = ("hooks",)
 # hooks 结构骨架 — `hooks` 不进 CONFIG_DEFAULTS (无默认值可回填), 但其**结构**仍需单一真值源,
 # 否则字段名写错 (timout / continue-on-error) 会被 spec.get() 静默当默认值处理: 钩子照跑但行为
 # 与用户预期不符, 且全程不报错。静默失效是本特性最难查的一类故障, 故白名单化。
-HOOK_SCOPES = ("agent",) + STAGE_NAMES      # hooks 下的一级键: 9 个阶段名 + agent
+HOOK_SCOPES = ("agent",) + STAGE_NAMES      # hooks 下的一级键: STAGE_NAMES 全部阶段名 + agent
 HOOK_WHENS_STAGE = ("before", "after")      # 阶段钩子的时机
 HOOK_WHENS_AGENT = ("start", "stop")        # agent 钩子的时机
 HOOK_ENTRY_TYPES = ("command",)             # 条目 type: 目前仅 command

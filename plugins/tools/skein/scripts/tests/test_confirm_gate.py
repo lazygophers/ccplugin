@@ -120,7 +120,7 @@ def test_approved_passes_and_records_channel(ws: Path) -> None:
     r = _raw(ws, "confirm", tid, "--approved")
     assert r.returncode == 0, f"--approved 仍被拒: {r.stderr}"
     t = _task(ws, tid)
-    assert t["status"] == "就绪"
+    assert t["status"] == "进行中"  # confirm 吸收 start: 待处理→进行中, 无就绪中间态
     assert t.get("confirmed_by") == "user", f"审核渠道记错: {t.get('confirmed_by')}"
     assert t.get("confirmed"), "未记录审核时间"
 

@@ -19,20 +19,20 @@
 
 ## 三个硬门
 
-### 🛑 硬门 1: Task 级 — 未 start 禁 exec
+### 🛑 硬门 1: Task 级 — 未 confirm 禁 exec
 
 | 项 | 内容 |
 |---|---|
-| **门规** | task 必须先 `skein confirm` (待处理→就绪, **须用户批准**) 才能进 exec 调度门。**就绪即可调度** — `skein start` 不必手工跑, `claim exec` / `subtask start` 认领到就绪 task 的 subtask 时会自动启动它 (走与手工 start 完全相同的副作用: doctor 体检 / 并发上限 / worktree / 时间戳 / 阶段钩子) |
-| **禁止行为** | **待处理**态 task 禁派 subtask、禁跑 exec (未过人审门)。就绪态可派 |
+| **门规** | task 必须先 `skein confirm` (待处理→进行中, **须用户批准**) 才能进 exec 调度门。`skein confirm` 已吸收原 `start` 的全部职责 —— 一步做完 doctor 体检 / deps 校验 / 建 worktree / 时间戳 / 阶段钩子, 无就绪中间态 |
+| **禁止行为** | **待处理**态 task 禁派 subtask、禁跑 exec (未过人审门) |
 | **违反后果** | 流程错误，所做的 inline 改动 / 派发全部无效，必须回退重走 |
-| **回退操作** | 先 `skein confirm` (**须先拿用户批准**: 看板点击, 或 `--summary` + `AskUserQuestion` + `--approved`; 裸跑会被拒), 之后直接 `skein claim exec` 即可 — 无需手工 `start` |
-| **校验依据** | `skein confirm` 无用户批准直接拒; `_schedulable()` 只收「进行中 + 就绪(前置已清)」, 待处理态永远进不了候选池 |
+| **回退操作** | 先 `skein confirm` (**须先拿用户批准**: 看板点击, 或 `--summary` + `AskUserQuestion` + `--approved`; 裸跑会被拒), 之后直接 `skein claim exec` 即可 |
+| **校验依据** | `skein confirm` 无用户批准直接拒; `_schedulable()` 只收「进行中」态, 待处理/调研中态永远进不了候选池 |
 
 **典型违规场景**:
-- 新建 task 后想「先做起来再说」，跳过 confirm/start 直接派 subtask
-- 把**待处理**态 task 当就绪用，跳过人审门直接走 exec 调度
-- 以「这个 task 很简单」为由跳过 start
+- 新建 task 后想「先做起来再说」，跳过 confirm 直接派 subtask
+- 把**待处理**态 task 当进行中用，跳过人审门直接走 exec 调度
+- 以「这个 task 很简单」为由跳过 confirm
 
 ---
 
@@ -40,7 +40,7 @@
 
 | 项 | 内容 |
 |---|---|
-| **门规** | subtask 必须先 `skein claim exec` / `skein subtask claim <tid>` / `skein subtask start <tid> <sid>` (标 running 占 `max_active` 槽) 才能派 agent |
+| **门规** | subtask 必须先 `skein claim exec` / `skein subtask claim <tid>` / `skein subtask start <tid> <sid>` (标 running 占 `pools.work` 槽) 才能派 agent |
 | **禁止行为** | pending / failed 态 subtask 禁直接派 agent，必须先经 claim exec / start 占槽 |
 | **违反后果** | 流程错误，已派出的 agent 视为无槽运行，必须回收或补占槽 |
 | **回退操作** | 先把 subtask 标 running 占槽 (`skein subtask start <tid> <sid>` 或 `skein claim exec` 整批认领)，再派 agent |
@@ -79,10 +79,10 @@
 
 | 场景 | 先做什么 | 再做什么 |
 |---|---|---|
-| 想派 subtask 执行 | `skein confirm` + `skein start` 进进行中 | `skein claim exec` 占槽 → 派 agent |
+| 想派 subtask 执行 | `skein confirm` 进进行中 (吸收 start) | `skein claim exec` 占槽 → 派 agent |
 | 想派单个 subtask | `skein subtask start <tid> <sid>` 标 running | 派 agent |
 | 想跑验证 / lint / test | 确认 task 处于「进行中」态 | 派 skein-checker (checker 自跑 `skein check` 进检查中) |
-| 想直接改代码 | 先建 task + 走 plan → confirm → start | 再走 exec |
+| 想直接改代码 | 先建 task + 走 plan → confirm | 再走 exec |
 
 ---
 

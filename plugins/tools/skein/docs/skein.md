@@ -66,9 +66,11 @@
 ## 任务生命周期
 
 ```
-状态机: 待处理 → 就绪 → 进行中 → 检查中 → 已完成
-          ↑plan   ↑confirm ↑start   ↑check    ↑finish
-占 active 槽: 仅 进行中 (就绪/检查中 不占)
+状态机: 待处理 ⇄ 调研中   待处理 → 进行中 → 检查中 → 收尾中 → 已完成
+         ↑research ↑plan      ↑confirm  ↑check   ↑finishing  ↑finish
+两个独立并发池 (task 级并发上限已取消):
+  work 池: subtask phase∈{exec,research} 且 status=运行中
+  gate 池: task status∈{检查中,收尾中}
 归档: 已完成后 _autoclean 目录迁移 (task/archive/…), 非状态值
 ```
 
@@ -77,10 +79,12 @@
 | from → to | 触发 | 动作 |
 | --- | --- | --- |
 | (无) → 待处理 | plan 完成 | 产出 prd/design/findings + subtask DAG + contracts |
-| 待处理 → 就绪 | `skein confirm` | 用户确认门: 验 prd + ≥1 subtask (不占槽) |
-| 就绪 → 进行中 | `skein start` | 验 deps + 空槽, 创建 worktree, 占槽, 启动 exec |
-| 进行中 → 检查中 | 全部 subtask 完成 | 启动 check (独立阶段, 释放 active 槽) |
-| 检查中 → 已完成 | `skein finish` (全部检查通过) | merge → 销wt → 标记完成 + 异步 spec sediment |
+| 待处理 → 调研中 | `skein research` | 需已登记 ≥1 `--phase research` subtask |
+| 调研中 → 待处理 | `skein plan` | 需调研 subtask 全 done, 收敛回规划 |
+| 待处理 → 进行中 | `skein confirm` | 用户确认门 (**吸收 start**): 验 prd + ≥1 subtask + doctor 体检 + deps 校验, 一步建 worktree 直接开工, 无就绪中间态 |
+| 进行中 → 检查中 | `skein check` | 全部 subtask 完成后手工/编排触发 |
+| 检查中 → 收尾中 | `skein finishing` | 占 gate 池槽位 (上限 `pools.gate`) |
+| 收尾中 → 已完成 | `skein finish` | merge → 销wt → 标记完成 + 异步 spec sediment |
 | 已完成 → (归档) | retain_days 到期 / =0 立即, **且关联链全完成** | 目录迁移 task/archive/…, 非状态值 |
 | 任意 → (丢弃) | `skein archive` | 删 worktree, 不合并 |
 

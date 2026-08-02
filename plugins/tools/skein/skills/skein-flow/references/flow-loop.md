@@ -6,13 +6,12 @@
 
 ```
 # 入口: 有任务描述 → 先走 plan 建/并入 task; 无参 → 直接扫 .skein 既有 task
-while 有可推进 task:                      # task 级并发受 max_active (默认 2) 限
+while 有可推进 task:                      # subtask 级并发受 pools.work (默认 2) 限; task 级无上限
     按状态选阶段, 跑完即续下一阶段, 不回问用户:
-      待处理 (未 confirm)  → plan  → 判据勾满 → skein confirm → 落到「就绪」
-      就绪                 → skein start (占槽 + 建 worktree) → 进 exec
+      待处理 (未 confirm)  → plan  → 判据勾满 → skein confirm (吸收 start: 占槽建 worktree) → 落到「进行中」
       进行中               → exec 调度循环 (claim exec → 派 agent → done → 再 claim exec)
       进行中 且 全 subtask done → claim check (认领进检查) → skein-checker 自跑 skein check → 验收
-      检查中 且 全绿零冲突 → finish (勘察 + merge + 标记 + 异步 sediment)
+      检查中 且 全绿零冲突 → skein finishing (占 gate 槽) → finish (勘察 + merge + 标记 + 异步 sediment)
       检查中 且 FAIL       → 回 planning 重确认 (❗停顿点, 见下)
     finish 完 → 回循环头取下一个 task
 无可推进 → 报「无待执行 task」结束
@@ -20,7 +19,7 @@ while 有可推进 task:                      # task 级并发受 max_active (�
 
 阶段内部细则不在此重复: plan / exec / check / finish 各自的流程、硬门、失败模式全部以 SKILL.md 对应章节为准。本文件只定**阶段之间怎么续**。
 
-**本节 `skein confirm` 特指当前循环焦点 task (flow 主循环正在推进的那个)** — flow 视 confirm 为非阻塞门, 判据勾满自动过、禁停手问用户。这与 [dag-scheduling.md](dag-scheduling.md) §6「plan-ahead 填空闲」中「不自动过用户门」**不冲突**: plan-ahead 处理的是**另一个尚未进入本轮循环焦点、exec 空闲时顺手预备的 pending task**, 只推到 confirm/start 门前即停, 待其成为循环焦点 (被 claim exec/exec 选中推进) 时再走本节的自动 confirm。二者分工: 焦点 task 的 confirm 自动过; 非焦点 task 被 plan-ahead 预备后仍停在confirm 门前, 不抢先替非焦点 task 做用户确认。
+**本节 `skein confirm` 特指当前循环焦点 task (flow 主循环正在推进的那个)** — flow 视 confirm 为非阻塞门, 判据勾满自动过、禁停手问用户。这与 [dag-scheduling.md](dag-scheduling.md) §6「plan-ahead 填空闲」中「不自动过用户门」**不冲突**: plan-ahead 处理的是**另一个尚未进入本轮循环焦点、exec 空闲时顺手预备的 pending task**, 只推到 confirm 门前即停, 待其成为循环焦点 (被 claim exec/exec 选中推进) 时再走本节的自动 confirm。二者分工: 焦点 task 的 confirm 自动过; 非焦点 task 被 plan-ahead 预备后仍停在 confirm 门前, 不抢先替非焦点 task 做用户确认。
 
 ## 唯一允许停顿的点 (白名单, 其余一律续跑)
 

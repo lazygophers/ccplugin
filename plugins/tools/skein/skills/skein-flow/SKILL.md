@@ -20,8 +20,8 @@ effort: medium
 |---|---|---|
 | **全空 (无 `$1` 无描述)** | **flow · 清空模式** | 不新建 task, 取 `skein list --status open --json`, 按 DAG 就绪序把**全部未完成 task** 逐个走完闭环到 finish (并发受 max_active 限)。列表为空 → 报「无未完成 task」即停 |
 | `flow` / **缺省 / 任务描述** | **flow (默认)** | 走完整闭环 plan→exec→check→finish, 阶段间自动续跑不停顿。循环编排详见 [references/flow-loop.md](references/flow-loop.md) |
-| `plan` | **plan** | **仅规划** — 判新旧 + create/并入 + brainstorm + grill 硬门, 推到就绪即停 (停在 `skein start` 前) |
-| `exec` | **exec** | 驱动就绪/在途 task 走完整闭环到 finish (start→exec→check→finish) |
+| `plan` | **plan** | **仅规划** — 判新旧 + create/并入 + brainstorm + grill 硬门, 推到规划完成 (待处理) 即停 (停在 `skein confirm` 前) |
+| `exec` | **exec** | 驱动待处理/在途 task 走完整闭环到 finish (confirm→exec→check→finishing→finish) |
 | `check` | **check** | exec 产物完成后、finish 前, 派 `Agent(subagent_type="skein:skein-checker")` 跑验证 |
 | `finish` | **check 全绿后** | 派 `Agent(subagent_type="skein:skein-finisher")` 勘察 + skein finish 闭环 + 异步 sediment |
 | `redo <tid> [--plan]` | **redo (断点续跑)** | session 意外结束后, 复位该 task 全部「运行中」subtask (一律当孤儿) 并按当前所处阶段续跑剩余闭环。**必须带 tid**, 不接受全空清空模式; `--plan` 只到规划收敛即停, 不进 exec |
@@ -64,9 +64,9 @@ effort: medium
 - [ ] 设计方案已定 (design.md 正文; 或 main 判定豁免)
 - [ ] 预计工时已填 (`skein estimate <id> --set <小时数>`; `skein confirm` 硬校验非空正数)
 
-未勾满 = planning 未收敛, 禁 `skein start` / 禁转 exec。`skein confirm` 亦会逐项硬拒 (subtask/prd/预计工时任一缺失即报错阻断)。
+未勾满 = planning 未收敛, 禁 `skein confirm` / 禁转 exec。`skein confirm` 亦会逐项硬拒 (subtask/prd/预计工时任一缺失即报错阻断)。
 
-### 🛑 人审门: PRD 必须用户确认才进就绪 (每个 task 各审一次)
+### 🛑 人审门: PRD 必须用户确认才能 confirm 开工 (每个 task 各审一次)
 
 结构门 (prd / subtask / 工时) 过完还有一道**人审门** —— 那三道校验的都是结构, main 自己就能
 填满再自己 confirm, 没有这道门「用户确认」名存实亡。**裸 `skein confirm <id>` 会被拒。**

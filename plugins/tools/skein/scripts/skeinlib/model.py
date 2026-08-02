@@ -12,7 +12,6 @@ import time
 # 生命周期: 待处理(规划中) ⇄ 调研中(查资料) → [confirm 用户确认门, 吸收原 start] → 进行中
 #          → [check] → 检查中 → [finishing 占 gate 槽] → 收尾中 → [finish] → 已完成
 S_PENDING = "待处理"
-S_READY = "就绪"  # 已从状态机枚举/别名/排序/阶段表中剔除, 常量留存过渡 —— 仍有旧消费点未迁移 (归 s3)
 S_RESEARCH = "调研中"
 S_ACTIVE = "进行中"
 S_CHECK = "检查中"

@@ -46,11 +46,11 @@ SKEIN task 的预计工时 (小时, 浮点数) 是 plan 阶段必填项, `skein 
 
 ## 与 prd/subtask 硬门的关系
 
-`skein confirm` 一次校验三项 (顺序): ① subtask ≥1 (`subtask add` 已落 DAG) → ② prd 四章节齐备无 TODO 占位 → ③ 预计工时已填实且 ≥ Σ subtask。任一不满足即报错阻断, 不进就绪。
+`skein confirm` 一次校验三项 (顺序): ① subtask ≥1 (`subtask add` 已落 DAG) → ② prd 四章节齐备无 TODO 占位 → ③ 预计工时已填实且 ≥ Σ subtask。任一不满足即报错阻断, 不进进行中。
 
 subtask 工时在 `subtask add` 时就已必填, 所以走到 confirm 时 Σ 一定齐 — ③ 只查 task 自身有没有漏算 plan/check 开销。
 
-`skein start` (就绪→进行中) 不重复校验预计工时 — 工时估算只影响 plan/confirm 阶段的规划质量把关, 不像 prd 那样需要 double-check 防中途改空 (预计工时填后极少被回改)。
+`skein confirm` 吸收了原 `start` 的全部职责 (待处理→进行中一步做完, 无就绪中间态), 但工时校验只在这一次做, 不重复算 —— 工时估算只影响 plan/confirm 阶段的规划质量把关, 不像 prd 那样需要 double-check 防中途改空 (预计工时填后极少被回改)。
 
 ---
 

@@ -12,8 +12,9 @@ from pathlib import Path
 from typing import Any, Callable, Optional, Protocol, cast
 
 from skeinlib.dag import _pending_queue, _sub_pct, _task_pct, _task_stage
-from skeinlib.model import (SS_DONE, SS_PENDING, SS_RUNNING, STATUS_ACTIVE, STATUS_ORDER,
-                            S_ACTIVE, S_CHECK, S_DONE, S_PENDING, S_READY, now)
+from skeinlib.model import (SS_DONE, SS_PENDING, SS_RUNNING, STATUS_ACTIVE, STATUS_INFLIGHT,
+                            STATUS_ORDER, S_ACTIVE, S_CHECK, S_DONE, S_FINISHING,
+                            S_PENDING, S_RESEARCH, now)
 from skeinlib.worktree import git
 
 class Snapshot:
@@ -142,7 +143,7 @@ def _view_board_data(snap: Snapshot) -> dict[str, Any]:
 
     def elapsed_of(t: dict[str, Any]) -> int:
         st = t.get("status")
-        if st in (S_PENDING, S_READY):
+        if st in (S_PENDING, S_RESEARCH):
             return 0
         start = t.get("started") or t.get("created")
         if not start:
@@ -196,11 +197,11 @@ def _view_board_data(snap: Snapshot) -> dict[str, Any]:
 
     est_meta = f'已耗 {fmt_dur(elapsed_total or None)}' if elapsed_total else ''
 
-    # 下一个可执行: 无进行中/检查中 task 时, 首个依赖已清的就绪 task (可 skein start)
+    # 下一个可执行: 无进行中态 task 时, 首个依赖已清的待处理 task (可 skein confirm 开工)
     next_up_id: Optional[str] = None
     if not any(cnt.get(s, 0) for s in STATUS_ACTIVE):
         next_up_id = next((t["id"] for t in tasks
-                           if t["status"] == S_READY
+                           if t["status"] == S_PENDING
                            and not any(snap.dep_unfinished(d) for d in t.get("deps", []))), None)
 
     prd_data: Callable[[str], list[dict[str, Any]]] = lambda tid: _prd_data(snap, tid)  # noqa: E731 — 实现提到模块级 _prd_data (detail 端点复用)
@@ -250,8 +251,8 @@ def _view_board_data(snap: Snapshot) -> dict[str, Any]:
         "overview": {
             "taskCount": len(tasks),
             "stats": {S_DONE: cnt.get(S_DONE, 0), S_ACTIVE: cnt.get(S_ACTIVE, 0),
-                      S_CHECK: cnt.get(S_CHECK, 0), S_READY: cnt.get(S_READY, 0),
-                      S_PENDING: cnt.get(S_PENDING, 0)},
+                      S_CHECK: cnt.get(S_CHECK, 0), S_FINISHING: cnt.get(S_FINISHING, 0),
+                      S_RESEARCH: cnt.get(S_RESEARCH, 0), S_PENDING: cnt.get(S_PENDING, 0)},
             "estMeta": est_meta,
             "maxActive": snap.max_active,
             "combinedPct": combined_pct,
@@ -377,12 +378,9 @@ def _view_dashboard(snap: Snapshot) -> dict[str, Any]:
             ready_subs.append({
                 "tid": t["id"], "sid": s["sid"], "name": s.get("name", s["sid"]),
                 "depends_on": s.get("depends_on", [])})
-    # 就绪 task: status=就绪 (已过 confirm 门) + 前置全 done → 可 skein start
-    ready_tasks = [{"id": t["id"], "name": t.get("name", t["id"]),
-                    "deps": t.get("deps", []), "desc": t.get("desc", "")}
-                   for t in snap.all_tasks
-                   if t["status"] == S_READY
-                   and not any(snap.dep_unfinished(d) for d in t.get("deps", []))]
+    # 「就绪待启动」中间态已随 confirm 吸收 start 删除 (design.md §1) — 待处理 task 前置一清即可
+    # confirm 直接开工, 不再有单独一批"排队等启动"的 task。readyTasks 保留字段 (前端兼容) 恒空。
+    ready_tasks: list[dict[str, Any]] = []
     # 待 plan task: 所有 status=待处理 (含未 confirm; subCount=0 即 plan 未收敛)
     to_plan_tasks = [{"id": t["id"], "name": t.get("name", t["id"]),
                       "desc": t.get("desc", ""), "subCount": len(t.get("subtasks", []))}
@@ -405,7 +403,7 @@ def _view_dashboard(snap: Snapshot) -> dict[str, Any]:
     recent = sorted(snap.tasks,
                     key=lambda t: -(t.get("finished") or t.get("started") or t.get("created") or 0))
     recent_active = [brief(t) for t in recent
-                     if t["status"] in (S_PENDING, S_READY, S_ACTIVE, S_CHECK)][:8]
+                     if t["status"] in (S_PENDING, S_RESEARCH, S_ACTIVE, S_CHECK, S_FINISHING)][:8]
     recent_done = [brief(t) for t in recent if t["status"] == S_DONE][:5]
     # 总览 ETA 的输入: 只挑 etaOf 真正要读的字段下发 (前端 normalizeTask 会把 subtable→subtasks、
     # spct→progress 适配好)。**不在 Python 侧算 ETA** —— 关键路径/并发折算/实测校准那套算法在
@@ -431,14 +429,11 @@ def _view_dashboard(snap: Snapshot) -> dict[str, Any]:
             "readyTasks": ready_tasks, "toPlanTasks": to_plan_tasks,
             "activeTasks": active_tasks, "checkTasks": check_tasks}
 def _view_queue(snap: Snapshot) -> dict[str, Any]:
-    # 待执行队列 (web 展示, 不受槽限): 全量 pending subtask 队列 + task 级就绪 + active 内全量就绪 subtask
+    # 待执行队列 (web 展示, 不受槽限): 全量 pending subtask 队列 + active 内全量就绪 subtask。
+    # 「就绪待启动」task 中间态已随 confirm 吸收 start 删除 (design.md §1), readyTasks 恒空
+    # (前端字段兼容; 待处理 task 前置一清即可直接 confirm 开工, 不再有单独排队态)。
     tasks = snap.tasks
-    ready_tasks = [{"id": t["id"], "name": t.get("name", t["id"]),
-                    "deps": t.get("deps", []), "desc": t.get("desc", ""),
-                    "status": t["status"], "spct": _task_pct(t)}
-                   for t in snap.all_tasks
-                   if t["status"] == S_READY
-                   and not any(snap.dep_unfinished(d) for d in t.get("deps", []))]
+    ready_tasks: list[dict[str, Any]] = []
     # web 展示不受槽限: pending 且依赖全 done 即列 (与 dashboard readySubs 同, 受槽限只作用于 claim/exec 派发)
     ready_subs: list[dict[str, Any]] = []
     for t in snap.active:
@@ -465,7 +460,7 @@ def _view_queue(snap: Snapshot) -> dict[str, Any]:
     # ponytail: active_tasks 自算, 复用 tasks 避免二次扫描 (字段对齐 board_data.cards)
     active_tasks: list[dict[str, Any]] = []
     for t in tasks:
-        if t["status"] not in (S_ACTIVE, S_CHECK):
+        if t["status"] not in STATUS_INFLIGHT:
             continue
         subs = t.get("subtasks", [])
         st = t.get("status")
@@ -484,7 +479,7 @@ def _view_queue(snap: Snapshot) -> dict[str, Any]:
                     "status": t["status"], "priority": t.get("priority"),
                     "created": t.get("created"), "started": t.get("started"),
                     "spct": _task_pct(t)}
-                   for t in tasks if t["status"] in (S_PENDING, S_READY, S_ACTIVE, S_CHECK)]
+                   for t in tasks if t["status"] in (S_PENDING, S_RESEARCH, S_ACTIVE, S_CHECK, S_FINISHING)]
     return {"pendingQueue": _pending_queue(tasks, snap.dep_unfinished),
             "queueTasks": queue_tasks,
             "readyTasks": ready_tasks, "readySubtasks": ready_subs,
