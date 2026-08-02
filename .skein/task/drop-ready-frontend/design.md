@@ -26,3 +26,20 @@ check 阶段验证的是`行为对不对`而非`跑没跑起来`, 全靠这里�
 未触碰 (越界自查见 `git diff --stat 91ede1caa..HEAD`): `scripts/`、`assets/dist/`、`app/help/page.tsx`(帮助页归 f2)、任何测试文件(归 f3)。
 
 类型检查: `pnpm install && npx tsc --noEmit` — 零报错, 删枚举后所有引用点均已跟进。
+
+## f2 执行记录 (帮助页过时流程文案)
+
+背景: 引擎侧 `concurrency-pools` 合入后状态机改为 `待处理 ⇄ 调研中(research) → confirm(吸收原 start) → 进行中 → check → 检查中 → finishing → 收尾中 → finish → 已完成`, 双池 `pools.work`(执行) / `pools.gate`(验收+收尾)。帮助页 `src/app/help/page.tsx` 仍描述旧 4 态流程(`planning→active→check→done`)且把 `claim exec` 说成「自动 start task」, 二者均已删除/不存在。
+
+改动 (仅 `src/app/help/page.tsx`, 三处 commit):
+1. `TASK_FLOW`: 4 态 → 6 态, 补 `research`(调研中)/`finishing`(收尾中) 两卡片; `active` 卡片 `enter` 字段由 `skein claim exec`(误) 改为 `skein confirm`(实际入口, 吸收原 start); `planning` 卡片 `exit` 补 `skein research` 分支
+2. 「关键命令速查」表: 删 `["skein claim exec", "全局认领就绪 subtask (自动 start task)"]` 这条错误表述, 改为「认领 ready subtask → running, 竞争 pools.work 槽 (不改 task 状态)」; 补 `skein research`/`skein plan`/`skein finishing` 三条已存在但原表缺失的命令; `claim check` 描述改为「进行中→检查中 或 检查中→收尾中」双职能
+3. `FlowDiagram` SVG: 主链由 4 节点扩为 5 节点 (`planning→active→check→finishing→done`), 新增 `research` 作为 `planning` 上方双向支线节点 (⇄ research/plan, 不阻断直接 confirm); 主链 edge label `claim exec` 改为 `confirm`, `claim check` 改为 `check / claim check` 与 `finishing / claim check`
+
+核对证据: 实测 `skein.py --help`(顶层生命周期行 `research⇄plan→confirm→check→finishing→finish→archive`)、`skein.py claim --help`(exec/check 双职能)、`skein.py confirm --help`(吸收 start 的门)、`skein.py research/finishing --help`(均只需 `id`)、`skein.py subtask --help`(确认 subtask 级 `start` 命令仍存在, 未误删)。
+
+验收自证:
+- 帮助页无 `start` 命令与「自动 start task」表述 — 全文 grep `start` 仅剩「吸收原 start」历史说明与 subtask 级 `skein subtask start`(实际仍存在的命令), 无误导表述
+- 描述与当前 CLI `--help` 实际输出一致 — 卡片/表格/SVG 三处均对照实测 `--help` 输出改写
+
+`npx tsc --noEmit` 零报错。越界自查: `git diff --stat 26916c89d..HEAD` 与 `c10a001b9^..HEAD` 均只涉 `src/app/help/page.tsx`, 未碰 f1 的 status.tsx/model.ts/board.tsx/globals.css。
