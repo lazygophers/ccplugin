@@ -43,13 +43,27 @@ def _set_max_active(ws: Path, n: int) -> None:
 
 
 def _add(skein_cli: SkeinCli, ws: Path, tid: str, sid: str, *, deps: str = "",
-         check: str = "") -> None:
+         check: str = "", phase: str = "") -> None:
     args = ["subtask", "add", tid, sid, "--name", f"N{sid}", "--desc", "d", "--estimate", "1"]
     if deps:
         args += ["--deps", deps]
     if check:
         args += ["--check", check]
+    if phase:
+        args += ["--phase", phase]
     skein_cli(ws, *args)
+
+
+def _backdate_created(ws: Path, tid: str, sid: str, hours_ago: float) -> None:
+    """把某 subtask 的 created 往前拨 (模拟等待了 N 小时) —— s4 加权打分的等待翻盘用例专用。"""
+    import json
+    import time
+    tj = ws / ".skein" / "task" / tid / "task.json"
+    t = json.loads(tj.read_text())
+    for s in t["subtasks"]:
+        if s["sid"] == sid:
+            s["created"] = int(time.time() - hours_ago * 3600)
+    tj.write_text(json.dumps(t, ensure_ascii=False))
 
 
 def _status_map(skein_cli: SkeinCli, ws: Path, tid: str) -> dict[str, str]:
@@ -319,3 +333,93 @@ def test_task_level_cap_removed_all_can_go_active(skein_cli: SkeinCli, ws: Path)
         skein_cli(ws, "estimate", tid, "--set", "1")  # estimate 硬门: confirm 前须填实工时
         res = skein_cli(ws, "confirm", tid)  # 三个全部放行, 无第 3 个被拦
         assert res.returncode == 0, res.stderr
+
+
+# ---------- s4 concurrency-pools: 两池独立 + 加权打分 (design.md §3/§4) ----------
+
+def test_two_pools_independent_work_full_check_still_claimable(skein_cli: SkeinCli, ws: Path) -> None:
+    """两池独立: work 池满时, 检查中/收尾中的认领 (claim check) 不受影响。"""
+    _set_max_active(ws, 1)  # work 池上限=1, 一占就满
+    # task-b: 占满 work 池唯一的槽
+    skein_cli(ws, "create", "task-b", "--name", "task-b", "--desc", "d")
+    _add(skein_cli, ws, "task-b", "x")
+    _fill_prd(ws, "task-b")
+    skein_cli(ws, "estimate", "task-b", "--set", "1")
+    skein_cli(ws, "confirm", "task-b")
+    skein_cli(ws, "claim", "exec")  # 占满 work 池 (1/1)
+    assert "work 池已满" in skein_cli(ws, "claim", "exec", "--dry-run").stdout
+
+    # task-a: 全部 subtask 已完成, 等着被 claim check 收进检查中 — 不经 claim exec (work 满进不去)
+    skein_cli(ws, "create", "task-a", "--name", "task-a", "--desc", "d")
+    _add(skein_cli, ws, "task-a", "y")
+    _fill_prd(ws, "task-a")
+    skein_cli(ws, "estimate", "task-a", "--set", "1")
+    skein_cli(ws, "confirm", "task-a")
+    skein_cli(ws, "subtask", "done", "task-a", "y")  # done 不设前置态门, 直接可标完成
+
+    out = skein_cli(ws, "claim", "check").stdout
+    assert "已认领进检查" in out and "task-a" in out
+
+
+def test_exec_wins_over_research_on_tie(skein_cli: SkeinCli, ws: Path) -> None:
+    """exec 同分优先: 关键路径权重/优先级/等待时长全相等时, phase=exec 排在 phase=research 前面。"""
+    _set_max_active(ws, 2)
+    skein_cli(ws, "create", "task-exec", "--name", "task-exec", "--desc", "d")
+    _add(skein_cli, ws, "task-exec", "x")  # 默认 phase=exec
+    _fill_prd(ws, "task-exec")
+    skein_cli(ws, "estimate", "task-exec", "--set", "1")
+    skein_cli(ws, "confirm", "task-exec")
+
+    skein_cli(ws, "create", "task-research", "--name", "task-research", "--desc", "d")
+    _add(skein_cli, ws, "task-research", "y", phase="research")
+    _fill_prd(ws, "task-research")
+    skein_cli(ws, "estimate", "task-research", "--set", "1")
+    skein_cli(ws, "confirm", "task-research")
+
+    order = _dry_run_order(skein_cli, ws)
+    assert order.index("task-exec/x") < order.index("task-research/y")
+
+
+def test_long_waiting_research_overtakes_fresh_exec(skein_cli: SkeinCli, ws: Path) -> None:
+    """等久的 research 能翻盘: 等待时长差超过 exec 软优先加分后, research 反超同分的 exec。"""
+    _set_max_active(ws, 2)
+    skein_cli(ws, "create", "task-exec", "--name", "task-exec", "--desc", "d")
+    _add(skein_cli, ws, "task-exec", "x")  # 刚登记, 等待≈0
+    _fill_prd(ws, "task-exec")
+    skein_cli(ws, "estimate", "task-exec", "--set", "1")
+    skein_cli(ws, "confirm", "task-exec")
+
+    skein_cli(ws, "create", "task-research", "--name", "task-research", "--desc", "d")
+    _add(skein_cli, ws, "task-research", "y", phase="research")
+    _backdate_created(ws, "task-research", "y", hours_ago=3)  # 等了 3h > W_EXEC 等价的 1h
+    _fill_prd(ws, "task-research")
+    skein_cli(ws, "estimate", "task-research", "--set", "1")
+    skein_cli(ws, "confirm", "task-research")
+
+    order = _dry_run_order(skein_cli, ws)
+    assert order.index("task-research/y") < order.index("task-exec/x")
+
+
+def test_empty_batch_message_names_which_pool_is_full(skein_cli: SkeinCli, ws: Path) -> None:
+    """满槽提示指明池名: work 满报「work 池已满」, gate 满报「gate 池已满」(两处均不能只说「满槽」)。"""
+    _set_max_active(ws, 1)
+    skein_cli(ws, "create", "task-w", "--name", "task-w", "--desc", "d")
+    _add(skein_cli, ws, "task-w", "x")
+    _fill_prd(ws, "task-w")
+    skein_cli(ws, "estimate", "task-w", "--set", "1")
+    skein_cli(ws, "confirm", "task-w")
+    skein_cli(ws, "claim", "exec")  # 占满 work 池 (1/1)
+    out = skein_cli(ws, "claim", "exec", "--dry-run").stdout
+    assert "work 池已满" in out
+
+    # gate 池: 上限压到 0, 两个 task 都全 done 想收尾, finishing 应报「gate 池已满」
+    cfg = ws / ".skein" / "config.yaml"
+    txt = cfg.read_text()
+    import re as _re
+    txt = _re.sub(r"^(\s+)gate:\s*\d+", lambda m: f"{m.group(1)}gate: 0", txt, flags=_re.M)
+    cfg.write_text(txt)
+    skein_cli(ws, "subtask", "done", "task-w", "x")
+    check_out = skein_cli(ws, "claim", "check").stdout
+    assert "已认领进检查" in check_out
+    finishing_out = skein_cli(ws, "claim", "check").stdout  # 第二轮: 检查中→收尾中, 撞 gate=0
+    assert "gate 池已满" in finishing_out

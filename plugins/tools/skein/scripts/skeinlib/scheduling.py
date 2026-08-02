@@ -183,7 +183,11 @@ class Scheduler:
         --dry-run 只读预览。"""
         to_check: list[dict[str, Any]] = []
         to_finishing: list[dict[str, Any]] = []
-        for t in self.ws.store.active():
+        # 不能用 self.ws.store.active(): STATUS_ACTIVE = {进行中,调研中,收尾中} 不含「检查中」
+        # (model.py:22) —— 用它会让下面的「检查中→收尾中」这一路永远遍历不到, 变成死代码。
+        for t in self.ws.store.all_tasks():
+            if t["status"] not in (S_ACTIVE, S_CHECK):
+                continue
             subs = t.get("subtasks", [])
             if not subs:
                 continue
