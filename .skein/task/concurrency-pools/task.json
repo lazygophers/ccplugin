@@ -93,12 +93,17 @@
         "等久的 research 能翻盘",
         "满槽提示指明池名"
       ],
-      "验收done": [],
-      "status": "运行中",
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785512383,
       "started": 1785632455,
-      "finished": null
+      "finished": 1785635796
     },
     {
       "sid": "s5",
@@ -114,12 +119,16 @@
         "doctor 报两池超限",
         "残留 max_active 有可见提示"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785512383,
-      "started": null,
-      "finished": null
+      "started": 1785635860,
+      "finished": 1785636374
     },
     {
       "sid": "s6",
@@ -209,6 +218,6 @@
   "confirmed": 1785515070,
   "checked": null,
   "finished": null,
-  "updated": 1785632876,
+  "updated": 1785636374,
   "confirmed_by": "user"
 }

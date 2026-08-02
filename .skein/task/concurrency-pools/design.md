@@ -299,6 +299,48 @@ source files**。
 `python3 -m mypy plugins/tools/skein/scripts/skeinlib/board.py store.py views.py
 boardsource.py` → **Success: no issues found in 4 source files**。
 
+## s5 交付记录 — CLI + 只读投影 + 体检 (`c2571ece9`)
+
+### 改动 file:line
+`plugins/tools/skein/scripts/skeinlib/doctor.py:26` import `_yaml_load`; `doctor.py:191-212`
+两段新检查 —— ①`work_running`/`gate_running` 两池超限 (✗ errs, 与 s4 调度器/s6 展示同口径,
+各自一行 sum 不抽公共函数); ②读原始 config.yaml (`_yaml_load`, 绕过 `_cfg_effective` 合并) 探
+`max_active` 残留 (⚠ warns, 引用值原样回显)。
+
+### 3 条验收逐条自证
+1. **`skein start` 已不存在**: `python3 skein.py start foo` 实测
+   `error: argument <command>: invalid choice: 'start'`, 顶层 `cli.py` 命令表 (25-158 行) 无
+   `sub.add_parser("start", ...)` (仅 `subtask start` 是子 action, 语义不同, 未受影响)。
+2. **doctor 报两池超限**: 手工造临时工作区 3 个 task 各挂 1 个「运行中」subtask (超 `pools.work`
+   默认 2) → `✗ work 池超限: running 3 > 上限 2`; 另造 4 个「检查中」task (超 `pools.gate` 默认
+   3) → `✗ gate 池超限: running 4 > 上限 3`。两条均触发 `doctor 未通过` exit 1。
+3. **残留 `max_active` 有可见提示**: 临时工作区 config.yaml 追加 `max_active: 5` →
+   `⚠ config.yaml 残留 max_active=5 — 已废弃且不再生效 (并发上限改读 pools.work), 删掉该键或
+   迁到 \`pools: {work: <值>}\``。**副作用发现**: 主仓根 `.skein/config.yaml` 本身就残留
+   `max_active=2` (被本次新检查项实测捕获, 见下方 doctor 实跑输出) —— 未动它, 清理归用户/s7
+   裁定范围, 不在 s5 CLI+体检的改动边界内。
+
+### 两池计数口径核对 (三处一致)
+- doctor (本次新增): `work_running = sum(1 for t in tasks for s in t.get("subtasks",[])
+  if s.get("status")==SS_RUNNING)`; `gate_running = sum(1 for t in tasks if t.get("status")
+  in (S_CHECK, S_FINISHING))`
+- s4 调度器 `scheduling.py`: 同表达式 (全局 running subtask 数 / 检查中+收尾中 task 数)
+- s6 展示 `views.py:203-204`: 逐字同表达式
+三处口径一致, 未抽公共函数 (design.md s4 交付记录已裁: 重复成本低于抽象成本), doctor 跟随该裁定。
+
+### 质量门
+`python3 -m pytest plugins/tools/skein/scripts/tests/ -q` → **412 passed, 0 failed**
+(与 s4 交付基线一致, 本 subtask 未新增/删除测试, 三条验收全靠手工脚本临时工作区实测 —— 零残留
+扫描测试等归 s8)。
+`python3 -m mypy plugins/tools/skein/scripts/skeinlib/` → **Success: no issues found in
+48 source files**。
+
+### 主仓根 doctor 实跑 (非本 subtask 改动范围, 仅记录发现)
+`python3 skein.py doctor`(主仓根跑) 输出 6 个既有 ✗ (`task-priority` 非法 priority /
+`concurrency-pools`+`task-priority` worktree 路径不存在 / `board-live-refresh`+
+`spec-docs-examples`+`spec-skills-agents-adapt` 非法 status「就绪」, 均为其他并发 task 的既有
+状态, 与本 subtask 改动无关) + 1 个 ⚠ (`max_active=2` 残留, 本次新检查项的真实捕获)。
+
 ### subtask list s6 行 (worktree 内亲跑)
 `s6	已完成	100%	1.5h	看板 + Web 视图	依赖:s1,s2	验收:看板显示 work 与 gate 两行;
 Web 视图 JSON 含两池字段; 新状态在看板有正确排序位	skills:-`
