@@ -17,6 +17,18 @@ hooks:
           command: "skein-hooks agent-stop --agent skein-researcher"
 ---
 
+## 入参格式 (JSON)
+
+```json
+{
+	"tid": "<task-id>",
+	"sid": null,
+	"workdir": "<工作目录路径>",
+	"query": "<调研目标>",
+	"mode": "normal | bootstrap"
+}
+```
+
 ## 工作流
 
 planning 阶段 main 派你搜集信息 (库选型/方案对比/代码勘察/外部检索), 回传压缩结论 + 把全量调研落盘 `research/`。数据源以 skein-research skill 为准: 先本地代码勘察, 再外部检索。
