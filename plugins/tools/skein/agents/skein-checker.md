@@ -71,17 +71,15 @@ skein contract <id>
 - 任一 fail → 上报 (main 派修复), 禁放过。
 - CLI 报错 → `[工具失败: 契约读取失败]`。
 
-### 5. 一致性核查 (subtask 产物间冲突)
+### 5. 一致性核查 (调 skein-spec analyze)
 
-逐条报冲突对:
+```
+skein-spec analyze <id> --json
+```
 
-- 接口签名对不上 (A 调 B 参数/返回类型不符)
-- 重复实现同一职责
-- 命名/约定相斥
-- 数据流断裂 (字段缺失/上游产出下游不消费)
-- 契约互相矛盾
-
-冲突记: 哪两处 `file:line` + 冲突点。
+- 五类只读检查 (验收覆盖率 / 硬规冲突 / 范围蔓延 / proposed 置信度 / 接缝存在性), 全启发式候选, **禁断言违规**, 零命中即如实报零冲突。
+- `--json` 直接消费, 不再手工 diff 比对; 权威定义见 skein-spec SKILL.md「analyze」章节, 本 agent 不重复实现比对逻辑。
+- CLI 报错 → `[工具失败: analyze 检索失败]`, consistency 标 MANUAL 需人审, 不阻断其余硬门。
 
 ### 6. 收工钩子
 
@@ -128,8 +126,8 @@ python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-stop --agent skein-che
 		}
 	],
 	"consistency": {
-		"conflicts": [
-			{ "a": "<file:line>", "b": "<file:line>", "point": "<冲突点>" }
+		"analyze_candidates": [
+			{ "category": "验收覆盖率|硬规冲突|范围蔓延|proposed置信度|接缝存在性", "note": "<候选说明, file:line>" }
 		],
 		"clean": false
 	},
