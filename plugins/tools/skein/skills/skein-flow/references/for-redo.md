@@ -18,8 +18,8 @@ task 列成候选清单 (即卡死嫌疑名单), 交使用者从中选一个补 
 
 复位孤儿的动作永远照做 (解卡是刚需, 不因 `--plan` 而跳过)。`--plan` 只影响复位之后的续跑深度:
 
-- **起点归类为规划中** (`待处理`/`就绪`, 见下表): 续规划到收敛即停, **不自动 `claim exec`/`start`**。
-  这是唯一有意义的拦截点 —— design.md §4 的"只想把规划补收敛, 不想它自动开工", 开工 = 进 exec。
+- **起点归类为规划中** (`待处理`/`调研中`, 见下表): 续规划到收敛即停, **不自动 `claim exec`/`confirm`**。
+  这是唯一有意义的拦截点 —— design.md §1 的"只想把规划补收敛, 不想它自动开工", 开工 = confirm 进 exec。
 - **起点归类为执行中/验证中/收尾中/已完成**: 规划早在更早阶段收敛过, `--plan` 已经没有可拦的位置,
   行为与不带 `--plan` 时一致 (该复位复位, 该重派重派)。但必须显式告知使用者一句
   「该 task 已过规划阶段, `--plan` 未生效, 按正常 redo 续跑」—— 不能默不作声地照常执行, 让人误以为
@@ -54,25 +54,16 @@ task 列成候选清单 (即卡死嫌疑名单), 交使用者从中选一个补 
 
 | task 当前 `status` | 归类 | redo 做什么 |
 |---|---|---|
-| 待处理 (pending) | 规划中 | 无运行中 subtask 可复位 (未 start 无 worktree, 不可能有). 按 [for-plan.md](for-plan.md) 续规划 (brainstorm/PRD/design/工时) 到收敛, 走人审门 `confirm` |
-| 就绪 (ready) | 规划中 (已收敛) | 同上, 无运行中 subtask 可复位. 规划已收敛未 start, 直接进 [for-exec.md](for-exec.md) 调度循环 (`claim exec` 起步), 无需任何复位动作 |
+| 待处理 (pending) | 规划中 | 无运行中 subtask 可复位 (未 confirm 无 worktree, 不可能有). 按 [for-plan.md](for-plan.md) 续规划 (brainstorm/PRD/design/工时) 到收敛, 走人审门 `confirm --approved` (吸收原 start 全部职责, 一步直进进行中) |
+| 调研中 (research) | 规划中 (调研态) | research subtask 与 exec 同样占 `pools.work` 槽, 可能有孤儿 —— **走下方「复位步骤」**复位后, 按 [for-plan.md](for-plan.md) 续跑调研 subtask 到全 done, `skein plan` 收敛回待处理 |
 | 进行中 (active) | 执行中 | **走下方「复位步骤」**, 复位孤儿后按 [for-exec.md](for-exec.md) 正常调度循环续跑到全 subtask done → check |
-| 检查中 (check) | 验证中 / 收尾中 (需二次判定, 见下) | 验证中 → 重派 [for-check.md](for-check.md) `Agent(subagent_type="skein:skein-checker")`；收尾中 → 重派 [for-finish.md](for-finish.md) `Agent(subagent_type="skein:skein-finisher")`。**验证中不退回执行态** —— 执行产物完好, 退回是倒车 |
+| 检查中 (check) | 验证中 | check 不设 subtask (task 级一次性动作, 无运行中 subtask 可复位), 直接重派 [for-check.md](for-check.md) `Agent(subagent_type="skein:skein-checker")` |
+| 收尾中 (finishing) | 收尾中 | finish 同样不设 subtask, 无运行中 subtask 可复位, 直接重派 [for-finish.md](for-finish.md) `Agent(subagent_type="skein:skein-finisher")` |
 | 已完成 (done) | 已闭环 | 报「已闭环, 无事可做」, 不做任何操作, 不重跑 |
 
-### 检查中态的二次判定: 验证中 vs 收尾中
-
-`检查中` 态本身无法直接分辨"还没验完"和"验过 PASS 但没来得及 finish"——两者落盘 `status` 都是
-`检查中`。唯一可查的既有信号: [for-check.md](for-check.md) 完成判据要求 checker PASS 时把本轮通过的
-验收项回写 `- [x]` (`skein prd check`)。据此判定:
-
-1. 跑 `skein prd show <tid>` 读「验收标准」章节
-2. 该章节全部条目已 `- [x]` → **收尾中** → 重派 `skein-finisher`
-3. 有任一条目仍 `- [ ]`, 或读不到明确结论 → **默认验证中** → 重派 `skein-checker`
-
-**默认偏向验证中**: 误判"收尾中→重派验证"的代价 = 多跑一次幂等验证 (checker 无写权, 空转成本低);
-误判"验证中→直接 finish"的代价 = 可能带着未验证的一致性冲突/契约缺口就合并, 代价不对称, 拿不准一律
-按验证中处理。
+`检查中`/`收尾中` 现为状态机里两个独立落盘态 (`skein status <tid>` 直接读得到), 不再需要旧版靠
+验收标准 `- [x]` 覆盖率二次判定 "验证中 vs 收尾中" —— 那套判定逻辑随 `finishing` 转换 (design.md §1)
+落地已废弃。
 
 ## 复位步骤 (执行中态专用, 命令固定, 禁改拼法)
 
@@ -87,7 +78,7 @@ task 列成候选清单 (即卡死嫌疑名单), 交使用者从中选一个补 
    引擎状态机无 `运行中→待处理` 直接迁移 (见 [subtask-state-machine.md](subtask-state-machine.md)), 只有
    `运行中→失败→运行中` (失败可重启, `started` 时间戳不覆盖). 这就是"待复位为待处理"在现有命令下唯一
    拼得出的等价路径 —— **本步骤固定, 不得改拼法, 否则每次 redo 拼得不一样**。
-   `subtask start` 前置校验含"同 task 内运行中数 < `max_active`": 孤儿数通常 ≤ 崩溃前的 `max_active`
+   `subtask start` 前置校验含"全局 running 数 < `pools.work`": 孤儿数通常 ≤ 崩溃前的 `pools.work`
    占槽数, 逐个 start 一般不会撞槽; 若撞槽 (罕见), 未 start 成功的项留 `失败` 态, 交给第 4 步的
    `claim exec`/后续 done 释槽后自然被后续调度循环拾起 (仍可 `subtask start`, 源状态含"失败").
 4. **回到正常调度循环**: `skein claim exec` 补齐 pending 池待认领项, 之后按 [for-exec.md](for-exec.md)
@@ -109,8 +100,8 @@ redo <tid> 已复位以下 subtask (运行中 → 失败 → 运行中, 重新�
 若「复位步骤」第 2 步 (枚举孤儿) 结果为空 → 清单退化为一行:
 `redo <tid>: 无运行中 subtask 需复位, 直接续调度。`
 
-非执行中起点 (待处理/就绪/检查中/已完成) 没有「复位步骤」可跑, 无需输出上述清单, 但仍需回报走的是
-起点分流表里的哪一分支 (例如「就绪态, 无需复位, 直接进 exec 调度」)。
+非执行中起点 (待处理/检查中/收尾中/已完成) 没有「复位步骤」可跑, 无需输出上述清单, 但仍需回报走的是
+起点分流表里的哪一分支 (例如「检查中, 无运行中 subtask 可复位, 直接重派 skein-checker」)。
 
 ## 完成判据
 
