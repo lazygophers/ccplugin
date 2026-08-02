@@ -8,6 +8,16 @@ color: green
 permissionMode: bypassPermissions
 ---
 
+## 入参格式 (JSON)
+
+```json
+{
+	"tid": "<task-id>",
+	"sid": null,
+	"workdir": "<工作目录路径>"
+}
+```
+
 ## 工作流
 
 ### 0. 开工钩子 (第一步, 失败不阻断)
