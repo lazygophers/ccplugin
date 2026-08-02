@@ -342,7 +342,11 @@ class BoardSourceMixin:
     def _run_server(self, open_browser: bool = True, quiet: bool = False) -> None:
         # FastAPI + uvicorn 本地看板服务 (随机 port)。热重载: WS 推 reload (rev = task.json + assets mtime)。
         # quiet=True (monitor): 不打印启动/停止行, 访问日志静默。uvicorn 自装 SIGINT/SIGTERM 优雅停机。
-        import atexit, socket, threading, webbrowser
+        import atexit, socket, threading, webbrowser, time
+
+        lock = self._lock_file()
+        log_file = self.dir / ".skein" / "serve.log"
+        log_file.parent.mkdir(parents=True, exist_ok=True)
 
         lock = self._lock_file()
         proj_id = str(self.dir.resolve())
@@ -403,15 +407,44 @@ class BoardSourceMixin:
         os.environ["SKEIN_SERVE_QUIET"] = "1" if quiet else "0"
         if DBG.enabled:
             os.environ["SKEIN_DEBUG"] = "1"  # --debug 传进 reload 子进程 (argv 不继承, 访问日志才开)
-        try:
-            # app 字符串必须与 _serve_app_factory 的**当前**所在模块一致 —— uvicorn 靠字符串
-            # 在 reload 子进程里 import, 函数搬了家而字符串没跟着改, 表现是 serve 起不来
-            # ("Attribute not found in module"), 且只在真起服务时才暴露。
-            uvicorn.run("skeinlib.serve:_serve_app_factory", factory=True, host="127.0.0.1", port=port,
-                        log_level="warning", access_log=False, reload=True, reload_dirs=[script_dir])  # 阻塞; SIGINT/SIGTERM 优雅停机
-        finally:
-            if not quiet:
-                print("\n看板服务已停止")
-            _cleanup()
+
+        max_retries = 3
+        retry_delay = 1  # 秒，递增基数
+
+        for attempt in range(max_retries + 1):
+            try:
+                # app 字符串必须与 _serve_app_factory 的**当前**所在模块一致 —— uvicorn 靠字符串
+                # 在 reload 子进程里 import, 函数搬了家而字符串没跟着改, 表现是 serve 起不来
+                # ("Attribute not found in module"), 且只在真起服务时才暴露。
+                uvicorn.run("skeinlib.serve:_serve_app_factory", factory=True, host="127.0.0.1", port=port,
+                            log_level="warning", access_log=False, reload=True, reload_dirs=[script_dir])  # 阻塞; SIGINT/SIGTERM 优雅停机
+                # 正常退出（SIGINT/SIGTERM）
+                break
+            except SystemExit as e:
+                # uvicorn 内部用 sys.exit() 退出，捕获并记录
+                code = e.code if isinstance(e.code, int) else 1
+                ts = time.strftime("%Y-%m-%d %H:%M:%S")
+                log_entry = f"[{ts}] serve exit code={code}, attempt={attempt}/{max_retries}\n"
+                log_file.write_text(log_entry, encoding="utf-8")
+                if code == 0 or attempt >= max_retries:
+                    break
+                # 非零退出且未达重试上限 → 等待递增后重启
+                delay = retry_delay * (attempt + 1)
+                time.sleep(delay)
+            except Exception as e:
+                # 其他异常（KeyboardInterrupt 除外，那是用户主动停止）
+                if isinstance(e, KeyboardInterrupt):
+                    break
+                ts = time.strftime("%Y-%m-%d %H:%M:%S")
+                log_entry = f"[{ts}] serve crashed: {type(e).__name__}: {e}, attempt={attempt}/{max_retries}\n"
+                log_file.write_text(log_entry, encoding="utf-8")
+                if attempt >= max_retries:
+                    raise
+                delay = retry_delay * (attempt + 1)
+                time.sleep(delay)
+
+        if not quiet:
+            print("\n看板服务已停止")
+        _cleanup()
     def _build_serve_app(self, proj_id: str, quiet: bool, on_ready: Optional[Callable[[], None]] = None) -> Any:
         return build_app(self, proj_id, quiet, on_ready)  # 见模块级 build_app(DataSource seam)
