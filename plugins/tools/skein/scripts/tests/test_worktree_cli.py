@@ -1,8 +1,8 @@
 """skein worktree 生命周期 + CLI 解析 + doctor 体检测试。
 
 经 conftest 的 skein_cli/ws/git_cmd fixture 跑真实 skein.py CLI 子进程 (tmp_path 隔离)。
-- worktree 生命周期: start 建物理目录 + git 分支; finish 销目录 + 分支 merge 回主; 往返干净。
-- 多子 git: create --repos 声明 → start 为每子 git 各建 worktree; finish 各自 merge 销。
+- worktree 生命周期: confirm(吸收 start) 建物理目录 + git 分支; finish 销目录 + 分支 merge 回主; 往返干净。
+- 多子 git: create --repos 声明 → confirm 为每子 git 各建 worktree; finish 各自 merge 销。
 - CLI 解析: 各子命令参数解析正确; 非法参数报错 (argparse exit 2 / 逻辑校验 exit 1)。
 - doctor: 制造 task.json 不变量违规验 exit 1; 正常态 exit 0。
 
@@ -24,18 +24,18 @@ S_DONE = "已完成"
 
 
 def _mk(skein_cli: SkeinCli, ws: Path, tid: str = "feat-wt", *, sub: bool = True) -> str:
-    """造就绪 task (附 1 subtask + 填 prd + confirm 过用户确认门), 返回 tid。"""
+    """造进行中 task (附 1 subtask + 填 prd + confirm 过用户确认门, confirm 吸收 start 建好 worktree), 返回 tid。"""
     skein_cli(ws, "create", tid, "--name", tid, "--desc", "d")
     if sub:
         skein_cli(ws, "subtask", "add", tid, "sub-a", "--name", "A", "--desc", "d", "--estimate", "1")
-        _fill_prd(ws, tid)  # start 前置 prd 门: 填实占位免被拒
+        _fill_prd(ws, tid)  # confirm 前置 prd 门: 填实占位免被拒
         skein_cli(ws, "estimate", tid, "--set", "1")  # estimate 硬门: confirm 前须填实工时
-        skein_cli(ws, "confirm", tid)  # 待处理→就绪 用户确认门 (start 需就绪态)
+        skein_cli(ws, "confirm", tid)  # 待处理→进行中 用户确认门 (吸收 start, 建 worktree)
     return tid
 
 
 def _fill_prd(ws: Path, tid: str) -> None:
-    """写一份规范 prd.md (章节齐 + 无 TODO 占位), 过 start 的 _validate_prd 门。"""
+    """写一份规范 prd.md (章节齐 + 无 TODO 占位), 过 confirm 的 _validate_prd 门。"""
     (ws / ".skein" / "task" / tid / "prd.md").write_text(
         f"# {tid} — PRD\n\n"
         "## 目标\n- 解决 X 问题\n\n"
@@ -62,13 +62,18 @@ def _write_task(ws: Path, tid: str, t: dict[str, Any]) -> None:
     (ws / ".skein" / "task" / tid / "task.json").write_text(json.dumps(t, ensure_ascii=False))
 
 
+def _advance_to_finishing(skein_cli: SkeinCli, ws: Path, tid: str) -> None:
+    """进行中 → 检查中 → 收尾中 (finish 仅接受收尾中态入参)。"""
+    skein_cli(ws, "check", tid)
+    skein_cli(ws, "finishing", tid)
+
+
 # ---------- worktree 生命周期 ----------
 
 def test_start_builds_worktree_dir_and_branch(skein_cli: SkeinCli, git_cmd: GitCmd,
                                               ws: Path) -> None:
-    """start: 建 worktree 物理目录 + skein/<tid> 分支 (根仓模式)。"""
+    """confirm(吸收 start): 建 worktree 物理目录 + skein/<tid> 分支 (根仓模式)。"""
     tid = _mk(skein_cli, ws)
-    skein_cli(ws, "start", tid)
     wt = ws / ".worktrees" / f"skein-{tid}"
     assert wt.exists() and wt.is_dir(), "worktree 物理目录未建"
     assert _branch_exists(git_cmd, ws, f"skein/{tid}"), "skein/<tid> 分支未建"
@@ -78,10 +83,10 @@ def test_finish_destroys_worktree_and_merges_branch(skein_cli: SkeinCli, git_cmd
                                                      ws: Path) -> None:
     """finish: worktree 目录销毁 + 分支 merge 回主 (分支删除, 提交并入 HEAD)。"""
     tid = _mk(skein_cli, ws)
-    skein_cli(ws, "start", tid)
     wt = ws / ".worktrees" / f"skein-{tid}"
     # worktree 内造改动 + 提交, 验 finish 后 merge 回主
     (wt / "change.txt").write_text("c\n")
+    _advance_to_finishing(skein_cli, ws, tid)
     skein_cli(ws, "finish", tid)
     assert not wt.exists(), "worktree 目录未销"
     assert not _branch_exists(git_cmd, ws, f"skein/{tid}"), "分支未删 (应已 merge 销)"
@@ -90,10 +95,10 @@ def test_finish_destroys_worktree_and_merges_branch(skein_cli: SkeinCli, git_cmd
 
 
 def test_start_finish_roundtrip_clean(skein_cli: SkeinCli, git_cmd: GitCmd, ws: Path) -> None:
-    """start → finish 往返干净: 目录删 + 分支删 + task 落 done。"""
+    """confirm(建 worktree) → finish 往返干净: 目录删 + 分支删 + task 落 done。"""
     tid = _mk(skein_cli, ws, "feat-rt")
-    skein_cli(ws, "start", tid)
     assert (ws / ".worktrees" / f"skein-{tid}").exists()
+    _advance_to_finishing(skein_cli, ws, tid)
     skein_cli(ws, "finish", tid)
     assert not (ws / ".worktrees" / f"skein-{tid}").exists()
     assert not _branch_exists(git_cmd, ws, f"skein/{tid}")
@@ -118,7 +123,7 @@ def _mk_sub_git(git_cmd: GitCmd, ws: Path, name: str) -> Path:
 
 
 def test_multi_repos_each_gets_worktree(skein_cli: SkeinCli, git_cmd: GitCmd, ws: Path) -> None:
-    """create --repos a,b → start 为每子 git 各建 worktree + 分支 (落各仓内)。"""
+    """create --repos a,b → confirm(吸收 start) 为每子 git 各建 worktree + 分支 (落各仓内)。"""
     _mk_sub_git(git_cmd, ws, "sub-a")
     _mk_sub_git(git_cmd, ws, "sub-b")
     tid = "feat-multi"
@@ -126,8 +131,7 @@ def test_multi_repos_each_gets_worktree(skein_cli: SkeinCli, git_cmd: GitCmd, ws
     skein_cli(ws, "subtask", "add", tid, "sub-a", "--name", "A", "--desc", "d", "--estimate", "1")
     _fill_prd(ws, tid)
     skein_cli(ws, "estimate", tid, "--set", "1")  # estimate 硬门: confirm 前须填实工时
-    skein_cli(ws, "confirm", tid)
-    r = skein_cli(ws, "start", tid)
+    r = skein_cli(ws, "confirm", tid)
     assert r.returncode == 0, r.stderr
     # 每子 git 各有独立 worktree 目录 + 分支
     assert (ws / "sub-a" / ".worktrees" / f"skein-{tid}").exists(), "sub-a worktree 未建"
@@ -146,10 +150,10 @@ def test_multi_repos_finish_merges_each(skein_cli: SkeinCli, git_cmd: GitCmd, ws
     _fill_prd(ws, tid)
     skein_cli(ws, "estimate", tid, "--set", "1")  # estimate 硬门: confirm 前须填实工时
     skein_cli(ws, "confirm", tid)
-    skein_cli(ws, "start", tid)
     # 各 worktree 造改动
     (ws / "sub-a" / ".worktrees" / f"skein-{tid}" / "a.txt").write_text("a\n")
     (ws / "sub-b" / ".worktrees" / f"skein-{tid}" / "b.txt").write_text("b\n")
+    _advance_to_finishing(skein_cli, ws, tid)
     r = skein_cli(ws, "finish", tid)
     assert r.returncode == 0, r.stderr
     assert not (ws / "sub-a" / ".worktrees" / f"skein-{tid}").exists()
@@ -162,7 +166,7 @@ def test_multi_repos_finish_merges_each(skein_cli: SkeinCli, git_cmd: GitCmd, ws
 
 
 def test_repos_plain_subdir_rejected(skein_cli: SkeinCli, git_cmd: GitCmd, ws: Path) -> None:
-    """--repos 声明根仓普通子目录 (非独立 git) → start 拒: 须 git 顶层。
+    """--repos 声明根仓普通子目录 (非独立 git) → confirm(吸收 start) 拒: 须 git 顶层。
     普通子目录 show-toplevel = 根仓 ≠ sub, 若误放行 worktree 会错落到外层根仓。"""
     (ws / "plainsub").mkdir()  # 普通子目录, 属根仓工作树, 非独立 git
     tid = "feat-plain"
@@ -170,15 +174,14 @@ def test_repos_plain_subdir_rejected(skein_cli: SkeinCli, git_cmd: GitCmd, ws: P
     skein_cli(ws, "subtask", "add", tid, "s", "--name", "A", "--desc", "d", "--estimate", "1")
     _fill_prd(ws, tid)
     skein_cli(ws, "estimate", tid, "--set", "1")  # estimate 硬门: confirm 前须填实工时
-    skein_cli(ws, "confirm", tid)
-    r = skein_cli(ws, "start", tid, check=False)
+    r = skein_cli(ws, "confirm", tid, check=False)
     assert r.returncode == 1
     assert "不是 git 顶层" in r.stdout + r.stderr
     assert not (ws / "plainsub" / ".worktrees" / f"skein-{tid}").exists(), "拒后不应残留 worktree"
 
 
 def test_repos_deep_nested_git_gets_worktree(skein_cli: SkeinCli, git_cmd: GitCmd, ws: Path) -> None:
-    """--repos 声明任意深度嵌套的独立 git → start 在该子 git 顶层内建 worktree + 分支。"""
+    """--repos 声明任意深度嵌套的独立 git → confirm(吸收 start) 在该子 git 顶层内建 worktree + 分支。"""
     deep = ws / "a" / "b" / "nested-git"
     deep.mkdir(parents=True)
     git_cmd(deep, "init", "-q")
@@ -192,8 +195,7 @@ def test_repos_deep_nested_git_gets_worktree(skein_cli: SkeinCli, git_cmd: GitCm
     skein_cli(ws, "subtask", "add", tid, "s", "--name", "A", "--desc", "d", "--estimate", "1")
     _fill_prd(ws, tid)
     skein_cli(ws, "estimate", tid, "--set", "1")  # estimate 硬门: confirm 前须填实工时
-    skein_cli(ws, "confirm", tid)
-    r = skein_cli(ws, "start", tid)
+    r = skein_cli(ws, "confirm", tid)
     assert r.returncode == 0, r.stderr
     assert (deep / ".worktrees" / f"skein-{tid}").exists(), "嵌套 git worktree 未建"
     assert _branch_exists(git_cmd, deep, f"skein/{tid}"), "嵌套 git 分支未建"
@@ -227,12 +229,12 @@ def test_cli_subtask_add_parse_deps_skills_check(skein_cli: SkeinCli, ws: Path) 
 
 
 def test_cli_start_finish_archive_no_extra_arg(skein_cli: SkeinCli, ws: Path) -> None:
-    """start/finish/archive 只收单 positional id, 未知 flag → argparse exit 2。"""
+    """finish/archive 只收单 positional id, 未知 flag → argparse exit 2。"""
     tid = _mk(skein_cli, ws)
-    skein_cli(ws, "start", tid)
+    _advance_to_finishing(skein_cli, ws, tid)
     skein_cli(ws, "finish", tid)
     skein_cli(ws, "archive", tid)
-    r = skein_cli(ws, "start", "--bogus", tid, check=False)
+    r = skein_cli(ws, "finish", "--bogus", tid, check=False)
     assert r.returncode == 2, "未知 flag 应 argparse exit 2"
 
 
@@ -298,7 +300,6 @@ def test_doctor_active_missing_worktree_exit1(skein_cli: SkeinCli, git_cmd: GitC
                                               ws: Path) -> None:
     """违规: active task 但 worktree 物理目录被删 → doctor exit 1。"""
     tid = _mk(skein_cli, ws)
-    skein_cli(ws, "start", tid)
     # 删 worktree 目录但保留 task active 态 (模拟残留/手删)
     wt = ws / ".worktrees" / f"skein-{tid}"
     subprocess.run(["git", "worktree", "remove", str(wt), "--force"],
