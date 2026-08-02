@@ -36,6 +36,7 @@ $SK list --status open --json | jq -c '[.[] | {id,status,name,desc,deps}]'
 
 - 判据: 同目标 / 同模块 / 共享改动面 / 互为前置。
 - 逐 task Read prd.md + subtask list 比对; **不硬凑重复**。
+- 判据弱时可选跑 `skein-spec recall <关键词> --src product` 找是否已有同功能域 product wiki 页作辅助佐证 (非必跑, 不影响主体判据)。
 - 主次: 生命周期更靠后为主 (进行中 > 检查中 > 就绪 > 待处理); 同级选 subtask 多者。
 - 归并: 次 task 有 subtask 则逐条迁入主 task, 再删次 task:
 
