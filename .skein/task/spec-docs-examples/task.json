@@ -2,7 +2,7 @@
   "id": "spec-docs-examples",
   "name": "docs + examples 示例仓迁移",
   "desc": "sample-skein/spec 迁到四 namespace(加 product/map 示例页) + reference/skein/README/CONTEXT 同步 + skein-flow.mmd 加 wiki 回写分支",
-  "status": "待处理",
+  "status": "收尾中",
   "deps": [
     "spec-skills-agents-adapt"
   ],
@@ -21,12 +21,18 @@
         "reindex 跑通且条数与章节数一致",
         "无 layer/created/updated 残留"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785382984,
-      "started": null,
-      "finished": null
+      "started": 1785663797,
+      "finished": 1785664035
     },
     {
       "sid": "e2",
@@ -42,12 +48,17 @@
         "--layer 标 deprecated",
         "全文档预算处均写键名无数字"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785382984,
-      "started": null,
-      "finished": null
+      "started": 1785664038,
+      "finished": 1785664128
     },
     {
       "sid": "e3",
@@ -63,27 +74,39 @@
         "三类 grep 零残留",
         "doctor --quality 通过"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785382984,
-      "started": null,
-      "finished": null
+      "started": 1785664128,
+      "finished": 1785664433
     }
   ],
   "priority": "high",
   "estimate": 1.5,
   "repos": [],
-  "worktree": null,
-  "worktrees": [],
+  "worktree": ".worktrees/skein-spec-docs-examples",
+  "worktrees": [
+    {
+      "repo": ".",
+      "wt": ".worktrees/skein-spec-docs-examples",
+      "branch": "skein/spec-docs-examples",
+      "merged": false
+    }
+  ],
   "branch": "skein/spec-docs-examples",
   "parent": "spec-wiki-v2",
   "kind": "task",
   "created": 1785381925,
-  "started": null,
-  "confirmed": 1785588459,
-  "checked": null,
+  "started": 1785663793,
+  "confirmed": 1785663792,
+  "checked": 1785664437,
   "finished": null,
-  "updated": 1785633287,
+  "updated": 1785664480,
   "confirmed_by": "user"
 }

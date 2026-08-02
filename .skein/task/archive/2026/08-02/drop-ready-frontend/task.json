@@ -2,7 +2,7 @@
   "id": "drop-ready-frontend",
   "name": "前端清除遗留就绪态",
   "desc": "引擎侧已删 S_READY 且 confirm 直接进进行中, 前端仍保留 ready 兼容态 — 收口 status.tsx/board/model.ts/globals.css/help 文案 + dist 重建",
-  "status": "收尾中",
+  "status": "已完成",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -93,15 +93,8 @@
   "priority": "urgent",
   "estimate": 1.8,
   "repos": [],
-  "worktree": ".worktrees/skein-drop-ready-frontend",
-  "worktrees": [
-    {
-      "repo": ".",
-      "wt": ".worktrees/skein-drop-ready-frontend",
-      "branch": "skein/drop-ready-frontend",
-      "merged": false
-    }
-  ],
+  "worktree": null,
+  "worktrees": [],
   "branch": "skein/drop-ready-frontend",
   "parent": null,
   "kind": "task",
@@ -109,7 +102,7 @@
   "started": 1785648133,
   "confirmed": 1785648132,
   "checked": 1785662457,
-  "finished": null,
-  "updated": 1785662765,
+  "finished": 1785663038,
+  "updated": 1785663038,
   "confirmed_by": "user"
 }

@@ -2,7 +2,7 @@
   "id": "task-json-cn-schema",
   "name": "task.json 中文化 + 阶段时间双戳",
   "desc": "所有 key 改中文; 每个阶段记录 start/end 双时间戳 (exec_start=首个 subtask 开始, exec_end=最后 subtask 完成), 可算等待时间和实际执行耗时",
-  "status": "进行中",
+  "status": "检查中",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -29,12 +29,12 @@
       "depends_on": [],
       "验收": [],
       "验收done": [],
-      "status": "运行中",
+      "status": "已完成",
       "phase": "exec",
       "skills": [],
       "created": 1785662072,
       "started": 1785662593,
-      "finished": null
+      "finished": 1785663149
     },
     {
       "sid": "s3",
@@ -44,12 +44,12 @@
       "depends_on": [],
       "验收": [],
       "验收done": [],
-      "status": "待处理",
+      "status": "已完成",
       "phase": "exec",
       "skills": [],
       "created": 1785662072,
-      "started": null,
-      "finished": null
+      "started": 1785663151,
+      "finished": 1785663540
     },
     {
       "sid": "s4",
@@ -59,12 +59,12 @@
       "depends_on": [],
       "验收": [],
       "验收done": [],
-      "status": "待处理",
+      "status": "已完成",
       "phase": "exec",
       "skills": [],
       "created": 1785662072,
-      "started": null,
-      "finished": null
+      "started": 1785663151,
+      "finished": 1785663602
     }
   ],
   "priority": "normal",
@@ -85,8 +85,8 @@
   "created": 1785662060,
   "started": 1785662126,
   "confirmed": 1785662125,
-  "checked": null,
+  "checked": 1785664437,
   "finished": null,
-  "updated": 1785662695,
+  "updated": 1785664437,
   "confirmed_by": "user"
 }
