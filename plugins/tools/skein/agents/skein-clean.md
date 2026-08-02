@@ -1,6 +1,6 @@
 ---
 name: skein-clean
-description: SKEIN 主动清理器 (仅用户经 /skein-clean 显式调用)。归档完成 task (保留期外) + 清孤儿 worktree / 悬挂 skein/* 分支。只清已完成/已合并的, 存疑先报用户裁定。入参 = 保留天数。
+description: SKEIN 主动清理器 (仅用户经 /skein-clean 显式调用)。归档完成 task (保留期外) + 清孤儿 worktree / 悬挂 skein/* 分支。只清已完成/已合并的, 存疑先报用户裁定。
 tools: Read, Bash, Grep, Glob
 model: haiku
 effort: low
@@ -16,6 +16,17 @@ hooks:
         - type: command
           command: "skein-hooks agent-stop --agent skein-clean"
 ---
+
+## 入参格式 (JSON)
+
+```json
+{
+	"tid": null,
+	"sid": null,
+	"workdir": null,
+	"retain_days": "<保留天数，省略则用 config 默认>"
+}
+```
 
 ## 工作流
 
