@@ -200,7 +200,7 @@ def test_finish_candidates_three_paths(mem_ws: Path, mem_cli: MemCli) -> None:
         "id": tid,
         "name": "测试 finish-candidates",
         "subtasks": [
-            {"sid": "s1", "name": "实现某功能", "desc": "实现功能描述", "depends_on": [], "验收": []}
+            {"sid": "s1", "name": "实现某功能", "desc": "实现功能描述", "depends_on": [], "acceptance": []}
         ]
     }
     (tdir / "task.json").write_text(json.dumps(task_json, ensure_ascii=False))

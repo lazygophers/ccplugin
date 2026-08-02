@@ -278,8 +278,8 @@ def test_progress_pct() -> None:
     # 进度 = 状态区间 + subtask 完成度均值线性插值; 覆盖 pending/research/active/check/done × 有无 subtask
 
     def sub(status: str, crit: int = 0, done: int = 0) -> dict[str, Any]:
-        return {"status": status, "验收": [f"c{i}" for i in range(crit)],
-                "验收done": [f"c{i}" for i in range(done)]}
+        return {"status": status, "acceptance": [f"c{i}" for i in range(crit)],
+                "acceptance_done": [f"c{i}" for i in range(done)]}
 
     def pct(status: str, subs: list[dict[str, Any]] | None = None) -> int:
         return _task_pct({"status": status, "subtasks": subs or []})

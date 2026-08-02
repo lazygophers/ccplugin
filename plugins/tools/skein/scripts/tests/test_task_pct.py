@@ -34,8 +34,8 @@ def _sub(status: str = SS_PENDING, crit: int = 0, done: int = 0) -> dict[str, An
     return {
         "sid": "s1", "name": "n", "desc": "d",
         "status": status,
-        "验收": [f"c{i}" for i in range(crit)],
-        "验收done": list(range(done)),
+        "acceptance": [f"c{i}" for i in range(crit)],
+        "acceptance_done": list(range(done)),
     }
 
 

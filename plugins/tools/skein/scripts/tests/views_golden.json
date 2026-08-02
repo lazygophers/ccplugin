@@ -1198,7 +1198,7 @@
         "skills": [],
         "started": 1999993000,
         "status": "已完成",
-        "验收": []
+        "acceptance": []
       },
       {
         "created": 1999991000,
@@ -1209,7 +1209,7 @@
         "skills": [],
         "started": 1999997000,
         "status": "运行中",
-        "验收": []
+        "acceptance": []
       },
       {
         "created": 1999991000,
@@ -1221,7 +1221,7 @@
         "sid": "s3",
         "skills": [],
         "status": "待处理",
-        "验收": []
+        "acceptance": []
       },
       {
         "created": 1999991000,
@@ -1233,7 +1233,7 @@
         "sid": "s4",
         "skills": [],
         "status": "待处理",
-        "验收": []
+        "acceptance": []
       }
     ],
     "task": {
@@ -1259,7 +1259,7 @@
           "skills": [],
           "started": 1999993000,
           "status": "已完成",
-          "验收": []
+          "acceptance": []
         },
         {
           "created": 1999991000,
@@ -1270,7 +1270,7 @@
           "skills": [],
           "started": 1999997000,
           "status": "运行中",
-          "验收": []
+          "acceptance": []
         },
         {
           "created": 1999991000,
@@ -1282,7 +1282,7 @@
           "sid": "s3",
           "skills": [],
           "status": "待处理",
-          "验收": []
+          "acceptance": []
         },
         {
           "created": 1999991000,
@@ -1294,7 +1294,7 @@
           "sid": "s4",
           "skills": [],
           "status": "待处理",
-          "验收": []
+          "acceptance": []
         }
       ],
       "updated": 1999995000,
@@ -1332,7 +1332,7 @@
         "sid": "d1",
         "skills": [],
         "status": "待处理",
-        "验收": []
+        "acceptance": []
       }
     ],
     "task": {
@@ -1353,7 +1353,7 @@
           "sid": "d1",
           "skills": [],
           "status": "待处理",
-          "验收": []
+          "acceptance": []
         }
       ],
       "updated": 1999995000
@@ -1386,7 +1386,7 @@
         "sid": "o1",
         "skills": [],
         "status": "已完成",
-        "验收": []
+        "acceptance": []
       }
     ],
     "task": {
@@ -1407,7 +1407,7 @@
           "sid": "o1",
           "skills": [],
           "status": "已完成",
-          "验收": []
+          "acceptance": []
         }
       ],
       "updated": 1999995000

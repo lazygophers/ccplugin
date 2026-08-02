@@ -225,7 +225,7 @@ def test_cli_subtask_add_parse_deps_skills_check(skein_cli: SkeinCli, ws: Path) 
     assert s2["depends_on"] == ["s1"]
     assert "agent" not in s2
     assert s2["skills"] == ["sk-a", "sk-b"]
-    assert s2["验收"] == ["验收1", "验收2"]
+    assert s2["acceptance"] == ["验收1", "验收2"]
 
 
 def test_cli_start_finish_archive_no_extra_arg(skein_cli: SkeinCli, ws: Path) -> None:
