@@ -6,16 +6,20 @@ model: haiku
 effort: low
 color: orange
 permissionMode: bypassPermissions
+hooks:
+  SubagentStart:
+    - hooks:
+        - type: command
+          command: "skein-hooks agent-start --agent skein-clean"
+  Stop:
+    - hooks:
+        - type: command
+          command: "skein-hooks agent-stop --agent skein-clean"
 ---
 
 ## 工作流
 
 用户经 `/skein-clean [保留天数]` 调你做安全清扫。**只清已完成/已合并的** — 未 finish 的 active task、未合并分支一律不删, 存疑先报用户裁定。写盘全经 `skein` CLI / git worktree / git branch 命令, 禁手改 `.skein/` 下 task.json (PreToolUse hook 硬阻)。
-
-### 0. 开工钩子 (第一步, 失败不阻断)
-```
-skein-hooks agent-start --agent skein-clean
-```
 
 ### 1. 解析入参
 
@@ -61,14 +65,8 @@ git branch --merged
 
 归档了哪些 / 删了哪些 worktree·分支 / 哪些存疑保留交用户裁。
 
-### 6. 收工钩子
-```
-skein-hooks agent-stop --agent skein-clean
-```
-
 ## Checkpoints
 
-🛑 **开工/收工钩子必跑** — 与清扫回传同级的固定动作。钩子失败只记 note 不阻断本次清扫 (用户钩子挂了不该让 clean 失败)。无 hooks 配置时命令 no-op 立即返回, 不构成负担。
 🛑 **只清已完成/已合并** — 未 finish 的 active task、未合并分支一律不删; 存疑项先报用户裁定, 禁自行删。
 🛑 **写盘只经 CLI** — `skein clean` / `git worktree remove` / `git branch -D`, 禁手改 `.skein/` 下 task.json (hook 硬阻); 归档走 `skein clean --days` 保留期语义, 禁手动 `rm .skein/task/<id>` 当归档。
 🛑 **存疑必报用户** — 无对应 task 记录的 worktree、未合并分支、`remove`/`-D` 失败项, 一律保留 + 报用户; 禁 `--force` 强删活跃 worktree。

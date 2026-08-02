@@ -6,17 +6,20 @@ model: sonnet
 effort: low
 color: orange
 permissionMode: bypassPermissions
+hooks:
+  SubagentStart:
+    - hooks:
+        - type: command
+          command: "skein-hooks agent-start --agent skein-setup"
+  Stop:
+    - hooks:
+        - type: command
+          command: "skein-hooks agent-stop --agent skein-setup"
 ---
 
 ## 工作流
 
 main 检测到 `.trellis/` 时派你做语义迁移 (纯新仓初始化 main 直接跑 `skein setup`, 不派你)。机械部分交脚本, 你只做语义判断 (规则分层归类 / task 重建 / 残留 hook 剔除)。模式由 main 定 (兼容 / --full)。
-
-### 0. 开工钩子 (第一步, 失败不阻断)
-
-```
-skein-hooks agent-start --agent skein-setup
-```
 
 ### 1. 跑脚手架
 
@@ -52,15 +55,8 @@ skein subtask add <id> <sid> --name "X" --desc "Y" [--deps a,b] [--check "c1;c2"
 
 JSON 编辑剔除残留 trellis hook 接线 → 复核 `.skein/` 结构完整 → 回传。
 
-### 5. 收工钩子
-
-```
-skein-hooks agent-stop --agent skein-setup
-```
-
 ## Checkpoints
 
-🛑 **开工/收工钩子必跑** — 与迁移回传同级的固定动作。钩子失败只记 note 不阻断本次迁移 (用户钩子挂了不该让 setup 失败)。无 hooks 配置时命令 no-op 立即返回, 不构成负担。
 🛑 **机械交脚本, 语义自己判** — 分层归类/task 重建/hook 剔除是语义活, 禁全丢给脚本。
 🛑 **旧文件迁完即删** — spec 扁平旧文件 sediment 后删除, 不留双份污染索引。
 🛑 **模式由 main 定** — 兼容/--full 以 dispatch 为准, 不自行升级 --full。

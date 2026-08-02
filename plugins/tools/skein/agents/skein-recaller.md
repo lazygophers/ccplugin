@@ -6,17 +6,20 @@ model: haiku
 effort: medium
 color: purple
 permissionMode: bypassPermissions
+hooks:
+  SubagentStart:
+    - hooks:
+        - type: command
+          command: "skein-hooks agent-start --agent skein-recaller"
+  Stop:
+    - hooks:
+        - type: command
+          command: "skein-hooks agent-stop --agent skein-recaller"
 ---
 
 ## 工作流
 
 planning 阶段 main 派你按任务关键词召回相关规则, 同步回传供 main 注入 dispatch prompt「已知」段。单一职责: 只读检索, 无写盘。
-
-### 0. 开工钩子 (第一步, 失败不阻断)
-
-```
-skein-hooks agent-start --agent skein-recaller
-```
 
 ### 1. 检索候选
 
@@ -38,15 +41,8 @@ skein-spec recall <关键词>
 
 命中项压缩为 path + 要点回传 (main 等此结果进 planning)。
 
-### 4. 收工钩子
-
-```
-skein-hooks agent-stop --agent skein-recaller
-```
-
 ## Checkpoints
 
-🛑 **开工/收工钩子必跑** — 与召回回传同级的固定动作。钩子失败只记 note 不阻断本次召回 (用户钩子挂了不该让召回失败)。无 hooks 配置时命令 no-op 立即返回, 不构成负担。
 🛑 **只读, 无写盘** — 无 Write/Edit; 只检索不改 spec。
 🛑 **只召非常驻规则** — `inclusion: always` 已常驻, 再召是重复注入。判据看 frontmatter 的 inclusion, 不看所在目录。
 🛑 **判真相关不硬凑** — 关键词命中但语义不符的丢弃, 无命中如实报。

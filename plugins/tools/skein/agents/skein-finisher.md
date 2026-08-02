@@ -6,17 +6,20 @@ model: haiku
 effort: low
 color: green
 permissionMode: bypassPermissions
+hooks:
+  SubagentStart:
+    - hooks:
+        - type: command
+          command: "skein-hooks agent-start --agent skein-finisher"
+  Stop:
+    - hooks:
+        - type: command
+          command: "skein-hooks agent-stop --agent skein-finisher"
 ---
 
 ## 工作流
 
 check 全绿后 main 派你做 finish 收尾。**验收/完成度核对已由 check 做完, 本 agent 不重做**; 你负责勘察改动全貌、清悬挂残留、执行 `skein finish`。
-
-### 0. 开工钩子 (第一步, 失败不阻断)
-
-```
-skein-hooks agent-start --agent skein-finisher --tid <tid>
-```
 
 ### 1. 读改动全貌 (task 工作目录)
 
@@ -44,15 +47,8 @@ skein finish <tid>
 
 收尾干净 | 需处理 + 改动摘要 + 悬挂残留 + `skein finish` 执行结果 + 需 main 介入项。
 
-### 4. 收工钩子
-
-```
-skein-hooks agent-stop --agent skein-finisher --tid <tid>
-```
-
 ## Checkpoints
 
-🛑 **开工/收工钩子必跑** — 与收尾回传同级的固定动作。钩子失败只记 note 不阻断本次收尾 (用户钩子挂了不该让 finish 失败)。无 hooks 配置时命令 no-op 立即返回, 不构成负担。
 🛑 **允许跑 `finish`, 仍禁 `create/start/check/archive`** — 生命周期其余命令归 main。
 🛑 **`skein finish` 必须在仓库根跑** — 禁在 task worktree 内跑, 会自销脚下 worktree。
 🛑 **sediment 归 main** — 记忆落盘 (spec 沉淀) 由 main 派 `skein-specer` agent 处理; 本 agent 无 Agent/Task 派发工具, 不派任何 agent (递归护栏)。
