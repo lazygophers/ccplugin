@@ -94,6 +94,7 @@ def main() -> None:
     cl = sub.add_parser("clean", help="[用户主动] 归档完成超保留期的 task (skein-clean skill 入口)")
     cl.add_argument("--days", type=int, help="保留范围: 归档完成超此天数的 task (省略用 config retain_days; 0=全部完成 task 立即归档)")
     sub.add_parser("migrate-priority", help="[一次性] 存量 0-10 数字优先级迁移为四档枚举; 迁移前自动备份原文件, 幂等可重跑")
+    sub.add_parser("migrate-ready", help="[一次性] 存量「就绪」status 迁移为待处理 (confirm 已吸收 start); 迁移前自动备份原文件, 幂等可重跑")
     sub.add_parser("current", help="列全部 active task (无 focus, 就绪皆可并行)")
     sub.add_parser("ready", help="脚本算可启动 task 批 (就绪态+前置全done+有空闲槽, 只读预览)")
     cm = sub.add_parser("claim", help="全局跨 task 认领批; phase 必填区分阶段")
@@ -186,6 +187,7 @@ def main() -> None:
         "init": sk.admin.init, "setup": sk.admin.setup, "config": sk.admin.config_cmd,
         "clean": sk.admin.clean, "board": sk.admin.board,
         "migrate-priority": sk.admin.migrate_priority,
+        "migrate-ready": sk.admin.migrate_ready,
         # Lifecycle: 单 task 状态机 + 计划字段
         "create": sk.lifecycle.create, "confirm": sk.lifecycle.confirm,
         "research": sk.lifecycle.research, "plan": sk.lifecycle.plan,
@@ -212,7 +214,7 @@ def main() -> None:
                 "finish", "fmt", "archive", "clean",
                 "contract", "repos", "deps", "parent", "estimate", "priority", "subtask", "claim",
                 "prd", "del", "delete", "rm", "remove",
-                "rename", "config", "migrate-priority"}
+                "rename", "config", "migrate-priority", "migrate-ready"}
     if a.cmd in MUTATING:
         with _workspace_lock(sk.dir / ".lock"):
             dispatch[a.cmd](a)

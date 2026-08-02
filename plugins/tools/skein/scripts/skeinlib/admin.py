@@ -21,6 +21,7 @@ from skeinlib.migrate import (disable_trellisx_plugin, migrate_trellis_tasks,
                               purge_trellis_hooks, purge_wiring, settings_trellis_notes)
 from skeinlib.paths import SPEC_ENTRY
 from skeinlib.priority import migrate_priority_values
+from skeinlib.readystate import migrate_ready_status
 from skeinlib.worktree import ignore_worktree_dir
 
 import contextlib
@@ -195,5 +196,18 @@ class Admin:
             return
         self.ws.store.sync()  # 刷新顶层镜像索引, 免看板/查询继续读到旧值
         print(f"已迁移 {len(migrated)} 个 task.json (备份于 {result['backup_dir']}):")
+        for p in migrated:
+            print(f"  {p}")
+
+    def migrate_ready(self, a: argparse.Namespace) -> None:
+        # 一次性: 存量「就绪」status → 待处理 (confirm 已吸收 start, 迁进行中会批量建 worktree
+        # 副作用太大, 见 readystate.py 头注)。改前备份原文件, 幂等 (已迁移的跳过, 可重跑)。
+        result = migrate_ready_status(self.ws.root, self.ws.tasks, self.ws.archive_dir)
+        migrated = result["migrated"]
+        if not migrated:
+            print("无待迁移 task (无「就绪」status 残留)")
+            return
+        self.ws.store.sync()  # 刷新顶层镜像索引, 免看板/查询继续读到旧值
+        print(f"已迁移 {len(migrated)} 个 task.json (待处理, 备份于 {result['backup_dir']}):")
         for p in migrated:
             print(f"  {p}")
