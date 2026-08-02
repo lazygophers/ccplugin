@@ -132,4 +132,5 @@ export const api = {
   getConfig: () => getJSON<Record<string, unknown>>(`${BASE}/config`),
   setConfig: (cfg: Record<string, unknown>) => postJSON(`${BASE}/config`, cfg),
   exec: (cmd: string, args?: Record<string, unknown>) => postJSON(`${BASE}/exec`, { cmd, ...args }),
+  finish: (id: string) => postJSON<{ ok: boolean; id: string; exit: number; stdout: string; stderr: string }>(`${BASE}/finish`, { id }),
 };
