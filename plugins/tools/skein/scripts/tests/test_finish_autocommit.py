@@ -26,6 +26,7 @@ def _dirty(d: Path) -> str:
 
 def test_worktree_forces_commit_ignoring_auto_commit(skein_cli: SkeinCli, ws: Path) -> None:
     """worktree 模式 + auto_commit=false: 仍强制 commit 并 merge 回主, finish 不拒。"""
+    skein_cli(ws, "config", "set", "worktree.enabled", "true")  # worktree 默认 false，测试需显式启用
     skein_cli(ws, "config", "set", "auto_commit", "false")
     tid = _mk(skein_cli, ws, "feat-wt-ac")
     wt = ws / ".worktrees" / f"skein-{tid}"

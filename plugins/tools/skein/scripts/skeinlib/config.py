@@ -254,7 +254,7 @@ CONFIG_DEFAULTS: dict[str, Any] = {
         "gate": 3,  # check + finish 共享的验证/收尾池上限
     },
     "worktree": {
-        "enabled": True,  # False→禁用 worktree 隔离 (原地执行, 同非 git); start 不建、doctor 不查 worktree
+        "enabled": False,  # False→禁用 worktree 隔离 (原地执行, 同非 git); start 不建、doctor 不查 worktree
         "root": ".worktrees",
     },
     "web": {

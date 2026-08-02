@@ -9,7 +9,7 @@ worktree./web./spec. 三组; auto_commit/retain_days 本无前缀, 保持扁平;
 报错用例传 check=False 断 returncode + stderr 文案。
 无参 `config` 展示全部生效配置, 扁平化为点号形式 (每行 path=value); 单键回读经无参输出按行 grep。
 覆盖:
-  1. 无参展示: 10 行 path=val, 含 pools.work=2 与 worktree.enabled=True。
+  1. 无参展示: 10 行 path=val, 含 pools.work=2 与 worktree.enabled=False。
   2. set + 回读 (点号路径): set worktree.enabled false → 无参回读含 worktree.enabled=False。
   3. set bool coerce: set auto_commit false → 回读含 auto_commit=False。
   4. set 未知键: 拒 (returncode!=0, stderr 含「未知配置键」)。
@@ -51,7 +51,7 @@ def test_show_all(skein_cli: SkeinCli, ws: Path) -> None:
     lines = [ln for ln in r.stdout.strip().splitlines() if "=" in ln]
     assert len(lines) == 10, f"应 10 行 path=val, 得 {len(lines)}: {lines}"
     assert "pools.work=2" in lines, f"缺 pools.work=2: {lines}"
-    assert "worktree.enabled=True" in lines, f"缺 worktree.enabled=True: {lines}"
+    assert "worktree.enabled=False" in lines, f"缺 worktree.enabled=False: {lines}"
 
 
 # ---------- 0. hooks 空骨架在 CONFIG_DEFAULTS 内, 但远程不可写 ----------
@@ -136,7 +136,7 @@ def test_set_preserves_other_keys(skein_cli: SkeinCli, ws: Path) -> None:
 def test_set_nested_preserves_sibling_leaf(skein_cli: SkeinCli, ws: Path) -> None:
     """set worktree.root 后, 同组 worktree.enabled 仍为默认值 (分组内其他叶不被抹)。"""
     skein_cli(ws, "config", "set", "worktree.root", ".wt2")
-    assert _readback(skein_cli, ws, "worktree.enabled") == "True", "同组其他叶被抹"
+    assert _readback(skein_cli, ws, "worktree.enabled") == "False", "同组其他叶被抹"
 
 
 # ---------- 7. reset ----------

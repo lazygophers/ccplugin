@@ -137,9 +137,16 @@ class Scheduler:
     def _claim_exec(self, a: argparse.Namespace) -> None:
         """exec 认领: ready subtask → running (与旧 claim 行为一致)。"""
         batch = self._global_ready()
+        # --task 过滤: 只保留指定 task 的 subtask
+        task_filter = getattr(a, "task", None)
+        if task_filter:
+            batch = [(t, s) for t, s in batch if t["id"] == task_filter]
         if getattr(a, "dry_run", False):
             if not batch:
-                print(f"无全局就绪 subtask — {self._empty_batch_msg()}")
+                if task_filter:
+                    print(f"task {task_filter} 无就绪 subtask")
+                else:
+                    print(f"无全局就绪 subtask — {self._empty_batch_msg()}")
                 return
             print("全局就绪批 (只读预览, 不改状态) — 决定执行后去掉 --dry-run 认领:")
             for t, s in batch:
@@ -149,7 +156,10 @@ class Scheduler:
             print("— 认领整批: `skein.py claim exec`  或只占单个: `skein.py subtask start <tid> <sid>`")
             return
         if not batch:
-            print(f"无全局就绪 subtask — {self._empty_batch_msg()}")
+            if task_filter:
+                print(f"task {task_filter} 无就绪 subtask")
+            else:
+                print(f"无全局就绪 subtask — {self._empty_batch_msg()}")
             return
         # 按 task 分组认领 (task 已全在 active 态, 无需就地启动)。
         by_tid: dict[str, list[str]] = {}
