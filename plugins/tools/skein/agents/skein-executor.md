@@ -67,6 +67,12 @@ Grep / Glob 定位改动点 → Read 目标文件全文
 python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-stop --agent skein-executor --tid <tid> --sid <sid>
 ```
 
+## Main 边界
+
+main 负责 `skein claim exec` / `skein subtask start` 占 `pools.work` 槽、派真实 `Agent(subagent_type="skein:skein-executor")`、读取本 agent JSON 回传并按结果记录 `subtask done` / `subtask fail`。本 agent 只执行单个已 running subtask；缺信息时回传 `需要: <问题>`，由 main 转达用户。
+
+exec 不勾 PRD 验收；正式验收归 check。scope 外问题另建 task，不塞进当前 subtask。
+
 ## Checkpoints
 
 🛑 **开工/收工钩子必跑** — 与 subtask done/fail 同级的固定动作。钩子失败只记 note 不阻断本 subtask (用户钩子挂了不该让任务失败)。无 hooks 配置时命令 no-op 立即返回, 不构成负担。

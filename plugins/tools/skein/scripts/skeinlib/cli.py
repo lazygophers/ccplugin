@@ -99,9 +99,9 @@ def main() -> None:
     sub.add_parser("migrate-ready", help="[一次性] 存量「就绪」status 迁移为待处理 (confirm 已吸收 start); 迁移前自动备份原文件, 幂等可重跑")
     sub.add_parser("current", help="列全部 active task (无 focus, 就绪皆可并行)")
     sub.add_parser("ready", help="脚本算可启动 task 批 (就绪态+前置全done+有空闲槽, 只读预览)")
-    cm = sub.add_parser("claim", help="全局跨 task 认领批; phase 必填区分阶段")
-    cm.add_argument("phase", choices=["exec", "check"],
-                    help="exec=认领 ready subtask → running (所有可调度 task 的 ready subtask 竞争 pools.work 槽); check=认领 全 subtask done 的 进行中 task → 检查中 + 认领 全 subtask done 的 检查中 task → 收尾中(占 gate 槽)")
+    cm = sub.add_parser("claim", help="全局跨 task 认领批; phase 省略则同时返回 exec + check")
+    cm.add_argument("phase", nargs="?", choices=["exec", "check"],
+                    help="exec=认领 ready subtask → running (所有可调度 task 的 ready subtask 竞争 pools.work 槽); check=认领 全 subtask done 的 进行中 task → 检查中 + 认领 全 subtask done 的 检查中 task → 收尾中(占 gate 槽); 省略=同时返回 exec + check")
     cm.add_argument("--task", dest="task", help="只认领指定 task 的 subtask (仅 exec phase 生效)")
     cm.add_argument("--dry-run", action="store_true", help="只读预览认领批, 不改状态")
     li = sub.add_parser("list", help="列所有 task (含状态); --status 过滤 + --json 压缩输出")

@@ -70,6 +70,12 @@ python3 <插件根>/plugins/tools/skein/scripts/skein.py finish <tid>
 python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-stop --agent skein-finisher --tid <tid>
 ```
 
+## Main 边界
+
+main 只在 flow-loop 允许的状态门后派 finish，派发前确认本 task 后台 agent 均已结束，派真实 `Agent(subagent_type="skein:skein-finisher")`，读取本 agent JSON 回传。`需处理` 时 main 只处理可处理项；处理不了就停手上报。finish 成功后按 flow-loop 异步派 `skein-specer`。
+
+本 agent 不重做验收。`skein finish` 成功标 done 后，task 才算闭环。sediment / pending-fix maintain 是 finish 后异步收尾，不阻塞闭环完成。
+
 ## Checkpoints
 
 🛑 **开工/收工钩子必跑** — 与收尾回传同级的固定动作。钩子失败只记 note 不阻断本次收尾 (用户钩子挂了不该让 finish 失败)。无 hooks 配置时命令 no-op 立即返回, 不构成负担。

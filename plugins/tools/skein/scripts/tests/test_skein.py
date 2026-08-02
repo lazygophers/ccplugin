@@ -236,6 +236,9 @@ def main() -> None:
         # task-4 仍 active 且 s1 就绪 → s1 出现在全局就绪批预览 (task-4/s1)
         rp = sk(d, "claim", "exec", "--dry-run").stdout
         assert "task-4" in rp and "s1" in rp, f"claim --dry-run 未含 active task 就绪 subtask: {rp!r}"
+        rp_all = sk(d, "claim", "--dry-run").stdout
+        assert "task-4" in rp_all and "s1" in rp_all and "check/finishing" in rp_all, \
+            f"claim --dry-run 未同时返回 exec/check 预览: {rp_all!r}"
         # claim --dry-run 只读: 不改状态
         s4 = json.loads((d / ".skein/task/task-4/task.json").read_text())["subtasks"]
         assert {s["sid"]: s["status"] for s in s4}["s1"] == "待处理", "claim --dry-run 误改状态 (应只读)"

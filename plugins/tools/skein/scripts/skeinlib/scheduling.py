@@ -1,7 +1,8 @@
 """`Scheduler` — subtask DAG 调度: 谁就绪、谁先派、认领即占槽。
 
 ## 两级调度
-`subtask claim <tid>` 是单 task 内的就绪批; `claim exec` (无 tid) 是**全局跨 task** 的就绪批 ——
+`subtask claim <tid>` 是单 task 内的就绪批; `claim exec` 是**全局跨 task** 的就绪批。
+`claim` 不传 phase 时按 exec + check 同时预览/认领, 供主循环一次取两池状态。
 所有可调度 task 的 ready subtask 合池竞争同一个 `pools.work`。两者共用 `_crit_weight`
 关键路径权重排序: 最长下游链先派, 最小化 makespan。
 
@@ -115,8 +116,11 @@ class Scheduler:
         - exec: 所有可调度 task 的 ready subtask 合池竞争 pools.work 槽 → 整批标 running (旧 claim 行为)
         - check: 进行中 task 全 subtask done → 检查中; 检查中 task 全 subtask done 且 check 全绿 → 已完成 (finish)
         `--dry-run`: 只读预览, 不改状态。"""
-        phase = getattr(a, "phase", "exec")
-        if phase == "exec":
+        phase = getattr(a, "phase", None)
+        if phase is None:
+            self._claim_exec(a)
+            self._claim_check(a)
+        elif phase == "exec":
             self._claim_exec(a)
         elif phase == "check":
             self._claim_check(a)

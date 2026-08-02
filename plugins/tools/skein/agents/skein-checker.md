@@ -123,6 +123,12 @@ skein-spec analyze <id> --json
 python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-stop --agent skein-checker --tid <id>
 ```
 
+## Main 边界
+
+main 只在 flow-loop 允许的状态门后派真实 `Agent(subagent_type="skein:skein-checker")`，读取本 agent JSON 回传。`PASS` 且无 `needs_main` 时按 flow-loop 放行 finish；`FAIL` / 冲突 / `needs_main` 时按 flow-loop 的失败扭转补修复 subtask 或交用户裁定。
+
+本 agent 只验证不修复。exec / check / finish 阶段禁直接改 `design.md`；方案性问题按 flow-loop 回 planning/用户裁定。未全绿不得 finish，不在 check 宣告 Done。
+
 ## Checkpoints
 
 🛑 **开工/收工钩子必跑** — 与状态切换/回传同级的固定动作。钩子失败只记 note 不阻断本次验证 (用户钩子挂了不该让检查失败)。无 hooks 配置时命令 no-op 立即返回, 不构成负担。

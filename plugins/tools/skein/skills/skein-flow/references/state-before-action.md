@@ -1,96 +1,14 @@
-# 状态先行铁律 (硬门·STOP)
+# 状态先行铁律
 
-**三环节硬门 — main 操作 task / subtask 前必须先把对应状态机走对。任一违反 = 流程错误 (非优化空间、非效率取舍), 回退到对应状态命令后再继续。**
+状态硬门、禁止绕过、违反后回到哪里继续，统一见 [flow-loop.md §2](flow-loop.md#2-状态先行硬门)。本文件只保留一句原则，供其他 references 短引。
 
-本铁律与 skein-flow/SKILL.md 顶部「状态先行铁律」段定义一致，为单一真值源 (本文件写一次，SKILL.md 引用)。
+## 原则
 
----
+操作 task / subtask / check / finish 前，必须先让对应 `skein` 状态命令成功落盘。理由、效率、简单程度都不是豁免；能过脚本状态门才算合法。
 
-## 🔒 禁自降级原则 (本条款单一真值源, SKILL.md/其余 references 引用禁另抄一份)
+## 索引
 
-**无「简单的可直接」口子。** 三环节任一违反 = 流程错误，必须回退到对应状态命令后再继续，**禁以下任一借口绕过**（非穷举，同类措辞一律禁用）：
-「这个简单」「省一步」「状态机差不多对」「先做起来再说」「顺手就做了」「反正马上要 start」「差不多勾满了」「跳过也没事」。
-
-**判据: 借口 ≠ 状态命令**。凡是"理由"而非"已跑通对应 skein 命令"，一律不构成豁免；命中上表任一硬门场景，唯一合法出口是先补跑该状态命令，无论理由听起来多合理。
-
-> memory 锚点: `skein-hook-no-self-downgrade` — 禁泛化「简单的直接做」，AI 会自降级绕 flow；本铁律文案硬，不留口子。
-
----
-
-## 三个硬门
-
-### 🛑 硬门 1: Task 级 — 未 confirm 禁 exec
-
-| 项 | 内容 |
-|---|---|
-| **门规** | task 必须先 `skein confirm` (待处理→进行中, **须用户批准**) 才能进 exec 调度门。`skein confirm` 已吸收原 `start` 的全部职责 —— 一步做完 doctor 体检 / deps 校验 / 建 worktree / 时间戳 / 阶段钩子, 无就绪中间态 |
-| **禁止行为** | **待处理**态 task 禁派 subtask、禁跑 exec (未过人审门) |
-| **违反后果** | 流程错误，所做的 inline 改动 / 派发全部无效，必须回退重走 |
-| **回退操作** | 先 `skein confirm` (**须先拿用户批准**: 看板点击, 或 `--summary` + `AskUserQuestion` + `--approved`; 裸跑会被拒), 之后直接 `skein claim exec` 即可 |
-| **校验依据** | `skein confirm` 无用户批准直接拒; `_schedulable()` 只收「进行中」态, 待处理/调研中态永远进不了候选池 |
-
-**典型违规场景**:
-- 新建 task 后想「先做起来再说」，跳过 confirm 直接派 subtask
-- 把**待处理**态 task 当进行中用，跳过人审门直接走 exec 调度
-- 以「这个 task 很简单」为由跳过 confirm
-
----
-
-### 🛑 硬门 2: Subtask 级 — 未 claim exec 占槽禁派
-
-| 项 | 内容 |
-|---|---|
-| **门规** | subtask 必须先 `skein claim exec` / `skein subtask claim <tid>` / `skein subtask start <tid> <sid>` (标 running 占 `pools.work` 槽) 才能派 agent |
-| **禁止行为** | pending / failed 态 subtask 禁直接派 agent，必须先经 claim exec / start 占槽 |
-| **违反后果** | 流程错误，已派出的 agent 视为无槽运行，必须回收或补占槽 |
-| **回退操作** | 先把 subtask 标 running 占槽 (`skein subtask start <tid> <sid>` 或 `skein claim exec` 整批认领)，再派 agent |
-| **校验依据** | `skein subtask start` 脚本硬卡：非 pending/failed 态拒；满槽也拒 |
-
-**典型违规场景**:
-- subtask 还是 pending 就直接说「我派 agent 去做了」
-- 跳过 claim exec 步骤，直接 dispatch，导致并发槽计数不准
-- 把 failed 态 subtask 直接重派，不走 start 重启流程
-
----
-
-### 🛑 硬门 3: Check 级 — 未 skein check 禁验证宣告
-
-| 项 | 内容 |
-|---|---|
-| **门规** | 全 subtask done 后必须先 `skein check` (进行中→检查中) 才能跑验证 / lint / test / 契约核对 |
-| **禁止行为** | 禁 main 在 task 仍「进行中」态自跑验证当 check 结果 |
-| **违反后果** | 流程错误，验证结果无效，必须重新走 check 流程 |
-| **回退操作** | 派 `skein-checker`；checker 自身工作流第一步会自跑 `skein check` 进检查中，main 不代跑 |
-| **校验依据** | `skein check` 脚本硬卡：非进行中态拒 |
-
-**验证归属**:
-- 状态切换 + 验证均归 `skein-checker` agent 自跑, 在「检查中」态跑
-- main 只确认派发前 task 处于「进行中」态, 不代跑 `skein check`、不跑验证、不判通过、不宣告全绿
-- check 未过 → task 保持进行中，加修复 subtask 回 exec，不是「回退状态」
-
-**典型违规场景**:
-- exec 阶段 main 顺手跑了个 lint，说「没问题直接 finish 吧」
-- 全 subtask done 后跳过 check 直接 finish
-- main 自己跑测试当 check 结果，不派 skein-checker
-
----
-
-## 判定速查表
-
-| 场景 | 先做什么 | 再做什么 |
-|---|---|---|
-| 想派 subtask 执行 | `skein confirm` 进进行中 (吸收 start) | `skein claim exec` 占槽 → 派 agent |
-| 想派单个 subtask | `skein subtask start <tid> <sid>` 标 running | 派 agent |
-| 想跑验证 / lint / test | 确认 task 处于「进行中」态 | 派 skein-checker (checker 自跑 `skein check` 进检查中) |
-| 想直接改代码 | 先建 task + 走 plan → confirm | 再走 exec |
-
----
-
-## 违反后的标准回退步骤
-
-1. **停手**: 立即停止当前违规操作，不继续推进
-2. **补状态**: 按上表「先做什么」列，把缺的状态命令补上
-3. **重做**: 从正确的状态重新开始该环节
-4. **不回滚已做的工作**: 如果已经做了实质工作且正确，补状态后继续，不用撤销 (但流程上算违规，需注意下次不犯)
-
-> 核心原则：**状态机是硬门，不是建议**。能过脚本校验的才叫合法状态，脚本拒的就是非法，没有中间地带。
+- task 状态落盘值与展示名：[flow-loop.md §1.1](flow-loop.md#11-task-状态)
+- subtask 状态落盘值与展示名：[flow-loop.md §1.2](flow-loop.md#12-subtask-状态)
+- 状态硬门：[flow-loop.md §2](flow-loop.md#2-状态先行硬门)
+- 失败扭转：[flow-loop.md §9](flow-loop.md#9-失败扭转)

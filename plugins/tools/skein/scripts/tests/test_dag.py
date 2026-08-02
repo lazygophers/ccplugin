@@ -346,6 +346,9 @@ def test_two_pools_independent_work_full_check_still_claimable(skein_cli: SkeinC
     skein_cli(ws, "claim", "exec")  # 占满 work 池 (1/1)
     assert "work 池已满" in skein_cli(ws, "claim", "exec", "--dry-run").stdout
 
+    both = skein_cli(ws, "claim", "--dry-run").stdout
+    assert "work 池已满" in both and "无可认领的 check/finishing task" in both
+
     # task-a: 全部 subtask 已完成, 等着被 claim check 收进检查中 — 不经 claim exec (work 满进不去)
     skein_cli(ws, "create", "task-a", "--name", "task-a", "--desc", "d")
     _add(skein_cli, ws, "task-a", "y")
