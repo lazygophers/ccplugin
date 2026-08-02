@@ -145,3 +145,46 @@ def test_no_max_active_in_frontend_ts() -> None:
         if "max_active" in f.read_text(encoding="utf-8"):
             hits.append(str(f))
     assert hits == [], f"前端残留蛇形 max_active: {hits}"
+
+
+# ---------- 4. 前端 `ready` task 状态零残留 (drop-ready-frontend f3) ----------
+
+# 前端 .ts/.tsx 中出现字面量 `ready` (词边界匹配, 大小写不敏感) 但语义不是 task 状态的
+# 合理保留点 (逐条判过, 见 drop-ready-frontend/prd.md『边界』章三处同名不同义):
+# - lib/api.ts `ready?: boolean`: task 的 ready-to-schedule 布尔标记 (表示可被调度器认领),
+#   是 boolean 字段, 不是状态枚举值。
+# - lib/depdag.ts `EDGE_KIND.ready` / `return "ready"`: 依赖图 edge kind, 表示「上游已完成、
+#   这条依赖已满足」, 是连线配色分类, 不是 task 状态。
+# - app/help/page.tsx 两处 "ready subtask": 描述的是 subtask 级 ready-to-schedule 语义 (可被
+#   `claim exec` 认领的 subtask), 与上面的布尔标记同一概念的自然语言表述, 不是状态字面量。
+# 首页脚手架文案 (app/page.tsx「脚手架已就绪」) 用的是中文「就绪」二字, 不含英文单词 `ready`,
+# 天然不落在下面的词边界扫描范围内, 无需额外登记。
+_READY_TS_ALLOW_LINES: dict[Path, set[str]] = {
+    NEXTJS_SRC / "lib" / "api.ts": {"ready?: boolean;"},
+    NEXTJS_SRC / "lib" / "depdag.ts": {
+        'ready:   { color: "st-done",   label: "依赖已完成" },',
+        'if (stOf(e.from.id) === "done") return "ready";',
+    },
+    NEXTJS_SRC / "app" / "help" / "page.tsx": {
+        'desc: "subtask 按 DAG 依赖并行调度。ready subtask 竞争 pools.work 槽, done 即释放槽派下一个。",',
+        '["skein claim exec", "认领 ready subtask → running, 竞争 pools.work 槽 (不改 task 状态)"],',
+    },
+}
+
+_READY_TASK_STATUS_PAT = re.compile(r"\bready\b", re.IGNORECASE)
+
+
+def test_no_ready_task_status_in_frontend() -> None:
+    """前端源码不存在作为 task 状态使用的字面量 `ready` (词边界匹配) —— 三处同名不同义豁免点
+    (edge kind / ready-to-schedule 布尔标记 / 描述该标记的帮助页文案) 按精确行内容排除, 豁免
+    理由见上方注释块, 对应 drop-ready-frontend/prd.md『边界』章。任何新出现的 `ready` 都会
+    被此断言拦下, 除非显式登记进 `_READY_TS_ALLOW_LINES` 并写明理由。"""
+    hits = []
+    for f in _ts_files():
+        allow = _READY_TS_ALLOW_LINES.get(f, set())
+        for i, line in enumerate(f.read_text(encoding="utf-8").splitlines(), 1):
+            if line.strip() in allow:
+                continue
+            if _READY_TASK_STATUS_PAT.search(line):
+                hits.append(f"{f}:{i}: {line.strip()}")
+    assert hits == [], f"前端仍有 `ready` 作为 task 状态残留 (或新出现未登记的豁免点): {hits}"

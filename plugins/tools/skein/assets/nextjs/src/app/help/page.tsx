@@ -3,32 +3,48 @@
 import { Sidebar, Topbar } from "@/components/layout";
 import { ST_META } from "@/components/status";
 
-// task 状态流转: planning → active → check → done
+// task 状态流转: planning ⇄ research → active → check → finishing → done (confirm 已吸收原 start)
 // subtask 状态: planning → active → done/failed
 const TASK_FLOW = [
   {
     status: "planning",
     title: "规划中",
-    desc: "需求拆分、brainstorm、grill 硬门。产出 prd.md + design.md + subtask DAG。",
+    desc: "需求拆分、brainstorm、grill 硬门。产出 prd.md + design.md + subtask DAG。可选发起调研。",
     enter: "skein create",
-    exit: "skein confirm (人审门通过)",
+    exit: "skein research (发起调研) 或 skein confirm (人审门通过, 吸收原 start)",
     agent: "main (同步前台)",
+  },
+  {
+    status: "research",
+    title: "调研中",
+    desc: "跑 phase=research 的 subtask 做库选型/方案对比/代码勘察, 结论落盘。全 research subtask done 才可收敛。",
+    enter: "skein research (须先登记 ≥1 个 --phase research 的 subtask)",
+    exit: "skein plan (收敛调研回规划, 调研中不可直接 confirm)",
+    agent: "skein:skein-researcher (异步)",
   },
   {
     status: "active",
     title: "执行中",
-    desc: "subtask 按 DAG 依赖并行调度。每个 ready subtask 派 skein-executor 执行, done 即派下一个。",
-    enter: "skein claim exec",
-    exit: "全部 subtask done → skein claim check",
+    desc: "subtask 按 DAG 依赖并行调度。ready subtask 竞争 pools.work 槽, done 即释放槽派下一个。",
+    enter: "skein confirm (人审门通过, 吸收原 start)",
+    exit: "全部 subtask done → skein check 或 claim check",
     agent: "skein:skein-executor (异步并行)",
   },
   {
     status: "check",
-    title: "待验收",
-    desc: "skein-checker 逐条核对验收标准、契约、一致性。通过则放行 finish, FAIL 回 planning 重确认方向后加修复 subtask。",
-    enter: "skein check",
-    exit: "全绿 → finish; FAIL → 回 planning 重确认",
+    title: "检查中",
+    desc: "skein-checker 逐条核对验收标准、契约、一致性。通过则占 gate 槽进收尾, FAIL 回 planning 重确认方向后加修复 subtask。",
+    enter: "skein check 或 claim check",
+    exit: "全绿 → skein finishing 或 claim check (占 pools.gate 槽); FAIL → 回 planning 重确认",
     agent: "skein:skein-checker",
+  },
+  {
+    status: "finishing",
+    title: "收尾中",
+    desc: "占 gate 槽 (上限 pools.gate), main 收到后派 skein-finisher 完成合并。",
+    enter: "skein finishing 或 claim check",
+    exit: "skein finish",
+    agent: "skein:skein-finisher",
   },
   {
     status: "done",
@@ -191,11 +207,14 @@ export default function HelpPage() {
                 <tbody className="divide-y divide-border/20">
                   {[
                     ["skein create <id>", "新建 task (kebab-case slug)"],
-                    ["skein confirm <id>", "确认规划, 直接激活执行"],
-                    ["skein claim exec", "全局认领就绪 subtask (自动 start task)"],
-                    ["skein claim check", "全 done 的 task 进检查"],
-                    ["skein subtask done/fail", "标记 subtask 完成/失败"],
+                    ["skein research <id>", "待处理→调研中: 发起调研"],
+                    ["skein plan <id>", "调研中→待处理: 收敛调研回规划"],
+                    ["skein confirm <id>", "用户确认门 (待处理→进行中, 吸收原 start)"],
+                    ["skein claim exec", "认领 ready subtask → running, 竞争 pools.work 槽 (不改 task 状态)"],
+                    ["skein claim check", "进行中→检查中(全 subtask done) 或 检查中→收尾中(占 pools.gate 槽)"],
+                    ["skein finishing <id>", "检查中→收尾中: 占 gate 槽"],
                     ["skein finish <id>", "收尾: commit→merge→销 worktree→标记完成"],
+                    ["skein subtask done/fail", "标记 subtask 完成/失败"],
                     ["skein list --status open", "列出全部未完成 task"],
                     ["skein subtask list <id>", "列出 task 的全部 subtask + 状态"],
                   ].map(([cmd, desc]) => (
@@ -216,19 +235,21 @@ export default function HelpPage() {
 
 // ── SVG 流转图 ──
 function FlowDiagram() {
-  // 节点坐标 — 横向 5 节点, 弧形回退
+  // 节点坐标 — 主链横向 5 节点 (planning→active→check→finishing→done) + research 挂 planning 上方的双向支线
   const nodes = [
-    { x: 80, y: 60, w: 120, h: 44, status: "planning", label: "规划中" },
-        { x: 440, y: 60, w: 120, h: 44, status: "active", label: "执行中" },
-    { x: 620, y: 60, w: 120, h: 44, status: "check", label: "待验收" },
-    { x: 800, y: 60, w: 120, h: 44, status: "done", label: "已完成" },
+    { x: 30, y: 110, w: 120, h: 44, status: "planning", label: "规划中" },
+    { x: 270, y: 110, w: 120, h: 44, status: "active", label: "执行中" },
+    { x: 470, y: 110, w: 120, h: 44, status: "check", label: "检查中" },
+    { x: 670, y: 110, w: 120, h: 44, status: "finishing", label: "收尾中" },
+    { x: 870, y: 110, w: 120, h: 44, status: "done", label: "已完成" },
   ];
+  const researchNode = { x: 30, y: 20, w: 120, h: 40, status: "research", label: "调研中" };
 
   const meta = (st: string) => ST_META[st] || ST_META.planning;
 
   return (
     <div className="overflow-x-auto">
-      <svg viewBox="0 0 960 220" className="w-full min-w-[800px]" style={{ maxWidth: 960 }}>
+      <svg viewBox="0 0 1040 260" className="w-full min-w-[900px]" style={{ maxWidth: 1040 }}>
         <defs>
           <marker id="fd-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
             <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--muted-foreground)" />
@@ -238,7 +259,7 @@ function FlowDiagram() {
           </marker>
         </defs>
 
-        {/* 正向箭头: planning → active → check → done */}
+        {/* 主链正向箭头: planning → active → check → finishing → done */}
         {nodes.slice(0, -1).map((n, i) => {
           const next = nodes[i + 1];
           const y = n.y + n.h / 2;
@@ -252,25 +273,46 @@ function FlowDiagram() {
           );
         })}
 
-        {/* 正向箭头标注 */}
-        <text x="200" y="46" textAnchor="middle" className="fill-muted-foreground" style={{ fontSize: 10 }}>confirm</text>
-        <text x="380" y="46" textAnchor="middle" className="fill-muted-foreground" style={{ fontSize: 10 }}>claim exec</text>
-        <text x="560" y="46" textAnchor="middle" className="fill-muted-foreground" style={{ fontSize: 10 }}>claim check</text>
-        <text x="740" y="46" textAnchor="middle" className="fill-muted-foreground" style={{ fontSize: 10 }}>finish</text>
+        {/* 主链箭头标注 (confirm 已吸收原 start) */}
+        <text x="200" y="96" textAnchor="middle" className="fill-muted-foreground" style={{ fontSize: 10 }}>confirm</text>
+        <text x="400" y="96" textAnchor="middle" className="fill-muted-foreground" style={{ fontSize: 10 }}>check / claim check</text>
+        <text x="600" y="96" textAnchor="middle" className="fill-muted-foreground" style={{ fontSize: 10 }}>finishing / claim check</text>
+        <text x="800" y="96" textAnchor="middle" className="fill-muted-foreground" style={{ fontSize: 10 }}>finish</text>
+
+        {/* research 支线: planning ⇄ research, 调研可选, 不阻断直接 confirm */}
+        <line x1="75" y1="110" x2="75" y2="60" stroke="var(--muted-foreground)" strokeWidth="1.5" markerEnd="url(#fd-arrow)" />
+        <text x="45" y="88" textAnchor="middle" className="fill-muted-foreground" style={{ fontSize: 9 }}>research</text>
+        <line x1="105" y1="60" x2="105" y2="110" stroke="var(--muted-foreground)" strokeWidth="1.5" markerEnd="url(#fd-arrow)" />
+        <text x="135" y="88" textAnchor="middle" className="fill-muted-foreground" style={{ fontSize: 9 }}>plan</text>
 
         {/* 回退弧线: check → planning (FAIL) */}
         <path
-          d="M 680 104 Q 680 170, 500 170 Q 200 170, 140 104"
+          d="M 540 154 Q 540 220, 340 220 Q 90 220, 90 154"
           fill="none"
           stroke="var(--st-failed)" strokeWidth="1.5"
           strokeDasharray="6 3"
           markerEnd="url(#fd-arrow-fail)"
         />
-        <text x="410" y="186" textAnchor="middle" style={{ fill: "var(--st-failed)", fontSize: 10 }}>
+        <text x="340" y="236" textAnchor="middle" style={{ fill: "var(--st-failed)", fontSize: 10 }}>
           ✗ FAIL: 回 planning 重确认 → 改 prd/design → 加修复 subtask → 重 exec
         </text>
 
-        {/* 节点 */}
+        {/* research 节点 (支线) */}
+        {(() => {
+          const n = researchNode;
+          const m = meta(n.status);
+          return (
+            <g key={n.status}>
+              <rect x={n.x} y={n.y} width={n.w} height={n.h} rx="8" fill={`var(${m.colorVar})`} fillOpacity={0.18} stroke={`var(${m.colorVar})`} strokeWidth={2} />
+              <circle cx={n.x + 16} cy={n.y + n.h / 2} r={5} fill={`var(${m.colorVar})`} />
+              <text x={n.x + n.w / 2 + 8} y={n.y + n.h / 2 + 5} textAnchor="middle" className="fill-foreground" style={{ fontSize: 12, fontWeight: 600 }}>
+                {n.label}
+              </text>
+            </g>
+          );
+        })()}
+
+        {/* 主链节点 */}
         {nodes.map((n) => {
           const m = meta(n.status);
           return (
