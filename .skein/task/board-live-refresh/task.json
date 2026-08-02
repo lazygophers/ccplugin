@@ -50,12 +50,17 @@
         "签名字段选取的取舍在代码注释或文档中写明",
         "未做整结构深比"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785599938,
-      "started": null,
-      "finished": null
+      "started": 1785634944,
+      "finished": 1785635580
     },
     {
       "sid": "b3",
@@ -71,12 +76,17 @@
         "短时间大量变更时界面不卡死",
         "同轮多条消息合并为一次重排"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785599938,
-      "started": null,
-      "finished": null
+      "started": 1785635627,
+      "finished": 1785636437
     },
     {
       "sid": "b4",
@@ -94,10 +104,10 @@
         "浏览器实测: 更新后滚动位置/展开面板/筛选条件均未丢失"
       ],
       "验收done": [],
-      "status": "待处理",
+      "status": "运行中",
       "skills": [],
       "created": 1785599938,
-      "started": null,
+      "started": 1785636511,
       "finished": null
     }
   ],
@@ -121,6 +131,6 @@
   "confirmed": 1785600387,
   "checked": null,
   "finished": null,
-  "updated": 1785634804,
+  "updated": 1785636511,
   "confirmed_by": "user"
 }

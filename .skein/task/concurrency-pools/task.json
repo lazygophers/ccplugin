@@ -196,6 +196,28 @@
       "created": 1785512383,
       "started": null,
       "finished": null
+    },
+    {
+      "sid": "s9",
+      "name": "存量就绪态迁移",
+      "desc": "把存量 task.json 里已废弃的 就绪 status 迁移到新状态机的对应态, 否则本分支合入 master 后既有 task 全部变非法 status",
+      "estimate": 1.0,
+      "depends_on": [
+        "s3",
+        "s4"
+      ],
+      "验收": [
+        "存量 task.json 的 就绪 status 被迁移到新状态机对应态",
+        "迁移前自动备份且幂等可重跑",
+        "迁移后 doctor 零非法 status",
+        "迁移映射规则写进 design.md"
+      ],
+      "验收done": [],
+      "status": "运行中",
+      "skills": [],
+      "created": 1785636507,
+      "started": 1785636511,
+      "finished": null
     }
   ],
   "priority": "normal",
@@ -218,6 +240,6 @@
   "confirmed": 1785515070,
   "checked": null,
   "finished": null,
-  "updated": 1785636374,
+  "updated": 1785636511,
   "confirmed_by": "user"
 }
