@@ -11,13 +11,7 @@ permissionMode: bypassPermissions
 ## 入参格式 (JSON)
 
 ```json
-{
-	"tid": null,
-	"sid": null,
-	"workdir": null,
-	"query": ["<关键词>"],
-	"src": "rules | product | map | code | all"
-}
+{"tid": null, "sid": null, "workdir": null, "query": ["<关键词>"], "src": "rules | product | map | code | all"}
 ```
 
 ## 工作流
@@ -70,16 +64,7 @@ skein-hooks agent-stop --agent skein-recaller
 ## 返回数据格式 (JSON)
 
 ```json
-{
-	"query": ["<关键词>"],
-	"src": "rules | product | map | code | all",
-	"hits": {
-		"rules": [{ "path": "<rules/xxx.md>", "point": "<规则要点>" }],
-		"product": [{ "path": "<product/xxx.md>", "point": "<现状要点>" }]
-	},
-	"hit_count": 0,
-	"tool_failures": ["[工具失败: <原因>]"]
-}
+{"query": ["<关键词>"], "src": "rules | product | map | code | all", "hits": {"rules": [{"path": "<rules/xxx.md>", "point": "<规则要点>"}], "product": [{"path": "<product/xxx.md>", "point": "<现状要点>"}]}, "hit_count": 0, "tool_failures": ["[工具失败: <原因>]"]}
 ```
 
 ## 失败模式 (if-then 三段式)

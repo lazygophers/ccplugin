@@ -20,12 +20,7 @@ hooks:
 ## 入参格式 (JSON)
 
 ```json
-{
-	"tid": null,
-	"sid": null,
-	"workdir": null,
-	"retain_days": "<保留天数，省略则用 config 默认>"
-}
+{"tid": null, "sid": null, "workdir": null, "retain_days": "<保留天数，省略则用 config 默认>"}
 ```
 
 ## 工作流
@@ -89,13 +84,7 @@ git branch --merged
 ## 返回数据格式 (JSON)
 
 ```json
-{
-	"archived": ["<task-id>"],
-	"worktrees_removed": ["<path>"],
-	"branches_deleted": ["<branch>"],
-	"pending": ["<存疑项 + 原因>"],
-	"tool_failures": ["<原因>"]
-}
+{"archived": ["<task-id>"], "worktrees_removed": ["<path>"], "branches_deleted": ["<branch>"], "pending": ["<存疑项 + 原因>"], "tool_failures": ["<原因>"]}
 ```
 
 ## 失败模式 (if-then 三段式)

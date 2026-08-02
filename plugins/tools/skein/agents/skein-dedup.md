@@ -12,11 +12,7 @@ background: true
 ## 入参格式 (JSON)
 
 ```json
-{
-	"tid": null,
-	"sid": null,
-	"workdir": null
-}
+{"tid": null, "sid": null, "workdir": null}
 ```
 
 ## 工作流
@@ -89,25 +85,7 @@ skein-hooks agent-stop --agent skein-dedup
 ## 返回数据格式 (JSON)
 
 ```json
-{
-	"merged": [
-		{
-			"from": "<次-id>",
-			"into": "<主-id>",
-			"basis": "<判据>",
-			"action": "<迁 N subtask + del>"
-		}
-	],
-	"dag": [
-		{
-			"after": "<后置-id>",
-			"depends_on": ["<前置-id>"],
-			"reason": "<逻辑前置理由>"
-		}
-	],
-	"skipped": ["<判不准/CLI 拒 的连法 + 原因>"],
-	"tool_failures": ["[工具失败: <原因>]"]
-}
+{"merged": [{"from": "<次-id>", "into": "<主-id>", "basis": "<判据>", "action": "<迁 N subtask + del>"}], "dag": [{"after": "<后置-id>", "depends_on": ["<前置-id>"], "reason": "<逻辑前置理由>"}], "skipped": ["<判不准/CLI 拒 的连法 + 原因>"], "tool_failures": ["[工具失败: <原因>]"]}
 ```
 
 ## 失败模式 (if-then 三段式)

@@ -58,20 +58,18 @@ worktree：由 config `worktree.enabled` 决定（默认 false）。启用时 co
 ## 3. 主循环骨架
 
 ```text
-for task in Bash("skein claim"):
-  if task.status == TaskStatus.RESEARCH:
-    async Agent(subagent_type="skein-researcher", desc=task.desc+"|研究中", task_id=task.id,  research_id=research_id)
-  elif task.status == TaskStatus.ACTIVE:
-    async Agent(subagent_type="skein-executor", desc=task.desc+"|进行中", task_id=task.id,  subtask_id=active_id)
-  elif task.status == TaskStatus.CHECK:
-    async Agent(subagent_type="skein-checker", desc=task.desc+"|检查中", task_id=task.id)
-  elif task.status == TaskStatus.FINISHING:
-    async Agent(subagent_type="skein-finisher", desc=task.desc+"|收尾中", task_id=task.id)
-    async Agent(subagent_type="skein-specer", desc=task.desc+"|spec", task_id=task.id)
+for row in Bash("skein claim"):                       # 一次 claim, 两路认领
+  if row.kind == "subtask":                           # exec 路: ready subtask 已标 running
+    async Agent(row.agent,  {"tid": row.tid, "sid": row.sid, "workdir": wd})
+  elif row.kind == "task":                            # check 路: task 已进 check / finishing
+    for a in row.agents:                              # 检查中 → [checker]; 收尾中 → [finisher, specer]
+      async Agent(a,        {"tid": row.tid, "sid": None, "workdir": wd})
 
-for task in Bash("list --status=pending"):
+for task in Bash("skein list --status pending --json"):
   # 调度 plan
 ```
+
+`row.agent` / `row.agents` 直接取自 claim 回传（§3 硬规 2），`wd` 是 §1.1 的工作目录。派发 payload 就是各 agent 文件「入参格式 (JSON)」那一行：**`tid` / `sid` / `workdir` 三个公共字段**，其余按 agent 各自扩展（researcher 加 `query`+`mode`，specer 加 `mode`，recaller 加 `query`+`src`，clean 加 `retain_days`）。非 claim 路径派的 agent（recaller / researcher 手动调研 / dedup / clean / setup）同格式，`tid`/`sid`/`workdir` 可为 `null`。
 
 骨架是 flow 每一轮的唯一驱动，硬规：
 
@@ -86,7 +84,8 @@ for task in Bash("list --status=pending"):
 
 - 「派 agent」= 真实 `Agent` tool_use。无 tool_use 禁说已派。禁 teammate / agent-team / `SendMessage` 派 teammate / `team_name`。
 - main 默认禁写源码：改源码派 executor，验证派 checker，收尾派 finisher。`skein` CLI 由 main 同步跑（create/confirm/subtask/finish/archive 是记录管理，不派 agent）。
-- dispatch prompt 六字段自包含：目标 / 已知（含 `Active task: <id>` 与工作目录）/ 工作目录与范围 / 输出格式 / 验收标准 / 失败处理。**exec 是唯一例外**：只给 tid、sid、工作目录，executor 自读 `skein subtask show`。
+- **claim 路径派的四个 agent（executor / researcher / checker / finisher，加同轮 specer）只给上面那行 JSON**，不写六字段 prompt —— 详情各自从 `skein subtask show` / `skein prd read` / git diff 读，转述一律以落盘为准。
+- 非 claim 路径派的 agent（recaller、手动调研的 researcher、dedup、clean、setup）dispatch prompt 六字段自包含：目标 / 已知（含 `Active task: <id>` 与工作目录）/ 工作目录与范围 / 输出格式 / 验收标准 / 失败处理。
 - 用户交互决策归 main 用 `AskUserQuestion`；subagent 缺信息回传 `需要: <问题>`，main 转达。
 - subagent 完成或阻塞，main 立即回传摘要，禁批量延迟汇总。
 - 看板由脚本自动刷，禁直接编辑 task.md / task.html。

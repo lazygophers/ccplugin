@@ -11,12 +11,7 @@ permissionMode: bypassPermissions
 ## 入参格式 (JSON)
 
 ```json
-{
-	"tid": null,
-	"sid": null,
-	"workdir": null,
-	"mode": "fresh | trellis-migration"
-}
+{"tid": null, "sid": null, "workdir": null, "mode": "fresh | trellis-migration"}
 ```
 
 ## 工作流
@@ -83,15 +78,7 @@ skein-hooks agent-stop --agent skein-setup
 ## 返回数据格式 (JSON)
 
 ```json
-{
-	"mode": "fresh | trellis-migration",
-	"spec": { "rules": 0, "product": 0, "map": 0, "external": 0 },
-	"legacy_structure": "<'检出 spec/core, 待 migrate' | 无>",
-	"tasks_migrated": [{ "id": "<id>", "contracts": 0, "subtasks": 0 }],
-	"cleaned": ["<剔除的残留 trellis hook/文件>"],
-	"needs_main": ["<需 main 介入项>"],
-	"tool_failures": ["[工具失败: <原因>]"]
-}
+{"mode": "fresh | trellis-migration", "spec": {"rules": 0, "product": 0, "map": 0, "external": 0}, "legacy_structure": "<'检出 spec/core, 待 migrate' | 无>", "tasks_migrated": [{"id": "<id>", "contracts": 0, "subtasks": 0}], "cleaned": ["<剔除的残留 trellis hook/文件>"], "needs_main": ["<需 main 介入项>"], "tool_failures": ["[工具失败: <原因>]"]}
 ```
 
 ## 失败模式 (if-then 三段式)

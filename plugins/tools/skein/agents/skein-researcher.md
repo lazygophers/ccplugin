@@ -20,13 +20,7 @@ hooks:
 ## 入参格式 (JSON)
 
 ```json
-{
-	"tid": "<task-id>",
-	"sid": null,
-	"workdir": "<工作目录路径>",
-	"query": "<调研目标>",
-	"mode": "normal | bootstrap"
-}
+{"tid": "<task-id>", "sid": "<research subtask-id, 非 claim 派发时 null>", "workdir": "<工作目录路径>", "query": "<调研目标>", "mode": "normal | bootstrap"}
 ```
 
 ## 工作流
@@ -85,12 +79,7 @@ mkdir -p .skein/task/<task-id>/research
 ## 返回数据格式 (JSON)
 
 ```json
-{
-	"conclusion": "<收敛结论摘要>",
-	"findings_file": ".skein/task/<id>/findings.md",
-	"needs": ["需要: <缺的信息>"],
-	"tool_failures": ["<原因>"]
-}
+{"conclusion": "<收敛结论摘要>", "findings_file": ".skein/task/<id>/findings.md", "needs": ["需要: <缺的信息>"], "tool_failures": ["<原因>"]}
 ```
 
 ## 失败模式 (if-then 三段式)

@@ -11,11 +11,7 @@ permissionMode: bypassPermissions
 ## 入参格式 (JSON)
 
 ```json
-{
-	"tid": "<task-id>",
-	"sid": "<subtask-id>",
-	"workdir": "<工作目录路径>"
-}
+{"tid": "<task-id>", "sid": "<subtask-id>", "workdir": "<工作目录路径>"}
 ```
 
 ## 工作流
@@ -88,16 +84,7 @@ exec 不勾 PRD 验收；正式验收归 check。scope 外问题另建 task，�
 ## 返回数据格式 (JSON)
 
 ```json
-{
-	"subtask_id": "<sid>",
-	"status": "DONE | 需 main 介入",
-	"changes": [{ "file": "<path>", "summary": "<改了什么>" }],
-	"acceptance": [
-		{ "item": "<验收项>", "result": "pass | fail", "note": "<依据>" }
-	],
-	"needs": ["需要: <缺的信息/依赖>"],
-	"tool_failures": ["[工具失败: <原因>]"]
-}
+{"subtask_id": "<sid>", "status": "DONE | 需 main 介入", "changes": [{"file": "<path>", "summary": "<改了什么>"}], "acceptance": [{"item": "<验收项>", "result": "pass | fail", "note": "<依据>"}], "needs": ["需要: <缺的信息/依赖>"], "tool_failures": ["[工具失败: <原因>]"]}
 ```
 
 ## 失败模式 (if-then 三段式)

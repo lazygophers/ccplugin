@@ -11,11 +11,7 @@ permissionMode: bypassPermissions
 ## 入参格式 (JSON)
 
 ```json
-{
-	"tid": "<task-id>",
-	"sid": null,
-	"workdir": "<工作目录路径>"
-}
+{"tid": "<task-id>", "sid": null, "workdir": "<工作目录路径>"}
 ```
 
 ## 工作流
@@ -89,14 +85,7 @@ main 只在 flow-loop 允许的状态门后派 finish，派发前确认本 task 
 ## 返回数据格式 (JSON)
 
 ```json
-{
-	"verdict": "收尾干净 | 需处理",
-	"changes": [{ "file": "<path>", "summary": "<改了什么>" }],
-	"dangling": ["<悬挂残留: 未提交/调试码/TODO/临时文件>"],
-	"spec_candidates": [{ "topic": "<ns/cat/topic>", "tier": "anchors | prd-recall | none", "note": "<候选说明>" }],
-	"needs_main": ["<需 main 介入项, 如 amend/sediment 派 skein-specer>"],
-	"tool_failures": ["[工具失败: <原因>]"]
-}
+{"verdict": "收尾干净 | 需处理", "changes": [{"file": "<path>", "summary": "<改了什么>"}], "dangling": ["<悬挂残留: 未提交/调试码/TODO/临时文件>"], "spec_candidates": [{"topic": "<ns/cat/topic>", "tier": "anchors | prd-recall | none", "note": "<候选说明>"}], "needs_main": ["<需 main 介入项, 如 amend/sediment 派 skein-specer>"], "tool_failures": ["[工具失败: <原因>]"]}
 ```
 
 ## 失败模式 (if-then 三段式)

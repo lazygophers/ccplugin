@@ -11,11 +11,7 @@ permissionMode: bypassPermissions
 ## 入参格式 (JSON)
 
 ```json
-{
-	"tid": "<task-id>",
-	"sid": null,
-	"workdir": "<工作目录路径>"
-}
+{"tid": "<task-id>", "sid": null, "workdir": "<工作目录路径>"}
 ```
 
 ## 工作流
@@ -142,48 +138,7 @@ main 只在 flow-loop 允许的状态门后派真实 `Agent(subagent_type="skein
 ## 返回数据格式 (JSON)
 
 ```json
-{
-	"task_id": "<id>",
-	"verdict": "PASS | FAIL | 冲突",
-	"verification_methods": [
-		{
-			"method": "<验证方式条目原文>",
-			"result": "PASS | FAIL | MANUAL",
-			"evidence": "<file:line / URL / exit code / 原因>",
-			"cmd": "<执行的命令或步骤>"
-		}
-	],
-	"hard_gates": [
-		{
-			"cmd": "<命令>",
-			"exit": 0,
-			"summary": "<结果摘要>",
-			"failures": [{ "file": "<path>:<line>", "snippet": "<原文>" }]
-		}
-	],
-	"acceptance": [
-		{
-			"item": "<未勾验收项文本>",
-			"result": "PASS | FAIL | MANUAL",
-			"note": "<依据 file:line 或原因>"
-		}
-	],
-	"contracts": [
-		{
-			"contract": "<契约条>",
-			"result": "pass | fail",
-			"evidence": "<file:line>"
-		}
-	],
-	"consistency": {
-		"analyze_candidates": [
-			{ "category": "验收覆盖率|硬规冲突|范围蔓延|proposed置信度|接缝存在性", "note": "<候选说明, file:line>" }
-		],
-		"clean": false
-	},
-	"needs_main": ["<需 main 介入项>"],
-	"tool_failures": ["[工具失败: <原因>]"]
-}
+{"task_id": "<id>", "verdict": "PASS | FAIL | 冲突", "verification_methods": [{"method": "<验证方式条目原文>", "result": "PASS | FAIL | MANUAL", "evidence": "<file:line / URL / exit code / 原因>", "cmd": "<执行的命令或步骤>"}], "hard_gates": [{"cmd": "<命令>", "exit": 0, "summary": "<结果摘要>", "failures": [{"file": "<path>:<line>", "snippet": "<原文>"}]}], "acceptance": [{"item": "<未勾验收项文本>", "result": "PASS | FAIL | MANUAL", "note": "<依据 file:line 或原因>"}], "contracts": [{"contract": "<契约条>", "result": "pass | fail", "evidence": "<file:line>"}], "consistency": {"analyze_candidates": [{"category": "验收覆盖率|硬规冲突|范围蔓延|proposed置信度|接缝存在性", "note": "<候选说明, file:line>"}], "clean": false}, "needs_main": ["<需 main 介入项>"], "tool_failures": ["[工具失败: <原因>]"]}
 ```
 
 ## 失败模式 (if-then 三段式)
