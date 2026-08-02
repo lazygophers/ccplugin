@@ -59,6 +59,10 @@ class BoardSourceMixin:
             spec_root=self._spec_root(), pool_work=pools["work"], gate_active=pools["gate"])
     def _webapp_html(self) -> str:
         # Next.js static export: 直接读 dist/index.html
+        # Next.js static export: root page 做 redirect → /board, 读 board page 取 SPA entry
+        board = dist_dir() / "board" / "index.html"
+        if board.exists():
+            return board.read_text(encoding="utf-8")
         return (dist_dir() / "index.html").read_text(encoding="utf-8")
     def _spec_rev(self) -> str:
         # spec rev: .skein/spec/ 内 .md 最大 mtime_ns。变 → WS 推 "spec-changed"。
