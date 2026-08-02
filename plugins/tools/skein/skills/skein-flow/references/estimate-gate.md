@@ -1,6 +1,6 @@
 # 预计工时硬门 (estimate)
 
-SKEIN task 的预计工时 (小时, 浮点数) 是 plan 阶段必填项, `skein confirm` (待处理→就绪) 硬校验, 缺失或非正数一律拒绝进就绪。
+SKEIN task 的预计工时 (小时, 浮点数) 是 plan 阶段必填项, `skein confirm` (待处理→进行中) 硬校验, 缺失或非正数一律拒绝开工。
 
 ---
 
@@ -10,7 +10,7 @@ SKEIN task 的预计工时 (小时, 浮点数) 是 plan 阶段必填项, `skein 
 - **subtask 逐个必填**: 每个 subtask 有独立 `estimate` 字段, `skein subtask add` 时必带 `--estimate <小时数>`, 缺失或非正数直接拒。
 - **自下而上累加**: task 工时 ≥ Σ subtask 工时。差额 = task 自身开销 (plan 规划 / grill 审查 / check 验收 / finish 收尾), 不是缓冲余量。
 - **存储**: task 与 subtask 各自 `estimate` 字段 (数字, 单位小时; 未填为 `null`)。
-- **不通过**: `skein confirm` 检出未填或低于 subtask 合计即报错退出, 阻断进就绪。
+- **不通过**: `skein confirm` 检出未填或低于 subtask 合计即报错退出, 阻断开工。
 - **🔒 纯 AI 估, 禁问用户**: 工期估算归 main 自主完成 — 用户不知实际工作量, 问工期既问不出准数又拖规划。`estimate` 是 AI 对 subtask 实际要做的事 (改哪些文件 / 要不要写测试 / 要不要先调研) 的自行推算, **禁用 `AskUserQuestion` 或任何形式问用户「这要多久 / 预估几小时」**。估不准是可接受的, 把球踢给用户不可接受。
 
 ---
@@ -38,7 +38,7 @@ SKEIN task 的预计工时 (小时, 浮点数) 是 plan 阶段必填项, `skein 
 |---|---|---|
 | subtask 登记时必填 | `skein subtask add <id> <sid> --name .. --desc .. --estimate 2` | plan (必填, 缺则拒) |
 | task 创建时指定 | `skein create <id> --name .. --desc .. --estimate 4` | create |
-| task 规划时补填/修改 | `skein estimate <id> --set 6` | pending / ready (start 后不可再改) |
+| task 规划时补填/修改 | `skein estimate <id> --set 6` | 待处理 / 调研中 (confirm 后不可再改) |
 | 查看当前值 + 分解 | `skein estimate <id>` (省略 `--set`, 附出 subtask 合计与自身开销) | 任意阶段, 纯读 |
 | 默认值 | 无默认, 缺省即未填 (`null`), confirm 会拒绝 | - |
 
@@ -50,11 +50,11 @@ SKEIN task 的预计工时 (小时, 浮点数) 是 plan 阶段必填项, `skein 
 
 subtask 工时在 `subtask add` 时就已必填, 所以走到 confirm 时 Σ 一定齐 — ③ 只查 task 自身有没有漏算 plan/check 开销。
 
-`skein confirm` 吸收了原 `start` 的全部职责 (待处理→进行中一步做完, 无就绪中间态), 但工时校验只在这一次做, 不重复算 —— 工时估算只影响 plan/confirm 阶段的规划质量把关, 不像 prd 那样需要 double-check 防中途改空 (预计工时填后极少被回改)。
+`skein confirm` 吸收了原 `start` 的全部职责 (待处理→进行中一步做完), 但工时校验只在这一次做, 不重复算 —— 工时估算只影响 plan/confirm 阶段的规划质量把关, 不像 prd 那样需要 double-check 防中途改空 (预计工时填后极少被回改)。
 
 ---
 
 ## 编辑限制
 
-- 仅 `pending`(待处理) / `ready`(就绪) 状态可 `skein estimate --set` 改动; `start` 后 (进行中及以后) 状态锁定, 拒绝修改 (工时估算是规划期决策, 执行期不应回改)。
+- 仅 `pending`(待处理) / `research`(调研中) 状态可 `skein estimate --set` 改动; `confirm` 后 (进行中及以后) 状态锁定, 拒绝修改 (工时估算是规划期决策, 执行期不应回改)。
 - 与 `repos`/`deps` 命令同构: 省略 `--set` 即查看当前值, 纯读不加写锁。
