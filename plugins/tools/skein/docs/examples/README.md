@@ -44,17 +44,19 @@
 | `task/<id>/findings.md` | 调研结论 | AI | 可读写 |
 | `task/<id>/research/` | 调研笔记 | AI | 可读写 |
 | `task/archive/<年>/<月-日>/<id>/` | 归档 task | 脚本 | 只读 |
-| `spec/core/<cat>/*.md` | 常驻规则 | skein-spec | 经命令 |
-| `spec/recall/<cat>/*.md` | 按需规则 | skein-spec | 经命令 |
+| `spec/rules/<cat>/*.md` | 硬规/契约 | skein-spec | 经命令 |
+| `spec/product/<cat>/*.md` | 业务领域知识 | skein-spec | 经命令 |
+| `spec/map/<cat>/*.md` | 项目结构映像 | skein-spec | 经命令 |
+| `spec/external/<cat>/*.md` | 外部引用 | skein-spec | 经命令 |
 
 ## 规则演示
 
-| 规则 | 层 | 类目 | 内容 |
+| 规则 | namespace | 类目 | 内容 |
 | --- | --- | --- | --- |
-| `order-query-00.md` | core | git | finish 前全量测试绿 |
-| `order-create-api-01.md` | core | domain | 金额整数分, 禁 float |
-| `order-create-api-00.md` | recall | arch | 幂等键 + Redis 扣减 |
-| `order-pay-01.md` | recall | test | 状态机测试覆盖 |
+| `order-query-00.md` | rules | git | finish 前全量测试绿 |
+| `order-create-api-01.md` | rules | domain | 金额整数分, 禁 float |
+| `order-create-api-00.md` | product | arch | 幂等键 + Redis 扣减 |
+| `order-pay-01.md` | product | test | 状态机测试覆盖 |
 
 ## 试用
 
