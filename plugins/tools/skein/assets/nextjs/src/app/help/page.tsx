@@ -69,47 +69,10 @@ export default function HelpPage() {
           <section className="mb-8">
             <h2 className="mb-4 text-lg font-semibold text-foreground">Task 状态流转</h2>
             <div className="rounded-lg border border-border/30 bg-card/40 p-6">
-              {/* 流程图 - 横向 */}
-              <div className="mb-6 flex flex-wrap items-center gap-2">
-                {TASK_FLOW.map((s, i) => {
-                  const meta = ST_META[s.status] || ST_META.planning;
-                  return (
-                    <div key={s.status} className="flex items-center gap-2">
-                      <div
-                        className="flex items-center gap-2 rounded-lg border px-3 py-2"
-                        style={{
-                          borderColor: `var(${meta.colorVar})`,
-                          backgroundColor: `color-mix(in srgb, var(${meta.colorVar}) 15%, var(--card))`,
-                        }}
-                      >
-                        <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: `var(${meta.colorVar})` }} />
-                        <span className="text-sm font-semibold text-foreground">{s.title}</span>
-                      </div>
-                      {i < TASK_FLOW.length - 1 && (
-                        <div className="flex flex-col items-center">
-                          <svg width="28" height="16" className="text-muted-foreground">
-                            <path d="M 2 8 L 24 8" fill="none" stroke="currentColor" strokeWidth="1.5" markerEnd="url(#help-arrow)" />
-                            <defs>
-                              <marker id="help-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                                <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" />
-                              </marker>
-                            </defs>
-                          </svg>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* CHECK → PLANNING 回退箭头说明 */}
-              <div className="mb-4 flex items-center gap-2 rounded-md border border-dashed border-border/50 px-3 py-2 text-xs text-muted-foreground">
-                <i className="fa fa-arrow-left" />
-                <span>验收失败 (FAIL) 时, 从「待验收」回退到「规划中」: 回 planning 重确认修复方向 (grill/AskUserQuestion), 改 prd/design 后加修复 subtask, 再重新 exec→check</span>
-              </div>
+              <FlowDiagram />
 
               {/* 详细说明卡片 */}
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {TASK_FLOW.map((s) => {
                   const meta = ST_META[s.status] || ST_META.planning;
                   return (
@@ -217,7 +180,7 @@ export default function HelpPage() {
                 <span className="text-xs text-muted-foreground">→ 循环下一个 task</span>
               </div>
               <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-                每个 task 走完 plan→exec→check→finish 四阶段后标记完成。check 失败回 exec 修复, 不跨阶段跳过。
+                每个 task 走完 plan→exec→check→finish 四阶段后标记完成。check 失败回 planning 重确认方向后加修复 subtask, 不跨阶段跳过。
               </p>
             </div>
           </section>
@@ -255,6 +218,92 @@ export default function HelpPage() {
           </section>
         </main>
       </div>
+    </div>
+  );
+}
+
+// ── SVG 流转图 ──
+function FlowDiagram() {
+  // 节点坐标 — 横向 5 节点, 弧形回退
+  const nodes = [
+    { x: 80, y: 60, w: 120, h: 44, status: "planning", label: "规划中" },
+    { x: 260, y: 60, w: 120, h: 44, status: "ready", label: "待执行" },
+    { x: 440, y: 60, w: 120, h: 44, status: "active", label: "执行中" },
+    { x: 620, y: 60, w: 120, h: 44, status: "check", label: "待验收" },
+    { x: 800, y: 60, w: 120, h: 44, status: "done", label: "已完成" },
+  ];
+
+  const meta = (st: string) => ST_META[st] || ST_META.planning;
+
+  return (
+    <div className="overflow-x-auto">
+      <svg viewBox="0 0 960 220" className="w-full min-w-[800px]" style={{ maxWidth: 960 }}>
+        <defs>
+          <marker id="fd-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--muted-foreground)" />
+          </marker>
+          <marker id="fd-arrow-fail" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--st-failed)" />
+          </marker>
+        </defs>
+
+        {/* 正向箭头: planning → ready → active → check → done */}
+        {nodes.slice(0, -1).map((n, i) => {
+          const next = nodes[i + 1];
+          const y = n.y + n.h / 2;
+          return (
+            <line key={`fwd-${i}`}
+              x1={n.x + n.w} y1={y}
+              x2={next.x} y2={y}
+              stroke="var(--muted-foreground)" strokeWidth="1.5"
+              markerEnd="url(#fd-arrow)"
+            />
+          );
+        })}
+
+        {/* 正向箭头标注 */}
+        <text x="200" y="46" textAnchor="middle" className="fill-muted-foreground" style={{ fontSize: 10 }}>confirm</text>
+        <text x="380" y="46" textAnchor="middle" className="fill-muted-foreground" style={{ fontSize: 10 }}>claim exec</text>
+        <text x="560" y="46" textAnchor="middle" className="fill-muted-foreground" style={{ fontSize: 10 }}>claim check</text>
+        <text x="740" y="46" textAnchor="middle" className="fill-muted-foreground" style={{ fontSize: 10 }}>finish</text>
+
+        {/* 回退弧线: check → planning (FAIL) */}
+        <path
+          d="M 680 104 Q 680 170, 500 170 Q 200 170, 140 104"
+          fill="none"
+          stroke="var(--st-failed)" strokeWidth="1.5"
+          strokeDasharray="6 3"
+          markerEnd="url(#fd-arrow-fail)"
+        />
+        <text x="410" y="186" textAnchor="middle" style={{ fill: "var(--st-failed)", fontSize: 10 }}>
+          ✗ FAIL: 回 planning 重确认 → 改 prd/design → 加修复 subtask → 重 exec
+        </text>
+
+        {/* 节点 */}
+        {nodes.map((n) => {
+          const m = meta(n.status);
+          return (
+            <g key={n.status}>
+              <rect
+                x={n.x} y={n.y} width={n.w} height={n.h} rx="8"
+                fill={`var(${m.colorVar})`}
+                fillOpacity={0.18}
+                stroke={`var(${m.colorVar})`}
+                strokeWidth={2}
+              />
+              <circle cx={n.x + 16} cy={n.y + n.h / 2} r={5} fill={`var(${m.colorVar})`} />
+              <text
+                x={n.x + n.w / 2 + 8} y={n.y + n.h / 2 + 5}
+                textAnchor="middle"
+                className="fill-foreground"
+                style={{ fontSize: 13, fontWeight: 600 }}
+              >
+                {n.label}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
     </div>
   );
 }

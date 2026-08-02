@@ -65,7 +65,7 @@ sediment 写盘后, skein-specer 顺带跑一轮精简: 扫全 namespace 规则,
 - **保护标记**: 规则头 `protected: true` 的跳过不精简 (手工核验后标记, 禁自动 archive)。
 - **无命中 → 跳过** — 未检出任何 candidate 则如实报「无精简项」, 不空跑 archive。
 
-完整流程见 [references/prune-workflow.md](references/prune-workflow.md)。
+完整流程见 [references/maintain.md](references/maintain.md)。
 
 ## 写盘参照模板 (软骨架, 非强制)
 
