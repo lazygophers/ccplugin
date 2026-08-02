@@ -32,3 +32,11 @@ skein-specer 跑 `skein-spec finish-candidates <tid>` 为 product namespace 产�
 - 无候选 (③) → 视需要用 `sediment --namespace product` 新建页, 或按建议留给用户后续手动新建, **禁凑数据硬造现状页**。
 
 权威定义见 [skein-spec SKILL.md](../../skein-spec/SKILL.md) 「product wiki」章节 (`finish-candidates` 三路降级原文) 与 [sediment-workflow.md](../../skein-spec/references/sediment-workflow.md) §5 amend vs sediment 抉择树, 本文件不重复语法细节。
+
+## proposed → active/superseded 转态 (sediment 沉淀 plan 期未验证决策时用)
+
+`skein-spec sediment --status` 支持 `active`(默认) / `proposed` / `deprecated` / `superseded` 四值。**plan 阶段沉淀的决策 (grill/design 推出但本轮 check 未验证过) 落 `status: proposed`**, 供 `skein-spec analyze` 的「proposed 置信度」检查识别未验证引用; 常规已验证决策仍走默认 `active`。
+
+- **proposed → active** — 该决策后续被某 task 的 check/analyze 实际验证成立 (不再是未验证假设) 后应转正。**CLI 限制**: `sediment` 写盘逻辑对同主题文件重复追加时, 传 `--status active` (等于默认值) 不会覆盖已有的非 active 状态 (`write.py` 只在显式传非 `active` 值时才覆盖, 防止常规追加意外抹掉 deprecated/superseded 标记)。故 proposed→active **无法**靠再跑一次默认 `sediment` 达成 —— 需直接 Edit 该主题文件 frontmatter 的 `status:` 行改 `active`, 改后跑 `skein-spec reindex` 同步索引。spec 规则文件不在 PreToolUse 硬阻名单 (只挡 task.json/task.md), 直接 Edit 允许。
+- **proposed → superseded** — 决策被新方案取代 (不再成立) 时, 跑 `skein-spec sediment --namespace <ns> --category <cat> --topic <同 topic> --status superseded --title <T> --body-file <正文>` 显式传非 active 值, 正常覆盖写盘 + 自动 reindex, **无需**手改 frontmatter。
+- 转态后原章节正文如需同步改写 (而非仅换状态), 走 `amend`; 仅换状态字段用上述两条即可。
