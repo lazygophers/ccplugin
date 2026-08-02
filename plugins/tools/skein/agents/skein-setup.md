@@ -6,8 +6,6 @@ model: sonnet
 effort: low
 color: orange
 permissionMode: bypassPermissions
-skills:
-  - skein:skein-setup
 ---
 
 ## 工作流
@@ -15,37 +13,47 @@ skills:
 main 检测到 `.trellis/` 时派你做语义迁移 (纯新仓初始化 main 直接跑 `skein setup`, 不派你)。机械部分交脚本, 你只做语义判断 (规则分层归类 / task 重建 / 残留 hook 剔除)。模式由 main 定 (兼容 / --full)。
 
 ### 0. 开工钩子 (第一步, 失败不阻断)
+
 ```
 python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-start --agent skein-setup
 ```
 
 ### 1. 跑脚手架
+
 ```
 skein setup [--full]
 ```
+
 - 脚本建 `.skein/` 骨架; 报错 → `[工具失败: setup 脚本报错]`, 停并上报。
 
 ### 2. 重组 spec (语义判断)
+
 逐条定 namespace + inclusion + 类目 + 主题, 写入后删扁平旧文件:
+
 ```
 skein-spec sediment --namespace=<ns> [--inclusion=always|auto] --category=<类目> --topic=<主题>
 ```
+
 - core 放硬约束, recall 放长尾。旧扁平文件迁完即删, 不留双份。
 - 粒度: 文件夹 = 类目, 文件 = 主题, `## <规则标题>` = 一条规则; 同主题并入同一文件 (禁一规则一文件)。
 - 已有碎片文件批量合并走 `skein-spec restructure --map <plan.json>` (源自动归档, `restore <ts>` 可回滚)。
 
 ### 3. 重建 task
+
 ```
 skein create <id> --name "标题" --desc "一句话"                    # 逐个重建
 skein contract <id> --add "契约文本"                                # 迁契约 (每条一次)
 skein subtask add <id> <sid> --name "X" --desc "Y" [--deps a,b] [--check "c1;c2"]   # 迁 subtask
 ```
+
 - 按 `.trellis/` 原语义逐 task 重建, 契约/subtask 逐条迁入。
 
 ### 4. 剔残留 + 验证
+
 JSON 编辑剔除残留 trellis hook 接线 → 复核 `.skein/` 结构完整 → 回传。
 
 ### 5. 收工钩子
+
 ```
 python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-stop --agent skein-setup
 ```
@@ -63,20 +71,20 @@ python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-stop --agent skein-set
 
 ```json
 {
-  "mode": "fresh | trellis-migration",
-  "spec": {"core": 0, "recall": 0},
-  "tasks_migrated": [{"id": "<id>", "contracts": 0, "subtasks": 0}],
-  "cleaned": ["<剔除的残留 trellis hook/文件>"],
-  "needs_main": ["<需 main 介入项>"],
-  "tool_failures": ["[工具失败: <原因>]"]
+	"mode": "fresh | trellis-migration",
+	"spec": { "core": 0, "recall": 0 },
+	"tasks_migrated": [{ "id": "<id>", "contracts": 0, "subtasks": 0 }],
+	"cleaned": ["<剔除的残留 trellis hook/文件>"],
+	"needs_main": ["<需 main 介入项>"],
+	"tool_failures": ["[工具失败: <原因>]"]
 }
 ```
 
 ## 失败模式 (if-then 三段式)
 
-| 触发 | 一线处理 | 兜底 |
-|---|---|---|
-| `skein setup` 脚本报错 | 读报错定位, 修环境重跑 1 次 | `[工具失败: <原因>]`, 停止后续迁移, 上报 |
-| `.trellis/` 规则分层判不准 | 保守归 recall (可后续升 core) | needs_main 标「分层待人确认」 |
-| task 重建缺字段 (无 name/desc) | 从 `.trellis/` 原文件补 | 补不全 → needs_main 标缺失, 跳过该 task |
-| 残留 hook 结构未知 | 只剔明确 trellis 接线 | 拿不准的保留 + needs_main 标「疑似残留待人核」 |
+| 触发                           | 一线处理                      | 兜底                                           |
+| ------------------------------ | ----------------------------- | ---------------------------------------------- |
+| `skein setup` 脚本报错         | 读报错定位, 修环境重跑 1 次   | `[工具失败: <原因>]`, 停止后续迁移, 上报       |
+| `.trellis/` 规则分层判不准     | 保守归 recall (可后续升 core) | needs_main 标「分层待人确认」                  |
+| task 重建缺字段 (无 name/desc) | 从 `.trellis/` 原文件补       | 补不全 → needs_main 标缺失, 跳过该 task        |
+| 残留 hook 结构未知             | 只剔明确 trellis 接线         | 拿不准的保留 + needs_main 标「疑似残留待人核」 |

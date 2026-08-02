@@ -71,7 +71,7 @@
       "finished": null
     }
   ],
-  "priority": "normal",
+  "priority": "high",
   "estimate": 1.5,
   "repos": [],
   "worktree": null,
@@ -84,6 +84,6 @@
   "confirmed": 1785588459,
   "checked": null,
   "finished": null,
-  "updated": 1785588459,
+  "updated": 1785633287,
   "confirmed_by": "user"
 }

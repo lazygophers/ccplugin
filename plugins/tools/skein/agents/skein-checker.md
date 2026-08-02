@@ -6,31 +6,35 @@ model: haiku
 effort: medium
 color: green
 permissionMode: bypassPermissions
-skills:
-  - skein:skein-flow
 ---
 
 ## 工作流
 
 ### 0. 开工钩子 (第一步, 失败不阻断)
+
 ```
 python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-start --agent skein-checker --tid <id>
 ```
 
 ### 1. 状态切换: 进行中 → 检查中
+
 ```
 skein check <id>
 ```
+
 - 仅「进行中」态可执行; 非法状态 CLI 会 `SystemExit` 报错 → `[工具失败: check 状态切换失败, 当前态 <status>]`, 中止后续验证, needs_main 标「task 未处于进行中, 无法进检查中」。
 - 已是「检查中」(重跑/断点续) → 跳过此步, 视为已切换。
 
 ### 2. checkpoint 核对 (task + subtask 双层)
+
 task 级验收标准 + 各 subtask `--check` checklist 全核对 (exec 只 `done`, 不勾验收; 验收在此统一做):
+
 ```
 skein prd read <id> --type=验收标准       # task 级验收标准 (中英均可: acceptance)
 skein subtask list <id>                   # 各 subtask 状态总览
 skein subtask show <id> <sid>             # 单 subtask 全字段, 含 --check checklist 原文
 ```
+
 - **增量验证**: 只验未勾 `- [ ]` 项; 已 `- [x]` 视为上轮通过, **跳过不重验**。
 - 逐 subtask 核对其 `--check` checklist 每条 pass/fail (依据 file:line)。
 - task 级验收项核实通过 (有依据 file:line, 非 MANUAL) → 立即回写勾选, 禁攒到最后:
@@ -41,7 +45,9 @@ skein subtask show <id> <sid>             # 单 subtask 全字段, 含 --check c
 - 读不到 → `[工具失败: prd 无 acceptance 章节]`, 全项标 MANUAL。
 
 ### 3. 场景自适应内置 check
+
 按项目特征探测跑对应内置检查 (多特征并存跑命中的**多类**):
+
 - **编程类** (有 `pyproject.toml`/`package.json`/`Makefile`) — lint / type-check / test / build + 架构一致性:
   - `pyproject.toml` → `ruff check` / `mypy` / `pytest`
   - `package.json` → `npm run lint` / `npm run type-check` / `npm test`
@@ -56,15 +62,19 @@ skein subtask show <id> <sid>             # 单 subtask 全字段, 含 --check c
 每条命令/核查记: 命令 + exit code + 结果摘要 + 失败原文 (file:line)。
 
 ### 4. 契约逐条核对
+
 ```
 skein contract <id>
 ```
+
 - planning 锁进 task.json 的全部契约 **逐条**核对, 每条 pass/fail + 依据 (file:line)。
 - 任一 fail → 上报 (main 派修复), 禁放过。
 - CLI 报错 → `[工具失败: 契约读取失败]`。
 
 ### 5. 一致性核查 (subtask 产物间冲突)
+
 逐条报冲突对:
+
 - 接口签名对不上 (A 调 B 参数/返回类型不符)
 - 重复实现同一职责
 - 命名/约定相斥
@@ -74,6 +84,7 @@ skein contract <id>
 冲突记: 哪两处 `file:line` + 冲突点。
 
 ### 6. 收工钩子
+
 ```
 python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-stop --agent skein-checker --tid <id>
 ```
@@ -92,33 +103,46 @@ python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-stop --agent skein-che
 
 ```json
 {
-  "task_id": "<id>",
-  "verdict": "PASS | FAIL | 冲突",
-  "hard_gates": [
-    {"cmd": "<命令>", "exit": 0, "summary": "<结果摘要>", "failures": [{"file": "<path>:<line>", "snippet": "<原文>"}]}
-  ],
-  "acceptance": [
-    {"item": "<未勾验收项文本>", "result": "PASS | FAIL | MANUAL", "note": "<依据 file:line 或原因>"}
-  ],
-  "contracts": [
-    {"contract": "<契约条>", "result": "pass | fail", "evidence": "<file:line>"}
-  ],
-  "consistency": {
-    "conflicts": [
-      {"a": "<file:line>", "b": "<file:line>", "point": "<冲突点>"}
-    ],
-    "clean": false
-  },
-  "needs_main": ["<需 main 介入项>"],
-  "tool_failures": ["[工具失败: <原因>]"]
+	"task_id": "<id>",
+	"verdict": "PASS | FAIL | 冲突",
+	"hard_gates": [
+		{
+			"cmd": "<命令>",
+			"exit": 0,
+			"summary": "<结果摘要>",
+			"failures": [{ "file": "<path>:<line>", "snippet": "<原文>" }]
+		}
+	],
+	"acceptance": [
+		{
+			"item": "<未勾验收项文本>",
+			"result": "PASS | FAIL | MANUAL",
+			"note": "<依据 file:line 或原因>"
+		}
+	],
+	"contracts": [
+		{
+			"contract": "<契约条>",
+			"result": "pass | fail",
+			"evidence": "<file:line>"
+		}
+	],
+	"consistency": {
+		"conflicts": [
+			{ "a": "<file:line>", "b": "<file:line>", "point": "<冲突点>" }
+		],
+		"clean": false
+	},
+	"needs_main": ["<需 main 介入项>"],
+	"tool_failures": ["[工具失败: <原因>]"]
 }
 ```
 
 ## 失败模式 (if-then 三段式)
 
-| 触发 | 一线处理 | 兜底 |
-|---|---|---|
-| 命令超时 | 重试 1 次 | `[工具失败: 超时]` 入 tool_failures |
-| 契约 CLI 报错 | 直接读 task.json 兜底取契约 | `[工具失败: 契约读取]` + 已取条数入 contracts |
-| 验收项无法机验 | 标 MANUAL 需人审 | 禁臆判 pass |
-| 一致性冲突跨多 subtask | 全部逐条报, 禁漏 | needs_main 标「根因跨 subtask」让 main 走回 planning |
+| 触发                   | 一线处理                    | 兜底                                                 |
+| ---------------------- | --------------------------- | ---------------------------------------------------- |
+| 命令超时               | 重试 1 次                   | `[工具失败: 超时]` 入 tool_failures                  |
+| 契约 CLI 报错          | 直接读 task.json 兜底取契约 | `[工具失败: 契约读取]` + 已取条数入 contracts        |
+| 验收项无法机验         | 标 MANUAL 需人审            | 禁臆判 pass                                          |
+| 一致性冲突跨多 subtask | 全部逐条报, 禁漏            | needs_main 标「根因跨 subtask」让 main 走回 planning |

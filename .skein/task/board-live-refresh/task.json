@@ -2,7 +2,7 @@
   "id": "board-live-refresh",
   "name": "看板实时刷新: task-changed 消息未被消费",
   "desc": "后端逐 task 推 task-changed 但前端 LiveBootstrap 只处理 data 消息, 导致 task 创建/变更时面板不更新; 另 cards signature 漏 name/desc 等字段",
-  "status": "就绪",
+  "status": "进行中",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -21,12 +21,20 @@
         "整页重载兜底路径保留",
         "消费逻辑为纯函数且有新建/更新/删除三类用例"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785599938,
-      "started": null,
-      "finished": null
+      "started": 1785633265,
+      "finished": 1785634804
     },
     {
       "sid": "b2",
@@ -96,16 +104,23 @@
   "priority": "normal",
   "estimate": 6.5,
   "repos": [],
-  "worktree": null,
-  "worktrees": [],
+  "worktree": ".worktrees/skein-board-live-refresh",
+  "worktrees": [
+    {
+      "repo": ".",
+      "wt": ".worktrees/skein-board-live-refresh",
+      "branch": "skein/board-live-refresh",
+      "merged": false
+    }
+  ],
   "branch": "skein/board-live-refresh",
   "parent": null,
   "kind": "task",
   "created": 1785599378,
-  "started": null,
+  "started": 1785633265,
   "confirmed": 1785600387,
   "checked": null,
   "finished": null,
-  "updated": 1785600387,
+  "updated": 1785634804,
   "confirmed_by": "user"
 }
