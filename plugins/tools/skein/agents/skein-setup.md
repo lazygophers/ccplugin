@@ -8,6 +8,17 @@ color: orange
 permissionMode: bypassPermissions
 ---
 
+## 入参格式 (JSON)
+
+```json
+{
+	"tid": null,
+	"sid": null,
+	"workdir": null,
+	"mode": "fresh | trellis-migration"
+}
+```
+
 ## 工作流
 
 main 检测到 `.trellis/` 时派你做语义迁移 (纯新仓初始化 main 直接跑 `skein setup`, 不派你)。机械部分交脚本, 你只做语义判断 (规则分层归类 / task 重建 / 残留 hook 剔除)。模式由 main 定 (兼容 / --full)。
