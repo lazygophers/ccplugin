@@ -3,9 +3,9 @@
 经 skein_cli fixture 跑 CLI + ws fixture 造隔离仓。每测独立 tmp_path, 禁碰真实 .skein/。
 
 并发模型 (真实行为): task 级并发上限已取消 (design.md §3: 按 subtask 计数后是冗余的,
-见 s3 concurrency-pools 重构) —— 只剩 subtask 级 `max_active` (.skein/config.yaml):
-单/全局 ready/claim 批 = max_active - running subtask。
-注: 历史上曾用 `max_parallel` 命名, 现已统一为 `max_active`, 勿再引入独立键。
+见 s3 concurrency-pools 重构) —— 只剩 subtask 级 `pools.work` (.skein/config.yaml):
+单/全局 ready/claim 批 = pools.work - running subtask。
+注: 历史上曾用 `max_parallel`/`max_active` 命名, 现已统一为 `pools: {work, gate}` 两键, 勿再引入独立键。
 """
 from __future__ import annotations
 
@@ -320,9 +320,6 @@ def test_zero_regression_all_same_priority(skein_cli: SkeinCli, ws: Path) -> Non
     assert order == ["alpha-beta/s1", "gamma-delta/x"]
 
 
-def test_two_level_task_level_cap_blocks_start(skein_cli: SkeinCli, ws: Path) -> None:
-    """双层: task 级 max_active=2, 第 3 个 task start 被阻 (exit≠0)。"""
-    _set_max_active(ws, 2)
 def test_task_level_cap_removed_all_can_go_active(skein_cli: SkeinCli, ws: Path) -> None:
     """task 级并发上限已取消 (design item #6): N 个 task 可同时 confirm→进行中, 无阻拦。"""
     _set_max_active(ws, 2)  # 仅 subtask 级槽位, 与 task 级并发无关
