@@ -44,9 +44,35 @@ skein subtask show <id> <sid>             # 单 subtask 全字段, 含 --check c
   `--list` 为子串匹配, 文本须与 prd.md 原文一致才能勾中; CLI 报错或未命中 → `[工具失败: prd check 未匹配]`, 该项仍按未勾状态入 acceptance 数组上报。
 - 读不到 → `[工具失败: prd 无 acceptance 章节]`, 全项标 MANUAL。
 
-### 3. 场景自适应内置 check
+### 3. 验证方式读取与执行 (PRD 驱动)
 
-按项目特征探测跑对应内置检查 (多特征并存跑命中的**多类**):
+**🛑 优先读 PRD「验证方式」章节, 逐条执行, 不只跑 pytest**:
+
+```
+skein prd read <id> --type=验证方式       # PRD 定的验证方式 (中英均可: verification)
+```
+
+- 读不到验证方式章节 → 该项 `[工具失败: PRD 无验证方式章节]`, 记 note 但**不阻断**后续 fallback 到场景推测。
+- 读到验证方式 → **逐条执行**:
+  - **CI/CD 验证** → 等待 CI pipeline 通过 (查 `gh run list` / `git status` 或项目 CI 工具状态)
+  - **部署验证** → 验证部署成功 (curl/请求返回 200/健康检查通过)
+  - **本地验证优先** → 优先跑本地命令 (pytest/lint/type-check/build)
+  - **手工验证** → 标 MANUAL 需人审, 禁臆判 pass
+  - **其他自定义** → 按 PRD 描述的命令/步骤执行
+- **每条验证结果格式统一**:
+  ```json
+  {
+    "method": "<验证方式条目原文>",
+    "result": "PASS | FAIL | MANUAL",
+    "evidence": "<file:line / URL / exit code / 原因>",
+    "cmd": "<执行的命令或步骤>"
+  }
+  ```
+- **任一条 FAIL → 上报**, 禁放过。CLI 报错 → `[工具失败: 验证方式执行失败]`。
+
+### 4. 场景自适应内置 check (fallback)
+
+当 PRD 无验证方式章节时, 按项目特征探测跑对应内置检查 (多特征并存跑命中的**多类**):
 
 - **编程类** (有 `pyproject.toml`/`package.json`/`Makefile`) — lint / type-check / test / build + 架构一致性:
   - `pyproject.toml` → `ruff check` / `mypy` / `pytest`
@@ -61,7 +87,7 @@ skein subtask show <id> <sid>             # 单 subtask 全字段, 含 --check c
 
 每条命令/核查记: 命令 + exit code + 结果摘要 + 失败原文 (file:line)。
 
-### 4. 契约逐条核对
+### 5. 契约逐条核对
 
 ```
 skein contract <id>
@@ -71,7 +97,7 @@ skein contract <id>
 - 任一 fail → 上报 (main 派修复), 禁放过。
 - CLI 报错 → `[工具失败: 契约读取失败]`。
 
-### 5. 一致性核查 (调 skein-spec analyze)
+### 6. 一致性核查 (调 skein-spec analyze)
 
 ```
 skein-spec analyze <id> --json
@@ -81,7 +107,7 @@ skein-spec analyze <id> --json
 - `--json` 直接消费, 不再手工 diff 比对; 权威定义见 skein-spec SKILL.md「analyze」章节, 本 agent 不重复实现比对逻辑。
 - CLI 报错 → `[工具失败: analyze 检索失败]`, consistency 标 MANUAL 需人审, 不阻断其余硬门。
 
-### 6. 收工钩子
+### 7. 收工钩子
 
 ```
 python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-stop --agent skein-checker --tid <id>
@@ -90,7 +116,7 @@ python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-stop --agent skein-che
 ## Checkpoints
 
 🛑 **开工/收工钩子必跑** — 与状态切换/回传同级的固定动作。钩子失败只记 note 不阻断本次验证 (用户钩子挂了不该让检查失败)。无 hooks 配置时命令 no-op 立即返回, 不构成负担。
-🛑 **硬门全跑完才回传** — 状态切换 / checkpoint 核对 (task+subtask 验收) / 场景内置 check (按项目自适应命中类: 编程/小说/数据ETL/文档知识/配置基建/设计前端) / 契约 / 一致性 缺一回传 = 漏检, main 会据不全报告误放行。
+🛑 **硬门全跑完才回传** — 状态切换 / checkpoint 核对 (task+subtask 验收) / **验证方式读取与执行 (PRD 驱动逐条执行)** / 场景内置 check (fallback, 按项目自适应命中类: 编程/小说/数据ETL/文档知识/配置基建/设计前端) / 契约 / 一致性 缺一回传 = 漏检, main 会据不全报告误放行。
 🛑 **工具失败必标 `[工具失败: <原因>]`** — Bash 超时/Read 不存在/CLI 报错, 禁把错误输出当结果返回 (main 消费错误摘要当有效数据 → 静默降级)。
 🛑 **只验证不修复, 修复循环归 main** — 无 Write/Edit, 全部写盘经 `skein prd check` CLI 完成 (仅限勾选验收项, 不改内容); 查出代码/文本问题原样上报, 禁就地改、禁自行加 subtask、禁绕过 main 重派 executor。FAIL/冲突 → needs_main 写清方向供 main 走 grill/AskUserQuestion 定夺。
 🛑 **无法机验标 MANUAL** — 验收项如「体验流畅」禁臆判 pass, 标 MANUAL 需人审。
@@ -103,6 +129,14 @@ python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-stop --agent skein-che
 {
 	"task_id": "<id>",
 	"verdict": "PASS | FAIL | 冲突",
+	"verification_methods": [
+		{
+			"method": "<验证方式条目原文>",
+			"result": "PASS | FAIL | MANUAL",
+			"evidence": "<file:line / URL / exit code / 原因>",
+			"cmd": "<执行的命令或步骤>"
+		}
+	],
 	"hard_gates": [
 		{
 			"cmd": "<命令>",
@@ -143,4 +177,6 @@ python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-stop --agent skein-che
 | 命令超时               | 重试 1 次                   | `[工具失败: 超时]` 入 tool_failures                  |
 | 契约 CLI 报错          | 直接读 task.json 兜底取契约 | `[工具失败: 契约读取]` + 已取条数入 contracts        |
 | 验收项无法机验         | 标 MANUAL 需人审            | 禁臆判 pass                                          |
+| 验证方式读取失败       | 记 note 但不阻断            | `[工具失败: PRD 无验证方式章节]`, fallback 到场景推测 |
+| 验证方式执行失败       | 逐条报 FAIL                 | needs_main 标「验证方式未通过」让 main 走回 planning  |
 | 一致性冲突跨多 subtask | 全部逐条报, 禁漏            | needs_main 标「根因跨 subtask」让 main 走回 planning |
