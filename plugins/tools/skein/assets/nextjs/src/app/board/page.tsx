@@ -18,8 +18,8 @@ import { useToast } from "@/components/toast";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { IconApprove, IconFinish, IconDetail, IconTrash, IconClose, IconCopyMini } from "@/components/icons";
 
-const ALL_STATUSES = ["planning", "ready", "research", "active", "check", "finishing", "done"];
-const DEFAULT_ACTIVE = ["planning", "ready", "research", "active", "check", "finishing"];  // 「全选/取消」基准 — 排除 done
+const ALL_STATUSES = ["planning", "research", "active", "check", "finishing", "done"];
+const DEFAULT_ACTIVE = ["planning", "research", "active", "check", "finishing"];  // 「全选/取消」基准 — 排除 done
 const DEFAULT_FILTER = new Set(DEFAULT_ACTIVE);
 
 // ── Sugiyama layout (ported from old board.js) ──
