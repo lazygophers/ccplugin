@@ -254,8 +254,8 @@ class Scheduler:
                 "sid": a.sid, "name": a.name, "desc": a.desc,
                 "estimate": est,  # 预计工时(小时), add 必填; task estimate 须 ≥ Σ 本字段
                 "depends_on": _split(a.deps),
-                "验收": _split_semi(a.check),  # 验收标准 checklist (字符串数组)
-                "验收done": [],  # 已通过验收标准序号(1-based); 完成百分比 = len/len(验收)
+                "acceptance": _split_semi(a.check),  # 验收标准 checklist (字符串数组)
+                "acceptance_done": [],  # 已通过验收标准序号(1-based); 完成百分比 = len/len(acceptance)
                 "status": SS_PENDING,
                 "phase": getattr(a, "phase", None) or SS_PHASE_EXEC,  # exec(默认) | research
                 "skills": _split(a.skills),  # 关联 skills (0-n)
@@ -275,7 +275,7 @@ class Scheduler:
                 return
             for s in subs:
                 deps = ",".join(s.get("depends_on", [])) or "-"
-                chk = "; ".join(s.get("验收", [])) or "-"
+                chk = "; ".join(s.get("acceptance", [])) or "-"
                 sk = ",".join(s.get("skills", [])) or "-"
                 est_v = s.get("estimate")  # est_v 而非 est: 避免与本函数 add 分支的 est(float) 同名混型
                 print(f"{s['sid']}\t{s['status']}\t{_sub_pct(s)}%\t{est_v if est_v else '-'}h\t{s['name']}"
@@ -284,8 +284,8 @@ class Scheduler:
         if a.action == "show":
             t = self.ws.store.load(a.tid)
             s = self.ws._sub(t, a.sid)
-            crit = s.get("验收", [])
-            doneidx = set(s.get("验收done", []))
+            crit = s.get("acceptance", [])
+            doneidx = set(s.get("acceptance_done", []))
             est_v = s.get("estimate")  # est_v 而非 est: 避免与本函数 add 分支的 est(float) 同名混型
             elapsed = None
             if s.get("started") and s.get("finished"):
@@ -335,7 +335,7 @@ class Scheduler:
                 print("就绪 (只读预览, 认领用 `subtask claim`):")
             for s in batch:
                 sk = ",".join(s.get("skills", [])) or "-"
-                chk = "; ".join(s.get("验收", [])) or "-"
+                chk = "; ".join(s.get("acceptance", [])) or "-"
                 print(f"{s['sid']}\t{s['name']}\tskills: {sk}\t验收: {chk}")
             return
         # start / done / fail 均针对单 sid
@@ -356,7 +356,7 @@ class Scheduler:
             if not s.get("started"):
                 s["started"] = now()  # exec 时刻 (首次 start, 重启不覆盖)
         elif a.action == "check":
-            crit = s.get("验收", [])
+            crit = s.get("acceptance", [])
             val = (a.passed or "").strip()
             if val == "all":
                 idx = list(range(1, len(crit) + 1))
@@ -367,7 +367,7 @@ class Scheduler:
                 bad = [i for i in idx if i < 1 or i > len(crit)]
                 if bad:
                     raise SkeinError(f"验收序号越界: {bad} (共 {len(crit)} 条)")
-            s["验收done"] = idx
+            s["acceptance_done"] = idx
             self.ws.store.save(t)  # _save 已渲染子任务看板
             print(f"{a.tid}/{a.sid} 验收 {len(idx)}/{len(crit)} ({_sub_pct(s)}%)")
             return
@@ -375,7 +375,7 @@ class Scheduler:
             self.ws._stage_hooks("subtask.done", "before", self.ws._hook_ctx(a.tid, a.sid, t=t))
             s["status"] = SS_DONE
             s["finished"] = now()  # 完成时刻
-            s["验收done"] = list(range(1, len(s.get("验收", [])) + 1))  # 完成即全过 → 100%
+            s["acceptance_done"] = list(range(1, len(s.get("acceptance", [])) + 1))  # 完成即全过 → 100%
         elif a.action == "fail":
             self.ws._stage_hooks("subtask.fail", "before", self.ws._hook_ctx(a.tid, a.sid, t=t))
             s["status"] = SS_FAILED
