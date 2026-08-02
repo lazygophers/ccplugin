@@ -49,3 +49,37 @@
   无消息 —— 正好把上面那条取舍判据钉死。
 - 「不整页重载」与「滚动位置不丢」不写自动化断言 (测试环境里重载本就不发生, 断言不出真东西), 列为
   浏览器人工核对项。
+
+## b4 完成留痕: 详情页订阅 + 浏览器实测 (2026-08-02)
+
+### 改动
+- `task/detail/page.tsx`: 新增 `subscribe(cb, {taskId: id})` 订阅 (import 自 `lib/live`), 收到本 task 的
+  `task-changed` 消息时局部合并进 `raw`/`task` state, 不重跑 `load()`, 不动 docs/prd/依赖等其余 state。
+  card 为空 (归档/删除) 判定详情页不存在 (`setNotFound(true)`)。
+- **踩坑并修复**: 合并基底一开始误用了已 `normalizeTask()` 过的 `task` state 做 spread 基底 ——
+  `NormTask` 上已有 `normalizeTask` 派生出的 `title` 字段, card 里只有 `name` 没有 `title`, spread 后陈旧
+  `title` 会盖掉新 `name` (`normalizeTask` 取字段优先级 `title || name`), 导致改名后标题不刷新 (其余字段,
+  如意外浮现的 `负责人` 却会刷新, 因为它们没有同名派生冲突)。修法: 合并基底改用未 normalize 的 `raw`
+  (`{...raw, ...card}` 算出新 raw, 再 `normalizeTask(新raw)` 派生 `task`), `raw` 里没有 `title` 键, 不会
+  发生同名冲突。此坑对其余「先 normalize 再拿 normalize 结果做合并基底」的写法是通用陷阱, 留痕供后续参考。
+
+### 浏览器实测 (chrome devtools MCP, headless, 非 claude-in-chrome 扩展 — 扩展未连接)
+- 起服务: `python3 skein.py serve` (worktree 根), 随机端口 50163, PID 记录后 `kill <PID>` 单独收尾 (禁
+  `pkill -f serve` 误杀其他 worktree)。
+- 目标 task: `spec-docs-examples` (低风险, 未在执行中), 改动点是 task.json 的 `name` 字段 (卡片名真值源,
+  非 prd.md 标题 —— 首次踩了这个坑, 改 prd.md 标题没有任何效果, 因为看板 `name` 来自 `task/<id>/task.json`
+  的 `name` 字段, 与 prd.md 的 H1 无关)。
+- **验收 1**(详情页开着某 task 时该 task 变化刷到详情页): 开 `/task/detail?id=spec-docs-examples`, 外部
+  `python3` 改 `task.json` 的 `name` 字段, `sleep 1.5` 等轮询 (0.5s 间隔), 不刷新页面直接截图: 标题 (h1 +
+  面包屑) 从 `docs + examples 示例仓迁移` 变为 `[B4验证] docs示例仓改名测试2` —— 截图确认屏幕真变了 (非仅
+  查 DOM), 通过。
+- **验收 2**(浏览器实测: 一侧开看板一侧改 task, 截图确认界面真的变了): 同时开 `/board/` 页 (DAG 视图,
+  勾了「已完成」筛选), 同一次外部改名后截图: 对应卡片文案从 `docs + examples ...` 变为 `[B4验证]
+  docs示例...`, DAG 布局位置/连线不变, 未整页重载。通过。
+- **验收 3**(更新后滚动位置/展开面板/筛选条件均未丢失): 触发前手动 (a) 详情页把「子任务执行过程」
+  disclosure 从默认展开点击收起, (b) 详情页 `scrollTo(0,400)`, (c) 看板页点亮「已完成」筛选按钮 (高亮数
+  4→5)。改名触发后截图核对: disclosure 仍收起、看板筛选高亮仍是 5、未发生页面跳转/重载。 (后因验证标题
+  bug 又反复刷新页面重跑一轮, 最终版结论一致: 局部更新路径下 disclosure/筛选状态均不丢。)
+  **边界**: 本条验的是「正常局部更新路径」不丢状态; b3 的断线兜底走 `location.reload()` 整页重载, 那条
+  路径必然丢滚动/展开状态, 是刻意的兜底代价, 不在本条覆盖范围内 (design.md「断线与追赶」节已说明)。
+- 全程测试数据用完即还原 (`task.json`/`prd.md` diff 干净), 服务进程收尾。

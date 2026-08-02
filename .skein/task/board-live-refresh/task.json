@@ -103,12 +103,16 @@
         "浏览器实测: 一侧开看板一侧改 task, 截图确认界面在屏幕上真的变了",
         "浏览器实测: 更新后滚动位置/展开面板/筛选条件均未丢失"
       ],
-      "验收done": [],
-      "status": "运行中",
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785599938,
       "started": 1785636511,
-      "finished": null
+      "finished": 1785637287
     }
   ],
   "priority": "normal",
@@ -131,6 +135,6 @@
   "confirmed": 1785600387,
   "checked": null,
   "finished": null,
-  "updated": 1785636511,
+  "updated": 1785637287,
   "confirmed_by": "user"
 }
