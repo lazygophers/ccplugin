@@ -144,7 +144,7 @@ class Scheduler:
             print("全局就绪批 (只读预览, 不改状态) — 决定执行后去掉 --dry-run 认领:")
             for t, s in batch:
                 sk = ",".join(s.get("skills", [])) or "-"
-                chk = "; ".join(s.get("验收", [])) or "-"
+                chk = "; ".join(s.get("acceptance", [])) or "-"
                 print(f"{t['id']}/{s['sid']}\t{s['name']}\tskills: {sk}\t验收: {chk}")
             print("— 认领整批: `skein.py claim exec`  或只占单个: `skein.py subtask start <tid> <sid>`")
             return
@@ -173,7 +173,7 @@ class Scheduler:
         print("已全局认领 (running) — main 逐个派 skein-executor（dispatch 只给 tid + sid + 工作目录）, 完成即 subtask done/fail:")
         for tid, s in claimed:
             sk = ",".join(s.get("skills", [])) or "-"
-            chk = "; ".join(s.get("验收", [])) or "-"
+            chk = "; ".join(s.get("acceptance", [])) or "-"
             print(f"{tid}/{s['sid']}\t{s['name']}\tskills: {sk}\t验收: {chk}")
 
     def _claim_check(self, a: argparse.Namespace) -> None:
