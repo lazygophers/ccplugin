@@ -31,7 +31,7 @@ from types import ModuleType
 from typing import Any
 
 from conftest import SKEIN, make_ws as _init_ws, run_skein as sk  # 单一实现, 见 conftest 顶部说明
-from skeinlib.views import _view_board_data
+from skeinlib.views import _cards_signature, _view_board_data
 from skeinlib.store import TaskStore
 
 _STANDALONE: bool = False  # python3 test_board.py 直跑时置 True (免 _import_pytest skip 崩 __main__)
@@ -115,6 +115,52 @@ def test_prd_and_efficiency() -> None:
             sk(d, "create", "no-name-task", "--name", "", "--desc", "d")
             nn = next(c for c in _view_board_data(sk_obj._snapshot())["cards"] if c["id"] == "no-name-task")
             assert nn["name"] == "no-name-task", "空 name 未回退为 id"
+        finally:
+            os.chdir(cwd0)
+
+
+def test_cards_signature_covers_display_fields() -> None:
+    """b2: 变更签名取舍 —— 改上卡片的字段 (name/desc/deps) 产生签名变化 (会推 task-changed);
+    改不上卡片的字段 (estimate) 签名不变 (不推), 钉死 design.md「变更签名的取舍」判据。"""
+    with tempfile.TemporaryDirectory() as td:
+        d = Path(td)
+        _init_ws(d)
+        sk(d, "create", "sig-base", "--name", "基座", "--desc", "d")
+        sk(d, "create", "sig-demo", "--name", "旧名字", "--desc", "旧描述", "--deps", "sig-base",
+           "--estimate", "3")
+        m = _load()
+        cwd0 = os.getcwd()
+        os.chdir(d)
+        try:
+            sk_obj = m.Skein()
+            tj = d / ".skein/task/sig-demo/task.json"
+
+            def sig() -> tuple[Any, ...]:
+                return _cards_signature(_view_board_data(sk_obj._snapshot()))["sig-demo"]
+
+            base = sig()
+
+            # --- 上卡片字段: name/desc/deps 各改一处 → 签名各变一次 ---
+            data = json.loads(tj.read_text())
+            data["name"] = "新名字"
+            tj.write_text(json.dumps(data))
+            assert sig() != base, "改 name (卡片标签) 未反映到签名"
+
+            data["name"] = "旧名字"
+            data["desc"] = "新描述"
+            tj.write_text(json.dumps(data))
+            assert sig() != base, "改 desc (hover 摘要) 未反映到签名"
+
+            data["desc"] = "旧描述"
+            data["deps"] = []
+            tj.write_text(json.dumps(data))
+            assert sig() != base, "改 deps (DAG 连线) 未反映到签名"
+
+            # --- 不上卡片的字段: estimate (只在选中态详情侧栏展示) → 签名不应变 ---
+            data["deps"] = ["sig-base"]
+            data["estimate"] = 99
+            tj.write_text(json.dumps(data))
+            assert sig() == base, "改 estimate (非卡片展示字段) 不应触发签名变化"
         finally:
             os.chdir(cwd0)
 
