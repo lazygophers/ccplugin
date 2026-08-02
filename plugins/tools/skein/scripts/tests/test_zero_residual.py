@@ -63,7 +63,7 @@ _READY_STATUS_ALLOW = {
 def test_no_live_code_path_treats_ready_as_task_status() -> None:
     """除一次性迁移文件外, 代码层不再有任何位置把 `status == "就绪"` / `status="就绪"` 当作
     活的 task 级状态值消费 (调度/门禁/CLI 分支)。"""
-    pat = re.compile(r'status["\']?\s*[=!]=\s*["\']就绪["\']|["\']status["\']\s*:\s*["\']就绪["\']')
+    pat = re.compile(r'[=!]=\s*["\']就绪["\']|["\']status["\']\s*:\s*["\']就绪["\']')
     hits = []
     for f in _py_files():
         if f in _READY_STATUS_ALLOW:
