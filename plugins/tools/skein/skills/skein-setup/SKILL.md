@@ -25,13 +25,18 @@ skein setup   # 幂等 scaffold + 输出 manifest JSON
 | manifest / 现状 | 用途 | 见 |
 |---|---|---|
 | 无 `.skein/` (`trellis_present:false`) | **① 初始化** — main 直接跑, 纯机械 | 下 §初始化 |
-| 已有 `.skein/` | **② 结构维护** — 用户手动优化 | 下 §结构维护 |
+| 已有 `.skein/`, `spec/` 已是 `rules/product/map/external` 新结构 | **② 结构维护** — 用户手动优化 | 下 §结构维护 |
+| 已有 `.skein/`, 检出 `spec/core/` (旧两层结构残留) | **② 的前置** — 提示迁移新 namespace 结构, 用户拒绝仍可继续②用旧路径 | `../skein-spec/references/migration-v2.md` |
 | 检测到 `.trellis/` (`trellis_present:true`) | ① 的一种场景 — 派 agent 语义迁移 | `references/trellis-migration.md` |
 
 ## ① 初始化 (未初始化仓库)
 
-1. **新仓** → main 直接跑 `skein setup` (纯机械, 不派 agent): 建 `.skein/` + config + gitignore + 本地 `.skein/spec` 库。完成即可用。
-2. **既有 trellis 仓 (`.trellis/`)** → 🛑 检测到 `.trellis/` 时 main 用 `AskUserQuestion` 让用户选迁移模式 (缺省兼容 · STOP, `--full` 整删不可逆): 兼容 (留 `.trellis/` 数据) / `--full` (整删 `.trellis/`); 接线 (hooks/scripts/settings) 两模式都删。据选定跑 `setup` 或 `setup --full`, 语义迁移 (派 skein-setup agent) 详见 `references/trellis-migration.md`。
+1. **新仓** → main 直接跑 `skein setup` (纯机械, 不派 agent): 建 `.skein/` + config + gitignore + 本地 `.skein/spec` 库 (直接落 `rules/product/map/external` 四 namespace 目录, 不经过旧两层结构)。完成即可用。
+2. **既有 trellis 仓 (`.trellis/`)** → 🛑 检测到 `.trellis/` 时 main 用 `AskUserQuestion` 让用户选迁移模式 (缺省兼容 · STOP, `--full` 整删不可逆): 兼容 (留 `.trellis/` 数据) / `--full` (整删 `.trellis/`); 接线 (hooks/scripts/settings) 两模式都删。据选定跑 `setup` 或 `setup --full`, 语义迁移 (派 skein-setup agent) 详见 `references/trellis-migration.md` (目标结构同 §②旧结构检出: 四 namespace)。
+
+## 旧两层结构检出 (`spec/core/` 存在, 独立于 trellis 迁移)
+
+已初始化仓 (`.skein/` 已存在) 若检出 `spec/core/` 目录 (旧 core/recall 两层, 迁移新 namespace×inclusion 结构前的遗留) → 🛑 main 用 `AskUserQuestion` 提示「检测到旧两层结构, 是否迁移新 namespace 结构 (rules/product/map/external)」。用户同意 → 走 [migration-v2.md](../skein-spec/references/migration-v2.md) 两阶段流程 (阶段 1 机械改名无损, 阶段 2 语义分拣 product/map 无硬性完成线)。用户拒绝 → 旧结构继续可用 (`skein-spec` 各命令兼容旧路径读取, 新写入统一走新结构), 不阻塞正常使用, 不强迁。
 
 ## ② 结构维护 (已初始化, 用户手动优化)
 
@@ -40,8 +45,8 @@ skein setup   # 幂等 scaffold + 输出 manifest JSON
 | 想改 | 怎么改 | 收尾 |
 |---|---|---|
 | 并发上限 (max_active) | 直接 Edit `.skein/config.yaml` | 无 |
-| spec 类目重组 (类目 = 层内子目录, 自由取名 git/test/arch/build/style/domain/ops...) | 移动 / 改名 `.skein/spec/<layer>/<category>/*.md` | `skein-spec reindex` |
-| 调加载策略 (always 页过重, 超 `spec.always_budget` (默认 1000 字符) 会告警) | 改规则文件 frontmatter 的 `inclusion:` (always↔auto), **不要搬文件** — 目录 = namespace(内容类型), 与加载策略无关; 或跑 `skein-spec degrade <cat>/<name>` 自动改 | `skein-spec reindex` |
+| spec 类目重组 (类目 = namespace 内子目录, 自由取名 git/test/arch/build/style/domain/ops...) | 移动 / 改名 `.skein/spec/<namespace>/<category>/*.md` (`namespace` 自由目录, 默认 `rules/product/map/external`) | `skein-spec reindex` |
+| 调加载策略 (页过重超 `spec.always_budget` 会告警, 数值见 `.skein/config.yaml`) | 改规则文件 frontmatter 的 `inclusion:` (`always`/`auto`/`fileMatch`/`manual` 四值, 与 namespace 正交), **不要搬文件** — 目录 = namespace(内容类型), 与加载策略无关; 或跑 `skein-spec degrade <cat>/<name>` 自动改 (`always`→`auto`) | `skein-spec reindex` |
 | 新增一条规则 | `skein-spec sediment --namespace <ns> [--inclusion always\|auto] --category <cat> --topic <主题> --title <T>` | 追加为主题文件章节 + 自动 reindex |
 
 - **改 spec 盘后必 `reindex`** — 索引 (三份 index.md) 落后于实际盘面 = 召回失效。
@@ -63,7 +68,8 @@ skein setup   # 幂等 scaffold + 输出 manifest JSON
 | 改 spec 盘面后 | 必跑 `skein-spec reindex` (❌ 不 reindex → 三份 index.md 落后盘面 = 召回失效) |
 | 检测到 `.trellis/` | 先 `AskUserQuestion` 选兼容 / `--full` 再迁移 (❌ 直接 `setup --full` → 未问用户整删可能丢数据) |
 | 已初始化仓重跑 | 正常重跑, config/spec 存在则跳过 (❌ 当报错 → setup 幂等, 重跑安全不覆盖) |
-| 规则归层 | 默认 recall, core 只留命令式硬契约 (❌ 什么都堆进 core 常驻 → 超预算告警, 稀释硬约束) |
+| 规则归类 | 默认 `namespace=rules` + `inclusion=auto`, `inclusion=always` 只留命令式硬契约 (❌ 什么都堆进 always 常驻 → 超预算告警, 稀释硬约束) |
+| 检出 `spec/core/` 旧结构 | `AskUserQuestion` 征同意再走 migration-v2 两阶段迁移 (❌ 不问用户直接批量改路径, 或放任旧结构不提示) |
 
 ## 失败模式 (if-then 三段式: 触发 → 一线修复 → 仍失败兜底)
 
