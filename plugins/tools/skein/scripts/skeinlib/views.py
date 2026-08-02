@@ -27,10 +27,10 @@ class Snapshot:
                  tasks_fn: Callable[[], list[dict[str, Any]]],
                  all_tasks_fn: Callable[[], list[dict[str, Any]]],
                  tasks_dir: Path, archive_dir: Path, spec_root: Path,
-                 max_active: int = 2, gate_active: int = 3) -> None:
+                 pool_work: int = 2, gate_active: int = 3) -> None:
         self.proj = proj
         self.wt_shown = wt_shown
-        self.max_active = max_active  # work 池上限; 前端 ETA 按此折算并行墙钟
+        self.pool_work = pool_work  # work 池上限; 前端 ETA 按此折算并行墙钟
         self.gate_active = gate_active  # gate 池上限 (check+finishing task 并发)
         self._tasks_fn = tasks_fn      # _render_tasks(): 顶层索引 ∪ per-task 明细 (含幽灵骨架)
         self._all_fn = all_tasks_fn    # _all(): per-task 严格真值 (无幽灵骨架)
@@ -261,8 +261,8 @@ def _view_board_data(snap: Snapshot) -> dict[str, Any]:
                       S_CHECK: cnt.get(S_CHECK, 0), S_FINISHING: cnt.get(S_FINISHING, 0),
                       S_RESEARCH: cnt.get(S_RESEARCH, 0), S_PENDING: cnt.get(S_PENDING, 0)},
             "estMeta": est_meta,
-            "maxActive": snap.max_active,  # 兼容旧字段: 前端 ETA 折算并行墙钟用, 语义即 pools.work.limit
-            "pools": {"work": {"limit": snap.max_active, "running": work_running},
+            "maxActive": snap.pool_work,  # 兼容旧字段: 前端 ETA 折算并行墙钟用, 语义即 pools.work.limit
+            "pools": {"work": {"limit": snap.pool_work, "running": work_running},
                       "gate": {"limit": snap.gate_active, "running": gate_running}},
             "combinedPct": combined_pct,
             "hasSub": has_sub,
@@ -323,7 +323,7 @@ def _view_task_detail(snap: Snapshot, tid: str) -> Optional[dict[str, Any]]:
                                     "progress": _task_pct(t)})
     return {"task": data, "docs": docs, "research": research, "archived": archived,
             "subtasks": data.get("subtasks", []), "contracts": data.get("contracts", []),
-            "maxActive": snap.max_active,  # 前端 ETA 折算并行墙钟用
+            "maxActive": snap.pool_work,  # 前端 ETA 折算并行墙钟用
             "prd": _prd_parse(docs.get("prd")), "progress": _task_pct(data),
             "stage": _task_stage(data), "depTasks": dep_tasks, "dependents": dependents,
             "parentTask": parent_task, "childTasks": child_tasks}
@@ -428,7 +428,7 @@ def _view_dashboard(snap: Snapshot) -> dict[str, Any]:
     } for c in data["cards"]]
 
     return {"proj": snap.proj, "taskCount": total,
-            "maxActive": snap.max_active,   # 前端折算并行墙钟用
+            "maxActive": snap.pool_work,   # 前端折算并行墙钟用
             "etaCards": eta_cards,
             "recentActive": recent_active, "recentDone": recent_done,
             "doneRate": round(done / total * 100) if total else 0,

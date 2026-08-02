@@ -113,7 +113,7 @@ class Scheduler:
 
     def claim(self, a: argparse.Namespace) -> None:
         """全局跨 task 认领批, 按 phase 分流:
-        - exec: 所有可调度 task 的 ready subtask 合池竞争 max_active 槽 → 整批标 running (旧 claim 行为)
+        - exec: 所有可调度 task 的 ready subtask 合池竞争 pools.work 槽 → 整批标 running (旧 claim 行为)
         - check: 进行中 task 全 subtask done → 检查中; 检查中 task 全 subtask done 且 check 全绿 → 已完成 (finish)
         `--dry-run`: 只读预览, 不改状态。"""
         phase = getattr(a, "phase", "exec")

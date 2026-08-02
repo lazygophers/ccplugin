@@ -22,7 +22,7 @@ _EXPLICIT_PREFIX = ("/skein-", "/skein:skein-", "skein-")
 
 
 def _run_config(dir_: str) -> tuple[bool, int, bool]:
-    """读 config.yaml 的 worktree.enabled + max_active + auto_commit (旧扁平键 deprecated fallback 仍生效);
+    """读 config.yaml 的 worktree.enabled + pools.work + auto_commit (旧扁平键 deprecated fallback 仍生效);
     默认从 skeinlib.config.CONFIG_DEFAULTS (hook 不硬编码)。"""
     from skeinlib.config import CONFIG_DEFAULTS, _cfg_effective, _yaml_load  # lazy: 仅已初始化热路径需要; 默认真值唯一来源
     try:
