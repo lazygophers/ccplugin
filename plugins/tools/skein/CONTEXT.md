@@ -23,6 +23,6 @@
 
 - **边语义色 (edge kind)** — 连线 `from → to` 表示「to 依赖 from」，颜色由 **from 的可执行性**决定: 绿 `ready` (from 已完成，依赖已满足) / 黄 `blocked` (from 未完成但它自己的依赖全 done，现在就能跑) / 红 `stuck` (from 自己也有未完成依赖，这条链短期解不开)。图外 id 视为已满足。
 
-- **task 四态机 — 待处理 → [confirm 用户门] → 进行中 → [check] → 检查中 → [finish] → 已完成。仅**进行中**占 `max_active` 槽; 归档=保留期后目录迁移, 非状态。
+- **task 状态机** — 待处理 ⇄ 调研中(research) → [confirm 用户门, 吸收原 start 职责] → 进行中 → [check] → 检查中 → [finishing] → 收尾中 → [finish] → 已完成。**进行中**占 `pools.work` 槽, **检查中/收尾中**占 `pools.gate` 槽; 归档=保留期后目录迁移, 非状态。
 
 - **supertask** — `kind=supertask` 的顶层父聚合层, 自身不写代码不占 worktree, 只聚合一组 `parent` 指向它的 child `task` (各 child 自成完整 plan→exec→check→finish 闭环)。与默认 `kind=task` 的区别: 普通 task 独立闭环, supertask 是纯归属容器。`parent`/`kind` 是唯一受控父子字段 (深度限 2 层: supertask→task→subtask, 不可再嵌套), 与 `deps` (执行顺序 DAG) 正交。存量 task 事后改挂用 `skein parent <id> --set <parent-id>` (`--set ""` 摘除), 复用 `create --parent` 同一条链校验 (自引用/父不存在/深度超限拒)。supertask finish 前要求全部 child 已完成, 否则脚本硬拒 (聚合收束门)。

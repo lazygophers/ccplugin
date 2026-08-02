@@ -9,9 +9,9 @@
 `root` / `dir` / `tasks` / `archive_dir` / `git` / `store` / `config()` / `_wt_shown()` /
 `_hooks_cfg()`。少任何一个都是运行时 AttributeError, 不是静态错 —— 动 mixin 前先看这行。
 
-## doctor 是 start 的前置门
-`start` 会先跑一遍 doctor, 有 ✗ 就抛 SkeinError 挡住启动。所以这里的检查项一旦误报, 表现是
-「task 起不来」而不是「体检不过」。加检查项时要想清楚这一层。
+## doctor 是 confirm 的前置门
+`confirm` (吸收原 `start`) 会先跑一遍 doctor, 有 ✗ 就抛 SkeinError 挡住开工。所以这里的检查项
+一旦误报, 表现是「task 开不了工」而不是「体检不过」。加检查项时要想清楚这一层。
 """
 from __future__ import annotations
 
@@ -23,10 +23,11 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional
 
 from skeinlib.hooks.runner import budget_guard
-from skeinlib.config import hooks_schema_errors
+from skeinlib.config import hooks_schema_errors, _yaml_load
 from skeinlib.errors import SkeinError
 from skeinlib.model import (PHASE_OF, PRIORITY_RANK, SLUG_RE, SS_DONE, SS_FAILED, SS_PENDING,
-                            SS_RUNNING, STATUS_ACTIVE, S_ACTIVE, S_CHECK, S_DONE, S_PENDING)
+                            SS_RUNNING, STATUS_INFLIGHT, S_ACTIVE, S_CHECK,
+                            S_DONE, S_FINISHING, S_PENDING, S_RESEARCH)
 from skeinlib.worktree import worktrees_of
 from skeinlib.paths import SCRIPTS_DIR
 
@@ -89,7 +90,7 @@ class DoctorMixin:
             tid = t.get("id", "?")
             if not SLUG_RE.match(str(tid)):
                 errs.append(f"{tid}: id 非 kebab-case slug")
-            if t.get("status") not in {S_PENDING, S_ACTIVE, S_CHECK, S_DONE}:
+            if t.get("status") not in {S_PENDING, S_RESEARCH, S_ACTIVE, S_CHECK, S_FINISHING, S_DONE}:
                 errs.append(f"{tid}: 非法 status {t.get('status')!r}")
             # priority 体检 (task-priority p5): 未设时兜底为默认档合法, 只有「设了但不在四档枚举
             # 内」才判错 (含存量未迁移的 0-10 数字残留) —— 与 validate_priority() 校验口径一致。
@@ -113,18 +114,19 @@ class DoctorMixin:
                     errs.append(f"{tid}: deps 自引用")
                 elif d not in used:
                     errs.append(f"{tid}: deps 指向不存在 task {d!r}")
-            # worktree 硬性 (仅执行中 + worktree 启用): 名在 start 定义并物理创建 (exec 前一步); pending 尚未创建、
-            # done 已销毁, 故只对执行中 (进行中/检查中) 校验。worktree 禁用时 (非 git / config worktree.enabled=false)
-            # 原地执行本就无 worktree, 遵守配置不查存在性。
+            # worktree 硬性 (仅在途 STATUS_INFLIGHT + worktree 启用): 名在 confirm(吸收 start) 定义并
+            # 物理创建 (exec 前一步); pending/调研中 尚未创建 (调研不占 worktree, 见 STATUS_INFLIGHT
+            # 定义)、done 已销毁, 故只对进行中/检查中/收尾中校验。worktree 禁用时 (非 git / config
+            # worktree.enabled=false) 原地执行本就无 worktree, 遵守配置不查存在性。
             wts = worktrees_of(t)
-            if t.get("status") in STATUS_ACTIVE:
+            if t.get("status") in STATUS_INFLIGHT:
                 if wt_on and not wts:
-                    errs.append(f"{tid}: 执行中 (进行中/检查中) 但无 worktree — start 应已创建")
+                    errs.append(f"{tid}: 在途 (进行中/检查中/收尾中) 但无 worktree — confirm 应已创建")
                 for w in wts:
                     if not (self.root / w["wt"]).exists():
                         errs.append(f"{tid}: worktree 路径不存在 (子 git {w['repo']}): {w['wt']}")
                 if not t.get("started"):
-                    warns.append(f"{tid}: active 但 started 未置")
+                    warns.append(f"{tid}: 在途但 started 未置")
             if t.get("status") == S_DONE and not t.get("finished"):
                 warns.append(f"{tid}: 已完成但 finished 时刻未置")
             # subtask 层
@@ -186,11 +188,29 @@ class DoctorMixin:
                 errs.append(f"{iid}: 索引存在但 per-task 真值缺失 (task/{iid}/task.json 不存在) "
                             f"— 真值源丢失, 从含该目录的分支 checkout 恢复, 或删索引行清理")
 
-        # 全局并发上限
-        maxa = self.config()["max_active"]
-        na = len(self.store.active())
-        if na > maxa:
-            errs.append(f"active task 数 {na} 超上限 {maxa}")
+        # 两池超限体检 (design.md §5: work/gate 各自独立上限, 计数口径与 s4 调度器/s6 展示同源 —
+        # work = 全局 running subtask 数, gate = 全量 task 检查中+收尾中数; 各自一行 sum, 不抽
+        # 公共函数, 见 design.md s4 交付记录「两处重复成本低于抽象成本」, doctor 这里同理跟随)。
+        pools = self.config()["pools"]
+        work_running = sum(1 for t in tasks for s in t.get("subtasks", []) if s.get("status") == SS_RUNNING)
+        gate_running = sum(1 for t in tasks if t.get("status") in (S_CHECK, S_FINISHING))
+        if work_running > pools["work"]:
+            errs.append(f"work 池超限: running {work_running} > 上限 {pools['work']}")
+        if gate_running > pools["gate"]:
+            errs.append(f"gate 池超限: running {gate_running} > 上限 {pools['gate']}")
+
+        # 残留 max_active 体检: s2 裁定「直接删, 不留 fallback」— 该键已不在 _CFG_LEGACY 映射内,
+        # 留在 config.yaml 会被静默忽略 (并发上限已改读 pools.work), 用户会误以为它还生效。
+        cfg_file = self.dir / "config.yaml"
+        if cfg_file.exists():
+            try:
+                raw_cfg = _yaml_load(cfg_file.read_text())
+            except ValueError:
+                raw_cfg = {}
+            if "max_active" in raw_cfg:
+                warns.append(
+                    f"config.yaml 残留 max_active={raw_cfg['max_active']!r} — 已废弃且不再生效 "
+                    "(并发上限改读 pools.work), 删掉该键或迁到 `pools: {work: <值>}`")
 
         # agent 钩子配了但从未触发 (design.md §7 已知风险「agent 漏跑钩子」的唯一发现手段):
         # agent 钩子靠 agent 自己在工作流里调 dispatch (agent-start/agent-stop), 不像 harness
@@ -349,12 +369,12 @@ class DoctorMixin:
         ac_txt = ("强制 (worktree 模式必自动 commit, 本配置不生效)" if wt_on
                   else ("启用 (finish 时自动 commit)" if cfg["auto_commit"]
                         else "禁用 (改动需手动 commit)"))
-        lines += ["", "# SKEIN 运行配置", f"- worktree: {wt_txt}", f"- 最大并行 subtask: {cfg['max_active']}", f"- auto_commit: {ac_txt}"]
+        lines += ["", "# SKEIN 运行配置", f"- worktree: {wt_txt}", f"- 最大并行 subtask: {cfg['pools']['work']}", f"- auto_commit: {ac_txt}"]
         prefix_tasks = ", ".join(f"{t['id']}({PHASE_OF.get(t['status'], '')})" for t in active)
         lines += ["", "# 回复前缀 (强制)",
                   "- 每条回复以 `[skein]` 开头",
                   "- 处理某 task 时用 `[skein|<tid，必须是已经注册的>|<阶段>]`",
-                  "- 阶段取值: plan / exec / check / research"]
+                  "- 阶段取值: plan / research / exec / check / finishing"]
         if prefix_tasks:
             lines.append(f"当前 active task: {prefix_tasks}")
         ctx = budget_guard("\n".join(lines), SESSION_CTX_BUDGET_TOKENS, "skein:session-context")

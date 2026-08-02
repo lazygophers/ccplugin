@@ -1,19 +1,20 @@
 """config 命令测试 — skein.py config [set <key> <value> | reset]。
 
 经 conftest 的 skein_cli/ws fixture 跑真实 skein.py CLI 子进程 (tmp_path 隔离)。
-CONFIG_DEFAULTS 9 叶 (max_active/auto_commit/retain_days/worktree.enabled/worktree.root/
+CONFIG_DEFAULTS 10 叶 (pools.work/pools.gate/auto_commit/retain_days/worktree.enabled/worktree.root/
 web.serve/web.board_open/spec.core_budget/spec.always_budget) —— c10 层级化: 带前缀的旧扁平键
 (use_worktree/worktree_root/web_serve/board_open/spec_core_budget/spec_always_budget) 已分组为
-worktree./web./spec. 三组; max_active/auto_commit/retain_days 本无前缀, 保持扁平。
+worktree./web./spec. 三组; auto_commit/retain_days 本无前缀, 保持扁平; pools 无遗留扁平键映射
+(旧 max_active 已删, 不留 fallback, 见 design.md §5)。
 报错用例传 check=False 断 returncode + stderr 文案。
 无参 `config` 展示全部生效配置, 扁平化为点号形式 (每行 path=value); 单键回读经无参输出按行 grep。
 覆盖:
-  1. 无参展示: 9 行 path=val, 含 max_active=2 与 worktree.enabled=True。
+  1. 无参展示: 10 行 path=val, 含 pools.work=2 与 worktree.enabled=True。
   2. set + 回读 (点号路径): set worktree.enabled false → 无参回读含 worktree.enabled=False。
   3. set bool coerce: set auto_commit false → 回读含 auto_commit=False。
   4. set 未知键: 拒 (returncode!=0, stderr 含「未知配置键」)。
-  5. set 类型不合: set max_active abc → 拒 (stderr 含「类型不合」/「值类型」)。
-  6. set 保留其他键: set max_active 5 后 retain_days 仍默认值。
+  5. set 类型不合: set pools.work abc → 拒 (stderr 含「类型不合」/「值类型」)。
+  6. set 保留其他键: set pools.work 5 后 retain_days 仍默认值。
   7. reset: set 非默认值后 reset → 回读为默认值。
   8. get 已删: config get → 拒 (invalid choice)。
   9. --json: 无参 config --json → 合法嵌套 JSON dict, worktree.enabled 为 bool。
@@ -45,11 +46,11 @@ def _readback(skein_cli: SkeinCli, ws: Path, path: str) -> str | None:
 
 # ---------- 1. 无参展示全部 ----------
 def test_show_all(skein_cli: SkeinCli, ws: Path) -> None:
-    """config 无参 → 9 行 path=val (点号扁平化), 含 max_active=2 与 worktree.enabled=True。"""
+    """config 无参 → 10 行 path=val (点号扁平化), 含 pools.work=2 与 worktree.enabled=True。"""
     r = skein_cli(ws, "config")
     lines = [ln for ln in r.stdout.strip().splitlines() if "=" in ln]
-    assert len(lines) == 9, f"应 9 行 path=val, 得 {len(lines)}: {lines}"
-    assert "max_active=2" in lines, f"缺 max_active=2: {lines}"
+    assert len(lines) == 10, f"应 10 行 path=val, 得 {len(lines)}: {lines}"
+    assert "pools.work=2" in lines, f"缺 pools.work=2: {lines}"
     assert "worktree.enabled=True" in lines, f"缺 worktree.enabled=True: {lines}"
 
 
@@ -76,9 +77,9 @@ def test_hooks_skeleton_present_but_remote_denied(skein_cli: SkeinCli, ws: Path)
 
 # ---------- 2. set + 回读 (点号路径) ----------
 def test_set_and_readback(skein_cli: SkeinCli, ws: Path) -> None:
-    """config set max_active 3 成功; 无参回读 → "3"。"""
-    skein_cli(ws, "config", "set", "max_active", "3")
-    assert _readback(skein_cli, ws, "max_active") == "3", "set 后回读错"
+    """config set pools.work 3 成功; 无参回读 → "3"。"""
+    skein_cli(ws, "config", "set", "pools.work", "3")
+    assert _readback(skein_cli, ws, "pools.work") == "3", "set 后回读错"
 
 
 def test_set_nested_path_and_readback(skein_cli: SkeinCli, ws: Path) -> None:
@@ -119,16 +120,16 @@ def test_set_unknown_nested_path_errors(skein_cli: SkeinCli, ws: Path) -> None:
 
 # ---------- 5. set 类型不合 ----------
 def test_set_type_mismatch(skein_cli: SkeinCli, ws: Path) -> None:
-    """config set max_active abc → 拒 (stderr 含类型不合/值类型)。"""
-    r = skein_cli(ws, "config", "set", "max_active", "abc", check=False)
+    """config set pools.work abc → 拒 (stderr 含类型不合/值类型)。"""
+    r = skein_cli(ws, "config", "set", "pools.work", "abc", check=False)
     assert r.returncode != 0, f"类型不合未拒: rc={r.returncode}"
     assert "类型不合" in r.stderr or "值类型" in r.stderr, f"stderr 文案不符: {r.stderr!r}"
 
 
 # ---------- 6. set 保留其他键 ----------
 def test_set_preserves_other_keys(skein_cli: SkeinCli, ws: Path) -> None:
-    """set max_active 5 后, retain_days 仍为默认值 7 (未被抹)。"""
-    skein_cli(ws, "config", "set", "max_active", "5")
+    """set pools.work 5 后, retain_days 仍为默认值 7 (未被抹)。"""
+    skein_cli(ws, "config", "set", "pools.work", "5")
     assert _readback(skein_cli, ws, "retain_days") == "7", "其他键被抹"
 
 
@@ -140,11 +141,11 @@ def test_set_nested_preserves_sibling_leaf(skein_cli: SkeinCli, ws: Path) -> Non
 
 # ---------- 7. reset ----------
 def test_reset(skein_cli: SkeinCli, ws: Path) -> None:
-    """set max_active 9 → config reset → 回读为默认值 2。"""
-    skein_cli(ws, "config", "set", "max_active", "9")
-    assert _readback(skein_cli, ws, "max_active") == "9", "set 未生效"
+    """set pools.work 9 → config reset → 回读为默认值 2。"""
+    skein_cli(ws, "config", "set", "pools.work", "9")
+    assert _readback(skein_cli, ws, "pools.work") == "9", "set 未生效"
     skein_cli(ws, "config", "reset")
-    assert _readback(skein_cli, ws, "max_active") == "2", "reset 未回默认"
+    assert _readback(skein_cli, ws, "pools.work") == "2", "reset 未回默认"
 
 
 # ---------- 8. get 子命令已删 ----------
@@ -160,7 +161,7 @@ def test_show_json(skein_cli: SkeinCli, ws: Path) -> None:
     r = skein_cli(ws, "config", "--json")
     data = json.loads(r.stdout.strip())
     assert isinstance(data["worktree"]["enabled"], bool), f"worktree.enabled 非 bool: {data['worktree']!r}"
-    assert data["max_active"] == 2, f"max_active 非默认 2: {data['max_active']}"
+    assert data["pools"]["work"] == 2, f"pools.work 非默认 2: {data['pools']}"
     assert data["spec"]["always_budget"] == _DEFAULTS["spec"]["always_budget"], \
         f"spec.always_budget 非默认: {data['spec']}"
 
@@ -209,7 +210,10 @@ def test_legacy_flat_key_written_flat_not_migrated(skein_cli: SkeinCli, ws: Path
 
 
 def test_existing_flat_config_yaml_read_without_rewrite_to_nested(skein_cli: SkeinCli, ws: Path) -> None:
-    """既有全扁平 config.yaml (6 个曾带前缀键全在) 只读 → 生效值正确, 且不被自动改写成嵌套 (零破坏)。"""
+    """既有全扁平 config.yaml (6 个曾带前缀键全在, 另含已删的旧 `max_active`) 只读 →
+    6 个曾带前缀键生效值正确且不被自动改写成嵌套 (零破坏); 残留的 `max_active` 静默忽略 (design.md
+    §5: 无 legacy 映射, 不 fallback), `pools` 无嵌套键也无对应扁平键 → 真缺失, 按正常缺键回填规则
+    补上默认值并回写磁盘 (与其他真缺失键回填行为一致, 不是「零破坏」例外)。"""
     cfg = ws / ".skein" / "config.yaml"
     flat = (
         "max_active: 3\n"
@@ -225,7 +229,8 @@ def test_existing_flat_config_yaml_read_without_rewrite_to_nested(skein_cli: Ske
     cfg.write_text(flat)
     data = json.loads(skein_cli(ws, "config", "--json").stdout.strip())
     assert data == {
-        "max_active": 3, "auto_commit": False, "retain_days": 7,
+        "auto_commit": False, "retain_days": 7,
+        "pools": {"work": 2, "gate": 3},  # 真缺失, 回填默认值 (旧 max_active 无 legacy 映射, 不继承)
         "worktree": {"enabled": False, "root": ".worktrees"},
         "web": {"serve": True, "board_open": True},
         "spec": {"core_budget": 1000, "always_budget": 12000},
@@ -233,4 +238,6 @@ def test_existing_flat_config_yaml_read_without_rewrite_to_nested(skein_cli: Ske
         "hooks": {**{s: {"before": [], "after": []} for s in _STAGES},
                   "agent": {"*": {"start": [], "stop": []}}},
     }, f"扁平仓生效值不符: {data}"
-    assert cfg.read_text() == flat, "既有扁平 config.yaml 被自动改写 (应零破坏, 不代劳迁移)"
+    text = cfg.read_text()
+    assert text.startswith(flat), "6 个曾带前缀键的既有扁平段应原样保留 (零破坏, 不代劳迁移)"
+    assert "pools:\n  work: 2\n  gate: 3\n" in text, f"真缺失的 pools 应被回填写盘: {text!r}"

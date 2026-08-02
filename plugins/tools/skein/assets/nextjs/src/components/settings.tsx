@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 
 interface Cfg {
-  max_active: number;
+  pools: { work: number; gate: number };
   auto_commit: boolean;
   retain_days: number;
   worktree?: { enabled?: boolean; root?: string };
@@ -42,15 +42,17 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
     // ponytail: full payload, delete hooks (RCE defense), same as old settings.js
     const payload = JSON.parse(JSON.stringify(cfg)) as Record<string, unknown>;
     delete payload.hooks;
-    payload.max_active = parseInt(String(form.max_active), 10);
+    payload.pools = { work: parseInt(String(form.pools?.work), 10), gate: parseInt(String(form.pools?.gate), 10) };
     payload.auto_commit = !!form.auto_commit;
     payload.retain_days = parseInt(String(form.retain_days), 10);
     payload.worktree = { ...(cfg.worktree || {}), enabled: !!form.worktree?.enabled, root: form.worktree?.root || "" };
     payload.web = { ...(cfg.web || {}), serve: !!form.web?.serve, board_open: !!form.web?.board_open };
     payload.spec = { ...(cfg.spec || {}), always_budget: parseInt(String(form.spec?.always_budget || 0), 10) };
 
-    const ma = payload.max_active as number, rd = payload.retain_days as number, sb = (payload.spec as Record<string, unknown>)?.always_budget as number;
-    if (!Number.isInteger(ma) || ma < 1) return setErr("并发上限须为 ≥1 的整数");
+    const pw = (payload.pools as Cfg["pools"]).work, pg = (payload.pools as Cfg["pools"]).gate;
+    const rd = payload.retain_days as number, sb = (payload.spec as Record<string, unknown>)?.always_budget as number;
+    if (!Number.isInteger(pw) || pw < 1) return setErr("work 池上限须为 ≥1 的整数");
+    if (!Number.isInteger(pg) || pg < 1) return setErr("gate 池上限须为 ≥1 的整数");
     if (!Number.isInteger(rd)) return setErr("保留天数须为整数");
     if (!Number.isInteger(sb) || sb < 1) return setErr("spec 全文预算须为 ≥1 的整数");
     if (!(payload.worktree as Record<string, unknown>)?.root) return setErr("worktree 根目录不能为空");
@@ -74,6 +76,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
   const setW = (k: string, v: unknown) => setForm(f => f ? { ...f, worktree: { ...f.worktree, [k]: v } } : f);
   const setWeb = (k: string, v: unknown) => setForm(f => f ? { ...f, web: { ...f.web, [k]: v } } : f);
   const setSpec = (k: string, v: unknown) => setForm(f => f ? { ...f, spec: { ...f.spec, [k]: v } } : f);
+  const setPools = (k: "work" | "gate", v: number) => setForm(f => f ? { ...f, pools: { ...f.pools, [k]: v } } : f);
 
   const inputCls = "border border-border bg-background rounded-md px-2 py-1 text-sm text-foreground outline-none focus:border-primary";
 
@@ -97,8 +100,11 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
           </p>
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label="并发上限" hint="≥1 整数">
-              <input type="number" step="1" value={String(form.max_active)} onChange={e => set("max_active", +e.target.value)} className={inputCls} />
+            <Field label="work 池上限" hint="≥1 整数, 并发执行 subtask 数">
+              <input type="number" step="1" value={String(form.pools?.work)} onChange={e => setPools("work", +e.target.value)} className={inputCls} />
+            </Field>
+            <Field label="gate 池上限" hint="≥1 整数, 并发检查中+收尾中 task 数">
+              <input type="number" step="1" value={String(form.pools?.gate)} onChange={e => setPools("gate", +e.target.value)} className={inputCls} />
             </Field>
             <Field label="保留天数" hint="0=完成即归档">
               <input type="number" step="1" value={String(form.retain_days)} onChange={e => set("retain_days", +e.target.value)} className={inputCls} />

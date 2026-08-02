@@ -9,24 +9,34 @@ import re
 import time
 
 # task 状态 (中文落盘, 逻辑比较用常量)
-# 生命周期: 待处理(规划中) → [confirm 用户确认门] → 进行中 → [check] → 检查中 → [finish] → 已完成
+# 生命周期: 待处理(规划中) ⇄ 调研中(查资料) → [confirm 用户确认门, 吸收原 start] → 进行中
+#          → [check] → 检查中 → [finishing 占 gate 槽] → 收尾中 → [finish] → 已完成
 S_PENDING = "待处理"
+S_RESEARCH = "调研中"
 S_ACTIVE = "进行中"
 S_CHECK = "检查中"
+S_FINISHING = "收尾中"
 S_DONE = "已完成"
-# 两套语义分离: 占 max_active 槽的仅执行中 (检查中 不占); 已 start 有 worktree/可 finish 的含检查中
-STATUS_ACTIVE = {S_ACTIVE}             # 占并发槽 (_active 门 / current 显示)
-STATUS_INFLIGHT = {S_ACTIVE, S_CHECK}  # 已 start 有 worktree, 可 finish / del 需销 worktree
+# 两套语义分离: STATUS_ACTIVE = 有人正在干活的态 (含调研/收尾, current 显示用);
+# STATUS_INFLIGHT = 已建 worktree 需在 finish/del 时销毁的态 (调研中未建 worktree, 不在此列)
+STATUS_ACTIVE = {S_ACTIVE, S_RESEARCH, S_FINISHING}
+STATUS_INFLIGHT = {S_ACTIVE, S_CHECK, S_FINISHING}
 # list --status 过滤别名 (英文简写 → 中文态); open/未完成 特判非 done
-_STATUS_ALIAS = {"pending": S_PENDING, "active": S_ACTIVE, "check": S_CHECK, "done": S_DONE}
-# 看板排序: 进行中 > 检查中 > 待处理 > 已完成 (同状态内按 id 稳定)
-STATUS_ORDER = {S_ACTIVE: 0, S_CHECK: 1, S_PENDING: 2, S_DONE: 3}
-PHASE_OF = {S_PENDING: "plan", S_ACTIVE: "exec", S_CHECK: "check"}  # task status → 回复前缀阶段
+_STATUS_ALIAS = {"pending": S_PENDING, "research": S_RESEARCH, "active": S_ACTIVE,
+                  "check": S_CHECK, "finishing": S_FINISHING, "done": S_DONE}
+# 看板排序: 进行中 > 检查中 > 收尾中 > 调研中 > 待处理 > 已完成 (同状态内按 id 稳定)
+STATUS_ORDER = {S_ACTIVE: 0, S_CHECK: 1, S_FINISHING: 2, S_RESEARCH: 3, S_PENDING: 4, S_DONE: 5}
+# task status → 回复前缀阶段
+PHASE_OF = {S_PENDING: "plan", S_RESEARCH: "research", S_ACTIVE: "exec",
+            S_CHECK: "check", S_FINISHING: "finishing"}
 # subtask 状态
 SS_PENDING = "待处理"
 SS_RUNNING = "运行中"
 SS_DONE = "已完成"
 SS_FAILED = "失败"
+# subtask phase: exec(改码/写产出) | research(查资料), 缺省 exec (老数据免迁移, 见 PRD)
+SS_PHASE_EXEC = "exec"
+SS_PHASE_RESEARCH = "research"
 # 可读 task id: kebab-case slug, 兼作 git 分支名 + 目录名 (人工传入)
 SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 # 拒短字母+数字编号 (t01/t2/ab12): 不可读, 强制描述性 slug. subtask sid 不受此限.

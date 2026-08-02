@@ -18,17 +18,17 @@ effort: medium
 
 | `$1` | 阶段 | 行为 |
 |---|---|---|
-| **全空 (无 `$1` 无描述)** | **flow · 清空模式** | 不新建 task, 取 `skein list --status open --json`, 按 DAG 可派发序把**全部未完成 task** 逐个走完闭环到 finish (并发受 max_active 限)。列表为空 → 报「无未完成 task」即停 |
+| **全空 (无 `$1` 无描述)** | **flow · 清空模式** | 不新建 task, 取 `skein list --status open --json`, 按 DAG 就绪序把**全部未完成 task** 逐个走完闭环到 finish (并发受 `pools.work` 限)。列表为空 → 报「无未完成 task」即停 |
 | `flow` / **缺省 / 任务描述** | **flow (默认)** | 走完整闭环 plan→exec→check→finish, 阶段间自动续跑不停顿。循环编排详见 [references/flow-loop.md](references/flow-loop.md) |
-| `plan` | **plan** | **仅规划** — 判新旧 + create/并入 + brainstorm + grill 硬门, 推到待处理即停 (停在 `skein confirm` 前) |
-| `exec` | **exec** | 驱动待处理/在途 task 走完整闭环到 finish (confirm→exec→check→finish) |
+| `plan` | **plan** | **仅规划** — 判新旧 + create/并入 + brainstorm + grill 硬门, 推到规划完成 (待处理) 即停 (停在 `skein confirm` 前) |
+| `exec` | **exec** | 驱动待处理/在途 task 走完整闭环到 finish (confirm→exec→check→finishing→finish) |
 | `check` | **check** | exec 产物完成后、finish 前, 派 `Agent(subagent_type="skein:skein-checker")` 跑验证 |
 | `finish` | **check 全绿后** | 派 `Agent(subagent_type="skein:skein-finisher")` 勘察 + skein finish 闭环 + 异步 sediment |
 | `redo <tid> [--plan]` | **redo (断点续跑)** | session 意外结束后, 复位该 task 全部「运行中」subtask (一律当孤儿) 并按当前所处阶段续跑剩余闭环。**必须带 tid**, 不接受全空清空模式; `--plan` 只到规划收敛即停, 不进 exec |
 
-🔒 **
+🔒 **禁把缺省当 plan 用** — 无参 / 只给任务描述 = 用户要**做完**, 不是要个规划稿。plan 收敛后禁停手问「要不要开始执行」, 直接续 exec。只有显式 `/skein-flow plan` 才停在规划完成态 (待处理, confirm 前)。
 
-🔒 **全空 = 清空存量, 禁走 plan** — 无 `$1` 且无任务描述时无新需求可规划, 直接进 exec 消化存量: `待处理` 态先补 plan 收敛再 start, `待处理` 直接 confirm —approved, `进行中/检查中` 续跑当前阶段。禁凭空造 task、禁问用户「要做什么」。
+🔒 **全空 = 清空存量, 禁走 plan** — 无 `$1` 且无任务描述时无新需求可规划, 直接进 exec 消化存量: `待处理` 态先补 plan 收敛再 `confirm`, `调研中` 续跑调研收敛后再 `confirm`, `进行中/检查中/收尾中` 续跑当前阶段。禁凭空造 task、禁问用户「要做什么」。
 
 **载体铁律 + 正向配方** — 「派 agent」=真实 `Agent` tool_use, `subagent_type` 用带前缀全名 `skein:skein-executor` / `skein:skein-checker` / `skein:skein-finisher` (**照抄形式见 [carrier-rules.md 派发调用形式](references/carrier-rules.md#派发调用形式-照抄-禁自由发挥)**) / **禁 teammate·agent-team (禁传 `team_name`, 禁 `SendMessage`)** / main 默认禁写源码 / 有 task 必有 worktree / dispatch 6 字段 / 完成即时回传 / 并发请求禁互相顶掉 等 12 条铁律, 及命中即流程错误的正向配方表, 全量详见 [references/carrier-rules.md](references/carrier-rules.md)。
 
@@ -36,7 +36,7 @@ effort: medium
 
 | 硬门 | 门规 | 违反后果 |
 |---|---|---|
-| 1. task 级 | 未 `skein confirm` (**须先拿到用户批准**) 禁进 exec。**
+| 1. task 级 | 未 `skein confirm` (**须先拿到用户批准**) 禁进 exec。`confirm --approved` 已吸收原 `start` 全部职责 —— 通过即直接建 worktree 进**进行中**, 不必也不再有额外 `start` 步骤 | 流程错误, 回退补 confirm |
 | 2. subtask 级 | 未 `skein claim exec`/`subtask start` 占槽禁派 agent | 已派视为无槽, 需回收补占槽 |
 | 3. check 级 | 未 `skein check` (进行中→检查中) 禁跑验证/宣告结果 | 验证无效, 需重走 check |
 
@@ -50,7 +50,7 @@ effort: medium
 
 ## 触发
 
-`$1=plan` (仅规划, 停在待处理) 或 `$1` 缺省/flow (走完整闭环, plan 收敛后自动续 exec)。
+`$1=plan` (仅规划, 停在规划完成态 (待处理, confirm 前)) 或 `$1` 缺省/flow (走完整闭环, plan 收敛后自动续 exec)。
 
 ## 🛑 grill 硬门 (未过禁进 exec · STOP)
 
@@ -64,9 +64,9 @@ effort: medium
 - [ ] 设计方案已定 (design.md 正文; 或 main 判定豁免)
 - [ ] 预计工时已填 (`skein estimate <id> --set <小时数>`; `skein confirm` 硬校验非空正数)
 
-未勾满 = planning 未收敛, 禁 `skein start` / 禁转 exec。`skein confirm` 亦会逐项硬拒 (subtask/prd/预计工时任一缺失即报错阻断)。
+未勾满 = planning 未收敛, 禁 `skein confirm` / 禁转 exec。`skein confirm` 亦会逐项硬拒 (subtask/prd/预计工时任一缺失即报错阻断)。
 
-### 🛑 人审门: PRD 必须用户确认才进进行中 (每个 task 各审一次)
+### 🛑 人审门: PRD 必须用户确认才能 confirm 开工 (每个 task 各审一次)
 
 结构门 (prd / subtask / 工时) 过完还有一道**人审门** —— 那三道校验的都是结构, main 自己就能
 填满再自己 confirm, 没有这道门「用户确认」名存实亡。**裸 `skein confirm <id>` 会被拒。**
@@ -80,7 +80,7 @@ effort: medium
 
 ```
 1. skein confirm <id> --summary        # 取 PRD 审核摘要 (只打印, 不改状态)
-2. AskUserQuestion                     # 把摘要给用户, 问「批准进进行中 / 要改」
+2. AskUserQuestion                     # 把摘要给用户, 问「批准开工 / 要改」
 3. skein confirm <id> --approved       # ← 仅在用户选了批准之后
 ```
 
@@ -106,7 +106,7 @@ effort: medium
 
 ## 🛑 硬门
 
-见状态先行硬门 1 (未 `skein confirm` 过人审门禁进 exec) + 硬门 2 (未 `claim` 占槽禁派 agent)。待处理态 task 直接 `claim exec` 即可, 首个 subtask 被认领时脚本自动启动该 task。**exec 无验收** — subagent 回传即执行完成, main 只 `done`/`fail`, 验收全归 check。
+见状态先行硬门 1 (未 `skein confirm` 过人审门禁进 exec) + 硬门 2 (未 `claim` 占槽禁派 agent)。`confirm` 已吸收原 `start` 全部职责, 待处理 task 经 `confirm --approved` 后直接进**进行中**且已建好 worktree, 无需额外启动步骤, 随即 `claim exec` 派 agent 即可。**exec 无验收** — subagent 回传即执行完成, main 只 `done`/`fail`, 验收全归 check。
 
 ## ✅ exec 阶段完成判据
 
@@ -115,7 +115,7 @@ effort: medium
 - [ ] 全部 subtask done → `skein claim check` 认领进检查 (不止于 subtask 全 done 就停手)
 - [ ] 回合末已输出任务清单 (有异步在跑时)
 
-**完整 exec 阶段作业手册** (入口路由 / 调度门载体分工 / 调度循环 (`max_active` 并发上限) / 自愈闭环 / tight feedback loop / 两条硬规 / 失败模式) 详见 [references/for-exec.md](references/for-exec.md)。
+**完整 exec 阶段作业手册** (入口路由 / 调度门载体分工 / 调度循环 (`pools.work` 并发上限) / 自愈闭环 / tight feedback loop / 两条硬规 / 失败模式) 详见 [references/for-exec.md](references/for-exec.md)。
 
 ---
 
@@ -179,8 +179,8 @@ subtask 停在「运行中」, 调度器认为满槽, task 卡死。`redo` 一�
 (卡死嫌疑名单) 供使用者从中选一个补 tid; 若候选为空, 明确回「无卡死 task, 无需 redo」。
 
 **`--plan` 子参数**: 复位孤儿的动作照做 (解卡是刚需, 不受 --plan 影响), 但**只把规划推到收敛就停,
-不自动进 exec** —— 分界点是「进 exec 前」。此子参数只对**起点归类为规划中** (待处理) 的 task 有
-效: 续规划到收敛即停, 不再自动 `claim exec`/`start`。对**执行中/检查中/已完成**三种起点, 规划早已在
+不自动进 exec** —— 分界点是「进 exec 前」。此子参数只对**起点归类为规划中** (待处理/调研中) 的 task 有
+效: 续规划到收敛即停, 不再自动 `claim exec`/`confirm`。对**执行中/检查中/收尾中/已完成**起点, 规划早已在
 更早阶段收敛过, `--plan` 没有可拦截的点, 行为与不带 `--plan` 一致 (仍复位/仍续跑) —— 但必须向使用者
 说明「该 task 已过规划阶段, --plan 未生效」, 不能默不作声地照常执行让人误以为被拦下了。
 
@@ -204,16 +204,15 @@ subtask 停在「运行中」, 调度器认为满槽, task 卡死。`redo` 一�
 
 | task 当前 `status` | redo 做什么 |
 |---|---|
-| 待处理 | 无运行中 subtask 可复位 (未激活无 worktree). 待处理→续规划到收敛或 confirm 激活进 exec 调度, 均无需复位动作 |
+| 待处理 | 无运行中 subtask 可复位 (未 confirm 无 worktree). 续规划到收敛, 走人审门 confirm |
+| 调研中 | research subtask 与 exec 同占 `pools.work` 槽, 可能有孤儿 — 走复位步骤后续跑调研到全 done, `skein plan` 收敛回待处理 |
 | 进行中 | 复位全部运行中孤儿 subtask (见下方复位步骤) → 重新调度 → 续跑剩余闭环 |
-| 检查中 | 二次判定验证中/收尾中 (见下) → 验证中重派验证, 收尾中重派收尾, **验证中不退回执行态** |
+| 检查中 | check 不设 subtask, 无运行中 subtask 可复位, 直接重派 `Agent(subagent_type="skein:skein-checker")` |
+| 收尾中 | finish 同样不设 subtask, 无运行中 subtask 可复位, 直接重派 `Agent(subagent_type="skein:skein-finisher")` |
 | 已完成 | 报「已闭环, 无事可做」, 不做任何操作 |
 
-**检查中态二次判定**: `检查中` 落盘态无法直接分辨"还没验完"和"验过 PASS 但没来得及 finish"。跑
-`skein prd show <tid>` 读「验收标准」章节 — 全部条目已 `- [x]` → **收尾中** → 重派
-`Agent(subagent_type="skein:skein-finisher")`；有任一条目仍 `- [ ]` 或读不到明确结论 → **默认验证中**
-→ 重派 `Agent(subagent_type="skein:skein-checker")`。默认偏向验证中: 误判多跑一次幂等验证代价低,
-误判带冲突直接 finish 代价高, 拿不准一律按验证中处理。
+`检查中`/`收尾中` 现为状态机里两个独立落盘态, `skein status <tid>` 直接读得到, 不再需要旧版靠验收
+标准覆盖率二次判定"验证中 vs 收尾中"。
 
 ## 复位步骤 (进行中态专用, 命令固定禁改拼法)
 
@@ -277,7 +276,7 @@ redo <tid> 已复位以下 subtask (运行中 → 失败 → 运行中, 重新�
 | plan | subtask 粒度不清 / depends_on 定不了 | 回 brainstorm 补边界重切 | 仍切不动 → 派 `skein-researcher` 勘察代码再拆 |
 | exec | subtask 报错 (非阻塞) | 自愈: 定点重派 ≤2 轮 / 根因独立插修复 subtask | 修复也失败/超 scope → 停调度回传 (root-cause-protocol) |
 | exec | subagent 返回 `需要:` | main 转达用户/补信息后重派 | 信息仍缺 → 挂起下游未 ready, 禁标 done |
-| exec | `claim exec` 返回空 (满槽/无可派发) | 找 `待处理` 无 subtask 的 task 提前 plan 填空闲 | 全 pending 仍空 → 查 depends_on 死锁, 停手回 plan 改 DAG |
+| exec | `claim exec` 返回空 (满槽/无就绪) | 找 `待处理` 无 subtask 的 task 提前 plan 填空闲 | 全 pending 仍空 → 查 depends_on 死锁, 停手回 plan 改 DAG |
 | check | 孤立失败 (单点 lint/type/test/契约) | 回 planning 重确认定修复方向, 加 1 定点修复 subtask | 反复不过 → 见下 check 第 3 轮路径 |
 | check | 一致性冲突 / 根因跨 subtask | 加多个修复 subtask (一冲突一), 逐条覆盖 | 冲突未全覆盖禁 finish |
 | check | 修复子任务 ≥2 轮仍 FAIL (第 3 轮) | 按 root-cause-protocol 5 维根因复盘 | 带根因回 planning 定向重修; 超 exec (需求/设计缺陷) → 转人工 |

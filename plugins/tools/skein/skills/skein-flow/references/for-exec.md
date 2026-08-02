@@ -4,8 +4,8 @@
 
 ## 触发与前置硬门
 
-- **触发**: SKILL.md 参数路由 `$1=exec` (驱动就绪/在途 task 走完整闭环到 finish) 或 `$1` 缺省/flow (plan 收敛后自动续)。
-- **入口硬门 = task 级状态先行** — 未 `skein confirm` (过人审门) 禁进 exec 调度门。**就绪即可调度**: 不必手工 `skein start`, `claim exec` 认领到就绪 task 的 subtask 时会自动启动它 (建 worktree + 进行中)。详见 [state-before-action.md](state-before-action.md) 硬门 1。
+- **触发**: SKILL.md 参数路由 `$1=exec` (驱动待处理/在途 task 走完整闭环到 finish) 或 `$1` 缺省/flow (plan 收敛后自动续)。
+- **入口硬门 = task 级状态先行** — 未 `skein confirm` (过人审门) 禁进 exec 调度门。`skein confirm` 已吸收原 `start`: 待处理→进行中一步做完 (doctor 体检 + deps 校验 + 建 worktree), 无就绪中间态。详见 [state-before-action.md](state-before-action.md) 硬门 1。
 - **出口硬门 = subtask 全 done** — 全部 subtask done 才自动收束进 check, 半途禁跨阶段推进。
 
 ## 流程步骤
@@ -14,12 +14,12 @@
 
 - **有入参 `<task-id>`** → 把请求**强制作为 SKEIN task 处理** (不 inline, 即使看似简单), 调用即「建 task 同意」。判新旧 → 加载 plan 阶段走完整闭环。
 - **无入参 (空)** → 不建新 task, **驱动 `.skein` 内既有 task 走完整闭环直到 finish** (不止 exec):
-  1. `skein list --status open --json`: 每项 `{id,status,name,desc,deps,worktree,pct,subs:[done,run,pend,fail],ready}` — `status=进行中/检查中` 即在途 active, `status=就绪 && ready=true` 即可启动; `status=待处理` = 规划中 (未过 `skein confirm`, 尚未就绪, 不可 start)。
-  2. 无就绪、无在途 active → 报「无待执行 task」结束。
-  3. 有 → 逐个走完整闭环 (task 级并发受 `max_active` 默认 2 限):
-     - **就绪 task** → `skein start` (占 active 槽 + 建 worktree, 就绪→进行中) → 进 exec 调度门
+  1. `skein list --status open --json`: 每项 `{id,status,name,desc,deps,worktree,pct,subs:[done,run,pend,fail],ready}` — `status=进行中/检查中/收尾中` 即在途 active, `status=待处理 && ready=true` 即可 confirm; `status=待处理 && ready=false` = 前置未清, 暂缓。
+  2. 无可 confirm、无在途 active → 报「无待执行 task」结束。
+  3. 有 → 逐个走完整闭环 (subtask 级并发受 `pools.work` 默认 2 限, task 级无上限):
+     - **待处理 且 ready task** → `skein confirm` (吸收 start: 建 worktree, 待处理→进行中) → 进 exec 调度门
      - **在途 进行中 task** → 直接进 exec 调度门续跑
-     - task **全 subtask done → 自动进 check** → **check 全绿 → finish**
+     - task **全 subtask done → 自动进 check** → **check 全绿 → skein finishing (占 gate 槽) → finish**
   4. **每个 task 必须走到 finish 才算完成**, 不止于 subtask 全 done。
 - **前置**: 无 `.skein/` → 先 `skein init` 再继续。
 
@@ -28,16 +28,16 @@
 > **工作目录 (worktree 态自适应)** — 详见 [worktree-convention.md](worktree-convention.md)。真值一律以 task 的 `worktree` 字段为准 (null=原地)。
 
 - **🛑 subtask 状态先行 (硬前置)** — 详见 [state-before-action.md](state-before-action.md) 硬门 2。claim exec 占槽是派 agent 的硬前置, pending/failed 态 subtask 禁直接派 agent。
-- **claim exec 默认即改态占槽 (整批标 running), 无需额外参数; --dry-run 才只读预览**。**调度** → main 亲跑: `skein claim exec` (**全局跨 task**, 所有**可调度** task 即 进行中 + 就绪(前置已清) 的 ready subtask 合池竞争同一 `max_active` 槽) 算就绪批 + 标 running, main 逐个真实 `Agent` 调用 dispatch。批量推进用 `claim exec`; 单 task 场景用 `skein subtask claim <tid>` 兼容; 预览用 `skein claim --dry-run`。
+- **claim exec 默认即改态占槽 (整批标 running), 无需额外参数; --dry-run 才只读预览**。**调度** → main 亲跑: `skein claim exec` (**全局跨 task**, 所有**进行中** task 的 ready subtask 合池竞争同一 `pools.work` 槽) 算就绪批 + 标 running, main 逐个真实 `Agent` 调用 dispatch。批量推进用 `claim exec`; 单 task 场景用 `skein subtask claim <tid>` 兼容; 预览用 `skein claim --dry-run`。
 - **执行 → 一律 `Agent(subagent_type="skein:skein-executor", description=..., prompt=...)`** (禁 teammate / team, 禁传 `team_name`; 照抄形式见 [carrier-rules.md 派发调用形式](carrier-rules.md#派发调用形式-照抄-禁自由发挥)), prompt 只给 **tid + sid + 工作目录** 三参数 (executor 自读 `subtask show <tid> <sid>` 补全字段+自跑 done/fail, 见 [dag-scheduling.md](dag-scheduling.md) §9)。载体铁律 (单 subagent 禁 team / main 禁写源码 / Recursion Guard 靠工具面强制) 权威定义见 [carrier-rules.md](carrier-rules.md), 不重复。
 
 ### 调度循环 (动态, 完成即派)
 
 调度循环本身 (`while skein claim exec 返回非空: 派 → 等回传 → done/fail → 再 claim exec`) 与并发上限 / 并行判定详见 [dag-scheduling.md](dag-scheduling.md) 第 5.1 节, 禁另抄一份。
 
-- **🟢 派异步优先, 同步 plan 填余力 (禁干等)** — 每回合先 `claim exec` 把就绪 subtask 派出去占满 `max_active` 槽 (异步, 立即回手), **槽位满或 `claim exec` 返回空时才做 plan-ahead** 把 pending task 推到就绪, 保证一有槽位释放即有 ready task 接上。只要还有 pending task 未就绪, plan-ahead 就不停 (前提是槽位已满 / 无可派 subtask), 禁 idle 干等。详见 [dag-scheduling.md](dag-scheduling.md) §6.1。
+- **🟢 派异步优先, 同步 plan 填余力 (禁干等)** — 每回合先 `claim exec` 把就绪 subtask 派出去占满 `pools.work` 槽 (异步, 立即回手), **槽位满或 `claim exec` 返回空时才做 plan-ahead** 把 pending task 推到规划完成 (待处理, 可 confirm), 保证一有槽位释放即有 ready task 接上。只要还有 pending task 未规划完成, plan-ahead 就不停 (前提是槽位已满 / 无可派 subtask), 禁 idle 干等。详见 [dag-scheduling.md](dag-scheduling.md) §6.1。
 - **🔴 exec 无验收 (完成即 done, 验收全归 check)** — executor 回传即执行完成 (自跑 `subtask done/fail`), main **不重复勾验收**。exec 只判「执行有没有跑完/报错」, 不判「验收过没过」。
-- **并行只看 depends_on DAG / 并发上限 2 / 完成即派** — 详见 [dag-scheduling.md](dag-scheduling.md)。任一 done/fail 后即再 `claim exec`, 不等一批跑完。
+- **并行只看 depends_on DAG / pools.work 上限 (默认 2) / 完成即派** — 详见 [dag-scheduling.md](dag-scheduling.md)。任一 done/fail 后即再 `claim exec`, 不等一批跑完。
 - **返回 `需要:` / 阻塞 → 不计 done** — 该 subtask 未完成, 下游保持未 ready; **main 转达用户/补信息后重派** (main 保留项, executor 无 AskUserQuestion)。
 - **🔴 tight feedback loop (先复现再修, main 保留的自愈决策)** — subtask 失败/报错, **禁直接盲改**: 修复 subtask 的 `--desc`/`--check` MUST 含「先复现」指令 (一条就红的复现命令, 修复后转绿); exec dispatch 已简化为三参数, 该要求写进 `subtask add` 文本里, executor 自读时自会看到。无复现 = 修了也无法验证, 是猜。
 - **subtask 失败 → 自愈闭环 (main 保留的自愈决策, 禁失败即停摆)** — 详见 [dag-scheduling.md](dag-scheduling.md) 第 7 节及 [subtask-operations.md](subtask-operations.md) 第 3 节, 禁另抄一份。二选一 (均在本 task scope 内): ① 定点小缺陷 → 原地重派 ≤2 轮; ② 根因是独立可修单元 → 插修复 subtask 定点修根因后重派。兜底: 修复也失败/累计无进展超上限/根因超 scope → 停回传 (走 root-cause-protocol 或转人工)。禁跳过该 subtask 放行下游。

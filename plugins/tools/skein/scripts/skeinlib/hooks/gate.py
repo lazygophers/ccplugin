@@ -22,7 +22,7 @@ BLOCKED = {"task.json", "task.md"}  # 脚本管理文件, 归 guard, 不由 perm
 ENGINE = ("skein.py", "spec.py", "skein ", "skein-spec ")
 GATED = {"Read", "Edit", "Write", "MultiEdit"}
 # 改 .skein 共享状态的子命令 (写 task.json / spec / 看板); 只读命令不在列
-WRITE_CMDS = ("create", "start", "finish", "archive", "subtask",
+WRITE_CMDS = ("create", "confirm", "research", "plan", "check", "finishing", "finish", "archive", "subtask",
               "sediment", "reindex", "init", "contract")
 ENGINE_RE = re.compile(r"(?:skein\.py|spec\.py|\bskein\b|\bskein-spec\b)\s+([a-z-]+)")
 ISSUE_URL = "https://github.com/lazygophers/ccplugin/issues/new"
@@ -178,7 +178,7 @@ def cmd_guard(d: dict[str, Any]) -> int:
         print(
             "禁直接读写 .skein/ 的 task.json / task.md — 均由 skein.py 维护。"
             "取态: `skein.py current` / `list` / `subtask list <id>` / `subtask ready <id>`; "
-            "改态: create/start/finish/archive/subtask。",
+            "改态: create/confirm/finishing/finish/archive/subtask。",
             file=sys.stderr,
         )
         return 2

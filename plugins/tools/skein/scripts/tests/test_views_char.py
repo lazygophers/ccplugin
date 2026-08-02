@@ -5,7 +5,9 @@
 
 手法: 手工造固定时间戳 fixture (.skein/task/<id>/task.json 直写, 非走 CLI) + 冻结 now() → 输出全确定, 与 golden JSON 逐字段比对。
   - golden 缺失时首跑自举写盘并 skip (bootstrap); 存在则严格比对。
-  - 覆盖五态 (待处理/进行中/检查中/已完成) + 就绪但依赖阻塞 + supertask/child + 幽灵骨架 (仅顶层索引) + 归档 task + spec 文件。
+  - 覆盖状态机全量态 (待处理/调研中/进行中/检查中/收尾中/已完成) + 待处理但依赖阻塞 + supertask/child
+    + 幽灵骨架 (仅顶层索引) + 归档 task + spec 文件。「就绪」态已随 confirm 吸收 start 删除
+    (design.md §1), gamma/zeta 两个 fixture 相应改落 待处理 (s3 收口, 见 design.md 末节)。
 
 重构后重跑: 输出应与 golden 完全一致 (视图为纯投影, 仅内部结构变)。
 """
@@ -113,10 +115,10 @@ def _seed(d: Path) -> None:
     ))
     # 待处理 (依赖空 → 可 confirm)
     _write_task(tdir, _task_json(
-        id="gamma", name="Gamma 任务", status="待处理", desc="待 confirm",
+        id="gamma", name="Gamma 任务", status="待处理", desc="待启动",
         subtasks=[_sub("g1", "待处理")],
     ))
-    # 待处理但依赖 alpha (未 done) → 阻塞
+    # 待处理但依赖 alpha (未 done) → confirm 会被 deps 门拦
     _write_task(tdir, _task_json(
         id="zeta", name="Zeta 任务", status="待处理", desc="被阻塞", deps=["alpha"],
         subtasks=[_sub("z1", "待处理")],

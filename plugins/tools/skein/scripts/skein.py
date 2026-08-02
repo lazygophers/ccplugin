@@ -7,7 +7,7 @@
 
 工作区布局 (git 根下):
   .skein/.gitignore               init 生成: 忽略 task.md (从 task.json 无损重建); 另补 worktree.root 到根 .gitignore
-  .skein/config.yaml              设置 (max_active / auto_commit / worktree.root / hooks)
+  .skein/config.yaml              设置 (pools.work/gate / auto_commit / worktree.root / hooks)
   .skein/task.json                {tasks:[{id,status,deps,worktree,parent,kind}]}  顶层状态汇总 — 脚本维护, AI 禁读写
   .skein/task.md                  顶层看板 (task.json 渲染, git 忽略) — 脚本维护, AI 禁读写
   .skein/task/<id>/task.json      单 task 记录 + subtask DAG — 脚本维护, AI 禁读写

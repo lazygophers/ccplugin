@@ -209,7 +209,7 @@
     "sensitive": true,
     "required": true
   },
-  "max_active": {
+  "pool_limit": {
     "type": "number", "title": "...", "description": "...",
     "default": 2, "min": 1, "max": 8
   },
@@ -248,7 +248,7 @@ key 必须是合法标识符。
 
 ### 范式
 
-skein `max_active` 是真实范例：数值带 `min`/`max`，`description` 写 "推荐 2（与 subtask 级并发一致）。覆盖 .skein/config.yaml"。
+skein `pools.work` 并发上限是真实范例：数值带 `min`/`max`，`description` 写 "推荐 2（与 subtask 级并发一致）。覆盖 .skein/config.yaml"。
 
 ## dependencies（插件依赖）
 

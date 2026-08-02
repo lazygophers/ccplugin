@@ -4,7 +4,7 @@
 
 ## 触发与前置硬门
 
-- **触发**: SKILL.md 参数路由 `$1=plan` (仅规划, 停在就绪) 或 `$1` 缺省/flow (走完整闭环, plan 收敛后自动续 exec)。
+- **触发**: SKILL.md 参数路由 `$1=plan` (仅规划, 停在规划完成态 (待处理, confirm 前)) 或 `$1` 缺省/flow (走完整闭环, plan 收敛后自动续 exec)。
 - **入口无硬门** — plan 是闭环首阶段, 无前置状态门。
 - **出口硬门 = grill (STOP)** — 未过 grill 禁进 exec, 见「流程步骤」第 4 步。
 
@@ -54,7 +54,7 @@ brainstorm 前先定**是否需要派 skein-researcher**, 按信号分档自动�
 
 ### 主流程
 
-**🛑 plan/confirm 不受 deps 完成状态阻塞 (仅 `skein start` 受限)** — `skein create`/`deps`/`confirm` 均不查前置完成状态, 仅 `skein start` 才查 (脚本硬拒未完成 deps)。pending task 不论前置是否 plan/finish, 照常走完整流程推到就绪, 等 `skein start` 时才等前置。
+**🛑 plan 不受 deps 完成状态阻塞 (仅 `skein confirm` 受限)** — `skein create`/`deps` 均不查前置完成状态, 仅 `skein confirm` 才查 (脚本硬拒未完成 deps, 待处理→进行中一步做完 deps 校验)。pending task 不论前置是否 plan/finish, 照常走完整流程推到规划完成, 等 `skein confirm` 时才等前置。
 
 1. **拆诉求 → 逐条判新旧 + 定粒度** — **用户一句话 ≠ 一个 task**。先把请求拆成互不依赖的独立诉求, 再逐条判去向。
    - **诉求数 ≠ task 数**: 一条请求可能对应 1 个 task / N 个 task / 部分并入已有 task + 剩余拆 N 个新 task。**禁默认一句话开一个 task** — 把不相关诉求塞进同一 task 会让 prd 边界糊、验收无法逐条核对、一处卡住全批停。
@@ -86,8 +86,8 @@ brainstorm 前先定**是否需要派 skein-researcher**, 按信号分档自动�
      - **拆完对表复杂度天花板 (硬)** — subtask 落完立刻对天花板表逐项核。
 6. **异步派 skein-dedup (fire-and-forget, 不阻塞 exec)** — 所有 task planning 完成 (batch 末 / plan 收尾, exec 触发前), main **异步派 `skein-dedup`** subagent 全量扫一次未完成 task: ① 查重归并 (自动 `subtask add` 迁入主 task + `skein del` 次 task); ② 给散落的相关 task 补执行序织成完整 DAG (自动 `skein deps`, **仅对现无 deps 的 pending task 补前置, 已有 deps 的不碰**)。**异步不阻塞**: dedup 后台跑, exec 照常推进。
 7. **出口 (按路由分流)** — 完成判据勾满后:
-   - **flow (缺省 / 任务描述)** → `skein confirm` 转就绪, **直接续 exec 阶段**, 禁停手问用户要不要执行。
-   - **显式 `plan`** → 停在 `skein start` 前, 提示用户 `/skein-flow exec <task>` 激活。
+   - **flow (缺省 / 任务描述)** → `skein confirm` 直接转进行中 (吸收 start), **直接续 exec 阶段**, 禁停手问用户要不要执行。
+   - **显式 `plan`** → 停在 `skein confirm` 前, 提示用户 `/skein-flow exec <task>` 激活。
 
 ## 完成判据
 
@@ -97,7 +97,7 @@ brainstorm 前先定**是否需要派 skein-researcher**, 按信号分档自动�
 - [ ] 设计方案已定 (design.md 正文; 或 main 判定豁免)
 - [ ] 预计工时已填 (`skein estimate <id> --set <小时数>`; `skein confirm` 硬校验非空正数, 规则详见 [estimate-gate.md](estimate-gate.md))
 
-未勾满 = planning 未收敛, 禁 `skein start` / 禁转 exec。`skein confirm` 亦会逐项硬拒 (subtask/prd/预计工时任一缺失即报错阻断)。
+未勾满 = planning 未收敛, 禁 `skein confirm` / 禁转 exec。`skein confirm` 会逐项硬拒 (subtask/prd/预计工时任一缺失即报错阻断)。
 
 ## 失败模式
 

@@ -152,11 +152,11 @@ def test_config_panel_shaped_payload_persists() -> None:
             app, _ = _built(m, sk)
             with _client(app) as c:
                 got = c.get("/__skein__/config").json()
-                assert got["max_active"] == 2  # 前置: 种子仓走默认值 (CONFIG_DEFAULTS)
+                assert got["pools"]["work"] == 2  # 前置: 种子仓走默认值 (CONFIG_DEFAULTS)
 
                 payload = json.loads(json.dumps(got))  # 面板 onSave 的深拷贝
                 del payload["hooks"]                    # 🔒 面板硬约束: 提交负载禁带 hooks
-                payload["max_active"] = 5
+                payload["pools"] = {**payload["pools"], "work": 5}
                 payload["auto_commit"] = False
                 payload["retain_days"] = -1
                 payload["worktree"] = {**payload["worktree"], "enabled": False, "root": "custom-wt"}
@@ -168,7 +168,7 @@ def test_config_panel_shaped_payload_persists() -> None:
                 r = c.post("/__skein__/config", json=payload)
                 assert r.status_code == 200
                 saved = r.json()["config"]
-                assert saved["max_active"] == 5
+                assert saved["pools"]["work"] == 5
                 assert saved["auto_commit"] is False
                 assert saved["retain_days"] == -1
                 assert saved["worktree"] == {"enabled": False, "root": "custom-wt"}
@@ -178,13 +178,13 @@ def test_config_panel_shaped_payload_persists() -> None:
 
                 # 真落盘: 直接读 config.yaml, 不止是响应体
                 on_disk = _yaml_load((sk.dir / "config.yaml").read_text())
-                assert on_disk["max_active"] == 5
+                assert on_disk["pools"]["work"] == 5
                 assert on_disk["worktree"]["root"] == "custom-wt"
                 assert on_disk["spec"]["core_budget"] == 400
 
                 # 重开面板 = 再 GET 一次, 必须看到刚保存的新值 (不是缓存的旧响应)
                 reread = c.get("/__skein__/config").json()
-                assert reread["max_active"] == 5
+                assert reread["pools"]["work"] == 5
                 assert reread["worktree"]["root"] == "custom-wt"
         finally:
             os.chdir(cwd0)

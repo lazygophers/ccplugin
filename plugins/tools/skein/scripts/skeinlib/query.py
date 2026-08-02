@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 from skeinlib.dag import _sub_pct, _task_pct
 from skeinlib.errors import SkeinError
 from skeinlib.model import (PRIORITY_DEFAULT, SS_DONE, SS_FAILED, SS_PENDING, SS_RUNNING, S_ACTIVE, S_CHECK,
-                            S_DONE, S_PENDING, _STATUS_ALIAS)
+                            S_DONE, S_FINISHING, S_PENDING, S_RESEARCH, _STATUS_ALIAS)
 from skeinlib.views import _fmt_ts
 from skeinlib.worktree import worktrees_of
 
@@ -40,26 +40,15 @@ class Query:
                 print(f"{t['id']}\t{t['status']}\t{t['name']}")
 
     def ready(self, a: argparse.Namespace) -> None:
-        # task 级可启动批 (脚本算, 非 AI 判): 进行中态 (已过 confirm 门直接激活) + 前置全 done + 有空闲 active 槽位。
-        # 与 subtask ready 同构, 但只读预览 (start 才占槽); task 无写集字段, 故不算写集冲突。
-        slots = self.ws.config()["max_active"] - len(self.ws.store.active())
-        if slots <= 0:
-            print(f"无空闲 active 槽 (上限 {self.ws.config()['max_active']} 已满) — 先 finish 一个再 start")
-            return
-        picked: list[dict[str, Any]] = []
-        for t in self.ws.store.all_tasks():
-            if t["status"] != S_PENDING:
-                continue
-            undone = [d for d in t["deps"] if self.ws._dep_unfinished(d)]
-            if undone:
-                continue
-            picked.append(t)
-            if len(picked) >= slots:
-                break
+        # task 级可 confirm 批 (脚本算, 非 AI 判): 待处理态 + 前置全 done。task 级并发上限已取消
+        # (design.md §3: 按 subtask 计数后是冗余的), 故此处不再折算槽位, 只看 deps 是否清。
+        picked = [t for t in self.ws.store.all_tasks()
+                 if t["status"] == S_PENDING
+                 and not any(self.ws._dep_unfinished(d) for d in t["deps"])]
         if not picked:
-            print("无可启动 task (进行中态均有未完成前置, 或无进行中态 — 待处理须先 skein confirm)")
+            print("无可 confirm task (待处理态均有未完成前置, 或无待处理态)")
             return
-        print("可启动 task (只读预览, 激活用 `skein.py start <id>`):")
+        print("可 confirm task (只读预览, 激活用 `skein.py confirm <id> --approved`):")
         for t in picked:
             deps = ",".join(t["deps"]) or "-"
             print(f"{t['id']}\t{t['name']}\t前置: {deps}")
@@ -108,7 +97,7 @@ class Query:
 
     def _brief(self, t: dict[str, Any]) -> dict[str, Any]:
         # 压缩任务摘要 (exec 取未完成任务用, 省 token): 仅调度所需字段, 不含全量 subtask 明细。
-        # subs 数组固定序 [已完成, 运行中, 待处理, 失败]; ready = 该 task 前置全 done (已 confirm 直接激活)。
+        # subs 数组固定序 [已完成, 运行中, 待处理, 失败]; ready = 该 待处理 task 前置全 done (可 confirm)。
         subs = t.get("subtasks", [])
         cnt = [0, 0, 0, 0]
         idx: dict[str, int] = {SS_DONE: 0, SS_RUNNING: 1, SS_PENDING: 2, SS_FAILED: 3}
@@ -136,11 +125,12 @@ class Query:
                 tasks = [t for t in tasks if t["status"] != S_DONE]
             else:
                 wanted = {_STATUS_ALIAS.get(x.strip(), x.strip()) for x in st.split(",")}
-                bad = wanted - {S_PENDING, S_ACTIVE, S_CHECK, S_DONE}
+                bad = wanted - {S_PENDING, S_RESEARCH, S_ACTIVE, S_CHECK, S_FINISHING, S_DONE}
                 if bad:
                     raise SkeinError(
                         f"未知 status: {', '.join(sorted(bad))} — 可选 "
-                        f"待处理/进行中/检查中/已完成 (或 pending/active/check/done), open=全部未完成")
+                        f"待处理/调研中/进行中/检查中/收尾中/已完成 "
+                        f"(或 pending/research/active/check/finishing/done), open=全部未完成")
                 tasks = [t for t in tasks if t["status"] in wanted]
         if getattr(a, "json", False):
             print(json.dumps([self._brief(t) for t in tasks],

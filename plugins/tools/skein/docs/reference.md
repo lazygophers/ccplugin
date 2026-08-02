@@ -9,20 +9,23 @@
 | `skein init` | 初始化 .skein/ 工作区 |
 | `skein doctor` | 健康检查 |
 | `skein create <id> [--name] [--desc] [--deps] [--kind] [--parent] [--repos]` | 创建 task |
-| `skein confirm <id> [--summary\|--approved]` | 用户确认门 (待处理→进行中, 含建 worktree + 并发校验).裸跑非 TTY 会拒。`--summary` 只打印 PRD 审核摘要不改状态; `--approved` = 已在 `AskUserQuestion` 拿到用户批准 |
-| `skein start <id>` | = confirm 别名 (待处理→进行中)。通常不必手工跑 — `claim exec` 认领待处理 task 的 subtask 时自动激活 |
-| `skein finish <id>` | 收束: commit→merge→销 worktree→标记完成 (归档=保留期后自动, 非 finish 步) |
+| `skein research <id>` | 待处理→调研中: 需已登记 ≥1 `--phase research` subtask |
+| `skein plan <id>` | 调研中→待处理: 需调研 subtask 全 done, 收敛回规划 |
+| `skein confirm <id> [--summary\|--approved]` | 用户确认门, **吸收原 `start`**: 待处理→进行中, 一步做完 doctor 体检 + deps 校验 + 建 worktree。裸跑非 TTY 会拒。`--summary` 只打印 PRD 审核摘要不改状态; `--approved` = 已在 `AskUserQuestion` 拿到用户批准 |
+| `skein check <id>` | 进行中→检查中 |
+| `skein finishing <id>` | 检查中→收尾中: 占 gate 池槽位 (`pools.gate`) |
+| `skein finish <id>` | 收尾中→已完成: commit→merge→销 worktree (归档=保留期后自动, 非 finish 步) |
 | `skein archive <id>` | 归档 (丢弃 worktree, 不合并) |
 | `skein rename <id> <new-id>` | 重命名 |
 | `skein del <id> [<sid>]` `[--dry-run]` | 软删: 整 task 移入 `.skein/trash/`; 给 sid 则只删该 subtask。`--dry-run` 只打印将删什么 |
 | `skein current` | 活跃 task |
-| `skein list [--status <态>] [--json]` | 列 task。`--status` 取 待处理/进行中/检查中/已完成 (或 pending/active/check/done), `open`=全部未完成, 逗号多选 |
+| `skein list [--status <态>] [--json]` | 列 task。`--status` 取 待处理/调研中/进行中/检查中/收尾中/已完成 (或 pending/research/active/check/finishing/done), `open`=全部未完成, 逗号多选 |
 | `skein board` | 文本看板 |
 | `skein view` | 可视化看板 |
 | `skein deps <id> [--set <id1,id2>]` | 无 `--set` 只查; 带则设前置 (仅 pending 且无既有 deps 可写, 脚本查自引用/不存在/成环) |
 | `skein parent <id> [--set <parent-id>]` | 无 `--set` 只查当前 parent; `--set <id>` 挂到 supertask/task 下 (拒自引用/父不存在/深度超 2 层/自身已有 child); `--set ""` 摘除。任意状态可改, 与 `deps` 正交, 不碰 deps |
-| `skein subtask add/claim/ready/start/check/show/done/fail/list <task-id> [sid]` | subtask 管理 (add 登记 / claim 整批认领就绪 / ready 只读预览 / start 单个占槽 / check 勾验收 / show 查全字段 / done 完成 / fail 失败 / list 列态) |
-| `skein claim exec\|check` | 全局跨 task 认领批; phase 必填: `exec`=认领 ready subtask → running (待处理 task 首认领时自动激活) / `check`=认领 全done 的 进行中 task → 检查中 + 检查通过的 → 已完成 |
+| `skein subtask add/claim/ready/start/check/show/done/fail/list <task-id> [sid]` | subtask 管理 (add 登记, `--phase exec\|research` 默认 exec / claim 整批认领就绪 / ready 只读预览 / start 单个占槽 / check 勾验收 / show 查全字段 / done 完成 / fail 失败 / list 列态) |
+| `skein claim exec\|check` | 全局跨 task 认领批; phase 必填: `exec`=认领 ready subtask → running / `check`=认领 全done 的 进行中 task → 检查中 + 检查通过的 → 收尾中 (占 gate 槽, 待 finisher 跑 finish) |
 | `skein contract list/add <task-id>` | 契约管理 |
 | `skein prd read/write/add/check/uncheck <task-id>` | PRD 章节管理 |
 
@@ -59,7 +62,8 @@
 
 | 键 | 默认 | 说明 |
 | --- | --- | --- |
-| max_active | 2 | 同时活跃 task 数 (subtask 并发复用同一键) |
+| pools.work | 2 | exec+research 共享的全局 running subtask 槽 |
+| pools.gate | 3 | 检查中+收尾中共享的全局 task 槽 |
 | retain_days | 7 | 归档保留天数 |
 | auto_commit | true | 原地模式 finish 时自动 git commit; worktree 模式恒强制 commit, 本键不参与判定 |
 | worktree_root | `.worktrees` | worktree 路径 |
@@ -88,7 +92,7 @@
 | 1 | 单功能开发 | 加手机号登录 | brainstorm 选型, grill, contract |
 | 2 | 破坏式重构 | User→UserDTO | 全站 grep 一次改, worktree 可丢弃 |
 | 3 | 调研选型 | 选队列方案 | researcher 只读, 结论→sediment |
-| 4 | 多 task 并行 | 导出+样式 | `--deps` 声明, max_active=2 |
+| 4 | 多 task 并行 | 导出+样式 | `--deps` 声明, pools.work=2 |
 | 5 | 根因 bug | 金额差 1 分 | 共享函数修, 补回归测试 |
 | 6 | 模糊请求 | — | 自动按信号路由 |
 | 7 | 中途出问题 | exec/check 卡住 | 自愈→根因复盘|archive |
@@ -151,6 +155,7 @@ skein parent <child-existing> --set ""     # 摘除
 | 状态 | 含义 | 占 active 槽 |
 | --- | --- | --- |
 | 待处理 | 规划中 (未过 confirm 用户门) | 否 |
+| 就绪 | 规划完成待启动 (已过 confirm, 可 start) | 否 |
 | 进行中 | 正在 worktree 中执行 | 是 |
 | 检查中 | subtask 全完成, 质量门验证 | 否 |
 | 已完成 | 检查通过, 等待归档 | 否 |

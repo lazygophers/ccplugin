@@ -122,10 +122,9 @@ class Workspace:
             raw = filled
         cfg = _cfg_effective(raw)
         # 用户在插件启用时确认的 userConfig 优先于 config.yaml (经 CLAUDE_PLUGIN_OPTION_* 传入)
-        for k in ("max_active",):
-            v = os.environ.get(f"CLAUDE_PLUGIN_OPTION_{k.upper()}")
-            if v and v.strip().isdigit():
-                cfg[k] = int(v)
+        v = os.environ.get("CLAUDE_PLUGIN_OPTION_MAX_ACTIVE")
+        if v and v.strip().isdigit():
+            cfg["pools"]["work"] = int(v)
         return cfg
 
     def _hooks_cfg(self) -> dict[str, Any]:

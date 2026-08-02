@@ -244,7 +244,7 @@
         "prd": [],
         "priority": "normal",
         "sdone": 1,
-        "spct": 98,
+        "spct": 95,
         "stage": "check",
         "started": 1999993000,
         "status": "检查中",
@@ -336,7 +336,7 @@
         "created": 1999990000,
         "depNames": [],
         "deps": [],
-        "desc": "待 confirm",
+        "desc": "待启动",
         "elapsed": 0,
         "estimate": null,
         "finished": null,
@@ -523,10 +523,22 @@
       "estMeta": "已耗 8h59m",
       "hasSub": true,
       "maxActive": 2,
+      "pools": {
+        "gate": {
+          "limit": 3,
+          "running": 1
+        },
+        "work": {
+          "limit": 2,
+          "running": 1
+        }
+      },
       "stats": {
         "已完成": 1,
         "待处理": 4,
+        "收尾中": 0,
         "检查中": 1,
+        "调研中": 0,
         "进行中": 2
       },
       "taskCount": 8
@@ -560,7 +572,7 @@
         "elapsed": 117,
         "id": "beta",
         "name": "Beta 任务",
-        "pct": 98,
+        "pct": 95,
         "sdone": 1,
         "status": "检查中",
         "stotal": 1
@@ -631,7 +643,7 @@
         "deps": [],
         "estimate": null,
         "id": "beta",
-        "spct": 98,
+        "spct": 95,
         "status": "检查中",
         "subtable": [
           {
@@ -740,20 +752,7 @@
         "tid": "alpha"
       }
     ],
-    "readyTasks": [
-      {
-        "deps": [],
-        "desc": "规划中",
-        "id": "delta",
-        "name": "Delta 任务"
-      },
-      {
-        "deps": [],
-        "desc": "待 confirm",
-        "id": "gamma",
-        "name": "Gamma 任务"
-      }
-    ],
+    "readyTasks": [],
     "recentActive": [
       {
         "created": 1999990000,
@@ -793,7 +792,7 @@
       },
       {
         "created": 1999990000,
-        "desc": "待 confirm",
+        "desc": "待启动",
         "finished": null,
         "id": "gamma",
         "name": "Gamma 任务",
@@ -841,7 +840,9 @@
     "statusDist": {
       "已完成": 1,
       "待处理": 4,
+      "收尾中": 0,
       "检查中": 1,
+      "调研中": 0,
       "进行中": 2
     },
     "subStatusDist": {
@@ -858,7 +859,7 @@
         "subCount": 1
       },
       {
-        "desc": "待 confirm",
+        "desc": "待启动",
         "id": "gamma",
         "name": "Gamma 任务",
         "subCount": 1
@@ -895,7 +896,7 @@
         "elapsed": 117,
         "id": "beta",
         "name": "Beta 任务",
-        "pct": 98,
+        "pct": 95,
         "sdone": 1,
         "status": "检查中",
         "stotal": 1
@@ -999,7 +1000,7 @@
         "id": "beta",
         "name": "Beta 任务",
         "priority": null,
-        "spct": 98,
+        "spct": 95,
         "started": 1999993000,
         "status": "检查中"
       },
@@ -1015,7 +1016,7 @@
       },
       {
         "created": 1999990000,
-        "desc": "待 confirm",
+        "desc": "待启动",
         "id": "gamma",
         "name": "Gamma 任务",
         "priority": null,
@@ -1056,24 +1057,7 @@
         "tid": "alpha"
       }
     ],
-    "readyTasks": [
-      {
-        "deps": [],
-        "desc": "规划中",
-        "id": "delta",
-        "name": "Delta 任务",
-        "spct": 0,
-        "status": "待处理"
-      },
-      {
-        "deps": [],
-        "desc": "待 confirm",
-        "id": "gamma",
-        "name": "Gamma 任务",
-        "spct": 0,
-        "status": "待处理"
-      }
-    ],
+    "readyTasks": [],
     "runningSubs": [
       {
         "elapsed": 50,

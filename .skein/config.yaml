@@ -30,3 +30,6 @@ subtask.fail:
 agent: 
 "*": 
 stop: []
+pools:
+  work: 2
+  gate: 3

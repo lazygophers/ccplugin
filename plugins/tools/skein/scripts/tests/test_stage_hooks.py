@@ -1,9 +1,10 @@
-"""9 个阶段命令 (create/confirm/start/check/finish/archive/subtask.start/done/fail) 的
+"""8 个阶段命令 (create/confirm/check/finish/archive/subtask.start/done/fail) 的
 before/after 钩子接线测试 (config-hooks/c4) — 唯一接缝 = CLI 命令边界 (design.md 测试接缝段):
 经真实 skein.py 子进程跑, 断言退出码 + 钩子副作用 (标记文件), 不断言内部实现。
+start 已随 confirm 吸收删除, 不再单独有 start 阶段 (见 test_confirm_before_and_after_fire)。
 
 覆盖 4 条验收 + c8 补的 recursion guard CLI 级用例:
-1. 9 个阶段的 before/after 均能触发
+1. 8 个阶段的 before/after 均能触发
 2. check.before 失败使 check 不发生 (阻断语义 — 本特性核心价值)
 3. 非法阶段名报错且列出全部合法值
 4. 未配钩子的阶段行为零变化 (既有 test_statemachine.py 全绿即证明, 本文件只加 hooks 场景)
@@ -33,7 +34,7 @@ def _mk(skein_cli: SkeinCli, ws: Path, tid: str = "feat-x", *,
         _fill_prd(ws, tid)
     if ready:
         skein_cli(ws, "estimate", tid, "--set", "1")
-        skein_cli(ws, "confirm", tid, "--approved")
+        skein_cli(ws, "confirm", tid)
     return tid
 
 
@@ -56,7 +57,7 @@ def _find(ws: Path, name: str) -> bool:
     return any(ws.rglob(name))
 
 
-# ---------- 验收1: 9 个阶段的 before/after 均能触发 ----------
+# ---------- 验收1: 8 个阶段的 before/after 均能触发 ----------
 
 def test_create_before_and_after_fire(skein_cli: SkeinCli, ws: Path) -> None:
     _append_hooks_yaml(ws, """
@@ -84,33 +85,14 @@ hooks:
     after:
       - command: "touch confirm-after.marker"
 """)
-    r = skein_cli(ws, "confirm", tid, "--approved")
+    r = skein_cli(ws, "confirm", tid)
     assert r.returncode == 0
     assert _find(ws, "confirm-before.marker")
     assert _find(ws, "confirm-after.marker")
 
 
-def test_start_before_and_after_fire(skein_cli: SkeinCli, ws: Path) -> None:
-    tid = _mk(skein_cli, ws, "feat-c", sub=True)
-    skein_cli(ws, "estimate", tid, "--set", "1")
-    _append_hooks_yaml(ws, """
-hooks:
-  start:
-    before:
-      - command: "touch start-before.marker"
-    after:
-      - command: "touch start-after.marker"
-""")
-    r = skein_cli(ws, "start", tid)
-    assert r.returncode == 0, r.stderr
-    assert _find(ws, "start-before.marker")
-    assert _find(ws, "start-after.marker")
-
-
 def test_check_before_and_after_fire(skein_cli: SkeinCli, ws: Path) -> None:
-    tid = _mk(skein_cli, ws, "feat-d", sub=True)
-    skein_cli(ws, "estimate", tid, "--set", "1")
-    skein_cli(ws, "start", tid)
+    tid = _mk(skein_cli, ws, "feat-d", ready=True)  # ready=True 已 confirm 推进 进行中 (吸收 start)
     _append_hooks_yaml(ws, """
 hooks:
   check:
@@ -126,9 +108,9 @@ hooks:
 
 
 def test_finish_before_and_after_fire(skein_cli: SkeinCli, ws: Path) -> None:
-    tid = _mk(skein_cli, ws, "feat-e", sub=True)
-    skein_cli(ws, "estimate", tid, "--set", "1")
-    skein_cli(ws, "start", tid)
+    tid = _mk(skein_cli, ws, "feat-e", ready=True)
+    skein_cli(ws, "check", tid)
+    skein_cli(ws, "finishing", tid)  # 检查中→收尾中 (占 gate 槽), finish 只接受收尾中态入参
     _append_hooks_yaml(ws, """
 hooks:
   finish:
@@ -144,9 +126,9 @@ hooks:
 
 
 def test_archive_before_and_after_fire(skein_cli: SkeinCli, ws: Path) -> None:
-    tid = _mk(skein_cli, ws, "feat-f", sub=True)
-    skein_cli(ws, "estimate", tid, "--set", "1")
-    skein_cli(ws, "start", tid)
+    tid = _mk(skein_cli, ws, "feat-f", ready=True)
+    skein_cli(ws, "check", tid)
+    skein_cli(ws, "finishing", tid)
     skein_cli(ws, "finish", tid)
     _append_hooks_yaml(ws, """
 hooks:
@@ -163,9 +145,7 @@ hooks:
 
 
 def test_subtask_start_before_and_after_fire(skein_cli: SkeinCli, ws: Path) -> None:
-    tid = _mk(skein_cli, ws, "feat-g", sub=True)
-    skein_cli(ws, "estimate", tid, "--set", "1")
-    skein_cli(ws, "start", tid)
+    tid = _mk(skein_cli, ws, "feat-g", ready=True)
     _append_hooks_yaml(ws, """
 hooks:
   subtask.start:
@@ -181,9 +161,7 @@ hooks:
 
 
 def test_subtask_done_before_and_after_fire(skein_cli: SkeinCli, ws: Path) -> None:
-    tid = _mk(skein_cli, ws, "feat-h", sub=True)
-    skein_cli(ws, "estimate", tid, "--set", "1")
-    skein_cli(ws, "start", tid)
+    tid = _mk(skein_cli, ws, "feat-h", ready=True)
     skein_cli(ws, "subtask", "start", tid, SID)
     _append_hooks_yaml(ws, """
 hooks:
@@ -200,9 +178,7 @@ hooks:
 
 
 def test_subtask_fail_before_and_after_fire(skein_cli: SkeinCli, ws: Path) -> None:
-    tid = _mk(skein_cli, ws, "feat-i", sub=True)
-    skein_cli(ws, "estimate", tid, "--set", "1")
-    skein_cli(ws, "start", tid)
+    tid = _mk(skein_cli, ws, "feat-i", ready=True)
     skein_cli(ws, "subtask", "start", tid, SID)
     _append_hooks_yaml(ws, """
 hooks:
@@ -222,9 +198,7 @@ hooks:
 
 def test_check_before_failure_blocks_stage(skein_cli: SkeinCli, ws: Path) -> None:
     """check.before 跑 lint 失败(exit 1) → check 不发生: 命令非零退出 + 状态仍是 active。"""
-    tid = _mk(skein_cli, ws, "feat-j", sub=True)
-    skein_cli(ws, "estimate", tid, "--set", "1")
-    skein_cli(ws, "start", tid)
+    tid = _mk(skein_cli, ws, "feat-j", ready=True)
     _append_hooks_yaml(ws, """
 hooks:
   check:
@@ -240,9 +214,7 @@ hooks:
 
 def test_before_continue_on_error_overrides_default_block(skein_cli: SkeinCli, ws: Path) -> None:
     """continue_on_error=true 显式覆盖 before 缺省阻断 — 阶段照常发生。"""
-    tid = _mk(skein_cli, ws, "feat-k", sub=True)
-    skein_cli(ws, "estimate", tid, "--set", "1")
-    skein_cli(ws, "start", tid)
+    tid = _mk(skein_cli, ws, "feat-k", ready=True)
     _append_hooks_yaml(ws, """
 hooks:
   check:
@@ -256,9 +228,7 @@ hooks:
 
 def test_after_failure_only_warns_stage_result_unchanged(skein_cli: SkeinCli, ws: Path) -> None:
     """after 失败只 warning, 阶段结果不变 — check 仍成功切换态, 命令仍 exit 0。"""
-    tid = _mk(skein_cli, ws, "feat-l", sub=True)
-    skein_cli(ws, "estimate", tid, "--set", "1")
-    skein_cli(ws, "start", tid)
+    tid = _mk(skein_cli, ws, "feat-l", ready=True)
     _append_hooks_yaml(ws, """
 hooks:
   check:

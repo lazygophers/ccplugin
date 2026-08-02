@@ -6,7 +6,7 @@ skein-flow 全流程的载体层强制规则 (最高优先级)。每条都不可
 - **main 默认禁写源码** — 改源码 exec 一律派 `skein-executor`, 跑 check 派 `skein-checker`。仅特别情况例外 (上下文密集决策 / 用户显式要求), 且必在 task worktree 内。文件数口径见 [scope-boundary.md](scope-boundary.md), 禁另立「≤N 文件」标准。
 - **载体一律具名 subagent, 禁 teammate / agent-team** — exec / check / finish 三阶段全部经 `Agent` 工具派具名 subagent, main 独家调度、结果只回传 main。**精确调用形式见下方「派发调用形式」段, 照抄即可**。禁 `SendMessage` 派 teammate, 禁 team 共享任务列表自认领, 禁 `Agent` 带 `team_name`。理由: 调度真值是 `.skein/task.json` 的 DAG + claim exec 占槽, team 的共享任务列表与之双写冲突; 且 subtask 顺序敏感 + 共享同一 worktree, 命中官方「sequential tasks / same-file edits 用 subagent 更有效」判据。环境层若开着 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`, 本条仍是硬约束 — 开关是可用性, 不是许可。
 - **exec / check 分工, main 作调度器** — exec: 一律派 `skein-executor` 各执行 1 个 (并发上限 2 / 完成即派 / 共享 task worktree); 递归护栏 (Recursion Guard) 靠 `skein-executor` 工具面剔除 Agent/Task 强制, 非靠 dispatch prompt 文字禁止。check: 派 `skein-checker` (工具受限, 无 Write/Edit/Agent/Task 的具名 agent)。调度算法详见 `skein-flow exec 阶段` skill, check 详见 `skein-flow check 阶段`。
-- **有 task 必有 worktree** — task 在其 worktree 内执行 (`skein start` 自动建), 主工作区零改动; 默认 1 task 1 worktree。finish 后自动销。**多子 git**: 改动跨多个子 git (并列独立 repo 或 submodule) 时, planning 阶段用 `skein create <id> --name "X" --desc "Y" --repos <rel路径,逗号分隔>` 声明目标子 git (root 用 `.`); `start` 为每个声明的子 git 各建 1 worktree+分支, `finish` 各自 commit→merge→销。声明留空 = 单根/原地模式 (原行为)。子 git 集合由 planning 声明, 不靠脚本猜。
+- **有 task 必有 worktree** — task 在其 worktree 内执行 (`skein confirm` 自动建, 吸收原 start 职责), 主工作区零改动; 默认 1 task 1 worktree。finish 后自动销。**多子 git**: 改动跨多个子 git (并列独立 repo 或 submodule) 时, planning 阶段用 `skein create <id> --name "X" --desc "Y" --repos <rel路径,逗号分隔>` 声明目标子 git (root 用 `.`); `confirm` 为每个声明的子 git 各建 1 worktree+分支, `finish` 各自 commit→merge→销。声明留空 = 单根/原地模式 (原行为)。子 git 集合由 planning 声明, 不靠脚本猜。
 - **`skein` 由 main 同步跑** — create/start/finish/archive 是任务记录管理, main 直接跑, 不派 agent、不算实质工作。
 - **看板自动刷** — task.json 每次变更 (create/start/subtask/finish) 脚本自动渲染 task.md/task.html, 无需手动跑命令; AI 禁直接编辑 (guard hook 硬阻)。
 - **用户交互决策 main 亲做** — `AskUserQuestion` (判新旧不准 / 产物评审 / scope 澄清) subagent 不能与用户对话; subagent 缺信息在返回标 `需要: <问题>` 由 main 转达。
@@ -42,7 +42,7 @@ Agent(
 - ❌ 裸名 `subagent_type="skein-executor"` (缺 `skein:` 前缀)
 - ❌ 只在文字里写「派 skein-executor 执行」而无真实 tool_use — 宣称 ≠ 调用
 
-**并发**: 同一回复里发多个 `Agent` 调用 = 并行执行; 受 `max_active` (缺省 2) 限, 由 main 按 `skein claim exec` 结果决定这一批派几个, 不靠工具侧限流。
+**并发**: 同一回复里发多个 `Agent` 调用 = 并行执行; 受 `pools.work` (缺省 2) 限, 由 main 按 `skein claim exec` 结果决定这一批派几个, 不靠工具侧限流。
 
 ## ✅ 正向配方 (命中反面=流程错误)
 

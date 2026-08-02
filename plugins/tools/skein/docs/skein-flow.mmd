@@ -10,7 +10,7 @@ graph TB
   subgraph Config["配置核心 (config.yaml — 严格遵守)"]
     CFG["use_worktree / max_active<br/>auto_commit / retain_days<br/>spec_core_budget"]
     CFG -.->|use_worktree| CFG_WT[worktree 隔离 or 原地]
-    CFG -.->|max_active| CFG_CC["task + subtask 共用并发上限<br/>(task: 仅 进行中 占槽, 检查中 不占;<br/>subtask: claim exec 标 running 占同一池)"]
+    CFG -.->|max_active| CFG_CC["task + subtask 共用并发上限<br/>(task: 仅 进行中 占槽, 就绪/检查中 不占;<br/>subtask: claim exec 标 running 占同一池)"]
     CFG -.->|auto_commit| CFG_AC[仅原地模式生效<br/>true: finish 自动 commit<br/>false: 改动留工作区交用户<br/>worktree 模式: 恒强制 commit]
     CFG -.->|retain_days| CFG_RD[归档保留期 默认7天]
     CFG -.->|spec.always_budget| CFG_CB["always 页全文软预算字符数<br/>默认 1000, 超 → maintain 降级"]
@@ -62,24 +62,23 @@ graph TB
     DAG --> DEDUP["异步派 skein-dedup<br/>fire-and-forget, 不阻塞 exec<br/>查重归并 + 补执行序织 DAG"]
   end
 
-  subgraph Confirm["规划确认 → 激活 (plan 与 exec 连接)"]
+  subgraph Confirm["规划确认 → 就绪 → 激活 (plan 与 exec 连接)"]
     PRD --> USER_CONFIRM{AskUserQuestion<br/>用户评审确认<br/>smart zone 内一气呵成}
     DESIGN --> USER_CONFIRM
     DAG --> USER_CONFIRM
     CONTRACT_OUT --> USER_CONFIRM
-    USER_CONFIRM -->|通过| CONFIRM_CMD["skein confirm &lt;id&gt;<br/>用户确认门: 验 prd + ≥1 subtask<br/>待处理→进行中"]
-    CONFIRM_CMD --> READY_STATE["进行中<br/>(confirm 直接激活, 占槽+建worktree)"]
-    READY_STATE -->|deps 已清 + 有空槽| START["skein start &lt;id&gt;<br/>占 active 槽 + 建 worktree<br/>(已激活)"]
+    USER_CONFIRM -->|通过| CONFIRM_CMD["skein confirm &lt;id&gt;<br/>用户确认门 (吸收 start): 验 prd + ≥1 subtask<br/>+ doctor 体检 + deps 校验 + 建 worktree<br/>待处理→进行中"]
+    CONFIRM_CMD --> START[进行中]
     USER_CONFIRM -->|驳回| P6
   end
 
   subgraph Exec["Phase 2: 执行 — skein-exec (无验收, 执行完成即 done)"]
     START --> CLAIM{"skein claim exec<br/>(全局跨 task 竞争 max_active 槽)<br/>整批标 running + 占槽"}
-    CLAIM -->|可派发 subtask| DISPATCH["dispatch 6 字段 prompt<br/>目标/已知/工作目录/输出/验收/失败<br/>+ Recursion Guard + 读后写硬门"]
+    CLAIM -->|就绪 subtask| DISPATCH["dispatch 6 字段 prompt<br/>目标/已知/工作目录/输出/验收/失败<br/>+ Recursion Guard + 读后写硬门"]
     CLAIM -->|无 subtask, 仅本 task| NO_SUB[main 派 1 个 skein-executor<br/>单 task 无 subtask 兜底]
-    CLAIM -->|"空: 满槽 running==max_active / 无可派发 subtask<br/>→ 查有无未规划 task"| PLAN_AHEAD["提前 plan 未规划 task (subtask 优先, plan 次级填充)<br/>skein-plan --continue 推到 planning-complete 待处理<br/>(仍待 confirm→进行中, 不自动过用户门; start 受 max_active 限)"]
+    CLAIM -->|"空: 满槽 running==max_active / 无就绪 subtask<br/>→ 查有无未规划 task"| PLAN_AHEAD["提前 plan 未规划 task (subtask 优先, plan 次级填充)<br/>skein-plan --continue 推到 planning-complete 待处理<br/>(仍待 confirm→就绪, 不自动过用户门; start 受 max_active 限)"]
     PLAN_AHEAD -->|回探: subtask 可派即放下 plan| CLAIM
-    PLAN_AHEAD -.->|规划完成→待处理, 入 confirm→进行中 管线| USER_CONFIRM
+    PLAN_AHEAD -.->|规划完成→待处理, 入 confirm→就绪→start 管线| USER_CONFIRM
     DISPATCH --> EXECUTE[执行: 派合适 agent<br/>无则 skein-executor, 共享 task worktree]
     NO_SUB --> EXECUTE
     EXECUTE -->|完成| DONE["skein subtask done<br/>(执行完成即完成, 不勾验收)"]
@@ -89,7 +88,7 @@ graph TB
     EXECUTE -.->|暴露超 task 边界问题| NEW_TASK["自主拆新 task<br/>skein-plan/create 登记<br/>--deps 连边 or 并行<br/>当前 task 按原 scope 收束"]
     NEW_TASK --> CLAIM
     DONE --> NEXT{本 task subtask 全 done?}
-    NEXT -->|否, 还有可派发| CLAIM
+    NEXT -->|否, 还有就绪| CLAIM
     NEXT -->|是| TASK_CHECK["skein check &lt;id&gt;<br/>该 task → 检查中 (独立阶段, 不占 max_active 槽)"]
     TASK_CHECK --> MORE_TASK{还有未完成 task?}
     MORE_TASK -->|是, 继续调度| CLAIM
@@ -179,7 +178,6 @@ graph TB
   style PRD fill:#f9f,color:#000
   style USER_CONFIRM fill:#ffeb3b,color:#000
   style CONFIRM_CMD fill:#ffb74d,color:#000
-  style READY_STATE fill:#b3e5fc,color:#000
   style CKPT fill:#8bc34a,color:#000
   style CONTRACT_CHK fill:#8bc34a,color:#000
   style CONSIST_CHK fill:#8bc34a,color:#000

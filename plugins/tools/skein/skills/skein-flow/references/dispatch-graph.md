@@ -1,6 +1,6 @@
 # 子任务拆分 + 调度 DAG (落 task.json)
 
-exec 阶段的 DAG = task.json `subtasks[].depends_on`, **由 `skein subtask add` 登记, 不写 mermaid 图文件**。planning 未登记任何 subtask → `skein start` 硬拒。
+exec 阶段的 DAG = task.json `subtasks[].depends_on`, **由 `skein subtask add` 登记, 不写 mermaid 图文件**。planning 未登记任何 subtask → `skein confirm` 硬拒。
 
 拆分时先用一张表理清 subtask + 依赖 + 验收 + skills (exec 一律派 `skein-executor`, 不再按 subtask 挑 agent; skills 0-n 逗号分隔), 再逐行落盘:
 

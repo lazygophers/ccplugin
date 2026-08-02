@@ -2,8 +2,11 @@
 
 const STATUS_MAP: Record<string, string> = {
   '待处理': 'planning', '规划中': 'planning', 'pending': 'planning', 'plan': 'planning',
+  '就绪': 'ready', '待执行': 'ready', 'ready': 'ready',
+  '调研中': 'research', 'research': 'research',
   '进行中': 'active', '运行中': 'active', '执行中': 'active', 'active': 'active', 'exec': 'active',
   '检查中': 'check', '验收中': 'check', '待验收': 'check', 'check': 'check',
+  '收尾中': 'finishing', 'finishing': 'finishing',
   '已完成': 'done', '完成': 'done', 'done': 'done',
   '失败': 'failed', '已失败': 'failed', 'failed': 'failed',
   '已取消': 'cancelled',

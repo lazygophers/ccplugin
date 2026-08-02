@@ -242,8 +242,9 @@ class TaskStore:
                               render_board(self.render_tasks(), self._wt_shown_fn()))
 
     def _write_task_board(self, t: dict[str, Any]) -> None:
+        pools = self._cfg()["pools"]
         self.write_if_changed(self.tasks / t["id"] / "task.md",
-                              render_task_board(t, self._cfg()["max_active"]))
+                              render_task_board(t, pools["work"], pools["gate"]))
 
     def _write_vision(self, st: dict[str, Any]) -> None:
         children = [c for c in self.render_tasks() if c.get("parent") == st["id"]]

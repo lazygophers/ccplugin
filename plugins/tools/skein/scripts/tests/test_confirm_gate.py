@@ -1,4 +1,4 @@
-"""`skein confirm` 的人审门 — PRD 必须经用户过目才能进进行中。
+"""`skein confirm` 的人审门 — PRD 必须经用户过目才能进就绪。
 
 **本文件刻意不走 conftest 的 `run_skein`**: 那个 helper 为了让 28 处调用点能跑, 会自动补上
 `--approved`。用它来测这道门等于用绕过器测绕过器 —— 门哪天退化成 no-op, 那 28 个调用点一个
@@ -120,7 +120,7 @@ def test_approved_passes_and_records_channel(ws: Path) -> None:
     r = _raw(ws, "confirm", tid, "--approved")
     assert r.returncode == 0, f"--approved 仍被拒: {r.stderr}"
     t = _task(ws, tid)
-    assert t["status"] == "进行中"
+    assert t["status"] == "进行中"  # confirm 吸收 start: 待处理→进行中, 无就绪中间态
     assert t.get("confirmed_by") == "user", f"审核渠道记错: {t.get('confirmed_by')}"
     assert t.get("confirmed"), "未记录审核时间"
 
