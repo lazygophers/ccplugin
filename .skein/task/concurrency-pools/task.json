@@ -168,12 +168,15 @@
         "全仓无 就绪态/skein start/max_active 表述残留",
         "文案经 claude -p 三次一致性验证"
       ],
-      "验收done": [],
-      "status": "运行中",
+      "验收done": [
+        1,
+        2
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785512383,
       "started": 1785637392,
-      "finished": null
+      "finished": 1785639897
     },
     {
       "sid": "s8",
@@ -191,10 +194,10 @@
         "ruff F/E9 清白"
       ],
       "验收done": [],
-      "status": "待处理",
+      "status": "运行中",
       "skills": [],
       "created": 1785512383,
-      "started": null,
+      "started": 1785640130,
       "finished": null
     },
     {
@@ -225,7 +228,7 @@
       "finished": 1785637443
     }
   ],
-  "priority": "normal",
+  "priority": "urgent",
   "estimate": 13.0,
   "repos": [],
   "worktree": ".worktrees/skein-concurrency-pools",
@@ -245,6 +248,6 @@
   "confirmed": 1785515070,
   "checked": null,
   "finished": null,
-  "updated": 1785637443,
+  "updated": 1785640130,
   "confirmed_by": "user"
 }

@@ -1,0 +1,260 @@
+"use client";
+
+import { Sidebar, Topbar } from "@/components/layout";
+import { ST_META } from "@/components/status";
+
+// task 状态流转: planning → ready → active → check → done
+// subtask 状态: pending → running → done/failed
+const TASK_FLOW = [
+  {
+    status: "planning",
+    title: "规划中",
+    desc: "需求拆分、brainstorm、grill 硬门。产出 prd.md + design.md + subtask DAG。",
+    enter: "skein create",
+    exit: "skein confirm (人审门通过)",
+    agent: "main (同步前台)",
+  },
+  {
+    status: "ready",
+    title: "待执行",
+    desc: "规划收敛、用户已确认。等待 max_active 槽位释放后被自动调度。",
+    enter: "skein confirm",
+    exit: "skein claim exec (首个 subtask 被认领时自动 start)",
+    agent: "—",
+  },
+  {
+    status: "active",
+    title: "执行中",
+    desc: "subtask 按 DAG 依赖并行调度。每个 ready subtask 派 skein-executor 执行, done 即派下一个。",
+    enter: "skein claim exec",
+    exit: "全部 subtask done → skein claim check",
+    agent: "skein:skein-executor (异步并行)",
+  },
+  {
+    status: "check",
+    title: "待验收",
+    desc: "skein-checker 逐条核对验收标准、契约、一致性。通过则放行 finish, FAIL 回 planning 重确认方向后加修复 subtask。",
+    enter: "skein check",
+    exit: "全绿 → finish; FAIL → 回 planning 重确认",
+    agent: "skein:skein-checker",
+  },
+  {
+    status: "done",
+    title: "已完成",
+    desc: "finisher 勘察改动 + merge 回主干 + 销 worktree。保留期内看板可见, 超期自动归档。",
+    enter: "skein finish",
+    exit: "归档 (retain_days 后自动)",
+    agent: "skein:skein-finisher + skein:skein-specer (异步 sediment)",
+  },
+];
+
+const SUBTASK_FLOW = [
+  { status: "pending", label: "待处理", desc: "已登记, 等待前置 deps done", color: "--st-planning" },
+  { status: "running", label: "运行中", desc: "被 claim exec 认领, executor 正在执行", color: "--st-active" },
+  { status: "done", label: "已完成", desc: "executor 回传, 自跑 subtask done", color: "--st-done" },
+  { status: "failed", label: "失败", desc: "报错/缺信息, 进入自愈或挂起", color: "--st-failed" },
+];
+
+export default function HelpPage() {
+  return (
+    <div className="flex h-screen overflow-hidden">
+      <Sidebar />
+      <div className="flex min-h-0 flex-1 flex-col lg:ml-[220px]">
+        <Topbar />
+        <main className="flex-1 overflow-y-auto p-6">
+          <h1 className="mb-1 text-2xl font-bold text-foreground">帮助</h1>
+          <p className="mb-6 text-sm text-muted-foreground">SKEIN 任务状态流转说明</p>
+
+          {/* Task 状态流转图 */}
+          <section className="mb-8">
+            <h2 className="mb-4 text-lg font-semibold text-foreground">Task 状态流转</h2>
+            <div className="rounded-lg border border-border/30 bg-card/40 p-6">
+              {/* 流程图 - 横向 */}
+              <div className="mb-6 flex flex-wrap items-center gap-2">
+                {TASK_FLOW.map((s, i) => {
+                  const meta = ST_META[s.status] || ST_META.planning;
+                  return (
+                    <div key={s.status} className="flex items-center gap-2">
+                      <div
+                        className="flex items-center gap-2 rounded-lg border px-3 py-2"
+                        style={{
+                          borderColor: `var(${meta.colorVar})`,
+                          backgroundColor: `color-mix(in srgb, var(${meta.colorVar}) 15%, var(--card))`,
+                        }}
+                      >
+                        <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: `var(${meta.colorVar})` }} />
+                        <span className="text-sm font-semibold text-foreground">{s.title}</span>
+                      </div>
+                      {i < TASK_FLOW.length - 1 && (
+                        <div className="flex flex-col items-center">
+                          <svg width="28" height="16" className="text-muted-foreground">
+                            <path d="M 2 8 L 24 8" fill="none" stroke="currentColor" strokeWidth="1.5" markerEnd="url(#help-arrow)" />
+                            <defs>
+                              <marker id="help-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                                <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" />
+                              </marker>
+                            </defs>
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* CHECK → PLANNING 回退箭头说明 */}
+              <div className="mb-4 flex items-center gap-2 rounded-md border border-dashed border-border/50 px-3 py-2 text-xs text-muted-foreground">
+                <i className="fa fa-arrow-left" />
+                <span>验收失败 (FAIL) 时, 从「待验收」回退到「规划中」: 回 planning 重确认修复方向 (grill/AskUserQuestion), 改 prd/design 后加修复 subtask, 再重新 exec→check</span>
+              </div>
+
+              {/* 详细说明卡片 */}
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {TASK_FLOW.map((s) => {
+                  const meta = ST_META[s.status] || ST_META.planning;
+                  return (
+                    <div key={s.status} className="rounded-lg border border-border/40 bg-card/60 p-4">
+                      <div className="mb-2 flex items-center gap-2">
+                        <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: `var(${meta.colorVar})` }} />
+                        <span className="text-sm font-bold text-foreground">{s.title}</span>
+                        <span
+                          className="ml-auto rounded-full px-2 py-0.5 text-[10px] font-medium text-white"
+                          style={{ backgroundColor: `var(${meta.colorVar})` }}
+                        >
+                          {s.status}
+                        </span>
+                      </div>
+                      <p className="mb-3 text-xs leading-relaxed text-muted-foreground">{s.desc}</p>
+                      <div className="space-y-1 text-[11px]">
+                        <div className="flex gap-1.5">
+                          <span className="font-medium text-foreground/70">进入:</span>
+                          <code className="rounded bg-muted/50 px-1 font-mono text-[10px] text-foreground/80">{s.enter}</code>
+                        </div>
+                        <div className="flex gap-1.5">
+                          <span className="font-medium text-foreground/70">离开:</span>
+                          <code className="rounded bg-muted/50 px-1 font-mono text-[10px] text-foreground/80">{s.exit}</code>
+                        </div>
+                        <div className="flex gap-1.5">
+                          <span className="font-medium text-foreground/70">载体:</span>
+                          <span className="text-muted-foreground">{s.agent}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+
+          {/* Subtask 状态流转 */}
+          <section className="mb-8">
+            <h2 className="mb-4 text-lg font-semibold text-foreground">Subtask 状态流转</h2>
+            <div className="rounded-lg border border-border/30 bg-card/40 p-6">
+              <div className="mb-4 flex flex-wrap items-center gap-2">
+                {SUBTASK_FLOW.map((s, i) => (
+                  <div key={s.status} className="flex items-center gap-2">
+                    <div
+                      className="flex items-center gap-2 rounded-lg border px-3 py-2"
+                      style={{
+                        borderColor: `var(${s.color})`,
+                        backgroundColor: `color-mix(in srgb, var(${s.color}) 15%, var(--card))`,
+                      }}
+                    >
+                      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: `var(${s.color})` }} />
+                      <span className="text-sm font-semibold text-foreground">{s.label}</span>
+                    </div>
+                    {i < SUBTASK_FLOW.length - 1 && (
+                      <svg width="28" height="16" className="text-muted-foreground">
+                        <path d="M 2 8 L 24 8" fill="none" stroke="currentColor" strokeWidth="1.5" markerEnd="url(#help-arrow-sub)" />
+                        <defs>
+                          <marker id="help-arrow-sub" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                            <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" />
+                          </marker>
+                        </defs>
+                      </svg>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <div className="mb-3 flex items-center gap-2 rounded-md border border-dashed border-border/50 px-3 py-2 text-xs text-muted-foreground">
+                <i className="fa fa-refresh" />
+                <span>failed 可重派 (skein subtask start), 或插修复 subtask 定点修根因后重跑</span>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                {SUBTASK_FLOW.map((s) => (
+                  <div key={s.status} className="rounded-lg border border-border/40 bg-card/60 p-3">
+                    <div className="mb-1.5 flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: `var(${s.color})` }} />
+                      <span className="text-sm font-bold text-foreground">{s.label}</span>
+                    </div>
+                    <p className="text-xs leading-relaxed text-muted-foreground">{s.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* 四阶段闭环说明 */}
+          <section className="mb-8">
+            <h2 className="mb-4 text-lg font-semibold text-foreground">四阶段闭环</h2>
+            <div className="rounded-lg border border-border/30 bg-card/40 p-6">
+              <div className="flex flex-wrap items-center gap-3 text-sm">
+                {[
+                  { label: "plan", desc: "规划", color: "--st-planning" },
+                  { label: "exec", desc: "执行", color: "--st-active" },
+                  { label: "check", desc: "验收", color: "--st-check" },
+                  { label: "finish", desc: "收尾", color: "--st-done" },
+                ].map((p, i) => (
+                  <div key={p.label} className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 rounded-lg border px-3 py-1.5" style={{ borderColor: `var(${p.color})` }}>
+                      <i className="fa fa-circle text-[8px]" style={{ color: `var(${p.color})` }} />
+                      <span className="font-mono text-xs font-bold text-foreground">{p.label}</span>
+                      <span className="text-xs text-muted-foreground">{p.desc}</span>
+                    </div>
+                    {i < 3 && <i className="fa fa-arrow-right text-muted-foreground" />}
+                  </div>
+                ))}
+                <span className="text-xs text-muted-foreground">→ 循环下一个 task</span>
+              </div>
+              <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                每个 task 走完 plan→exec→check→finish 四阶段后标记完成。check 失败回 exec 修复, 不跨阶段跳过。
+              </p>
+            </div>
+          </section>
+
+          {/* 关键命令速查 */}
+          <section>
+            <h2 className="mb-4 text-lg font-semibold text-foreground">关键命令速查</h2>
+            <div className="overflow-hidden rounded-lg border border-border/30">
+              <table className="w-full text-sm">
+                <thead className="bg-card/60">
+                  <tr className="border-b border-border/30">
+                    <th className="px-4 py-2 text-left text-xs font-semibold text-foreground">命令</th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold text-foreground">用途</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/20">
+                  {[
+                    ["skein create <id>", "新建 task (kebab-case slug)"],
+                    ["skein confirm <id>", "确认规划, task 进就绪"],
+                    ["skein claim exec", "全局认领就绪 subtask (自动 start task)"],
+                    ["skein claim check", "全 done 的 task 进检查"],
+                    ["skein subtask done/fail", "标记 subtask 完成/失败"],
+                    ["skein finish <id>", "收尾: commit→merge→销 worktree→标记完成"],
+                    ["skein list --status open", "列出全部未完成 task"],
+                    ["skein subtask list <id>", "列出 task 的全部 subtask + 状态"],
+                  ].map(([cmd, desc]) => (
+                    <tr key={cmd} className="hover:bg-muted/20">
+                      <td className="px-4 py-2"><code className="rounded bg-muted/40 px-1.5 py-0.5 font-mono text-xs text-foreground/80">{cmd}</code></td>
+                      <td className="px-4 py-2 text-xs text-muted-foreground">{desc}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+  );
+}

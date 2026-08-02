@@ -404,3 +404,39 @@ task.json 里还有 `status="就绪"` 的 task, 没有任何迁移代码 —— 
 (基线 412 passed；净 +5 = 本次新增 5 个验收测试)。
 `python3 -m mypy plugins/tools/skein/scripts/skeinlib/` → **Success: no issues found in
 49 source files**。
+
+## 🔴 s7 遗留项: claude -p 质量门未跑通 (2026-08-02, main 记, check 阶段必须收口)
+
+s7 的验收标准第 2 条「文案经 `claude -p` 三次一致性验证」**在 s7 标 done 时并未满足**。
+
+**事实**: exec-s7 对四个改动最重的文件跑质量门, 6 次尝试跨约 25 分钟全部
+`API Error: Unable to connect to API (ConnectionRefused)`。
+
+**main 独立复现**: 我用 `skein-setup/SKILL.md` 单独跑了一次同样的命令, 同样得到
+`API Error: Unable to connect to API (ConnectionRefused)`。**端点级故障属实, 不是 s7 的内容问题,
+也不是单次抖动。**
+
+**为什么仍放行 s7 的 done**: 端点故障非执行者可控; 改动内容已由 s7 按 `lifecycle.py` 源码逐行核对
+(S_PENDING/S_RESEARCH 常量、confirm/finishing 实现、estimate 编辑窗口校验)。但**源码核对不能替代
+AI 理解门** —— 前者验「描述与实现是否一致」, 后者验「AI 读了这份文档能不能正确理解并执行」, 是两件事。
+
+**check 阶段的收口义务**: 端点恢复后补跑以下四个文件的质量门, 每个连跑 3 次确认主流程描述一致:
+
+- `plugins/tools/skein/skills/skein-flow/SKILL.md`
+- `plugins/tools/skein/skills/skein-setup/SKILL.md`
+- `plugins/tools/skein/commands/skein-doctor.md`
+- `plugins/tools/skein/skills/skein-flow/references/for-redo.md`
+
+命令见项目 CLAUDE.md「代码质量检查规范」。**若端点仍未恢复, 照实标注「因端点故障未验证」,
+禁用源码核对冒充质量门通过。**
+
+## 🟡 main 裁定: .skein/config.yaml 的 max_active 不在本 task 清理 (2026-08-02)
+
+s7 扫到主仓根 `.skein/config.yaml` 仍有 `max_active: 2` 与 `pools.work/gate` 并存, 问是否顺手清掉。
+
+**裁定: 不清。** 那是本仓正在运行的 skein 实例实际读的运行时配置, **master 的代码目前仍在读
+`max_active`** (s2 的 pools 改造还在本分支未合入)。合并前清掉会让主仓当场读不到并发上限。
+
+它要等本分支合入 master 之后才变成真残留, 那时 s5 写的 doctor 警告会提示。**归 finish 阶段收口。**
+
+同理 s8 的代码层零残留断言**不得包含这个 key**, 否则测试在合并前会一直红。
