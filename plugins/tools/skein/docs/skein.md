@@ -104,7 +104,7 @@
 | 步骤 | 说明 |
 | --- | --- |
 | claim | `skein claim exec`: DAG → 就绪 subtask → 拓扑排序 → dispatch |
-| dispatch | 一律派 `skein-executor`, 并发 ≤ max_active |
+| dispatch | 一律派 `skein-executor`, 并发 ≤ `pools.work` |
 | 完成判定 | 每 subtask 回 done/fail; fail 重派 ≤2 轮 (质量验收全归 check) |
 | 完成即派 | 1 subtask 完 → 释放槽 → `skein claim exec` 下一个 |
 
@@ -140,7 +140,8 @@
 | 步骤 | 执行者 | 说明 |
 | --- | --- | --- |
 | 完成度检查 | finisher (只读) | git diff + subtask 全完成 + 无 dangling |
-| 合并+销wt | skein finish | 各子 worktree → 主分支, 合并后即销 wt/branch |
+| 占 gate 槽 | `skein finishing` | 检查中 → 收尾中, gate 池有空槽才能进 |
+| 合并+销wt | skein finish | 收尾中 task 各子 worktree → 主分支, 合并后即销 wt/branch |
 | 标记完成 | skein finish | status=已完成, 记 finished 时刻 |
 
 **Supertask 收束门**: `kind=supertask` 的 task finish 前, 所有 `parent` 指向它的 child task 必须**全部已完成** (status=已完成), 否则 `skein finish` 硬拒并列出未完成 child。子 task 各自独立走完整 plan→exec→check→finish 闭环, supertask 自身不占 worktree、只在末尾做聚合收束。详见「[Supertask](#supertask)」。
@@ -191,15 +192,16 @@ subtasks:
 
 | 范围 | 命令 | 行为 |
 | --- | --- | --- |
-| 单 task | `skein subtask claim <id>` | DAG → ready set → 拓扑排序 → max_active 个 |
-| 全局 exec | `skein claim exec` | 所有进行中 task 同上 |
-| 全局 check | `skein claim check` | 全done 进行中 task → 检查中; 检查通过 → 已完成 |
+| 单 task | `skein subtask claim <id>` | DAG → ready set → 拓扑排序 → `pools.work` 个 |
+| 全局 exec | `skein claim exec` | 所有进行中/调研中 task 同上 |
+| 全局 check | `skein claim check` | 全done 进行中 task → 检查中; 检查通过 → `finishing` 占 gate 槽 → 收尾中 → finish → 已完成 |
 
 ### 调度约束
 
 | 参数 | 默认 | 说明 |
 | --- | --- | --- |
-| max_active | 2 | 同时进行中 task 数 (subtask 并发全局复用同一键) |
+| pools.work | 2 | 全局 exec+research running subtask 数 |
+| pools.gate | 3 | 全局检查中+收尾中 task 数 |
 | 深度 | 2 层 | supertask→task→subtask, child 不再生 child |
 
 ### Supertask
