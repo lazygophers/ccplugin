@@ -5,7 +5,7 @@ category: task-lifecycle
 keywords: [subtask,note,留痕,cli]
 status: active
 inclusion: auto
-anchors: plugins/tools/skein/scripts/skeinlib/cli.py:140
+anchors: plugins/tools/skein/scripts/skeinlib/cli.py:148
 ---
 
 ## 现象

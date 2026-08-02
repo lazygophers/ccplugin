@@ -79,12 +79,17 @@
         "setup 能检出 spec/core 存在并提示 migrate",
         "trellis 目标结构为四 namespace"
       ],
-      "验收done": [],
-      "status": "运行中",
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785382888,
       "started": 1785641728,
-      "finished": null
+      "finished": 1785643213
     },
     {
       "sid": "d4",
@@ -99,10 +104,10 @@
         "git diff 确认 hooks 键未出现在 diff 中"
       ],
       "验收done": [],
-      "status": "待处理",
+      "status": "运行中",
       "skills": [],
       "created": 1785382888,
-      "started": null,
+      "started": 1785643048,
       "finished": null
     },
     {
@@ -150,6 +155,6 @@
   "confirmed": 1785594118,
   "checked": null,
   "finished": null,
-  "updated": 1785641728,
+  "updated": 1785643213,
   "confirmed_by": "user"
 }

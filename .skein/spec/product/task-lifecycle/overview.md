@@ -4,7 +4,7 @@ category: task-lifecycle
 keywords: [task,state,状态机]
 status: active
 inclusion: auto
-anchors: plugins/tools/skein/scripts/skein.py,plugins/tools/skein/scripts/skeinlib/state.py
+anchors: plugins/tools/skein/scripts/skein.py
 ---
 
 ## Task 状态机

@@ -63,5 +63,5 @@ inclusion: auto
 - [ ] `.recall.db` 全文索引自适应新路径
 
 ## 关联
-- [[arch/spec]] — Spec 库架构定义
+- [[recall/arch/spec-memory]] — Spec 三层记忆架构
 - [[arch/config]] — 配置真值来源

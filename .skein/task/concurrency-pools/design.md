@@ -517,3 +517,39 @@ design.md 要的 5 类行为测试 **s4 已在 `test_dag.py:338-425` 交付** (`
 49 source files** (基线同为 49 files 0 错, 未退化)。
 
 同理 s8 的代码层零残留断言**不得包含这个 key**, 否则测试在合并前会一直红。
+
+## s10 交付记录 — ruff F/E9 收口 (`2900ed7f2`)
+
+check 阶段发现 `check-pools` 误报「本 task 零违反」，main 复核 worktree 内实跑
+`ruff check ... --select F,E9` 得 14 errors，逐条 blame 后确认 2 条系本 task 引入。
+
+### 改动 file:line
+- `skeinlib/doctor.py:28-29` — `from skeinlib.model import (...)` 删未用名 `STATUS_ACTIVE`
+  (s4 把 `_claim_check()` 从 `store.active()` 改成 `all_tasks()` + 显式过滤
+  `status in (S_ACTIVE, S_CHECK)` 时删掉了使用点, import 未跟着清)
+- `tests/test_skein.py:23-24` — `from skeinlib.model import (...)` 删未用名 `S_FINISHING`
+  (s1 新增常量, s3 导入了但未用上)
+- 均只删多符号 import 行里的单个名字, 未动其余符号
+
+### 4 条验收核对
+1. `doctor.py` 的 `STATUS_ACTIVE` 未用导入已清 — 改动见上, `grep -n STATUS_ACTIVE
+   skeinlib/doctor.py` 全文件 0 命中
+2. `test_skein.py` 的 `S_FINISHING` 未用导入已清 — 改动见上, `grep -n S_FINISHING
+   tests/test_skein.py` 全文件 0 命中
+3. `ruff check plugins/tools/skein/scripts/skeinlib/doctor.py
+   plugins/tools/skein/scripts/tests/test_skein.py --select F,E9` → `All checks passed!`
+4. 非本 task 引入的违规逐条列出归因 (全 12 条, 自行 `git log -L` blame 复核, 与
+   team-lead 派发文里列的一致): `gate.py:214` F841 / `stopcheck.py:29` F401 →
+   `37dc8a9fd` (spec-hooks-adapt); `spec/write.py:466` F841 / `test_product_wiki.py`
+   四条 F841 (98/108/297/303) → `3c6580f5f` (spec-product-wiki); `test_hooks_h1h3.py`
+   四条 (16/27/44 F401, 164 F541) → `37dc8a9fd` (spec-hooks-adapt); `test_spec.py:675`
+   F541 → `45ec8c6ed` (fix(skein): ruff lint - remove unused imports in map.py)。
+   未擅自代改任何一条。
+
+### 质量门
+- `python3 -m ruff check plugins/tools/skein/scripts/ --select F,E9` → 全仓 **12 errors**
+  (14→12, 均已归因非本 task); 本 task 触碰的两文件单独跑 → **0 errors**
+- `python3 -m pytest plugins/tools/skein/scripts/tests/ -q` → **424 passed, 0 failed**
+  (与基线一致, 删 import 未影响任何实际使用点)
+- `python3 -m mypy plugins/tools/skein/scripts/skeinlib/` → **Success: no issues found
+  in 49 source files**

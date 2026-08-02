@@ -230,6 +230,32 @@
       "created": 1785636507,
       "started": 1785636511,
       "finished": 1785637443
+    },
+    {
+      "sid": "s10",
+      "name": "ruff F/E9 收口",
+      "desc": "清掉本 task 引入的两条 F401 未用导入, 使验收标准「ruff F/E9 清白」真正成立",
+      "estimate": 0.3,
+      "depends_on": [
+        "s8"
+      ],
+      "验收": [
+        "doctor.py 的 STATUS_ACTIVE 未用导入已清",
+        "test_skein.py 的 S_FINISHING 未用导入已清",
+        "ruff --select F,E9 在本 task 触碰过的文件上零违规",
+        "非本 task 引入的违规逐条列出归因且未擅自代改"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785641914,
+      "started": 1785641914,
+      "finished": 1785642399
     }
   ],
   "priority": "urgent",
@@ -252,6 +278,6 @@
   "confirmed": 1785515070,
   "checked": 1785641244,
   "finished": null,
-  "updated": 1785641244,
+  "updated": 1785642399,
   "confirmed_by": "user"
 }

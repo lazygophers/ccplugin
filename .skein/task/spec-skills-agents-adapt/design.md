@@ -149,3 +149,36 @@ worktree `/Users/luoxin/persons/lyxamour/ccplugin/.worktrees/skein-spec-skills-a
 **越界自查**: 未碰 d3 (`skills/skein-flow/` `skills/skein-setup/`) 与 d4 (`agents/*.md` `plugin.json`) 范围内任何文件, `git diff --stat` 确认改动全落在 `skills/skein-spec/references/` 下。
 
 **pytest**: `python3 -m pytest plugins/tools/skein/scripts/tests/ -q` → 407 passed, 0 failed (与基线一致, 无回归)。
+
+## 10. d3 执行留痕 (2026-08-02)
+
+worktree `/Users/luoxin/persons/lyxamour/ccplugin/.worktrees/skein-spec-skills-agents-adapt`, commit 序列
+`17aa1178e`(for-plan) → `c383f840c`(for-check) → `f55528aa6`(for-finish+sediment-protocol) →
+`1256a2970`(sediment-protocol proposed 转态) → `c3a097585`(skein-setup SKILL 四 namespace) →
+`4aa218b33`(trellis-migration.md 目标结构明确四 namespace, 本轮续做补齐)。
+
+**前 5 个 commit 系前一执行者产出**(该执行者死于 SSL 证书 hostname mismatch), 逐条核对后**全部采纳未推翻**:
+- for-plan: `--src product` recall + prd 六段 (`PRD_SECTIONS_V6`) + 测试接缝 (seam) 门, 均已注入且完成判据同步更新。
+- for-check: 注入 `skein-spec analyze <tid> --json` 一致性核查调用, 延伸引用补链接。
+- for-finish + sediment-protocol: sediment+amend 双动作、`finish-candidates` 三路降级已注入, 核对与 d2 (`skills/skein-spec/SKILL.md:102`) 逐字核心短语一致(「无候选, 可能是新功能域, 建议新建」「禁硬凑」两处引用文本完全相同)。
+- skein-setup SKILL.md: 新增「旧两层结构检出」章节 + 四 namespace 提示, 结构维护表按 namespace×inclusion 措辞更新。
+
+**本轮唯一新增改动**: `trellis-migration.md` 的 dispatch prompt「目标」「验收标准」两段原文只写「namespace×类目」未点名具体四个 namespace, 与验收项 4「trellis 目标结构为四 namespace」字面要求有差距 → 补充明确 `rules/product/map/external` 四 namespace, 并指回 `skein-spec` SKILL.md 正交两维章节为权威定义, 不重复语法。
+
+**4 个 flow references 逐一确认**:
+1. `for-plan.md` — 注入 `--src product recall` (brainstorm 前拉现状 wiki) + prd 六段 + `## 测试接缝 (seam)` 硬校验门。
+2. `for-check.md` — 注入 `skein-spec analyze <tid> --json` 一致性核查调用 + 延伸引用链接。
+3. `for-finish.md` — sediment+amend 双动作描述 + 完成判据补「product 候选三路降级跑过, 无候选亦算已跑不算遗漏」。
+4. `sediment-protocol.md` — 新增「动作二: amend」章节 (三路降级) + `proposed → active/superseded` 转态章节。
+
+**for-finish 三路降级与 d2 定的核对**: `sediment-protocol.md:24-32` 三步表述与 `skein-spec/SKILL.md:102` 逐字比对, 核心引号短语「无候选, 可能是新功能域, 建议新建」「禁硬凑」完全一致, 三步顺序 (anchors 反查→prd 关键词 recall→报无候选) 一致, 未另创第四种说法。
+
+**引用可达性扫描**: `grep -on '\[[^]]*\]([^)]*\.md[^)]*)' <d3 改动 6 文件>` 全量扫出 24 处 `.md` 链接, 逐条核对目标文件存在 (含 `for-finish.md`→`sediment-protocol.md`/`worktree-convention.md`, `sediment-protocol.md`→`../../skein-spec/SKILL.md`/`../../skein-spec/references/sediment-workflow.md`, `SKILL.md`→`../skein-spec/references/migration-v2.md`), 零断链。
+
+**质量门 (`claude -p --bare`)**: 试跑 `for-finish.md` 一次, 120s 内未响应转后台, 与 d1/d2/s7 记录的同一环境级故障一致 (本 session 第 4 次撞到)。按 main 此前裁定, 验证并入 d5, **照实标注「因端点故障未验证」**, 未用源码核对冒充通过。
+
+**越界自查**: `git diff --stat be25f550c..HEAD` 确认改动全落 `skills/skein-flow/references/`(for-plan.md/for-check.md/for-finish.md/sediment-protocol.md) 与 `skills/skein-setup/`(SKILL.md/references/trellis-migration.md) 6 个文件, 未碰 d2 的 `skills/skein-spec/` 与 d4 的 `agents/*.md`/`plugin.json`, 未碰 `concurrency-pools` 分支的状态机表述。
+
+**pytest**: `python3 -m pytest plugins/tools/skein/scripts/tests/ -q` → 407 passed, 0 failed (与基线一致, 无回归)。
+
+**`skein subtask done` 已跑**, `subtask list` 状态见 SendMessage 回传 main。
