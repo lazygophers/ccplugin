@@ -1,7 +1,7 @@
 ---
 title: worktree-state
 category: arch
-keywords: [worktree,状态,分叉,快照,同步,主仓,分工]
+keywords: [worktree,状态,分叉,快照,同步,主仓,分工,skip]
 status: active
 inclusion: auto
 ---
@@ -29,3 +29,7 @@ inclusion: auto
 
 ### 调试建议
 状态分叉往往沉默：看 task 的 status 字段是否与实际执行相符。检查 worktree 内 `.skein/` 修改时间戳，与主仓 `.skein/` 对比。
+
+## worktree 分支合并三方合并 + 独有改动归因审计（禁批量 --theirs）
+
+
