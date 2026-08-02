@@ -2,7 +2,7 @@
   "id": "task-detail-timeline",
   "name": "task 详情时间以时间线展示",
   "desc": "看板 task.js 详情页把时间字段(created/started/finished)改为时间线可视化展示",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -21,7 +21,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785031605,
@@ -45,7 +45,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785031605,

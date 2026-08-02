@@ -1,0 +1,35 @@
+{
+  "id": "config-default-show",
+  "name": "config 默认展示+reset",
+  "desc": "config 无参默认展示全部生效值; 保留 set; 新增 reset 重置全部默认值; 删 get 子命令",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "impl",
+      "name": "config 无参展示+reset+删get",
+      "desc": "改 config_cmd + parser + test_config_cli",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784716312,
+      "started": 1784716319,
+      "finished": 1784716564
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/config-default-show",
+  "parent": null,
+  "kind": "task",
+  "created": 1784716263,
+  "started": 1784716314,
+  "checked": null,
+  "finished": 1784716710,
+  "updated": 1784716710
+}

@@ -1,0 +1,43 @@
+{
+  "id": "prefix-triple-quote",
+  "name": "PREFIX_RULE 多行三引号",
+  "desc": "_PREFIX_RULE 改多行三引号字符串, 去掉每行拼接引号, 语义不变",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "fix-prefix",
+      "name": "改 _PREFIX_RULE 为三引号",
+      "desc": "hooks.py:386 逐行拼接改三引号多行, 语义不变",
+      "depends_on": [],
+      "验收": [
+        "三引号字面量无逐行引号",
+        "ast.parse通过",
+        "值逐字节一致"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784726960,
+      "started": null,
+      "finished": 1784726999
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/prefix-triple-quote",
+  "parent": null,
+  "kind": "task",
+  "created": 1784726586,
+  "started": 1784726962,
+  "checked": null,
+  "finished": 1784726999,
+  "updated": 1784726999
+}

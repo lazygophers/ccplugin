@@ -2,7 +2,7 @@
   "id": "task-detail-research-gitignore",
   "name": "task-detail-research-gitignore",
   "desc": "2 需求: (1) task 详情页显示 research 目录信息 (现 DOC_TABS 只 prd/design/findings); (2) .skein/spec/.pending-fix + .skein/trash/ + .audit-log + .recall.db 默认 gitignore (init 生成 .skein/.gitignore 补全)",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -21,7 +21,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784558138,
@@ -43,7 +43,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784558138,

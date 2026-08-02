@@ -1,0 +1,199 @@
+{
+  "id": "skein-flow-slim",
+  "name": "skein-flow skill 瘦身 (降 token + 去重复/冲突)",
+  "desc": "SKILL.md 37KB≈12k token/次调用 + description 330字常驻。激进档: 四阶段细则下沉 references, SKILL.md 只留路由+硬门+完成判据; 删 8 处与 references 逐字重复段; 修 4 处硬冲突 (自降级口子/max_parallel 幽灵配置名/文件数阈值三套/plan-ahead confirm 矛盾)。",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [
+    "行为语义零变更: 精简/下沉后所有硬门(状态先行三门/grill硬门/check未绿禁finish/禁自降级)与载体铁律必须仍然生效, 只改组织方式不改规则本身",
+    "聚合层 for-*.md 禁复制底层主题文件正文, 只写本阶段流程步骤 + 引用底层文件路径 (单一真值源)",
+    "改动面只限 plugins/tools/skein/skills/skein-flow/, 禁动 skein.py / agents/ / commands/ / 其他 skill",
+    "并发上限配置名唯一为 max_active (skein.py:167), 全目录禁出现 max_parallel",
+    "SKILL.md 写者只有 s1 与 s5 两个 subtask 且 s5 依赖 s1, 禁其他 subtask 并发写 SKILL.md",
+    "行为语义零变更: 精简/下沉/合并后所有硬门(状态先行三门/grill硬门/check未绿禁finish/禁自降级)与载体铁律必须仍然生效, 只改组织方式不改规则本身",
+    "聚合层 for-*.md 禁复制底层主题文件正文, 只写本阶段流程步骤 + 引用底层文件路径 (单一真值源)",
+    "正文改动只限 plugins/tools/skein/skills/skein-flow/; 目录外文件(README.md/skein.py注释/兄弟skill) 仅允许改指向本目录的引用路径与文件名, 禁改其任何其他内容",
+    "并发上限配置名唯一为 max_active (skein.py:167), 全目录禁出现 max_parallel",
+    "SKILL.md 写者只有 s1 与 s5, dag-scheduling.md 写者只有 s4; 禁其他 subtask 并发写这两个文件",
+    "删文件必须同 subtask 内修完其全仓引用, 禁留中间态断链",
+    "【契约表修订声明】第 1-5 条已作废 (CLI 无删除能力所致), 以第 6-11 条为准; 特别是第 3 条被第 8 条取代 — 目录外文件的引用行允许修改。check 阶段只验 6-11。"
+  ],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "契约: 定 for-*.md 骨架 + for-plan.md 端到端穿通",
+      "desc": "tracer bullet。① 定 for-{plan,exec,check,finish}.md 统一骨架契约(章节顺序: 流程步骤 / 阶段内判定门 / 底层规则索引), 四文件建壳。② for-plan.md 填满真内容: 把 SKILL.md 现 plan 阶段(第35-131行 research判定门/策略分档/复杂度天花板/流程6步/plan失败模式)整体搬入, 删其中与 scope-boundary.md dag-scheduling.md 重复的段改为引用。③ SKILL.md plan 段改为: 硬门(grill未过禁exec / 状态先行) + 完成判据 checklist + 指向 for-plan.md, 其余删。④ 验证形态跑通再交下一阶段复刻。",
+      "depends_on": [],
+      "验收": [
+        "四个 for-*.md 存在且章节结构一致",
+        "for-plan.md 含 plan 全部流程步骤无丢失",
+        "SKILL.md plan 段 ≤40 行且保留 grill 硬门+完成判据",
+        "无正文复制底层文件"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785247898,
+      "started": 1785248525,
+      "finished": 1785248807
+    },
+    {
+      "sid": "s2",
+      "name": "for-exec.md 下沉",
+      "desc": "按 s1 骨架把 SKILL.md exec 阶段(第135-193行)细则搬入 for-exec.md。删与 dag-scheduling.md 重复段(调度循环/自愈/plan-ahead/deps阻塞)改为引 dag-scheduling.md 对应节; 删与 subtask-operations.md 重复的自愈正文。禁碰 SKILL.md(归 s5)。",
+      "depends_on": [
+        "s1"
+      ],
+      "验收": [
+        "for-exec.md 含 exec 全部流程步骤",
+        "调度循环/自愈/plan-ahead 三处改为引用 dag-scheduling.md 不复制正文",
+        "git diff 显示未改 SKILL.md"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785247898,
+      "started": 1785248807,
+      "finished": 1785248952
+    },
+    {
+      "sid": "s3",
+      "name": "for-check.md + for-finish.md 下沉",
+      "desc": "按 s1 骨架把 SKILL.md check 阶段(第197-244行)与 finish 阶段(第248-283行)细则分别搬入。check 侧删与 rollback-protocol.md subtask-operations.md root-cause-protocol.md 重复段改引用; finish 侧删与 sediment-protocol.md merge-conflict-resolution.md 重复段改引用。禁碰 SKILL.md(归 s5)。",
+      "depends_on": [
+        "s1"
+      ],
+      "验收": [
+        "两文件含各自阶段全部流程步骤",
+        "重复段已改引用",
+        "git diff 显示未改 SKILL.md"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785247898,
+      "started": 1785248807,
+      "finished": 1785248998
+    },
+    {
+      "sid": "s4",
+      "name": "references 治理: 合并 22KB 重复 + 删孤儿 + 修 4 处硬冲突",
+      "desc": "dag-scheduling.md 唯一写者。① 合并 scheduling-algorithm.md(13.3KB) 与 dag-scheduling.md(8.8KB) 为单一 dag-scheduling.md — 前者独有内容并入后删 scheduling-algorithm.md, 同 subtask 内改 README.md:11 引用指向 dag-scheduling.md。② 删 priority-scale.md(全仓零引用)。③ max_parallel 幽灵配置名: 全 references 统一改 max_active(skein.py:167)。④ 文件数阈值三套打架: scope-boundary.md 定单一口径并标真值源, SKILL.md 侧由 s5 对齐。⑤ plan-ahead 是否自动 confirm: flow-loop.md:12 与 dag-scheduling.md:348 对齐。⑥ state-before-action.md 禁自降级条款保持, 供 s5 引用。禁碰 SKILL.md。",
+      "depends_on": [
+        "s1"
+      ],
+      "验收": [
+        "scheduling-algorithm.md 与 priority-scale.md 已删且全仓 grep 零残留引用(含 README.md)",
+        "dag-scheduling.md 含两文件合并后全部独有内容",
+        "grep max_parallel 全目录零命中",
+        "阈值口径单一",
+        "flow-loop 与 dag-scheduling 对 confirm 表述不矛盾",
+        "git diff 显示未改 SKILL.md"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785248504,
+      "started": 1785248952,
+      "finished": 1785249355
+    },
+    {
+      "sid": "s5",
+      "name": "SKILL.md 收口: 删三块 + 合并失败模式 + 压 description",
+      "desc": "唯一 SKILL.md 第二写者。① exec/check/finish 三段按 s1 形态改为 硬门+完成判据+指向 for-*.md。② 删场景路由表(:310-324) 与闭环完成判据(:289-294)。③ 四阶段失败模式表 + 通用失败模式表 合并去重为一张总表。④ 正向配方表并入 references/carrier-rules.md(不新建文件), 删与正文重复行。⑤ 删 matt-pocock-mapping.md 引用行(:324) 与 5 处 ask-matt 同源标注。⑥ 硬门正文三处重复(:31/:158/:203)收敛为一处 + 引 state-before-action.md。⑦ 删自降级冲突措辞(:298), 文件数阈值与 s4 定的 scope-boundary.md 口径对齐。⑧ frontmatter description 压到 ≤150 字。目标 SKILL.md ≤12KB。",
+      "depends_on": [
+        "s2",
+        "s3",
+        "s4"
+      ],
+      "验收": [
+        "SKILL.md ≤12KB",
+        "四阶段硬门+完成判据仍在正文",
+        "无场景路由表/闭环完成判据两节",
+        "失败模式为单一总表",
+        "无自降级措辞",
+        "description ≤150 字",
+        "正向配方已在 carrier-rules.md 且未新建文件"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785248505,
+      "started": 1785249355,
+      "finished": 1785249765
+    },
+    {
+      "sid": "s6",
+      "name": "删 matt-pocock + 全仓引用核验 + 逻辑检测",
+      "desc": "① 删 references/matt-pocock-mapping.md。② 全仓 grep 零死链核验: matt-pocock / scheduling-algorithm / priority-scale / max_parallel 四项在 plugins/ docs/ README.md 全部零命中。③ 核验 SKILL.md 所有 references 引用路径真实存在。④ 逻辑检测(用户裁定: 跳过 claude -p 质量门, 只做逻辑检测): 逐条核对 四阶段路由表完整 / 状态先行三硬门在正文 / exec禁验收 / check未绿禁finish / 禁自降级 / 载体铁律 六项, 每项给 file:line 证据。⑤ 逐条核对 prd 验收标准 9 条。",
+      "depends_on": [
+        "s5"
+      ],
+      "验收": [
+        "四项 grep 全零命中",
+        "SKILL.md references 引用路径全部可达",
+        "六项逻辑检测各有 file:line 证据",
+        "prd 验收标准 9 条逐条有证据"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785248505,
+      "started": 1785249765,
+      "finished": 1785250033
+    }
+  ],
+  "priority": "normal",
+  "estimate": 5.0,
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/skein-flow-slim",
+  "parent": null,
+  "kind": "task",
+  "created": 1785247369,
+  "started": 1785248514,
+  "confirmed": 1785248514,
+  "checked": 1785250033,
+  "finished": 1785250307,
+  "updated": 1785250307
+}

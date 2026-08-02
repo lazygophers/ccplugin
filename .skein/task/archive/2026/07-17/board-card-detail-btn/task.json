@@ -2,7 +2,7 @@
   "id": "board-card-detail-btn",
   "name": "board 卡片详情按钮",
   "desc": "/board task 卡片加独立跳转详情页按钮 (标题链接外补显式按钮)",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -25,7 +25,7 @@
         4,
         5
       ],
-      "status": "已完成",
+      "status": "done",
       "estimate": null,
       "agent": "skein-executor",
       "skills": [],

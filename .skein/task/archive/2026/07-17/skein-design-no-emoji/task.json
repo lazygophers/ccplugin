@@ -2,7 +2,7 @@
   "id": "skein-design-no-emoji",
   "name": "设计去 emoji",
   "desc": "webapp UI 所有设计 emoji 移除 (nav 图标/空态占位/错误图标), 改纯文字或 CSS 图标",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -13,7 +13,7 @@
       "depends_on": [],
       "验收": [],
       "验收done": [],
-      "status": "已完成",
+      "status": "done",
       "estimate": null,
       "agent": "skein-executor",
       "skills": [],

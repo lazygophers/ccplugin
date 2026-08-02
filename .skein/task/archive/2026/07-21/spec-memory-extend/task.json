@@ -2,7 +2,7 @@
   "id": "spec-memory-extend",
   "name": "spec-memory-extend",
   "desc": "spec 记忆扩展: (1) CORE_BUDGET 移 config.yaml 默认 1000; (2) 新增记忆模块 (类脑/主流方案 research 后确认); (3) 新增 external 外部记忆层 (不注入 hooks); (4) skein-spec SKILL.md 加寻找时优先找 spec 纪律",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -23,7 +23,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784554833,
@@ -47,7 +47,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784554833,
@@ -71,7 +71,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784554833,
@@ -97,7 +97,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784554834,
@@ -124,7 +124,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784554834,
@@ -154,7 +154,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784557467,

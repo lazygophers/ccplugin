@@ -2,7 +2,7 @@
   "id": "board-live-refresh",
   "name": "看板实时刷新: task-changed 消息未被消费",
   "desc": "后端逐 task 推 task-changed 但前端 LiveBootstrap 只处理 data 消息, 导致 task 创建/变更时面板不更新; 另 cards signature 漏 name/desc 等字段",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -30,7 +30,7 @@
         6,
         7
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785599938,
       "started": 1785633265,
@@ -56,7 +56,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785599938,
       "started": 1785634944,
@@ -82,7 +82,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785599938,
       "started": 1785635627,
@@ -108,7 +108,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785599938,
       "started": 1785636511,

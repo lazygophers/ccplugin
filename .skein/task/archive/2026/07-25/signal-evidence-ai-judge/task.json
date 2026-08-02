@@ -2,7 +2,7 @@
   "id": "signal-evidence-ai-judge",
   "name": "_judge_signal 改证据展示",
   "desc": "_judge_signal 改证据展示+建议语调: 三常量加判断条件展示 + 命中信号证据 + 建议非强制, AI 最终判",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -13,7 +13,7 @@
       "depends_on": [],
       "验收": [],
       "验收done": [],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784618127,

@@ -1,0 +1,52 @@
+{
+  "id": "examples-dag",
+  "name": "index.html 加 DAG 样例 tab",
+  "desc": "加 DAG tab: subtask DAG (depends_on 拓扑图) + task 级 DAG + 调度算法可视化 (就绪批/拓扑深度/占槽), 纯 SVG+CSS",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "dag-tab",
+      "name": "加 DAG tab (通用 DAG 组件变体)",
+      "desc": "加 DAG tab: ≥4 种布局 (竖向树/水平/菱形/并行分支), 纯 SVG+CSS, 节点态色+箭头边, 海滩配色明暗双模",
+      "depends_on": [],
+      "验收": [
+        "DAG tab 存在可切换",
+        "含≥4种布局(竖向树/水平/菱形/并行分支)",
+        "节点状态色(默认/激活/完成/失败)",
+        "边有箭头含虚线",
+        "纯SVG+CSS无图库",
+        "明暗双模可读",
+        "6 tab切换无JS报错"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785077496,
+      "started": 1785077501,
+      "finished": 1785077775
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/examples-dag",
+  "parent": null,
+  "kind": "task",
+  "created": 1785077445,
+  "started": 1785077496,
+  "confirmed": 1785077496,
+  "checked": 1785077775,
+  "finished": 1785077827,
+  "updated": 1785077827
+}

@@ -1,0 +1,67 @@
+{
+  "id": "skein-task-detail-layout",
+  "name": "task 详情页布局重构全量展示",
+  "desc": "webapp /task?id= 详情页缺 subtask DAG/目标/验收标准等, 默认 tab 应为详细设计而非 PRD, 整体布局重调尽可能平铺展示全部信息而非需下拉才看到",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "t1-extract-dag-module",
+      "name": "抽取 board DAG 渲染为共享 dag.js",
+      "desc": "board.js dagHtml + helper 抽到 src/dag.js, board.js import, 看板渲染不变",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784263919,
+      "started": 1784264860,
+      "finished": 1784265688
+    },
+    {
+      "sid": "t3-prd-section-parse",
+      "name": "PRD markdown 解析目标/验收章节",
+      "desc": "解析 prd.md 按 ## 标题分割, 抽目标/验收标准章节供 task.js 平铺展示",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784263920,
+      "started": 1784264860,
+      "finished": 1784265022
+    },
+    {
+      "sid": "t2-two-col-layout",
+      "name": "task.js 两栏布局 + 默认详细设计 tab",
+      "desc": "task.js 改两栏 (左 subtask DAG+列表+目标/验收 / 右文档 tab 默认 design), DAG 调 dag.js, 目标/验收调 prd-parse",
+      "depends_on": [
+        "t1-extract-dag-module",
+        "t3-prd-section-parse"
+      ],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784263920,
+      "started": 1784265688,
+      "finished": 1784266281
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/skein-task-detail-layout",
+  "estimate": null,
+  "created": 1784263291,
+  "started": 1784264859,
+  "finished": 1784266817,
+  "updated": 1784266817
+}

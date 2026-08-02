@@ -1,0 +1,96 @@
+{
+  "id": "state-before-action",
+  "name": "main 调度状态先行铁律 (state-before-action)",
+  "desc": "main 必须先改态再执行: task 先 start 才 exec / subtask 先 claim 占槽才派 / 全 done 先 skein check 才验证; 当前 skills 未把此上升为铁律, main 实操绕过",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "docs-state-gate",
+      "name": "skein-flow 顶部加状态先行铁律段 (三环节硬门)",
+      "desc": "skein-flow SKILL.md 顶部加「状态先行铁律」段: task 未 start 禁 exec / subtask 未 claim 占槽禁派 / 全 done 未 skein check 禁验证宣告; STOP+🛑 标记",
+      "depends_on": [],
+      "验收": [
+        "skein-flow SKILL.md 顶部含「状态先行铁律」段",
+        "三环节硬门齐全(task未start禁exec/subtask未claim禁派/未check禁验证)",
+        "用STOP或🛑标记硬性",
+        "禁泛化措辞(无简单的可直接类口子)"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785061227,
+      "started": 1785061274,
+      "finished": 1785061383
+    },
+    {
+      "sid": "docs-exec-restate",
+      "name": "skein-exec 重述 subtask 状态先行硬门",
+      "desc": "skein-exec SKILL.md exec 段重述: claim 占槽是派 agent 的硬前置, pending subtask 禁派, 与 flow 顶部铁律呼应",
+      "depends_on": [
+        "docs-state-gate"
+      ],
+      "验收": [
+        "skein-exec SKILL.md exec 段含 subtask 状态先行重述",
+        "明示claim占槽=派agent硬前置",
+        "明示pending禁派",
+        "与flow顶部铁律引用呼应"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785061227,
+      "started": 1785061383,
+      "finished": 1785061494
+    },
+    {
+      "sid": "docs-check-restate",
+      "name": "skein-check 重述 check 状态先行硬门",
+      "desc": "skein-check SKILL.md 重述: 必须 skein check 进检查中态才跑验证, 禁 main 未 check 自跑 lint/test 当结果",
+      "depends_on": [
+        "docs-state-gate"
+      ],
+      "验收": [
+        "skein-check SKILL.md含check状态先行重述",
+        "明示必须skein check进检查中才验证",
+        "明示禁main未check自跑验证当结果"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785061228,
+      "started": 1785061383,
+      "finished": 1785061466
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/state-before-action",
+  "parent": null,
+  "kind": "task",
+  "created": 1785061092,
+  "started": 1785061269,
+  "confirmed": 1785061269,
+  "checked": 1785061494,
+  "finished": 1785061595,
+  "updated": 1785061595
+}

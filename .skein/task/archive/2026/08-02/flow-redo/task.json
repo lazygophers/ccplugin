@@ -2,7 +2,7 @@
   "id": "flow-redo",
   "name": "skein-flow redo: 断点续跑 + 重派 subagent",
   "desc": "session 意外退出后 redo 复位孤儿 running subtask 并续跑剩余 flow; --plan 只到 plan 停",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -24,7 +24,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785514440,
       "started": 1785587845,
@@ -48,7 +48,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785514440,
       "started": 1785588532,
@@ -75,7 +75,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785514440,
       "started": 1785588865,

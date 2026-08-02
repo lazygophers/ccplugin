@@ -1,0 +1,18 @@
+{
+  "id": "design-md-write-boundary",
+  "name": "design.md 写入界限文档化",
+  "desc": "明确 design.md 仅 planning 阶段写, exec/check/finish 禁动; 方案调整回 planning 改 design 后重派",
+  "status": "待处理",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/design-md-write-boundary",
+  "estimate": null,
+  "created": 1784291879,
+  "started": null,
+  "finished": null,
+  "updated": 1784291879
+}

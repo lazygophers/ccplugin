@@ -2,7 +2,7 @@
   "id": "skein-del-cmd",
   "name": "skein del/delete/remove 命令 (删 task + subtask)",
   "desc": "skein CLI 加删除命令 (del 主名 + delete/remove 别名), 支持: (1) skein del <task-id> 删整个 task (task 目录 + worktree + 分支); (2) skein del <task-id> <subtask-sid> 删单 subtask (task.json 内移除条目). 破坏性操作, 需确认门 + 状态约束 (active task 删除前处理 worktree)",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -13,7 +13,7 @@
       "depends_on": [],
       "验收": [],
       "验收done": [],
-      "status": "已完成",
+      "status": "done",
       "estimate": null,
       "agent": "skein-executor",
       "skills": [],

@@ -1,0 +1,158 @@
+{
+  "id": "skein-flow-redesign",
+  "name": "skein 流程闭环重设计 (hook判定+planning回环+并行+异步记忆)",
+  "desc": "审查并按用户指定流程修复 skein task 闭环: UserPromptSubmit hook 判定任务→新旧分类→planning; 规划完即派 Agent 执行; check 过→finish(commit+merge+销worktree); check 不过→回 planning 补修复 subtask 重执行. 5 要求: 及时建task/subtask; 无重复待执行项; task绑worktree(config关除外); task/subtask尽量并行; 记忆异步维护.",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "s2-check-replanning",
+      "name": "check失败回planning语义",
+      "desc": "改 skein-check SKILL + skein-flow SKILL: check不过→task回planning(重新grill确认修复方向)→补修复subtask(--deps挂失败源)→重新exec, 替换当前'保持进行中直接回exec'",
+      "depends_on": [],
+      "验收": [
+        "skein-check SKILL描述check失败回planning重确认",
+        "skein-flow SKILL check段同步改",
+        "复用待处理status+note标回炉",
+        "claude -p验证"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "estimate": 15,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784254272,
+      "started": 1784255397,
+      "finished": 1784255914,
+      "note": "API 529 overload, retry 1",
+      "retry": 1
+    },
+    {
+      "sid": "s3-sediment-async",
+      "name": "sediment改异步fire-and-forget",
+      "desc": "改 skein-finish SKILL + skein-memory SKILL: finish派skein-memorier后台异步不等回传直接finish; 写盘由memorier自跑skein-memory sediment; main收回传再output trace但不阻塞闭环",
+      "depends_on": [],
+      "验收": [
+        "skein-finish SKILL标sediment异步fire-and-forget",
+        "skein-memory SKILL同步标注",
+        "finish不再等memorier回传",
+        "claude -p验证"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "estimate": 12,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784254272,
+      "started": 1784255500,
+      "finished": 1784255711
+    },
+    {
+      "sid": "s4-dedup-agent",
+      "name": "新增skein-dedup haiku查重agent",
+      "desc": "新建 agents/skein-dedup.md (haiku模型,只读,跑skein list+各task subtask扫重复,回传重复清单task-id-pair+归一建议); skein-plan SKILL加: 所有task规划完成异步派skein-dedup",
+      "depends_on": [],
+      "验收": [
+        "agents/skein-dedup.md存在(haiku,只读,无Agent/Task递归守卫)",
+        "含查重逻辑(同目标/同模块/共享改动面)+回传格式",
+        "skein-plan SKILL加批量规划后异步派dedup",
+        "claude -p验证agent可被识别"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "estimate": 18,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784254272,
+      "started": 1784255397,
+      "finished": 1784256035,
+      "note": "API 529 overload, retry 1 pending",
+      "retry": 1
+    },
+    {
+      "sid": "s5-quality-gate",
+      "name": "claude -p质量门+5要求核对",
+      "desc": "对所有改动SKILL/agent/hooks跑 claude -p 质量门验证AI可正确识别; 逐条核对5要求(及时建/无重复/worktree/并行/异步记忆)在文档有对应机制",
+      "depends_on": [
+        "s1-user-prompt-dedup",
+        "s2-check-replanning",
+        "s3-sediment-async",
+        "s4-dedup-agent"
+      ],
+      "验收": [
+        "所有改动文件claude -p返回非空且符合预期",
+        "5要求逐条核对表",
+        "无遗漏"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "estimate": 15,
+      "agent": "skein-checker",
+      "skills": [],
+      "created": 1784254272,
+      "started": 1784256159,
+      "finished": 1784256589
+    },
+    {
+      "sid": "s1-user-prompt-dedup",
+      "name": "user_prompt脚本预筹+查重句 (漏建根因修复)",
+      "desc": "改 scripts/skein.py user_prompt (line 956-977): 漏建task根因=判定纯靠AI语义无脚本辅助。修复=hook脚本预筹:(1)明显豁免(纯问句/查询指令/--skip)脚本标豁免放行 (2)疑似任务(改动动词+代码/跨文件/多步)脚本标疑似强提示AI倾向建task (3)模糊带AI兜底现有判定骨架。预筹结果拼进注入ctx。再加查重句(走flow前先skein list查重命中并入)。bin/skein wrapper无需改。",
+      "depends_on": [],
+      "验收": [
+        "user_prompt含脚本预筹逻辑(豁免/疑似/模糊三档启发式,纯Python无外部依赖)",
+        "豁免档:纯问句/查询指令/--skip标豁免放行",
+        "疑似档:改动动词+代码/跨文件/多步标疑似任务强提示",
+        "预筹结果拼进注入ctx(预筹:豁免/疑似/模糊标记)",
+        "查重句:走flow前先skein list查重命中并入",
+        "保留现有判定骨架+--skip豁免",
+        "claude -p验证注入提示AI可正确识别预筹标记+查重要求"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "status": "已完成",
+      "estimate": 12,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784254694,
+      "started": 1784255500,
+      "finished": 1784256147,
+      "note": "API 529 overload retry1, agent已设计好方案(stdin读取+_classify_prompt启发式三档), 待API恢复重派"
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/skein-flow-redesign",
+  "estimate": null,
+  "created": 1784253771,
+  "started": 1784255397,
+  "finished": 1784256781,
+  "updated": 1784256781
+}

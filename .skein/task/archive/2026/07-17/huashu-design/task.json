@@ -2,7 +2,7 @@
   "id": "huashu-design",
   "name": "重新设计 /spec 页面",
   "desc": "skein webapp /spec 页面重新设计 (当前: 左树+右 md 预览/编辑/diff); 方向待 grill 收敛",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -13,7 +13,7 @@
       "depends_on": [],
       "验收": [],
       "验收done": [],
-      "status": "已完成",
+      "status": "done",
       "estimate": null,
       "agent": "skein-executor",
       "skills": [],

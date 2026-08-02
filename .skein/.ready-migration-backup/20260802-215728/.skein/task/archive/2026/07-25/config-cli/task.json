@@ -1,0 +1,51 @@
+{
+  "id": "config-cli",
+  "name": "skein config 读写 CLI",
+  "desc": "加 config get/set 子命令: get 读生效值, set 按 CONFIG_DEFAULTS 类型校验写 config.yaml; 抽 _coerce_config 复用 web 端点",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "impl",
+      "name": "实现 config get/set",
+      "desc": "抽 _coerce_config; 加 config 方法+parser+dispatch+MUTATING",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784714036,
+      "started": 1784714043,
+      "finished": 1784714223
+    },
+    {
+      "sid": "test",
+      "name": "config 命令测试",
+      "desc": "pytest 覆盖 get/set/未知键/类型coerce",
+      "depends_on": [
+        "impl"
+      ],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784714036,
+      "started": 1784714223,
+      "finished": 1784714318
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/config-cli",
+  "parent": null,
+  "kind": "task",
+  "created": 1784714029,
+  "started": 1784714037,
+  "checked": null,
+  "finished": 1784714511,
+  "updated": 1784714511
+}

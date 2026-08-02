@@ -2,7 +2,7 @@
   "id": "design-refs-restructure",
   "name": "restructure-refs-by-medium-dim",
   "desc": "references/ 按 medium 分目录, 每 medium 内按 布局/场景/组件/风格 4 维拆 + INDEX.md 二级索引",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -17,7 +17,7 @@
       "验收done": [
         1
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784652659,
@@ -39,7 +39,7 @@
         1,
         2
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784652659,
@@ -61,7 +61,7 @@
         1,
         2
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784652659,
@@ -83,7 +83,7 @@
         1,
         2
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784652659,
@@ -102,7 +102,7 @@
         "commit 完成"
       ],
       "验收done": [],
-      "status": "运行中",
+      "status": "running",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784652659,

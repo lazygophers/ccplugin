@@ -2,7 +2,7 @@
   "id": "agent-sink",
   "name": "exec/check/finish 下沉到 agent + 剥离 subtask agent 绑定",
   "desc": "1) 删 subtask --agent 参数与 task.json agent 字段, exec 一律 skein-executor; 2) 新增 skein subtask show <tid> <sid> 读单条详情; 3) exec/check/finish 三阶段作业内容下沉到 skein-executor/skein-checker/skein-finisher, agent md 内写明具体 skein 命令; flow 仅留调用 agent + 入参; 4) 保留边界: claim 留 main, 需要: 回传 main, check 修复循环留 main, 派 specer 留 main",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -28,7 +28,7 @@
         5,
         6
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785305369,
@@ -53,7 +53,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785305369,
@@ -78,7 +78,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785305369,
@@ -103,7 +103,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785305369,
@@ -130,7 +130,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785305370,
@@ -155,7 +155,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785305370,

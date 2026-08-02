@@ -2,7 +2,7 @@
   "id": "dag-parent-nesting",
   "name": "DAG 父子容器包裹 + 详情展父子",
   "desc": "board DAG 把 supertask 渲染成容器框包裹子 task (去父子箭头边), task 详情页展示父/子关系; 并把 spec-wiki-v2 设为 supertask 挂五个 spec-* 子 task",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -30,7 +30,7 @@
         6,
         7
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785596595,
       "started": 1785597112,
@@ -56,7 +56,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785596595,
       "started": 1785597858,
@@ -90,7 +90,7 @@
         8,
         9
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785596595,
       "started": 1785597112,
@@ -116,7 +116,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785596595,
       "started": 1785597942,
@@ -141,7 +141,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785596595,
       "started": 1785598139,
@@ -169,7 +169,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785596596,
       "started": 1785598799,
@@ -193,7 +193,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785598856,
       "started": 1785601765,

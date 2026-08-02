@@ -2,7 +2,7 @@
   "id": "spec-docs-examples",
   "name": "docs + examples 示例仓迁移",
   "desc": "sample-skein/spec 迁到四 namespace(加 product/map 示例页) + reference/skein/README/CONTEXT 同步 + skein-flow.mmd 加 wiki 回写分支",
-  "status": "已完成",
+  "status": "done",
   "deps": [
     "spec-skills-agents-adapt"
   ],
@@ -28,7 +28,7 @@
         4,
         5
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785382984,
       "started": 1785663797,
@@ -54,7 +54,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785382984,
       "started": 1785664038,
@@ -80,7 +80,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785382984,
       "started": 1785664128,

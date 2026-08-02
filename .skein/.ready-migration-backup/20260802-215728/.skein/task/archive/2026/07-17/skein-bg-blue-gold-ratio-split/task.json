@@ -1,0 +1,51 @@
+{
+  "id": "skein-bg-blue-gold-ratio-split",
+  "name": "背景蓝金 1:1 分割 (漏斗/波浪)",
+  "desc": "背景蓝金比例改 1:1 对半 (非当前包裹式), 用漏斗型或波浪分割 (自上而下或自左而右), 视情况自适应方向",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "t1-wavy-split-rewrite",
+      "name": "input.css 上下波浪 1:1 分割重写",
+      "desc": "body 背景改上蓝下金 1:1, 中间波浪分割 + 缓动, 保留流沙微光",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784270338,
+      "started": 1784270520,
+      "finished": 1784270898
+    },
+    {
+      "sid": "t2-dist-rebuild",
+      "name": "dist 重建",
+      "desc": "tailwind 重建 dist/app.css 含波浪分割背景",
+      "depends_on": [
+        "t1-wavy-split-rewrite"
+      ],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784270339,
+      "started": 1784270898,
+      "finished": 1784271043
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/skein-bg-blue-gold-ratio-split",
+  "estimate": null,
+  "created": 1784269533,
+  "started": 1784270520,
+  "finished": 1784271372,
+  "updated": 1784271372
+}

@@ -1,0 +1,121 @@
+{
+  "id": "serve-admin-platform",
+  "name": "skein serve 多页管理平台重设计",
+  "desc": "把 skein serve 单页重设计为完整多页管理平台: task面板/待执行队列/prd审阅/spec查看编辑/命令执行/建议功能, 风格沿用现有布局可改",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "explore-glass-refine",
+      "name": "方向A 玻璃流沙精炼 mockup",
+      "desc": "保现有 oklch 双外观调性根, 重构布局+信息层级, 出 dashboard+spec 两页单文件 HTML mockup",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784254765,
+      "started": 1784254951,
+      "finished": 1784255203
+    },
+    {
+      "sid": "explore-benchmark",
+      "name": "方向B 标杆迁移 mockup",
+      "desc": "迁移开发者工具标杆(Linear/Vercel/Raycast类)dashboard 设计语言, 换视觉, 出 dashboard+spec 两页单文件 HTML mockup",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784254765,
+      "started": 1784254951,
+      "finished": 1784255238
+    },
+    {
+      "sid": "explore-custom",
+      "name": "方向C skein 定制 mockup",
+      "desc": "为 skein 任务编织隐喻定制设计(novel), 出 dashboard+spec 两页单文件 HTML mockup",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784254765,
+      "started": 1784255203,
+      "finished": 1784255534
+    },
+    {
+      "sid": "fuse-tokens-shell",
+      "name": "融合令牌+骨架 (A皮+C组件类)",
+      "desc": "input.css 融合方向A玻璃流沙oklch双外观令牌 + 方向C织机组件类(纬线行/织入进度带/织结/线轴/经线树/梭子高光/玻璃卡), 重建dist/app.css; index.html骨架+nav适配织机行式",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784255753,
+      "started": 1784255863,
+      "finished": 1784256954
+    },
+    {
+      "sid": "rebuild-dashboard",
+      "name": "dashboard 合体样板 (A皮C骨)",
+      "desc": "dashboard/board页重构为纬线行式(A玻璃流沙皮+C织机骨), 接真实ctx.api, 作为合体样板供用户确认对味",
+      "depends_on": [
+        "fuse-tokens-shell"
+      ],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784255753,
+      "started": 1784256803,
+      "finished": 1784257079
+    },
+    {
+      "sid": "title-proj-name",
+      "name": "webapp标题加项目名",
+      "desc": "assets/webapp/index.html line 6 <title>SKEIN</title> → <title>SKEIN · {{PROJ}}</title>; serve 时 token 替换自动填项目名(仓库根目录名); 与 board shell.html title 一致",
+      "depends_on": [
+        "fuse-tokens-shell"
+      ],
+      "验收": [
+        "index.html title 改为 SKEIN · {{PROJ}}",
+        "serve 渲染后含项目名",
+        "与 board shell.html 一致"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "estimate": 5,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784255854,
+      "started": 1784256803,
+      "finished": 1784256857
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/serve-admin-platform",
+  "estimate": null,
+  "created": 1784253992,
+  "started": 1784254927,
+  "finished": 1784257146,
+  "updated": 1784257146
+}

@@ -1,0 +1,35 @@
+{
+  "id": "prefix-rule-multiline",
+  "name": "回复前缀规则多行化",
+  "desc": "_PREFIX_RULE 单行挤压串改多行 bullet; skein.py:1526 内联同步",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "impl",
+      "name": "_PREFIX_RULE 多行化 + skein.py 同步",
+      "desc": "改 hooks.py _PREFIX_RULE + skein.py:1526 内联 + 跟进 test",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784723226,
+      "started": 1784723227,
+      "finished": 1784723337
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/prefix-rule-multiline",
+  "parent": null,
+  "kind": "task",
+  "created": 1784723199,
+  "started": 1784723227,
+  "checked": null,
+  "finished": 1784723548,
+  "updated": 1784723548
+}

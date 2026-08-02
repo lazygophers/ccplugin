@@ -1,0 +1,43 @@
+{
+  "id": "cli-alias-merge",
+  "name": "cli-alias-merge",
+  "desc": "del/delete/rm/remove 4 别名 help 各显一行重复, 改用 argparse aliases= 参数一次注册, help 只显主名",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "st1",
+      "name": "del 别名合并",
+      "desc": "skein.py:2869 循环 add_parser 改单个 add_parser('del', aliases=['delete','rm','remove'])",
+      "depends_on": [],
+      "验收": [
+        "help单行",
+        "4别名可调",
+        "pytest全绿"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784551508,
+      "started": 1784551514,
+      "finished": 1784551725
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/cli-alias-merge",
+  "parent": null,
+  "kind": "task",
+  "created": 1784551491,
+  "started": 1784551508,
+  "checked": 1784551726,
+  "finished": 1784551727,
+  "updated": 1784551727
+}

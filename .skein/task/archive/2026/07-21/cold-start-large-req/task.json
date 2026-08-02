@@ -2,7 +2,7 @@
   "id": "cold-start-large-req",
   "name": "skein 大需求冷启动能力",
   "desc": "从模糊愿景/痛点引导到可执行 task DAG 的 planning 冷启动流程,补 plan skill 缺失档位",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -21,7 +21,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784538229,
@@ -47,7 +47,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784538230,
@@ -73,7 +73,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784538230,
@@ -97,7 +97,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784538230,
@@ -119,7 +119,7 @@
         1,
         2
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784538230,
@@ -143,7 +143,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784538230,
@@ -166,7 +166,7 @@
         1,
         2
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784538231,
@@ -191,7 +191,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784538231,

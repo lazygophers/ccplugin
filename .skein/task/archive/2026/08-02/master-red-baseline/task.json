@@ -2,7 +2,7 @@
   "id": "master-red-baseline",
   "name": "master 基线 19 条红回绿",
   "desc": "干净 master 实测 19 failed/314 passed, 三组独立根因 (A13 前端迁移删源致 node 侧测试断链 / B4 claim 新增必填 phase 漏改测试 / C2 服务端入口改动触发两条新守卫)。清零以恢复「红=我搞红的」判据, 是 concurrency-pools 的前置",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -22,7 +22,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785585835,
       "started": 1785585978,
@@ -48,7 +48,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785585848,
       "started": 1785588058,
@@ -74,7 +74,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785585848,
       "started": 1785588777,
@@ -98,7 +98,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785589596,
       "started": 1785589602,

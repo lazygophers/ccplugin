@@ -1,0 +1,51 @@
+{
+  "id": "skein-blue-gold-quicksand-theme",
+  "name": "webapp 蓝金流沙微光主题",
+  "desc": "webapp 背景改纯蓝金流沙微光 UI/UX, 去掉其他颜色, 全局主题色统一为蓝+金双色系 + 流沙微光动效",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "t1-bg-quicksand-rewrite",
+      "name": "input.css 背景重做纯蓝金流沙微光",
+      "desc": "浅主题 surface-bg 改纯蓝金 (去灰调), body 背景重做纯蓝金双色流沙微光 (可加 CSS animation 流动), status 色相保留, 暗主题微调",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784265759,
+      "started": 1784267096,
+      "finished": 1784267230
+    },
+    {
+      "sid": "t2-dist-rebuild-audit",
+      "name": "dist 重建 + page.js 全链路审计清色",
+      "desc": "dist/app.css 重建 (tailwind), page.js 内嵌 style 审计无非蓝金硬编码, 全链路 grep 确认",
+      "depends_on": [
+        "t1-bg-quicksand-rewrite"
+      ],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784265759,
+      "started": 1784267230,
+      "finished": 1784267444
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/skein-blue-gold-quicksand-theme",
+  "estimate": null,
+  "created": 1784264919,
+  "started": 1784267087,
+  "finished": 1784267800,
+  "updated": 1784267800
+}

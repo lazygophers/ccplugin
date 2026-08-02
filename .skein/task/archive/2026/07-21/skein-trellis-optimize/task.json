@@ -2,7 +2,7 @@
   "id": "skein-trellis-optimize",
   "name": "深度学 Trellis 整体优化 skein 插件",
   "desc": "深度学习 github.com/mindfold-ai/Trellis(cangjie-skill 方法论), 提炼对 skein 插件的整体优化建议。grill-me 确认细节与是否需优化。允许破坏性优化, 但须确保优化后更省 token / 更符合预期 / 更贴合插件需要。整体优化非补充。",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -21,7 +21,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [
         "skein-plan"
@@ -45,7 +45,7 @@
         1,
         2
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [
         "skein-plan"
@@ -69,7 +69,7 @@
         1,
         2
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [
         "skein-plan"
@@ -93,7 +93,7 @@
         1,
         2
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [
         "skein-plan"
@@ -117,7 +117,7 @@
         1,
         2
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [
         "skein-plan"
@@ -139,7 +139,7 @@
       "验收done": [
         1
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [
         "skein-plan"
@@ -167,7 +167,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [
         "skein-plan"
@@ -195,7 +195,7 @@
         4,
         5
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [
         "skein-plan"
@@ -221,7 +221,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [
         "skein-plan"
@@ -247,7 +247,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [
         "skein-plan"

@@ -2,7 +2,7 @@
   "id": "examples-timeline-antd",
   "name": "examples/index.html 加 timeline tab + antd 全组件样例",
   "desc": "现有 4 tab (色卡/组件/图表/动效) 补 timeline tab; 组件 tab 扩展覆盖 antd 全组件类别 (通用/布局/导航/数据录入/数据展示/反馈)",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -25,7 +25,7 @@
         4,
         5
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785071944,
@@ -51,7 +51,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785071944,
@@ -83,7 +83,7 @@
         6,
         7
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785071955,

@@ -2,7 +2,7 @@
   "id": "concurrency-pools",
   "name": "并发池重构: work/gate 双池 + research 状态",
   "desc": "max_active 单数字换成 work(2, exec+research 共享, exec 优先)/gate(3, check+finish 共享) 双池; subtask 加 phase 字段; task 状态机加 research 态 (plan⇄research, research 禁直转就绪)",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -22,7 +22,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785512382,
       "started": 1785559720,
@@ -43,7 +43,7 @@
         1,
         2
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785512383,
       "started": 1785559720,
@@ -71,7 +71,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785512383,
       "started": 1785607222,
@@ -99,7 +99,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785512383,
       "started": 1785632455,
@@ -124,7 +124,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785512383,
       "started": 1785635860,
@@ -149,7 +149,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785512383,
       "started": 1785632077,
@@ -172,7 +172,7 @@
         1,
         2
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785512383,
       "started": 1785637392,
@@ -198,7 +198,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785512383,
       "started": 1785640130,
@@ -225,7 +225,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785636507,
       "started": 1785636511,
@@ -251,7 +251,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785641914,
       "started": 1785641914,

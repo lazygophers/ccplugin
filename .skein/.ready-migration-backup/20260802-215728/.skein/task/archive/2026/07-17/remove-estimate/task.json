@@ -1,0 +1,81 @@
+{
+  "id": "remove-estimate",
+  "name": "移除预期时间 estimate",
+  "desc": "移除 skein 全栈 estimate (预期时间) 相关内容: 数据模型字段/UI 显示/调度权重/CLI 参数",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "backend-remove-est",
+      "name": "后端删 estimate",
+      "desc": "skein.py: 删 estimate dataclass 字段/CLI --estimate/_crit_weight 退化为拓扑深度/estMeta 删/board_data est 统计删/cards+queue est 字段删",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784284988,
+      "started": 1784284997,
+      "finished": 1784285301
+    },
+    {
+      "sid": "frontend-remove-est",
+      "name": "前端删 estimate",
+      "desc": "webapp: board.js 删预期列+卡片预期; queue.js 删 q.est; dashboard.js 删 estMeta+li-progress 预期; dist 重建",
+      "depends_on": [
+        "backend-remove-est"
+      ],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784284988,
+      "started": 1784285308,
+      "finished": 1784285449
+    },
+    {
+      "sid": "docs-remove-est",
+      "name": "文档删 estimate",
+      "desc": "skills/skein-exec/scheduling-algorithm.md + skein-plan/SKILL.md + dispatch-graph.md + docs/reference.md + glossary.md 删 estimate 描述, 关键路径改拓扑深度",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784284989,
+      "started": 1784284997,
+      "finished": 1784285301
+    },
+    {
+      "sid": "fix-est-residual",
+      "name": "删 estimate 残留",
+      "desc": "skein.py 4 处 estimate 残留: L1176 est dict / L1183-1184 est.get / L1215 est key / L1257 estimate 字段",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784285700,
+      "started": 1784285703,
+      "finished": 1784285804
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/remove-estimate",
+  "estimate": null,
+  "created": 1784284230,
+  "started": 1784284990,
+  "finished": 1784285814,
+  "updated": 1784285814
+}

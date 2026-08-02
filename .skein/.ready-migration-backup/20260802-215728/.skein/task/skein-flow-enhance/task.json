@@ -1,0 +1,97 @@
+{
+  "id": "skein-flow-enhance",
+  "name": "skein flow 三项增强",
+  "desc": "1.前端加finish入口 2.supertask子task全done后自动推进check 3.编排层补全缺plan的待处理task",
+  "status": "进行中",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "f1",
+      "name": "前端 finish 入口 + serve endpoint",
+      "desc": "serve.py 加 POST /__skein__/finish endpoint; 前端 task 详情页加 finish 按钮 (check 全绿才可点); 复用 skein finish 逻辑",
+      "estimate": 1.5,
+      "depends_on": [],
+      "acceptance": [
+        "serve.py 有 finish endpoint",
+        "详情页有 finish 按钮",
+        "pytest 通过"
+      ],
+      "acceptance_done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "phase": "exec",
+      "skills": [],
+      "created": 1785668413,
+      "started": 1785668470,
+      "finished": 1785668815
+    },
+    {
+      "sid": "f2",
+      "name": "supertask child 全 done 后自动 check",
+      "desc": "scheduling.py _claim_check 或 lifecycle.py 加逻辑: supertask 的全部 child task done → 自动推进 supertask 到检查中",
+      "estimate": 1.0,
+      "depends_on": [
+        "f1"
+      ],
+      "acceptance": [
+        "supertask child 全 done 后自动 check",
+        "pytest 通过"
+      ],
+      "acceptance_done": [],
+      "status": "运行中",
+      "phase": "exec",
+      "skills": [],
+      "created": 1785668413,
+      "started": 1785668818,
+      "finished": null
+    },
+    {
+      "sid": "f3",
+      "name": "flow 编排层补全缺 plan 的待处理 task",
+      "desc": "skein-flow SKILL.md / for-exec.md / flow-loop.md: 全空模式扫到待处理且缺 subtask/prd 的 task 时, 自动补 plan 收敛再 confirm",
+      "estimate": 1.0,
+      "depends_on": [],
+      "acceptance": [
+        "flow 文件有缺 plan 补全路径的措辞",
+        "grep 验证"
+      ],
+      "acceptance_done": [
+        1,
+        2
+      ],
+      "status": "已完成",
+      "phase": "exec",
+      "skills": [],
+      "created": 1785668413,
+      "started": 1785668470,
+      "finished": 1785668523
+    }
+  ],
+  "priority": "normal",
+  "estimate": 3.5,
+  "repos": [],
+  "worktree": ".worktrees/skein-skein-flow-enhance",
+  "worktrees": [
+    {
+      "repo": ".",
+      "wt": ".worktrees/skein-skein-flow-enhance",
+      "branch": "skein/skein-flow-enhance",
+      "merged": false
+    }
+  ],
+  "branch": "skein/skein-flow-enhance",
+  "parent": null,
+  "kind": "task",
+  "created": 1785668389,
+  "started": 1785668467,
+  "confirmed": 1785668466,
+  "checked": null,
+  "checked_end": null,
+  "finished": null,
+  "updated": 1785668818,
+  "confirmed_by": "user"
+}

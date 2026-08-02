@@ -1,0 +1,51 @@
+{
+  "id": "skein-bg-ocean-blend-gold",
+  "name": "背景海浪交融渐变真金",
+  "desc": "波浪改海浪式大柔交融渐变 (非硬切分明), 金色调黄改真金 (#FFD98A 偏黄 → 真金)",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "bg-ocean-impl",
+      "name": "背景海浪交融+真金令牌",
+      "desc": "input.css: body 背景波浪改大柔海浪 (circle 240px 软边 60->100%, 基底 linear 40%-60% 渐变过渡), --skein-gold #FFD98A -> #E8C264",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784272100,
+      "started": 1784272171,
+      "finished": 1784272338
+    },
+    {
+      "sid": "rebuild-dist",
+      "name": "重建 dist/app.css",
+      "desc": "跑 webapp 预构建脚本重建 dist/app.css 含新背景+新金令牌, ESM node --input-type=module 校验",
+      "depends_on": [
+        "bg-ocean-impl"
+      ],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784272100,
+      "started": 1784272338,
+      "finished": 1784272509
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/skein-bg-ocean-blend-gold",
+  "estimate": null,
+  "created": 1784271447,
+  "started": 1784272130,
+  "finished": 1784273072,
+  "updated": 1784273072
+}

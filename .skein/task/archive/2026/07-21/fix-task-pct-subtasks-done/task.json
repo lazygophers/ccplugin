@@ -2,7 +2,7 @@
   "id": "fix-task-pct-subtasks-done",
   "name": "fix-task-pct-subtasks-done",
   "desc": "14 subtask 全 done 但 task 进度显 85%: _task_pct 在 S_ACTIVE 且 subs 全 done 时 = 10+75*1.0=85, 与 S_CHECK 同值, 未反映实质完成. 修: subs 全 done 时 pct=100, task 状态机仍由人推进 check/finish 但进度诚实.",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -23,7 +23,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784543827,
@@ -45,7 +45,7 @@
         1,
         2
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784543827,

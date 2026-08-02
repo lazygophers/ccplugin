@@ -2,7 +2,7 @@
   "id": "skein-board-subtask-unfold",
   "name": "board task 卡片 subtask 区移除折叠默认展",
   "desc": "board.js:502 task 卡片 <details class='detail' open><summary>明细 · DAG + 子任务表</summary> 移除 details 折叠功能 (不可收起) + 移除 summary 说明文字, 直接展示 dagHtml + subtable (subtask DAG + 列表). 单文件单处改",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -13,7 +13,7 @@
       "depends_on": [],
       "验收": [],
       "验收done": [],
-      "status": "已完成",
+      "status": "done",
       "estimate": null,
       "agent": "skein-executor",
       "skills": [],

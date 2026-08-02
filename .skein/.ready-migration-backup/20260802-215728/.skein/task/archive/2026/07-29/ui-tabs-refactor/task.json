@@ -1,0 +1,74 @@
+{
+  "id": "ui-tabs-refactor",
+  "name": "UI 样例模板改 4 tab 组织",
+  "desc": "index.html 加 tab 切换, 4 tab: 色卡/组件/图表/动效",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "tab-frame",
+      "name": "tab 框架 + 色卡/组件 tab 内容迁移",
+      "desc": "index.html 加 tab 导航+panel+切换JS; 色卡 tab 迁移色彩规范; 组件 tab 迁移看板示例+补通用组件",
+      "depends_on": [],
+      "验收": [
+        "index.html 含 4 tab 导航+切换JS",
+        "色卡 tab 含原色彩规范",
+        "组件 tab 含看板+按钮/输入/badge",
+        "浏览器打开无 JS 报错",
+        "主题切换仍工作"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785045344,
+      "started": 1785045376,
+      "finished": 1785045691
+    },
+    {
+      "sid": "chart-anim",
+      "name": "图表 tab + 动效 tab",
+      "desc": "图表 tab 新增纯CSS+SVG图表(进度条/环形/折线/分布条); 动效 tab 改可演示实例",
+      "depends_on": [
+        "tab-frame"
+      ],
+      "验收": [
+        "图表 tab 含≥3类纯CSS+SVG图表",
+        "动效 tab 含可演示动效实例非纯文字",
+        "主题切换两 tab 生效",
+        "无 JS 报错"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785045344,
+      "started": 1785045691,
+      "finished": 1785045900
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/ui-tabs-refactor",
+  "parent": null,
+  "kind": "task",
+  "created": 1785045302,
+  "started": 1785045353,
+  "confirmed": 1785045353,
+  "checked": null,
+  "finished": 1785045907,
+  "updated": 1785045907
+}

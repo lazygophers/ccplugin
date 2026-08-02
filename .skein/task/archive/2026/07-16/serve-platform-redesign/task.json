@@ -2,7 +2,7 @@
   "id": "serve-platform-redesign",
   "name": "重设计 skein serve 为多页面管理平台",
   "desc": "把 serve 单页看板重构为多页面完整管理平台: task面板/待执行队列/PRD审阅/spec查看编辑/命令执行/建议功能。保持现有设计风格,布局可改",
-  "status": "待处理",
+  "status": "pending",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -20,7 +20,7 @@
         "全主题不破版"
       ],
       "验收done": [],
-      "status": "待处理",
+      "status": "pending",
       "estimate": 40,
       "agent": "skein-executor",
       "skills": [],
@@ -42,7 +42,7 @@
         "复用主题令牌不破版"
       ],
       "验收done": [],
-      "status": "待处理",
+      "status": "pending",
       "estimate": 25,
       "agent": "skein-executor",
       "skills": [],
@@ -64,7 +64,7 @@
         "空态占位"
       ],
       "验收done": [],
-      "status": "待处理",
+      "status": "pending",
       "estimate": 30,
       "agent": "skein-executor",
       "skills": [],
@@ -87,7 +87,7 @@
         "取消不写"
       ],
       "验收done": [],
-      "status": "待处理",
+      "status": "pending",
       "estimate": 35,
       "agent": "skein-executor",
       "skills": [],
@@ -109,7 +109,7 @@
         "非白名单不出现在UI"
       ],
       "验收done": [],
-      "status": "待处理",
+      "status": "pending",
       "estimate": 30,
       "agent": "skein-executor",
       "skills": [],

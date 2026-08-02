@@ -1,0 +1,99 @@
+{
+  "id": "cli-typer-migration",
+  "name": "CLI 迁移 Typer",
+  "desc": "把 skein CLI 从 argparse 全量迁移到 Typer 框架",
+  "status": "finishing",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "migrate-cli-entry",
+      "name": "迁移 CLI 入口",
+      "desc": "把 skeinlib.cli 从 argparse parser 改为 Typer app，保留全局 debug/json 与 dispatch/lock 边界",
+      "estimate": 2.0,
+      "depends_on": [],
+      "acceptance": [
+        "cli.py 不再使用 argparse parser",
+        "skein.py --help 可运行",
+        "写盘命令仍走 _workspace_lock"
+      ],
+      "acceptance_done": [
+        1,
+        2,
+        3
+      ],
+      "status": "done",
+      "phase": "exec",
+      "skills": [],
+      "created": 1785678389,
+      "started": 1785679049,
+      "finished": 1785679464
+    },
+    {
+      "sid": "preserve-command-contracts",
+      "name": "保留命令合同",
+      "desc": "逐个迁移现有命令参数形态，覆盖 claim/config/prd/subtask/del aliases 等边界命令",
+      "estimate": 2.0,
+      "depends_on": [
+        "migrate-cli-entry"
+      ],
+      "acceptance": [
+        "claim --dry-run 缺省返回 exec+check",
+        "config/prd 子命令可解析",
+        "del/delete/rm/remove 仍同 handler"
+      ],
+      "acceptance_done": [
+        1,
+        2,
+        3
+      ],
+      "status": "done",
+      "phase": "exec",
+      "skills": [],
+      "created": 1785678389,
+      "started": 1785679464,
+      "finished": 1785679659
+    },
+    {
+      "sid": "update-tests-docs",
+      "name": "更新测试文档",
+      "desc": "补充 Typer CLI 行为测试并更新模块说明中 argparse 表述",
+      "estimate": 1.0,
+      "depends_on": [
+        "preserve-command-contracts"
+      ],
+      "acceptance": [
+        "相关测试已更新",
+        "cli.py 无 argparse 文案",
+        "文档无过期 claim/argparse 描述"
+      ],
+      "acceptance_done": [
+        1,
+        2,
+        3
+      ],
+      "status": "done",
+      "phase": "exec",
+      "skills": [],
+      "created": 1785678389,
+      "started": 1785679659,
+      "finished": 1785681065
+    }
+  ],
+  "priority": "normal",
+  "estimate": 5.0,
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/cli-typer-migration",
+  "parent": null,
+  "kind": "task",
+  "created": 1785678205,
+  "started": 1785679049,
+  "confirmed": 1785679049,
+  "checked": 1785681132,
+  "checked_end": 1785681309,
+  "finished": null,
+  "updated": 1785681309,
+  "confirmed_by": "user"
+}

@@ -2,7 +2,7 @@
   "id": "webapp-settings-and-buttons",
   "name": "Web 设置面板接线 + 清理死按钮 + 删除按钮转红",
   "desc": "看板 Web 三处 UI 缺陷: (1) 页头设置按钮 #config-btn 无任何 JS 绑定, 点击无反应, 后端 config 读写端点已就绪但前端零消费; (2) task 详情页操作区四个按钮 (编辑/就绪/开始/提交验收) 只弹「开发中」弹窗, 属死按钮, 全部移除; (3) 删除任务按钮在暗色主题下显示为蓝色而非红色 (主题选择器特异性压过 danger 类)",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -18,7 +18,7 @@
       "验收done": [
         1
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785517217,
       "started": 1785517400,
@@ -36,7 +36,7 @@
       "验收done": [
         1
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785517217,
       "started": 1785517400,
@@ -56,7 +56,7 @@
       "验收done": [
         1
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785517217,
       "started": 1785517548,

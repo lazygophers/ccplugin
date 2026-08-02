@@ -1,0 +1,83 @@
+{
+  "id": "active-card-animation",
+  "name": "active-card-animation",
+  "desc": "进行中/检查中 task card + 运行中 subtask card 接线 .card.active 动画 (现有 active-pulse 未接线) + 进度条 shimmer 效果",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "st1",
+      "name": "board task card .active 接线 + shimmer",
+      "desc": "board.js card class 加 (进行中||检查中)?' active'; input.css 加 shimmer keyframes + .card.active .skein-fill::after 流光",
+      "depends_on": [],
+      "验收": [
+        "进行中task card脉动",
+        "检查中task card脉动",
+        "进度条流光",
+        "暗模式ok"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784551359,
+      "started": 1784551360,
+      "finished": 1784551514
+    },
+    {
+      "sid": "st2",
+      "name": "task.js subtask 运行中脉动",
+      "desc": "task.js subtask card 运行中加 .sub-active class; input.css 加 .sub-active 复用 active-pulse 动画",
+      "depends_on": [],
+      "验收": [
+        "运行中subtask card脉动",
+        "不破坏现有rounded样式"
+      ],
+      "验收done": [
+        1,
+        2
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784551359,
+      "started": 1784551360,
+      "finished": 1784551514
+    },
+    {
+      "sid": "st3",
+      "name": "queue.js running subtask 行脉动",
+      "desc": "queue.js running subtask 行加 .qrow-active; input.css 加 .qrow-active 复用 active-pulse",
+      "depends_on": [],
+      "验收": [
+        "running subtask行脉动"
+      ],
+      "验收done": [
+        1
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784551359,
+      "started": 1784551514,
+      "finished": 1784551997
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/active-card-animation",
+  "parent": null,
+  "kind": "task",
+  "created": 1784551296,
+  "started": 1784551389,
+  "checked": 1784551997,
+  "finished": 1784552039,
+  "updated": 1784552039
+}

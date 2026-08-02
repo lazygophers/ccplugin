@@ -2,7 +2,7 @@
   "id": "skein-dag-no-scroll",
   "name": "subtask DAG 图去滚动自适应高度",
   "desc": "board.js/task 详情 subtask DAG 图去掉上下滚动 (max-height/overflow:auto), 高度自适应无限制往下拉",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -13,7 +13,7 @@
       "depends_on": [],
       "验收": [],
       "验收done": [],
-      "status": "已完成",
+      "status": "done",
       "estimate": null,
       "agent": "skein-executor",
       "skills": [],

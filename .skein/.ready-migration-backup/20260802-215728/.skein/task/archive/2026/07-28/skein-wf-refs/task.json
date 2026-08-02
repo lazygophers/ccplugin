@@ -1,0 +1,69 @@
+{
+  "id": "skein-wf-refs",
+  "name": "重组 skein-workflow references 为 per-consumer 结构",
+  "desc": "现状: skein-workflow 未注册进 plugin.json + references 8文件按主题散落, 其他 skill 用相对路径'skein-workflow/references/xxx.md'引用是死链(实际在../skein-workflow/)。目标: references 按'谁用'重组为 for-flow/exec/check/plan/finish.md 聚合入口, 底层原子规则仍单一真值源不复制正文, 注册 skein-workflow, 修正各 SKILL.md 引用路径确保生效。",
+  "status": "待处理",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "建5个for-xxx聚合文件",
+      "desc": "在 skein-workflow/references/ 新建 for-flow/for-exec/for-check/for-plan/for-finish.md, 按design聚合规范从原子文件提取规则正文。简短全文搬, 冗长(dag)提炼+指向深详节, subtask-ops按consumer取节。",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "待处理",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785148008,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "s2",
+      "name": "改5个consumer SKILL.md引用",
+      "desc": "skein-flow/plan/exec/check/finish 的 SKILL.md: 删内联复述规则正文, 换一行 ../skein-workflow/references/for-X.md 引用, 修复死链路径。保留各自闭环逻辑/场景路由/失败模式。",
+      "depends_on": [
+        "s1"
+      ],
+      "验收": [],
+      "验收done": [],
+      "status": "待处理",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785148008,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "s3",
+      "name": "质量门验证+清理原子文件引用",
+      "desc": "5个consumer各跑claude -p质量门确认AI识别规则正确+路径可达。检查原子文件是否还被任何consumer直接引用(应全转for-xxx)。更新skein-workflow/SKILL.md索引表反映新结构。",
+      "depends_on": [
+        "s2"
+      ],
+      "验收": [],
+      "验收done": [],
+      "status": "待处理",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785148008,
+      "started": null,
+      "finished": null
+    }
+  ],
+  "priority": "normal",
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/skein-wf-refs",
+  "parent": null,
+  "kind": "task",
+  "created": 1785147416,
+  "started": null,
+  "confirmed": null,
+  "checked": null,
+  "finished": null,
+  "updated": 1785148008
+}

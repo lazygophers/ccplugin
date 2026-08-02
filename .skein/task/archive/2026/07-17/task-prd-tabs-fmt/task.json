@@ -2,7 +2,7 @@
   "id": "task-prd-tabs-fmt",
   "name": "task详情PRD章节化为tab/todo + prd.md fmt规范化hook",
   "desc": "task详情页: PRD各章节(验收标准/目标/范围等)拆为独立tab或card, 一级list全解析为todo样式渲染。新增fmt能力: prd.md变更时自动将一级list转todo + 规范化章节输出, 不规范报错。可用CC hooks实现。涉及: webapp task.js前端 + skein python CLI(fmt/parse) + 可能CC hook接线。",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -13,7 +13,7 @@
       "depends_on": [],
       "验收": [],
       "验收done": [],
-      "status": "已完成",
+      "status": "done",
       "estimate": null,
       "agent": "skein-executor",
       "skills": [],
@@ -40,7 +40,7 @@
         4,
         5
       ],
-      "status": "已完成",
+      "status": "done",
       "estimate": null,
       "agent": "skein-executor",
       "skills": [],
@@ -67,7 +67,7 @@
         4,
         5
       ],
-      "status": "已完成",
+      "status": "done",
       "estimate": null,
       "agent": "skein-executor",
       "skills": [],
@@ -94,7 +94,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "estimate": null,
       "agent": "skein-executor",
       "skills": [],
@@ -123,7 +123,7 @@
         4,
         5
       ],
-      "status": "已完成",
+      "status": "done",
       "estimate": null,
       "agent": "skein-executor",
       "skills": [],
@@ -148,7 +148,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "estimate": null,
       "agent": "skein-executor",
       "skills": [],

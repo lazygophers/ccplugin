@@ -2,7 +2,7 @@
   "id": "drop-ready-frontend",
   "name": "前端清除遗留就绪态",
   "desc": "引擎侧已删 S_READY 且 confirm 直接进进行中, 前端仍保留 ready 兼容态 — 收口 status.tsx/board/model.ts/globals.css/help 文案 + dist 重建",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -18,7 +18,7 @@
       "验收done": [
         1
       ],
-      "status": "已完成",
+      "status": "done",
       "phase": "exec",
       "skills": [],
       "created": 1785647864,
@@ -37,7 +37,7 @@
       "验收done": [
         1
       ],
-      "status": "已完成",
+      "status": "done",
       "phase": "exec",
       "skills": [],
       "created": 1785647864,
@@ -59,7 +59,7 @@
       "验收done": [
         1
       ],
-      "status": "已完成",
+      "status": "done",
       "phase": "exec",
       "skills": [],
       "created": 1785647877,
@@ -82,7 +82,7 @@
       "验收done": [
         1
       ],
-      "status": "已完成",
+      "status": "done",
       "phase": "exec",
       "skills": [],
       "created": 1785647877,

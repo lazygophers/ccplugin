@@ -2,7 +2,7 @@
   "id": "spec-meta-hook",
   "name": "spec 文件 metadata 合法性 hook 检查",
   "desc": "PostToolUse hook: 写 .skein/spec/**/*.md 后检查 frontmatter 必填字段 (title/layer/category) 是否缺失 + 合法值 (layer∈core/recall, category∈CATS), 缺失/非法时输出 warning",
-  "status": "待处理",
+  "status": "pending",
   "deps": [],
   "contracts": [],
   "subtasks": [],

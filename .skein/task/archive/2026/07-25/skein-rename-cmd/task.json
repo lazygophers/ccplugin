@@ -2,7 +2,7 @@
   "id": "skein-rename-cmd",
   "name": "skein rename 命令",
   "desc": "加 rename 命令: 重命名 task/subtask 的 id(pending)/name, 同步跨引用",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -21,7 +21,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784697420,
@@ -41,7 +41,7 @@
       "验收done": [
         1
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784697421,

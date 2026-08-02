@@ -2,7 +2,7 @@
   "id": "skein-5fix",
   "name": "skein 5点修正",
   "desc": "findings增量/check回plan/场景扩展/spec纯异步/agent绑skill",
-  "status": "进行中",
+  "status": "active",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -13,7 +13,7 @@
       "depends_on": [],
       "验收": [],
       "验收done": [],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784858879,

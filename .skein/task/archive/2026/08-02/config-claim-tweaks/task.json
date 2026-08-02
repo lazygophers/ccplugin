@@ -2,7 +2,7 @@
   "id": "config-claim-tweaks",
   "name": "配置默认值 + claim 增强",
   "desc": "worktree 默认 false + claim 支持 --task 参数",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -20,7 +20,7 @@
         1,
         2
       ],
-      "status": "已完成",
+      "status": "done",
       "phase": "exec",
       "skills": [],
       "created": 1785664953,
@@ -43,7 +43,7 @@
         1,
         2
       ],
-      "status": "已完成",
+      "status": "done",
       "phase": "exec",
       "skills": [],
       "created": 1785664953,

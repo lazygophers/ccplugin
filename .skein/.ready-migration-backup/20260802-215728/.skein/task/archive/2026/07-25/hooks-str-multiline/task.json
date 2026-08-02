@@ -1,0 +1,43 @@
+{
+  "id": "hooks-str-multiline",
+  "name": "hooks.py 多行文案 str 改 triple-quoted",
+  "desc": "_UNINIT_TRELLIS/_UNINIT_PLAIN/_INIT_CTX/cmd_report ctx 4 处隐式单行拼接改 triple-quoted 多行 str, 语义不变",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "4 处 str 改 triple-quoted",
+      "desc": "hooks.py _UNINIT_TRELLIS(284)/_UNINIT_PLAIN(292)/_INIT_CTX(297)/cmd_report ctx(138) 隐式拼接改 triple-quoted 多行 str; \\n→真实换行; 同行续接保持同行; f-string 兼容; 文案逐字不变",
+      "depends_on": [],
+      "验收": [
+        "4处 triple-quoted",
+        "hook echo 文案逐字一致",
+        "ast.parse 通过"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784613515,
+      "started": 1784613527,
+      "finished": 1784613887
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/hooks-str-multiline",
+  "parent": null,
+  "kind": "task",
+  "created": 1784613504,
+  "started": 1784613516,
+  "checked": null,
+  "finished": 1784613888,
+  "updated": 1784613888
+}

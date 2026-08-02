@@ -2,7 +2,7 @@
   "id": "prefix-triple-quote",
   "name": "PREFIX_RULE 多行三引号",
   "desc": "_PREFIX_RULE 改多行三引号字符串, 去掉每行拼接引号, 语义不变",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -21,7 +21,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784726960,

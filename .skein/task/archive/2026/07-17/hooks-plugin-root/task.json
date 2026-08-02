@@ -2,7 +2,7 @@
   "id": "hooks-plugin-root",
   "name": "hooks 用 CLAUDE_PLUGIN_ROOT 相对路径",
   "desc": "plugin.json hooks command 从裸命令名改 /bin/<script>, 不依赖 PATH/alias",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -13,7 +13,7 @@
       "depends_on": [],
       "验收": [],
       "验收done": [],
-      "status": "已完成",
+      "status": "done",
       "estimate": null,
       "agent": "skein-executor",
       "skills": [],

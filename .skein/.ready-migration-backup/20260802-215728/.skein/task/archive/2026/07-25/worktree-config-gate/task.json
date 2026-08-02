@@ -1,0 +1,81 @@
+{
+  "id": "worktree-config-gate",
+  "name": "worktree 启用态全链路 gate",
+  "desc": "use_worktree=false 时: 脚本禁填 worktree/repos、前端/看板/API/hook注入不展示、不自动创建; SessionStart+UserPrompt 注入 worktree 态+max_active(读config不硬编码)",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "st-py",
+      "name": "skein.py: R1禁填+R2隐藏展示+R3注入session",
+      "desc": "见 prd R1/R2-backend/R3-session",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784728022,
+      "started": 1784728049,
+      "finished": 1784728350
+    },
+    {
+      "sid": "st-hook",
+      "name": "hooks.py: R3 user-prompt注入worktree态+max_active",
+      "desc": "见 prd R3-userprompt",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784728022,
+      "started": 1784728049,
+      "finished": 1784728176
+    },
+    {
+      "sid": "st-web",
+      "name": "board前端: worktree行真值才渲染",
+      "desc": "见 prd R2-frontend",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784728022,
+      "started": 1784728176,
+      "finished": 1784728244
+    },
+    {
+      "sid": "st-test",
+      "name": "禁用态测试+Req6验证+双脚本ast",
+      "desc": "见 prd 门禁",
+      "depends_on": [
+        "st-py",
+        "st-hook",
+        "st-web"
+      ],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784728022,
+      "started": 1784728351,
+      "finished": 1784729356
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/worktree-config-gate",
+  "parent": null,
+  "kind": "task",
+  "created": 1784727613,
+  "started": 1784728033,
+  "checked": 1784729356,
+  "finished": 1784729560,
+  "updated": 1784729560
+}

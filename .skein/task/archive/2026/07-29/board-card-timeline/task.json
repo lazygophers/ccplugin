@@ -2,7 +2,7 @@
   "id": "board-card-timeline",
   "name": "board 卡片时间线",
   "desc": "board 看板 task 卡片显 5 态精简横向 stepper",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -23,7 +23,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785033528,
@@ -45,7 +45,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785033530,

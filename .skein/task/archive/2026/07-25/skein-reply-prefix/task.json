@@ -2,7 +2,7 @@
   "id": "skein-reply-prefix",
   "name": "回复前缀强制注入",
   "desc": "SessionStart+UserPromptSubmit 注入指令: 回复以 [skein] 或 [skein|taskId|phase] 开头",
-  "status": "已完成",
+  "status": "done",
   "deps": [
     "skein-rename-cmd"
   ],
@@ -23,7 +23,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784697724,
@@ -43,7 +43,7 @@
       "验收done": [
         1
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784697725,

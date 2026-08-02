@@ -2,7 +2,7 @@
   "id": "dag-theme-align",
   "name": "DAG tab 主题风格适配 (glass+金沙滩+ocean阶色)",
   "desc": "DAG popover/modal 适配海滩蓝金主题: glass 质感 + 引入 goldSand 暖色 + ocean 阶色变量替代硬编码 + Modal 金线点缀",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -27,7 +27,7 @@
         5,
         6
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785081182,

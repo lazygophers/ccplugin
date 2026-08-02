@@ -2,7 +2,7 @@
   "id": "spec-migrate",
   "name": "自动迁移 migrate 两阶段",
   "desc": "阶段1 脚本机械迁移(core/recall→rules+inclusion, 撞名章节合并, 配置键迁移, archive 快照可逆); 阶段2 AI 语义分拣候选(启发式打分产 product/map 候选)",
-  "status": "已完成",
+  "status": "done",
   "deps": [
     "spec-model-core"
   ],
@@ -21,7 +21,7 @@
         "--dry-run 只报告不动盘(git status 前后一致)"
       ],
       "验收done": [],
-      "status": "待处理",
+      "status": "pending",
       "skills": [],
       "created": 1785382283,
       "started": null,
@@ -45,7 +45,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785382283,
       "started": null,
@@ -73,7 +73,7 @@
         4,
         5
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785382284,
       "started": null,
@@ -95,7 +95,7 @@
         "全程零文件搬动"
       ],
       "验收done": [],
-      "status": "待处理",
+      "status": "pending",
       "skills": [],
       "created": 1785382284,
       "started": null,
@@ -122,7 +122,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785382284,
       "started": null,

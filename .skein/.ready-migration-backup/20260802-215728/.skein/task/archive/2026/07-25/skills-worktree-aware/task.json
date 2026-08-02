@@ -1,0 +1,51 @@
+{
+  "id": "skills-worktree-aware",
+  "name": "skills 动态感知 worktree 启用态",
+  "desc": "加 skein config --json 供 jq 解析; exec/check/finish skills + 3 agents 用 !skein config 注入 use_worktree, 分 worktree/原地两态给工作目录指引",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "config-json",
+      "name": "config --json 输出",
+      "desc": "bare config 加 --json flag 输出 JSON 供 jq",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784724604,
+      "started": 1784724664,
+      "finished": 1784724758
+    },
+    {
+      "sid": "skills-aware",
+      "name": "skills+agents worktree 态感知",
+      "desc": "注入 !skein config 判定 + 分 worktree/原地工作目录指引",
+      "depends_on": [
+        "config-json"
+      ],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784724607,
+      "started": 1784724760,
+      "finished": 1784725570
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/skills-worktree-aware",
+  "parent": null,
+  "kind": "task",
+  "created": 1784724601,
+  "started": 1784724664,
+  "checked": null,
+  "finished": 1784725683,
+  "updated": 1784725683
+}

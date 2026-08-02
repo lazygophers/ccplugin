@@ -1,0 +1,90 @@
+{
+  "id": "optimize-any-skill",
+  "name": "新建统一优化元 skill (optimize-any)",
+  "desc": "提炼 darwin/nuwa/cangjie/grill 共性方法论，新建 skills/skill-dev/optimize-any/，可优化任意插件/skill/agent。与 skill-dev/plugin-dev 路由去重不重叠。无第三方直接依赖。validation-gated 验证优于改前。",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "写 SKILL.md 骨架",
+      "desc": "写 skills/skill-dev/optimize-any/optimize-any/SKILL.md: frontmatter+路由+通用优化循环+失败模式+反例+诚实边界",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [
+        "skill-dev"
+      ],
+      "created": 1784299296,
+      "started": null,
+      "finished": 1784299444
+    },
+    {
+      "sid": "s2",
+      "name": "写 validation-gate.md",
+      "desc": "写 references/validation-gate.md: 质量门命令+改前改后对比+token/缓存定性评估+git revert ratchet",
+      "depends_on": [
+        "s1"
+      ],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [
+        "skill-dev"
+      ],
+      "created": 1784299296,
+      "started": null,
+      "finished": 1784299924
+    },
+    {
+      "sid": "s3",
+      "name": "写 scoring-matrix.md",
+      "desc": "写 references/scoring-matrix.md: 评分维度对齐 darwin 9 维精简,映射 plugin/skill/agent 三类",
+      "depends_on": [
+        "s1"
+      ],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [
+        "skill-dev"
+      ],
+      "created": 1784299296,
+      "started": null,
+      "finished": 1784300022
+    },
+    {
+      "sid": "s4",
+      "name": "质量门验证+暂存",
+      "desc": "每文件过 claude -p 质量门验 AI 理解 + git add 暂存",
+      "depends_on": [
+        "s2",
+        "s3"
+      ],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [
+        "skill-dev"
+      ],
+      "created": 1784299297,
+      "started": null,
+      "finished": 1784300175
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/optimize-any-skill",
+  "created": 1784299253,
+  "started": 1784299310,
+  "checked": null,
+  "finished": 1784300176,
+  "updated": 1784300176
+}

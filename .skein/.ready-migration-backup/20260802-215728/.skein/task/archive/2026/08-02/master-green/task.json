@@ -1,0 +1,76 @@
+{
+  "id": "master-green",
+  "name": "修 master 基线红: 4 项质量门失败",
+  "desc": "test_views_char golden 过期 / stop_check pending-fix 断言对旧 schema / config_cli 测试读真实配置未隔离 / mypy --strict 存量问题 — 修完让 doctor --quality 恢复绿, 后续 task 的质量门才有意义",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "m1",
+      "name": "修三项过期断言与测试隔离",
+      "desc": "视图 golden 补父子字段 / pending-fix 断言对齐新 schema / 配置测试改用隔离工作区",
+      "estimate": 2.0,
+      "depends_on": [],
+      "验收": [
+        "视图 golden 快照测试通过且快照含父子字段",
+        "pending-fix 测试通过且断言对齐当前 schema",
+        "配置 CLI 测试不读仓库真实配置且改本机配置后重跑仍通过",
+        "三项各记录断言过期 vs 行为损坏的判定与依据",
+        "无新增 skip/xfail"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785597810,
+      "started": 1785602098,
+      "finished": 1785602824,
+      "note": "指令更正: golden 需在本 worktree 重生成 (含 parentTask/childTasks, 不追加 dag 那边的 super1/delta 用例), 之前误判可跳过"
+    },
+    {
+      "sid": "m2",
+      "name": "mypy --strict 清零",
+      "desc": "消除 mypy --strict 存量问题, 禁降严格度或滥用 ignore 掩盖",
+      "estimate": 2.5,
+      "depends_on": [],
+      "验收": [
+        "mypy --strict 干净退出",
+        "未调低严格度配置",
+        "确需 type ignore 的逐条写明理由",
+        "全量 pytest 无新增失败"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785597810,
+      "started": 1785602107,
+      "finished": 1785602743
+    }
+  ],
+  "priority": "normal",
+  "estimate": 4.5,
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/master-green",
+  "parent": null,
+  "kind": "task",
+  "created": 1785597765,
+  "started": 1785602098,
+  "confirmed": 1785597858,
+  "checked": 1785602971,
+  "finished": 1785603465,
+  "updated": 1785603465,
+  "confirmed_by": "user"
+}

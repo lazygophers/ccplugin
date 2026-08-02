@@ -2,7 +2,7 @@
   "id": "webapp-tpl-fragment-crash",
   "name": "修复 webapp 全页加载崩溃 (template fragment 顶层 v-if)",
   "desc": "petite-vue 无法处理 <template> block content fragment 顶层直接子的 v-if/v-else-if/v-for (parentElement=null → insertBefore 崩)。dashboard/task/queue/spec 全部页加载即崩, 用户只报 dashboard(默认落地页)。修法: 令这些条件子节点有真实 element 父 (template v-else → div v-else, 或包裹 offending child)。逐页 linkedom mount 冒烟验证。",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -23,7 +23,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "estimate": null,
       "agent": "skein-executor",
       "skills": [],
@@ -46,7 +46,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "estimate": null,
       "agent": "skein-executor",
       "skills": [],

@@ -1,0 +1,319 @@
+{
+  "id": "serve-webapp",
+  "name": "重设计 skein serve 为工程化多页面管理平台",
+  "desc": "serve 单页看板重构为7页面工程化管理平台(dashboard/board/queue/task/spec/commands/archive), buildless工程化(Tailwind standalone+petite-vue+ES modules), 新建assets/webapp/, 复用现有oklch令牌+10主题",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "s1-webapp-scaffold",
+      "name": "webapp工程化骨架",
+      "desc": "assets/webapp/骨架: index.html(nav7+搜索+mount+petite-vue引导), tailwind.config.js(映射oklch令牌/状态色/10主题), src/input.css。不碰skein.py",
+      "depends_on": [],
+      "验收": [
+        "webapp/目录建立",
+        "tailwind.config映射10主题+状态色",
+        "input.css分层令牌/主题/组件",
+        "index.html含7nav+搜索框+mount"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "estimate": 30,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784210017,
+      "started": 1784210076,
+      "finished": 1784210427
+    },
+    {
+      "sid": "s2-backend",
+      "name": "后端全部endpoint+启动vendoring",
+      "desc": "skein.py全部改动: 9个endpoint(dashboard/queue/task/spec/spec-file/spec-save/exec/archive/search), serve/view挂载改webapp, 启动拉tailwind二进制+petite-vue+build css",
+      "depends_on": [],
+      "验收": [
+        "9endpoint可访问",
+        "exec白名单外命令拒",
+        "spec-save越界路径拒",
+        "启动缺vendor自动拉+build",
+        "二启复用不重拉",
+        "vendor/dist已gitignore"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "status": "已完成",
+      "estimate": 45,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784210017,
+      "started": 1784210076,
+      "finished": 1784211683
+    },
+    {
+      "sid": "s3-router-core",
+      "name": "SPA路由核心+lib",
+      "desc": "webapp/src: app.js(petite-vue引导+顶栏nav/搜索/主题切换), router.js(hash7路由+:id+懒加载), lib/api.js, lib/md.js, lib/live.js(WS)",
+      "depends_on": [
+        "s1-webapp-scaffold",
+        "s2-backend"
+      ],
+      "验收": [
+        "hash路由7route切页无整页刷新",
+        ":id参数解析",
+        "顶栏nav/搜索/主题切换工作",
+        "WS热重载复用",
+        "md渲染复用"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "status": "已完成",
+      "estimate": 30,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784210017,
+      "started": 1784211683,
+      "finished": 1784212020
+    },
+    {
+      "sid": "s4-dashboard",
+      "name": "统计概览页",
+      "desc": "pages/dashboard.js: 完成率/活跃数/subtask进度/状态分布, 作默认首页",
+      "depends_on": [
+        "s3-router-core"
+      ],
+      "验收": [
+        "展示完成率/活跃数/subtask进度/状态分布",
+        "作首页",
+        "不破版"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "estimate": 25,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784210017,
+      "started": 1784212492,
+      "finished": 1784212687
+    },
+    {
+      "sid": "s5-board",
+      "name": "看板页(迁移)",
+      "desc": "pages/board.js: 现有看板卡片/DAG渲染迁移到工程化, 功能不回归",
+      "depends_on": [
+        "s3-router-core"
+      ],
+      "验收": [
+        "卡片/DAG/文档弹层功能不回归",
+        "主题不破版"
+      ],
+      "验收done": [
+        1,
+        2
+      ],
+      "status": "已完成",
+      "estimate": 30,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784210017,
+      "started": 1784212020,
+      "finished": 1784212492
+    },
+    {
+      "sid": "s6-queue",
+      "name": "待执行队列页",
+      "desc": "pages/queue.js: ready task批+各task就绪subtask调度序",
+      "depends_on": [
+        "s3-router-core"
+      ],
+      "验收": [
+        "展示ready task批",
+        "每task就绪subtask按序",
+        "空态占位"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "estimate": 20,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784210017,
+      "started": 1784212662,
+      "finished": 1784212788
+    },
+    {
+      "sid": "s7-task",
+      "name": "Task/PRD审阅页",
+      "desc": "pages/task.js: prd/design/findings md渲染+subtask列表+契约",
+      "depends_on": [
+        "s3-router-core"
+      ],
+      "验收": [
+        "渲染prd/design/findings原文",
+        "subtask列表带状态进度",
+        "契约展示",
+        "空态"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "estimate": 30,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784210017,
+      "started": 1784212213,
+      "finished": 1784212462
+    },
+    {
+      "sid": "s8-spec",
+      "name": "Spec查看编辑页",
+      "desc": "pages/spec.js: core/recall×类目树+查看+编辑保存diff确认弹层",
+      "depends_on": [
+        "s3-router-core"
+      ],
+      "验收": [
+        "树core/recall×类目×文件",
+        "看原文",
+        "编辑保存弹diff确认",
+        "确认才落盘",
+        "取消不写"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "status": "已完成",
+      "estimate": 35,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784210017,
+      "started": 1784212020,
+      "finished": 1784212213
+    },
+    {
+      "sid": "s9-commands",
+      "name": "命令面板页",
+      "desc": "pages/commands.js: 只读命令跑显输出+create/subtask add表单校验",
+      "depends_on": [
+        "s3-router-core"
+      ],
+      "验收": [
+        "只读命令可跑显stdout",
+        "create/subtask add表单校验必填",
+        "走exec",
+        "非白名单不出现"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "estimate": 30,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784210017,
+      "started": 1784212463,
+      "finished": 1784212662
+    },
+    {
+      "sid": "s10-archive",
+      "name": "归档浏览页",
+      "desc": "pages/archive.js: 已归档task列表+详情",
+      "depends_on": [
+        "s3-router-core"
+      ],
+      "验收": [
+        "浏览已归档task",
+        "看详情/prd",
+        "空态"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "estimate": 20,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784210017,
+      "started": 1784212687,
+      "finished": 1784213095
+    },
+    {
+      "sid": "s11-fix-xss",
+      "name": "修复v-html XSS",
+      "desc": "根因修 md.js: 使 v-html 路径也安全(过滤 javascript: 协议/危险属性); 核 spec.js:146 + task.js:141 渲染安全",
+      "depends_on": [
+        "s7-task",
+        "s8-spec"
+      ],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784213519,
+      "started": 1784213519,
+      "finished": 1784213722
+    },
+    {
+      "sid": "s12-fix-build",
+      "name": "修复tailwind构建",
+      "desc": "排查 dist/app.css 未生成: cp 主仓已预热二进制到 worktree, 验 _ensure_webapp_assets/build 命令跑通生成非空 app.css",
+      "depends_on": [
+        "s2-backend"
+      ],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784213519,
+      "started": 1784213519,
+      "finished": 1784213826
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/serve-webapp",
+  "estimate": null,
+  "created": 1784209916,
+  "started": 1784210067,
+  "finished": 1784214613,
+  "updated": 1784214613
+}

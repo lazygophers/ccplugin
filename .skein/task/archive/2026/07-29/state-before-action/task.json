@@ -2,7 +2,7 @@
   "id": "state-before-action",
   "name": "main 调度状态先行铁律 (state-before-action)",
   "desc": "main 必须先改态再执行: task 先 start 才 exec / subtask 先 claim 占槽才派 / 全 done 先 skein check 才验证; 当前 skills 未把此上升为铁律, main 实操绕过",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -23,7 +23,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785061227,
@@ -49,7 +49,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785061227,
@@ -73,7 +73,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785061228,

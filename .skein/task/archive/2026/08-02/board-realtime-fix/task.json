@@ -2,7 +2,7 @@
   "id": "board-realtime-fix",
   "name": "看板实时性 + serve 崩溃修复",
   "desc": "task 详情页不实时更新、/ 不跳 board、serve 莫名退出、跨 task 调度不可视化、子任务 DAG 悬浮高亮",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -20,7 +20,7 @@
         1,
         2
       ],
-      "status": "已完成",
+      "status": "done",
       "phase": "exec",
       "skills": [],
       "created": 1785664628,
@@ -41,7 +41,7 @@
       "验收done": [
         1
       ],
-      "status": "已完成",
+      "status": "done",
       "phase": "exec",
       "skills": [],
       "created": 1785664628,
@@ -62,7 +62,7 @@
       "验收done": [
         1
       ],
-      "status": "已完成",
+      "status": "done",
       "phase": "exec",
       "skills": [],
       "created": 1785664628,
@@ -86,7 +86,7 @@
         1,
         2
       ],
-      "status": "已完成",
+      "status": "done",
       "phase": "exec",
       "skills": [],
       "created": 1785664629,

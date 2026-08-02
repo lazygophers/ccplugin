@@ -1,0 +1,18 @@
+{
+  "id": "spec-preview-links",
+  "name": "spec 预览本地文件引用超链接",
+  "desc": "spec 预览 (md.renderSafe) 支持 [[wikilink]] (Obsidian 式 spec 内文件引用) + 标准 [text](path) 本地文件路径链接渲染为可点击超链接",
+  "status": "待处理",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/spec-preview-links",
+  "created": 1784294791,
+  "started": null,
+  "checked": null,
+  "finished": null,
+  "updated": 1784294791
+}

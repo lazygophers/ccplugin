@@ -1,0 +1,37 @@
+{
+  "id": "allow-no-subtask",
+  "name": "允许 task 无 subtask 启动",
+  "desc": "移除 start 时 subtask 必填校验; subtask 可无但执行仍必派 agent (默认 skein-executor); 同步 skill 文案 + task.json/看板注释",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "rm-start-guard",
+      "name": "删 start/doctor subtask 必填校验 + 同步 skill 文案",
+      "desc": "删 skein.py start L514-515 + doctor L934-935 两处 subtask 必填校验; 同步 skein-flow SKILL.md 5 处文案 (无 subtask 硬拒→可无, 执行必派 agent); 看板展示文案不改",
+      "depends_on": [],
+      "验收": [
+        "python3 skein.py --help 正常"
+      ],
+      "验收done": [
+        1
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784295624,
+      "started": null,
+      "finished": 1784296721
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/allow-no-subtask",
+  "created": 1784295547,
+  "started": 1784296416,
+  "checked": null,
+  "finished": 1784296869,
+  "updated": 1784296869
+}

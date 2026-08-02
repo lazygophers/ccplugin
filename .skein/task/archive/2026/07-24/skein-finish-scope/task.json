@@ -2,7 +2,7 @@
   "id": "skein-finish-scope",
   "name": "finish 剥离核对",
   "desc": "finish 只收尾, subtask/验收核对归 check",
-  "status": "进行中",
+  "status": "active",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -13,7 +13,7 @@
       "depends_on": [],
       "验收": [],
       "验收done": [],
-      "status": "待处理",
+      "status": "pending",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784859623,

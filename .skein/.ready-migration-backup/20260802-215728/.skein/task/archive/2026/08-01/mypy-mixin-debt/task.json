@@ -1,0 +1,103 @@
+{
+  "id": "mypy-mixin-debt",
+  "name": "分包 Mixin 悬空属性 mypy 债",
+  "desc": "cac9849f6 分包后约 120 条 XxxMixin has no attribute, 卡住 doctor --quality 质量门",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "m1",
+      "name": "最大模块试点: 协议声明解法",
+      "desc": "在错误数最多的模块 (spec/maintain.py, 48 条) 落地属性协议声明, 证伪或证实解法 A",
+      "estimate": 1.5,
+      "depends_on": [],
+      "验收": [
+        "全量测试仍绿且用例数不减"
+      ],
+      "验收done": [
+        1
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785550388,
+      "started": 1785573409,
+      "finished": 1785573774
+    },
+    {
+      "sid": "m2",
+      "name": "推广到其余 Mixin 模块",
+      "desc": "按错误数降序处理 doctor/index/boardsource/write/inject 等",
+      "estimate": 2.5,
+      "depends_on": [
+        "m1"
+      ],
+      "验收": [
+        "Mixin attr-defined 全局归零"
+      ],
+      "验收done": [
+        1
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785550410,
+      "started": 1785573774,
+      "finished": 1785574191
+    },
+    {
+      "sid": "m3",
+      "name": "零散类型错误 + 质量门转绿",
+      "desc": "处理测试文件里的类型不兼容/多余忽略注释, 跑通质量门",
+      "estimate": 1.0,
+      "depends_on": [
+        "m2"
+      ],
+      "验收": [
+        "doctor --quality 通过"
+      ],
+      "验收done": [
+        1
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785550410,
+      "started": 1785574192,
+      "finished": 1785575515
+    },
+    {
+      "sid": "m4",
+      "name": "防复发守卫 + 反向验证",
+      "desc": "源码扫描守卫拦未声明依赖的新 Mixin; 故意写违规样例确认变红后删除",
+      "estimate": 1.0,
+      "depends_on": [
+        "m3"
+      ],
+      "验收": [
+        "守卫反向验证过 (见过红)"
+      ],
+      "验收done": [
+        1
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785550410,
+      "started": 1785575515,
+      "finished": 1785575914
+    }
+  ],
+  "priority": "normal",
+  "estimate": 6.0,
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/mypy-mixin-debt",
+  "parent": null,
+  "kind": "task",
+  "created": 1785549463,
+  "started": 1785573409,
+  "confirmed": 1785551607,
+  "checked": 1785575962,
+  "finished": 1785576834,
+  "updated": 1785576834,
+  "confirmed_by": "user"
+}

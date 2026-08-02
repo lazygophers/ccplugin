@@ -2,7 +2,7 @@
   "id": "split-design-skill",
   "name": "split-design-into-color-and-uiux",
   "desc": "拆 design skill 为 design-color + design-uiux 两个独立 skill, 各自完整 references",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -19,7 +19,7 @@
         1,
         2
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784696963,
@@ -41,7 +41,7 @@
         1,
         2
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784696964,
@@ -65,7 +65,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784696964,

@@ -2,7 +2,7 @@
   "id": "skein-flow-align",
   "name": "skein-flow 图与执行逻辑对齐",
   "desc": "修正 skein-flow.mmd + exec/check skill 使执行逻辑与预期一致(6点)",
-  "status": "检查中",
+  "status": "check",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -23,7 +23,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784821351,
@@ -57,7 +57,7 @@
         7,
         8
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784821351,

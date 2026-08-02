@@ -2,7 +2,7 @@
   "id": "optimize-any-skill",
   "name": "新建统一优化元 skill (optimize-any)",
   "desc": "提炼 darwin/nuwa/cangjie/grill 共性方法论，新建 skills/skill-dev/optimize-any/，可优化任意插件/skill/agent。与 skill-dev/plugin-dev 路由去重不重叠。无第三方直接依赖。validation-gated 验证优于改前。",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -13,7 +13,7 @@
       "depends_on": [],
       "验收": [],
       "验收done": [],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [
         "skill-dev"
@@ -31,7 +31,7 @@
       ],
       "验收": [],
       "验收done": [],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [
         "skill-dev"
@@ -49,7 +49,7 @@
       ],
       "验收": [],
       "验收done": [],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [
         "skill-dev"
@@ -68,7 +68,7 @@
       ],
       "验收": [],
       "验收done": [],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [
         "skill-dev"

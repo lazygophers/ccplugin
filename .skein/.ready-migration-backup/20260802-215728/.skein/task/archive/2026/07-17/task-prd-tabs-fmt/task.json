@@ -1,0 +1,169 @@
+{
+  "id": "task-prd-tabs-fmt",
+  "name": "task详情PRD章节化为tab/todo + prd.md fmt规范化hook",
+  "desc": "task详情页: PRD各章节(验收标准/目标/范围等)拆为独立tab或card, 一级list全解析为todo样式渲染。新增fmt能力: prd.md变更时自动将一级list转todo + 规范化章节输出, 不规范报错。可用CC hooks实现。涉及: webapp task.js前端 + skein python CLI(fmt/parse) + 可能CC hook接线。",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "prd-tabs-fmt-plan",
+      "name": "占位: 待 grill 细化 (PRD 章节 tab/todo + fmt hook)",
+      "desc": "占位 subtask 满足 doctor 结构不变量。该 task 排队第 3, 未进 grill/plan; turn 到时按 recon(.skein/task/task-prd-tabs-fmt/research/prd-tabs-fmt-recon.md) 重新拆分替换本占位。核心: task.js PRD 章节拆 tab/card + 一级 list 解析 todo; skein fmt CLI/hook 规范化 prd.md。",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784250003,
+      "started": 1784261559,
+      "finished": 1784261559
+    },
+    {
+      "sid": "prd-fe-tabs",
+      "name": "PRD tab 章节化 card+todo",
+      "desc": "webapp task.js PRD tab: docs.prd 前端按 ## 分节, 四章节 card/accordion 竖排, 一级 checkbox 渲染 todo 只读勾选态; design/findings tab 不动",
+      "depends_on": [],
+      "验收": [
+        "PRD tab 渲染四章节 card",
+        "checkbox 显只读勾选态",
+        "design/findings 仍整篇 md",
+        "软刷不崩不退化",
+        "顶层无条件指令"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784261559,
+      "started": 1784261682,
+      "finished": 1784262449
+    },
+    {
+      "sid": "fmt-cli",
+      "name": "skein fmt CLI 子命令",
+      "desc": "skein.py 加 fmt 子命令: add_parser+dispatch+MUTATING; def fmt 解析 prd.md 章节, 一级 list 补 - [ ] (保勾选态), 章节顺序/标题校验不规范报错非零退出, 幂等写回",
+      "depends_on": [],
+      "验收": [
+        "skein fmt <id> 可跑",
+        "一级 list→todo",
+        "幂等连跑两次一致",
+        "不规范报错非零",
+        "MUTATING 含 fmt"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784261559,
+      "started": 1784261682,
+      "finished": 1784261925
+    },
+    {
+      "sid": "fmt-hook",
+      "name": "prd.md PostToolUse fmt hook",
+      "desc": "plugin.json 加 PostToolUse(Edit|Write|MultiEdit)→skein-hooks fmt; hooks.py 加 cmd_fmt 分派: file_path 匹配 .skein/task/*/prd.md 才调 skein fmt <id>, 否则放行, 防循环",
+      "depends_on": [
+        "fmt-cli"
+      ],
+      "验收": [
+        "写 prd.md 后自动 fmt",
+        "非 prd.md 放行",
+        "无循环触发",
+        "serve/hook 实测通"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784261559,
+      "started": 1784261930,
+      "finished": 1784262545
+    },
+    {
+      "sid": "fmt-goal-todo",
+      "name": "fmt目标章节编号列表转todo",
+      "desc": "扩展 skein.py fmt: 目标+验收标准章节一级有序列表(N.)也转 - [ ] todo; 同步 _scaffold 模板目标用 todo; 保幂等",
+      "depends_on": [
+        "fmt-cli"
+      ],
+      "验收": [
+        "目标 N. 编号项转 - [ ]",
+        "验收标准同",
+        "已勾选保留",
+        "幂等连跑一致",
+        "_scaffold 新prd目标为todo"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784262449,
+      "started": 1784262459,
+      "finished": 1784262615
+    },
+    {
+      "sid": "check-tick",
+      "name": "check阶段勾选已完成验收项防重复",
+      "desc": "改 skein-check SKILL.md: 验证通过的 prd 验收项 main 用 Edit 回写 - [x] (复用 fmt hook 保态); 下轮 check checker 跳过已 - [x] 项防重复处理",
+      "depends_on": [
+        "fmt-cli"
+      ],
+      "验收": [
+        "SKILL.md 含回写指令+跳已勾项逻辑",
+        "过 claude -p 质量门",
+        "无逻辑矛盾"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784262449,
+      "started": 1784262545,
+      "finished": 1784262822
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/task-prd-tabs-fmt",
+  "estimate": null,
+  "created": 1784248973,
+  "started": 1784261675,
+  "finished": 1784263721,
+  "updated": 1784263721
+}

@@ -2,7 +2,7 @@
   "id": "skein-board-dag-click-scroll",
   "name": "board DAG 点击 task 卡片右侧滚到位置",
   "desc": "board 左侧 task DAG 点击 task 卡片, 预期右侧自动滚到该 task 卡片所在位置, 现状跳首页",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -13,7 +13,7 @@
       "depends_on": [],
       "验收": [],
       "验收done": [],
-      "status": "已完成",
+      "status": "done",
       "estimate": null,
       "agent": "skein-executor",
       "skills": [],

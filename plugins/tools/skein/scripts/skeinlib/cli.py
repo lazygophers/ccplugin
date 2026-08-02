@@ -1,199 +1,61 @@
-"""CLI 入口 — argparse 全量定义 + dispatch 表 + 工作区写锁。
+"""CLI 入口 — Typer 命令声明 + dispatch 表 + 工作区写锁。
 
 写盘命令统一在这里加 `_workspace_lock` (fcntl.flock 排他), 纯读命令免锁 —— 锁的边界只在这一
 处声明, 命令实现里不出现锁代码。新增写盘命令记得进 `MUTATING`, 漏了就是并发 read-modify-write。
 """
 from __future__ import annotations
 
-import argparse
+import os
+import subprocess
 import sys
+
+from types import SimpleNamespace
+from typing import Annotated, Optional
+
+try:
+    import typer
+except ModuleNotFoundError:
+    if os.environ.get("SKEIN_TYPER_BOOTSTRAPPED") != "1":
+        env = dict(os.environ, SKEIN_TYPER_BOOTSTRAPPED="1")
+        raise SystemExit(subprocess.run(["uv", "run", "python3", *sys.argv], env=env).returncode)
+    raise
 
 from skeinlib.hooks.runner import DBG, debug_enabled
 from skeinlib.commands import Skein, _persist_bash_cwd_env, _workspace_lock
 from skeinlib.task.model import PRD_TYPE_ALIAS
 
-def main() -> None:
-    p = argparse.ArgumentParser(
-        prog="skein.py",
-        description="SKEIN 任务管理引擎 — task 生命周期 + 看板 + 契约",
-        epilog="生命周期: init → create → (research ⇄ plan) → confirm(吸收 start) → check → finishing → finish → archive",
-    )
-    p.add_argument("-d", "--debug", action="store_true",
-                   help="rich 美化叙事到 stderr — 展示 git/写盘/锁/状态迁移全过程 (stdout 保持机器纯净; 亦可 SKEIN_DEBUG=1)")
-    p.add_argument("-j", "--json", action="store_true",
-                   help="全局 JSON 输出模式 (核心命令压缩为机器可解析格式)")
-    sub = p.add_subparsers(dest="cmd", required=True, metavar="<command>")
+app = typer.Typer(
+    help="SKEIN 任务管理引擎 — task 生命周期 + 看板 + 契约\n\n生命周期: init → create → (research ⇄ plan) → confirm(吸收 start) → check → finishing → finish → archive",
+    no_args_is_help=True,
+    add_completion=False,
+)
+config_app = typer.Typer(help="读写 .skein/config.yaml 配置", invoke_without_command=True)
+prd_app = typer.Typer(help="读/写/追加/勾选 prd 章节 (目标/边界/验收标准)")
 
-    sub.add_parser("init", help="初始化 .skein/ 工作区 (幂等)")
-    su = sub.add_parser("setup", help="初始化 + trellis 迁移 (默认兼容: 拷 spec/task + 删接线, 留 .trellis 数据; --full 再整删 .trellis)")
-    su.add_argument("--full", action="store_true", help="完全迁移+移除: 兼容操作 + 整删 .trellis/ (spec/task 已拷入 .skein)")
-    su.add_argument("--no-web", action="store_true", help="关闭持久看板 web 服务 (写 config.yaml web.serve=false; 缺省启用并打开看板)")
-    c = sub.add_parser("create", help="登记新 task (id/--name/--desc 必填)")
-    c.add_argument("id", help="可读 id (kebab-case slug, 如 order-create-api; 兼作分支/目录名)")
-    c.add_argument("--name", required=True, help="[必填] task 标题")
-    c.add_argument("--desc", required=True, help="[必填] 一句话描述")
-    c.add_argument("--deps", help="前置 task id, 逗号分隔")
-    c.add_argument("--repos", help="目标子 git, 逗号分隔 rel 路径 (多子 git 各开 worktree; 省略=单根/原地)")
-    c.add_argument("--kind", choices=["task", "supertask"], default="task",
-                   help="task 类型: task=普通/独立(默认) | supertask=父聚合层 (parent 必须 None, 限 2 层: supertask→task→subtask)")
-    c.add_argument("--parent", help="父 supertask id (建 child task; 父须为 supertask, 即其 parent 为 None — 禁 child 作父)")
-    c.add_argument("--estimate", type=float, help="预计工时(小时); 亦可后续用 skein estimate <id> --set 补 (confirm 前必填)")
-    c.add_argument("--priority", help="优先级: urgent/high/normal/low (省略落 normal/中)")
-    pr = sub.add_parser("priority", help="查/改 task 优先级 (urgent/high/normal/low; 任意状态均可改, 不打断已在跑的)")
-    pr.add_argument("id", help="task id")
-    pr.add_argument("--set", help="设置优先级 (urgent/high/normal/low); 省略则查看当前值")
-    es = sub.add_parser("estimate", help="查/填 task 预计工时(小时); confirm 硬门校验必填, 仅 pending/ready 可改")
-    es.add_argument("id", help="task id")
-    es.add_argument("--set", help="设置预计工时(小时, 正数); 省略则查看当前值")
-    rp = sub.add_parser("repos", help="查/声明 task 目标子 git (planning 声明, 各开 worktree; 仅 pending 可改)")
-    rp.add_argument("id", help="task id")
-    rp.add_argument("--set", help="设置目标子 git (逗号分隔 rel 路径; 空串=清空回单根模式); 省略则列出")
-    dp = sub.add_parser("deps", help="查/补 task 级前置 DAG (dedup 排序用; 仅 pending 且无既有 deps 可写)")
-    dp.add_argument("id", help="task id")
-    dp.add_argument("--set", help="设置前置 task id (逗号分隔; 仅当该 task 现无 deps 时允许); 省略则列出")
-    pt = sub.add_parser("parent", help="查/改既有 task 的 parent 挂载 (与 deps 正交, 不碰任何 deps; 摘除=--set 空串)")
-    pt.add_argument("id", help="task id")
-    pt.add_argument("--set", help="设置父 supertask/task id (空串=摘除, 省略则查看当前值)")
-    rs = sub.add_parser("research", help="待处理→调研中: 发起调研 (须先登记 ≥1 个 --phase research 的 subtask)")
-    rs.add_argument("id", help="task id")
-    pl = sub.add_parser("plan", help="调研中→待处理: 收敛调研回规划 (须 research subtask 全 done; 调研中不可直接 confirm)")
-    pl.add_argument("id", help="task id")
-    cf = sub.add_parser("confirm", help="用户确认门 (待处理→进行中, 吸收原 start): 须**用户本人**审核 PRD 后才放行, 两条通道见 --approved / 终端交互")
-    cf.add_argument("id", help="task id")
-    cf.add_argument("--summary", action="store_true",
-                    help="只打印 PRD 审核摘要到 stdout 后退出, 不改状态 — 供 main 塞进 AskUserQuestion 给用户看")
-    cf.add_argument("--approved", action="store_true",
-                    help="用户已在 AskUserQuestion 里批准 (main 专用)。🛑 只准在真拿到用户批准后传, "
-                         "自己传 = 伪造用户审核, 属流程错误")
-    ck = sub.add_parser("check", help="标记 task 进入检查阶段 (进行中→检查中, 记 checked 时刻)")
-    ck.add_argument("id", help="task id")
-    fi = sub.add_parser("finishing", help="检查中→收尾中: 占 gate 槽 (上限 pools.gate), main 收到后派 skein-finisher 完成 finish")
-    fi.add_argument("id", help="task id")
-    f = sub.add_parser("finish", help="收束 task (仅收尾中可调): commit→merge→销 worktree→标记完成 (归档=保留期后自动)")
-    f.add_argument("id", help="task id")
-    fm = sub.add_parser("fmt", help="规范化 prd.md: 章节内一级 list 补 - [ ] todo + 校验六标准章节 (旧四段兼容态 warning; 幂等)")
-    fm.add_argument("id", help="task id")
-    ar = sub.add_parser("archive", help="归档 task (不合并, 仅移入 archived)")
-    ar.add_argument("id", help="task id")
-    # del/delete/rm/remove 同一 handler (argparse aliases 单行 help, 4 别名等价): 删 task 软删进 trash, 带 sid 删单 subtask
-    _d = sub.add_parser("del", aliases=["delete", "rm", "remove"],
-        help="删 task (软删进 .skein/trash/, 可恢复) 或单 subtask (del <id> [sid] [--dry-run])")
-    _d.add_argument("task_id", help="task id")
-    _d.add_argument("subtask_sid", nargs="?", help="subtask id (有则删该 subtask, task 不动; 无则删整个 task)")
-    _d.add_argument("--dry-run", action="store_true", help="预览将删什么, 不动盘")
-    rn = sub.add_parser("rename", help="重命名 task/subtask 的 id 或 name (rename <tid> [sid] [--id NEW] [--name NEW]; task id 仅 pending)")
-    rn.add_argument("tid", help="task id")
-    rn.add_argument("sid", nargs="?", help="subtask id (给则改该 subtask, 否则改 task)")
-    rn.add_argument("--id", dest="id", help="新 id/sid (task id 仅 pending 可改, 同步跨引用)")
-    rn.add_argument("--name", help="新显示名")
-    cfg_p = sub.add_parser("config", help="读写 .skein/config.yaml 配置 (无参=展示全部 | --json 机器可解析 | set <key> <value> | reset)")
-    cfg_p.add_argument("--json", action="store_true", help="无参展示时输出嵌套 JSON (供 jq 解析, 如 skein config --json | jq -r .worktree.enabled)")
-    cfg_sub = cfg_p.add_subparsers(dest="action")
-    cs = cfg_sub.add_parser("set", help="写单个配置键")
-    cs.add_argument("key")
-    cs.add_argument("value")
-    cfg_sub.add_parser("reset", help="重置全部配置为默认值")
-    cl = sub.add_parser("clean", help="[用户主动] 归档完成超保留期的 task (skein-clean skill 入口)")
-    cl.add_argument("--days", type=int, help="保留范围: 归档完成超此天数的 task (省略用 config retain_days; 0=全部完成 task 立即归档)")
-    sub.add_parser("migrate-priority", help="[一次性] 存量 0-10 数字优先级迁移为四档枚举; 迁移前自动备份原文件, 幂等可重跑")
-    sub.add_parser("migrate-ready", help="[一次性] 存量「就绪」status 迁移为待处理 (confirm 已吸收 start); 迁移前自动备份原文件, 幂等可重跑")
-    sub.add_parser("current", help="列全部 active task (无 focus, 就绪皆可并行)")
-    sub.add_parser("ready", help="脚本算可启动 task 批 (就绪态+前置全done+有空闲槽, 只读预览)")
-    cm = sub.add_parser("claim", help="全局跨 task 认领批; phase 省略则同时返回 exec + check")
-    cm.add_argument("phase", nargs="?", choices=["exec", "check"],
-                    help="exec=认领 ready subtask → running (所有可调度 task 的 ready subtask 竞争 pools.work 槽); check=认领 全 subtask done 的 进行中 task → 检查中 + 认领 全 subtask done 的 检查中 task → 收尾中(占 gate 槽); 省略=同时返回 exec + check")
-    cm.add_argument("--task", dest="task", help="只认领指定 task 的 subtask (仅 exec phase 生效)")
-    cm.add_argument("--dry-run", action="store_true", help="只读预览认领批, 不改状态")
-    li = sub.add_parser("list", help="列所有 task (含状态); --status 过滤 + --json 压缩输出")
-    li.add_argument("--status", help="过滤: 待处理/调研中/进行中/检查中/收尾中/已完成 "
-                                     "(或 pending/research/active/check/finishing/done), open=全部未完成; 逗号多选")
-    li.add_argument("--json", action="store_true",
-                    help="压缩单行 JSON (exec 取未完成任务用, 省 token); 每项 {id,status,name,desc,deps,worktree,priority,pct,subs:[done,run,pend,fail],ready}")
-    _doc = sub.add_parser("doctor", help="纯脚本体检 task/subtask 不变量违规 (有错 exit 1, 可 CI/hook 门禁); --quality 再跑 mypy+pytest 质量门")
-    _doc.add_argument("-Q", "--quality", action="store_true",
-                      help="体检后再跑质量门: mypy --strict 全源码 0 错 + pytest 全 suite pass (慢, CI/hook 按需调)")
-    sub.add_parser("board", help="渲染 .skein/task.md 看板")
-    sub.add_parser("view", help="起 http 服务并打开可视化看板 (仅此命令主动打开)")
-    _sp_serve = sub.add_parser("serve", help="持久看板 http 服务 (手动跑无视 web.serve 强起; --auto 为 monitor 自动起入口, 遵 web.serve 开关)")
-    _sp_serve.add_argument("--auto", action="store_true", help="monitor 自动起模式: 遵 config web.serve (=false 则 no-op 退出); 省略=手动, 无视开关强起")
-    sub.add_parser("session-context", help="[hook 用] 注入活跃 task 状态")
-    co = sub.add_parser("contract", help="查/加 task 契约 (check 逐条验)")
-    co.add_argument("id", help="task id")
-    co.add_argument("--add", help="追加一条契约 (省略则列出)")
-    pp = sub.add_parser("prd", help="读/写/追加/勾选 prd 章节 (目标/边界/验收标准); 禁裸 Edit prd.md")
-    pp_sub = pp.add_subparsers(dest="action", required=True,
-                               help="read 读 / write 整章重建 / add 追加 / check 勾选 / uncheck 反勾选")
-    for act in ("read", "write", "add", "check", "uncheck"):
-        pa = pp_sub.add_parser(act, help={
-            "read": "读章节正文 (不需 --list)",
-            "write": "整章清重建 (仅保留 ## 标题, 旧内容全清, 替换为 --list 条目)",
-            "add": "追加 --list 条目到章节末 (已有保留)",
-            "check": "勾选章节内匹配 --list 文本的 `- [ ]` 行为 `- [x]`",
-            "uncheck": "反勾选 (匹配 --list 文本的 `- [x]` 行为 `- [ ]`)",
-        }[act])
-        pa.add_argument("id", help="task id")
-        pa.add_argument("--type", required=True, metavar="{目标,goal,边界,scope,验收标准,acceptance}",
-                        choices=list(PRD_TYPE_ALIAS.keys()),
-                        help="操作章节 (中英都支持, 内部归一到中文)")
-        if act != "read":
-            pa.add_argument("--list", required=True,
-                            help="文本内容 (\\n 多行; check/uncheck 时为子串匹配文本)")
-    stt = sub.add_parser("status", help="查 task 态 + subtask 汇总; 带 sid 出单个 subtask 明细 (只读)")
-    stt.add_argument("tid", help="task id")
-    stt.add_argument("sid", nargs="?", help="subtask id (省略出整 task 汇总)")
-    stt.add_argument("--json", action="store_true", help="压缩 JSON 输出")
-    st = sub.add_parser(
-        "subtask", help="单 task 内 subtask DAG 调度 (add/claim/ready/start/show/done/fail/list)",
-        epilog="调度环: claim 认领就绪批 (整批标 running) → main 逐个派 skein-executor → 完成即 done/fail → 再 claim (并发 pools.work)")
-    st.add_argument("action", choices=["add", "claim", "ready", "start", "check", "show", "done", "fail", "list"],
-                    help="add 登记 / claim 认领就绪批(整批标running) / ready 只读预览 / start 单个占槽 / check 勾验收(算百分比) / show 查全字段 / done 完成 / fail 失败 / list 列态")
-    st.add_argument("tid", help="所属 task id")
-    st.add_argument("sid", nargs="?", help="subtask id (add/start/show/done/fail 必带; add 时 sid/name/desc 必填)")
-    st.add_argument("--name", help="[add 必填] subtask 名称")
-    st.add_argument("--desc", help="[add 必填] 一句话描述")
-    st.add_argument("--estimate", help="[add 必填] 预计工时(小时, 正数) — 按本 subtask 实际要做的事逐项估")
-    st.add_argument("--deps", help="[add] 前置 subtask id, 逗号分隔 (依赖全 done 才就绪; 并行只看此 DAG)")
-    st.add_argument("--check", help="[add] 验收标准 checklist, 分号分隔 (每条一个可验断言)")
-    st.add_argument("--phase", choices=["exec", "research"],
-                    help="[add] subtask 阶段: exec(改码/写产出, 默认) | research(查资料); "
-                         "≥1 个 research subtask 才可 `skein research` 发起调研")
-    st.add_argument("--note", help="[fail] 失败备注")
-    st.add_argument("--passed", help="[check] 已通过验收标准序号(1-based), 逗号分隔; all=全过, none=清空")
-    st.add_argument("--skills", help="[add] 关联 skills, 逗号分隔 (0-n, 省略即无)")
+MUTATING = {"init", "setup", "create", "confirm", "research", "plan", "check", "finishing",
+            "finish", "fmt", "archive", "clean",
+            "contract", "repos", "deps", "parent", "estimate", "priority", "subtask", "claim",
+            "prd", "del", "delete", "rm", "remove",
+            "rename", "config", "migrate-priority", "migrate-ready"}
 
-    # --debug / --json 可置子命令前后任意位置: 预剥离 argv (argparse 子解析器不认父级 flag), 再据此建 DBG
-    cli_debug = any(x in ("-d", "--debug") for x in sys.argv[1:])
-    cli_json = any(x in ("-j", "--json") for x in sys.argv[1:])
-    sys.argv[1:] = [x for x in sys.argv[1:] if x not in ("-d", "--debug", "-j", "--json")]
-    a = p.parse_args()
-    a.json = cli_json  # 全局 json 模式 (与命令级 --json 或共存)
-    DBG.enable(cli_debug or debug_enabled(None))  # 单例原地开关, 见 hooks.runner.Debug.enable
-    DBG.rule(f"skein {a.cmd}")
-    DBG.kv({k: v for k, v in vars(a).items() if k not in ("cmd", "debug") and v not in (None, False)},
-           title="参数")
-    if getattr(a, "cmd", None) == "subtask" and a.action in ("add", "start", "check", "show", "done", "fail") and not a.sid:
-        p.error(f"subtask {a.action} 需要 sid")
-    if getattr(a, "cmd", None) == "subtask" and a.action == "add":
-        missing = [f for f, v in (("--name", a.name), ("--desc", a.desc),
-                                  ("--estimate", a.estimate)) if not v]
-        if missing:
-            p.error(f"subtask add 必填: {', '.join(missing)} (sid/name/desc/estimate 缺一不可)")
-    if a.cmd == "session-context":
-        # hook 在任意仓库每 session 都跑: 非 git 且无 .skein → 方法内静默返回; git 仓无 .skein → 注入 setup 建议
-        # env 持久化与 git 无关, 必须先于 Skein() 跑 —— 微服务/前后端分离场景 cwd 无 git (子目录各自是仓)。
-        _persist_bash_cwd_env()  # 随插件发货 _ENV_EXPORTS (cwd 保持 + 禁 agent-teams; plugin.json 无 env 字段, 只能经 CLAUDE_ENV_FILE)
+
+def _namespace(cmd: str, **kwargs: object) -> SimpleNamespace:
+    data = {"cmd": cmd, "json": False}
+    data.update(kwargs)
+    return SimpleNamespace(**data)
+
+
+def _dispatch(a: SimpleNamespace) -> None:
+    if getattr(a, "cmd", None) == "session-context":
+        _persist_bash_cwd_env()
         Skein().session_context()
         return
     sk = Skein()
-    # 命令 → 负责它的协作对象 (见 commands.Skein 的装配图)。门面上刻意没有转发方法 ——
-    # 这张表就是「谁负责什么」的唯一声明, 加命令只改这一处。
     dispatch = {
-        # Admin: 工作区级 (不带 task id)
         "init": sk.admin.init, "setup": sk.admin.setup, "config": sk.admin.config_cmd,
         "clean": sk.admin.clean, "board": sk.admin.board,
         "migrate-priority": sk.admin.migrate_priority,
         "migrate-ready": sk.admin.migrate_ready,
-        # Lifecycle: 单 task 状态机 + 计划字段
         "create": sk.lifecycle.create, "confirm": sk.lifecycle.confirm,
         "research": sk.lifecycle.research, "plan": sk.lifecycle.plan,
         "check": sk.lifecycle.check, "finishing": sk.lifecycle.finishing,
@@ -203,26 +65,396 @@ def main() -> None:
         "estimate": sk.lifecycle.estimate, "priority": sk.lifecycle.priority, "rename": sk.lifecycle.rename,
         "del": sk.lifecycle.del_, "delete": sk.lifecycle.del_,
         "rm": sk.lifecycle.del_, "remove": sk.lifecycle.del_,
-        # Scheduler: subtask DAG 调度
         "claim": sk.scheduler.claim, "subtask": sk.scheduler.subtask,
-        # Query: 只读投影 (故不在 MUTATING 里)
         "current": sk.query.current, "ready": sk.query.ready,
         "status": sk.query.status, "list": sk.query.list_,
-        # Artifacts: task 工件读写
         "fmt": sk.artifacts.fmt, "prd": sk.artifacts.prd, "contract": sk.artifacts.contract,
-        # 门面自带 (两个 mixin)
         "view": sk.view, "serve": sk.serve, "doctor": sk.doctor,
     }
-    # 会写 task.json / task.md 的命令加工作区写锁 (防多 skein 进程并发 read-modify-write)。
-    # 纯读命令 (current/ready/list/board/view) 免锁。subtask 含读 action 但整体加锁最省事。
-    MUTATING = {"init", "setup", "create", "confirm", "research", "plan", "check", "finishing",
-                "finish", "fmt", "archive", "clean",
-                "contract", "repos", "deps", "parent", "estimate", "priority", "subtask", "claim",
-                "prd", "del", "delete", "rm", "remove",
-                "rename", "config", "migrate-priority", "migrate-ready"}
+    DBG.rule(f"skein {a.cmd}")
+    DBG.kv({k: v for k, v in vars(a).items() if k not in ("cmd", "debug") and v not in (None, False)}, title="参数")
     if a.cmd in MUTATING:
         with _workspace_lock(sk.dir / ".lock"):
             dispatch[a.cmd](a)
     else:
         dispatch[a.cmd](a)
     DBG.log(f"✓ {a.cmd} 完成", style="bold green")
+
+
+def _run(cmd: str, **kwargs: object) -> None:
+    _dispatch(_namespace(cmd, **kwargs))
+
+
+@app.callback()
+def root() -> None:
+    """SKEIN 任务管理引擎。"""
+
+
+@app.command()
+def init() -> None:
+    """初始化 .skein/ 工作区 (幂等)。"""
+    _run("init")
+
+
+@app.command()
+def setup(full: bool = typer.Option(False, "--full"), no_web: bool = typer.Option(False, "--no-web")) -> None:
+    """初始化 + trellis 迁移。"""
+    _run("setup", full=full, no_web=no_web)
+
+
+@app.command()
+def create(
+    id: Annotated[str, typer.Argument(help="可读 id")],
+    name: Annotated[str, typer.Option("--name", help="task 标题")],
+    desc: Annotated[str, typer.Option("--desc", help="一句话描述")],
+    deps: Annotated[Optional[str], typer.Option("--deps")] = None,
+    repos: Annotated[Optional[str], typer.Option("--repos")] = None,
+    kind: Annotated[str, typer.Option("--kind")] = "task",
+    parent: Annotated[Optional[str], typer.Option("--parent")] = None,
+    estimate: Annotated[Optional[float], typer.Option("--estimate")] = None,
+    priority: Annotated[Optional[str], typer.Option("--priority")] = None,
+) -> None:
+    """登记新 task。"""
+    _run("create", id=id, name=name, desc=desc, deps=deps, repos=repos, kind=kind, parent=parent,
+         estimate=estimate, priority=priority)
+
+
+@app.command()
+def priority(id: str, set_: Annotated[Optional[str], typer.Option("--set")] = None) -> None:
+    """查/改 task 优先级。"""
+    _run("priority", id=id, set=set_)
+
+
+@app.command()
+def estimate(id: str, set_: Annotated[Optional[str], typer.Option("--set")] = None) -> None:
+    """查/填 task 预计工时。"""
+    _run("estimate", id=id, set=set_)
+
+
+@app.command()
+def repos(id: str, set_: Annotated[Optional[str], typer.Option("--set")] = None) -> None:
+    """查/声明 task 目标子 git。"""
+    _run("repos", id=id, set=set_)
+
+
+@app.command()
+def deps(id: str, set_: Annotated[Optional[str], typer.Option("--set")] = None) -> None:
+    """查/补 task 级前置 DAG。"""
+    _run("deps", id=id, set=set_)
+
+
+@app.command()
+def parent(id: str, set_: Annotated[Optional[str], typer.Option("--set")] = None) -> None:
+    """查/改既有 task 的 parent 挂载。"""
+    _run("parent", id=id, set=set_)
+
+
+@app.command()
+def research(id: str) -> None:
+    """待处理→调研中。"""
+    _run("research", id=id)
+
+
+@app.command()
+def plan(id: str) -> None:
+    """调研中→待处理。"""
+    _run("plan", id=id)
+
+
+@app.command()
+def confirm(
+    id: str,
+    summary: Annotated[bool, typer.Option("--summary")] = False,
+    approved: Annotated[bool, typer.Option("--approved")] = False,
+) -> None:
+    """用户确认门。"""
+    _run("confirm", id=id, summary=summary, approved=approved)
+
+
+@app.command()
+def check(id: str) -> None:
+    """标记 task 进入检查阶段。"""
+    _run("check", id=id)
+
+
+@app.command()
+def finishing(id: str) -> None:
+    """检查中→收尾中。"""
+    _run("finishing", id=id)
+
+
+@app.command()
+def finish(id: str) -> None:
+    """收束 task。"""
+    _run("finish", id=id)
+
+
+@app.command()
+def fmt(id: str) -> None:
+    """规范化 prd.md。"""
+    _run("fmt", id=id)
+
+
+@app.command()
+def archive(id: str) -> None:
+    """归档 task。"""
+    _run("archive", id=id)
+
+
+def _delete(ctx: typer.Context, dry_run: bool = False, cmd: str = "del") -> None:
+    args = list(ctx.args)
+    if len(args) < 1 or len(args) > 2:
+        raise typer.BadParameter(f"{cmd} 用法: {cmd} <task_id> [subtask_sid]")
+    task_id = args[0]
+    subtask_sid = args[1] if len(args) == 2 else None
+    _run(cmd, task_id=task_id, subtask_sid=subtask_sid, dry_run=dry_run)
+
+
+@app.command("del", context_settings={"allow_extra_args": True, "ignore_unknown_options": False})
+def del_(ctx: typer.Context, dry_run: Annotated[bool, typer.Option("--dry-run")] = False) -> None:
+    """删 task 或单 subtask。"""
+    _delete(ctx, dry_run, "del")
+
+
+@app.command(context_settings={"allow_extra_args": True, "ignore_unknown_options": False})
+def delete(ctx: typer.Context, dry_run: Annotated[bool, typer.Option("--dry-run")] = False) -> None:
+    """del alias。"""
+    _delete(ctx, dry_run, "delete")
+
+
+@app.command(context_settings={"allow_extra_args": True, "ignore_unknown_options": False})
+def rm(ctx: typer.Context, dry_run: Annotated[bool, typer.Option("--dry-run")] = False) -> None:
+    """del alias。"""
+    _delete(ctx, dry_run, "rm")
+
+
+@app.command(context_settings={"allow_extra_args": True, "ignore_unknown_options": False})
+def remove(ctx: typer.Context, dry_run: Annotated[bool, typer.Option("--dry-run")] = False) -> None:
+    """del alias。"""
+    _delete(ctx, dry_run, "remove")
+
+
+@app.command()
+def rename(tid: str, sid: Optional[str] = None,
+           id: Annotated[Optional[str], typer.Option("--id")] = None,
+           name: Annotated[Optional[str], typer.Option("--name")] = None) -> None:
+    """重命名 task/subtask。"""
+    _run("rename", tid=tid, sid=sid, id=id, name=name)
+
+
+@app.command()
+def clean(days: Annotated[Optional[int], typer.Option("--days")] = None) -> None:
+    """归档完成超保留期的 task。"""
+    _run("clean", days=days)
+
+
+@app.command("migrate-priority")
+def migrate_priority() -> None:
+    """存量数字优先级迁移。"""
+    _run("migrate-priority")
+
+
+@app.command("migrate-ready")
+def migrate_ready() -> None:
+    """存量中文 status 迁移。"""
+    _run("migrate-ready")
+
+
+@app.command()
+def current() -> None:
+    """列全部 active task。"""
+    _run("current")
+
+
+@app.command()
+def ready() -> None:
+    """脚本算可启动 task 批。"""
+    _run("ready")
+
+
+@app.command()
+def claim(
+    phase: Annotated[Optional[str], typer.Argument(help="exec/check; 省略=同时返回两路")] = None,
+    task: Annotated[Optional[str], typer.Option("--task")] = None,
+    dry_run: Annotated[bool, typer.Option("--dry-run")] = False,
+) -> None:
+    """全局跨 task 认领批。"""
+    if phase not in (None, "exec", "check"):
+        raise typer.BadParameter("phase 仅允许 exec/check")
+    _run("claim", phase=phase, task=task, dry_run=dry_run)
+
+
+@app.command("list")
+def list_(status: Annotated[Optional[str], typer.Option("--status")] = None,
+          json_: Annotated[bool, typer.Option("--json")] = False) -> None:
+    """列所有 task。"""
+    _run("list", status=status, json=json_)
+
+
+@app.command()
+def doctor(quality: Annotated[bool, typer.Option("--quality", "-Q")] = False) -> None:
+    """纯脚本体检。"""
+    _run("doctor", quality=quality)
+
+
+@app.command()
+def board() -> None:
+    """渲染 .skein/task.md 看板。"""
+    _run("board")
+
+
+@app.command()
+def view() -> None:
+    """起 http 服务并打开可视化看板。"""
+    _run("view")
+
+
+@app.command()
+def serve(auto: Annotated[bool, typer.Option("--auto")] = False) -> None:
+    """持久看板 http 服务。"""
+    _run("serve", auto=auto)
+
+
+@app.command("session-context")
+def session_context() -> None:
+    """hook 用: 注入活跃 task 状态。"""
+    _run("session-context")
+
+
+@app.command()
+def contract(id: str, add: Annotated[Optional[str], typer.Option("--add")] = None) -> None:
+    """查/加 task 契约。"""
+    _run("contract", id=id, add=add)
+
+
+@app.command()
+def status(tid: str, sid: Optional[str] = None,
+           json_: Annotated[bool, typer.Option("--json")] = False) -> None:
+    """查 task 态 + subtask 汇总。"""
+    _run("status", tid=tid, sid=sid, json=json_)
+
+
+@app.command(context_settings={"allow_extra_args": True, "ignore_unknown_options": False})
+def subtask(
+    ctx: typer.Context,
+    name: Annotated[Optional[str], typer.Option("--name")] = None,
+    desc: Annotated[Optional[str], typer.Option("--desc")] = None,
+    estimate: Annotated[Optional[str], typer.Option("--estimate")] = None,
+    deps: Annotated[Optional[str], typer.Option("--deps")] = None,
+    check: Annotated[Optional[str], typer.Option("--check")] = None,
+    phase: Annotated[Optional[str], typer.Option("--phase")] = None,
+    note: Annotated[Optional[str], typer.Option("--note")] = None,
+    passed: Annotated[Optional[str], typer.Option("--passed")] = None,
+    skills: Annotated[Optional[str], typer.Option("--skills")] = None,
+) -> None:
+    """单 task 内 subtask DAG 调度。"""
+    args = list(ctx.args)
+    if len(args) < 2 or len(args) > 3:
+        raise typer.BadParameter("subtask 用法: subtask <action> <tid> [sid]")
+    action, tid = args[0], args[1]
+    sid = args[2] if len(args) == 3 else None
+    if action not in ("add", "claim", "ready", "start", "check", "show", "done", "fail", "list"):
+        raise typer.BadParameter("action 仅允许 add/claim/ready/start/check/show/done/fail/list")
+    if action in ("add", "start", "check", "show", "done", "fail") and not sid:
+        raise typer.BadParameter(f"subtask {action} 需要 sid")
+    if action == "add":
+        missing = [flag for flag, value in (("--name", name), ("--desc", desc), ("--estimate", estimate)) if not value]
+        if missing:
+            raise typer.BadParameter(f"subtask add 必填: {', '.join(missing)} (sid/name/desc/estimate 缺一不可)")
+    if phase not in (None, "exec", "research"):
+        raise typer.BadParameter("phase 仅允许 exec/research")
+    _run("subtask", action=action, tid=tid, sid=sid, name=name, desc=desc, estimate=estimate,
+         deps=deps, check=check, phase=phase, note=note, passed=passed, skills=skills)
+
+
+app.add_typer(config_app, name="config")
+
+
+@config_app.callback(invoke_without_command=True)
+def config(ctx: typer.Context, json_: Annotated[bool, typer.Option("--json")] = False) -> None:
+    """无参展示全部配置。"""
+    if ctx.invoked_subcommand is None:
+        _run("config", action=None, json=json_, key=None, value=None)
+
+
+@config_app.command("set")
+def config_set(key: str, value: str) -> None:
+    """写单个配置键。"""
+    _run("config", action="set", key=key, value=value, json=False)
+
+
+@config_app.command("reset")
+def config_reset() -> None:
+    """重置全部配置为默认值。"""
+    _run("config", action="reset", key=None, value=None, json=False)
+
+
+app.add_typer(prd_app, name="prd")
+
+
+@prd_app.callback()
+def prd() -> None:
+    """PRD 章节操作。"""
+
+
+def _prd_action(action: str, id: str, type_: str, list_: Optional[str]) -> None:
+    if type_ not in PRD_TYPE_ALIAS:
+        raise typer.BadParameter(f"--type 仅允许: {', '.join(PRD_TYPE_ALIAS)}")
+    _run("prd", action=action, id=id, type=type_, list=list_)
+
+
+@prd_app.command("read")
+def prd_read(id: str, type_: Annotated[str, typer.Option("--type")]) -> None:
+    """读章节正文。"""
+    _prd_action("read", id, type_, None)
+
+
+@prd_app.command("write")
+def prd_write(id: str, type_: Annotated[str, typer.Option("--type")],
+              list_: Annotated[str, typer.Option("--list")]) -> None:
+    """整章清重建。"""
+    _prd_action("write", id, type_, list_)
+
+
+@prd_app.command("add")
+def prd_add(id: str, type_: Annotated[str, typer.Option("--type")],
+            list_: Annotated[str, typer.Option("--list")]) -> None:
+    """追加条目。"""
+    _prd_action("add", id, type_, list_)
+
+
+@prd_app.command("check")
+def prd_check(id: str, type_: Annotated[str, typer.Option("--type")],
+              list_: Annotated[str, typer.Option("--list")]) -> None:
+    """勾选条目。"""
+    _prd_action("check", id, type_, list_)
+
+
+@prd_app.command("uncheck")
+def prd_uncheck(id: str, type_: Annotated[str, typer.Option("--type")],
+                list_: Annotated[str, typer.Option("--list")]) -> None:
+    """反勾选条目。"""
+    _prd_action("uncheck", id, type_, list_)
+
+
+def _strip_global_flags(argv: list[str]) -> tuple[list[str], bool, bool]:
+    cli_debug = any(arg in ("-d", "--debug") for arg in argv)
+    cli_json = any(arg in ("-j", "--json") for arg in argv)
+    return [arg for arg in argv if arg not in ("-d", "--debug", "-j", "--json")], cli_debug, cli_json
+
+
+def main() -> None:
+    argv, cli_debug, cli_json = _strip_global_flags(sys.argv[1:])
+    DBG.enable(cli_debug or debug_enabled(None))
+    original_namespace = _namespace
+
+    def namespace_with_json(cmd: str, **kwargs: object) -> SimpleNamespace:
+        a = original_namespace(cmd, **kwargs)
+        a.json = bool(getattr(a, "json", False) or cli_json)
+        return a
+
+    globals()["_namespace"] = namespace_with_json
+    try:
+        app(args=argv, prog_name="skein.py")
+    finally:
+        globals()["_namespace"] = original_namespace

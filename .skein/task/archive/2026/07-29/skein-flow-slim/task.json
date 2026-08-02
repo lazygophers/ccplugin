@@ -2,7 +2,7 @@
   "id": "skein-flow-slim",
   "name": "skein-flow skill 瘦身 (降 token + 去重复/冲突)",
   "desc": "SKILL.md 37KB≈12k token/次调用 + description 330字常驻。激进档: 四阶段细则下沉 references, SKILL.md 只留路由+硬门+完成判据; 删 8 处与 references 逐字重复段; 修 4 处硬冲突 (自降级口子/max_parallel 幽灵配置名/文件数阈值三套/plan-ahead confirm 矛盾)。",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [
     "行为语义零变更: 精简/下沉后所有硬门(状态先行三门/grill硬门/check未绿禁finish/禁自降级)与载体铁律必须仍然生效, 只改组织方式不改规则本身",
@@ -36,7 +36,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785247898,
@@ -60,7 +60,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785247898,
@@ -84,7 +84,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785247898,
@@ -114,7 +114,7 @@
         5,
         6
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785248504,
@@ -148,7 +148,7 @@
         6,
         7
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785248505,
@@ -174,7 +174,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785248505,

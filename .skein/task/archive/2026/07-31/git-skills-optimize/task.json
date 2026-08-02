@@ -2,7 +2,7 @@
   "id": "git-skills-optimize",
   "name": "按 writing-great-skills 优化 skills/git/ 四个 skill (试点)",
   "desc": "以 Matt Pocock writing-great-skills 方法论诊断并改写 skills/git/ 下 4 个 SKILL.md, 跑 claude -p 质量门, 产出可复用优化 checklist 供其余 9 个 skill 推广",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -30,7 +30,7 @@
         6,
         7
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785317736,
       "started": 1785318202,
@@ -64,7 +64,7 @@
         8,
         9
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785317736,
       "started": 1785318202,
@@ -100,7 +100,7 @@
         8,
         9
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785317737,
       "started": 1785318989,
@@ -130,7 +130,7 @@
         6,
         7
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785317737,
       "started": 1785319278,
@@ -169,7 +169,7 @@
         8,
         9
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785317737,
       "started": 1785320051,
@@ -205,7 +205,7 @@
         8,
         9
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785318148,
       "started": 1785320226,
@@ -243,7 +243,7 @@
         9,
         10
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785318149,
       "started": 1785320913,
@@ -277,7 +277,7 @@
         7,
         8
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785318149,
       "started": 1785320913,
@@ -313,7 +313,7 @@
         8,
         9
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785318149,
       "started": 1785321513,
@@ -347,7 +347,7 @@
         7,
         8
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785318149,
       "started": 1785321695,
@@ -381,7 +381,7 @@
         7,
         8
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785318149,
       "started": 1785321905,
@@ -415,7 +415,7 @@
         7,
         8
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785318149,
       "started": 1785321997,
@@ -449,7 +449,7 @@
         7,
         8
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785318149,
       "started": 1785320226,
@@ -488,7 +488,7 @@
         9,
         10
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785318149,
       "started": 1785322209,

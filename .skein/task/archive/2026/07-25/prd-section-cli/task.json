@@ -2,7 +2,7 @@
   "id": "prd-section-cli",
   "name": "prd 章节 CLI (读/更/覆盖写)",
   "desc": "skein.py 加 prd 子命令: 读取/更新/覆盖写 prd.md 的 目标/边界/验收标准 章节",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -21,7 +21,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784612271,

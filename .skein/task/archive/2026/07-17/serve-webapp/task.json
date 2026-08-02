@@ -2,7 +2,7 @@
   "id": "serve-webapp",
   "name": "重设计 skein serve 为工程化多页面管理平台",
   "desc": "serve 单页看板重构为7页面工程化管理平台(dashboard/board/queue/task/spec/commands/archive), buildless工程化(Tailwind standalone+petite-vue+ES modules), 新建assets/webapp/, 复用现有oklch令牌+10主题",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -23,7 +23,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "estimate": 30,
       "agent": "skein-executor",
       "skills": [],
@@ -52,7 +52,7 @@
         5,
         6
       ],
-      "status": "已完成",
+      "status": "done",
       "estimate": 45,
       "agent": "skein-executor",
       "skills": [],
@@ -82,7 +82,7 @@
         4,
         5
       ],
-      "status": "已完成",
+      "status": "done",
       "estimate": 30,
       "agent": "skein-executor",
       "skills": [],
@@ -107,7 +107,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "estimate": 25,
       "agent": "skein-executor",
       "skills": [],
@@ -130,7 +130,7 @@
         1,
         2
       ],
-      "status": "已完成",
+      "status": "done",
       "estimate": 30,
       "agent": "skein-executor",
       "skills": [],
@@ -155,7 +155,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "estimate": 20,
       "agent": "skein-executor",
       "skills": [],
@@ -182,7 +182,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "estimate": 30,
       "agent": "skein-executor",
       "skills": [],
@@ -211,7 +211,7 @@
         4,
         5
       ],
-      "status": "已完成",
+      "status": "done",
       "estimate": 35,
       "agent": "skein-executor",
       "skills": [],
@@ -238,7 +238,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "estimate": 30,
       "agent": "skein-executor",
       "skills": [],
@@ -263,7 +263,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "estimate": 20,
       "agent": "skein-executor",
       "skills": [],
@@ -281,7 +281,7 @@
       ],
       "验收": [],
       "验收done": [],
-      "status": "已完成",
+      "status": "done",
       "estimate": null,
       "agent": "skein-executor",
       "skills": [],
@@ -298,7 +298,7 @@
       ],
       "验收": [],
       "验收done": [],
-      "status": "已完成",
+      "status": "done",
       "estimate": null,
       "agent": "skein-executor",
       "skills": [],

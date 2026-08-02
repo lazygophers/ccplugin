@@ -2,7 +2,7 @@
   "id": "worktree-git-toplevel",
   "name": "worktree 创建/合并严格针对 git 顶层",
   "desc": "_mkwt 校验改 show-toplevel 等值判定, 只认真 git 顶层(根/submodule/深层嵌套 git), 拒普通子目录; 确保 create+merge 都作用于正确的 git",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -13,7 +13,7 @@
       "depends_on": [],
       "验收": [],
       "验收done": [],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784724369,

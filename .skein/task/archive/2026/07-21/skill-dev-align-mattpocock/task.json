@@ -2,7 +2,7 @@
   "id": "skill-dev-align-mattpocock",
   "name": "优化 skill-dev 全部 skill 对齐 mattpocock/skills",
   "desc": "研究 mattpocock/skills, 重构 skill-dev 三 skill",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -27,7 +27,7 @@
         5,
         6
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784472541,
@@ -57,7 +57,7 @@
         6,
         7
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784472551,
@@ -82,7 +82,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784472551,
@@ -106,7 +106,7 @@
         1,
         2
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784472551,

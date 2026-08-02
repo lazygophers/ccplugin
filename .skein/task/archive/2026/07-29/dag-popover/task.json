@@ -2,7 +2,7 @@
   "id": "dag-popover",
   "name": "DAG 节点 hover popover + click Modal 浮窗",
   "desc": "DAG 节点 hover 弹富文本 popover (名称/状态/上下游/描述/进度) + click 弹 dialog Modal 全量详情",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -27,7 +27,7 @@
         5,
         6
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785080085,

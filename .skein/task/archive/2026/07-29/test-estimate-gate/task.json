@@ -2,7 +2,7 @@
   "id": "test-estimate-gate",
   "name": "修 estimate 硬门导致的 35 个测试失败",
   "desc": "commit 288056c40 给 confirm 加了 estimate 校验, 但 tests/ 里的 _mk helper 在 confirm 前没填 estimate, 导致 35 个测试炸在同一处。pytest 当下 36 failed/96 passed, 无法作为回归门",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -13,7 +13,7 @@
       "depends_on": [],
       "验收": [],
       "验收done": [],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785296476,

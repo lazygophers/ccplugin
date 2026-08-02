@@ -2,7 +2,7 @@
   "id": "task-detail-enhance",
   "name": "task-detail-enhance",
   "desc": "任务详情页 5 项增强: 1.左侧加边界解析展示 2.内容动态更新 3.默认design非prd 4.start强制prd 5.taskid去重",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -21,7 +21,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784545545,
@@ -45,7 +45,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784545546,
@@ -67,7 +67,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784545546,
@@ -93,7 +93,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784545546,

@@ -2,7 +2,7 @@
   "id": "active-card-animation",
   "name": "active-card-animation",
   "desc": "进行中/检查中 task card + 运行中 subtask card 接线 .card.active 动画 (现有 active-pulse 未接线) + 进度条 shimmer 效果",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -23,7 +23,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784551359,
@@ -43,7 +43,7 @@
         1,
         2
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784551359,
@@ -61,7 +61,7 @@
       "验收done": [
         1
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784551359,

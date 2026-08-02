@@ -2,7 +2,7 @@
   "id": "spec-created-date-picker",
   "name": "spec created 字段日期选择器",
   "desc": "spec.js created (unix ts) 从 number input 改 date picker, 双向转换 ts↔YYYY-MM-DD (本地时区)",
-  "status": "待处理",
+  "status": "pending",
   "deps": [],
   "contracts": [],
   "subtasks": [],

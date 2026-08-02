@@ -2,7 +2,7 @@
   "id": "ui-tabs-refactor",
   "name": "UI 样例模板改 4 tab 组织",
   "desc": "index.html 加 tab 切换, 4 tab: 色卡/组件/图表/动效",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -25,7 +25,7 @@
         4,
         5
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785045344,
@@ -51,7 +51,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785045344,

@@ -1,0 +1,35 @@
+{
+  "id": "skein-finish-scope",
+  "name": "finish 剥离核对",
+  "desc": "finish 只收尾, subtask/验收核对归 check",
+  "status": "进行中",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "edit",
+      "name": "改finish文案",
+      "desc": "finish SKILL+finisher agent+mmd 去核对",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "待处理",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784859623,
+      "started": null,
+      "finished": null
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/skein-finish-scope",
+  "parent": null,
+  "kind": "task",
+  "created": 1784859623,
+  "started": 1784859623,
+  "checked": null,
+  "finished": null,
+  "updated": 1784859623
+}

@@ -2,7 +2,7 @@
   "id": "skill-dev-methodology-fusion",
   "name": "skill-dev 两插件融合 darwin+nuwa 方法论",
   "desc": "就地蒸馏 darwin-skill(优化线) + huashu-nuwa(创建线) 方法论融入 skills/skill-dev 的 skill-dev + plugin-dev 两个 SKILL.md; README 路由外链改指内部融合能力; 过 claude -p 质量门",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -23,7 +23,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "estimate": null,
       "agent": "skein-executor",
       "skills": [],
@@ -50,7 +50,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "estimate": null,
       "agent": "skein-executor",
       "skills": [],
@@ -73,7 +73,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "estimate": null,
       "agent": "skein-executor",
       "skills": [],
@@ -102,7 +102,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "estimate": null,
       "agent": "skein-executor",
       "skills": [],

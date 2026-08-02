@@ -2,7 +2,7 @@
   "id": "remove-doctor-btn",
   "name": "移除前端 doctor 命令快捷条",
   "desc": "board.js 删除 cmd-bar 整套前端 (doctor 按钮+容器+wireCmdBar+CSS), 后端 doctor 命令保留",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -21,7 +21,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785030713,

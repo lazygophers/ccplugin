@@ -2,7 +2,7 @@
   "id": "examples-dag",
   "name": "index.html 加 DAG 样例 tab",
   "desc": "加 DAG tab: subtask DAG (depends_on 拓扑图) + task 级 DAG + 调度算法可视化 (就绪批/拓扑深度/占槽), 纯 SVG+CSS",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -29,7 +29,7 @@
         6,
         7
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785077496,

@@ -2,7 +2,7 @@
   "id": "hook-prompt-judge-ai-only",
   "name": "hook 判定权全交 AI: 删脚本预筹+文案加强",
   "desc": "UserPromptSubmit hook 移除 _classify_prompt 脚本预筹 (3档判断行为), 只注入判断标准提示词全交 AI 判; 文案加2条防自降级: 判定行禁修饰词+TaskCreate≠skein create",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -21,7 +21,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784611514,

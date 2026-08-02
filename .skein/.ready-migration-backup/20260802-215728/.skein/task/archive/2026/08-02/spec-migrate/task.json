@@ -1,0 +1,147 @@
+{
+  "id": "spec-migrate",
+  "name": "自动迁移 migrate 两阶段",
+  "desc": "阶段1 脚本机械迁移(core/recall→rules+inclusion, 撞名章节合并, 配置键迁移, archive 快照可逆); 阶段2 AI 语义分拣候选(启发式打分产 product/map 候选)",
+  "status": "已完成",
+  "deps": [
+    "spec-model-core"
+  ],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "m1",
+      "name": "阶段1 机械迁移核心",
+      "desc": "migrate 命令骨架 + archive 快照前置 + 三层映射重排(core→rules/always, recall→rules/auto, external 原地/manual) + frontmatter 注入与删除 layer/created/updated; 复用 restructure --map 作底层",
+      "estimate": 1.0,
+      "depends_on": [],
+      "验收": [
+        "三层映射全部正确",
+        "迁移前自动 archive 快照",
+        "layer/created/updated 字段被删",
+        "--dry-run 只报告不动盘(git status 前后一致)"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "skills": [],
+      "created": 1785382283,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "m2",
+      "name": "撞名章节级合并",
+      "desc": "core/recall 同 <cat>/<topic> 合并进一页, 章节标题也撞则后者加 (recall) 后缀并存; 合并页 inclusion 取 always 并列入报告",
+      "estimate": 0.5,
+      "depends_on": [
+        "m1"
+      ],
+      "验收": [
+        "同名 topic 合并为一页且章节全保留",
+        "章节标题撞名加 (recall) 后缀并存不覆盖",
+        "合并页 inclusion=always 且报告列出该页"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785382283,
+      "started": null,
+      "finished": 1785592094
+    },
+    {
+      "sid": "m3",
+      "name": "配置迁移 + 幂等 + 新目录",
+      "desc": "spec_core_budget→spec_always_budget(值 1000→8000, 用户改过则平移原值); 幂等判定(rules 存在且 core 不存在即报已迁移); 建 spec/product 与 spec/map 空目录; --stage=1|2|all 入口",
+      "estimate": 0.4,
+      "depends_on": [
+        "m1"
+      ],
+      "验收": [
+        "默认值 1000 迁为 8000",
+        "用户设过的非默认值被平移保留",
+        "连跑两次第二次零变更",
+        "product/map 目录被建",
+        "三种 --stage 入口可用"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785382284,
+      "started": null,
+      "finished": 1785592314
+    },
+    {
+      "sid": "m4",
+      "name": "阶段2 启发式候选打分",
+      "desc": "对迁移后 rules/ 逐章节按词表打分产 product/map 候选报告(命令式词与反例表→rules, 描述性词无命令式→product, 模块职责+路径→map); 只产报告不搬动",
+      "estimate": 0.6,
+      "depends_on": [
+        "m1"
+      ],
+      "验收": [
+        "命令式章节不入候选",
+        "反例表识别为 rules 强信号",
+        "描述性章节入 product 候选",
+        "中英词表均覆盖",
+        "全程零文件搬动"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "skills": [],
+      "created": 1785382284,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "m5",
+      "name": "迁移测试套件",
+      "desc": "tmp_path 造旧结构库直调 migrate; 覆盖三层映射/撞名合并/幂等/可逆(hash 比对)/配置保留用户值/dry-run 不动盘",
+      "estimate": 0.5,
+      "depends_on": [
+        "m1",
+        "m2",
+        "m3",
+        "m4"
+      ],
+      "验收": [
+        "6 类用例齐备且全绿",
+        "可逆用例断言 restore 后内容 hash 集合一致",
+        "doctor --quality 通过"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785382284,
+      "started": null,
+      "finished": 1785592813
+    }
+  ],
+  "priority": "normal",
+  "estimate": 3.0,
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/spec-migrate",
+  "parent": "spec-wiki-v2",
+  "kind": "task",
+  "created": 1785381903,
+  "started": 1785591635,
+  "confirmed": 1785515083,
+  "checked": 1785592911,
+  "finished": 1785593254,
+  "updated": 1785593254,
+  "confirmed_by": "user"
+}

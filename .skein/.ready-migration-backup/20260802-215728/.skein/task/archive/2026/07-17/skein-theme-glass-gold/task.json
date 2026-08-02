@@ -1,0 +1,130 @@
+{
+  "id": "skein-theme-glass-gold",
+  "name": "skein 微光流沙玻璃主题 (蓝金+暗色+动效)",
+  "desc": "整体主题统一为微光流沙玻璃: 蓝金配色, 对应暗色模式, 动效丰富 (流沙/微光/玻璃). 涉及 board/themes (新增 skein-dark + 增强 skein 动效) + webapp input.css (加暗色模式 + 流沙动效). 配 /huashu-design 出视觉方向.",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "s1-huashu-prototype",
+      "name": "huashu 出双模式原型",
+      "desc": "用 huashu-design 出浅(晨曦)+暗(夜空金沙)双模式高保真 HTML 原型, 含结构层(卡流光描边/状态脉动)+细节层(数字递增/入场)动效, 待用户评审",
+      "depends_on": [],
+      "验收": [
+        "原型含浅暗双模式可切",
+        "含卡hover流光描边+active脉动+数字递增+入场动画",
+        "蓝金配色+玻璃质感",
+        "产出原型HTML文件路径回传"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "estimate": 25,
+      "agent": "skein-executor",
+      "skills": [
+        "huashu-design"
+      ],
+      "created": 1784252601,
+      "started": 1784252837,
+      "finished": 1784253123
+    },
+    {
+      "sid": "s2-board-themes",
+      "name": "board 主题迁回 (浅增强+暗新建)",
+      "desc": "据 S1 原型: 增强 assets/board/themes/skein.css 动效(流光呼吸/状态脉动/glass sheen); 新建 skein-dark.css 暗色主题; switcher.js 注册暗主题+localStorage持久化",
+      "depends_on": [
+        "s1-huashu-prototype"
+      ],
+      "验收": [
+        "skein.css 增加流光呼吸+glass sheen+hover流光描边",
+        "新建 skein-dark.css 夜空金沙暗主题",
+        "switcher 可切浅暗且localStorage记忆",
+        "prefers-reduced-motion降级"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "estimate": 20,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784252615,
+      "started": 1784253123,
+      "finished": 1784253495
+    },
+    {
+      "sid": "s3-webapp-dark-motion",
+      "name": "webapp 暗色模式+流沙动效",
+      "desc": "据 S1 原型: assets/webapp/src/input.css 加暗色模式(prefers-color-scheme或data-theme)+流沙动效层+入场/数字动画; 重建 dist/app.css",
+      "depends_on": [
+        "s1-huashu-prototype"
+      ],
+      "验收": [
+        "input.css 含暗色令牌覆盖",
+        "含数字递增+入场动画",
+        "dist/app.css 重建无报错",
+        "prefers-reduced-motion降级",
+        "视口外IntersectionObserver暂停"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "status": "已完成",
+      "estimate": 20,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784252615,
+      "started": 1784253123,
+      "finished": 1784253462
+    },
+    {
+      "sid": "s4-motion-guard",
+      "name": "动效性能守卫收尾",
+      "desc": "统一 prefers-reduced-motion 守卫覆盖全动画; webapp 视口外暂停门控; 一致性核查 board/webapp 双模式视觉对齐",
+      "depends_on": [
+        "s2-board-themes",
+        "s3-webapp-dark-motion"
+      ],
+      "验收": [
+        "reduced-motion全覆盖降级",
+        "webapp视口外暂停",
+        "board/webapp浅暗视觉一致",
+        "无控制台报错"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "estimate": 10,
+      "agent": "skein-checker",
+      "skills": [],
+      "created": 1784252615,
+      "started": 1784253495,
+      "finished": 1784253765
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/skein-theme-glass-gold",
+  "estimate": null,
+  "created": 1784251682,
+  "started": 1784252687,
+  "finished": 1784254063,
+  "updated": 1784254063
+}

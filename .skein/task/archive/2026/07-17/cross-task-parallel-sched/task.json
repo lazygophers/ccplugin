@@ -2,7 +2,7 @@
   "id": "cross-task-parallel-sched",
   "name": "跨 task subtask 并行调度",
   "desc": "调度从单 task 内 claim 升级为全局跨 task claim: 从所有 active task 的 ready subtask 池按拓扑深度取 top-N (N=max_parallel), 非每 task 各占 max_parallel 槽",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -25,7 +25,7 @@
         4,
         5
       ],
-      "status": "已完成",
+      "status": "done",
       "estimate": null,
       "agent": "skein-executor",
       "skills": [],
@@ -50,7 +50,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "estimate": null,
       "agent": "skein-executor",
       "skills": [],

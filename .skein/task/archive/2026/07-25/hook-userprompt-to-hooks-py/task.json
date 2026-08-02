@@ -2,7 +2,7 @@
   "id": "hook-userprompt-to-hooks-py",
   "name": "UserPromptSubmit hook 迁 hooks.py 统一入口",
   "desc": "user_prompt 从 skein.py 迁 hooks.py: 加 cmd_user_prompt + 改 plugin.json hook 命令指向 bin/skein-hooks user-prompt + 删 skein.py user_prompt 方法 + user-prompt 子命令注册",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -25,7 +25,7 @@
         4,
         5
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784612739,

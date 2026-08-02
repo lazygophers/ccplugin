@@ -1,0 +1,39 @@
+{
+  "id": "fix-skein-plugin-json",
+  "name": "修 skein plugin.json 尾逗号",
+  "desc": "skein/.claude-plugin/plugin.json line81 UserPromptSubmit command 尾逗号致 JSON parse error, 删逗号",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "fix-comma",
+      "name": "删尾逗号",
+      "desc": "删 skein/.claude-plugin/plugin.json line81 UserPromptSubmit command 尾逗号",
+      "depends_on": [],
+      "验收": [
+        "8 plugin.json 全解析通过"
+      ],
+      "验收done": [
+        1
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784713477,
+      "started": 1784713486,
+      "finished": 1784713510
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/fix-skein-plugin-json",
+  "parent": null,
+  "kind": "task",
+  "created": 1784713447,
+  "started": 1784713479,
+  "checked": null,
+  "finished": 1784713570,
+  "updated": 1784713570
+}

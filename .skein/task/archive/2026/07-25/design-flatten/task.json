@@ -2,7 +2,7 @@
   "id": "design-flatten",
   "name": "flatten-design-to-one-skill",
   "desc": "skills/design/ 压平为单个 skill: 一个 SKILL.md medium 路由(html/app/cli/tui) + references/ 多文件, 删子 skill 目录",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -21,7 +21,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784652064,
@@ -51,7 +51,7 @@
         5,
         6
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784652065,
@@ -69,7 +69,7 @@
         "commit 完成"
       ],
       "验收done": [],
-      "status": "运行中",
+      "status": "running",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784652065,

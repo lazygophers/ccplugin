@@ -1,0 +1,35 @@
+{
+  "id": "skein-prd-nocheck",
+  "name": "prd写入强制未勾",
+  "desc": "planning 写 prd 验收/目标一律 - [ ], 勾选归 check",
+  "status": "进行中",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "edit",
+      "name": "改_normalize_section",
+      "desc": "prd write/add 降 [x] 为 [ ]",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "待处理",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784861710,
+      "started": null,
+      "finished": null
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/skein-prd-nocheck",
+  "parent": null,
+  "kind": "task",
+  "created": 1784861709,
+  "started": 1784861713,
+  "checked": null,
+  "finished": null,
+  "updated": 1784861713
+}

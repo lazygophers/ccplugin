@@ -2,7 +2,7 @@
   "id": "progress-stage-interp",
   "name": "进度推算改阶段区间映射",
   "desc": "task/subtask 进度改为状态区间 + 完成度线性插值 (用户拍板方案 A), 后端 skein.py 与前端 board.js 兜底副本同步",
-  "status": "已完成",
+  "status": "done",
   "deps": [
     "webapp-motion-depdag"
   ],
@@ -29,7 +29,7 @@
         5,
         6
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785253908,
@@ -53,7 +53,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785253908,
@@ -79,7 +79,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785254561,

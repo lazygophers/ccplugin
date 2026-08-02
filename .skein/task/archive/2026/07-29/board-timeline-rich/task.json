@@ -2,7 +2,7 @@
   "id": "board-timeline-rich",
   "name": "board 卡片富文本竖向时间轴",
   "desc": "重构 cardStepper 为竖向时间轴: 每态显时刻+状态+段耗时+累计耗时",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -29,7 +29,7 @@
         6,
         7
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785034998,

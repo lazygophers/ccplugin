@@ -2,7 +2,7 @@
   "id": "skein-flow-redesign",
   "name": "skein 流程闭环重设计 (hook判定+planning回环+并行+异步记忆)",
   "desc": "审查并按用户指定流程修复 skein task 闭环: UserPromptSubmit hook 判定任务→新旧分类→planning; 规划完即派 Agent 执行; check 过→finish(commit+merge+销worktree); check 不过→回 planning 补修复 subtask 重执行. 5 要求: 及时建task/subtask; 无重复待执行项; task绑worktree(config关除外); task/subtask尽量并行; 记忆异步维护.",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -23,7 +23,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "estimate": 15,
       "agent": "skein-executor",
       "skills": [],
@@ -50,7 +50,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "estimate": 12,
       "agent": "skein-executor",
       "skills": [],
@@ -75,7 +75,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "estimate": 18,
       "agent": "skein-executor",
       "skills": [],
@@ -105,7 +105,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "estimate": 15,
       "agent": "skein-checker",
       "skills": [],
@@ -136,7 +136,7 @@
         6,
         7
       ],
-      "status": "已完成",
+      "status": "done",
       "estimate": 12,
       "agent": "skein-executor",
       "skills": [],

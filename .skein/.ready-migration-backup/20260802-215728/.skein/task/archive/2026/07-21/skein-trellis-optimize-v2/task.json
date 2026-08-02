@@ -1,0 +1,81 @@
+{
+  "id": "skein-trellis-optimize-v2",
+  "name": "深度学 Trellis 整体优化 skein v2 (破坏性允许)",
+  "desc": "深度学习 github.com/mindfold-ai/Trellis (cangjie-skill 方法论), 提炼对 skein 插件的整体优化建议。grill-me 确认细节与是否需优化。允许破坏性优化, 但须确保优化后更省 token / 更符合预期 / 更贴合插件需要。整体优化非补充。",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "d1",
+      "name": "全义 rename memory→spec",
+      "desc": "bin/skein-memory→skein-spec + memory.py→spec.py + Memory→Spec 类名 + skill 目录 skein-memory→skein-spec + agent skein-memorier→skein-specer + plugin.json hooks command(2处) + hooks.py ENGINE 正则 + skein.py:2538 路径 + test_memory→test_spec + docs/agents 命令引用全量 sed + doctor/质量门验证",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784342219,
+      "started": null,
+      "finished": 1784342931
+    },
+    {
+      "sid": "d2",
+      "name": "frontmatter 增 status/related/updated",
+      "desc": "spec.py sediment 写盘段 +3 字段; reindex 可选加 status 列; 旧 spec 不迁移默认 active",
+      "depends_on": [
+        "d1"
+      ],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784342219,
+      "started": 1784342935,
+      "finished": 1784342976
+    },
+    {
+      "sid": "d3",
+      "name": "软模板骨架 core/recall spine",
+      "desc": "references/templates/{core,recall}.md.tmpl + SKILL.md + skein-specer.md 加参照模板填 body 段",
+      "depends_on": [
+        "d2"
+      ],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784342219,
+      "started": 1784342976,
+      "finished": 1784343430
+    },
+    {
+      "sid": "d4",
+      "name": "maintain 启程命令 + session-start 提示",
+      "desc": "spec.py 新增 maintain 方法+子命令+4判据+报告格式 + session-start 提示行 + SKILL.md 文档",
+      "depends_on": [
+        "d2"
+      ],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784342219,
+      "started": 1784342976,
+      "finished": 1784343430
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/skein-trellis-optimize-v2",
+  "created": 1784334197,
+  "started": 1784342224,
+  "checked": null,
+  "finished": 1784343789,
+  "updated": 1784343789
+}

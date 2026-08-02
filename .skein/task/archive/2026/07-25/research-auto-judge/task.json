@@ -2,7 +2,7 @@
   "id": "research-auto-judge",
   "name": "research 判定门自动化",
   "desc": "skein-plan planning 阶段自动判断是否派 researcher, 非用户说要才派",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -13,7 +13,7 @@
       "depends_on": [],
       "验收": [],
       "验收done": [],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784627842,

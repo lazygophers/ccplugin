@@ -1,0 +1,126 @@
+{
+  "id": "skill-dev-align-mattpocock",
+  "name": "优化 skill-dev 全部 skill 对齐 mattpocock/skills",
+  "desc": "研究 mattpocock/skills, 重构 skill-dev 三 skill",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "skill-dev 改造对齐 mattpocock",
+      "desc": "重写 skill-dev/SKILL.md + dimensions.md: 加 inline 报告模板(创建+优化) + rubric 方向轴/理想值/完成准则底线 + 默认正向/Rejected framings + 传递要求目标禁反例",
+      "depends_on": [],
+      "验收": [
+        "SKILL.md 有 <creation-report-template> 围栏",
+        "SKILL.md 有 <optimization-report-template> 围栏",
+        "dimensions.md 9维有方向轴+理想值+完成准则底线列",
+        "反模式黑名单改 Rejected framings",
+        "流程A/B 含目标禁反例传递要求",
+        "claude -p 质量门过"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784472541,
+      "started": 1784472689,
+      "finished": 1784472954
+    },
+    {
+      "sid": "s2",
+      "name": "plugin-dev 改造对齐 mattpocock",
+      "desc": "重写 plugin-dev/SKILL.md + optimize-rubric.md: 加 inline 报告模板(创建+优化) + 8维rubric 方向轴/理想值/完成准则底线 + 默认正向/Rejected framings + 流程B吸收 optimize-any validation-gate 循环纪律 + 传递要求目标禁反例",
+      "depends_on": [],
+      "验收": [
+        "SKILL.md 有 <plugin-creation-report-template> 围栏",
+        "SKILL.md 有 <plugin-optimization-report-template> 围栏",
+        "optimize-rubric.md 8维有方向轴+理想值+完成准则底线列",
+        "反例段改 Rejected framings",
+        "流程B 含 validation-gate 循环纪律",
+        "流程A/B 含目标禁反例传递要求",
+        "claude -p 质量门过"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784472551,
+      "started": 1784472689,
+      "finished": 1784472984
+    },
+    {
+      "sid": "s3",
+      "name": "移除 optimize-any + 更新 README",
+      "desc": "optimize-any 内容已拆进 s1/s2 后, 删整目录 skills/skill-dev/optimize-any/; 更新 skills/skill-dev/README.md 移除 optimize-any 引用",
+      "depends_on": [
+        "s1",
+        "s2"
+      ],
+      "验收": [
+        "skills/skill-dev/optimize-any/ 目录不存在",
+        "README.md 无 optimize-any 引用",
+        "grep 全仓无 optimize-any 残留引用"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784472551,
+      "started": 1784472984,
+      "finished": 1784473037
+    },
+    {
+      "sid": "s4",
+      "name": "评分机制汇总 + 质量门全跑",
+      "desc": "三 skill 改完后, 跑全部 claude -p 质量门确认; 输出评分机制汇总 (skill-dev 9维 + plugin-dev 8维 + 方向轴/理想值/完成准则底线 + 共享收敛机制 + 适用场景) 交用户定夺后续",
+      "depends_on": [
+        "s1",
+        "s2",
+        "s3"
+      ],
+      "验收": [
+        "三 SKILL.md claude -p 质量门全过",
+        "评分机制汇总文档已输出含两 skill rubric 全表+收敛机制+适用场景"
+      ],
+      "验收done": [
+        1,
+        2
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784472551,
+      "started": 1784473037,
+      "finished": 1784473267
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/skill-dev-align-mattpocock",
+  "created": 1784470858,
+  "started": 1784472689,
+  "checked": null,
+  "finished": 1784473478,
+  "updated": 1784473478
+}

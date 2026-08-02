@@ -1,0 +1,108 @@
+{
+  "id": "drop-ready-frontend",
+  "name": "前端清除遗留就绪态",
+  "desc": "引擎侧已删 S_READY 且 confirm 直接进进行中, 前端仍保留 ready 兼容态 — 收口 status.tsx/board/model.ts/globals.css/help 文案 + dist 重建",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "f1",
+      "name": "状态枚举与展示层收口",
+      "desc": "删前端 task 状态枚举/展示元数据/看板列序/过滤器全集与默认集里的 ready; 删后端→前端状态映射表指向 ready 的条目; 删亮暗两套主题的 ready 状态色变量",
+      "estimate": 0.5,
+      "depends_on": [],
+      "验收": [
+        "同名不同义三处 (edge kind / ready-to-schedule 布尔 / 首页文案) 原样保留"
+      ],
+      "验收done": [
+        1
+      ],
+      "status": "已完成",
+      "phase": "exec",
+      "skills": [],
+      "created": 1785647864,
+      "started": 1785648133,
+      "finished": 1785648700
+    },
+    {
+      "sid": "f2",
+      "name": "帮助页过时流程文案",
+      "desc": "帮助页仍描述已删除的 start 命令与「自动 start task」行为, 改为与 confirm 吸收 start 后的实际流程一致",
+      "estimate": 0.3,
+      "depends_on": [],
+      "验收": [
+        "描述与当前 CLI --help 实际输出一致"
+      ],
+      "验收done": [
+        1
+      ],
+      "status": "已完成",
+      "phase": "exec",
+      "skills": [],
+      "created": 1785647864,
+      "started": 1785648455,
+      "finished": 1785649141
+    },
+    {
+      "sid": "f3",
+      "name": "零残留扫描测试 + 反向验证",
+      "desc": "沿用 concurrency-pools s8 建立的 test_zero_residual.py 扫描模式, 加一条「前端无 task 状态 ready」的扫描断言; 断言须显式排除三处同名不同义豁免点并写明理由; 做反向验证",
+      "estimate": 0.6,
+      "depends_on": [
+        "f1",
+        "f2"
+      ],
+      "验收": [
+        "反向验证: 改回旧样子断言转红, 改回绿"
+      ],
+      "验收done": [
+        1
+      ],
+      "status": "已完成",
+      "phase": "exec",
+      "skills": [],
+      "created": 1785647877,
+      "started": 1785649141,
+      "finished": 1785650017
+    },
+    {
+      "sid": "f4",
+      "name": "dist 重建 + 全量验证",
+      "desc": "整体重新构建 dist (禁手工挑拣), 跑引用完整性扫描与全量 pytest",
+      "estimate": 0.4,
+      "depends_on": [
+        "f1",
+        "f2",
+        "f3"
+      ],
+      "验收": [
+        "全量 pytest 不低于基线 425 且无新增 FAIL"
+      ],
+      "验收done": [
+        1
+      ],
+      "status": "已完成",
+      "phase": "exec",
+      "skills": [],
+      "created": 1785647877,
+      "started": 1785650017,
+      "finished": 1785662451
+    }
+  ],
+  "priority": "urgent",
+  "estimate": 1.8,
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/drop-ready-frontend",
+  "parent": null,
+  "kind": "task",
+  "created": 1785647776,
+  "started": 1785648133,
+  "confirmed": 1785648132,
+  "checked": 1785662457,
+  "finished": 1785663038,
+  "updated": 1785663038,
+  "confirmed_by": "user"
+}

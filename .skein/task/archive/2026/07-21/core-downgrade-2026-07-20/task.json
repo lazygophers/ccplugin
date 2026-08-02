@@ -2,7 +2,7 @@
   "id": "core-downgrade-2026-07-20",
   "name": "core-downgrade",
   "desc": "core spec 降级 3 条(impl/sediment-51 + consistency/rule-53 + test/sediment-52)到 recall, core <8000",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -13,7 +13,7 @@
       "depends_on": [],
       "验收": [],
       "验收done": [],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784522886,

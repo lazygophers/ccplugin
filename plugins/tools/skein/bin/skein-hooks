@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""skein-hooks — py wrapper, 复用 scripts/hooks.py 入口 (去 shell 依赖, 子命令: permission/guard/batch/report/fmt/spec-meta)。
-原 bash thin wrapper 的 py 等价: CLAUDE_PLUGIN_ROOT 优先, 回退相对 __file__ 推插件根, runpy 复用 scripts/ 入口。"""
-import os, sys, runpy
+"""skein-hooks — py wrapper, stdout JSON-only."""
+import os, sys
+from _jsonwrap import run_json
+
 _root = os.environ.get("CLAUDE_PLUGIN_ROOT") or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _target = os.path.join(_root, "scripts", "hooks.py")
 sys.argv[0] = _target
-runpy.run_path(_target, run_name="__main__")
+run_json(_target)

@@ -2,7 +2,7 @@
   "id": "design-uiux-augment",
   "name": "design skills 增量补齐 ui-ux-pro-max 数据",
   "desc": "学习 ui-ux-pro-max-skill, 将 100 行业规则/10 类UX规则/67风格/57字体/25图表/pro-rules checklist 增量补进 skills/design, 不破坏现有结构",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -25,7 +25,7 @@
         4,
         5
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784735726,

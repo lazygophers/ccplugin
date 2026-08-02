@@ -1,0 +1,133 @@
+{
+  "id": "webapp-ux-batch2",
+  "name": "webapp 交互批次2: 动效/面板/DAG档位/增量刷新/工时门",
+  "desc": "11 项 UI 与流程修正: 执行中动效、面板结构、DAG 尺寸档、进度综合算法、WS 增量更新不破坏用户操作、plan-ready 工时门",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "执行中动效 + 面板结构修正",
+      "desc": "补执行中状态动效(卡片/点/进度条); 面板生命周期时间线补 exec 子 timeline; 面板删掉子任务列表区",
+      "depends_on": [],
+      "验收": [
+        "active 卡片有动效",
+        "面板 exec 节点展开子任务时间线",
+        "面板无子任务列表区块"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785243708,
+      "started": 1785243796,
+      "finished": 1785244541
+    },
+    {
+      "sid": "s2",
+      "name": "DAG 档位与子 DAG 配色",
+      "desc": "task DAG 默认中号; 新增大号档(小/中/大三档); 去掉卡片展开子 DAG 的按钮; 子任务 DAG 按状态配色, 已完成置灰但保留展示",
+      "depends_on": [
+        "s1"
+      ],
+      "验收": [
+        "三档切换可用且默认中",
+        "卡片无展开按钮",
+        "子 DAG 各状态色区分, done 灰显"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785243708,
+      "started": 1785244541,
+      "finished": 1785244927
+    },
+    {
+      "sid": "s3",
+      "name": "进度综合算法",
+      "desc": "task 进度 = task 状态机阶段 + subtask 进度综合, 非单纯 subtask 完成比例; 前后端一致",
+      "depends_on": [],
+      "验收": [
+        "python 单测覆盖各状态组合",
+        "前端回退算法与后端一致"
+      ],
+      "验收done": [
+        1,
+        2
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785243708,
+      "started": 1785244484,
+      "finished": 1785244541
+    },
+    {
+      "sid": "s4",
+      "name": "WS 增量更新 + 保留用户操作状态",
+      "desc": "后端推 per-resource 增量 payload 而非全量; 前端只 patch 变化数据, 不重建 DOM, 不关闭已打开的详情面板/不重置滚动与选中",
+      "depends_on": [
+        "s2"
+      ],
+      "验收": [
+        "数据变更时打开的详情面板不关闭",
+        "滚动/选中/展开态保留",
+        "WS 消息带增量字段"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785243708,
+      "started": 1785244927,
+      "finished": 1785245920
+    },
+    {
+      "sid": "s5",
+      "name": "预计工时门 + skein-flow references",
+      "desc": "plan 阶段必须填预计工时; confirm(待处理→就绪) 校验 estimate 已更新; 新增独立 references 文档说明工时规则",
+      "depends_on": [],
+      "验收": [
+        "缺 estimate 时 confirm 拒绝并提示",
+        "references 新文件存在且被 skein-flow 引用"
+      ],
+      "验收done": [
+        1,
+        2
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785243708,
+      "started": 1785243796,
+      "finished": 1785244203
+    }
+  ],
+  "priority": "normal",
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/webapp-ux-batch2",
+  "parent": null,
+  "kind": "task",
+  "created": 1785243693,
+  "started": 1785243792,
+  "confirmed": 1785243792,
+  "checked": 1785245950,
+  "finished": 1785246233,
+  "updated": 1785246233
+}

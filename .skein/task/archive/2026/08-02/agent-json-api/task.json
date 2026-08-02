@@ -2,7 +2,7 @@
   "id": "agent-json-api",
   "name": "agent/skill JSON 接口规范",
   "desc": "agent 入参/返回改 JSON 精简、skills 默认 JSON 输出、prd 操作改 skein 命令",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -20,7 +20,7 @@
         1,
         2
       ],
-      "status": "已完成",
+      "status": "done",
       "phase": "exec",
       "skills": [],
       "created": 1785664978,
@@ -42,7 +42,7 @@
       "验收done": [
         1
       ],
-      "status": "已完成",
+      "status": "done",
       "phase": "exec",
       "skills": [],
       "created": 1785664978,

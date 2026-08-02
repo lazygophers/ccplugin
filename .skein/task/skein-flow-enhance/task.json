@@ -2,7 +2,7 @@
   "id": "skein-flow-enhance",
   "name": "skein flow 三项增强",
   "desc": "1.前端加finish入口 2.supertask子task全done后自动推进check 3.编排层补全缺plan的待处理task",
-  "status": "进行中",
+  "status": "active",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -22,7 +22,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "phase": "exec",
       "skills": [],
       "created": 1785668413,
@@ -42,7 +42,7 @@
         "pytest 通过"
       ],
       "acceptance_done": [],
-      "status": "运行中",
+      "status": "running",
       "phase": "exec",
       "skills": [],
       "created": 1785668413,
@@ -63,7 +63,7 @@
         1,
         2
       ],
-      "status": "已完成",
+      "status": "done",
       "phase": "exec",
       "skills": [],
       "created": 1785668413,

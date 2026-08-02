@@ -2,7 +2,7 @@
   "id": "skein-theme-glass-gold",
   "name": "skein 微光流沙玻璃主题 (蓝金+暗色+动效)",
   "desc": "整体主题统一为微光流沙玻璃: 蓝金配色, 对应暗色模式, 动效丰富 (流沙/微光/玻璃). 涉及 board/themes (新增 skein-dark + 增强 skein 动效) + webapp input.css (加暗色模式 + 流沙动效). 配 /huashu-design 出视觉方向.",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -23,7 +23,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "estimate": 25,
       "agent": "skein-executor",
       "skills": [
@@ -52,7 +52,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "estimate": 20,
       "agent": "skein-executor",
       "skills": [],
@@ -81,7 +81,7 @@
         4,
         5
       ],
-      "status": "已完成",
+      "status": "done",
       "estimate": 20,
       "agent": "skein-executor",
       "skills": [],
@@ -109,7 +109,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "estimate": 10,
       "agent": "skein-checker",
       "skills": [],

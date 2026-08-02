@@ -1,0 +1,112 @@
+{
+  "id": "board-realtime-fix",
+  "name": "看板实时性 + serve 崩溃修复",
+  "desc": "task 详情页不实时更新、/ 不跳 board、serve 莫名退出、跨 task 调度不可视化、子任务 DAG 悬浮高亮",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "b1",
+      "name": "/ 跳转 board + serve 崩溃修复",
+      "desc": "page.tsx 改 redirect /board; serve.py 加日志+自动重启",
+      "estimate": 0.5,
+      "depends_on": [],
+      "验收": [
+        "/ 页面 302 到 /board",
+        "serve 退出有日志"
+      ],
+      "验收done": [
+        1,
+        2
+      ],
+      "status": "已完成",
+      "phase": "exec",
+      "skills": [],
+      "created": 1785664628,
+      "started": 1785664664,
+      "finished": 1785664763
+    },
+    {
+      "sid": "b2",
+      "name": "详情页实时更新",
+      "desc": "task 详情页订阅 WS task-changed 消息, 收到后局部刷新",
+      "estimate": 0.8,
+      "depends_on": [
+        "b1"
+      ],
+      "验收": [
+        "详情页收到 task-changed 后数据自动更新"
+      ],
+      "验收done": [
+        1
+      ],
+      "status": "已完成",
+      "phase": "exec",
+      "skills": [],
+      "created": 1785664628,
+      "started": 1785664763,
+      "finished": 1785664827
+    },
+    {
+      "sid": "b3",
+      "name": "子任务 DAG 悬浮高亮",
+      "desc": "depdag.ts 加 hover 状态, 高亮上下游节点",
+      "estimate": 0.5,
+      "depends_on": [
+        "b1"
+      ],
+      "验收": [
+        "悬浮节点时上下游高亮"
+      ],
+      "验收done": [
+        1
+      ],
+      "status": "已完成",
+      "phase": "exec",
+      "skills": [],
+      "created": 1785664628,
+      "started": 1785664763,
+      "finished": 1785664855
+    },
+    {
+      "sid": "b4",
+      "name": "dist 重建 + 全量验证",
+      "desc": "dist 整体重建 + 引用完整性 + pytest",
+      "estimate": 0.4,
+      "depends_on": [
+        "b2",
+        "b3"
+      ],
+      "验收": [
+        "引用完整性 0 missing",
+        "pytest ≥ 425"
+      ],
+      "验收done": [
+        1,
+        2
+      ],
+      "status": "已完成",
+      "phase": "exec",
+      "skills": [],
+      "created": 1785664629,
+      "started": 1785664856,
+      "finished": 1785665174
+    }
+  ],
+  "priority": "normal",
+  "estimate": 2.2,
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/board-realtime-fix",
+  "parent": null,
+  "kind": "task",
+  "created": 1785664573,
+  "started": 1785664658,
+  "confirmed": 1785664656,
+  "checked": 1785665640,
+  "finished": 1785666225,
+  "updated": 1785666225,
+  "confirmed_by": "user"
+}

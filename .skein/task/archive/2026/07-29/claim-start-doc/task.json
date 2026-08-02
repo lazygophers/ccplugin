@@ -2,7 +2,7 @@
   "id": "claim-start-doc",
   "name": "subtask claim --start 参数 + claim/start 文档补充",
   "desc": "subtask claim 加 --start 显式参数; skills/agents 补 claim 整批不指定sid vs start 单sid 说明",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -18,7 +18,7 @@
         "不改 _ready/默认行为"
       ],
       "验收done": [],
-      "status": "失败",
+      "status": "failed",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785057204,
@@ -45,7 +45,7 @@
         4,
         5
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785057439,

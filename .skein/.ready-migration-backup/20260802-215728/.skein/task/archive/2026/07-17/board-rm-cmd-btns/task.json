@@ -1,0 +1,42 @@
+{
+  "id": "board-rm-cmd-btns",
+  "name": "board 删 current/ready/pop 按钮",
+  "desc": "/board 命令快捷条删 current/ready/pop 三按钮 (保留 doctor + 新建)",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "rm-btns",
+      "name": "删 current/ready/pop 按钮",
+      "desc": "board.js L536-538 删三按钮, 保留 doctor+新建",
+      "depends_on": [],
+      "验收": [
+        "board.js 无 current/ready/pop 按钮",
+        "doctor+新建保留",
+        "ESM 过"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784286291,
+      "started": 1784286787,
+      "finished": 1784286838
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/board-rm-cmd-btns",
+  "estimate": null,
+  "created": 1784286276,
+  "started": 1784286779,
+  "finished": 1784287431,
+  "updated": 1784287431
+}

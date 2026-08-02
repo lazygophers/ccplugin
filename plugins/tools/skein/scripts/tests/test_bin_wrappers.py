@@ -32,6 +32,13 @@ def _run(wrapper: str, *args: str, stdin: str = "") -> subprocess.CompletedProce
                           capture_output=True, text=True, input=stdin)
 
 
+def _json_stdout(r: subprocess.CompletedProcess[str]) -> dict[str, object]:
+    try:
+        return json.loads(r.stdout)
+    except json.JSONDecodeError as exc:
+        raise AssertionError(f"stdout 不是单个 JSON: {r.stdout!r}") from exc
+
+
 def test_wrappers_exist() -> None:
     for w in ("skein", "skein-spec", "skein-hooks"):
         assert (BIN / w).exists(), f"bin/{w} 缺失 — plugin.json 指着它"
@@ -40,12 +47,33 @@ def test_wrappers_exist() -> None:
 def test_skein_wrapper_runs() -> None:
     r = _run("skein", "--help")
     assert r.returncode == 0, f"bin/skein --help 挂了:\n{r.stderr}"
-    assert "usage" in r.stdout.lower()
+    data = _json_stdout(r)
+    assert data["ok"] is True
+    assert "usage" in str(data.get("stdout", "")).lower()
 
 
 def test_skein_spec_wrapper_runs() -> None:
     r = _run("skein-spec", "--help")
     assert r.returncode == 0, f"bin/skein-spec --help 挂了:\n{r.stderr}"
+    data = _json_stdout(r)
+    assert data["ok"] is True
+
+
+def test_bin_wrappers_stdout_json_only(tmp_path: Path) -> None:
+    from conftest import make_ws
+
+    make_ws(tmp_path)
+    probes = [
+        ("skein", ["status", "nope"]),
+        ("skein", ["claim", "--dry-run"]),
+        ("skein-spec", ["--help"]),
+        ("skein-hooks", ["guard"]),
+    ]
+    for wrapper, args in probes:
+        r = subprocess.run([sys.executable, str(BIN / wrapper), *args], cwd=tmp_path,
+                           capture_output=True, text=True, input="")
+        data = _json_stdout(r)
+        assert "ok" in data and "code" in data, f"bin/{wrapper} {' '.join(args)} JSON schema 不对: {data}"
 
 
 def test_every_hook_subcommand_survives_wrapper(tmp_path: Path) -> None:

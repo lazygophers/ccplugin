@@ -1,4 +1,4 @@
-"""文档里的 CLI 示例必须真能跑 — 拿真实 argparse 逐条校验。
+"""文档里的 CLI 示例必须真能跑 — 拿真实 Typer help 逐条校验。
 
 ## 为什么需要这条
 skill / agent 文档里的命令示例**会被 AI 照抄执行**。一条写错的示例不是排版问题, 是 agent 当场
@@ -15,7 +15,7 @@ skill / agent 文档里的命令示例**会被 AI 照抄执行**。一条写错�
 - `/skein-spec reconstruct` 这类**斜杠开头**的是 skill 模式 (slash command), 不是 CLI 子命令,
   跳过。文档里若把模式名写成 `skein-spec reconstruct` (无斜杠) 会被判错 —— 这正是要抓的,
   因为那样写 agent 会真去敲 CLI。
-- `del/delete/rm/remove` 四个别名 argparse `--help` 不列, 单独补进合法表。
+- `del/delete/rm/remove` 四个别名需要逐个校验。
 """
 from __future__ import annotations
 
@@ -37,22 +37,26 @@ CMD_RE = re.compile(
     r"((?:\s+[^\n`|\"]*)?)")
 
 
-def _top_subs(script: Path) -> list[str]:
-    r = subprocess.run([sys.executable, str(script), "--help"], capture_output=True, text=True)
+def _commands_from_help(text: str) -> list[str]:
     out, started = [], False
-    for ln in r.stdout.splitlines():
-        if "<command>" in ln:
+    for ln in text.splitlines():
+        if "<command>" in ln or " Commands " in ln:
             started = True
             continue
-        if started:
-            # 名字过长时 argparse 把 help 文字挤到下一行, 该行只有子命令名、行尾无空格 ——
-            # 只认 `\s{2,}` 会漏掉这类 (如 finish-candidates), 故补 `$` 分支。
-            m = re.match(r"^    ([a-z][a-z0-9\-_]*)(?:\s{2,}|$)", ln)
-            if m:
-                out.append(m.group(1))
-            elif ln.strip().startswith(("options:", "optional")):
-                break
+        if not started:
+            continue
+        if " Options " in ln or ln.strip().startswith(("options:", "optional", "╰")):
+            break
+        # Typer rich: `│ init              ...`; argparse: `    init              ...`。
+        m = re.match(r"^\s*(?:│\s*)?([a-z][a-z0-9\-_]*)(?:\s{2,}|$)", ln)
+        if m:
+            out.append(m.group(1))
     return sorted(set(out))
+
+
+def _top_subs(script: Path) -> list[str]:
+    r = subprocess.run([sys.executable, str(script), "--help"], capture_output=True, text=True)
+    return _commands_from_help(r.stdout)
 
 
 def _probe(script: Path, *sub: str) -> tuple[set[str], set[str]] | tuple[None, None]:
@@ -61,8 +65,11 @@ def _probe(script: Path, *sub: str) -> tuple[set[str], set[str]] | tuple[None, N
     if r.returncode != 0:
         return None, None
     usage = r.stdout.split("positional")[0]      # flag 只认 usage 行, 免把说明文字里的词当参数
+    subs = set(_commands_from_help(r.stdout))
     m = re.search(r"\{([a-z0-9,\-_]+)\}", r.stdout)
-    return set(re.findall(r"(--[a-z][a-z0-9\-]*)", usage)), set(m.group(1).split(",")) if m else set()
+    if m:
+        subs |= set(m.group(1).split(","))
+    return set(re.findall(r"(--[a-z][a-z0-9\-]*)", usage)), subs
 
 
 def _cli_surface() -> dict[str, dict[str, set[str]]]:

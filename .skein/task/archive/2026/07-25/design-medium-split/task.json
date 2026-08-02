@@ -2,7 +2,7 @@
   "id": "design-medium-split",
   "name": "split-design-by-medium",
   "desc": "skills/design/ 按 medium 拆分类：html-design 已有，新增 app-design / cli-design / tui-design，README 改 medium 路由索引",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -21,7 +21,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784651674,
@@ -43,7 +43,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784651674,
@@ -65,7 +65,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784651674,
@@ -87,7 +87,7 @@
       "验收done": [
         1
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784651674,
@@ -105,7 +105,7 @@
         "commit 完成"
       ],
       "验收done": [],
-      "status": "运行中",
+      "status": "running",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784651674,

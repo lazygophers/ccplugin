@@ -1,0 +1,221 @@
+{
+  "id": "agent-redesign",
+  "name": "skein agents 全量母版化重设计",
+  "desc": "7 个非母版 agent 对齐 skein-checker 四要素范式 (工作流/Checkpoints/JSON own-keys/失败 if-then 表) + 内联 [工具失败:原因] + 删角色段 + 补 frontmatter 缺口",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "specer",
+      "name": "重设计 skein-specer",
+      "desc": "记忆写盘员四写路径对齐母版",
+      "depends_on": [],
+      "验收": [
+        "body 含四要素(工作流/Checkpoints🛑/返回JSON/失败if-then表)",
+        "无「你是」角色段",
+        "内联[工具失败:原因]",
+        "铁律引用core/agent/skein-skill-agent-slim-01",
+        "frontmatter齐",
+        "过claude-p质量门"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784729983,
+      "started": 1784730005,
+      "finished": 1784730180
+    },
+    {
+      "sid": "executor",
+      "name": "重设计 skein-executor",
+      "desc": "默认执行器对齐母版+补model",
+      "depends_on": [],
+      "验收": [
+        "body 含四要素(工作流/Checkpoints🛑/返回JSON/失败if-then表)",
+        "无「你是」角色段",
+        "内联[工具失败:原因]",
+        "铁律引用core/agent/skein-skill-agent-slim-01",
+        "frontmatter齐",
+        "过claude-p质量门",
+        "补model字段"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784729983,
+      "started": 1784730005,
+      "finished": 1784730180
+    },
+    {
+      "sid": "setup",
+      "name": "重设计 skein-setup",
+      "desc": "初始化/迁移器对齐母版",
+      "depends_on": [],
+      "验收": [
+        "body 含四要素(工作流/Checkpoints🛑/返回JSON/失败if-then表)",
+        "无「你是」角色段",
+        "内联[工具失败:原因]",
+        "铁律引用core/agent/skein-skill-agent-slim-01",
+        "frontmatter齐",
+        "过claude-p质量门"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784729983,
+      "started": 1784730181,
+      "finished": 1784730293
+    },
+    {
+      "sid": "recaller",
+      "name": "重设计 skein-recaller",
+      "desc": "记忆召回员对齐母版",
+      "depends_on": [],
+      "验收": [
+        "body 含四要素(工作流/Checkpoints🛑/返回JSON/失败if-then表)",
+        "无「你是」角色段",
+        "内联[工具失败:原因]",
+        "铁律引用core/agent/skein-skill-agent-slim-01",
+        "frontmatter齐",
+        "过claude-p质量门"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784729983,
+      "started": 1784730181,
+      "finished": 1784730293
+    },
+    {
+      "sid": "dedup",
+      "name": "重设计 skein-dedup",
+      "desc": "查重+编排员对齐母版+核skills",
+      "depends_on": [],
+      "验收": [
+        "body 含四要素(工作流/Checkpoints🛑/返回JSON/失败if-then表)",
+        "无「你是」角色段",
+        "内联[工具失败:原因]",
+        "铁律引用core/agent/skein-skill-agent-slim-01",
+        "frontmatter齐",
+        "过claude-p质量门",
+        "核skills字段"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784729983,
+      "started": 1784730294,
+      "finished": 1784730400
+    },
+    {
+      "sid": "researcher",
+      "name": "重设计 skein-researcher",
+      "desc": "调研器对齐母版",
+      "depends_on": [],
+      "验收": [
+        "body 含四要素(工作流/Checkpoints🛑/返回JSON/失败if-then表)",
+        "无「你是」角色段",
+        "内联[工具失败:原因]",
+        "铁律引用core/agent/skein-skill-agent-slim-01",
+        "frontmatter齐",
+        "过claude-p质量门"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784729983,
+      "started": 1784730294,
+      "finished": 1784730401
+    },
+    {
+      "sid": "finisher",
+      "name": "重设计 skein-finisher",
+      "desc": "收尾勘察器对齐母版",
+      "depends_on": [],
+      "验收": [
+        "body 含四要素(工作流/Checkpoints🛑/返回JSON/失败if-then表)",
+        "无「你是」角色段",
+        "内联[工具失败:原因]",
+        "铁律引用core/agent/skein-skill-agent-slim-01",
+        "frontmatter齐",
+        "过claude-p质量门"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784729983,
+      "started": 1784730402,
+      "finished": 1784730512
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/agent-redesign",
+  "parent": null,
+  "kind": "task",
+  "created": 1784729856,
+  "started": 1784729994,
+  "checked": null,
+  "finished": 1784731014,
+  "updated": 1784731014
+}

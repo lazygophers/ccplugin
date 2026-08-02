@@ -2,7 +2,7 @@
   "id": "skein-float-zindex-top",
   "name": "悬浮窗统一最上层 z-index",
   "desc": "所有悬浮窗 (search-dropdown/.qpop/.dag-tip/.doc-modal 等) z-index 统一拉到最高层, 高于 topbar(50)/内容(1)/背景(0), 修复 search-dropdown 缺 z-index + qpop 与 topbar 同级被盖问题",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -13,7 +13,7 @@
       "depends_on": [],
       "验收": [],
       "验收done": [],
-      "status": "已完成",
+      "status": "done",
       "estimate": null,
       "agent": "skein-executor",
       "skills": [],

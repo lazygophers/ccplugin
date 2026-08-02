@@ -2,7 +2,7 @@
   "id": "spec-model-core",
   "name": "spec.py 模型层: namespace×inclusion 正交",
   "desc": "LAYERS→NAMESPACES + inclusion 移入 frontmatter + 预算收口 spec_always_budget=8000 + 索引/FTS 全 namespace 改造 + degrade 简化为改字段",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -22,7 +22,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785382095,
       "started": 1785382122,
@@ -45,7 +45,7 @@
         1,
         2
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785382095,
       "started": 1785382531,
@@ -68,7 +68,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785382095,
       "started": 1785382122,
@@ -93,7 +93,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785382095,
       "started": 1785382758,
@@ -122,7 +122,7 @@
         4,
         5
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785382113,
       "started": 1785382996,
@@ -152,7 +152,7 @@
         4,
         5
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785382113,
       "started": 1785385122,
@@ -181,7 +181,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785382113,
       "started": 1785385704,
@@ -207,7 +207,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785386974,
       "started": 1785386974,
@@ -233,7 +233,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785387404,
       "started": 1785387404,
@@ -257,7 +257,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785387978,
       "started": 1785512676,
@@ -279,7 +279,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785514061,
       "started": 1785515121,

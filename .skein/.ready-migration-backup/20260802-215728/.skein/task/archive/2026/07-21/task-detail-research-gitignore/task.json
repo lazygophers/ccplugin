@@ -1,0 +1,65 @@
+{
+  "id": "task-detail-research-gitignore",
+  "name": "task-detail-research-gitignore",
+  "desc": "2 需求: (1) task 详情页显示 research 目录信息 (现 DOC_TABS 只 prd/design/findings); (2) .skein/spec/.pending-fix + .skein/trash/ + .audit-log + .recall.db 默认 gitignore (init 生成 .skein/.gitignore 补全)",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "st1",
+      "name": "research-tab-display",
+      "desc": "task 详情显示 research。后端 _task_detail (skein.py:1984) 加 research 字段扫 tdir/research/*.md 返 {filename:content}; 前端 task.js DOC_TABS 加 research tab + 渲染分支 (多篇全展开竖排, 空目录显暂无)。",
+      "depends_on": [],
+      "验收": [
+        "task 详情 research tab 显 6 篇笔记",
+        "空目录不崩",
+        "mypy/pytest 全绿"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784558138,
+      "started": 1784558181,
+      "finished": 1784559417
+    },
+    {
+      "sid": "st2",
+      "name": "gitignore-derive-files",
+      "desc": "init .skein/.gitignore 补 .pending-fix/.audit-log/.recall.db/trash/。skein.py:440 模板补 4 行 + 加幂等补缺逻辑 (已存文件检查缺行补); 现仓 .skein/.gitignore 手动补全。",
+      "depends_on": [],
+      "验收": [
+        "新仓 init 含 8 条忽略",
+        "现仓补全后 git status 不显 .pending-fix/trash",
+        "mypy/pytest 全绿"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784558138,
+      "started": 1784558181,
+      "finished": 1784559418
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/task-detail-research-gitignore",
+  "parent": null,
+  "kind": "task",
+  "created": 1784558070,
+  "started": 1784558181,
+  "checked": null,
+  "finished": 1784559908,
+  "updated": 1784559908
+}

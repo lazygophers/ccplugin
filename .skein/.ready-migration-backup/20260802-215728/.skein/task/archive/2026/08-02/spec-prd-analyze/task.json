@@ -1,0 +1,129 @@
+{
+  "id": "spec-prd-analyze",
+  "name": "prd 六段 + seam 门 + analyze 一致性核查",
+  "desc": "按 to-spec 补 User Stories/Testing Decisions 段 + design 测试接缝进 confirm 门 + analyze 只读核查(验收覆盖/硬规冲突/范围蔓延/proposed 置信度/接缝) + 重生 golden 快照",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "a1",
+      "name": "prd 六段模板 + 校验",
+      "desc": "_scaffold 的 prd 模板加 User Stories(带 As a/I want/so that 格式提示与极详尽要求)与 Testing Decisions(好测试定义/测哪些模块/codebase 先例)两段, 顺序固定六段; _prd_ready 校验六段且旧四段只 warning; fmt 对六段生效; 模板内加禁写路径提示(含 prototype 例外)",
+      "estimate": 0.8,
+      "depends_on": [],
+      "验收": [
+        "六段齐备顺序固定",
+        "两新段含格式提示",
+        "旧四段 prd 只 warning 不阻断",
+        "fmt 对六段均生效",
+        "禁写路径提示与 prototype 例外均在"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785382753,
+      "started": 1785382996,
+      "finished": 1785383774
+    },
+    {
+      "sid": "a2",
+      "name": "design 测试接缝段 + confirm 门",
+      "desc": "design.md 脚手架加测试接缝段(优先复用现有/取最高/越少越好理想1个); confirm 校验接缝段非占位, 旧 task 只 warning, 报具体缺失项",
+      "estimate": 0.4,
+      "depends_on": [],
+      "验收": [
+        "design 脚手架含接缝段与三条规则",
+        "confirm 校验接缝段非占位",
+        "旧 task 只 warning",
+        "缺失时报具体项非笼统错"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785382753,
+      "started": 1785383812,
+      "finished": 1785387968,
+      "note": "seam 门做成硬阻断, 违反验收项「旧 task 只 warning 不阻断」: 全套 44 个测试失败, 全因 skein confirm 退出码 1。阻断后续 6 个 task 的 confirm, 必须修"
+    },
+    {
+      "sid": "a3",
+      "name": "analyze 五类一致性核查",
+      "desc": "spec.py analyze <tid> 只读: 验收覆盖率/硬规冲突(报候选交人判)/范围蔓延/proposed 置信度/接缝存在性; --json 机器可读; 零问题如实报零冲突不硬凑",
+      "estimate": 1.2,
+      "depends_on": [],
+      "验收": [
+        "只读不写盘(git status 前后一致)",
+        "五类检查各能命中",
+        "硬规冲突只报候选不断言违规",
+        "零问题报零冲突",
+        "--json 可被 checker 消费"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785382753,
+      "started": 1785512676,
+      "finished": 1785513152
+    },
+    {
+      "sid": "a4",
+      "name": "golden 快照重生 + 测试",
+      "desc": "重生 views_golden.json 并过 test_views_char.py(重生前先 diff 确认变更只来自模板段落非渲染逻辑); 新增用例覆盖六段校验/旧四段 warning/接缝门/analyze 五类命中与不命中/analyze 不写盘",
+      "estimate": 0.6,
+      "depends_on": [
+        "a1",
+        "a2",
+        "a3"
+      ],
+      "验收": [
+        "快照已重生且 test_views_char.py 通过",
+        "快照 diff 已确认只含模板段落变更",
+        "新用例齐备全绿",
+        "doctor --quality 通过"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785382753,
+      "started": 1785515131,
+      "finished": 1785516268
+    }
+  ],
+  "priority": "normal",
+  "estimate": 3.0,
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/spec-prd-analyze",
+  "parent": "spec-wiki-v2",
+  "kind": "task",
+  "created": 1785381925,
+  "started": 1785382996,
+  "confirmed": 1785382996,
+  "checked": 1785516327,
+  "finished": 1785552552,
+  "updated": 1785552552
+}

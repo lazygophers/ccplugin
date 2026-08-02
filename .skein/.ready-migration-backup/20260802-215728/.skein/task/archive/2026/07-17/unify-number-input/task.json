@@ -1,0 +1,49 @@
+{
+  "id": "unify-number-input",
+  "name": "数字输入框 UI 统一",
+  "desc": "webapp 数字输入框 (type=number) 统一样式: config-modal 有 .cfg-input, spec.js meta.created 裸 input 无样式. grill 确认范围后统一",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "cfg-schema-overhaul",
+      "name": "config schema 四改",
+      "desc": "board_theme 全删 + max_parallel 合 max_active + web_serve 文案 + worktree_root 条件展示",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784290595,
+      "started": null,
+      "finished": 1784290894
+    },
+    {
+      "sid": "input-class-unify",
+      "name": "全站抽公共 input class",
+      "desc": "input.css 加 .field + spec.js 表单去 inline style 用 class",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784290595,
+      "started": null,
+      "finished": 1784290669
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/unify-number-input",
+  "estimate": null,
+  "created": 1784290315,
+  "started": 1784290595,
+  "finished": 1784291160,
+  "updated": 1784291160
+}

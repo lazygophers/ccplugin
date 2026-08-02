@@ -2,7 +2,7 @@
   "id": "skein-skills-multifile",
   "name": "skein skills 单文件转多文件组织",
   "desc": "skein-flow/skein-finish/skein-research 3 个单文件 skill 转为 SKILL.md 精简入口 + references/ 分文件。对齐其余 7 个已多文件 skill 的组织约定。",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -23,7 +23,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [
         "skill-dev"
@@ -49,7 +49,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [
         "skill-dev"
@@ -75,7 +75,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [
         "skill-dev"

@@ -2,7 +2,7 @@
   "id": "fix-spec-preexisting",
   "name": "修 spec.py pre-existing: mypy + subagent-start hook",
   "desc": "修 spec.py:369-370 mypy(int|None)+ test_spec.py:85(subagent-start 无 agent_type 时该注 core 正文非纯索引)",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -21,7 +21,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784542026,

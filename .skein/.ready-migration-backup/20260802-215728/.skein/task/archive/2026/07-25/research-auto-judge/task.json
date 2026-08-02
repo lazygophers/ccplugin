@@ -1,0 +1,35 @@
+{
+  "id": "research-auto-judge",
+  "name": "research 判定门自动化",
+  "desc": "skein-plan planning 阶段自动判断是否派 researcher, 非用户说要才派",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "落地判定门",
+      "desc": "skein-plan SKILL.md 加 research 判定门 section + 调 L13 措辞, 过 claude -p 质检",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784627842,
+      "started": null,
+      "finished": 1784629149
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/research-auto-judge",
+  "parent": null,
+  "kind": "task",
+  "created": 1784627829,
+  "started": 1784627863,
+  "checked": null,
+  "finished": 1784629150,
+  "updated": 1784629150
+}

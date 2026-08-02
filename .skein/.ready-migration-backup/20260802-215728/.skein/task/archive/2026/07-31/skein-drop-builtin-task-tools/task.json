@@ -1,0 +1,78 @@
+{
+  "id": "skein-drop-builtin-task-tools",
+  "name": "移除 skein 插件对 harness 内置 task 工具的用法与拦截",
+  "desc": "A: skein-finisher 去掉 TaskList/TaskStop 调用, 清悬挂后台 agent 职责上移 main 且文档不具名内置工具; B: 删除 TaskCreate 拦截 hook (hooks.py cmd_task_created + plugin.json TaskCreated + docs)",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "A类: finisher 去内置 task 工具调用 + flow 文档职责上移",
+      "desc": "skein-finisher.md 去掉 TaskList/TaskStop 授权与调用, skein-flow 三处文档把清悬挂后台 agent 改挂 main 且措辞不具名工具",
+      "estimate": 0.8,
+      "depends_on": [],
+      "验收": [
+        "skein-finisher.md frontmatter tools 为 Read, Bash, Grep, Glob",
+        "skein-finisher.md 工作流步骤连续重编号无断号",
+        "skein-finisher.md description 与失败模式表与返回 JSON 中无内置工具名残留",
+        "skills/skein-flow 三个文件中清悬挂后台 agent 已标为 main 职责",
+        "agents/ 与 skills/ 下 grep 七个内置 task 工具名零命中"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785317298,
+      "started": 1785317316,
+      "finished": 1785317448
+    },
+    {
+      "sid": "s2",
+      "name": "B类: 删 TaskCreate 拦截 hook 全链路",
+      "desc": "删 hooks.py cmd_task_created 与 DISPATCH 键与 docstring 与注释引用, 删 plugin.json TaskCreated 块, 删 docs/skein.md 与 docs/reference.md 相关行",
+      "estimate": 0.7,
+      "depends_on": [],
+      "验收": [
+        "hooks.py 中 cmd_task_created 函数与 DISPATCH 的 task-created 键与 docstring 行与 _CTX 上方注释引用全部删除",
+        "plugin.json 无 TaskCreated 块且 python3 -m json.tool 通过",
+        "docs/skein.md hook 表与 Guards 表相关行已删",
+        "docs/reference.md hook 表相关行已删",
+        "hooks.py 无参运行用法行不含 task-created",
+        "scripts/ 与 .claude-plugin/ 与 docs/ 下 grep 七个内置 task 工具名零命中"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785317298,
+      "started": 1785317316,
+      "finished": 1785317467
+    }
+  ],
+  "priority": "normal",
+  "estimate": 1.5,
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/skein-drop-builtin-task-tools",
+  "parent": null,
+  "kind": "task",
+  "created": 1785317195,
+  "started": 1785317312,
+  "confirmed": 1785317312,
+  "checked": 1785317544,
+  "finished": 1785318053,
+  "updated": 1785318053
+}

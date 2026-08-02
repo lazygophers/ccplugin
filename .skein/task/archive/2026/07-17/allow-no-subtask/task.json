@@ -2,7 +2,7 @@
   "id": "allow-no-subtask",
   "name": "允许 task 无 subtask 启动",
   "desc": "移除 start 时 subtask 必填校验; subtask 可无但执行仍必派 agent (默认 skein-executor); 同步 skill 文案 + task.json/看板注释",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -17,7 +17,7 @@
       "验收done": [
         1
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784295624,

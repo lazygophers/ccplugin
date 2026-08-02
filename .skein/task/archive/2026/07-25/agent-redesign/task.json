@@ -2,7 +2,7 @@
   "id": "agent-redesign",
   "name": "skein agents 全量母版化重设计",
   "desc": "7 个非母版 agent 对齐 skein-checker 四要素范式 (工作流/Checkpoints/JSON own-keys/失败 if-then 表) + 内联 [工具失败:原因] + 删角色段 + 补 frontmatter 缺口",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -27,7 +27,7 @@
         5,
         6
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784729983,
@@ -57,7 +57,7 @@
         6,
         7
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784729983,
@@ -85,7 +85,7 @@
         5,
         6
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784729983,
@@ -113,7 +113,7 @@
         5,
         6
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784729983,
@@ -143,7 +143,7 @@
         6,
         7
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784729983,
@@ -171,7 +171,7 @@
         5,
         6
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784729983,
@@ -199,7 +199,7 @@
         5,
         6
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784729983,

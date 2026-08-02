@@ -1,0 +1,67 @@
+{
+  "id": "merge-pop-claim",
+  "name": "合并 pop 入 claim --dry-run",
+  "desc": "pop 只读预览折叠为 claim --dry-run, 删 pop 命令; 同步文档/测试/web白名单/注释",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "impl",
+      "name": "claim --dry-run + 删 pop",
+      "desc": "skein.py claim 加 --dry-run 折叠 pop 只读预览; 删 pop 方法/parser/dispatch/web白名单; 更新 api.js+hooklib.py+skein.py 注释",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784715258,
+      "started": 1784715265,
+      "finished": 1784715425
+    },
+    {
+      "sid": "docs",
+      "name": "更新 skein-exec 文档",
+      "desc": "SKILL.md:29 + scheduling-algorithm.md:20 把 pop 描述改为 claim --dry-run",
+      "depends_on": [
+        "impl"
+      ],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784715258,
+      "started": 1784715426,
+      "finished": 1784715490
+    },
+    {
+      "sid": "test",
+      "name": "改 pop 测试为 claim --dry-run",
+      "desc": "test_skein.py:210-219 改用 claim --dry-run + 跑全量绿",
+      "depends_on": [
+        "impl"
+      ],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784715258,
+      "started": 1784715426,
+      "finished": 1784715825
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/merge-pop-claim",
+  "parent": null,
+  "kind": "task",
+  "created": 1784715249,
+  "started": 1784715260,
+  "checked": null,
+  "finished": 1784716178,
+  "updated": 1784716178
+}

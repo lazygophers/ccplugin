@@ -2,7 +2,7 @@
   "id": "spec-prd-analyze",
   "name": "prd 六段 + seam 门 + analyze 一致性核查",
   "desc": "按 to-spec 补 User Stories/Testing Decisions 段 + design 测试接缝进 confirm 门 + analyze 只读核查(验收覆盖/硬规冲突/范围蔓延/proposed 置信度/接缝) + 重生 golden 快照",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -26,7 +26,7 @@
         4,
         5
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785382753,
       "started": 1785382996,
@@ -50,7 +50,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785382753,
       "started": 1785383812,
@@ -77,7 +77,7 @@
         4,
         5
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785382753,
       "started": 1785512676,
@@ -105,7 +105,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785382753,
       "started": 1785515131,

@@ -2,7 +2,7 @@
   "tasks": [
     {
       "id": "skein-flow-enhance",
-      "status": "进行中",
+      "status": "active",
       "deps": [],
       "priority": "normal",
       "worktree": ".worktrees/skein-skein-flow-enhance",
@@ -16,18 +16,18 @@
       "finished": null
     },
     {
-      "id": "skeinlib-class-refactor",
-      "status": "待处理",
+      "id": "cli-typer-migration",
+      "status": "finishing",
       "deps": [],
       "priority": "normal",
       "worktree": null,
       "parent": null,
       "kind": "task",
-      "created": 1785668685,
-      "confirmed": null,
-      "started": null,
-      "checked": null,
-      "checked_end": null,
+      "created": 1785678205,
+      "confirmed": 1785679049,
+      "started": 1785679049,
+      "checked": 1785681132,
+      "checked_end": 1785681309,
       "finished": null
     }
   ]

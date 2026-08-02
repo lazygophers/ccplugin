@@ -1,0 +1,115 @@
+{
+  "id": "task-detail-enhance",
+  "name": "task-detail-enhance",
+  "desc": "任务详情页 5 项增强: 1.左侧加边界解析展示 2.内容动态更新 3.默认design非prd 4.start强制prd 5.taskid去重",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "st1",
+      "name": "前端: 边界展示+默认design+id去重",
+      "desc": "task.js: 1.左栏加边界section(findSection边界+md渲染) 2.DOC_TABS design优先+tab默认design 3.header h1加v-if=task.name防id重复",
+      "depends_on": [],
+      "验收": [
+        "左栏显边界section",
+        "默认tab=design",
+        "name空时header不重复id"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784545545,
+      "started": 1784545553,
+      "finished": 1784545713
+    },
+    {
+      "sid": "st2",
+      "name": "前端: 软刷保状态",
+      "desc": "task.js mountApp软刷: 重挂前存{tab,scrollY},重挂后恢复,消除闪烁+滚动丢+tab丢",
+      "depends_on": [
+        "st1"
+      ],
+      "验收": [
+        "软刷后tab保留",
+        "滚动位置保留",
+        "无闪烁"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784545546,
+      "started": 1784545713,
+      "finished": 1784546366
+    },
+    {
+      "sid": "st3",
+      "name": "后端: start强制prd门",
+      "desc": "skein.py start() doctor后加prd校验: 复用_normalize_prd检查章节齐+无TODO占位,不通过raise阻止start",
+      "depends_on": [],
+      "验收": [
+        "无prd的task start被拒",
+        "prd有TODO占位被拒",
+        "prd规范的task正常start"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784545546,
+      "started": 1784545553,
+      "finished": 1784546367
+    },
+    {
+      "sid": "st4",
+      "name": "验证+质检门",
+      "desc": "serve起看板手动验5项+claude-p质检门+st3单测",
+      "depends_on": [
+        "st1",
+        "st2",
+        "st3"
+      ],
+      "验收": [
+        "5项手动验过",
+        "claude-p非空",
+        "pytest全绿"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784545546,
+      "started": 1784546367,
+      "finished": 1784546511
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/task-detail-enhance",
+  "parent": null,
+  "kind": "task",
+  "created": 1784545353,
+  "started": 1784545552,
+  "checked": 1784546511,
+  "finished": 1784546513,
+  "updated": 1784546513
+}

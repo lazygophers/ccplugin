@@ -2,7 +2,7 @@
   "id": "task-priority",
   "name": "task 优先级: 创建时指定 + 参与调度排序",
   "desc": "create 时指定优先级, 优先级参与 claim 取任务的排队顺序判断 (依赖满足前提下按优先级排)",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -30,7 +30,7 @@
         6,
         7
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785601507,
       "started": 1785602048,
@@ -59,7 +59,7 @@
         4,
         5
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785601507,
       "started": 1785604761,
@@ -91,7 +91,7 @@
         6,
         7
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785601507,
       "started": 1785630155,
@@ -123,7 +123,7 @@
         6,
         7
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785601507,
       "started": null,
@@ -148,7 +148,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785601507,
       "started": 1785631135,
@@ -172,7 +172,7 @@
         3,
         4
       ],
-      "status": "已完成",
+      "status": "done",
       "skills": [],
       "created": 1785606410,
       "started": 1785606416,

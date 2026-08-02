@@ -1,0 +1,276 @@
+{
+  "id": "concurrency-pools",
+  "name": "并发池重构: work/gate 双池 + research 状态",
+  "desc": "max_active 单数字换成 work(2, exec+research 共享, exec 优先)/gate(3, check+finish 共享) 双池; subtask 加 phase 字段; task 状态机加 research 态 (plan⇄research, research 禁直转就绪)",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "模型层: 状态枚举改造",
+      "desc": "model.py: 删 S_READY, 加 S_RESEARCH(调研中)/S_FINISHING(收尾中); 同步 STATUS_ACTIVE/STATUS_INFLIGHT/_STATUS_ALIAS/STATUS_ORDER/PHASE_OF; subtask 加 phase 常量 (exec|research, 缺省 exec)",
+      "estimate": 1.0,
+      "depends_on": [],
+      "验收": [
+        "枚举无就绪残留",
+        "新增两态在全部映射表中有位置",
+        "现有测试对状态的断言已同步"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785512382,
+      "started": 1785559720,
+      "finished": 1785607222,
+      "note": "裁定=B (main 2026-08-01): s1 只改 model.py 的枚举/别名/排序/阶段映射表, 剔除其中的「就绪」条目; S_READY 常量声明本身保留为过渡, 彻底删除与 6 个消费文件 (lifecycle/scheduling/dag/query/doctor/views) 的改造推给 s3。理由: 按字面「改到测试绿」会让 s1 吞掉 s3(2.5h)+s5 一部分, 与 DAG 拆分冲突且必然与 s3 执行者返工。重派时把本裁定写进 prompt。另: 该 worktree 已于 2026-08-01 用 git stash 清回干净基线 (stash@{0} = s2 半截 pools 迁移), s2 需整体重做。"
+    },
+    {
+      "sid": "s2",
+      "name": "配置层: pools 双键",
+      "desc": "config.py: 删 max_active, 加 pools:{work:2,gate:3}; 层级化分组与 worktree/spec 风格一致",
+      "estimate": 0.5,
+      "depends_on": [],
+      "验收": [
+        "CONFIG_DEFAULTS 无 max_active",
+        "init 写出的 config.yaml 含 pools 块"
+      ],
+      "验收done": [
+        1,
+        2
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785512383,
+      "started": 1785559720,
+      "finished": 1785606617,
+      "note": "假绿: 自报已完成但 pytest 9 failed/310 passed (基线 319), 违反自身验收「不低于基线」。pools 双键已建对(work=2/gate=3)且 CONFIG_DEFAULTS 已无 max_active, 但读取点漏改 —— query.py:47 仍读 config()['max_active'], 实测 KeyError 当场崩。红的 9 条全在其改动面: test_config_cli.py x7 + test_serve_routes 配置面板 + test_ready_scheduling 并发上限。需重派补齐读取点迁移与测试同步。"
+    },
+    {
+      "sid": "s3",
+      "name": "生命周期: confirm 吸收 start + 三个新转换",
+      "desc": "lifecycle.py: 删 start 方法, confirm --approved 直接 待处理→进行中 并承担体检/prd double-check/worktree/started/start 钩子; 新增 research(待处理→调研中)/plan(调研中→待处理)/finishing(检查中→收尾中); finish 只接收尾中态; 删 task 级并发上限",
+      "estimate": 2.5,
+      "depends_on": [
+        "s1",
+        "s2"
+      ],
+      "验收": [
+        "confirm 后 task 直接进行中且 worktree 已建",
+        "调研中调 confirm 报错提示先 plan",
+        "research 未全 done 时 plan 被拒",
+        "finish 拒非收尾中态"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785512383,
+      "started": 1785607222,
+      "finished": 1785631922,
+      "note": "exec-s3b 死于 API Error: ECONNRESET (2026-08-02), 零推进。中间态已由 main 提交存档 1bf3e1de9。第三次重派。"
+    },
+    {
+      "sid": "s4",
+      "name": "调度器: 两池计数 + 加权打分",
+      "desc": "scheduling.py: work 池数全局 running(phase exec|research) subtask, gate 池数 检查中+收尾中 task; 打分 = 关键路径权重*W_CRIT + 等待小时*W_WAIT + exec 加权, 同分按登记序稳定; claim 满槽提示区分是哪个池",
+      "estimate": 2.0,
+      "depends_on": [
+        "s1",
+        "s2"
+      ],
+      "验收": [
+        "两池独立(work 满仍可 check)",
+        "exec 同分优先",
+        "等久的 research 能翻盘",
+        "满槽提示指明池名"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785512383,
+      "started": 1785632455,
+      "finished": 1785635796
+    },
+    {
+      "sid": "s5",
+      "name": "CLI + 只读投影 + 体检",
+      "desc": "cli.py 子命令表增删(删 start, 加 research/plan/finishing) 与 MUTATING 集合同步; query.py 槽位提示改双池; doctor.py 查两池超限 + 检出残留 max_active 提示已废弃",
+      "estimate": 1.5,
+      "depends_on": [
+        "s3",
+        "s4"
+      ],
+      "验收": [
+        "skein start 已不存在",
+        "doctor 报两池超限",
+        "残留 max_active 有可见提示"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785512383,
+      "started": 1785635860,
+      "finished": 1785636374
+    },
+    {
+      "sid": "s6",
+      "name": "看板 + Web 视图",
+      "desc": "board.py/views.py/boardsource.py/store.py: 显示两池各自 占用/上限; 前端 ETA 并行折算改按 work 池; 新增两状态的排序与展示",
+      "estimate": 1.5,
+      "depends_on": [
+        "s1",
+        "s2"
+      ],
+      "验收": [
+        "看板显示 work 与 gate 两行",
+        "Web 视图 JSON 含两池字段",
+        "新状态在看板有正确排序位"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785512383,
+      "started": 1785632077,
+      "finished": 1785632876
+    },
+    {
+      "sid": "s7",
+      "name": "注入文案 + skill/agent/文档同步",
+      "desc": "hooks/prompt.py 运行配置文案改双池; skills/skein-flow 及 references、agents/*.md、docs/reference.md 中的 就绪/start/max_active 表述全量同步",
+      "estimate": 2.0,
+      "depends_on": [
+        "s3",
+        "s4"
+      ],
+      "验收": [
+        "全仓无 就绪态/skein start/max_active 表述残留",
+        "文案经 claude -p 三次一致性验证"
+      ],
+      "验收done": [
+        1,
+        2
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785512383,
+      "started": 1785637392,
+      "finished": 1785639897
+    },
+    {
+      "sid": "s8",
+      "name": "测试: 行为测试 + 三个零残留扫描",
+      "desc": "按 design 测试接缝写: 状态转换门、两池独立、exec 同分优先、等待翻盘、池上限; 外加 就绪/start/max_active 三个源码扫描零残留测试",
+      "estimate": 2.0,
+      "depends_on": [
+        "s5",
+        "s6",
+        "s7"
+      ],
+      "验收": [
+        "全量测试通过",
+        "每个新测试反向验证过(改回旧行为即红)",
+        "ruff F/E9 清白"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785512383,
+      "started": 1785640130,
+      "finished": 1785641190
+    },
+    {
+      "sid": "s9",
+      "name": "存量就绪态迁移",
+      "desc": "把存量 task.json 里已废弃的 就绪 status 迁移到新状态机的对应态, 否则本分支合入 master 后既有 task 全部变非法 status",
+      "estimate": 1.0,
+      "depends_on": [
+        "s3",
+        "s4"
+      ],
+      "验收": [
+        "存量 task.json 的 就绪 status 被迁移到新状态机对应态",
+        "迁移前自动备份且幂等可重跑",
+        "迁移后 doctor 零非法 status",
+        "迁移映射规则写进 design.md"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785636507,
+      "started": 1785636511,
+      "finished": 1785637443
+    },
+    {
+      "sid": "s10",
+      "name": "ruff F/E9 收口",
+      "desc": "清掉本 task 引入的两条 F401 未用导入, 使验收标准「ruff F/E9 清白」真正成立",
+      "estimate": 0.3,
+      "depends_on": [
+        "s8"
+      ],
+      "验收": [
+        "doctor.py 的 STATUS_ACTIVE 未用导入已清",
+        "test_skein.py 的 S_FINISHING 未用导入已清",
+        "ruff --select F,E9 在本 task 触碰过的文件上零违规",
+        "非本 task 引入的违规逐条列出归因且未擅自代改"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "skills": [],
+      "created": 1785641914,
+      "started": 1785641914,
+      "finished": 1785642399
+    }
+  ],
+  "priority": "urgent",
+  "estimate": 13.0,
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/concurrency-pools",
+  "parent": null,
+  "kind": "task",
+  "created": 1785511640,
+  "started": 1785559720,
+  "confirmed": 1785515070,
+  "checked": 1785641244,
+  "finished": 1785647309,
+  "updated": 1785647309,
+  "confirmed_by": "user"
+}

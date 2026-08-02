@@ -1,0 +1,51 @@
+{
+  "id": "skip-flow-judge-on-slash",
+  "name": "slash 命令跳过 flow 判定注入",
+  "desc": "UserPromptSubmit prompt 开头 /skein-xxx 或 /skein:skein-xxx 时跳过 _CTX flow 判定注入 (用户已显式调 skein)",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "hooks 加 slash 前缀跳过",
+      "desc": "cmd_user_prompt 开头加前缀检测: prompt strip 后 startswith /skein- 或 /skein:skein- → return 0 不注入 _CTX",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784648282,
+      "started": 1784648318,
+      "finished": 1784648403
+    },
+    {
+      "sid": "s2",
+      "name": "验证",
+      "desc": "跑 3 个验收用例验证前缀跳过 + 非 slash 仍注入",
+      "depends_on": [
+        "s1"
+      ],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784648282,
+      "started": 1784648403,
+      "finished": 1784648421
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/skip-flow-judge-on-slash",
+  "parent": null,
+  "kind": "task",
+  "created": 1784648252,
+  "started": 1784648313,
+  "checked": null,
+  "finished": 1784648533,
+  "updated": 1784648533
+}

@@ -1,0 +1,18 @@
+{
+  "id": "rm-new-task-btn",
+  "name": "移除 serve webapp 新建 task 按钮",
+  "desc": "board.js 移除 + 新建 task 按钮 + 展开表单 (id/name/desc/deps) + toggle-new/cancel-new/create 逻辑; doctor 快捷按钮保留",
+  "status": "待处理",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/rm-new-task-btn",
+  "created": 1784295062,
+  "started": null,
+  "checked": null,
+  "finished": null,
+  "updated": 1784295062
+}

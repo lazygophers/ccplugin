@@ -2,7 +2,7 @@
   "id": "skein-prd-nocheck",
   "name": "prd写入强制未勾",
   "desc": "planning 写 prd 验收/目标一律 - [ ], 勾选归 check",
-  "status": "进行中",
+  "status": "active",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -13,7 +13,7 @@
       "depends_on": [],
       "验收": [],
       "验收done": [],
-      "status": "待处理",
+      "status": "pending",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784861710,

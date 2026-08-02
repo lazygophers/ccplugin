@@ -1,0 +1,123 @@
+{
+  "id": "skill-dev-methodology-fusion",
+  "name": "skill-dev 两插件融合 darwin+nuwa 方法论",
+  "desc": "就地蒸馏 darwin-skill(优化线) + huashu-nuwa(创建线) 方法论融入 skills/skill-dev 的 skill-dev + plugin-dev 两个 SKILL.md; README 路由外链改指内部融合能力; 过 claude -p 质量门",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "fuse-darwin-optimize",
+      "name": "skill-dev 优化线下沉 darwin + result-card 模板",
+      "desc": "darwin 优化核下沉 skill-dev/SKILL.md 流程B + references + 建 result-card HTML 模板 + 优化线外链改内链",
+      "depends_on": [],
+      "验收": [
+        "skill-dev/SKILL.md 流程B 含 9维SkillLens+validation-gated门+盲评+触顶break+体积护栏文字自洽",
+        "templates/result-card.html 可直接用",
+        "优化线无 /darwin-skill 外链残留",
+        "过 claude -p 质量门返回非空符合预期"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784251773,
+      "started": 1784252700,
+      "finished": 1784253090
+    },
+    {
+      "sid": "fuse-nuwa-create",
+      "name": "skill-dev 创建线下沉 nuwa",
+      "desc": "nuwa 创建核下沉 skill-dev/SKILL.md 流程A + references nuwa核 + 创建线外链改内链",
+      "depends_on": [
+        "fuse-darwin-optimize"
+      ],
+      "验收": [
+        "skill-dev/SKILL.md 流程A 含分维度并行调研+1.5审查门+三重验证+质量门+降级表",
+        "创建线无 /huashu-nuwa 外链残留",
+        "nuwa 人物特定部分未下沉",
+        "过 claude -p 质量门返回非空符合预期"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784251773,
+      "started": 1784253090,
+      "finished": 1784253488
+    },
+    {
+      "sid": "plugin-dev-internalize",
+      "name": "plugin-dev 外链内化",
+      "desc": "plugin-dev/SKILL.md:32,:113 指向外部 darwin 的外链改指内部 skill-dev 优化能力",
+      "depends_on": [],
+      "验收": [
+        "plugin-dev/SKILL.md 无指向外部 /darwin-skill 外链",
+        "组件质量维改指内部 skill-dev",
+        "过 claude -p 质量门返回非空符合预期"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784251773,
+      "started": 1784252700,
+      "finished": 1784252800
+    },
+    {
+      "sid": "readme-cleanup",
+      "name": "README 外链改内链 + 附带清理",
+      "desc": "README:14,15 外链改内链 + CLAUDE.md:29,32 死链修 + 删 skill-author 空壳",
+      "depends_on": [
+        "fuse-darwin-optimize",
+        "fuse-nuwa-create",
+        "plugin-dev-internalize"
+      ],
+      "验收": [
+        "README.md 无 darwin-skill/huashu-nuwa 外链改内链",
+        "CLAUDE.md:29,32 死链已修",
+        "skills/skill-dev/skill-author/ 已删",
+        "grep 全仓无 skill-dev/plugin-dev/README 指向外部 darwin/nuwa 残留"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784251773,
+      "started": 1784253488,
+      "finished": 1784253627
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/skill-dev-methodology-fusion",
+  "estimate": null,
+  "created": 1784250448,
+  "started": 1784252689,
+  "finished": 1784254023,
+  "updated": 1784254023
+}

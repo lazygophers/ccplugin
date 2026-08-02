@@ -2,7 +2,7 @@
   "id": "hooks-str-multiline",
   "name": "hooks.py 多行文案 str 改 triple-quoted",
   "desc": "_UNINIT_TRELLIS/_UNINIT_PLAIN/_INIT_CTX/cmd_report ctx 4 处隐式单行拼接改 triple-quoted 多行 str, 语义不变",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -21,7 +21,7 @@
         2,
         3
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784613515,

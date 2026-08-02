@@ -2,7 +2,7 @@
   "id": "max-parallel-cleanup",
   "name": "清理 max_parallel 幽灵配置名 (skein-flow 目录外 9 处)",
   "desc": "skein.py:167 唯一并发配置名是 max_active, 全脚本无 max_parallel。但目录外仍有 9 处写 max_parallel, 会误导 AI 与用户: docs/reference.md:63, docs/skein.md:101/185/193, docs/examples/sample-skein/config.yaml:2, docs/examples/index.html:1749, scripts/test_skein.py:215, scripts/tests/test_dag.py:8, skills/skein-setup/SKILL.md:42。来源: task skein-flow-slim 的 s6 核验发现, 因契约 8 限定作业面未处理, 用户裁定另开独立 task。注意 config.yaml 与 test_*.py 需先确认 skein.py 是否真读该键, 避免改坏测试。",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -27,7 +27,7 @@
         5,
         6
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785255330,
@@ -49,7 +49,7 @@
         1,
         2
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785255330,

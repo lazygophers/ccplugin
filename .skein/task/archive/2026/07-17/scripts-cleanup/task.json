@@ -2,7 +2,7 @@
   "id": "scripts-cleanup",
   "name": "skein scripts 工程化简洁化审计",
   "desc": "对 plugins/tools/skein/scripts 做 code review (8 angles), 修复 correctness bugs + reuse/simplification/efficiency 清理; --fix 直接落地",
-  "status": "已完成",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -17,7 +17,7 @@
       "验收done": [
         1
       ],
-      "status": "已完成",
+      "status": "done",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784296810,

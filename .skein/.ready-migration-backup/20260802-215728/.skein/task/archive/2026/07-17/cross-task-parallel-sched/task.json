@@ -1,0 +1,71 @@
+{
+  "id": "cross-task-parallel-sched",
+  "name": "跨 task subtask 并行调度",
+  "desc": "调度从单 task 内 claim 升级为全局跨 task claim: 从所有 active task 的 ready subtask 池按拓扑深度取 top-N (N=max_parallel), 非每 task 各占 max_parallel 槽",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "backend-cross-claim",
+      "name": "后端全局 claim",
+      "desc": "skein.py 加 _global_ready() (跨 task 收集 ready subtask + 拓扑深度+task优先级排序 + 全局 max_parallel 截断) + 顶层 claim 命令 (无 tid)",
+      "depends_on": [],
+      "验收": [
+        "skein claim 无 tid 返回跨 task 就绪批",
+        "全局并发 ≤ max_parallel",
+        "排序拓扑深度+task优先级",
+        "subtask claim tid 兼容",
+        "ast.parse 过"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784285744,
+      "started": 1784285879,
+      "finished": 1784286107
+    },
+    {
+      "sid": "docs-cross-claim",
+      "name": "文档更新全局池",
+      "desc": "SKILL.md 调度循环段改用 skein claim; scheduling-algorithm.md 多 task 并行段重写全局池模型",
+      "depends_on": [
+        "backend-cross-claim"
+      ],
+      "验收": [
+        "SKILL.md 主路径用 skein claim",
+        "scheduling-algorithm 全局池模型",
+        "subtask claim tid 标注兼容"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784285745,
+      "started": 1784286107,
+      "finished": 1784286223
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/cross-task-parallel-sched",
+  "estimate": null,
+  "created": 1784285492,
+  "started": 1784285874,
+  "finished": 1784286657,
+  "updated": 1784286657
+}
