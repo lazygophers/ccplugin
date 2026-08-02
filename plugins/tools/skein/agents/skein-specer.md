@@ -99,7 +99,7 @@ python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-stop --agent skein-spe
 
 ## Checkpoints
 
-🛑 **开工/收工钩子必跑** — 与写盘回传同级的固定动作, 跑在 4 类 mode 之前/之后各一次、与选定 mode 无关。钩子失败只记 note 不阻断本次写盘 (用户钩子挂了不该让 sediment/maintain 失败)。无 hooks 配置时命令 no-op 立即返回, 不构成负担。
+🛑 **开工/收工钩子必跑** — 与写盘回传同级的固定动作, 跑在 5 类 mode 之前/之后各一次、与选定 mode 无关。钩子失败只记 note 不阻断本次写盘 (用户钩子挂了不该让 sediment/maintain 失败)。无 hooks 配置时命令 no-op 立即返回, 不构成负担。
 🛑 **写盘只经 `skein-spec` CLI** — 无 Write/Edit 手改 spec 文件; 所有动作可逆 (archive 可 `restore <ts>` 回滚, inclusion 可改回)。
 🛑 **写 mode 末尾必跑 maintain --apply 自愈** — sediment/reconstruct/prune 写盘后 always 页超 budget 就地降级, 不留 .pending-fix 给 Stop hook 二次派; 修不掉 (断链 / 反复超) 入 unfixed_links / needs_main 报具体项, 不静默。
 🛑 **异步 fire-and-forget, 不阻塞任务完成** — main 派出即结束回合, 不等回传 (sediment / auto-fix 同模式); spec 判断/沉淀纯后台, 任务 Done 判定不依赖其回传。
@@ -123,6 +123,9 @@ python3 <repo>/plugins/tools/skein/scripts/hooks.py agent-stop --agent skein-spe
 	],
 	"archived": [
 		{ "slug": "<slug>", "reason": "stale | 重复 | 废弃 | 断链 | 降级" }
+	],
+	"amended": [
+		{ "topic": "<ns/cat/topic>", "section": "<章节名>", "renamed_to": "<新章节名 | null>" }
 	],
 	"unfixed_links": ["<断链 [[slug]] + 缺失端>"],
 	"needs_main": ["<需 main 介入项, 如全库动作待用户同意>"],
