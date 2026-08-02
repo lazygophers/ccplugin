@@ -8,6 +8,16 @@ color: green
 permissionMode: bypassPermissions
 ---
 
+## 入参格式 (JSON)
+
+```json
+{
+	"tid": "<task-id>",
+	"sid": null,
+	"workdir": "<工作目录路径>"
+}
+```
+
 ## 工作流
 
 check 全绿后 main 派你做 finish 收尾。**验收/完成度核对已由 check 做完, 本 agent 不重做**; 你负责勘察改动全貌、清悬挂残留、执行 `skein finish`。
