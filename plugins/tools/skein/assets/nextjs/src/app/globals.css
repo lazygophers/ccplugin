@@ -137,8 +137,10 @@
   --st-planning: var(--oc-coral-600);
   --st-pending: var(--oc-shell-600);
   --st-ready: var(--oc-shell-600);
+  --st-research: var(--oc-ocean-600);
   --st-active: var(--oc-seaweed-600);
   --st-check: var(--oc-sunset-600);
+  --st-finishing: var(--oc-reef-600);
   --st-done: var(--oc-deepsea-600);
   --st-failed: var(--oc-coral-600);
 }
@@ -180,8 +182,10 @@
   --st-planning: var(--oc-coral-800);
   --st-pending: var(--oc-shell-800);
   --st-ready: var(--oc-shell-800);
+  --st-research: var(--oc-ocean-800);
   --st-active: var(--oc-seaweed-800);
   --st-check: var(--oc-sunset-800);
+  --st-finishing: var(--oc-reef-800);
   --st-done: var(--oc-deepsea-800);
   --st-failed: var(--oc-coral-800);
 }

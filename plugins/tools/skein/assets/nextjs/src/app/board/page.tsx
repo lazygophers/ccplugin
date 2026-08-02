@@ -16,8 +16,9 @@ import { useToast } from "@/components/toast";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { IconApprove, IconFinish, IconDetail, IconTrash, IconClose, IconCopyMini } from "@/components/icons";
 
-const ALL_STATUSES = ["planning", "ready", "active", "check", "done"];
-const DEFAULT_FILTER = new Set(["planning", "ready", "active", "check"]);
+const ALL_STATUSES = ["planning", "ready", "research", "active", "check", "finishing", "done"];
+const DEFAULT_ACTIVE = ["planning", "ready", "research", "active", "check", "finishing"];  // 「全选/取消」基准 — 排除 done
+const DEFAULT_FILTER = new Set(DEFAULT_ACTIVE);
 
 // ── Sugiyama layout (ported from old board.js) ──
 interface LayoutNode extends DagNode { task: NormTask; rowH: number; }
@@ -264,14 +265,18 @@ export default function BoardPage() {
   const wrapRef = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLDivElement>(null);
   const [confirmAction, setConfirmAction] = useState<{ type: "delete" | "finish" | "clean"; id: string; name: string } | null>(null);
+  type PoolStats = { work: { limit: number; running: number }; gate: { limit: number; running: number } };
+  const [pools, setPools] = useState<PoolStats | null>(null);
 
   useEffect(() => {
     api.data().then((r) => {
       const raw = r as unknown as Record<string, unknown>;
       const cards = (raw.cards || raw.tasks || []) as unknown as Record<string, unknown>[];
-      const maxActive = ((raw.overview as Record<string, unknown>)?.maxActive as number) || 2;
+      const overview = (raw.overview as Record<string, unknown>) || {};
+      const maxActive = (overview.maxActive as number) || 2;
       const tasks = normalizeTasks(cards).map(t => { (t as Record<string, unknown>).maxActive = maxActive; return t; });
       setAllTasks(tasks);
+      if (overview.pools) setPools(overview.pools as PoolStats);
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
@@ -307,7 +312,7 @@ export default function BoardPage() {
   const toggleStatus = (st: string) => {
     setStatusSet(prev => { const next = new Set(prev); if (next.has(st)) next.delete(st); else next.add(st); return next; });
   };
-  const toggleAll = () => setStatusSet(allSelected ? new Set(["planning", "ready", "active", "check"]) : new Set(ALL_STATUSES));
+  const toggleAll = () => setStatusSet(allSelected ? new Set(DEFAULT_ACTIVE) : new Set(ALL_STATUSES));
 
   const cleanDone = () => setConfirmAction({ type: "clean", id: "", name: "" });
 
@@ -329,6 +334,26 @@ export default function BoardPage() {
                 <span className="whitespace-nowrap text-xs text-muted-foreground">整体 {summary.pct}% · 预计剩余 {summary.remainText}</span>
               </div>
             </div>
+            {/* 两池占用 (design.md §3): work = exec+research 并发, gate = check+finishing 并发 */}
+            {pools && (
+              <div className="flex flex-shrink-0 flex-col gap-1 text-xs text-muted-foreground">
+                {(["work", "gate"] as const).map(name => {
+                  const p = pools[name];
+                  const full = p.running >= p.limit;
+                  return (
+                    <div key={name} className="flex items-center gap-1.5">
+                      <span className="w-8 font-mono uppercase">{name}</span>
+                      <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
+                        <div className="h-full transition-all duration-500"
+                             style={{ width: `${Math.min(100, (p.running / Math.max(1, p.limit)) * 100)}%`,
+                                      backgroundColor: `var(${name === "work" ? "--st-active" : "--st-check"})` }} />
+                      </div>
+                      <span className={cn("whitespace-nowrap font-mono", full && "text-foreground font-semibold")}>{p.running}/{p.limit}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
             {/* Status filter */}
             <div className="flex flex-1 flex-wrap items-center gap-2">
               <button onClick={toggleAll} className={cn("rounded-full border px-3 py-1 text-xs font-medium transition-colors", allSelected ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/50")}>
