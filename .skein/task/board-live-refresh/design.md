@@ -49,3 +49,24 @@
   无消息 —— 正好把上面那条取舍判据钉死。
 - 「不整页重载」与「滚动位置不丢」不写自动化断言 (测试环境里重载本就不发生, 断言不出真东西), 列为
   浏览器人工核对项。
+
+## b1 完成留痕 (2026-08-02)
+
+续做存档点 322da0d08 (exec-b1 断线前的中间态): `applyTaskChanged` 纯函数、`board/page.tsx` 订阅接线、
+`live.ts` 的 `card` 字段协议均已就绪且设计正确, 判定为**续做**, 未回退任何部分。
+
+补齐:
+- `src/lib/__tests__/apply-task-changed.test.ts`: 新建/更新/删除 + extra(maxActive) 合并 4 组用例, 10 断言全过
+  (`npx tsc ... && node ...`, 沿用 `board-layout.test.ts` 的无框架 tsc 编译约定)
+- `assets/dist` 重建入库 (`npm run build`)
+
+验收 7 条:
+1. 消费 — `live.ts` dispatch 分发 `task-changed`, `page.tsx:210-219` 订阅, 不再丢弃
+2. 新建 — `applyTaskChanged` id 不存在时 append (测试用例 1)
+3. 归档/删除 — `card: null` 时 filter 移除 (测试用例 3)
+4. 状态同步 — 更新走 `normalizeTask` 重算 status/进度 (测试用例 2)
+5. 不整页重载 — `setAllTasks` 局部 setState, 不调 `location.reload()`
+6. 整页兜底保留 — `live-bootstrap.tsx` 对 `"data"`/`"reload"` 的整页刷未改动
+7. 纯函数 — `applyTaskChanged(tasks, msg, extra)` 无副作用, 三类 + extra 共 4 组用例
+
+b2 (签名补齐展示字段)/b3(断线追赶+抗抖)/b4(详情页订阅+浏览器验证) 留给后续 subtask, 未做。
