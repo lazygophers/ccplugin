@@ -4,7 +4,7 @@
 import type { NormTask } from "./model";
 
 const ST_COLOR: Record<string, string> = {
-  planning: "st-planning", ready: "st-ready",
+  planning: "st-planning",
   active: "st-active", check: "st-check",
   done: "st-done", failed: "st-failed",
 };

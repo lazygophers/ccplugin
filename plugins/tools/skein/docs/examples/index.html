@@ -1617,7 +1617,7 @@
             <!-- ① 任务生命周期 5 态竖向时间轴 -->
             <div class="glass rounded-xl p-6 border border-slate-200/60 dark:border-slate-600/40 mb-8">
                 <h3 class="font-medium mb-1 text-ocean-deep dark:text-goldSand-mid">任务生命周期 Lifecycle</h3>
-                <p class="text-xs text-slate-500 dark:text-slate-400 mb-5">5 态流转：创建 → 就绪 → 起始 → 检查 → 完成｜当前态用脉冲点，已过态实心勾选，未到态空心</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mb-5">4 态流转：创建 → 进行中 → 检查 → 完成｜当前态用脉冲点，已过态实心勾选，未到态空心</p>
 
                 <div class="grid md:grid-cols-2 gap-8">
                     <!-- 进行中 task 样例 -->
@@ -1645,33 +1645,20 @@
                                 </div>
                                 <div class="tl-desc">skein create feat-auth 落 task.json + 初始化 task 文件夹</div>
                             </div>
-                            <!-- 2. 就绪 (已过) -->
-                            <div class="tl-node done">
-                                <span class="tl-dot done" style="--tl-c:#429cd1"></span>
-                                <div class="flex items-center gap-2 mb-1">
-                                    <span class="tl-name">就绪</span>
-                                    <span class="tl-st done">已完成</span>
-                                </div>
-                                <div class="flex items-center gap-3">
-                                    <span class="tl-time">07-22 10:02</span>
-                                    <span class="tl-dur">48m / 48m</span>
-                                </div>
-                                <div class="tl-desc">plan 完成 + 用户 confirm 通过，等待 skein start 占槽</div>
-                            </div>
-                            <!-- 3. 起始 (当前态 脉冲) -->
+                            <!-- 2. 进行中 (当前态 脉冲) -->
                             <div class="tl-node">
                                 <span class="tl-dot cur" style="--tl-c:#237bb8"></span>
                                 <div class="flex items-center gap-2 mb-1">
-                                    <span class="tl-name">起始</span>
+                                    <span class="tl-name">进行中</span>
                                     <span class="tl-st cur" style="--tl-c:#237bb8;--tl-c-bg:rgba(35,123,184,0.15)">当前</span>
                                 </div>
                                 <div class="flex items-center gap-3">
-                                    <span class="tl-time">07-22 10:15</span>
-                                    <span class="tl-dur">13m / 1h01m · 计时到 now</span>
+                                    <span class="tl-time">07-22 10:02</span>
+                                    <span class="tl-dur">1h01m · 计时到 now</span>
                                 </div>
-                                <div class="tl-desc">skein start 占 active 槽，subtask 调度中 (2/5 done)</div>
+                                <div class="tl-desc">confirm 直接激活，占槽+建 worktree，subtask 调度中 (2/5 done)</div>
                             </div>
-                            <!-- 4. 检查 (未到) -->
+                            <!-- 3. 检查 (未到) -->
                             <div class="tl-node">
                                 <span class="tl-dot"></span>
                                 <div class="flex items-center gap-2 mb-1">
@@ -1684,7 +1671,7 @@
                                 </div>
                                 <div class="tl-desc">skein check：checkpoint 核对 + 场景自适应校验</div>
                             </div>
-                            <!-- 5. 完成 (未到) -->
+                            <!-- 4. 完成 (未到) -->
                             <div class="tl-node">
                                 <span class="tl-dot"></span>
                                 <div class="flex items-center gap-2 mb-1">
@@ -1725,28 +1712,16 @@
                                 <div class="tl-desc">skein create color-revamp</div>
                             </div>
                             <div class="tl-node done">
-                                <span class="tl-dot done" style="--tl-c:#429cd1"></span>
+                                <span class="tl-dot done" style="--tl-c:#237bb8"></span>
                                 <div class="flex items-center gap-2 mb-1">
-                                    <span class="tl-name">就绪</span>
+                                    <span class="tl-name">进行中</span>
                                     <span class="tl-st done">已完成</span>
                                 </div>
                                 <div class="flex items-center gap-3">
                                     <span class="tl-time">07-19 16:45</span>
-                                    <span class="tl-dur">2h25m / 2h25m</span>
+                                    <span class="tl-dur">2h42m / 2h42m</span>
                                 </div>
-                                <div class="tl-desc">plan 充分，confirm 一次过</div>
-                            </div>
-                            <div class="tl-node done">
-                                <span class="tl-dot done" style="--tl-c:#237bb8"></span>
-                                <div class="flex items-center gap-2 mb-1">
-                                    <span class="tl-name">起始</span>
-                                    <span class="tl-st done">已完成</span>
-                                </div>
-                                <div class="flex items-center gap-3">
-                                    <span class="tl-time">07-19 17:02</span>
-                                    <span class="tl-dur">17m / 2h42m</span>
-                                </div>
-                                <div class="tl-desc">3 subtask 并行 (受 max_active=2 限)</div>
+                                <div class="tl-desc">confirm 直接激活，3 subtask 并行 (受 max_active=2 限)</div>
                             </div>
                             <div class="tl-node done">
                                 <span class="tl-dot done" style="--tl-c:#e6c88b"></span>

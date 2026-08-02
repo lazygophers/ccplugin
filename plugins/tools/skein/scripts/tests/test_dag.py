@@ -203,8 +203,7 @@ def test_global_claim_cross_task(skein_cli: SkeinCli, ws: Path) -> None:
         _add(skein_cli, ws, tid, "x")
         _fill_prd(ws, tid)
         skein_cli(ws, "estimate", tid, "--set", "1")  # estimate 硬门: confirm 前须填实工时
-        skein_cli(ws, "confirm", tid)                     # 待处理→就绪
-        skein_cli(ws, "start", tid)                       # start 建立运行环境 + 占 active
+        skein_cli(ws, "confirm", tid, "--approved")          # 待处理→进行中 (confirm 即激活)
     out = skein_cli(ws, "claim", "exec").stdout              # 全局 claim exec
     assert "已全局认领" in out
     # 两个 task 各 1 subtask, 竞争 2 槽 → 两个都进 running
@@ -231,16 +230,14 @@ def test_priority_beats_topo_depth(skein_cli: SkeinCli, ws: Path) -> None:
     _add(skein_cli, ws, "deep-chain", "s3", deps="s2")
     _fill_prd(ws, "deep-chain")
     skein_cli(ws, "estimate", "deep-chain", "--set", "3")
-    skein_cli(ws, "confirm", "deep-chain")
-    skein_cli(ws, "start", "deep-chain")
+    skein_cli(ws, "confirm", "deep-chain", "--approved")
     # urgent-flat: 单 subtask, 拓扑深度=0, 但 urgent
     skein_cli(ws, "create", "urgent-flat", "--name", "urgent-flat", "--desc", "d",
               "--priority", "urgent")
     _add(skein_cli, ws, "urgent-flat", "x")
     _fill_prd(ws, "urgent-flat")
     skein_cli(ws, "estimate", "urgent-flat", "--set", "1")
-    skein_cli(ws, "confirm", "urgent-flat")
-    skein_cli(ws, "start", "urgent-flat")
+    skein_cli(ws, "confirm", "urgent-flat", "--approved")
     order = _dry_run_order(skein_cli, ws)
     assert order.index("urgent-flat/x") < order.index("deep-chain/s1")
 
@@ -252,18 +249,18 @@ def test_priority_does_not_cross_unfinished_dep(skein_cli: SkeinCli, ws: Path) -
     _add(skein_cli, ws, "blocker", "b1")
     _fill_prd(ws, "blocker")
     skein_cli(ws, "estimate", "blocker", "--set", "1")
-    skein_cli(ws, "confirm", "blocker")  # 就绪但未完成 (status != S_DONE)
+    skein_cli(ws, "confirm", "blocker", "--approved")  # 进行中但未完成 (status != S_DONE)
     skein_cli(ws, "create", "urgent-waiting", "--name", "urgent-waiting", "--desc", "d",
               "--priority", "urgent", "--deps", "blocker")
     _add(skein_cli, ws, "urgent-waiting", "u1")
     _fill_prd(ws, "urgent-waiting")
     skein_cli(ws, "estimate", "urgent-waiting", "--set", "1")
-    skein_cli(ws, "confirm", "urgent-waiting")  # deps 未完成 → 停在待处理, 不进入 schedulable
+    skein_cli(ws, "confirm", "urgent-waiting", "--approved", check=False)  # deps 未完成 → confirm 失败, 停待处理 → 停在待处理, 不进入 schedulable
     skein_cli(ws, "create", "normal-ready", "--name", "normal-ready", "--desc", "d")
     _add(skein_cli, ws, "normal-ready", "n1")
     _fill_prd(ws, "normal-ready")
     skein_cli(ws, "estimate", "normal-ready", "--set", "1")
-    skein_cli(ws, "confirm", "normal-ready")
+    skein_cli(ws, "confirm", "normal-ready", "--approved")
     order = _dry_run_order(skein_cli, ws)
     assert "normal-ready/n1" in order
     assert "urgent-waiting/u1" not in order
@@ -278,8 +275,7 @@ def test_claim_order_stable_on_repeat(skein_cli: SkeinCli, ws: Path) -> None:
         _add(skein_cli, ws, tid, "x")
         _fill_prd(ws, tid)
         skein_cli(ws, "estimate", tid, "--set", "1")
-        skein_cli(ws, "confirm", tid)
-        skein_cli(ws, "start", tid)
+        skein_cli(ws, "confirm", tid, "--approved")
     first = _dry_run_order(skein_cli, ws)
     second = _dry_run_order(skein_cli, ws)
     assert first == second == ["t-urgent/x", "t-high/x", "t-normal/x", "t-low/x"]
@@ -293,31 +289,26 @@ def test_zero_regression_all_same_priority(skein_cli: SkeinCli, ws: Path) -> Non
     _add(skein_cli, ws, "alpha-beta", "s2", deps="s1")
     _fill_prd(ws, "alpha-beta")
     skein_cli(ws, "estimate", "alpha-beta", "--set", "2")
-    skein_cli(ws, "confirm", "alpha-beta")
-    skein_cli(ws, "start", "alpha-beta")
+    skein_cli(ws, "confirm", "alpha-beta", "--approved")
     skein_cli(ws, "create", "gamma-delta", "--name", "gamma-delta", "--desc", "d")
     _add(skein_cli, ws, "gamma-delta", "x")
     _fill_prd(ws, "gamma-delta")
     skein_cli(ws, "estimate", "gamma-delta", "--set", "1")
-    skein_cli(ws, "confirm", "gamma-delta")
-    skein_cli(ws, "start", "gamma-delta")
+    skein_cli(ws, "confirm", "gamma-delta", "--approved")
     order = _dry_run_order(skein_cli, ws)
     # alpha-beta 先登记 (ti=0) 且 s1 拓扑深度=1 > gamma-delta/x 的 0 → alpha-beta/s1 先
     assert order == ["alpha-beta/s1", "gamma-delta/x"]
 
 
 def test_two_level_task_level_cap_blocks_start(skein_cli: SkeinCli, ws: Path) -> None:
-    """双层: task 级 max_active=2, 第 3 个 task start 被阻 (exit≠0)。"""
+    """双层: task 级 max_active=2, 第 3 个 task confirm 被阻 (exit≠0)。"""
     _set_max_active(ws, 2)
-    for tid in ("alpha-beta", "gamma-delta", "epsilon-zeta"):
+    for i, tid in enumerate(("alpha-beta", "gamma-delta", "epsilon-zeta")):
         skein_cli(ws, "create", tid, "--name", tid, "--desc", "d")
         _add(skein_cli, ws, tid, "x")
         _fill_prd(ws, tid)
-        skein_cli(ws, "estimate", tid, "--set", "1")  # estimate 硬门: confirm 前须填实工时
-        skein_cli(ws, "confirm", tid)  # 全部推到就绪 (第 3 个也需就绪才能触并发上限)
-    skein_cli(ws, "start", "alpha-beta")
-    skein_cli(ws, "start", "gamma-delta")
-    # 第 3 个 start 应被并发上限拦截 (check=False 拿非零退出)
-    res = skein_cli(ws, "start", "epsilon-zeta", check=False)
-    assert res.returncode != 0
-    assert "并发上限" in res.stderr or "并发上限" in res.stdout
+        skein_cli(ws, "estimate", tid, "--set", "1")
+        res = skein_cli(ws, "confirm", tid, "--approved", check=i < 2)
+        if i == 2:
+            assert res.returncode != 0
+            assert "并发上限" in res.stderr or "并发上限" in res.stdout

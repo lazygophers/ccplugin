@@ -2,7 +2,6 @@
 
 const STATUS_MAP: Record<string, string> = {
   '待处理': 'planning', '规划中': 'planning', 'pending': 'planning', 'plan': 'planning',
-  '就绪': 'ready', '待执行': 'ready', 'ready': 'ready',
   '进行中': 'active', '运行中': 'active', '执行中': 'active', 'active': 'active', 'exec': 'active',
   '检查中': 'check', '验收中': 'check', '待验收': 'check', 'check': 'check',
   '已完成': 'done', '完成': 'done', 'done': 'done',
@@ -96,7 +95,7 @@ export function normalizeTask(t: Record<string, unknown>): NormTask {
     description: (t.description || t.desc || '') as string,
     desc: (t.description || t.desc || '') as string,
     status,
-    stage: (t.stage || (status === 'planning' ? 'plan' : status === 'ready' ? 'ready' : status === 'active' ? 'exec' : status === 'check' ? 'check' : 'done')) as string,
+    stage: (t.stage || (status === 'planning' ? 'plan' : status === 'active' ? 'exec' : status === 'check' ? 'check' : 'done')) as string,
     deps: (t.deps || []) as string[],
     subtasks: ((t.subtasks || t.subtable || []) as Record<string, unknown>[]).map(normalizeSubtask),
     contracts: (t.contracts || []) as { id: string; desc?: string }[],

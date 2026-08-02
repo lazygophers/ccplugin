@@ -9,20 +9,19 @@ import re
 import time
 
 # task 状态 (中文落盘, 逻辑比较用常量)
-# 生命周期: 待处理(规划中) → [confirm 用户确认门] → 就绪(规划完成待启动) → [start] → 进行中 → [check] → 检查中 → [finish] → 已完成
+# 生命周期: 待处理(规划中) → [confirm 用户确认门] → 进行中 → [check] → 检查中 → [finish] → 已完成
 S_PENDING = "待处理"
-S_READY = "就绪"
 S_ACTIVE = "进行中"
 S_CHECK = "检查中"
 S_DONE = "已完成"
-# 两套语义分离: 占 max_active 槽的仅执行中 (检查中/就绪不占); 已 start 有 worktree/可 finish 的含检查中
+# 两套语义分离: 占 max_active 槽的仅执行中 (检查中 不占); 已 start 有 worktree/可 finish 的含检查中
 STATUS_ACTIVE = {S_ACTIVE}             # 占并发槽 (_active 门 / current 显示)
 STATUS_INFLIGHT = {S_ACTIVE, S_CHECK}  # 已 start 有 worktree, 可 finish / del 需销 worktree
 # list --status 过滤别名 (英文简写 → 中文态); open/未完成 特判非 done
-_STATUS_ALIAS = {"pending": S_PENDING, "ready": S_READY, "active": S_ACTIVE, "check": S_CHECK, "done": S_DONE}
-# 看板排序: 进行中 > 检查中 > 就绪 > 待处理 > 已完成 (同状态内按 id 稳定)
-STATUS_ORDER = {S_ACTIVE: 0, S_CHECK: 1, S_READY: 2, S_PENDING: 3, S_DONE: 4}
-PHASE_OF = {S_PENDING: "plan", S_READY: "ready", S_ACTIVE: "exec", S_CHECK: "check"}  # task status → 回复前缀阶段
+_STATUS_ALIAS = {"pending": S_PENDING, "active": S_ACTIVE, "check": S_CHECK, "done": S_DONE}
+# 看板排序: 进行中 > 检查中 > 待处理 > 已完成 (同状态内按 id 稳定)
+STATUS_ORDER = {S_ACTIVE: 0, S_CHECK: 1, S_PENDING: 2, S_DONE: 3}
+PHASE_OF = {S_PENDING: "plan", S_ACTIVE: "exec", S_CHECK: "check"}  # task status → 回复前缀阶段
 # subtask 状态
 SS_PENDING = "待处理"
 SS_RUNNING = "运行中"

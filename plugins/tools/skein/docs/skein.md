@@ -66,9 +66,9 @@
 ## 任务生命周期
 
 ```
-状态机: 待处理 → 就绪 → 进行中 → 检查中 → 已完成
+状态机: 待处理 → 进行中 → 检查中 → 已完成
           ↑plan   ↑confirm ↑start   ↑check    ↑finish
-占 active 槽: 仅 进行中 (就绪/检查中 不占)
+占 active 槽: 仅 进行中 (检查中 不占)
 归档: 已完成后 _autoclean 目录迁移 (task/archive/…), 非状态值
 ```
 
@@ -77,8 +77,7 @@
 | from → to | 触发 | 动作 |
 | --- | --- | --- |
 | (无) → 待处理 | plan 完成 | 产出 prd/design/findings + subtask DAG + contracts |
-| 待处理 → 就绪 | `skein confirm` | 用户确认门: 验 prd + ≥1 subtask (不占槽) |
-| 就绪 → 进行中 | `skein start` | 验 deps + 空槽, 创建 worktree, 占槽, 启动 exec |
+| 待处理 → 进行中 | `skein confirm` | 用户确认门: 验 prd + ≥1 subtask + deps + 空槽, 创建 worktree, 占槽, 启动 exec |
 | 进行中 → 检查中 | 全部 subtask 完成 | 启动 check (独立阶段, 释放 active 槽) |
 | 检查中 → 已完成 | `skein finish` (全部检查通过) | merge → 销wt → 标记完成 + 异步 spec sediment |
 | 已完成 → (归档) | retain_days 到期 / =0 立即, **且关联链全完成** | 目录迁移 task/archive/…, 非状态值 |
@@ -99,7 +98,7 @@
 
 | 步骤 | 说明 |
 | --- | --- |
-| claim | `skein claim exec`: DAG → 就绪 subtask → 拓扑排序 → dispatch |
+| claim | `skein claim exec`: DAG → 可派发 subtask → 拓扑排序 → dispatch |
 | dispatch | 一律派 `skein-executor`, 并发 ≤ max_active |
 | 完成判定 | 每 subtask 回 done/fail; fail 重派 ≤2 轮 (质量验收全归 check) |
 | 完成即派 | 1 subtask 完 → 释放槽 → `skein claim exec` 下一个 |

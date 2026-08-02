@@ -52,14 +52,14 @@ def main() -> None:
     pt = sub.add_parser("parent", help="查/改既有 task 的 parent 挂载 (与 deps 正交, 不碰任何 deps; 摘除=--set 空串)")
     pt.add_argument("id", help="task id")
     pt.add_argument("--set", help="设置父 supertask/task id (空串=摘除, 省略则查看当前值)")
-    cf = sub.add_parser("confirm", help="用户确认门 (待处理→就绪): 须**用户本人**审核 PRD 后才放行, 两条通道见 --approved / 终端交互")
+    cf = sub.add_parser("confirm", help="用户确认门 (待处理→进行中): 须**用户本人**审核 PRD 后才放行, 两条通道见 --approved / 终端交互")
     cf.add_argument("id", help="task id")
     cf.add_argument("--summary", action="store_true",
                     help="只打印 PRD 审核摘要到 stdout 后退出, 不改状态 — 供 main 塞进 AskUserQuestion 给用户看")
     cf.add_argument("--approved", action="store_true",
                     help="用户已在 AskUserQuestion 里批准 (main 专用)。🛑 只准在真拿到用户批准后传, "
                          "自己传 = 伪造用户审核, 属流程错误")
-    s = sub.add_parser("start", help="激活就绪 task: 建 worktree + 进行中 (就绪须先经 confirm; 就绪即可并行, 无 focus)")
+    s = sub.add_parser("start", help="直接激活 (跳过人审门, 供调度器/已确认场景): 建 worktree + 进行中")
     s.add_argument("id", help="task id")
     ck = sub.add_parser("check", help="标记 task 进入检查阶段 (进行中→检查中, 记 checked 时刻)")
     ck.add_argument("id", help="task id")
@@ -90,14 +90,14 @@ def main() -> None:
     cl = sub.add_parser("clean", help="[用户主动] 归档完成超保留期的 task (skein-clean skill 入口)")
     cl.add_argument("--days", type=int, help="保留范围: 归档完成超此天数的 task (省略用 config retain_days; 0=全部完成 task 立即归档)")
     sub.add_parser("migrate-priority", help="[一次性] 存量 0-10 数字优先级迁移为四档枚举; 迁移前自动备份原文件, 幂等可重跑")
-    sub.add_parser("current", help="列全部 active task (无 focus, 就绪皆可并行)")
-    sub.add_parser("ready", help="脚本算可启动 task 批 (就绪态+前置全done+有空闲槽, 只读预览)")
+    sub.add_parser("current", help="列全部 active task (无 focus, 进行中皆可并行)")
+    sub.add_parser("ready", help="脚本算可启动 task 批 (待处理+前置全done+有空闲槽, 只读预览)")
     cm = sub.add_parser("claim", help="全局跨 task 认领批; phase 必填区分阶段")
     cm.add_argument("phase", choices=["exec", "check"],
                     help="exec=认领 ready subtask → running (所有可调度 task 的 ready subtask 竞争 max_active 槽); check=认领 全 subtask done 的 进行中 task → 检查中 + 认领 检查通过的 检查中 task → 已完成")
     cm.add_argument("--dry-run", action="store_true", help="只读预览认领批, 不改状态")
     li = sub.add_parser("list", help="列所有 task (含状态); --status 过滤 + --json 压缩输出")
-    li.add_argument("--status", help="过滤: 待处理/就绪/进行中/检查中/已完成 (或 pending/ready/active/check/done), open=全部未完成; 逗号多选")
+    li.add_argument("--status", help="过滤: 待处理/进行中/检查中/已完成 (或 pending/active/check/done), open=全部未完成; 逗号多选")
     li.add_argument("--json", action="store_true",
                     help="压缩单行 JSON (exec 取未完成任务用, 省 token); 每项 {id,status,name,desc,deps,worktree,priority,pct,subs:[done,run,pend,fail],ready}")
     _doc = sub.add_parser("doctor", help="纯脚本体检 task/subtask 不变量违规 (有错 exit 1, 可 CI/hook 门禁); --quality 再跑 mypy+pytest 质量门")
@@ -135,9 +135,9 @@ def main() -> None:
     stt.add_argument("--json", action="store_true", help="压缩 JSON 输出")
     st = sub.add_parser(
         "subtask", help="单 task 内 subtask DAG 调度 (add/claim/ready/start/show/done/fail/list)",
-        epilog="调度环: claim 认领就绪批 (整批标 running) → main 逐个派 skein-executor → 完成即 done/fail → 再 claim (并发 max_active)")
+        epilog="调度环: claim 认领可派发批 (整批标 running) → main 逐个派 skein-executor → 完成即 done/fail → 再 claim (并发 max_active)")
     st.add_argument("action", choices=["add", "claim", "ready", "start", "check", "show", "done", "fail", "list"],
-                    help="add 登记 / claim 认领就绪批(整批标running) / ready 只读预览 / start 单个占槽 / check 勾验收(算百分比) / show 查全字段 / done 完成 / fail 失败 / list 列态")
+                    help="add 登记 / claim 认领可派发批(整批标running) / ready 只读预览 / start 单个占槽 / check 勾验收(算百分比) / show 查全字段 / done 完成 / fail 失败 / list 列态")
     st.add_argument("tid", help="所属 task id")
     st.add_argument("sid", nargs="?", help="subtask id (add/start/show/done/fail 必带; add 时 sid/name/desc 必填)")
     st.add_argument("--name", help="[add 必填] subtask 名称")

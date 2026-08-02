@@ -6,8 +6,8 @@
 关键路径权重排序: 最长下游链先派, 最小化 makespan。
 
 ## 为什么要拿着 Lifecycle
-「就绪」task 的 subtask 被认领时要**就地启动**该 task, 而启动必须走与手工 `skein start`
-完全相同的那条路 (`Lifecycle._start_task`) —— doctor 体检、并发上限、prd double-check、
+「待处理」task 的 subtask 被认领时要**就地启动**该 task, 而启动必须走与手工 `skein confirm`
+完全相同的那条路 (`Lifecycle._activate`) —— doctor 体检、并发上限、prd double-check、
 worktree、started 时间戳、阶段钩子一个不少。少任何一样, 自动启动出来的 task 就和手工启动的
 不是同一种状态, 那类差异极难查。所以这里注入 `Lifecycle` 而不是自己复制一份启动逻辑。
 """
@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 from skeinlib.dag import _crit_weight, _split, _split_semi, _sub_estimate_sum, _sub_pct
 from skeinlib.errors import SkeinError
-from skeinlib.model import (SS_DONE, SS_FAILED, SS_PENDING, SS_RUNNING, S_READY,
+from skeinlib.model import (SS_DONE, SS_FAILED, SS_PENDING, SS_RUNNING, S_PENDING,
                             S_ACTIVE, S_CHECK, PRIORITY_RANK, PRIORITY_DEFAULT, now)
 from skeinlib.views import _fmt_ts
 
@@ -56,34 +56,34 @@ class Scheduler:
         return [s for _, s in cand[:slots]]
 
     def _schedulable(self) -> list[dict[str, Any]]:
-        """可被调度的 task: **进行中 + 就绪(前置已清)**, 按登记序。
+        """可被调度的 task: **进行中 + 待处理(前置已清)**, 按登记序。
 
-        「就绪」也算可调度是刻意的 —— 就绪 = 已过人审门、规划完成、只差开工。要求先手工
-        `skein start` 再派 subtask, 等于在已经确认过的东西上再要一次仪式, 而那一步没有任何
+        「待处理」也算可调度是刻意的 —— confirm 直接激活 = 已过人审门、规划完成。要求先手工
+        `skein confirm` 再派 subtask, 等于在已经确认过的东西上再要一次仪式, 而那一步没有任何
         新信息进来。改为**首个 subtask 被认领时自动启动**该 task (见 `_ensure_task_active`)。
 
-        前置未完成的就绪 task 不进池 —— 与 `start` 的 deps 门同一判据, 免得自动启动绕过它。
+        前置未完成的待处理 task 不进池 —— 与 `start` 的 deps 门同一判据, 免得自动启动绕过它。
         """
         active = self.ws.store.active()
         active_ids = {t["id"] for t in active}
         ready = [t for t in self.ws.store.all_tasks()
-                 if t["status"] == S_READY and t["id"] not in active_ids
+                 if t["status"] == S_PENDING and t["id"] not in active_ids
                  and not any(self.ws._dep_unfinished(d) for d in t.get("deps", []))]
         return active + ready
 
     def _ensure_task_active(self, t: dict[str, Any], a: argparse.Namespace) -> dict[str, Any]:
-        """若 task 还在「就绪」, 就地把它启动 (进行中 + worktree)。已是进行中则原样返回。
+        """若 task 还在「待处理」, 就地把它启动 (进行中 + worktree)。已是进行中则原样返回。
 
-        走的是与手工 `skein start` **完全相同**的 `_start_task`, 所以 doctor 体检、task 级
+        走的是与手工 `skein confirm` **完全相同**的 `_activate`, 所以 doctor 体检、task 级
         max_active、prd double-check、worktree、started 时间戳、start 阶段钩子一个不少。
-        task 级并发满时 `_start_task` 会抛 —— 自动启动**不得**绕过那道上限, 抛出来是对的。
+        task 级并发满时 `_activate` 会抛 —— 自动启动**不得**绕过那道上限, 抛出来是对的。
         """
-        if t["status"] != S_READY:
+        if t["status"] != S_PENDING:
             return t
-        return self.lifecycle._start_task(t["id"], a, quiet=True)
+        return self.lifecycle._activate(t["id"], a, quiet=True)
 
     def _global_ready(self) -> list[tuple[dict[str, Any], dict[str, Any]]]:
-        """全局跨 task 就绪批: 所有**可调度** task (进行中 + 就绪) 的 ready subtask 合池,
+        """全局跨 task 就绪批: 所有**可调度** task (进行中 + 待处理) 的 ready subtask 合池,
         按 (优先级降序, 拓扑深度降序, task 登记序, subtask 登记序) 排序, 截到全局 max_active - 全局
         running 槽。优先级权重高于拓扑深度 (用户裁定: 标了紧急就真的先跑, 代价是关键路径优化被冲淡)。
         依赖未满足的不入候选池 (见下方过滤), 优先级再高也不越过依赖。
@@ -134,9 +134,9 @@ class Scheduler:
                 print(f"无全局就绪 subtask (全局 running: {grun}/{mp}, pending: {gpend}) — 满槽或依赖未完成")
                 if mp - len(tasks) > 0:
                     for t in self.ws.store.all_tasks():
-                        if t["status"] != S_READY or any(self.ws._dep_unfinished(d) for d in t["deps"]):
+                        if t["status"] != S_PENDING or any(self.ws._dep_unfinished(d) for d in t["deps"]):
                             continue
-                        print(f"有就绪 task 待启动: {t['id']} ({t['name']})")
+                        print(f"有待处理 task 待启动: {t['id']} ({t['name']})")
                         print(f"— 直接启动执行: `skein.py start {t['id']}` (待处理 task 须先 skein confirm 过确认门)")
                         break
                 return
@@ -154,7 +154,7 @@ class Scheduler:
             mp = self.ws.config()["max_active"]
             print(f"无全局就绪 subtask (全局 running: {grun}/{mp}, pending: {gpend}) — 满槽或依赖未完成")
             return
-        # 按 task 分组认领: 属于「就绪」task 的, 先把该 task 就地启动 (进行中 + worktree),
+        # 按 task 分组认领: 属于「待处理」task 的, 先把该 task 就地启动 (进行中 + worktree),
         # 再标 subtask running。启动会重写 task.json, 所以必须拿**启动后**的对象再找 subtask,
         # 否则改的是一份马上被覆盖掉的旧副本 (改了等于没改, 且不报错)。
         by_tid: dict[str, list[str]] = {}
@@ -168,7 +168,7 @@ class Scheduler:
         started_now: list[str] = []
         for tid in order:
             t = next(x for x, _ in batch if x["id"] == tid)
-            if t["status"] == S_READY:
+            if t["status"] == S_PENDING:
                 t = self._ensure_task_active(t, a)   # 满槽会抛 — 自动启动不绕并发上限
                 started_now.append(tid)
             subs = {s["sid"]: s for s in t.get("subtasks", [])}
@@ -180,7 +180,7 @@ class Scheduler:
                 claimed.append((tid, s))
             self.ws.store.save(t)
         if started_now:
-            print(f"自动启动就绪 task (首个 subtask 被认领): {', '.join(started_now)}")
+            print(f"自动启动待处理 task (首个 subtask 被认领): {', '.join(started_now)}")
         print("已全局认领 (running) — main 逐个派 skein-executor（dispatch 只给 tid + sid + 工作目录）, 完成即 subtask done/fail:")
         for tid, s in claimed:
             sk = ",".join(s.get("skills", [])) or "-"
@@ -354,12 +354,12 @@ class Scheduler:
             run = [x for x in t["subtasks"] if x["status"] == SS_RUNNING]
             if len(run) >= self.ws.config()["max_active"]:
                 raise SkeinError(f"并发已满 ({len(run)}) — 先 done 一个再 start")
-            # task 还在「就绪」→ 就地启动 (与 claim 同一条路, 见 _ensure_task_active)。
+            # task 还在「待处理」→ 就地启动 (与 claim 同一条路, 见 _ensure_task_active)。
             # 启动会重写 task.json, 所以要拿启动后的对象重新定位 subtask, 否则改的是旧副本。
-            if t["status"] == S_READY:
+            if t["status"] == S_PENDING:
                 t = self._ensure_task_active(t, a)
                 s = self.ws._sub(t, a.sid)
-                print(f"自动启动就绪 task: {a.tid}")
+                print(f"自动启动待处理 task: {a.tid}")
             self.ws._stage_hooks("subtask.start", "before", self.ws._hook_ctx(a.tid, a.sid, t=t))
             s["status"] = SS_RUNNING
             if not s.get("started"):

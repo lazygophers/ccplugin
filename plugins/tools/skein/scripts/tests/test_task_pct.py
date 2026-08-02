@@ -6,7 +6,7 @@
 新公式 (阶段区间 + 完成度线性插值, 见 skeinlib/dag.py):
   _sub_pct  = done→100；否则按 status 取区间 (pending=0-5 / running=失败=10-90)，
               有验收按 done/total 线性插值 (floor)，无验收取区间中点。
-  _task_pct = done→100；否则按 status 取区间 (pending=0-5 / ready=5-10 /
+  _task_pct = done→100；否则按 status 取区间 (pending=0-5 /
               active=10-85 / check=85-98)，有 subtask 按 subtask 均值线性插值
               (floor)，无 subtask 取区间中点。
 全程 floor (int()) 取整，禁 round() — 防 banker's rounding 与前端 JS Math.floor 分歧。
@@ -26,7 +26,7 @@ from typing import Any
 
 from skeinlib.dag import _sub_pct, _task_pct
 from skeinlib.model import (SS_DONE, SS_FAILED, SS_PENDING, SS_RUNNING,
-                            S_ACTIVE, S_CHECK, S_DONE, S_PENDING, S_READY)
+                            S_ACTIVE, S_CHECK, S_DONE, S_PENDING)
 
 
 def _sub(status: str = SS_PENDING, crit: int = 0, done: int = 0) -> dict[str, Any]:
@@ -68,7 +68,6 @@ def test_subs_acceptance_partial_pass_interp() -> None:
 # 4. 无 subs 各状态取区间中点 (非区间下限)
 def test_no_subs_status_takes_range_midpoint() -> None:
     assert _task_pct(_task(S_PENDING)) == 2   # (0+5)//2
-    assert _task_pct(_task(S_READY)) == 7     # (5+10)//2
     assert _task_pct(_task(S_ACTIVE)) == 47   # (10+85)//2
     assert _task_pct(_task(S_CHECK)) == 91    # (85+98)//2
     assert _task_pct(_task(S_DONE)) == 100

@@ -53,7 +53,7 @@ def render_board(tasks: list[dict[str, Any]], wt_shown: bool) -> str:
             if wt_shown else "| id | 名称 | 状态 | 前置 |\n|---|---|---|---|")
     return (
         "# SKEIN 看板\n\n"
-        "> task.json 变更即自动渲染, 禁直接编辑。无 task 级 focus — 就绪 task 皆可并行。\n\n"
+        "> task.json 变更即自动渲染, 禁直接编辑。无 task 级 focus — 进行中 task 皆可并行。\n\n"
         f"{head}\n"
         f"{body}\n"
     )

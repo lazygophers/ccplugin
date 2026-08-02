@@ -18,8 +18,8 @@ import { useToast } from "@/components/toast";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { IconApprove, IconFinish, IconDetail, IconTrash, IconClose, IconCopyMini } from "@/components/icons";
 
-const ALL_STATUSES = ["planning", "ready", "active", "check", "done"];
-const DEFAULT_FILTER = new Set(["planning", "ready", "active", "check"]);
+const ALL_STATUSES = ["planning", "active", "check", "done"];
+const DEFAULT_FILTER = new Set(["planning", "active", "check"]);
 
 // ── Sugiyama layout (ported from old board.js) ──
 interface LayoutEdge extends DagEdge {}
@@ -260,7 +260,7 @@ export default function BoardPage() {
   const toggleStatus = (st: string) => {
     setStatusSet(prev => { const next = new Set(prev); if (next.has(st)) next.delete(st); else next.add(st); return next; });
   };
-  const toggleAll = () => setStatusSet(allSelected ? new Set(["planning", "ready", "active", "check"]) : new Set(ALL_STATUSES));
+  const toggleAll = () => setStatusSet(allSelected ? new Set(["planning", "active", "check"]) : new Set(ALL_STATUSES));
 
   const cleanDone = () => setConfirmAction({ type: "clean", id: "", name: "" });
 
@@ -606,7 +606,7 @@ function DetailPanel({ task, allTasks, onClose, onConfirm, onFinish, onDelete, o
         </div>
         <div className="flex items-center gap-1.5">
           {st === "planning" && (
-            <button onClick={() => onConfirm(task.id)} data-tip="确认规划 → 进就绪" className="icon-btn flex items-center justify-center rounded-md border border-primary/40 p-1.5 text-primary hover:bg-primary/10"><IconApprove /></button>
+            <button onClick={() => onConfirm(task.id)} data-tip="确认规划 → 激活执行" className="icon-btn flex items-center justify-center rounded-md border border-primary/40 p-1.5 text-primary hover:bg-primary/10"><IconApprove /></button>
           )}
           {(st === "active" || st === "check") && (
             <button onClick={() => onFinish(task.id, task.title || task.name || task.id)} data-tip="强制完成" className="icon-btn flex items-center justify-center rounded-md border border-primary/40 p-1.5 text-primary hover:bg-primary/10"><IconFinish /></button>
@@ -724,9 +724,9 @@ function CopyableId({ id, label }: { id: string; label?: string }) {
 }
 
 // ── Task Timeline (buildTimeline port) ──
-const STAGE_ORDER: Record<string, number> = { planning: 0, ready: 1, active: 2, check: 3, done: 4 };
+const STAGE_ORDER: Record<string, number> = { planning: 0, active: 1, check: 2, done: 3 };
 const STAGE_COLORS: Record<string, string> = {
-  created: "#74b9e8", ready: "#429cd1", started: "#237bb8", checked: "#c9a227", finished: "#48bb78",
+  created: "#74b9e8", started: "#237bb8", checked: "#c9a227", finished: "#48bb78",
 };
 
 function TaskTimeline({ task, eta, subs }: { task: NormTask; eta: { main: string; detail: string } | null; subs: NormSubtask[] }) {
@@ -736,10 +736,9 @@ function TaskTimeline({ task, eta, subs }: { task: NormTask; eta: { main: string
   const at = (i: number, ts: number | null) => byTs ? !!ts : idx > i;
   const stages = [
     { key: "planning", label: "规划中", desc: "任务规划与 PRD 编写", time: task.createdAt, done: idx > 0, current: idx === 0, color: STAGE_COLORS.created },
-    { key: "ready", label: "就绪", desc: "规划完成，等待开始执行", time: task.confirmedAt, done: idx > 1, current: idx === 1, color: STAGE_COLORS.ready },
-    { key: "started", label: "执行", desc: "任务执行中", time: task.startedAt, done: idx > 2, current: idx === 2, color: STAGE_COLORS.started },
-    { key: "checked", label: "验收", desc: "checkpoint 核对", time: task.checkedAt, done: idx > 3, current: idx === 3, color: STAGE_COLORS.checked },
-    { key: "finished", label: "完成", desc: "任务完成", time: task.finishedAt, done: byTs ? !!task.finishedAt : idx >= 4, current: false, color: STAGE_COLORS.finished },
+    { key: "started", label: "执行", desc: "任务执行中", time: task.startedAt, done: idx > 1, current: idx === 1, color: STAGE_COLORS.started },
+    { key: "checked", label: "验收", desc: "checkpoint 核对", time: task.checkedAt, done: idx > 2, current: idx === 2, color: STAGE_COLORS.checked },
+    { key: "finished", label: "完成", desc: "任务完成", time: task.finishedAt, done: byTs ? !!task.finishedAt : idx >= 3, current: false, color: STAGE_COLORS.finished },
   ];
 
   return (

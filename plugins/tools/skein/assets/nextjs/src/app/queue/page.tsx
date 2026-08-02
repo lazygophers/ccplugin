@@ -24,7 +24,7 @@ export default function QueuePage() {
   }, []);
 
   const activeCount = items.filter(t => t.status === "active").length;
-  const pendingCount = items.filter(t => t.status === "planning" || t.status === "ready").length;
+  const pendingCount = items.filter(t => t.status === "planning").length;
   const checkCount = items.filter(t => t.status === "check").length;
 
   return (
@@ -40,7 +40,7 @@ export default function QueuePage() {
 
           <div className="mb-6 grid grid-cols-3 gap-4">
             <StatCard value={activeCount} label="执行中" colorVar="--st-active" />
-            <StatCard value={pendingCount} label="待执行" colorVar="--st-ready" />
+            <StatCard value={pendingCount} label="待执行" colorVar="--st-planning" />
             <StatCard value={checkCount} label="待验收" colorVar="--st-check" />
           </div>
 

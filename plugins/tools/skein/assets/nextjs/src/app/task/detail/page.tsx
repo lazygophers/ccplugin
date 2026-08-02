@@ -19,9 +19,9 @@ import { IconApprove, IconFinish, IconTrash, IconCopyMini } from "@/components/i
 import { cn } from "@/lib/utils";
 
 // ── Timeline stages (from old app.js buildTimeline) ──
-const STAGE_ORDER: Record<string, number> = { planning: 0, ready: 1, active: 2, check: 3, done: 4 };
+const STAGE_ORDER: Record<string, number> = { planning: 0, active: 1, check: 2, done: 3 };
 const STAGE_COLORS: Record<string, string> = {
-  created: "#74b9e8", ready: "#429cd1", started: "#237bb8", checked: "#c9a227", finished: "#48bb78",
+  created: "#74b9e8", started: "#237bb8", checked: "#c9a227", finished: "#48bb78",
 };
 
 function buildStages(task: NormTask) {
@@ -31,10 +31,9 @@ function buildStages(task: NormTask) {
   const at = (i: number, ts: number | null) => byTs ? !!ts : idx > i;
   return [
     { key: "planning", label: "规划中", name: "规划中", desc: "任务规划与 PRD 编写", time: task.createdAt, done: idx > 0, current: idx === 0, color: STAGE_COLORS.created },
-    { key: "ready", label: "就绪", name: "进入待执行", desc: "规划完成，等待开始执行", time: null, done: idx > 1, current: idx === 1, color: STAGE_COLORS.ready },
-    { key: "started", label: "执行", name: "开始执行", desc: "任务执行中，子任务调度", time: task.startedAt, done: idx > 2, current: idx === 2, color: STAGE_COLORS.started },
-    { key: "checked", label: "验收", name: "进入验收", desc: "checkpoint 核对 + 场景自适应校验", time: task.checkedAt, done: idx > 3, current: idx === 3, color: STAGE_COLORS.checked },
-    { key: "finished", label: "完成", name: "已完成", desc: "任务完成，归档沉淀", time: task.finishedAt, done: byTs ? !!task.finishedAt : idx >= 4, current: false, color: STAGE_COLORS.finished },
+    { key: "started", label: "执行", name: "开始执行", desc: "任务执行中，子任务调度", time: task.startedAt, done: idx > 1, current: idx === 1, color: STAGE_COLORS.started },
+    { key: "checked", label: "验收", name: "进入验收", desc: "checkpoint 核对 + 场景自适应校验", time: task.checkedAt, done: idx > 2, current: idx === 2, color: STAGE_COLORS.checked },
+    { key: "finished", label: "完成", name: "已完成", desc: "任务完成，归档沉淀", time: task.finishedAt, done: byTs ? !!task.finishedAt : idx >= 3, current: false, color: STAGE_COLORS.finished },
   ];
 }
 
@@ -191,7 +190,7 @@ function TaskDetailContent() {
               </div>
               <div className="flex items-center gap-2">
                 {st === "planning" && (
-                  <button onClick={async () => { try { await api.exec("confirm", { id: task.id }); toast("已确认规划", "success"); setTimeout(load, 500); } catch { toast("确认失败", "error"); } }} data-tip="确认规划 → 进就绪" className="icon-btn flex items-center justify-center rounded-md border border-primary/40 p-2 text-primary hover:bg-primary/10">
+                  <button onClick={async () => { try { await api.exec("confirm", { id: task.id }); toast("已确认规划", "success"); setTimeout(load, 500); } catch { toast("确认失败", "error"); } }} data-tip="确认规划 → 激活执行" className="icon-btn flex items-center justify-center rounded-md border border-primary/40 p-2 text-primary hover:bg-primary/10">
                     <IconApprove size={18} />
                   </button>
                 )}
@@ -349,7 +348,7 @@ function TaskDetailContent() {
                 <div className="flex flex-wrap gap-2">
                   {st === "planning" && (
                     <button onClick={async () => { try { await api.exec("confirm", { id: task.id }); toast("已确认规划", "success"); setTimeout(load, 500); } catch { toast("确认失败", "error"); } }} className="w-full rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90">
-                      <i className="fa fa-check mr-1.5" />确认规划 → 就绪
+                      <i className="fa fa-check mr-1.5" />确认规划 → 执行
                     </button>
                   )}
                   {(st === "active" || st === "check") && (

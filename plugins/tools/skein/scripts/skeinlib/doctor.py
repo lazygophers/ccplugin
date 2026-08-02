@@ -26,8 +26,7 @@ from skeinlib.hooks.runner import budget_guard
 from skeinlib.config import hooks_schema_errors
 from skeinlib.errors import SkeinError
 from skeinlib.model import (PHASE_OF, PRIORITY_RANK, SLUG_RE, SS_DONE, SS_FAILED, SS_PENDING,
-                            SS_RUNNING, STATUS_ACTIVE, S_ACTIVE, S_CHECK, S_DONE, S_PENDING,
-                            S_READY)
+                            SS_RUNNING, STATUS_ACTIVE, S_ACTIVE, S_CHECK, S_DONE, S_PENDING)
 from skeinlib.worktree import worktrees_of
 from skeinlib.paths import SCRIPTS_DIR
 
@@ -90,7 +89,7 @@ class DoctorMixin:
             tid = t.get("id", "?")
             if not SLUG_RE.match(str(tid)):
                 errs.append(f"{tid}: id 非 kebab-case slug")
-            if t.get("status") not in {S_PENDING, S_READY, S_ACTIVE, S_CHECK, S_DONE}:
+            if t.get("status") not in {S_PENDING, S_ACTIVE, S_CHECK, S_DONE}:
                 errs.append(f"{tid}: 非法 status {t.get('status')!r}")
             # priority 体检 (task-priority p5): 未设时兜底为默认档合法, 只有「设了但不在四档枚举
             # 内」才判错 (含存量未迁移的 0-10 数字残留) —— 与 validate_priority() 校验口径一致。

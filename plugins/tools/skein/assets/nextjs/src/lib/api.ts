@@ -70,7 +70,7 @@ export interface Task {
 }
 
 export interface DashboardData {
-  overview: { total: number; active: number; done: number; pending: number; ready: number };
+  overview: { total: number; active: number; done: number; pending: number };
   tasks: Task[];
 }
 

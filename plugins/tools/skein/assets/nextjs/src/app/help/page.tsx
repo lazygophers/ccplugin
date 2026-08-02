@@ -3,8 +3,8 @@
 import { Sidebar, Topbar } from "@/components/layout";
 import { ST_META } from "@/components/status";
 
-// task 状态流转: planning → ready → active → check → done
-// subtask 状态: pending → running → done/failed
+// task 状态流转: planning → active → check → done
+// subtask 状态: planning → active → done/failed
 const TASK_FLOW = [
   {
     status: "planning",
@@ -13,14 +13,6 @@ const TASK_FLOW = [
     enter: "skein create",
     exit: "skein confirm (人审门通过)",
     agent: "main (同步前台)",
-  },
-  {
-    status: "ready",
-    title: "待执行",
-    desc: "规划收敛、用户已确认。等待 max_active 槽位释放后被自动调度。",
-    enter: "skein confirm",
-    exit: "skein claim exec (首个 subtask 被认领时自动 start)",
-    agent: "—",
   },
   {
     status: "active",
@@ -199,7 +191,7 @@ export default function HelpPage() {
                 <tbody className="divide-y divide-border/20">
                   {[
                     ["skein create <id>", "新建 task (kebab-case slug)"],
-                    ["skein confirm <id>", "确认规划, task 进就绪"],
+                    ["skein confirm <id>", "确认规划, 直接激活执行"],
                     ["skein claim exec", "全局认领就绪 subtask (自动 start task)"],
                     ["skein claim check", "全 done 的 task 进检查"],
                     ["skein subtask done/fail", "标记 subtask 完成/失败"],
@@ -227,8 +219,7 @@ function FlowDiagram() {
   // 节点坐标 — 横向 5 节点, 弧形回退
   const nodes = [
     { x: 80, y: 60, w: 120, h: 44, status: "planning", label: "规划中" },
-    { x: 260, y: 60, w: 120, h: 44, status: "ready", label: "待执行" },
-    { x: 440, y: 60, w: 120, h: 44, status: "active", label: "执行中" },
+        { x: 440, y: 60, w: 120, h: 44, status: "active", label: "执行中" },
     { x: 620, y: 60, w: 120, h: 44, status: "check", label: "待验收" },
     { x: 800, y: 60, w: 120, h: 44, status: "done", label: "已完成" },
   ];
@@ -247,7 +238,7 @@ function FlowDiagram() {
           </marker>
         </defs>
 
-        {/* 正向箭头: planning → ready → active → check → done */}
+        {/* 正向箭头: planning → active → check → done */}
         {nodes.slice(0, -1).map((n, i) => {
           const next = nodes[i + 1];
           const y = n.y + n.h / 2;

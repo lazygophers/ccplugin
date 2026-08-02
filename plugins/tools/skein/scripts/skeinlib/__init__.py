@@ -10,7 +10,7 @@
 ```
 errors      SkeinError — 无依赖, 谁都能 import
 config      CONFIG_DEFAULTS / mini-YAML / hooks schema      → errors
-dag         纯函数: 就绪判定 / 关键路径权重 / 进度百分比      → (无)
+dag         纯函数: 可派发判定 / 关键路径权重 / 进度百分比      → (无)
 views       Snapshot + 各视图纯函数 (Snapshot → dict)        → dag
 store       TaskStore: load/save/all/sync — 落盘唯一入口     → errors, config
 board       markdown 看板渲染                               → store, dag

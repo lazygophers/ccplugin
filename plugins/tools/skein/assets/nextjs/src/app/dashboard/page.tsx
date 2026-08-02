@@ -40,7 +40,7 @@ export default function DashboardPage() {
           {/* KPI */}
           <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
             <KpiCard label="进行中" value={statusDist.active || 0} icon="fa-spinner" colorVar="--st-active" hint={`${statusDist.check || 0} 个待验收`} />
-            <KpiCard label="待办" value={(statusDist.planning || 0) + (statusDist.ready || 0)} icon="fa-clock-o" colorVar="--st-ready" hint={`${statusDist.ready || 0} 个已就绪`} />
+            <KpiCard label="待办" value={(statusDist.planning || 0)} icon="fa-clock-o" colorVar="--st-planning" hint="待 confirm" />
             <KpiCard label="已完成" value={statusDist.done || 0} icon="fa-check" colorVar="--st-done" hint={`${Math.round((statusDist.done || 0) / total * 100)}%`} />
             <KpiCard label="规划中" value={statusDist.planning || 0} icon="fa-pencil-square-o" colorVar="--st-planning" hint="待 confirm" />
           </div>

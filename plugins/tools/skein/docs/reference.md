@@ -9,20 +9,20 @@
 | `skein init` | 初始化 .skein/ 工作区 |
 | `skein doctor` | 健康检查 |
 | `skein create <id> [--name] [--desc] [--deps] [--kind] [--parent] [--repos]` | 创建 task |
-| `skein confirm <id> [--summary\|--approved]` | 用户确认门 (待处理→就绪)。裸跑非 TTY 会拒。`--summary` 只打印 PRD 审核摘要不改状态; `--approved` = 已在 `AskUserQuestion` 拿到用户批准 |
-| `skein start <id>` | 激活 (占 active 槽 + 创建 worktree), 就绪→进行中。通常不必手工跑 — `claim exec` 认领就绪 task 的 subtask 时自动触发 |
+| `skein confirm <id> [--summary\|--approved]` | 用户确认门 (待处理→进行中, 含建 worktree + 并发校验).裸跑非 TTY 会拒。`--summary` 只打印 PRD 审核摘要不改状态; `--approved` = 已在 `AskUserQuestion` 拿到用户批准 |
+| `skein start <id>` | = confirm 别名 (待处理→进行中)。通常不必手工跑 — `claim exec` 认领待处理 task 的 subtask 时自动激活 |
 | `skein finish <id>` | 收束: commit→merge→销 worktree→标记完成 (归档=保留期后自动, 非 finish 步) |
 | `skein archive <id>` | 归档 (丢弃 worktree, 不合并) |
 | `skein rename <id> <new-id>` | 重命名 |
 | `skein del <id> [<sid>]` `[--dry-run]` | 软删: 整 task 移入 `.skein/trash/`; 给 sid 则只删该 subtask。`--dry-run` 只打印将删什么 |
 | `skein current` | 活跃 task |
-| `skein list [--status <态>] [--json]` | 列 task。`--status` 取 待处理/就绪/进行中/检查中/已完成 (或 pending/ready/active/check/done), `open`=全部未完成, 逗号多选 |
+| `skein list [--status <态>] [--json]` | 列 task。`--status` 取 待处理/进行中/检查中/已完成 (或 pending/active/check/done), `open`=全部未完成, 逗号多选 |
 | `skein board` | 文本看板 |
 | `skein view` | 可视化看板 |
 | `skein deps <id> [--set <id1,id2>]` | 无 `--set` 只查; 带则设前置 (仅 pending 且无既有 deps 可写, 脚本查自引用/不存在/成环) |
 | `skein parent <id> [--set <parent-id>]` | 无 `--set` 只查当前 parent; `--set <id>` 挂到 supertask/task 下 (拒自引用/父不存在/深度超 2 层/自身已有 child); `--set ""` 摘除。任意状态可改, 与 `deps` 正交, 不碰 deps |
 | `skein subtask add/claim/ready/start/check/show/done/fail/list <task-id> [sid]` | subtask 管理 (add 登记 / claim 整批认领就绪 / ready 只读预览 / start 单个占槽 / check 勾验收 / show 查全字段 / done 完成 / fail 失败 / list 列态) |
-| `skein claim exec\|check` | 全局跨 task 认领批; phase 必填: `exec`=认领 ready subtask → running / `check`=认领 全done 的 进行中 task → 检查中 + 检查通过的 → 已完成 |
+| `skein claim exec\|check` | 全局跨 task 认领批; phase 必填: `exec`=认领 ready subtask → running (待处理 task 首认领时自动激活) / `check`=认领 全done 的 进行中 task → 检查中 + 检查通过的 → 已完成 |
 | `skein contract list/add <task-id>` | 契约管理 |
 | `skein prd read/write/add/check/uncheck <task-id>` | PRD 章节管理 |
 
@@ -151,7 +151,6 @@ skein parent <child-existing> --set ""     # 摘除
 | 状态 | 含义 | 占 active 槽 |
 | --- | --- | --- |
 | 待处理 | 规划中 (未过 confirm 用户门) | 否 |
-| 就绪 | 规划完成待启动 (已过 confirm, 可 start) | 否 |
 | 进行中 | 正在 worktree 中执行 | 是 |
 | 检查中 | subtask 全完成, 质量门验证 | 否 |
 | 已完成 | 检查通过, 等待归档 | 否 |

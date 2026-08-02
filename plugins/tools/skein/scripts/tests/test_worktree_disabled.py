@@ -90,8 +90,7 @@ def test_status_json_worktree_null_when_disabled(skein_cli: SkeinCli, ws: Path) 
     skein_cli(ws, "subtask", "add", tid, "s", "--name", "A", "--desc", "d", "--estimate", "1")
     _fill_prd(ws, tid)
     skein_cli(ws, "estimate", tid, "--set", "1")  # estimate 硬门: confirm 前须填实工时
-    skein_cli(ws, "confirm", tid)
-    skein_cli(ws, "start", tid)
+    skein_cli(ws, "confirm", tid, "--approved")
     data = json.loads(skein_cli(ws, "status", tid, "--json").stdout.strip())
     assert data.get("worktree") is None, f"禁用态 worktree 非 null: {data.get('worktree')!r}"
     assert data.get("worktrees", []) == [], f"禁用态 worktrees 非空: {data.get('worktrees')!r}"
@@ -105,8 +104,7 @@ def test_current_no_worktree_col_when_disabled(skein_cli: SkeinCli, ws: Path) ->
     skein_cli(ws, "subtask", "add", tid, "s", "--name", "A", "--desc", "d", "--estimate", "1")
     _fill_prd(ws, tid)
     skein_cli(ws, "estimate", tid, "--set", "1")  # estimate 硬门: confirm 前须填实工时
-    skein_cli(ws, "confirm", tid)
-    skein_cli(ws, "start", tid)
+    skein_cli(ws, "confirm", tid, "--approved")
     out = skein_cli(ws, "current").stdout
     assert ".worktrees" not in out, f"禁用态 current 泄露 worktree 路径: {out!r}"
 
@@ -119,8 +117,7 @@ def test_session_context_hides_worktree_when_disabled(skein_cli: SkeinCli, ws: P
     skein_cli(ws, "subtask", "add", tid, "s", "--name", "A", "--desc", "d", "--estimate", "1")
     _fill_prd(ws, tid)
     skein_cli(ws, "estimate", tid, "--set", "1")  # estimate 硬门: confirm 前须填实工时
-    skein_cli(ws, "confirm", tid)
-    skein_cli(ws, "start", tid)
+    skein_cli(ws, "confirm", tid, "--approved")
     ctx = _session_ctx(skein_cli, ws)
     assert "— worktree:" not in ctx, f"禁用态 active 行泄露 worktree: {ctx!r}"
 

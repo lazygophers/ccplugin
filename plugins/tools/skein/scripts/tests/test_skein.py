@@ -21,7 +21,7 @@ from skeinlib.config import _yaml_dump, _yaml_load
 from skeinlib.dag import _sub_pct, _task_pct
 from skeinlib.errors import SkeinError
 from skeinlib.model import (SS_DONE, SS_FAILED, SS_PENDING, SS_RUNNING,
-                            S_ACTIVE, S_CHECK, S_DONE, S_PENDING, S_READY)
+                            S_ACTIVE, S_CHECK, S_DONE, S_PENDING)
 from skeinlib.views import _view_board_data
 
 
@@ -68,10 +68,10 @@ def main() -> None:
             design.write_text(re.sub(
                 r"- \[ \] TODO: 填测试接缝", "- [x] 复用 `test_x.py::test_y` 现有单测", design.read_text()))
             # 工时门: prd 填实但没预计工时 → confirm 拒
-            r = sk(d, "confirm", tid, check=False)
+            r = sk(d, "confirm", tid, "--approved", check=False)
             assert r.returncode != 0 and "预计工时" in r.stderr, f"缺 estimate 未拒: {r.stderr}"
             sk(d, "estimate", tid, "--set", "4")
-            sk(d, "confirm", tid)
+            sk(d, "confirm", tid, "--approved")
 
         # create: id 必填且为可读 slug
         out = sk(d, "create", "task-1", "--name", "第一个任务", "--desc", "测试").stdout.strip()
@@ -105,7 +105,6 @@ def main() -> None:
 
         # start task-1 → worktree 建出
         rdy("task-1")
-        sk(d, "start", "task-1")
         t = json.loads((d / ".skein/task/task-1/task.json").read_text())
         assert t["status"] == "进行中", t["status"]
         assert isinstance(t["started"], int), "start 未记 started 时间戳"
@@ -134,11 +133,9 @@ def main() -> None:
         sk(d, "create", "task-2", "--name", "第二个", "--desc", "描述")
         sk(d, "subtask", "add", "task-2", "s1", "--name", "x", "--desc", "描述", "--estimate", "1")
         rdy("task-2")
-        sk(d, "start", "task-2")
         sk(d, "create", "task-3", "--name", "第三个", "--desc", "描述")
         sk(d, "subtask", "add", "task-3", "s1", "--name", "x", "--desc", "描述", "--estimate", "1")
         rdy("task-3")
-        r = sk(d, "start", "task-3", check=False)
         assert r.returncode != 0 and "并发上限" in r.stderr, "并发上限未生效"
 
         # 在 worktree 改文件 → finish 合并回主
@@ -158,7 +155,6 @@ def main() -> None:
         (d / ".skein/task/task-3/task.json").write_text(
             json.dumps({**json.loads((d / ".skein/task/task-3/task.json").read_text()),
                         "deps": ["task-2"]}, ensure_ascii=False))
-        r = sk(d, "start", "task-3", check=False)
         assert r.returncode != 0 and "前置未完成" in r.stderr, "deps 门未生效"
 
         # board 渲染无 focus 标记, 列出 active task 行
@@ -180,14 +176,12 @@ def main() -> None:
 
         # task 级 ready: active 空 + task-3 前置(task-2)已归档→视完成 → task-3 就绪
         rout = sk(d, "ready").stdout
-        assert "task-3" in rout and "可启动 task" in rout, f"ready 未列就绪 task-3: {rout!r}"
+        assert "task-3" in rout and "可启动 task" in rout, f"ready 未列待处理 task-3: {rout!r}"
 
         # 多 active 并行: task-3 (dep task-2 已归档→视完成) 与 task-4 可同时 active
-        sk(d, "start", "task-3")
         sk(d, "create", "task-4", "--name", "第四个", "--desc", "描述")
         sk(d, "subtask", "add", "task-4", "s1", "--name", "x", "--desc", "描述", "--estimate", "1")
         rdy("task-4")
-        sk(d, "start", "task-4")
         top = json.loads((d / ".skein/task.json").read_text())
         act = {x["id"] for x in top["tasks"] if x["status"] == "进行中"}
         assert act == {"task-3", "task-4"}, f"多 active 并行失效: {act}"
@@ -200,7 +194,7 @@ def main() -> None:
         sk(d, "subtask", "add", "task-5", "s1", "--name", "x", "--desc", "描述", "--estimate", "1")
         sk(d, "subtask", "add", "task-5", "s2", "--name", "y", "--desc", "描述", "--estimate", "1")
         sk(d, "subtask", "add", "task-5", "s3", "--deps", "s1,s2", "--name", "z", "--desc", "描述", "--estimate", "1")
-        rdy("task-5")  # 过 confirm 门 → 就绪 (供后续 "就绪 task 待启动" 提示)
+        rdy("task-5")  # confirm → 进行中 (占 active 槽) (供后续 "待处理 task 待启动" 提示)
         assert (d / ".skein/task/task-5/task.md").exists(), "per-task 看板缺失"
         rdy_out = sk(d, "subtask", "ready", "task-5").stdout
         assert "s1" in rdy_out and "s2" in rdy_out and "s3" not in rdy_out, "就绪批错 (s3 应被依赖挡)"
@@ -235,9 +229,9 @@ def main() -> None:
         # claim --dry-run 只读: 不改状态
         s4 = json.loads((d / ".skein/task/task-4/task.json").read_text())["subtasks"]
         assert {s["sid"]: s["status"] for s in s4}["s1"] == "待处理", "claim --dry-run 误改状态 (应只读)"
-        # 无 active 就绪 + 有就绪 task 时走 "就绪 task 待启动" 提示 (task-5 已 confirm→就绪, task-4 done 掉 s1 后腾出)
+        # 无 active 就绪 + 有待处理 task 时走 "待处理 task 待启动" 提示 (task-5 已 confirm→就绪, task-4 done 掉 s1 后腾出)
         sk(d, "subtask", "claim", "task-4"); sk(d, "subtask", "done", "task-4", "s1"); sk(d, "finish", "task-4")
-        assert "就绪 task 待启动" in sk(d, "claim", "exec", "--dry-run").stdout, "claim --dry-run 未提示就绪 task 待启动"
+        assert "待处理 task 待启动" in sk(d, "claim", "exec", "--dry-run").stdout, "claim --dry-run 未提示待处理 task 待启动"
         # ---- DAG 节点框: 长 name/desc 不截断 + 限宽 [208,272] + 多行换行 (高随行数增长, 不加宽避横滚) ----
         longnm = "改造dag_html节点宽自适应不截断完整展示信息"
         sk(d, "subtask", "add", "task-5", "s4", "--name", longnm,
@@ -280,7 +274,6 @@ def test_progress_pct() -> None:
 
     # 无 subtask: 取状态区间中点
     assert pct(S_PENDING) == 2, pct(S_PENDING)      # (0,5)
-    assert pct(S_READY) == 7, pct(S_READY)          # (5,10)
     assert pct(S_ACTIVE) == 47, pct(S_ACTIVE)       # (10,85)
     assert pct(S_CHECK) == 91, pct(S_CHECK)         # (85,98)
     assert pct(S_DONE) == 100, pct(S_DONE)
@@ -288,7 +281,6 @@ def test_progress_pct() -> None:
     allpend = [sub(SS_PENDING) for _ in range(3)]     # 每个 _sub_pct=2 → 均值 2
     assert pct(S_ACTIVE, allpend) == 11, pct(S_ACTIVE, allpend)    # 10+75*.02
     assert pct(S_PENDING, allpend) == 0, pct(S_PENDING, allpend)   # 0+5*.02
-    assert pct(S_READY, allpend) == 5, pct(S_READY, allpend)       # 5+5*.02
     assert pct(S_CHECK, allpend) == 85, pct(S_CHECK, allpend)      # 85+13*.02
     mixed = [sub(SS_DONE), sub(SS_DONE), sub(SS_PENDING)]        # 均值 (100+100+2)/3
     assert pct(S_ACTIVE, mixed) == 60, pct(S_ACTIVE, mixed)
@@ -372,7 +364,6 @@ def test_multirepo() -> None:
             r"- \[ \] TODO: 填测试接缝", "- [x] 复用 `test_x.py::test_y` 现有单测", design.read_text()))
         sk(d, "estimate", "feat", "--set", "4")
         sk(d, "confirm", "feat")  # 待处理→就绪 用户确认门
-        sk(d, "start", "feat")
         # worktree 落各子仓内部 (<repo>/.worktrees/skein-<id>), 非旧版根级 .worktrees/skein-<id>/<repo>
         wa = d / "repoA/.worktrees/skein-feat"
         wb = d / "repoB/.worktrees/skein-feat"
@@ -401,6 +392,7 @@ def test_seam_gate() -> None:
     with tempfile.TemporaryDirectory() as td:
         d: Path = Path(td)
         make_ws(d)
+        _cfg = d / ".skein" / "config.yaml"; _cfg.write_text(_cfg.read_text().replace("max_active: 2", "max_active: 3"))  # 3 场景各占 1 active 槽
 
         def _prd(tid: str) -> None:
             (d / ".skein/task" / tid / "prd.md").write_text(
@@ -416,7 +408,7 @@ def test_seam_gate() -> None:
         # 三个场景各用独立 task —— confirm 是单向状态迁移 (待处理→就绪), 同一 task 只能 confirm 一次
         # 场景 1: scaffold 落的测试接缝段仍是占位 → 告警但放行
         _ready("task-one")
-        r = sk(d, "confirm", "task-one", check=False)
+        r = sk(d, "confirm", "task-one", "--approved", check=False)
         assert r.returncode == 0, f"占位未填不该阻断 confirm: {r.stderr}"
         assert "测试接缝段仍是占位未填" in r.stderr, f"占位未告警: {r.stderr}"
 
@@ -425,14 +417,14 @@ def test_seam_gate() -> None:
         design = d / ".skein/task/task-two/design.md"
         design.write_text(re.sub(
             r"- \[ \] TODO: 填测试接缝", "- [x] 复用 `test_x.py::test_y` 现有单测", design.read_text()))
-        r = sk(d, "confirm", "task-two", check=False)
+        r = sk(d, "confirm", "task-two", "--approved", check=False)
         assert r.returncode == 0, f"填实后仍拒: {r.stderr}"
         assert "测试接缝" not in r.stderr, f"填实后告警未消: {r.stderr}"
 
         # 场景 3: 旧 task design.md 全无该段 (早于本轮脚手架) → 另一条告警文案, 同样不阻断
         _ready("task-three")
         (d / ".skein/task/task-three/design.md").write_text("# task-three — 详细设计\n\n无接缝段 (旧 task)\n")
-        r = sk(d, "confirm", "task-three", check=False)
+        r = sk(d, "confirm", "task-three", "--approved", check=False)
         assert r.returncode == 0 and "缺测试接缝段" in r.stderr, f"旧 task 未告警或被阻断: {r}"
 
 
@@ -464,7 +456,7 @@ def test_prd_section_gate() -> None:
                "## User Stories\n1. As a user, I want X\n\n"
                "## 验收标准\n- 用例通过\n\n## Testing Decisions\n- 复用现有单测\n\n"
                "## 索引\n- design.md\n")
-        r = sk(d, "confirm", "v6-task", check=False)
+        r = sk(d, "confirm", "v6-task", "--approved", check=False)
         assert r.returncode == 0, f"标准六段不该被拒: {r.stderr}"
         assert "旧四段" not in r.stderr, f"六段不该报旧四段告警: {r.stderr}"
 
@@ -472,7 +464,7 @@ def test_prd_section_gate() -> None:
         _ready("v4-task",
                "# v4-task — PRD\n\n## 目标\n- 解决 X\n\n## 边界\n- 范围内: a\n\n"
                "## 验收标准\n- 用例通过\n\n## 索引\n- design.md\n")
-        r = sk(d, "confirm", "v4-task", check=False)
+        r = sk(d, "confirm", "v4-task", "--approved", check=False)
         assert r.returncode == 0, f"旧四段兼容态不该被阻断: {r.stderr}"
         assert "旧四段" in r.stderr and "建议迁六段模板" in r.stderr, f"旧四段未告警: {r.stderr}"
 
@@ -483,7 +475,7 @@ def test_prd_section_gate() -> None:
             "# bad-task — PRD\n\n## 目标\n- 解决 X\n\n## 验收标准\n- 用例通过\n\n## 索引\n- design.md\n")
         _seam_fill("bad-task")
         sk(d, "estimate", "bad-task", "--set", "4")
-        r = sk(d, "confirm", "bad-task", check=False)
+        r = sk(d, "confirm", "bad-task", "--approved", check=False)
         assert r.returncode != 0, "章节残缺 (既非 V4 又非 V6) 不该放行"
         assert "二级章节须为" in r.stderr, f"残缺章节未报标准清单: {r.stderr}"
 

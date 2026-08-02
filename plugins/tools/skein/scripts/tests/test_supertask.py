@@ -138,9 +138,7 @@ def test_finish_aggregate_guard(skein_cli: SkeinCli, ws: Path) -> None:
         skein_cli(ws, "subtask", "add", cid, "s1", "--name", "x", "--desc", "d", "--estimate", "1")
         _fill_prd(ws, cid)
         skein_cli(ws, "estimate", cid, "--set", "1")  # estimate 硬门: confirm 前须填实工时
-        skein_cli(ws, "confirm", cid)  # 待处理→就绪
-        skein_cli(ws, "start", cid)
-        skein_cli(ws, "finish", cid)
+        skein_cli(ws, "confirm", cid, "--approved")  # 待处理→就绪
 
     # supertask 自身无 worktree (聚合层不 exec), 需手动置 active 才走 finish 门
     #   — 但 finish 要求 status in STATUS_ACTIVE; supertask create 即 pending。
@@ -158,9 +156,14 @@ def test_finish_aggregate_guard(skein_cli: SkeinCli, ws: Path) -> None:
     assert r.returncode != 0 and "未完成 child" in r.stderr and "child-a" in r.stderr, \
         f"未 done child 未挡 super finish: {r.stderr!r}"
 
-    # child-a 重回 done → super finish 通过聚合门 (无 worktree 合并即落 done)
+    # child-a 重回 done + child-b 也置 done → super finish 通过聚合门 (无 worktree 合并即落 done)
     ca["status"] = S_DONE
+    ca["finished"] = 1  # 防 autoclean 比较崩溃
     _write_task(ws, "child-a", ca)
+    cb = _task(ws, "child-b")
+    cb["status"] = S_DONE
+    cb["finished"] = 1
+    _write_task(ws, "child-b", cb)
     skein_cli(ws, "board")
     r2 = skein_cli(ws, "finish", "epic-1", check=False)
     assert r2.returncode == 0, f"child 全 done 后 super finish 应通过: {r2.stderr!r}"

@@ -57,7 +57,7 @@ subtask.ready = (∀ dep ∈ subtask.depends_on: dep.status == done)
 | 操作 | 是否被 deps 阻塞 | 说明 |
 |---|---|---|
 | `skein create` / `subtask add` | ❌ 不阻塞 | pending task 不论前置是否 plan/finish，一律提前 plan |
-| `skein confirm` | ❌ 不阻塞 | planning 正常推进到就绪 |
+| `skein confirm` | ❌ 不阻塞 | planning → 进行中 (confirm 即激活) |
 | `skein start` (task 级) | ✅ 阻塞 | 前置 task 未 done，start 硬拒 |
 | `skein claim exec` (subtask 级) | ✅ 阻塞 | 前置 subtask 未 done，不算 ready |
 
@@ -120,7 +120,7 @@ layer N: 最下游节点
 |---|---|---|
 | **task 级** | 同时「进行中」的 task 数 ≤ max_active | `skein start` 时硬拒 |
 | **单 task 内 subtask** | 单 task 内同时「运行中」的 subtask 数 ≤ max_active | `skein subtask start` 时硬拒 |
-| **全局 subtask** | 所有可调度 task (进行中 + 就绪) 加起来的 running subtask 数 ≤ max_active | `skein claim exec` 全局认领时截断 |
+| **全局 subtask** | 所有可调度 task (进行中 + 待处理) 加起来的 running subtask 数 ≤ max_active | `skein claim exec` 全局认领时截断 |
 
 ### 4.3 两套独立槽
 
@@ -152,7 +152,7 @@ while skein claim exec 返回非空:       # 全局跨 task 合池竞争
 
 | 命令 | 范围 | 用途 |
 |---|---|---|
-| `skein claim exec` | 全局跨 task | **exec 主路径**：所有可调度 task (进行中 + 就绪, 前置已清) 的 ready subtask 合池竞争; 就绪 task 首个 subtask 被认领时自动启动 |
+| `skein claim exec` | 全局跨 task | **exec 主路径**：所有可调度 task (进行中 + 待处理, 前置已清) 的 ready subtask 合池竞争; 就绪 task 首个 subtask 被认领时自动启动 |
 | `skein claim check` | 全局跨 task | **check/finish 主路径**：进行中 task 全 subtask done → 检查中 (交 skein-checker); 检查中 task 全 subtask done → 已完成 (调 lifecycle.finish 合并+销 worktree) |
 | `skein subtask claim <tid>` | 单 task 内 | 兼容模式：仅指定 task 内截断，不跨 task 竞争 |
 | `skein claim exec --dry-run` | 全局只读 | 预览 exec 就绪批，不改态不占槽 |
@@ -173,7 +173,7 @@ while skein claim exec 返回非空:       # 全局跨 task 合池竞争
 ```
 每回合:
   1. skein claim exec  → 有就绪 subtask 就派, 占满 max_active 槽 (异步, 立即回手)
-  2. 槽位满 OR claim exec 返回空 → 加载 plan-ahead 推 pending task 到就绪
+  2. 槽位满 OR claim exec 返回空 → 加载 plan-ahead 推 pending task 到可 confirm
   3. plan 每步间回探 claim exec → 有 subtask 可派立即中断 plan 回去派
 ```
 
@@ -267,7 +267,7 @@ skein subtask add <tid> <fix-sid> \
 
 ### 8.1 跨 task 合池
 
-所有可调度 task (进行中 + 就绪) 的 ready subtask 竞争**同一 `max_active` 槽**，不是 per-task 各占 max_active。task 级 max_active 同时限制能有多少个 task 处于进行中 —— 满槽时就绪 task 不会被自动启动。
+所有可调度 task (进行中 + 待处理) 的 ready subtask 竞争**同一 `max_active` 槽**，不是 per-task 各占 max_active。task 级 max_active 同时限制能有多少个 task 处于进行中 —— 满槽时就绪 task 不会被自动启动。
 
 ```
 总并发 = task1.running + task2.running + ... ≤ max_active

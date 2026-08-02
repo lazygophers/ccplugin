@@ -1,14 +1,14 @@
 """调度与进度的纯函数 — 无 self / 无 IO / 无落盘, 给定 dict 就出结果。
 
 `_crit_weight` 决定 subtask 派发顺序 (关键路径优先, 最小化 makespan), `_pending_queue` 决定
-task 级就绪队列。这层不碰文件, 所以能直接单测, 不必起子进程。
+task 级可派发队列。这层不碰文件, 所以能直接单测, 不必起子进程。
 """
 from __future__ import annotations
 
 from typing import Any, Optional
 
 from skeinlib.model import (PHASE_OF, SS_DONE, SS_FAILED, SS_PENDING, SS_RUNNING,
-                            STATUS_ACTIVE, S_ACTIVE, S_CHECK, S_DONE, S_PENDING, S_READY)
+                            STATUS_ACTIVE, S_ACTIVE, S_CHECK, S_DONE, S_PENDING)
 
 def _split(s: Optional[str]) -> list[str]:
     return [x.strip() for x in (s or "").split(",") if x.strip()]
@@ -21,7 +21,7 @@ def _sub_estimate_sum(t: dict[str, Any]) -> float:
     return round(sum(v for v in vals if isinstance(v, (int, float)) and v > 0), 2)
 _SUB_PCT_RANGE = {SS_PENDING: (0, 5), SS_RUNNING: (10, 90), SS_FAILED: (10, 90)}
 # ponytail: 失败与运行同区间 — 用户裁定冻结在失败前进度, 重试不回跳。
-_TASK_PCT_RANGE = {S_PENDING: (0, 5), S_READY: (5, 10), S_ACTIVE: (10, 85), S_CHECK: (85, 98)}
+_TASK_PCT_RANGE = {S_PENDING: (0, 5), S_ACTIVE: (10, 85), S_CHECK: (85, 98)}
 
 def _sub_pct(s: dict[str, Any]) -> int:
     # subtask 完成百分比 = 状态区间 + 验收线性插值 (done 强制 100; 无验收项取区间中点)。
@@ -49,7 +49,7 @@ def _task_stage(t: dict[str, Any]) -> str:
     st = t.get("status", "")
     if st == S_DONE:
         return "done"
-    return PHASE_OF.get(st, "plan")  # 待处理→plan / 就绪→ready / 进行中→exec / 检查中→check
+    return PHASE_OF.get(st, "plan")  # 待处理→plan / 进行中→exec / 检查中→check
 def _crit_weight(subs: list[dict[str, Any]]) -> dict[str, int]:
     """纯拓扑深度: 每 subtask 的最长下游链长 (每步计 1, 不依赖 estimate)。
     权重大 = 越靠关键路径 (阻塞最多下游), 槽位紧张时优先派 → 最小化 makespan (总工期)。"""
@@ -71,12 +71,12 @@ def _crit_weight(subs: list[dict[str, Any]]) -> dict[str, int]:
     return {s["sid"]: w(s["sid"]) for s in subs}
 def _pending_queue(tasks: list[dict[str, Any]], dep_unfinished: Any) -> list[dict[str, Any]]:
     """待执行 subtask 队列 (全部未完成 task, 同调度序): 每个 pending subtask 一条。
-    排序 = task 调度序 (active > 就绪 pending > 阻塞 pending, 同级按传入顺序)
-    → task 内 (真就绪 > 关键路径权重降序 > 登记序)。
-    就绪 = task 已 active 且 subtask 依赖全 done (可立即派); 其余为排队中。"""
+    排序 = task 调度序 (active > 可启动 pending > 阻塞 pending, 同级按传入顺序)
+    → task 内 (可派发 > 关键路径权重降序 > 登记序)。
+    可派发 = task 已 active 且 subtask 依赖全 done (可立即派); 其余为排队中。"""
     q: list[dict[str, Any]] = []
     for ti, t in enumerate(tasks):
-        if t["status"] not in (S_PENDING, S_READY, S_ACTIVE, S_CHECK):
+        if t["status"] not in (S_PENDING, S_ACTIVE, S_CHECK):
             continue  # 已完成/失败 task 跳过
         subs = t.get("subtasks", [])
         if not any(s["status"] == SS_PENDING for s in subs):

@@ -1,6 +1,6 @@
 // ETA 剩余工时预估 — 纯函数移植 (无 DOM 无副作用)
 
-const OWN_LEFT: Record<string, number> = { planning: 1, ready: 0.85, active: 0.6, check: 0.25, done: 0, failed: 0.6 };
+const OWN_LEFT: Record<string, number> = { planning: 1, active: 0.6, check: 0.25, done: 0, failed: 0.6 };
 
 interface SubLike { sid?: string; id?: string; status?: string; estimate?: number | null; progress?: number | null; pct?: number; dependsOn?: string[]; deps?: string[]; startedAt?: number | null; finishedAt?: number | null; }
 interface TaskLike { id: string; status?: string; estimate?: number | null; progress?: number | null; deps?: string[]; subtasks?: SubLike[]; startedAt?: number | null; finishedAt?: number | null; createdAt?: number | null; [key: string]: unknown; }

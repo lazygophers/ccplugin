@@ -1,13 +1,13 @@
-"""就绪 task 的 subtask 可直接被调度, 首个被认领时自动启动该 task。
+"""待处理 task confirm 后直接进行中, subtask 随时可被调度认领。
 
-## 改了什么
-从前 `claim` 只从**进行中** task 取候选, 就绪 task 必须先手工 `skein start` 才能派 subtask。
-但「就绪」= 已过人审门 + 规划完成 + 只差开工, 再要一次 `start` 仪式没有任何新信息进来。
-现在候选池 = 进行中 + 就绪(前置已清), 首个 subtask 被认领时就地把 task 启动。
+## 改了什么 (四态机)
+原五态机中「就绪」状态已移除: confirm 直接激活 (体检+并发+worktree+started)。
+这意味着 confirm 后的 task 已在进行中, 其 subtask 立刻可被 claim / subtask start 认领。
+不再需要「自动启动就绪 task」逻辑 — confirm 即启动。
 
 ## 这条测试真正在守什么
-自动启动必须走**与手工 `skein start` 完全相同**的副作用 —— worktree、started 时间戳、
-task 级并发上限、deps 门。少任何一样, 自动启动出来的 task 就和手工启动的不是同一种状态,
+confirm 必须走**完整的激活副作用** — worktree、started 时间戳、task 级并发上限、deps 门。
+少任何一样, confirm 出来的 task 就和原来的 start 不是同一种状态,
 那类差异极难查 (线上表现是「有的 task 莫名没有 worktree」)。
 """
 from __future__ import annotations
@@ -35,8 +35,8 @@ PRD = """# {tid} — PRD
 """
 
 
-def _ready(ws: Path, tid: str, *, subs: int = 1, est: float = 4) -> str:
-    """造一个已过人审门、停在「就绪」的 task。"""
+def _active(ws: Path, tid: str, *, subs: int = 1, est: float = 4) -> str:
+    """造一个已 confirm 直接激活 (进行中) 的 task。"""
     run_skein(ws, "create", tid, "--name", tid, "--desc", "d")
     for i in range(1, subs + 1):
         run_skein(ws, "subtask", "add", tid, f"s{i}", "--name", f"子{i}", "--desc", "d",
@@ -45,7 +45,7 @@ def _ready(ws: Path, tid: str, *, subs: int = 1, est: float = 4) -> str:
     design = ws / ".skein/task" / tid / "design.md"
     design.write_text(design.read_text().replace("- [ ] TODO: 填测试接缝", "- [x] 复用既有单测"))
     run_skein(ws, "estimate", tid, "--set", str(est))
-    run_skein(ws, "confirm", tid)          # conftest 自动补 --approved
+    run_skein(ws, "confirm", tid)          # conftest 自动补 --approved → 直接激活
     return tid
 
 
@@ -53,59 +53,68 @@ def _t(ws: Path, tid: str) -> dict[str, Any]:
     return dict(json.loads((ws / ".skein/task" / tid / "task.json").read_text()))
 
 
-def test_ready_task_subtask_is_claimable_without_manual_start(ws: Path) -> None:
-    """就绪 task 从未 `skein start`, 直接 claim 就能拿到它的 subtask。"""
-    tid = _ready(ws, "alpha-task")
-    assert _t(ws, tid)["status"] == "就绪", "前置条件: 应停在就绪"
+def test_confirmed_task_subtask_is_claimable(ws: Path) -> None:
+    """confirm 直接激活的 task, 其 subtask 立刻可被 claim。"""
+    tid = _active(ws, "alpha-task")
+    assert _t(ws, tid)["status"] == "进行中", "前置条件: confirm 后应在进行中"
     out = run_skein(ws, "claim", "exec").stdout
-    assert f"{tid}/s1" in out, f"就绪 task 的 subtask 未被认领:\n{out}"
-    assert "自动启动就绪 task" in out and tid in out, f"未报自动启动: {out}"
+    assert f"{tid}/s1" in out, f"进行中 task 的 subtask 未被认领:\n{out}"
 
 
-def test_auto_start_has_same_side_effects_as_manual_start(ws: Path) -> None:
-    """自动启动 = 手工 start: 进行中 + worktree + started 时间戳, 一个不少。
+def test_confirm_has_same_side_effects_as_old_start(ws: Path) -> None:
+    """confirm 激活 = 原 start: 进行中 + worktree + started 时间戳, 一个不少。
 
     只标个「进行中」而不建 worktree 是最容易漏的一样 —— 后续 executor 会往主工作区里写。
     """
-    tid = _ready(ws, "beta-task")
-    run_skein(ws, "claim", "exec")
+    tid = _active(ws, "beta-task")
     t = _t(ws, tid)
     assert t["status"] == "进行中", t["status"]
-    assert t.get("worktree"), "自动启动没建 worktree"
+    assert t.get("worktree"), "confirm 没建 worktree"
     assert (ws / t["worktree"]).is_dir(), f"worktree 目录不存在: {t['worktree']}"
-    assert t.get("started"), "自动启动没打 started 时间戳"
-    assert t["subtasks"][0]["status"] == "运行中"
+    assert t.get("started"), "confirm 没打 started 时间戳"
 
 
-def test_subtask_start_also_auto_starts(ws: Path) -> None:
-    """单个 `subtask start` 路径同理 —— 两条入口行为一致, 免得只修了 claim 那条。"""
-    tid = _ready(ws, "gamma-task")
+def test_subtask_start_works_on_confirmed_task(ws: Path) -> None:
+    """confirm 后的 task, subtask start 直接可用。"""
+    tid = _active(ws, "gamma-task")
     out = run_skein(ws, "subtask", "start", tid, "s1").stdout
-    assert "自动启动就绪 task" in out, out
-    t = _t(ws, tid)
-    assert t["status"] == "进行中" and t.get("worktree")
+    assert "运行中" in out or tid in out, out
+    assert _t(ws, tid)["subtasks"][0]["status"] == "运行中"
 
 
-def test_auto_start_does_not_bypass_task_concurrency_cap(ws: Path) -> None:
-    """满槽时**不**自动启动 —— 自动化不得成为绕过并发上限的后门。"""
+def test_confirm_respects_task_concurrency_cap(ws: Path) -> None:
+    """满槽时 confirm 第三个 → 拒 (confirm 走完整 _activate 含并发校验)。"""
     run_skein(ws, "config", "set", "max_active", "2")
     for name in ("one-task", "two-task"):
-        _ready(ws, name)
-    run_skein(ws, "claim", "exec")                # 占满 2 个槽
-    third = _ready(ws, "three-task")
-    out = run_skein(ws, "claim", "exec").stdout
-    assert "无全局就绪 subtask" in out, f"满槽仍认领了: {out}"
-    assert _t(ws, third)["status"] == "就绪", "满槽却把第三个 task 启动了"
+        _active(ws, name)
+    # 第三个 confirm 应被并发上限拒
+    run_skein(ws, "create", "three-task", "--name", "three-task", "--desc", "d")
+    run_skein(ws, "subtask", "add", "three-task", "s1", "--name", "子1", "--desc", "d",
+              "--estimate", "1")
+    (ws / ".skein/task/three-task/prd.md").write_text(PRD.format(tid="three-task"))
+    design = ws / ".skein/task/three-task/design.md"
+    design.write_text(design.read_text().replace("- [ ] TODO: 填测试接缝", "- [x] 复用既有单测"))
+    run_skein(ws, "estimate", "three-task", "--set", "4")
+    r = run_skein(ws, "confirm", "three-task", "--approved", check=False)
+    assert r.returncode != 0, f"满槽时 confirm 不该放行: {r.stdout}"
+    assert _t(ws, "three-task")["status"] == "待处理", "满槽却把第三个 task 激活了"
 
 
-def test_ready_task_with_unfinished_deps_is_not_scheduled(ws: Path) -> None:
-    """前置未完成的就绪 task 不进候选池 —— 与手工 start 的 deps 门同一判据。"""
-    first = _ready(ws, "front-task")
-    second = _ready(ws, "back-task")
-    run_skein(ws, "deps", second, "--set", first, check=False)
-    # front 未 finish; back 依赖它 → back 的 subtask 不该被认领
-    out = run_skein(ws, "claim", "exec", "--dry-run").stdout
-    assert f"{second}/s1" not in out, f"依赖未完成的 task 被排进了调度: {out}"
+def test_confirmed_task_with_unfinished_deps_is_not_scheduled(ws: Path) -> None:
+    """前置未完成的 task → confirm 时 deps 门拒 (与原 start 的 deps 门同一判据)。"""
+    first = _active(ws, "front-task")
+    run_skein(ws, "create", "back-task", "--name", "back-task", "--desc", "d")
+    run_skein(ws, "subtask", "add", "back-task", "s1", "--name", "子1", "--desc", "d",
+              "--estimate", "1")
+    (ws / ".skein/task/back-task/prd.md").write_text(PRD.format(tid="back-task"))
+    design = ws / ".skein/task/back-task/design.md"
+    design.write_text(design.read_text().replace("- [ ] TODO: 填测试接缝", "- [x] 复用既有单测"))
+    run_skein(ws, "estimate", "back-task", "--set", "4")
+    run_skein(ws, "deps", "back-task", "--set", first, check=False)
+    # front 未 finish; back 依赖它 → confirm 应被 deps 门拒
+    r = run_skein(ws, "confirm", "back-task", "--approved", check=False)
+    assert r.returncode != 0, f"deps 未完成的 task confirm 不该放行: {r.stdout}{r.stderr}"
+    assert "前置未完成" in r.stderr, f"未报 deps 门: {r.stderr}"
 
 
 if __name__ == "__main__":
@@ -119,4 +128,4 @@ if __name__ == "__main__":
             d = Path(td) / "w"
             d.mkdir()
             fn(make_ws(d))
-    print("就绪态调度自检过")
+    print("待处理态调度自检过")

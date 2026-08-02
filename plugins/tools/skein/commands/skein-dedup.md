@@ -1,6 +1,6 @@
 ---
 name: skein-dedup
-description: 主动查重 + 织 DAG (用户显式调用)。扫未完成 task 检重复/重叠 (归并次 task), 并给待处理/就绪 task 补执行序 — 只归并判据确凿的, 存疑保留
+description: 主动查重 + 织 DAG (用户显式调用)。扫未完成 task 检重复/重叠 (归并次 task), 并给待处理 task 补执行序 — 只归并判据确凿的, 存疑保留
 disable-model-invocation: true
 user-invocable: true
 argument-hint: "[task-id 或留空扫全量]"
@@ -28,7 +28,7 @@ agent: skein-dedup
 | 动作 | 适用状态 | 铁律 |
 |---|---|---|
 | 归并重复 task (迁 subtask + `del` 次 task) | 未完成全部状态 | 判据不足**不归并**, 记 skipped |
-| 补前置执行序 (`deps --set`) | **仅待处理 / 就绪** | 进行中/检查中已 start 调度已定, CLI 会拒, 直接跳过 |
+| 补前置执行序 (`deps --set`) | **仅待处理** | 进行中/检查中已 start 调度已定, CLI 会拒, 直接跳过 |
 | 改既有 deps | — | **禁** — 已有 deps 一律不碰 (保护 plan/人工声明) |
 
 ## 输出
@@ -50,7 +50,7 @@ agent: skein-dedup
 
 | 场景 | 正确做法 (❌ 反面) |
 |---|---|
-| 补执行序的候选面 | 只取待处理/就绪且 deps 为空的 (❌ 对进行中 task 试 `deps`) |
+| 补执行序的候选面 | 只取待处理且 deps 为空的 (❌ 对进行中 task 试 `deps`) |
 | 已有 deps 的 task | 不碰 (❌ 覆盖人工/plan 声明的前置) |
 | 判据弱的疑似重复 | 记 skipped 保留 (❌ 硬凑重复 `del` 掉) |
 | 归并次 task | 先 `subtask list` 读全量再逐条 `subtask add`, 最后 `del` (❌ 直接 `del` 丢 subtask) |

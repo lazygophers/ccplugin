@@ -33,7 +33,7 @@ def _mk(skein_cli: SkeinCli, ws: Path, tid: str = "feat-x", *,
         _fill_prd(ws, tid)
     if ready:
         skein_cli(ws, "estimate", tid, "--set", "1")
-        skein_cli(ws, "confirm", tid)
+        skein_cli(ws, "confirm", tid, "--approved")
     return tid
 
 
@@ -84,14 +84,15 @@ hooks:
     after:
       - command: "touch confirm-after.marker"
 """)
-    r = skein_cli(ws, "confirm", tid)
+    r = skein_cli(ws, "confirm", tid, "--approved")
     assert r.returncode == 0
     assert _find(ws, "confirm-before.marker")
     assert _find(ws, "confirm-after.marker")
 
 
 def test_start_before_and_after_fire(skein_cli: SkeinCli, ws: Path) -> None:
-    tid = _mk(skein_cli, ws, "feat-c", ready=True)
+    tid = _mk(skein_cli, ws, "feat-c", sub=True)
+    skein_cli(ws, "estimate", tid, "--set", "1")
     _append_hooks_yaml(ws, """
 hooks:
   start:
@@ -107,7 +108,8 @@ hooks:
 
 
 def test_check_before_and_after_fire(skein_cli: SkeinCli, ws: Path) -> None:
-    tid = _mk(skein_cli, ws, "feat-d", ready=True)
+    tid = _mk(skein_cli, ws, "feat-d", sub=True)
+    skein_cli(ws, "estimate", tid, "--set", "1")
     skein_cli(ws, "start", tid)
     _append_hooks_yaml(ws, """
 hooks:
@@ -124,7 +126,8 @@ hooks:
 
 
 def test_finish_before_and_after_fire(skein_cli: SkeinCli, ws: Path) -> None:
-    tid = _mk(skein_cli, ws, "feat-e", ready=True)
+    tid = _mk(skein_cli, ws, "feat-e", sub=True)
+    skein_cli(ws, "estimate", tid, "--set", "1")
     skein_cli(ws, "start", tid)
     _append_hooks_yaml(ws, """
 hooks:
@@ -141,7 +144,8 @@ hooks:
 
 
 def test_archive_before_and_after_fire(skein_cli: SkeinCli, ws: Path) -> None:
-    tid = _mk(skein_cli, ws, "feat-f", ready=True)
+    tid = _mk(skein_cli, ws, "feat-f", sub=True)
+    skein_cli(ws, "estimate", tid, "--set", "1")
     skein_cli(ws, "start", tid)
     skein_cli(ws, "finish", tid)
     _append_hooks_yaml(ws, """
@@ -159,7 +163,8 @@ hooks:
 
 
 def test_subtask_start_before_and_after_fire(skein_cli: SkeinCli, ws: Path) -> None:
-    tid = _mk(skein_cli, ws, "feat-g", ready=True)
+    tid = _mk(skein_cli, ws, "feat-g", sub=True)
+    skein_cli(ws, "estimate", tid, "--set", "1")
     skein_cli(ws, "start", tid)
     _append_hooks_yaml(ws, """
 hooks:
@@ -176,7 +181,8 @@ hooks:
 
 
 def test_subtask_done_before_and_after_fire(skein_cli: SkeinCli, ws: Path) -> None:
-    tid = _mk(skein_cli, ws, "feat-h", ready=True)
+    tid = _mk(skein_cli, ws, "feat-h", sub=True)
+    skein_cli(ws, "estimate", tid, "--set", "1")
     skein_cli(ws, "start", tid)
     skein_cli(ws, "subtask", "start", tid, SID)
     _append_hooks_yaml(ws, """
@@ -194,7 +200,8 @@ hooks:
 
 
 def test_subtask_fail_before_and_after_fire(skein_cli: SkeinCli, ws: Path) -> None:
-    tid = _mk(skein_cli, ws, "feat-i", ready=True)
+    tid = _mk(skein_cli, ws, "feat-i", sub=True)
+    skein_cli(ws, "estimate", tid, "--set", "1")
     skein_cli(ws, "start", tid)
     skein_cli(ws, "subtask", "start", tid, SID)
     _append_hooks_yaml(ws, """
@@ -215,7 +222,8 @@ hooks:
 
 def test_check_before_failure_blocks_stage(skein_cli: SkeinCli, ws: Path) -> None:
     """check.before 跑 lint 失败(exit 1) → check 不发生: 命令非零退出 + 状态仍是 active。"""
-    tid = _mk(skein_cli, ws, "feat-j", ready=True)
+    tid = _mk(skein_cli, ws, "feat-j", sub=True)
+    skein_cli(ws, "estimate", tid, "--set", "1")
     skein_cli(ws, "start", tid)
     _append_hooks_yaml(ws, """
 hooks:
@@ -232,7 +240,8 @@ hooks:
 
 def test_before_continue_on_error_overrides_default_block(skein_cli: SkeinCli, ws: Path) -> None:
     """continue_on_error=true 显式覆盖 before 缺省阻断 — 阶段照常发生。"""
-    tid = _mk(skein_cli, ws, "feat-k", ready=True)
+    tid = _mk(skein_cli, ws, "feat-k", sub=True)
+    skein_cli(ws, "estimate", tid, "--set", "1")
     skein_cli(ws, "start", tid)
     _append_hooks_yaml(ws, """
 hooks:
@@ -247,7 +256,8 @@ hooks:
 
 def test_after_failure_only_warns_stage_result_unchanged(skein_cli: SkeinCli, ws: Path) -> None:
     """after 失败只 warning, 阶段结果不变 — check 仍成功切换态, 命令仍 exit 0。"""
-    tid = _mk(skein_cli, ws, "feat-l", ready=True)
+    tid = _mk(skein_cli, ws, "feat-l", sub=True)
+    skein_cli(ws, "estimate", tid, "--set", "1")
     skein_cli(ws, "start", tid)
     _append_hooks_yaml(ws, """
 hooks:

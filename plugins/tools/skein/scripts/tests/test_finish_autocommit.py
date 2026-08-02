@@ -28,7 +28,6 @@ def test_worktree_forces_commit_ignoring_auto_commit(skein_cli: SkeinCli, ws: Pa
     """worktree 模式 + auto_commit=false: 仍强制 commit 并 merge 回主, finish 不拒。"""
     skein_cli(ws, "config", "set", "auto_commit", "false")
     tid = _mk(skein_cli, ws, "feat-wt-ac")
-    skein_cli(ws, "start", tid)
     wt = ws / ".worktrees" / f"skein-{tid}"
     (wt / "change.txt").write_text("c\n")  # 只改不提交, 验 finish 自己会 commit
     skein_cli(ws, "finish", tid)
@@ -41,7 +40,6 @@ def test_inplace_auto_commit_true(skein_cli: SkeinCli, ws: Path) -> None:
     """原地模式 + auto_commit=true: finish 自动 commit, 工作区干净。"""
     skein_cli(ws, "config", "set", "use_worktree", "false")
     tid = _mk(skein_cli, ws, "feat-inplace-on")
-    skein_cli(ws, "start", tid)
     (ws / "change.txt").write_text("c\n")
     skein_cli(ws, "finish", tid)
     assert _dirty(ws) == "", "原地模式 auto_commit=true 未自动 commit"
@@ -54,7 +52,6 @@ def test_inplace_auto_commit_false_leaves_worktree_dirty(skein_cli: SkeinCli, ws
     skein_cli(ws, "config", "set", "use_worktree", "false")
     skein_cli(ws, "config", "set", "auto_commit", "false")
     tid = _mk(skein_cli, ws, "feat-inplace-off")
-    skein_cli(ws, "start", tid)
     (ws / "change.txt").write_text("c\n")
     r = skein_cli(ws, "finish", tid, check=False)
     assert r.returncode == 0, f"原地模式 auto_commit=false 不该拒 finish: {r.stdout}{r.stderr}"

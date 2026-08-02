@@ -216,7 +216,7 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
         return JSONResponse(_view_dashboard(board._snapshot()))
 
     @app.get("/__skein__/queue")
-    async def _queue() -> JSONResponse:  # 待执行队列: pending subtask 队列 + task 就绪 + active 内就绪 subtask
+    async def _queue() -> JSONResponse:  # 待执行队列: pending subtask 队列 + task 可启动 + active 内可派发 subtask
         return JSONResponse(_view_queue(board._snapshot()))
 
     @app.get("/__skein__/task")  # 参数一律走 query, 禁 path 参数

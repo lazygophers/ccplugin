@@ -5,7 +5,7 @@
 
 手法: 手工造固定时间戳 fixture (.skein/task/<id>/task.json 直写, 非走 CLI) + 冻结 now() → 输出全确定, 与 golden JSON 逐字段比对。
   - golden 缺失时首跑自举写盘并 skip (bootstrap); 存在则严格比对。
-  - 覆盖五态 (待处理/就绪/进行中/检查中/已完成) + 就绪但依赖阻塞 + supertask/child + 幽灵骨架 (仅顶层索引) + 归档 task + spec 文件。
+  - 覆盖五态 (待处理/进行中/检查中/已完成) + 就绪但依赖阻塞 + supertask/child + 幽灵骨架 (仅顶层索引) + 归档 task + spec 文件。
 
 重构后重跑: 输出应与 golden 完全一致 (视图为纯投影, 仅内部结构变)。
 """
@@ -111,14 +111,14 @@ def _seed(d: Path) -> None:
         worktree="wt/beta", started=TNOW - 7000, checked=TNOW - 1000,
         subtasks=[_sub("b1", "已完成", started=TNOW - 6500, finished=TNOW - 6000)],
     ))
-    # 就绪 (依赖空 → 可 start)
+    # 待处理 (依赖空 → 可 confirm)
     _write_task(tdir, _task_json(
-        id="gamma", name="Gamma 任务", status="就绪", desc="待启动",
+        id="gamma", name="Gamma 任务", status="待处理", desc="待 confirm",
         subtasks=[_sub("g1", "待处理")],
     ))
-    # 就绪但依赖 alpha (未 done) → 阻塞
+    # 待处理但依赖 alpha (未 done) → 阻塞
     _write_task(tdir, _task_json(
-        id="zeta", name="Zeta 任务", status="就绪", desc="被阻塞", deps=["alpha"],
+        id="zeta", name="Zeta 任务", status="待处理", desc="被阻塞", deps=["alpha"],
         subtasks=[_sub("z1", "待处理")],
     ))
     # 待处理 (plan 未收敛) — 且为 supertask 的 child
@@ -142,8 +142,8 @@ def _seed(d: Path) -> None:
     index = {"tasks": [
         {"id": "alpha", "status": "进行中", "deps": [], "worktree": "wt/alpha", "parent": None, "kind": "task"},
         {"id": "beta", "status": "检查中", "deps": [], "worktree": "wt/beta", "parent": None, "kind": "task"},
-        {"id": "gamma", "status": "就绪", "deps": [], "worktree": None, "parent": None, "kind": "task"},
-        {"id": "zeta", "status": "就绪", "deps": ["alpha"], "worktree": None, "parent": None, "kind": "task"},
+        {"id": "gamma", "status": "待处理", "deps": [], "worktree": None, "parent": None, "kind": "task"},
+        {"id": "zeta", "status": "待处理", "deps": ["alpha"], "worktree": None, "parent": None, "kind": "task"},
         {"id": "delta", "status": "待处理", "deps": [], "worktree": None, "parent": "super1", "kind": "task"},
         {"id": "epsilon", "status": "已完成", "deps": [], "worktree": None, "parent": None, "kind": "task"},
         {"id": "super1", "status": "进行中", "deps": [], "worktree": "wt/super1", "parent": None, "kind": "supertask"},
