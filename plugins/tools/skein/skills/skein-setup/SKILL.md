@@ -39,7 +39,7 @@ skein setup   # 幂等 scaffold + 输出 manifest JSON
 
 | 想改 | 怎么改 | 收尾 |
 |---|---|---|
-| 并发上限 (max_active) | 直接 Edit `.skein/config.yaml` | 无 |
+| 并发上限 (pools.work / pools.gate) | 直接 Edit `.skein/config.yaml` | 无 |
 | spec 类目重组 (类目 = 层内子目录, 自由取名 git/test/arch/build/style/domain/ops...) | 移动 / 改名 `.skein/spec/<layer>/<category>/*.md` | `skein-spec reindex` |
 | 调加载策略 (always 页过重, 超 `spec.always_budget` (默认 1000 字符) 会告警) | 改规则文件 frontmatter 的 `inclusion:` (always↔auto), **不要搬文件** — 目录 = namespace(内容类型), 与加载策略无关; 或跑 `skein-spec degrade <cat>/<name>` 自动改 | `skein-spec reindex` |
 | 新增一条规则 | `skein-spec sediment --namespace <ns> [--inclusion always\|auto] --category <cat> --topic <主题> --title <T>` | 追加为主题文件章节 + 自动 reindex |
