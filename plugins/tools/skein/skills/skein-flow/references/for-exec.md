@@ -30,6 +30,7 @@
 - **🛑 subtask 状态先行 (硬前置)** — 详见 [state-before-action.md](state-before-action.md) 硬门 2。claim exec 占槽是派 agent 的硬前置, pending/failed 态 subtask 禁直接派 agent。
 - **claim exec 默认即改态占槽 (整批标 running), 无需额外参数; --dry-run 才只读预览**。**调度** → main 亲跑: `skein claim exec` (**全局跨 task**, 所有**进行中** task 的 ready subtask 合池竞争同一 `pools.work` 槽) 算就绪批 + 标 running, main 逐个真实 `Agent` 调用 dispatch。批量推进用 `claim exec`; 单 task 场景用 `skein subtask claim <tid>` 兼容; 预览用 `skein claim --dry-run`。
 - **执行 → 一律 `Agent(subagent_type="skein:skein-executor", description=..., prompt=...)`** (禁 teammate / team, 禁传 `team_name`; 照抄形式见 [carrier-rules.md 派发调用形式](carrier-rules.md#派发调用形式-照抄-禁自由发挥)), prompt 只给 **tid + sid + 工作目录** 三参数 (executor 自读 `subtask show <tid> <sid>` 补全字段+自跑 done/fail, 见 [dag-scheduling.md](dag-scheduling.md) §9)。载体铁律 (单 subagent 禁 team / main 禁写源码 / Recursion Guard 靠工具面强制) 权威定义见 [carrier-rules.md](carrier-rules.md), 不重复。
+  - **🔒 禁跳过** — claim exec 返回 subtask 后**必须立即派发 `Agent(subagent_type="skein:skein-executor")`**, 禁 main 手写代码或跳过派发直接标记 done。subtask 执行归 executor, main 只做编排 (done/fail/claim)。
 
 ### 调度循环 (动态, 完成即派)
 
@@ -53,6 +54,7 @@
 - [ ] 每 ready subtask 均已派真实 `Agent` 或已 done/fail (无遗漏挂起)
 - [ ] `claim exec` 返回空且无 depends_on 死锁 (确认无可调度项)
 - [ ] 全部 subtask done → 已自动进 check (不止于 subtask 全 done 就停手)
+  - **🔒 禁跳过** — 全 subtask done 后**必须立即进 check 阶段**, 不可停在 exec 或直接 finish。验收全归 check, exec 只管执行完成。
 - [ ] 回合末已输出任务清单 (有异步在跑时)
 
 ## 失败模式
