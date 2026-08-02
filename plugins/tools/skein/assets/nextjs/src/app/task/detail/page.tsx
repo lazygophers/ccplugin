@@ -602,11 +602,39 @@ function DepDagView({ taskId, allTasks }: { taskId: string; allTasks: NormTask[]
   const dag = useMemo(() => buildDepDAG(taskId, allTasks), [taskId, allTasks]);
   const { paths, markers } = useMemo(() => drawEdgesPaths(dag.edges), [dag.edges]);
 
+  // Hover chain highlight
+  const [hoverId, setHoverId] = useState<string | null>(null);
+  const chain = useMemo(() => {
+    if (!hoverId) return null;
+    const succ = new Map<string, string[]>(), pred = new Map<string, string[]>();
+    for (const e of dag.edges) {
+      if (!succ.has(e.from.id)) succ.set(e.from.id, []);
+      if (!pred.has(e.to.id)) pred.set(e.to.id, []);
+      succ.get(e.from.id)!.push(e.to.id);
+      pred.get(e.to.id)!.push(e.from.id);
+    }
+    const seen = new Set([hoverId]);
+    for (const adj of [succ, pred]) {
+      const queue = [hoverId];
+      while (queue.length) {
+        for (const nx of adj.get(queue.shift()!) || []) {
+          if (seen.has(nx)) continue;
+          seen.add(nx);
+          queue.push(nx);
+        }
+      }
+    }
+    return seen;
+  }, [hoverId, dag.edges]);
+
   if (dag.nodes.length <= 1) return <div className="py-6 text-center text-xs text-muted-foreground">暂无上下游依赖</div>;
 
   return (
     <div className="overflow-x-auto">
-      <div className="relative" style={{ width: dag.width, height: dag.height }}>
+      <div className="relative" style={{ width: dag.width, height: dag.height }}
+        onMouseOver={(e) => { const link = (e.target as Element).closest("[data-node-id]"); setHoverId(link?.getAttribute("data-node-id") || null); }}
+        onMouseLeave={() => setHoverId(null)}
+      >
         {/* 父子包裹: 用容器框表达归属, 不画箭头边 (与看板同规则) */}
         {dag.groups.map(g => (
           <div key={g.id} className="pointer-events-none absolute rounded-lg border border-dashed border-primary/30 bg-primary/[0.03]" style={{ left: g.x, top: g.y, width: g.w, height: g.h }} />
@@ -615,12 +643,20 @@ function DepDagView({ taskId, allTasks }: { taskId: string; allTasks: NormTask[]
           <defs>
             {markers.map(m => <marker key={m.id} id={m.id} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill={`var(--${m.color})`} /></marker>)}
           </defs>
-          {paths.map((p, i) => <path key={i} d={p.d} fill="none" stroke={p.stroke} strokeWidth={p.strokeWidth} strokeOpacity={p.strokeOpacity} markerEnd={p.markerEnd} />)}
+          {paths.map((p, i) => <path key={i} d={p.d} fill="none" stroke={p.stroke} strokeWidth={p.strokeWidth}
+            strokeOpacity={chain ? (chain.has(p.fromId) && chain.has(p.toId) ? "0.95" : "0.1") : p.strokeOpacity}
+            markerEnd={p.markerEnd} />)}
         </svg>
         {dag.nodes.map(n => {
           const meta = ST_META[n.task.status] || ST_META.planning;
+          const inChain = chain?.has(n.id) ?? false;
+          const isDim = chain ? !inChain : false;
           return (
-            <Link key={n.id} prefetch={false} href={`/task/detail/?id=${n.id}`} className={`absolute flex items-center gap-2 rounded-md border px-2 py-1 transition-all hover:shadow-md ${n.isCenter ? "ring-2 ring-primary" : ""}`} style={{ left: n.x, top: n.y, width: n.w, height: n.h, borderColor: `color-mix(in srgb, var(${meta.colorVar}) 30%, var(--border))`, backgroundColor: "var(--card)" }} title={n.task.title || n.task.name || n.id}>
+            <Link key={n.id} prefetch={false} href={`/task/detail/?id=${n.id}`} data-node-id={n.id}
+              className={`absolute flex items-center gap-2 rounded-md border px-2 py-1 transition-all hover:shadow-md ${n.isCenter ? "ring-2 ring-primary" : ""}`}
+              style={{ left: n.x, top: n.y, width: n.w, height: n.h, opacity: isDim ? 0.15 : 1, borderColor: `color-mix(in srgb, var(${meta.colorVar}) 30%, var(--border))`, backgroundColor: "var(--card)" }}
+              title={n.task.title || n.task.name || n.id}
+            >
               <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full" style={{ backgroundColor: `var(${meta.colorVar})` }} />
               <span className="flex-1 truncate text-xs font-medium text-foreground">{n.task.title || n.task.name || n.id}</span>
               {n.isCenter && <i className="fa fa-star text-xs text-primary" />}
