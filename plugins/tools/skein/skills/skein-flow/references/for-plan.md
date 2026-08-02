@@ -65,6 +65,7 @@ brainstorm 前先定**是否需要派 skein-researcher**, 按信号分档自动�
    - **归一 vs 分立按相关性, 非按「可独立验收」** — 新交付物与现有 active task 或本请求内其他交付物**相关** → **优先归一 task 拆 subtask**, 禁另开多 task。仅当目标独立、无共享改动面、无依赖 → 才拆多 task。
    - 默认**倾向归一** —— 相关工作散成多 task 会丢共享上下文一致性, 归一拆 subtask 才守住。
 2. **登记** — 全新 → `skein create <id> --name <标题> --desc <一句话> [--deps ..]` (`<id>`/`--name`/`--desc` 三者必填), `<id>` 须为**可读描述性 slug** (kebab-case, 如 `order-create-api`), **禁 `t01`/`t2` 字母+数字代号** (脚本硬拒)。得工件目录。
+   - **🔒 禁跳过** — create 后**必须按序填完 PRD + subtask + estimate + confirm**, 不可跳过任何一步直接进 exec。每步缺失即 planning 未收敛, `skein confirm` 会硬拒。
 3. **brainstorm 需求/方案** (main 交互式) — 逐问澄清: 目标 / 用户价值 / 边界 / 非目标 / 验收基准 / 方案取舍。禁 main 自行凭空设计。用 `AskUserQuestion` 拍板关键分歧。提问法内置 relentless interview 纪律 (插件内闭环, 原生自足; 装了 ask-matt `/grill-with-docs` / `/grill-me` 可选增强): 一次一问等反馈、每问带 2-3 推荐答案让用户裁、事实自查 (Read/Grep)、决策交用户、共识才放行。
    - **🧭 brainstorm 前先拉现状 wiki** — `skein-spec recall "<任务关键词>" --src product` 召回 product namespace 既有现状页, 有命中先读现状再问 (防重复设计已有能力/凭空臆断现状); 无命中视为新功能域, 正常 brainstorm。
    - **🛑 findings.md 由 researcher 边研边增量写 (调研才生)** — researcher 每完成一主题即把收敛结论追加进 `findings.md`, research/ 存过程证据。main 收 researcher 回传后**只读 findings.md 做跨主题复核/补漏, 不重读 research/**。findings.md = 调研最终交付物; 未调研则 **findings.md/research/ 均不产出** (create 也不预建空壳)。
@@ -90,6 +91,7 @@ brainstorm 前先定**是否需要派 skein-researcher**, 按信号分档自动�
 7. **出口 (按路由分流)** — 完成判据勾满后:
    - **flow (缺省 / 任务描述)** → `skein confirm` 直接转进行中 (吸收 start), **直接续 exec 阶段**, 禁停手问用户要不要执行。
    - **显式 `plan`** → 停在 `skein confirm` 前, 提示用户 `/skein-flow exec <task>` 激活。
+   - **🔒 禁跳过** — confirm 必须经过人审门 (`AskUserQuestion`), 禁自审自批。用户拍板前不可转 exec。
 
 ## 完成判据
 

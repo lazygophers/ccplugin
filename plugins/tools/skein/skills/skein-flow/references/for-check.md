@@ -17,6 +17,7 @@ exec 完成后、finish 前的**质量门**。**验证与修复分离**: `skein-
      - 本地验证优先 → 优先跑本地命令 (pytest/lint/type-check)
      - 验证方式来源 → 读取 prd.md「验证方式」章节, 逐条对照执行
    - **一致性核查 = `skein-spec analyze <tid> --json`** — checker 跑该命令拿五类只读检查结果 (验收覆盖率 / 硬规冲突 / 范围蔓延 / proposed 置信度 / 接缝存在性), 全启发式候选, **禁断言违规**, 零命中即如实报零冲突。`--json` 供 checker 消费, 不再手工 diff 比对, 详见 skein-spec SKILL.md「analyze」章节。
+   - **🔒 禁跳过** — check 必须**完整验证全部验收标准逐条 pass**, 不只是跑 pytest 或部分验证。验收标准任一条未过禁 finish, 必须全绿才放行。
 2. **判定 (main 保留项)** — 全绿 (含零冲突) → 放行 finish。FAIL 或**检出冲突** → 进修复循环。
 3. **回 planning 重确认 (main 保留项, 复用现有 `进行中` 态)** — 通用回退流程详见 [rollback-protocol.md](rollback-protocol.md); check 修复 subtask 操作规范详见 [subtask-operations.md](subtask-operations.md) 第 4 节。check FAIL 或检出冲突, **禁改 task 状态** (依旧 `进行中`)。main 先回 planning 思维重审失败, 用 `AskUserQuestion` 或 grill 与用户确认修复方向, **禁跳过确认直接补 subtask 回 exec**。分级 (一级孤立 / 二级一致性冲突·方案性缺陷 / 三级架构) 以 [rollback-protocol.md §分级处理](rollback-protocol.md) 为准。check 阶段两条增量约束:
    - **方向确认=必经门** (含一级孤立失败): main 不得凭 checker 报原文擅自加 subtask, 必先 grill/AskUserQuestion 让用户拍板。
