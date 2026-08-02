@@ -517,6 +517,21 @@ class Lifecycle:
         t["finished"] = now()  # 完成时刻 — 保留期从此计, 超 retain_days 由 _autoclean 归档
         self.ws.store.save(t)
         self.ws.store.sync()  # 重写顶层索引 (完成 task 仍留看板; retain_days=0 时 _autoclean 即归档)
+
+        # supertask 自动推进: child done 时检查 parent supertask 是否所有 child 都 done
+        # ponytail: 不维护 child_ids 数组, 真值源单一 — 每次遍历 all_tasks 过滤 parent
+        parent_id = t.get("parent")
+        if parent_id:
+            parent = self.ws.store.load(parent_id)
+            if parent and parent.get("kind") == "supertask" and parent.get("status") == S_ACTIVE:
+                children = [c for c in self.ws.store.all_tasks() if c.get("parent") == parent_id]
+                if children and all(c["status"] == S_DONE for c in children):
+                    parent["status"] = S_CHECK
+                    parent["checked"] = now()
+                    self.ws.store.save(parent)
+                    self.ws.store.sync()
+                    print(f"{parent_id} (supertask) 全部 child done → 自动推进至检查中")
+
         archived = not (self.ws.tasks / tid).exists()  # retain_days<=0 → 已被 _autoclean 归档
         # 原地模式 (无 worktree): 此时才轮到 auto_commit 决定提不提交; 关则改动留工作区由用户自管。
         # 放在 _save/_sync 之后 — 连同 .skein 状态一起提交, 免留下脏索引
