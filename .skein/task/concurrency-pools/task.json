@@ -2,7 +2,7 @@
   "id": "concurrency-pools",
   "name": "并发池重构: work/gate 双池 + research 状态",
   "desc": "max_active 单数字换成 work(2, exec+research 共享, exec 优先)/gate(3, check+finish 共享) 双池; subtask 加 phase 字段; task 状态机加 research 态 (plan⇄research, research 禁直转就绪)",
-  "status": "检查中",
+  "status": "已完成",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -261,15 +261,8 @@
   "priority": "urgent",
   "estimate": 13.0,
   "repos": [],
-  "worktree": ".worktrees/skein-concurrency-pools",
-  "worktrees": [
-    {
-      "repo": ".",
-      "wt": ".worktrees/skein-concurrency-pools",
-      "branch": "skein/concurrency-pools",
-      "merged": false
-    }
-  ],
+  "worktree": null,
+  "worktrees": [],
   "branch": "skein/concurrency-pools",
   "parent": null,
   "kind": "task",
@@ -277,7 +270,7 @@
   "started": 1785559720,
   "confirmed": 1785515070,
   "checked": 1785641244,
-  "finished": null,
-  "updated": 1785643555,
+  "finished": 1785647309,
+  "updated": 1785647309,
   "confirmed_by": "user"
 }

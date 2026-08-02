@@ -22,20 +22,6 @@
       "finished": null
     },
     {
-      "id": "concurrency-pools",
-      "status": "检查中",
-      "deps": [],
-      "priority": "urgent",
-      "worktree": ".worktrees/skein-concurrency-pools",
-      "parent": null,
-      "kind": "task",
-      "created": 1785511640,
-      "confirmed": 1785515070,
-      "started": 1785559720,
-      "checked": 1785641244,
-      "finished": null
-    },
-    {
       "id": "spec-docs-examples",
       "status": "待处理",
       "deps": [
@@ -64,6 +50,20 @@
       "started": null,
       "checked": null,
       "finished": null
+    },
+    {
+      "id": "concurrency-pools",
+      "status": "已完成",
+      "deps": [],
+      "priority": "urgent",
+      "worktree": null,
+      "parent": null,
+      "kind": "task",
+      "created": 1785511640,
+      "confirmed": 1785515070,
+      "started": 1785559720,
+      "checked": 1785641244,
+      "finished": 1785647309
     },
     {
       "id": "board-live-refresh",
