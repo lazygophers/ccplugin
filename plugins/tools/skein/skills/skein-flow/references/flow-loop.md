@@ -8,8 +8,10 @@
 # 入口: 有任务描述 → 先走 plan 建/并入 task; 无参 → 直接扫 .skein 既有 task
 while 有可推进 task:                      # subtask 级并发受 pools.work (默认 2) 限; task 级无上限
     按状态选阶段, 跑完即续下一阶段, 不回问用户:
-      待处理 (未 confirm)  → plan  → 判据勾满 → skein confirm (吸收 start: 占槽建 worktree) → 落到「进行中」
-      进行中               → exec 调度循环 (claim exec → 派 agent → done → 再 claim exec)
+      待处理 && ready=true    → skein confirm (吸收 start: 占槽建 worktree) → 落到「进行中」
+      待处理 && ready=false   → 前置未清, 暂缓
+      **待处理 && 缺 plan 产物 (prd 未填 / 无 subtask) → 补 plan 收敛 (填 prd + 加 subtask + estimate) → 判据勾满 → ready=true → confirm**
+      进行中                    → exec 调度循环 (claim exec → 派 agent → done → 再 claim exec)
       进行中 且 全 subtask done → claim check (认领进检查) → skein-checker 自跑 skein check → 验收
       检查中 且 全绿零冲突 → skein finishing (占 gate 槽) → finish (勘察 + merge + 标记 + 异步 sediment)
       检查中 且 FAIL       → 回 planning 重确认 (❗停顿点, 见下)

@@ -36,7 +36,7 @@
 
 调度循环本身 (`while skein claim exec 返回非空: 派 → 等回传 → done/fail → 再 claim exec`) 与并发上限 / 并行判定详见 [dag-scheduling.md](dag-scheduling.md) 第 5.1 节, 禁另抄一份。
 
-- **🟢 派异步优先, 同步 plan 填余力 (禁干等)** — 每回合先 `claim exec` 把就绪 subtask 派出去占满 `pools.work` 槽 (异步, 立即回手), **槽位满或 `claim exec` 返回空时才做 plan-ahead** 把 pending task 推到规划完成 (待处理, 可 confirm), 保证一有槽位释放即有 ready task 接上。只要还有 pending task 未规划完成, plan-ahead 就不停 (前提是槽位已满 / 无可派 subtask), 禁 idle 干等。详见 [dag-scheduling.md](dag-scheduling.md) §6.1。
+- **🟢 派异步优先, 同步 plan 填余力 (禁干等)** — 每回合先 `claim exec` 把就绪 subtask 派出去占满 `pools.work` 槽 (异步, 立即回手), **槽位满或 `claim exec` 返回空时才做 plan-ahead** 把 `待处理 && 缺 plan 产物 (prd 未填 / 无 subtask)` 的 task 推到规划完成 (补 plan 收敛 → 待处理且 ready → 可 confirm), 保证一有槽位释放即有 ready task 接上。只要还有 `待处理 && 缺 plan 产物` 的 task, plan-ahead 就不停 (前提是槽位已满 / 无可派 subtask), 禁 idle 干等。详见 [dag-scheduling.md](dag-scheduling.md) §6.1。
 - **🔴 exec 无验收 (完成即 done, 验收全归 check)** — executor 回传即执行完成 (自跑 `subtask done/fail`), main **不重复勾验收**。exec 只判「执行有没有跑完/报错」, 不判「验收过没过」。
 - **并行只看 depends_on DAG / pools.work 上限 (默认 2) / 完成即派** — 详见 [dag-scheduling.md](dag-scheduling.md)。任一 done/fail 后即再 `claim exec`, 不等一批跑完。
 - **返回 `需要:` / 阻塞 → 不计 done** — 该 subtask 未完成, 下游保持未 ready; **main 转达用户/补信息后重派** (main 保留项, executor 无 AskUserQuestion)。
@@ -63,7 +63,7 @@
 |---|---|---|
 | subtask 报错 (非阻塞) | 自愈: 定点重派 ≤2 轮 / 根因独立则插修复 subtask | 修复也失败/超 scope → 停调度回传 main (走 root-cause-protocol), 禁跳过下游 |
 | executor 返回 `需要:` | main 转达用户 / 补信息后重派 | 信息仍缺 → 该 subtask 挂起, 下游保持未 ready, 禁标 done |
-| `claim exec` 返回空 (满槽 / 无就绪) | 找 `待处理` 且无 subtask 的 task 提前 plan 填空闲 | 满槽等回传; 全 pending 有 subtask 但 `claim` 仍空 → 查 depends_on 死锁 (环) → 停手回 plan 改 DAG |
+| `claim exec` 返回空 (满槽 / 无就绪) | 找 `待处理 && 缺 plan 产物 (prd 未填 / 无 subtask)` 的 task 提前 plan 补全 | 满槽等回传; 全 pending 仍有 plan 产物且 `claim` 仍空 → 查 depends_on 死锁 (环) → 停手回 plan 改 DAG |
 
 ## 延伸引用
 

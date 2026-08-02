@@ -28,7 +28,7 @@ effort: medium
 
 🔒 **禁把缺省当 plan 用** — 无参 / 只给任务描述 = 用户要**做完**, 不是要个规划稿。plan 收敛后禁停手问「要不要开始执行」, 直接续 exec。只有显式 `/skein-flow plan` 才停在规划完成态 (待处理, confirm 前)。
 
-🔒 **全空 = 清空存量, 禁走 plan** — 无 `$1` 且无任务描述时无新需求可规划, 直接进 exec 消化存量: `待处理` 态先补 plan 收敛再 `confirm`, `调研中` 续跑调研收敛后再 `confirm`, `进行中/检查中/收尾中` 续跑当前阶段。禁凭空造 task、禁问用户「要做什么」。
+🔒 **全空 = 清空存量, 禁走 plan** — 无 `$1` 且无任务描述时无新需求可规划, 直接进 exec 消化存量: `待处理 && ready` → confirm; `待处理 && !ready` → 前置未清暂缓; **`待处理 && 缺 plan 产物 (prd 未填 / 无 subtask)` → 补 plan 收敛 (填 prd + 加 subtask + estimate) → confirm**; `调研中` 续跑调研收敛后再 `confirm`; `进行中/检查中/收尾中` 续跑当前阶段。禁凭空造 task、禁问用户「要做什么」。
 
 **载体铁律 + 正向配方** — 「派 agent」=真实 `Agent` tool_use, `subagent_type` 用带前缀全名 `skein:skein-executor` / `skein:skein-checker` / `skein:skein-finisher` (**照抄形式见 [carrier-rules.md 派发调用形式](references/carrier-rules.md#派发调用形式-照抄-禁自由发挥)**) / **禁 teammate·agent-team (禁传 `team_name`, 禁 `SendMessage`)** / main 默认禁写源码 / 有 task 必有 worktree / dispatch 6 字段 / 完成即时回传 / 并发请求禁互相顶掉 等 12 条铁律, 及命中即流程错误的正向配方表, 全量详见 [references/carrier-rules.md](references/carrier-rules.md)。
 
