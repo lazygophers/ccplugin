@@ -7,6 +7,7 @@ import { Sidebar, Topbar } from "@/components/layout";
 import { StatusBadge, StatusDot, ST_META } from "@/components/status";
 import { api, ApiError } from "@/lib/api";
 import { normalizeTask, normalizeTasks, PRIORITY_LABEL, type NormTask, type NormSubtask } from "@/lib/model";
+import { subscribe } from "@/lib/live";
 import { fmtRelative, fmtTime } from "@/lib/format";
 import { renderMd } from "@/lib/md";
 import { etaOf, etaText, fmtHours, actualOf, deltaText, type EtaResult } from "@/lib/eta";
@@ -87,6 +88,25 @@ function TaskDetailContent() {
   }, [id]);
 
   useEffect(() => { load(); }, [load]);
+
+  // 详情页订阅本 task 的逐条变更消息, 局部合并进 raw/task (不重跑 load, 不动 docs/prd/依赖等其余 state) ——
+  // card 只是展示字段子集 (见 views.py _cards_signature), spread 合并保留 raw 里 card 没有的富字段
+  // (docs/research/prd/parentTask/childTasks)。card 为空 = task 已归档/删除, 判定详情页不存在。
+  // 合并基底必须是未 normalize 过的 raw, 不能是已 normalize 的 task —— task 上已有 normalizeTask 派生出
+  // 的 title 字段, 若拿它做合并基底, 陈旧的 title 会盖掉 card 新来的 name (normalizeTask 优先取 title)。
+  useEffect(() => {
+    if (!id) return;
+    return subscribe((msg) => {
+      if (msg.type !== "task-changed") return;
+      if (!msg.card) { setNotFound(true); setTask(null); return; }
+      const card = msg.card;
+      setRaw(prev => {
+        const next = prev ? { ...prev, ...card } : card;
+        setTask(normalizeTask(next));
+        return next;
+      });
+    }, { taskId: id });
+  }, [id]);
 
   // 页面直接改优先级: 复用白名单 exec 通道; 成功后本地乐观更新, 失败给明确错误 (不静默失败)。
   // exec 端点 CLI 失败时仍返回 HTTP 200 (body.ok=false + stderr), 不会走 fetch 的 catch — 必须显式查 ok。

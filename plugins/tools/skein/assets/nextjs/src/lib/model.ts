@@ -115,3 +115,31 @@ export function normalizeTask(t: Record<string, unknown>): NormTask {
 export function normalizeTasks(list: Record<string, unknown>[]): NormTask[] {
   return (list || []).map(normalizeTask);
 }
+
+// task-changed 消息 (来自 live.ts) → 新卡片集: 纯函数, 输入当前卡片集 + 一条消息, 输出新卡片集。
+// card 有值 = 该 task 新建或更新 (id 已在集合中就替换, 否则追加); card 为空 = 该 task 已消失 (归档/删除), 移除。
+// extra: 覆盖不来自后端 card 的展示态字段 (如 board/page.tsx 附加的 maxActive), 与 msg.card 合并后再 normalize。
+export function applyTaskChanged(
+  tasks: NormTask[],
+  msg: { id: string; card: Record<string, unknown> | null },
+  extra: Record<string, unknown> = {}
+): NormTask[] {
+  if (!msg.card) return tasks.filter(t => t.id !== msg.id);
+  const next = normalizeTask({ ...msg.card, ...extra });
+  const idx = tasks.findIndex(t => t.id === msg.id);
+  if (idx === -1) return [...tasks, next];
+  const copy = tasks.slice();
+  copy[idx] = next;
+  return copy;
+}
+
+// 批量抗抖: 同一轮攒到一起的多条 task-changed 消息一次性折叠成一次卡片集变化,
+// 避免每条消息各自触发一次重排 (布局计算随 task 数增长, 大量消息连发时逐条重排会卡死)。
+// 纯函数, 语义等价于依次调用 applyTaskChanged, 仅合并成一次输出。
+export function applyTaskChangedBatch(
+  tasks: NormTask[],
+  msgs: { id: string; card: Record<string, unknown> | null }[],
+  extra: Record<string, unknown> = {}
+): NormTask[] {
+  return msgs.reduce((acc, msg) => applyTaskChanged(acc, msg, extra), tasks);
+}

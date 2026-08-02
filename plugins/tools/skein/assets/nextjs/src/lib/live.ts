@@ -1,16 +1,23 @@
 // SKEIN webapp WS 软刷 — 连 /__skein__/live
 //
-// 协议:
+// 协议 (服务端消息):
 //   {type:"reload"}               → 整页刷
 //   {type:"data"}                 → 软刷全部订阅者
-//   {type:"task-changed", id}     → 软刷订阅 id 的页
+//   {type:"task-changed", id, card}  → 软刷订阅 id 的页 (card 有值=新建/更新, null=归档/删除)
 //   {type:"spec-changed", path}   → spec 页软刷
+//
+// 协议 (客户端本地状态, 不来自服务端 — 由 startLive 自己派发):
+//   {type:"offline"}              → 连接断开, 正在重连 (非静默失效的提示信号)
+//
+// 断线追赶: 重连成功 (ws.onopen 且此前已连过一次) 直接整页重载, 保证断线期间丢失的
+// task-changed 消息靠重新拉全量数据补齐 —— 不额外发明追赶协议, 复用既有整页刷兜底路径。
 
 type LiveMessage =
   | { type: "reload" }
   | { type: "data" }
-  | { type: "task-changed"; id: string }
-  | { type: "spec-changed"; path?: string };
+  | { type: "task-changed"; id: string; card: Record<string, unknown> | null }
+  | { type: "spec-changed"; path?: string }
+  | { type: "offline" };
 
 type Subscriber = (msg: LiveMessage) => void;
 type Unsubscribe = () => void;
@@ -44,6 +51,7 @@ export function startLive() {
   if (started || location.protocol === "file:") return;
   started = true;
   let seen = false;
+  let offline = false;
   let deadTimer: ReturnType<typeof setTimeout> | null = null;
 
   function dispatch(payload: string) {
@@ -63,10 +71,13 @@ export function startLive() {
     const ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/__skein__/live`);
     ws.onopen = () => {
       if (deadTimer) { clearTimeout(deadTimer); deadTimer = null; }
+      offline = false;
       if (seen) location.reload(); else seen = true;
     };
     ws.onmessage = (e) => dispatch(e.data as string);
     ws.onclose = () => {
+      // 首次转为断线时立刻提示, 不等 5 分钟兜底超时才发声 (静默重试期间用户不该以为一切正常)
+      if (!offline) { offline = true; subs.forEach(cb => cb({ type: "offline" })); }
       if (!deadTimer) deadTimer = setTimeout(giveUp, GRACE);
       setTimeout(conn, 2000);
     };

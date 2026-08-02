@@ -567,11 +567,16 @@ def _spec_frontmatter(text: str) -> tuple[dict[str, Any], str]:
         meta[kv.group(1)] = v
     return meta, text[m.end():]
 def _cards_signature(data: dict[str, Any]) -> dict[str, tuple[Any, ...]]:
-    # 取 cards 关键字段做 signature (变即推 task-changed); 不深比 desc/subtable 等重字段 (省 CPU)。
-    # ponytail: O(n) n=task 数; signature tuple 含 status/pct/sdone/stotal/started/finished/worktree, 软刷覆盖此集变化。
+    # 取 cards 关键字段做 signature (变即推 task-changed)。
+    # 取舍判据: 只收「会出现在卡片视觉上的展示字段」(标签/hover 摘要/DAG 连线), 逐字段判 —— 不做整结构深
+    # 比 (deep-diff subtable/prd 等嵌套明细会让开销随 task 数 x 描述长度一起涨, 详见 design.md「变更签名的取舍」)。
+    # name/desc/deps 会画到看板卡片标签、hover 摘要或 DAG 连线上, 故补入; assignee/estimate 只出现在选中态
+    # 详情侧栏 (非卡片本体), 排除。
+    # ponytail: O(n) n=task 数, 每字段一次浅比较, 非深比。
     out: dict[str, tuple[Any, ...]] = {}
     for c in data.get("cards", []):
         out[c["id"]] = (c.get("status"), c.get("spct"), c.get("sdone"), c.get("stotal"),
                         c.get("started"), c.get("finished"), c.get("worktree"),
-                        c.get("nextUp"), c.get("stage"), c.get("priority"))
+                        c.get("nextUp"), c.get("stage"), c.get("priority"),
+                        c.get("name"), c.get("desc"), tuple(c.get("deps") or ()))
     return out
