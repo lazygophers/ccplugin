@@ -1,22 +1,36 @@
 {
   "tasks": [
     {
-      "id": "drop-ready-frontend",
+      "id": "task-json-cn-schema",
       "status": "进行中",
       "deps": [],
-      "priority": "high",
+      "priority": "normal",
+      "worktree": ".worktrees/skein-task-json-cn-schema",
+      "parent": null,
+      "kind": "task",
+      "created": 1785662060,
+      "confirmed": 1785662125,
+      "started": 1785662126,
+      "checked": null,
+      "finished": null
+    },
+    {
+      "id": "drop-ready-frontend",
+      "status": "收尾中",
+      "deps": [],
+      "priority": "urgent",
       "worktree": ".worktrees/skein-drop-ready-frontend",
       "parent": null,
       "kind": "task",
       "created": 1785647776,
       "confirmed": 1785648132,
       "started": 1785648133,
-      "checked": null,
+      "checked": 1785662457,
       "finished": null
     },
     {
       "id": "spec-skills-agents-adapt",
-      "status": "进行中",
+      "status": "收尾中",
       "deps": [
         "spec-model-core",
         "spec-migrate",
@@ -32,7 +46,7 @@
       "created": 1785381925,
       "confirmed": 1785594118,
       "started": 1785638941,
-      "checked": null,
+      "checked": 1785662457,
       "finished": null
     },
     {
