@@ -73,3 +73,52 @@ cat <待测文件> | claude -p --bare "<问题>" --output-format stream-json 2>/
 | 提示词写了脚本没实现的能力 | 依赖前 6 task 完成; 发现缺能力**报告不顺手补脚本** (越界会让本 task 与前面 task 的改动交织, 冲突难解) |
 | 模板重命名后 SKILL.md 引用未跟改 | 重命名与引用更新放同一 subtask, 且 grep 验证无旧名残留 |
 | `plugin.json` description 过长被截断 | 现 description 已很长, 本轮**净减**冗余表述 (合并 core/recall 描述), 不净增 |
+
+## 8. d1 执行留痕 (2026-08-02)
+
+`skein-spec/SKILL.md` 重写已完成并提交 (worktree commit `670d7ae9f`), 6 条验收 grep 自证全过。两个待 main 裁定的问题:
+
+1. **质量门 (`claude -p --bare`) 系统性打不通, 非内容问题** — 3 次调用 (2 次对本文件 + 1 次纯净健全性检查 `echo hi | claude -p "say ok"`) 全部 `API Error: Unable to connect to API (ConnectionRefused)`, `apiKeySource:"none"`, 10 次内部 retry 全失败, 耗时约 3 分钟/次。与文件内容无关 (纯净 prompt 同样失败), 判断是本 worktree/session 缺 API key 路由的环境问题, 非「跑题/空返回」式端点抖动, 重跑不会自愈。**d1 本身内容已按 CLAUDE.md 规范尝试质量门, 未能跑通; 请 main 决定是换有 API 访问的环境代跑, 还是本 subtask 的质量门验证并入 d5 统一处理。**
+2. **发现一个不在本 task 范围内的测试 bug (脚本代码, 按边界禁止顺手改)** — `plugins/tools/skein/scripts/tests/test_docs_commands.py::test_all_doc_command_examples_are_valid` 现 406 passed / 1 failed (基线 407/0)。根因: 该测试的 `_top_subs()` 用正则 `^    ([a-z][a-z0-9\-_]*)\s{2,}` 解析 `--help` 输出, 但 `finish-candidates` 这个子命令名太长, argparse 把说明文字换到下一行, 该行末尾没有 `\s{2,}`, 正则永远抓不到它, 导致 CLI 里明明已注册的 `finish-candidates` 被判「不是 CLI 子命令」。这是**已存在的潜伏 bug** (`cli.py:81` 早就注册了这个子命令), 本 task 之前没有任何文档写过 `finish-candidates` 这个词, 从未触发过; d1 新增的 product wiki 章节第一次在文档里提到它, 才把这条潜伏 bug 揪出来。**本 task 边界明确「纯文档/提示词, 脚本缺能力报告不顺手改」, 故未动 test 文件, 报告给 main 裁定** (建议另开一个小 task 修 `_top_subs()` 正则, 兼容子命令名过长换行的 `--help` 输出格式)。
+
+## 🔴 main 裁定: d1 的 claude -p 质量门并入 d5 (2026-08-02)
+
+**事实**: exec-d1b 按 CLAUDE.md 规范跑质量门 3 次 (2 次对 SKILL.md 同 prompt + 1 次纯净健全性检查
+`echo hi | claude -p --bare "say ok"`), 全部 `API Error: Unable to connect to API (ConnectionRefused)`,
+stream-json 显示 `apiKeySource:"none"`, 内部 10 次 retry (backoff 到 32s) 全失败。纯净 prompt 同样失败,
+排除内容问题。
+
+**main 独立复现**: 用 `skein-setup/SKILL.md` 跑同样命令, 同样 ConnectionRefused。同一时段
+`concurrency-pools` 的 exec-s7 亦报 6 次跨 25 分钟的同样错误。**环境级故障, 非单次抖动**
+(抖动重跑会自愈, 这个不会)。
+
+**裁定**: d1 的质量门验证并入 **d5**(质量门 + 结构性验证, 依赖 d1-d4), 届时环境可能已恢复。
+d1 内容验收 6 条已自证通过 (grep 证据齐全), 不因端点故障扣留。
+
+**d5 的收口义务**: 补跑 `skills/skein-spec/SKILL.md` 的质量门, 连跑 3 次确认主流程描述一致。
+**若端点仍未恢复, 照实标注「因端点故障未验证」, 禁用源码核对冒充质量门通过。**
+
+## 🟢 main inline 修: test_docs_commands.py 的潜伏正则 bug (2026-08-02)
+
+d1 新增 product wiki 章节时第一次在文档里写 `finish-candidates`, 揪出一条潜伏已久的 bug。
+
+**根因**: `tests/test_docs_commands.py::_top_subs()` 用 `^    ([a-z][a-z0-9\-_]*)\s{2,}` 解析
+`--help` 输出抓子命令名。子命令名过长时 argparse 把 help 文字挤到下一行, 该行只剩子命令名、
+行尾无空格, 正则永远抓不到。实测 `spec.py --help` 输出:
+
+```
+'    finish-candidates'
+'                     [finish 用] 为 task 生成候选 product wiki 页 (三路降级:'
+```
+
+`spec/cli.py:81` 早已注册该命令, 但此前无任何 .md 文档提过这个词, 故从未触发。
+
+**处置**: main inline 修 (commit `d5ad71162`), 正则补 `$` 分支 →
+`^    ([a-z][a-z0-9\-_]*)(?:\s{2,}|$)`。修前 `test_docs_commands` 1 failed, 修后 3 passed。
+
+**为什么 main 直接修而不派 subtask**: 单文件单处正则、位置已由 main 独立验证 (跑 `--help` 看到
+实际输出), 符合作用域边界的 inline 豁免条件。当前 API 环境每次派发都有可观断线概率
+(本 session 已 8 个 agent 死于连接中断), 为一行正则另开 task 不划算。
+
+**exec-d1b 的处理是对的**: 它守住「纯文档/提示词, 脚本缺能力报告不顺手改」的边界, 报告而非自行动手。
+这条 bug 的成因需跨文件判断 (cli.py 注册了 vs 测试正则抓不到), 不是执行者边界内该拍板的。
