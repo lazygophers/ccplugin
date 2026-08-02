@@ -80,10 +80,10 @@
         "trellis 目标结构为四 namespace"
       ],
       "验收done": [],
-      "status": "待处理",
+      "status": "运行中",
       "skills": [],
       "created": 1785382888,
-      "started": null,
+      "started": 1785641728,
       "finished": null
     },
     {
@@ -150,6 +150,6 @@
   "confirmed": 1785594118,
   "checked": null,
   "finished": null,
-  "updated": 1785641618,
+  "updated": 1785641728,
   "confirmed_by": "user"
 }

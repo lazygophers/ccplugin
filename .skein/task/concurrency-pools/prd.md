@@ -11,8 +11,8 @@ running subtask 数), 结果是: 想让验证多跑几个就得连带放开执�
 本次把单一上限拆成**按活的性质分的两个池**, 并给 research 与收尾这两个「实际存在但引擎看不见」
 的阶段补上状态载体, 让它们能被真正计数和调度。
 
-- [ ] **work 池 (2)**: exec 与 research 共享。两者都在改/读工作树, 抢的是同一份注意力与磁盘。
-- [ ] **gate 池 (3)**: check 与 finish 共享。都是只读验证/收尾, 可以放得更宽。
+- [x] **work 池 (2)**: exec 与 research 共享。两者都在改/读工作树, 抢的是同一份注意力与磁盘。
+- [x] **gate 池 (3)**: check 与 finish 共享。都是只读验证/收尾, 可以放得更宽。
 
 顺带清掉两处历史包袱: 「就绪」这个只存在于 confirm 与 start 之间、没人真正停留的中间态; 以及
 research 至今没有状态、只能靠人记着「这个 task 还在查资料」的窘境。
@@ -24,26 +24,26 @@ research 至今没有状态、只能靠人记着「这个 task 还在查资料�
 ## 边界
 
 **范围内**
-- [ ] task 状态机改造: 删「就绪」, 加「调研中」「收尾中」
-- [ ] `skein start` 并入 `confirm` (人审门 = 状态转换, 一步到位)
-- [ ] subtask 新增 `phase` 字段 (exec | research)
-- [ ] `max_active` 换成 `pools.work` / `pools.gate` 两键
-- [ ] work 池调度改加权打分 (等待时间 + 关键路径权重 + 类型加权)
-- [ ] 全部下游同步: 体检、看板、Web 视图、注入文案、skill/agent 文档、测试
+- [x] task 状态机改造: 删「就绪」, 加「调研中」「收尾中」
+- [x] `skein start` 并入 `confirm` (人审门 = 状态转换, 一步到位)
+- [x] subtask 新增 `phase` 字段 (exec | research)
+- [x] `max_active` 换成 `pools.work` / `pools.gate` 两键
+- [x] work 池调度改加权打分 (等待时间 + 关键路径权重 + 类型加权)
+- [x] 全部下游同步: 体检、看板、Web 视图、注入文案、skill/agent 文档、测试
 
 **范围外 (非目标)**
-- [ ] 不改 subtask DAG 的依赖语义 (`depends_on` 怎么算就绪不动)
-- [ ] 不改 worktree 生命周期本身 (只改由谁触发建/销)
-- [ ] 不引入 subtask 级的独立优先级字段 —— 「优先级」沿用现有关键路径权重
-- [ ] 不做池的动态伸缩 / 按机器负载自适应
-- [ ] 不改 spec 子系统
+- [x] 不改 subtask DAG 的依赖语义 (`depends_on` 怎么算就绪不动)
+- [x] 不改 worktree 生命周期本身 (只改由谁触发建/销)
+- [x] 不引入 subtask 级的独立优先级字段 —— 「优先级」沿用现有关键路径权重
+- [x] 不做池的动态伸缩 / 按机器负载自适应
+- [x] 不改 spec 子系统
 
 **已知约束**
-- [ ] `max_active` 直接删除, 不留 deprecated fallback (用户明确要求)。已有工作区的
+- [x] `max_active` 直接删除, 不留 deprecated fallback (用户明确要求)。已有工作区的
   `.skein/config.yaml` 升级后并发限制会静默变回默认值 —— 需在 doctor 里给出可见提示。
-- [ ] 「收尾中」必须是**独立一步**才有意义: 引擎看不见 main 派出去的 finisher agent, 只有先占槽
+- [x] 「收尾中」必须是**独立一步**才有意义: 引擎看不见 main 派出去的 finisher agent, 只有先占槽
   再派, 才谈得上限制并发 finisher。
-- [ ] 工作区 flock 仍在, 与池正交: 池限的是同时干活的 agent 数, 锁防的是并发写 task.json。
+- [x] 工作区 flock 仍在, 与池正交: 池限的是同时干活的 agent 数, 锁防的是并发写 task.json。
 
 ## User Stories
 
@@ -76,26 +76,26 @@ research 至今没有状态、只能靠人记着「这个 task 还在查资料�
 
 ## 验收标准
 
-- [ ] task 状态枚举为: 待处理 / 调研中 / 进行中 / 检查中 / 收尾中 / 已完成 —— 「就绪」不再出现在
+- [x] task 状态枚举为: 待处理 / 调研中 / 进行中 / 检查中 / 收尾中 / 已完成 —— 「就绪」不再出现在
       任何枚举、别名表、排序表、阶段映射中
-- [ ] `skein start` 命令已删除, 其全部职责 (体检 / prd double-check / worktree / started 时间戳 /
+- [x] `skein start` 命令已删除, 其全部职责 (体检 / prd double-check / worktree / started 时间戳 /
       start 阶段钩子) 由 `confirm --approved` 承担, 且 confirm 后 task 直接处于开工态
-- [ ] subtask 有 `phase` 字段, 取值 exec | research, 缺省为 exec (老数据免迁移)
-- [ ] `pools.work` / `pools.gate` 两键生效; `max_active` 在代码中零残留
-- [ ] work 池计数 = 全局 phase ∈ {exec, research} 的 running subtask 数, 上限 `pools.work`
-- [ ] gate 池计数 = 处于「检查中」+「收尾中」的 task 数, 上限 `pools.gate`
-- [ ] 两池互不影响: work 满时仍可 check; gate 满时仍可派 exec
-- [ ] work 池出线顺序由加权分决定, 分数含等待时长、关键路径权重、类型加权三项, 且 exec 类在
+- [x] subtask 有 `phase` 字段, 取值 exec | research, 缺省为 exec (老数据免迁移)
+- [x] `pools.work` / `pools.gate` 两键生效; `max_active` 在代码中零残留
+- [x] work 池计数 = 全局 phase ∈ {exec, research} 的 running subtask 数, 上限 `pools.work`
+- [x] gate 池计数 = 处于「检查中」+「收尾中」的 task 数, 上限 `pools.gate`
+- [x] 两池互不影响: work 满时仍可 check; gate 满时仍可派 exec
+- [x] work 池出线顺序由加权分决定, 分数含等待时长、关键路径权重、类型加权三项, 且 exec 类在
       其余条件相同时排在 research 之前
-- [ ] 等待足够久的 research 能越过刚入队的 exec (证明不是硬抢占, 无饿死)
-- [ ] `研究中` task 调用 confirm 被拒, 错误信息指明先回 plan
-- [ ] plan ⇄ research 双向转换可用, 且 research → 开工态 无直达路径
-- [ ] 「收尾中」为独立状态, 占 gate 槽, 由独立命令进入; finish 从「收尾中」完成闭环
-- [ ] doctor 检出任一池超限并报错; 检出配置里残留 `max_active` 并提示已废弃
-- [ ] 看板与 Web 视图显示两池各自 占用/上限
-- [ ] `claim` 满槽时的提示能区分是 work 满还是 gate 满
-- [ ] 全部 skill / agent / 文档中的「就绪」「start」「max_active」表述已同步
-- [ ] 全量测试通过, ruff F/E9 清白
+- [x] 等待足够久的 research 能越过刚入队的 exec (证明不是硬抢占, 无饿死)
+- [x] `研究中` task 调用 confirm 被拒, 错误信息指明先回 plan
+- [x] plan ⇄ research 双向转换可用, 且 research → 开工态 无直达路径
+- [x] 「收尾中」为独立状态, 占 gate 槽, 由独立命令进入; finish 从「收尾中」完成闭环
+- [x] doctor 检出任一池超限并报错; 检出配置里残留 `max_active` 并提示已废弃
+- [x] 看板与 Web 视图显示两池各自 占用/上限
+- [x] `claim` 满槽时的提示能区分是 work 满还是 gate 满
+- [x] 全部 skill / agent / 文档中的「就绪」「start」「max_active」表述已同步
+- [x] 全量测试通过, ruff F/E9 清白
 
 ## Testing Decisions
 
