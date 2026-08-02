@@ -107,3 +107,18 @@ cat <待测文件> | claude -p --bare "<问题>" --output-format stream-json 2>/
 ### 8.4 pytest
 
 worktree 内跑 `python3 -m pytest plugins/tools/skein/scripts/tests -q` → **407 passed**(与本 worktree 正确基线一致; 过程中 `test_docs_commands.py` 一度因措辞 `` `skein-spec migrate` `` 被误判为不存在的 CLI 子命令报 2 条失败, 已改措辞为「migration-v2 两阶段流程」修复, 复跑转绿)。
+
+## 9. d5 结构性验证留痕 (第三棒接续)
+
+前任 commit `25a6f2feb` 已修 `skein-setup.md` 断链(`migration-v2.md` 相对路径漏算 `skills/` 层级), 核实后**采纳**, 本轮不重做该处, 断链扫描整体重扫一遍(更稳)。
+
+### 9.1 四类零残留 grep (全仓 `plugins/tools/skein` + 改动文件集)
+
+1. **`--layer` 残留**: 全仓命中仅 2 处, 均在 `scripts/skeinlib/spec/write.py:35` / `scripts/skeinlib/spec/cli.py:3`, 是「该废弃通道已删除」的说明性注释(design.md 里定义的例外), 非活跃用法 → **零残留通过**
+2. **「两层」措辞残留**: 全仓命中 12 处(`skein-setup.md`/`SKILL.md`×2/`trellis-migration.md`/`migration-v2.md`), 逐条核实全部带「旧」限定词, 描述的是**待迁移的历史结构**(migration 文档必要用语), 无一处把当前 4-namespace 结构自称两层 → **零残留通过**
+3. **写死 `8000` 残留**: 改动的 `.md`/文档类文件零命中; 全仓命中仅在 `scripts/tests/*.py`(测试夹具需要具体数值) 和 `admin.py:129`(注释示例, 非文档), 均非 d1~d4 触达的文档范围 → **零残留通过**
+4. **`references/*.md` 引用断链**: 用 python 脚本解析全部改动 `.md` 文件里的 `[...](...*.md...)` 链接, 相对路径 `normpath` 解析后核实文件存在。共 **47 条链接, 0 断链**。另全仓 grep 确认无处仍引用重命名前的旧模板名 `core.md.tmpl`/`recall.md.tmpl` → 零残留
+
+### 9.2 `test_docs_commands.py`
+
+`python3 -m pytest plugins/tools/skein/scripts/tests/test_docs_commands.py -q` → **3 passed**
