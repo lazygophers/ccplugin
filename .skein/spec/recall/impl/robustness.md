@@ -1,9 +1,9 @@
 ---
 title: robustness
-layer: recall
 category: impl
-keywords: [error,robustness,json,corruption,config,default,budget,batch-side-effect,migration]
+keywords: [error,robustness,json,corruption,config,default,budget,batch-side-effect,migration,枚举删除,状态迁移,磁盘残留,存量数据,doctor,规划遗漏,status,枚举值]
 status: active
+inclusion: auto
 ---
 
 ## 单个 task.json 损坏隔离（skip + 告警）
@@ -34,3 +34,12 @@ impl/graceful-degradation
 
 ### 反例
 spec-memory-extend 把 spec_core_budget 默认 8000→1000 (未先查现 core ~11K), specer maintain --apply 触发 24 条全降, core 11055→777 字符, SessionStart 注入剩 3 条。
+
+## 删/改状态枚举等有磁盘残留的模型改动需配存量迁移 subtask
+
+### 触发场景
+规划期决定删除或改名一个状态枚举值 / 配置键名等「模型定义」，且该值可能已经写在磁盘上的历史数据里（如 task.json 的 status 字段）。
+
+### 陷阱-正解
+**陷阱**：只改代码里的枚举定义与判断逻辑，遗漏磁盘上已存在的旧值；一旦扫描/校验逻辑（如 doctor）随新代码合入 master，会对存量数据报「非法值」。此类缺口往往要等合入后才被发现，需临时补一个迁移 subtask 才能收口。
+**正解**：规划阶段只要涉及删/改枚举值、状态字段、配置键名这类「有磁盘残留的模型改动」，必须在拆 subtask 时同步规划一个「存量数据迁移」子任务（扫描 + 转换旧值），不能只当作代码改动处理。

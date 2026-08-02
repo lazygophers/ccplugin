@@ -1,6 +1,20 @@
 {
   "tasks": [
     {
+      "id": "drop-ready-frontend",
+      "status": "进行中",
+      "deps": [],
+      "priority": "high",
+      "worktree": ".worktrees/skein-drop-ready-frontend",
+      "parent": null,
+      "kind": "task",
+      "created": 1785647776,
+      "confirmed": 1785648132,
+      "started": 1785648133,
+      "checked": null,
+      "finished": null
+    },
+    {
       "id": "spec-skills-agents-adapt",
       "status": "进行中",
       "deps": [
