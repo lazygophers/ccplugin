@@ -132,7 +132,8 @@ graph TB
     AUTO_COMMIT_CHK --> ASYNC["异步 fire-and-forget agent<br/>(finish 已闭环, 不阻塞)"]
     ASYNC --> SPECER["skein-specer<br/>sediment + prune"]
     ASYNC --> AUTO_FIX["auto-fix 双保险<br/>检测 .pending-fix 标记<br/>(Stop hook 漏检兜底)<br/>有→bg 派 specer 跑 maintain --apply"]
-    SPECER --> TRACE["回传到达后 main 补 output trace<br/>(sediment 判定不输出 trace = 流程错误)"]
+    SPECER --> WIKI_AMEND["wiki amend 回写<br/>异步 fire-and-forget<br/>sediment 落盘后 amend 回写 wiki 页"]
+    WIKI_AMEND --> TRACE["回传到达后 main 补 output trace<br/>(sediment 判定不输出 trace = 流程错误)"]
   end
 
   subgraph Memory["规则记忆系统 (异步)"]
