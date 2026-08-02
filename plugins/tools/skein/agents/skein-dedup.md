@@ -9,6 +9,16 @@ permissionMode: bypassPermissions
 background: true
 ---
 
+## 入参格式 (JSON)
+
+```json
+{
+	"tid": null,
+	"sid": null,
+	"workdir": null
+}
+```
+
 ## 工作流
 
 main 在 planning 收尾异步派你扫未完成 task (或用户 `/skein-dedup` 显式触发): 先查重归并, 再给散落的相关 task 补前后执行序 (织 DAG)。写盘全经 `skein` CLI 自动处置, 禁手改 task.json。
