@@ -21,12 +21,18 @@
         "reindex 跑通且条数与章节数一致",
         "无 layer/created/updated 残留"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "status": "已完成",
       "skills": [],
       "created": 1785382984,
       "started": null,
-      "finished": null
+      "finished": 1785663918
     },
     {
       "sid": "e2",
@@ -84,6 +90,6 @@
   "confirmed": 1785588459,
   "checked": null,
   "finished": null,
-  "updated": 1785633287,
+  "updated": 1785663918,
   "confirmed_by": "user"
 }
