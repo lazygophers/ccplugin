@@ -1,21 +1,6 @@
 {
   "tasks": [
     {
-      "id": "priority-ui-theme",
-      "status": "check",
-      "deps": [],
-      "priority": "normal",
-      "worktree": null,
-      "parent": null,
-      "kind": "task",
-      "created": 1785753076,
-      "confirmed": 1785753412,
-      "started": 1785753412,
-      "checked": 1785754765,
-      "checked_end": null,
-      "finished": null
-    },
-    {
       "id": "live-ws-backoff",
       "status": "pending",
       "deps": [],
@@ -59,6 +44,21 @@
       "checked": 1785750950,
       "checked_end": 1785751479,
       "finished": 1785751524
+    },
+    {
+      "id": "priority-ui-theme",
+      "status": "done",
+      "deps": [],
+      "priority": "normal",
+      "worktree": null,
+      "parent": null,
+      "kind": "task",
+      "created": 1785753076,
+      "confirmed": 1785753412,
+      "started": 1785753412,
+      "checked": 1785754765,
+      "checked_end": 1785755928,
+      "finished": 1785755974
     }
   ]
 }
