@@ -18,13 +18,18 @@
         "映射表零处引用 --st-*",
         "算得八组对比度全 >=4.5"
       ],
-      "acceptance_done": [],
-      "status": "running",
+      "acceptance_done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "done",
       "phase": "exec",
       "skills": [],
       "created": 1785753204,
       "started": 1785753412,
-      "finished": null
+      "finished": 1785753522
     },
     {
       "sid": "consume",
@@ -85,7 +90,7 @@
   "checked": null,
   "checked_end": null,
   "finished": null,
-  "updated": 1785753412,
+  "updated": 1785753522,
   "timeline": [
     {
       "kind": "task",
@@ -107,6 +112,14 @@
       "kind": "subtask",
       "status": "running",
       "at": 1785753412,
+      "sid": "colors",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "done",
+      "at": 1785753522,
       "sid": "colors",
       "note": "",
       "rollback": false

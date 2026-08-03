@@ -142,6 +142,13 @@
   --st-finishing: var(--oc-reef-600);
   --st-done: var(--oc-deepsea-600);
   --st-failed: var(--oc-coral-600);
+
+  /* SKEIN 优先级前景色 — 辅助信息, 独立于状态色语义 (urgent→coral / high→sunset / normal·low→neutral 深浅两档) */
+  --pri-urgent: var(--oc-coral-800);
+  --pri-high: var(--oc-sunset-900);
+  /* 中降一档 (700→600): 700 在白底 10.27, 比「紧急」还重, 辅助信息不该压过警示色。 */
+  --pri-normal: var(--oc-neutral-600);
+  --pri-low: var(--oc-neutral-500);
 }
 
 /* ═══ Dark (DeepSea 主题) ═══ */
@@ -186,6 +193,13 @@
   --st-finishing: var(--oc-reef-800);
   --st-done: var(--oc-deepsea-800);
   --st-failed: var(--oc-coral-800);
+
+  --pri-urgent: var(--oc-coral-400);
+  --pri-high: var(--oc-sunset-400);
+  /* 深底上的中/低走 reef 冷灰蓝而非中性灰: neutral 在此底色只有 300/400 两档过 4.5,
+     300 已是近白 (9.32, 正文才 11.88) 会被读成主文本; reef 与卡片同色系, 弱化更自然。 */
+  --pri-normal: var(--oc-reef-300);
+  --pri-low: var(--oc-reef-400);
 }
 
 @layer base {

@@ -17,7 +17,7 @@ export function normalizeStatus(s: string): string { return STATUS_MAP[s] || s; 
 // 优先级: 四档枚举 (机器值 urgent/high/normal/low, 展示层映射中文) — 与 skeinlib/model.py PRIORITIES 对齐
 export const PRIORITIES = ["urgent", "high", "normal", "low"] as const;
 export const PRIORITY_LABEL: Record<string, string> = { urgent: "紧急", high: "高", normal: "中", low: "低" };
-export const PRIORITY_COLOR_VAR: Record<string, string> = { urgent: "--destructive", high: "--st-check", normal: "--muted-foreground", low: "--muted-foreground" };
+export const PRIORITY_COLOR_VAR: Record<string, string> = { urgent: "--pri-urgent", high: "--pri-high", normal: "--pri-normal", low: "--pri-low" };
 export const PRIORITY_RANK: Record<string, number> = { urgent: 3, high: 2, normal: 1, low: 0 };
 
 export interface NormSubtask {
