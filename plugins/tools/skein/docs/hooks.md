@@ -5,7 +5,7 @@
 
 | 类型 | 触发点 | 配置路径 |
 | --- | --- | --- |
-| 阶段钩子 | `skein.py` 的 9 个状态迁移命令 (create/confirm/start/check/finish/archive/subtask.start/done/fail) 前后 | `hooks.<阶段名>.<before\|after>` |
+| 阶段钩子 | `skein` 的 9 个状态迁移命令 (create/confirm/start/check/finish/archive/subtask.start/done/fail) 前后 | `hooks.<阶段名>.<before\|after>` |
 | agent 钩子 | agent 生命周期起止 (由 agent 工作流自己在 dispatch 时调用) | `hooks.agent.<agent名\|"*">.<start\|stop>` |
 
 `hooks` 键整体可选 —— 不配则零开销 (不解析、不构造 env、不 fork 子进程), 详见 [§ 零开销路径](#零开销路径)。
@@ -49,7 +49,7 @@ hooks:
 
 ## 2. 阶段名全表
 
-`hooks.<name>` 的 `<name>` 仅接受以下 10 个 (常量 `STAGE_NAMES`, `skein.py`):
+`hooks.<name>` 的 `<name>` 仅接受以下 10 个 (常量 `STAGE_NAMES`, `scripts/skeinlib/hooks/runner.py`):
 
 ```
 create  confirm  start  exec  check  finish  archive
@@ -135,7 +135,7 @@ hooks:
 `shell=True` 执行钩子命令, **不违反**「exec 端点禁 shell 注入」那条 core 规则 —— 那条规则约束的
 是网络输入 (http 端点收到的 body), 本特性的输入源从未经过网络。
 
-**正因如此**: `hooks` 键在写端点侧被**显式拒写** —— `skein.py` 的 `CFG_REMOTE_DENY = ("hooks",)`,
+**正因如此**: `hooks` 键在写端点侧被**显式拒写** —— 引擎的 `CFG_REMOTE_DENY = ("hooks",)`,
 `POST /__skein__/config` 命中该元组的键一律跳过, 保留盘上原值。
 
 ⚠️ 这里曾靠「`hooks` 不进 `CONFIG_DEFAULTS`, 于是回填时天然被忽略」来防护。那条路已经作废:
@@ -150,7 +150,7 @@ hooks:
 
 ## 6. `_yaml_load` 解析器 ceiling
 
-`config.yaml` 用仓库自研的 mini YAML 解析器 (`skein.py:_yaml_load`) 读, 不依赖 `PyYAML`。
+`config.yaml` 用仓库自研的 mini YAML 解析器 (`_yaml_load`) 读, 不依赖 `PyYAML`。
 支持的子集刚好覆盖 `hooks` 结构需要的形状, **不支持的语法直接报错并指出行号**, 不静默降级
 (静默降级 = 用户配置无声失效, 是最难查的一类故障)。
 
@@ -202,7 +202,7 @@ agent 漏调是真实风险, 且不会报任何错误 (钩子没跑就是没跑,
   (agent-start/agent-stop 靠 agent 自己在工作流里调, 漏跑不报错)
 ```
 
-审计行格式 (`spec.py:_write_audit`): `iso_ts|agent-hook|agent.<name>|<when>->(N hooks)|tid=<tid> sid=<sid>`,
+审计行格式 (`_write_audit`): `iso_ts|agent-hook|agent.<name>|<when>->(N hooks)|tid=<tid> sid=<sid>`,
 只在钩子**真正被执行**时才写 (无匹配钩子的 no-op 不写), 所以这条检查是「agent 钩子是否曾真实生效」
 的唯一发现手段。
 

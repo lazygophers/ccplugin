@@ -1,4 +1,4 @@
-"""`spec.py analyze <tid>` — 只读一致性核查 (对齐 spec-kit `/speckit.analyze`)。
+"""`skein-spec analyze <tid>` — 只读一致性核查 (对齐 spec-kit `/speckit.analyze`)。
 
 五类检查, 全部只读 prd.md / design.md / task.json + 已有 spec 规则库, 不写任何盘:
   验收覆盖率  prd 验收标准 ↔ subtask 验收项, 报关键词无命中的验收条 (候选未覆盖)

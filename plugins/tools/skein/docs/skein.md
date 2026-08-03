@@ -6,7 +6,7 @@
 用户请求 → Hook 系统(user-prompt→session-context)
         → Skill 编排层(skein-flow→plan→exec→check→finish)
         → Agent 执行层(executor/checker/researcher/finisher/specer/recaller/dedup)
-        → 脚本引擎(skein.py/spec.py/hooks.py)
+        → CLI 引擎(skein / skein-spec / skein-hooks)
         → .skein/ 工作区
 ```
 

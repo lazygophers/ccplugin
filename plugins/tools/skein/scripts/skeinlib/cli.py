@@ -470,6 +470,6 @@ def main() -> None:
 
     globals()["_namespace"] = namespace_with_json
     try:
-        app(args=argv, prog_name="skein.py")
+        app(args=argv, prog_name="skein")
     finally:
         globals()["_namespace"] = original_namespace

@@ -94,7 +94,7 @@ skein-spec reindex
 
 - 自动修: 超预算循环降级 always→auto 到总字符 < always_budget / stale 归档 / keywords 重复归档保留最新 / 废弃归档 (全走可逆 archive)。
 - 断链 (`[[slug]]` 目标缺失) **只报告不修** — 修哪头需人判断, 无从自动决断, 入 unfixed_links。
-- 每步追加写 `.audit-log` (7 天轮转, spec.py 已实现) → 清 `.pending-fix` 标记。
+- 每步追加写 `.audit-log` (7 天轮转, skein-spec 已实现) → 清 `.pending-fix` 标记。
 - **写 mode 自愈后此 mode 不再产生 .pending-fix** — sediment/reconstruct/prune 末尾已跑 maintain --apply 就地清超预算, Stop hook 检测无问题即不写标记; auto-fix mode 保留作兜底兼容 (sediment 遗漏/历史 .pending-fix 残留触发)。
 
 ### 6. 收工钩子 (跑在所选 mode 的写路径完成之后)

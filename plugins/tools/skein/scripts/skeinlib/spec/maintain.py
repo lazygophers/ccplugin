@@ -126,7 +126,7 @@ class MaintainMixin:
                 moved += 1
         self._reindex_all()
         if moved:
-            print(f"已归档 {moved} 条规则 → {dest}\n回滚: python3 spec.py restore {ts}")
+            print(f"已归档 {moved} 条规则 → {dest}\n回滚: skein-spec restore {ts}")
         else:
             print("无规则可归档 (库已空)")
     # ---- restore (从归档恢复; 撞名的旧规则加 restored- 前缀不覆盖重构后新规则) ----

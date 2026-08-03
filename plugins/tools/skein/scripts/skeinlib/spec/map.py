@@ -1,4 +1,4 @@
-"""`spec.py map --skeleton` — 现算目录树+符号+行数 (不写盘)。
+"""`skein-spec map --skeleton` — 现算目录树+符号+行数 (不写盘)。
 
 ponytail: 正则非AST, 装饰器/嵌套/多行签名抓不准; 升级路径tree-sitter。
 三语言顶层符号抓取:

@@ -124,7 +124,7 @@ class Lifecycle:
                 "- [ ] TODO: 填 Testing Decisions\n\n"
                 "## 索引\n- 详细设计: [design.md](design.md)\n"
                 "- 调研收敛: [findings.md](findings.md) (仅真调研时生)\n"
-                "- 任务/子任务/调度: task.json (脚本真值, `skein.py subtask list " + tid + "`)\n"),
+                "- 任务/子任务/调度: task.json (脚本真值, `skein subtask list " + tid + "`)\n"),
             "design.md": (
                 f"# {name} — 详细设计\n\n"
                 "架构 / 数据流 / 关键取舍 / 技术选型 (不含调度图, 调度归 task.json):\n\n"

@@ -177,7 +177,7 @@ def cmd_flow_gate(d: dict[str, Any]) -> int:
         return 0
     print(json.dumps({"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": (
         f"⚠️ 已改动 {len(seen)} 个源码文件但**无 active task** — 跨 ≥2 文件正是 flow 的判据线。\n"
-        "若这本该走 flow: 立刻 `skein.py create` 建 task, 把已改的纳入首个 subtask, 后续改动在 flow 内做。\n"
+        "若这本该走 flow: 立刻 `skein create` 建 task, 把已改的纳入首个 subtask, 后续改动在 flow 内做。\n"
         "若确属 inline 豁免 (如同一处改动波及两文件): 忽略本提示, 继续。\n"
         f"已改: {', '.join(sorted(seen)[:5])}")}}))
     return 0

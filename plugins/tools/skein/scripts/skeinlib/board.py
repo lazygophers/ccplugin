@@ -88,7 +88,7 @@ def render_task_board(t: dict[str, Any], work_active: int, gate_active: int) -> 
     body = "\n".join(rows) if rows else "| - | - | - | - | - | - | - |"
     return (
         f"# SKEIN 子任务看板 — {t['id']} {t['name']}\n\n"
-        "> 经 `skein.py subtask` 渲染, 禁直接读写; 取态用 `skein.py subtask list <id>`。\n\n"
+        "> 经 `skein subtask` 渲染, 禁直接读写; 取态用 `skein subtask list <id>`。\n\n"
         "| sid | 名称 | 状态 | 进度 | skills | 依赖 | 验收标准 |\n"
         "|---|---|---|---|---|---|---|\n"
         f"{body}\n\n"

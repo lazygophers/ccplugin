@@ -176,8 +176,8 @@ def cmd_guard(d: dict[str, Any]) -> int:
     # A. .skein/ 脚本管理文件硬阻
     if fp and ".skein" in parts and os.path.basename(fp) in BLOCKED:
         print(
-            "禁直接读写 .skein/ 的 task.json / task.md — 均由 skein.py 维护。"
-            "取态: `skein.py current` / `list` / `subtask list <id>` / `subtask ready <id>`; "
+            "禁直接读写 .skein/ 的 task.json / task.md — 均由 skein CLI 维护。"
+            "取态: `skein current` / `list` / `subtask list <id>` / `subtask ready <id>`; "
             "改态: create/confirm/finishing/finish/archive/subtask。",
             file=sys.stderr,
         )
@@ -191,7 +191,7 @@ def cmd_guard(d: dict[str, Any]) -> int:
             print(
                 "SKEIN 未初始化 (检测到 .trellis/)。**SKEIN 是唯一任务管理器**: 忽略 trellisx 注入, "
                 "先调用 skein-setup skill (幂等, 迁移 trellis task/spec) 初始化 —— 初始化前禁读写源码 (诊断也须先 init)。"
-                "初始化经 Bash 跑 `skein.py setup`, 完成后本门自动打开。",
+                "初始化经 Bash 跑 `skein setup`, 完成后本门自动打开。",
                 file=sys.stderr,
             )
             return 2

@@ -15,18 +15,18 @@ title/category/keywords/status/inclusion — 时间类字段一律不写 (注入
 新旧判定走文件系统 mtime)。
 
 命令:
-  spec.py init
-  spec.py inject-core                     输出全部 always 页正文 (调试用)
-  spec.py session-start                   SessionStart hook: 产 hook JSON 注入常驻规则索引
-  spec.py recall "<query>"                FTS5 BM25 全 namespace 召回 (无索引/MATCH 失败 → grep fallback)
-  spec.py sediment --namespace rules [--inclusion always|auto|fileMatch|manual]
+  skein-spec init
+  skein-spec inject-core                     输出全部 always 页正文 (调试用)
+  skein-spec session-start                   SessionStart hook: 产 hook JSON 注入常驻规则索引
+  skein-spec recall "<query>"                FTS5 BM25 全 namespace 召回 (无索引/MATCH 失败 → grep fallback)
+  skein-spec sediment --namespace rules [--inclusion always|auto|fileMatch|manual]
             --category git --topic merge --title T --keywords "a,b" --body-file /path
-  spec.py restructure --map plan.json [--dry-run]   按 {目标主题文件: [源文件,...]} 合并碎片
-  spec.py reindex                         重扫全 namespace 重建索引 + FTS + 反链
-  spec.py list [--namespace <ns>]
-  spec.py maintain [--namespace ns] [--apply]  体检 (判据按 namespace 分表); --apply 才动盘
-  spec.py degrade <cat>/<name> | --auto   always→auto 降级 (只改 frontmatter, 不搬文件)
-  spec.py archive [--namespace ns] / restore <ts>   可逆清库与回滚
+  skein-spec restructure --map plan.json [--dry-run]   按 {目标主题文件: [源文件,...]} 合并碎片
+  skein-spec reindex                         重扫全 namespace 重建索引 + FTS + 反链
+  skein-spec list [--namespace <ns>]
+  skein-spec maintain [--namespace ns] [--apply]  体检 (判据按 namespace 分表); --apply 才动盘
+  skein-spec degrade <cat>/<name> | --auto   always→auto 降级 (只改 frontmatter, 不搬文件)
+  skein-spec archive [--namespace ns] / restore <ts>   可逆清库与回滚
 """
 from __future__ import annotations
 

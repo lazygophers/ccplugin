@@ -60,7 +60,7 @@ class InjectMixin:
         if not idx:
             return
         ctx = budget_guard(
-            "# SKEIN core 规则索引 (仅标题; 需全文跑 `spec.py inject-core`)\n\n" + idx,
+            "# SKEIN core 规则索引 (仅标题; 需全文跑 `skein-spec inject-core`)\n\n" + idx,
             INJECTION_BUDGETS["session_index"], "spec:session-start")
         # maintain 提示: core 超预算 或 最老规则 > 180 天 → 1 行提醒 (不挤 session_index 预算)
         core_text = self._core_text_raw()
@@ -70,7 +70,7 @@ class InjectMixin:
         oldest = max((self._age_days(f, mt, now_ts) for f in self._always_files()), default=0)
         from skeinlib.token_conversion import estimate_tokens_from_chars
         if estimate_tokens_from_chars(len(core_text)) > always_budget_tokens() or oldest > STALE_DAYS:
-            ctx += f"\n⚠️ core 超 budget / 有 > {STALE_DAYS}天老规则, 跑 `spec.py maintain` 体检"
+            ctx += f"\n⚠️ core 超 budget / 有 > {STALE_DAYS}天老规则, 跑 `skein-spec maintain` 体检"
         print(json.dumps({"hookSpecificOutput": {
             "hookEventName": "SessionStart", "additionalContext": ctx}}))
     # ---- core 按类目过滤全文 (命中类目注全文, 其余仅进索引) ----
@@ -86,8 +86,8 @@ class InjectMixin:
         idx = self._core_index().strip()
         if not idx:
             return
-        head = ("# SKEIN spec 纪律\n- 动手前跑 `spec.py recall <关键词>`\n- core 规则即硬约束\n- 可复用约定标 `SPEC:` 供 sediment 落盘\n")
-        recall_tail = "\n## 需要全文? 跑 `spec.py recall <关键词>`\n"
+        head = ("# SKEIN spec 纪律\n- 动手前跑 `skein-spec recall <关键词>`\n- core 规则即硬约束\n- 可复用约定标 `SPEC:` 供 sediment 落盘\n")
+        recall_tail = "\n## 需要全文? 跑 `skein-spec recall <关键词>`\n"
         cats = AGENT_CATEGORIES.get(_read_hook_stdin() or "", [])
         if cats:
             body = self._core_text_by_cat(cats).strip()

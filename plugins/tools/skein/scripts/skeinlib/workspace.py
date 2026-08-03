@@ -112,7 +112,7 @@ class Workspace:
         """返回生效配置, 结构固定同 ConfigData。"""
         f = self.dir / "config.yaml"
         if not f.exists():
-            raise SkeinError("未初始化 — 先跑 `skein.py init`")
+            raise SkeinError("未初始化 — 先跑 `skein init`")
         cfg = Config(f).cfg.model_dump(by_alias=True)
         # 用户在插件启用时确认的 userConfig 优先于 config.yaml (经 CLAUDE_PLUGIN_OPTION_* 传入)
         v = os.environ.get("CLAUDE_PLUGIN_OPTION_MAX_ACTIVE")

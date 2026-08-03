@@ -161,7 +161,7 @@ graph TB
   subgraph Architecture["组件架构"]
     HOOKS[Hook 系统<br/>SessionStart/SubagentStart/<br/>PreToolUse/Stop/user-prompt] --> SKILLS[Skill 编排层<br/>9 个 skein-* skills]
     SKILLS --> AGENTS[Agent 执行层<br/>skein-executor / -checker /<br/>-researcher / -finisher /<br/>-specer / -recaller / -setup]
-    AGENTS --> SCRIPTS["脚本引擎<br/>skein.py / spec.py / hooks.py / hooklib.py"]
+    AGENTS --> SCRIPTS["CLI 引擎<br/>skein / skein-spec / skein-hooks"]
     SCRIPTS --> WORKSPACE[".skein/ 工作区<br/>+ .worktrees/ (可选)"]
     CFG -.->|真值源| SCRIPTS
   end
@@ -192,7 +192,7 @@ graph TB
   style INLINE fill:#e0e0e0,color:#000
   style TIGHT fill:#ff8a80,color:#000
 
-  %% bash 脚本节点标记 (红粗框 = 该节点直接跑 skein.py/spec.py/hooks.py CLI)
+  %% bash 脚本节点标记 (红粗框 = 该节点直接跑 skein / skein-spec / skein-hooks CLI)
   classDef script stroke:#d32f2f,stroke-width:3px;
   class USER_PROMPT,INIT,CREATE,CONFIRM_CMD,START,CLAIM,DONE,TASK_CHECK,FINISH_CMD,ARCHIVE_ANY,RECALLER,BOOTSTRAP,RECONSTRUCT,SPEC_INIT,SUBAGENT_INIT,AUTO_HOOK,PENDING_CHK script;
-  LEGEND["▨ 红粗框 = bash 脚本节点<br/>(skein.py / spec.py / hooks.py CLI)"]:::script
+  LEGEND["▨ 红粗框 = bash 脚本节点<br/>(skein / skein-spec / skein-hooks CLI)"]:::script

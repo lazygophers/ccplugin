@@ -378,7 +378,7 @@ class WriteMixin:
 
             if not anchor_hits and not weak_candidates:
                 result.message = "无候选, 可能是新功能域, 建议新建 product wiki 页"
-                result.suggestion = f"可用: spec.py sediment --namespace product --category <类目> --topic <主题> --title <标题> --keywords \"{','.join(keywords)}\" --body-file <正文文件>"
+                result.suggestion = f"可用: skein-spec sediment --namespace product --category <类目> --topic <主题> --title <标题> --keywords \"{','.join(keywords)}\" --body-file <正文文件>"
 
         # 输出结果
         if use_json:

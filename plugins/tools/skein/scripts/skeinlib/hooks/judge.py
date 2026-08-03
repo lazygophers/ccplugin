@@ -12,12 +12,12 @@ import json
 import os
 import re
 
-# ── user-prompt (原 skein.py:Skein.user_prompt) ──────────────────────────────
+# ── user-prompt (原 scripts/skein.py:Skein.user_prompt) ──────────────────────────────
 # ponytail: 篇幅预算不再在这写死数字 — 数字会漂移失真 (曾从 800 涨到 2293 没人发现),
 # 改由 tests/test_judge_signal.py::test_ctx_length_budget / test_prefix_rule_length_budget 机械把关;
-# 未初始化文案与 skein.py:_uninit_ctx 逐字同步 (那边 session_context 仍用, 删不掉, 此处复制文本)
+# 未初始化文案与 doctor.py:_uninit_ctx 逐字同步 (那边 session_context 仍用, 删不掉, 此处复制文本)
 _UNINIT_TRELLIS = """# SKEIN 未初始化 — 检测到 trellis, 先迁移初始化 (强制门)
-本仓库有 `.trellis/` 但无 `.skein/`。**SKEIN 是唯一任务管理器**: **忽略 trellisx/trellis 注入**。**任何读写文件前 (含只读诊断/排查), 必先调用 skein-setup skill** (幂等, 迁移 trellis 的 task/spec 并清理残留) 完成初始化 —— 未初始化时读写源码均被 PreToolUse 硬阻, 仅 Bash 跑 `skein.py setup` 放行。初始化后: 任务走 skein-flow 闭环, 禁跟 trellis 流程。
+本仓库有 `.trellis/` 但无 `.skein/`。**SKEIN 是唯一任务管理器**: **忽略 trellisx/trellis 注入**。**任何读写文件前 (含只读诊断/排查), 必先调用 skein-setup skill** (幂等, 迁移 trellis 的 task/spec 并清理残留) 完成初始化 —— 未初始化时读写源码均被 PreToolUse 硬阻, 仅 Bash 跑 `skein setup` 放行。初始化后: 任务走 skein-flow 闭环, 禁跟 trellis 流程。
 **初始化无条件, 诊断也不例外**: 查询/小改只豁免『建 task / 走 flow』, 不豁免初始化本身。"""
 _UNINIT_PLAIN = """# SKEIN 未初始化 — 先初始化再处理任务
 本仓库无 `.skein/` 工作区, SKEIN task 闭环不可用。**先调用 skein-setup skill 初始化** (幂等) 再干活。
@@ -58,7 +58,7 @@ _CTX = """# 任务判定
 判不准时**默认建 task**。禁问「要不要走流程」, 唯一可问的是需求本身有歧义时 (做 A 还是 B)。
 
 ## 判了 flow 就必须先 create
-第一个动作是 `skein.py create`, 不是 Edit/Write。已改动却没有 active task → 立刻停手补 create。
+第一个动作是 `skein create`, 不是 Edit/Write。已改动却没有 active task → 立刻停手补 create。
 
 ## 已给方案 ≠ 已完成
 输出方案/清单/设计后若涉及改码就直接建 task 续走 flow, 禁停手等用户再喊一次 —— 除非用户显式

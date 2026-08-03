@@ -48,7 +48,7 @@ def _resolve(name: str) -> Callable[..., int]:
 
 def main() -> int:
     if len(sys.argv) < 2 or sys.argv[1] not in DISPATCH:
-        sys.stderr.write(f"用法: hooks.py {{{'|'.join(DISPATCH)}}}\n")
+        sys.stderr.write(f"用法: skein-hooks {{{'|'.join(DISPATCH)}}}\n")
         return 2
     name = sys.argv[1]
     fn = _resolve(name)
@@ -61,7 +61,7 @@ def main() -> int:
 
 
 def self_check() -> int:
-    """`hooks.py --self-check` — _judge_signal 的证据命中 + _CTX 拼接自检。
+    """`skein-hooks --self-check` — _judge_signal 的证据命中 + _CTX 拼接自检。
 
     ponytail: 判定逻辑是 non-trivial 分支, 留 ONE runnable check。pytest 那边有
     test_judge_signal.py (14 条) 做正式覆盖, 这条是不装 pytest 也能跑的兜底。

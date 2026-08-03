@@ -176,8 +176,8 @@ class Scheduler:
             "ready": items,
             "count": len(items),
             "task_filter": task_filter,
-            "claim_command": "skein.py claim exec",
-            "single_claim_command": "skein.py subtask start <tid> <sid>",
+            "claim_command": "skein claim exec",
+            "single_claim_command": "skein subtask start <tid> <sid>",
         }
         if not items:
             data["empty"] = {"reason": "task_filter_no_ready", "task": task_filter} if task_filter else self._empty_batch_info()
@@ -249,7 +249,7 @@ class Scheduler:
                              for t in to_finishing],
             "check_count": len(to_check),
             "finishing_count": len(to_finishing),
-            "claim_command": "skein.py claim check",
+            "claim_command": "skein claim check",
         }
         if not to_check and not to_finishing:
             data["empty"] = {"reason": "no_check_or_finishing_ready", "message": "进行中 task 须全 subtask done 才认领"}

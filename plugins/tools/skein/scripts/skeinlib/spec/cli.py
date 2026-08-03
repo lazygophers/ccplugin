@@ -16,7 +16,7 @@ from skeinlib.spec.model import INCLUSIONS
 
 def main() -> None:
     p = argparse.ArgumentParser(
-        prog="spec.py",
+        prog="skein-spec",
         description="SKEIN 三层规则记忆 (.skein/spec) — core 常驻 + recall/external 按需召回",
         epilog="用法: planning 时 recall 召回, task finish 时 sediment 沉淀",
     )

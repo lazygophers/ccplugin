@@ -336,7 +336,7 @@ class DoctorMixin:
             return ("# SKEIN 未初始化 — 检测到 trellis, 先迁移初始化 (强制门)\n"
                     "本仓库有 `.trellis/` 但无 `.skein/`。**SKEIN 是唯一任务管理器**: "
                     "**忽略 trellisx 的 active-task / workflow 注入**。**任何读写文件前 (含只读诊断/排查), 必先调用 skein-setup skill** "
-                    "(幂等, 迁移 trellis 的 task/spec 并清理残留) 完成初始化 —— 未初始化时读写源码均被 PreToolUse 硬阻, 仅 Bash 跑 `skein.py setup` 放行。"
+                    "(幂等, 迁移 trellis 的 task/spec 并清理残留) 完成初始化 —— 未初始化时读写源码均被 PreToolUse 硬阻, 仅 Bash 跑 `skein setup` 放行。"
                     "初始化后: 任务走 skein-flow 闭环, 禁跟 trellis 流程。\n"
                     "**初始化无条件, 诊断也不例外**: 查询/小改只豁免『建 task / 走 flow』, 不豁免初始化本身。")
         return ("# SKEIN 未初始化 — 先初始化再处理任务\n"
@@ -382,7 +382,7 @@ class DoctorMixin:
                 prd = self.tasks / t["id"] / "prd.md"
                 if prd.exists():  # 轻量指针: 只给主入口路径, 不含正文 (需要时 AI 自读)
                     lines.append(f"  - 主入口 PRD: `{prd}`")
-            lines += ["", "恢复提示: 用 `skein.py current` 查 active task; 未 finish 闭环(标记完成) = 未完成。"]
+            lines += ["", "恢复提示: 用 `skein current` 查 active task; 未 finish 闭环(标记完成) = 未完成。"]
         if hint:
             lines.append(hint)
         cfg = self.config()

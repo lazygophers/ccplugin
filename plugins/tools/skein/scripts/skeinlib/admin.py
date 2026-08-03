@@ -68,7 +68,7 @@ class Admin:
         gi = self.ws.dir / ".gitignore"
         GI_ENTRIES = gi_entries()
         if not gi.exists():
-            gi.write_text("# skein.py 自动渲染/衍生, 不入库\n" + "\n".join(GI_ENTRIES) + "\n")
+            gi.write_text("# skein 自动渲染/衍生, 不入库\n" + "\n".join(GI_ENTRIES) + "\n")
         else:
             # 幂等补缺: 已存文件检查缺行补 (不破坏用户手写条目, 不重复已有)
             lines = gi.read_text(encoding="utf-8").splitlines()
@@ -103,7 +103,7 @@ class Admin:
             shutil.copytree(tspec, sspec)  # 独立拷贝: trellis 零改动, spec 归 skein 自管 (软链会锁死双向)
             spec_copied = True
         elif not tspec.exists() and not sspec.exists():
-            # 无 trellis → 建本地 spec 库 (spec.py init)
+            # 无 trellis → 建本地 spec 库 (skein-spec init)
             subprocess.run([sys.executable, str(SPEC_ENTRY), "init"],
                            stdout=sys.stderr, check=False)
         # 物理迁移 trellis task 文件夹 (redirect 内, 保 stdout 纯 JSON)
