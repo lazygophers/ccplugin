@@ -32,7 +32,7 @@ _CTX = """# 任务判定
 ## 🛑 每轮第一行 = 判定行
 格式 (处理某 task 时前缀换成 `[skein|<taskId>|<阶段>]`):
 
-    [skein] 判定: <本轮要做的事> (原因: <本轮命中的判据>)
+    [skein] 判定: <flow/inline/补充> (原因: <本轮命中的判据>)
 
 原因写具体判据 (「跨 a.py+b.py 两文件」), 不写结论复述 (「比较复杂」)。
 「要做的事」照实写 —— 下面三条路径不是可选值清单, 续跑/只出方案/先调研/纯答问都算。
@@ -99,8 +99,6 @@ _PHASE = {"pending": "plan", "research": "research", "active": "exec", "check": 
 _PREFIX_RULE = """# 回复前缀 (强制)
 每条回复以 `[skein]` 开头, 处理某 task 时改用 `[skein|<taskId>|<阶段>]`;
 **第一行必须是判定行** (格式/判据/三条路径见上方「任务判定」):
-
-    [skein] 判定: <本轮要做的事> (原因: <本轮命中的判据 / 上文依据>)
 """
 def _task_phase_hints(skein_dir: str) -> str:
     """读 .skein/task.json 顶层索引, 列非完成 task + 阶段, 供回复前缀选 taskId。"""
