@@ -71,13 +71,18 @@
         "dist 产物含新变量名",
         "pytest 410 passed/0 failed"
       ],
-      "acceptance_done": [],
-      "status": "pending",
+      "acceptance_done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "done",
       "phase": "exec",
       "skills": [],
       "created": 1785753206,
-      "started": null,
-      "finished": null
+      "started": 1785753815,
+      "finished": 1785754743
     }
   ],
   "priority": "normal",
@@ -94,7 +99,7 @@
   "checked": null,
   "checked_end": null,
   "finished": null,
-  "updated": 1785753789,
+  "updated": 1785754743,
   "timeline": [
     {
       "kind": "task",
@@ -141,6 +146,22 @@
       "status": "done",
       "at": 1785753789,
       "sid": "consume",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "running",
+      "at": 1785753815,
+      "sid": "verify",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "done",
+      "at": 1785754743,
+      "sid": "verify",
       "note": "",
       "rollback": false
     }
