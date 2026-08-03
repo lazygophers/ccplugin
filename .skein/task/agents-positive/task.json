@@ -72,12 +72,13 @@
         "无 agent 被删到看不见约束"
       ],
       "acceptance_done": [],
-      "status": "pending",
+      "status": "running",
       "phase": "exec",
       "skills": [],
       "created": 1785736423,
-      "started": null,
-      "finished": null
+      "started": 1785740825,
+      "finished": 1785741770,
+      "note": "agent 因 ECONNRESET 终止, 无产出, 复位重派"
     },
     {
       "sid": "verify",
@@ -115,6 +116,32 @@
   "checked": null,
   "checked_end": null,
   "finished": null,
-  "updated": 1785739050,
-  "confirmed_by": "user"
+  "updated": 1785741770,
+  "confirmed_by": "user",
+  "timeline": [
+    {
+      "kind": "subtask",
+      "status": "running",
+      "at": 1785740825,
+      "sid": "dedup",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "failed",
+      "at": 1785741770,
+      "sid": "dedup",
+      "note": "agent 因 ECONNRESET 终止, 无产出, 复位重派",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "running",
+      "at": 1785741770,
+      "sid": "dedup",
+      "note": "",
+      "rollback": true
+    }
+  ]
 }

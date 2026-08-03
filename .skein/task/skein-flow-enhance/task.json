@@ -42,12 +42,13 @@
         "pytest 通过"
       ],
       "acceptance_done": [],
-      "status": "running",
+      "status": "failed",
       "phase": "exec",
       "skills": [],
       "created": 1785668413,
       "started": 1785668818,
-      "finished": null
+      "finished": 1785741803,
+      "note": "跨会话孤儿, 无存活 agent, 复位待重派"
     },
     {
       "sid": "f3",
@@ -92,6 +93,16 @@
   "checked": null,
   "checked_end": null,
   "finished": null,
-  "updated": 1785668818,
-  "confirmed_by": "user"
+  "updated": 1785741803,
+  "confirmed_by": "user",
+  "timeline": [
+    {
+      "kind": "subtask",
+      "status": "failed",
+      "at": 1785741803,
+      "sid": "f2",
+      "note": "跨会话孤儿, 无存活 agent, 复位待重派",
+      "rollback": false
+    }
+  ]
 }

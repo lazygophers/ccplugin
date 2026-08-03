@@ -105,11 +105,11 @@
         "tsc --noEmit 0 error"
       ],
       "acceptance_done": [],
-      "status": "pending",
+      "status": "running",
       "phase": "exec",
       "skills": [],
       "created": 1785733613,
-      "started": null,
+      "started": 1785741803,
       "finished": null
     },
     {
@@ -147,7 +147,7 @@
   "checked": null,
   "checked_end": null,
   "finished": null,
-  "updated": 1785740805,
+  "updated": 1785741803,
   "confirmed_by": "user",
   "timeline": [
     {
@@ -155,6 +155,14 @@
       "status": "running",
       "at": 1785740142,
       "sid": "api",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "running",
+      "at": 1785741803,
+      "sid": "ui",
       "note": "",
       "rollback": false
     }
