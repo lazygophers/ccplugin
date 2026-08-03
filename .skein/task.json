@@ -16,6 +16,21 @@
       "finished": null
     },
     {
+      "id": "hooks-one-file-per-hook",
+      "status": "pending",
+      "deps": [],
+      "priority": "normal",
+      "worktree": null,
+      "parent": null,
+      "kind": "task",
+      "created": 1785759272,
+      "confirmed": null,
+      "started": null,
+      "checked": null,
+      "checked_end": null,
+      "finished": null
+    },
+    {
       "id": "live-ws-backoff",
       "status": "pending",
       "deps": [],

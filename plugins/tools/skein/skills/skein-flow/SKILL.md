@@ -29,5 +29,5 @@ effort: medium
 只列入口必读三份；阶段细节（DAG 拆分与调度、estimate 硬门、根因报告、sediment 判定门）由 flow-loop 和 for-plan 在用到的地方就地引用，不在这里平铺。exec / check / finish 的 agent 边界归 `plugins/tools/skein/agents/*.md`。
 
 - [references/flow-loop.md](references/flow-loop.md) — 执行过程唯一真值源：状态模型与推进命令、状态硬门、主循环骨架与派发载体、四阶段过程、redo、失败扭转。
-- [references/scope-boundary.md](references/scope-boundary.md) — 入口判定：何时建 task、何时 inline 豁免、何时算完成。
+- [references/flow-loop.md §0.1](references/flow-loop.md#01-作用域边界) — 入口判定：何时建 task、何时 inline 豁免、何时算完成（完成判定见 [§12](references/flow-loop.md#12-终止条件)）。
 - [references/for-plan.md](references/for-plan.md) — planning 四件工件（prd / design / contracts / DAG+estimate）的写法。

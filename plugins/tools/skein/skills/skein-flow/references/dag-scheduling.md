@@ -55,7 +55,7 @@ skein subtask add <tid> st3 --name "加测试"     --desc "覆盖新旧字段两
 
 ## 3. 复杂度天花板：cold-start 大需求
 
-归一 vs 分立的判据见 [scope-boundary.md](scope-boundary.md)（默认归一）。只有下列 cold-start 信号命中才升级为多 task：
+归一 vs 分立的判据见 [flow-loop.md §0.1](flow-loop.md#01-作用域边界)（默认归一）。只有下列 cold-start 信号命中才升级为多 task：
 
 | 信号 | 判据 | 动作 |
 |---|---|---|

@@ -260,7 +260,8 @@ class Lifecycle:
     def _validate_estimate(self, tid: str, t: dict[str, Any]) -> None:
         # confirm 硬门: 预计工时(小时)必须已填且为正数, 缺失/默认空 → 拒绝开工。
         # 且须自下而上累加: task 工时 ≥ Σ subtask 工时 (差额 = plan/check 等 task 自身开销),
-        # 低于合计说明整体拍脑袋而非按实际要做的事逐项估。规则详见 estimate-gate.md。
+        # 低于合计说明整体拍脑袋而非按实际要做的事逐项估。规则详见
+        # skills/skein-flow/references/for-plan.md#预计工时硬门-estimate。
         est = t.get("estimate")
         if est is None or est == "" or not (isinstance(est, (int, float)) and est > 0):
             raise SkeinError(

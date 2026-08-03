@@ -16,6 +16,20 @@
 
 硬规：无参/任务描述不是 `plan`。flow 默认一路做完；只有显式 `plan` 才停在 confirm 前。
 
+## 0.1 作用域边界
+
+skein-flow 的作用域判定 (何时建 task / 归一 vs 分立 / worktree 豁免) 与完成判定 —— 本文件是这三项的单一真值源。
+
+### 归一 vs 分立 (相关工作优先归一 task 拆 subtask)
+
+建 task 前先判新交付物是**某任务的一部分**还是**独立任务** —— 与现有 active task 或本请求内其他交付物**相关** (同目标 / 同模块 / 共享改动面 / 互为前置) → **归一到该 task 拆 subtask** (`subtask add` + `--deps`), 禁为相关工作另开多个 task; 仅**目标独立、无共享改动面、无依赖**才拆多 task。判据是相关性, 非「可独立验收」(subtask 亦可独立验收)。默认倾向归一 (散多 task 丢共享上下文一致性)。判不准 → AI 自行裁定 (默认归一), 仅极不确定才 `AskUserQuestion`。
+
+### worktree 豁免 (简单改不必上升到 worktree)
+
+**🔒 本节是「何时建 task」文件数阈值的单一真值源** — 与之表述不一致的其他措辞 (如「≤3 文件微改例外」) 均以此处口径为准, 禁另立标准。
+
+**唯一豁免口径: 单文件单处改 ≤20 行且位置已知** — 命中才无需建 task/worktree, 原地做即可; 用户显式 `--skip` 强制 inline 覆盖自动判定。**跨 ≥2 文件一律必建 task**, 无论文件数多寡、改动是否「集中」—— 不设「≤3 文件且集中」这类例外 (「集中」判断主观, 易被 AI 自降级借口绕过 flow)。多子 git 场景同理: 真跨多仓的结构性改动才 `--repos` 声明走多 worktree; 但若某仓只沾一两行的顺带微调仍属「跨 ≥2 文件」范畴, 同样必建 task, 不因「顺带」豁免。
+
 ## 1. 状态模型
 
 ### 1.1 task 状态
@@ -146,7 +160,29 @@ ready 判定、排序权重、双池与 claim 命令族见 [dag-scheduling.md](d
 6. 检测 `.skein/spec/.pending-fix`，存在则异步跑 maintain auto-fix（同样 fire-and-forget）。
 7. 未 finish 闭环不得宣告 Done。
 
-specer 的 sediment / amend 判定门见 [sediment-protocol.md](sediment-protocol.md)。
+### 7.1 sediment + amend 判定门
+
+finish 后由 `skein-specer` 异步跑的两个动作，完全复用 `skein-spec` skill，**禁新造沉淀机制**。语法细节不在这里重复，见 [skein-spec SKILL.md](../../skein-spec/SKILL.md) 与 [sediment-workflow.md](../../skein-spec/references/sediment-workflow.md) §5（amend vs sediment 抉择树）。
+
+#### fire-and-forget
+
+main 派完 skein-specer **不等回传即结束回合**，finish 已闭环。禁为等回传延后 `skein finish`。回传到达后 main 只补 output trace，判定结果不影响 finish 的闭环性。
+
+#### 动作一：sediment（规则/决策沉淀）
+
+skein-specer 读 diff + 各 subagent 回传摘要（含 `SPEC:` 标记），跑 `skein-spec sediment` 判定门后**自主写盘 + reindex，不逐次问用户**。
+
+无可沉淀增量（一次性 bug / 私有细节 / 已有规则覆盖）→ 自判 drop 跳过，**禁硬凑**。
+
+plan 阶段沉淀的决策（grill/design 推出但本轮 check 未验证）落 `--status proposed`，供 `skein-spec analyze` 的置信度检查识别；常规已验证决策走默认 `active`。
+
+#### 动作二：amend（product wiki 回写候选）
+
+跑 `skein-spec finish-candidates <tid>`，三路降级：
+
+1. diff 改动文件反查 anchors 命中既有 product 页 → 该页即候选 → `amend` 改写。
+2. 无命中 → `skein-spec recall --src product` 以 prd 关键词找弱候选。
+3. 仍无 → 报「无候选，可能是新功能域，建议新建」，**禁摊派到不相关的既有页**，可按需 `sediment --namespace product` 新建。
 
 ## 8. redo 断点续跑
 
@@ -190,7 +226,28 @@ skein subtask start <tid> <sid>
 
 ### 9.3 根因复盘
 
-按 5 维由外到内定位：需求理解偏差、方案设计缺陷、实现 bug、环境/依赖、测试本身错误。每维给证据；多维命中取最外层。实现/环境/测试问题回 exec 定向修；需求/设计问题停手交用户裁定是否重回 planning 或新建 task。报告模板见 [root-cause-protocol.md](root-cause-protocol.md)。
+按 5 维由外到内定位：需求理解偏差、方案设计缺陷、实现 bug、环境/依赖、测试本身错误。每维给证据；多维命中取最外层。实现/环境/测试问题回 exec 定向修；需求/设计问题停手交用户裁定是否重回 planning 或新建 task。
+
+报告模板：
+
+```md
+## 根因复盘
+
+- 失败摘要：<最短可复现症状>
+- 已尝试修复：<轮次 + 结果>
+- 维度证据：
+  - 需求理解偏差：<证据或排除理由>
+  - 方案设计缺陷：<证据或排除理由>
+  - 实现 bug：<证据或排除理由>
+  - 环境或依赖：<证据或排除理由>
+  - 测试本身错误：<证据或排除理由>
+- root cause：<维度 + 一句话根因>
+- 本次修：<定向修复建议>
+- 同类防：<可复用契约；无则写无>
+- 建议出口：<回 exec / 用户裁定回 planning / 新建 task>
+```
+
+每维都要给证据或排除理由，不能只查实现层。教训能写成可验证契约就走 `skein-spec sediment`，一次性问题跳过，不写流水账。
 
 ### 9.4 回退协议
 
@@ -227,3 +284,9 @@ SKEIN 的「回退」是流程扭转，不是状态倒退：task 保持 `active`
 - 无就绪、无在途、无待处理可推进 task：报「无待执行 task」。
 - 命中停顿白名单：输出问题和当前进度，等待回答。
 - 自愈超上限、根因超 scope、DAG 死锁、finish 悬挂清不掉：停手回传。
+
+### 完成判定
+
+- 走完 plan→exec→check→finish — **未 finish 闭环(标记完成) = 未完成, 禁宣告 Done**。
+- finish 阶段前 main 需确认本 task 派出的后台 agent 均已结束, 未关 = 未闭环。
+- sediment: 有可复用 learning 才沉淀, 无则跳过 (判定见 `skein-spec`)。

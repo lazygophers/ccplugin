@@ -18,13 +18,18 @@
         "全仓零处引用已删文件",
         "flow-loop.md 锚点可达"
       ],
-      "acceptance_done": [],
-      "status": "running",
+      "acceptance_done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "done",
       "phase": "exec",
       "skills": [],
       "created": 1785758772,
       "started": 1785759037,
-      "finished": null
+      "finished": 1785759284
     },
     {
       "sid": "verify",
@@ -82,7 +87,7 @@
   "checked": null,
   "checked_end": null,
   "finished": null,
-  "updated": 1785759037,
+  "updated": 1785759284,
   "timeline": [
     {
       "kind": "task",
@@ -113,6 +118,14 @@
       "status": "running",
       "at": 1785759037,
       "sid": "estimate-merge",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "done",
+      "at": 1785759284,
+      "sid": "merge",
       "note": "",
       "rollback": false
     }
