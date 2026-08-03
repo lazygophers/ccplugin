@@ -23,7 +23,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from skeinlib.hooks.guard import cmd_guard
 from skeinlib.hooks.permission import cmd_permission
-from skeinlib.hooks.postwrite import cmd_spec_meta
+from skeinlib.hooks.spec_meta import cmd_spec_meta
 from skeinlib.hooks.stopcheck import cmd_stop_check
 from skeinlib.hooks.util import git_root
 

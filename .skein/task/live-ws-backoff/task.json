@@ -46,13 +46,17 @@
         "npm run build 零错",
         "pytest 410 passed/0 failed"
       ],
-      "acceptance_done": [],
-      "status": "running",
+      "acceptance_done": [
+        1,
+        2,
+        3
+      ],
+      "status": "done",
       "phase": "exec",
       "skills": [],
       "created": 1785755279,
       "started": 1785760237,
-      "finished": null
+      "finished": 1785761360
     }
   ],
   "priority": "normal",
@@ -69,7 +73,7 @@
   "checked": null,
   "checked_end": null,
   "finished": null,
-  "updated": 1785760237,
+  "updated": 1785761360,
   "timeline": [
     {
       "kind": "task",
@@ -107,6 +111,14 @@
       "kind": "subtask",
       "status": "running",
       "at": 1785760237,
+      "sid": "verify",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "done",
+      "at": 1785761360,
       "sid": "verify",
       "note": "",
       "rollback": false

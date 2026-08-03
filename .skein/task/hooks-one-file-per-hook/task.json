@@ -48,11 +48,11 @@
         "11 条 hook 全可调用"
       ],
       "acceptance_done": [],
-      "status": "pending",
+      "status": "running",
       "phase": "exec",
       "skills": [],
       "created": 1785759273,
-      "started": null,
+      "started": 1785761155,
       "finished": null
     },
     {
@@ -93,7 +93,7 @@
   "checked": null,
   "checked_end": null,
   "finished": null,
-  "updated": 1785761096,
+  "updated": 1785761155,
   "timeline": [
     {
       "kind": "task",
@@ -124,6 +124,14 @@
       "status": "done",
       "at": 1785761096,
       "sid": "split-gate",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "running",
+      "at": 1785761155,
+      "sid": "split-postwrite",
       "note": "",
       "rollback": false
     }
