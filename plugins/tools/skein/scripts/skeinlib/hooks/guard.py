@@ -138,11 +138,16 @@ def cmd_guard(d: dict[str, Any]) -> int:
     cwd = d.get("cwd") or os.getcwd()
 
     # A. .skein/ 脚本管理文件硬阻
-    if fp and ".skein" in parts and os.path.basename(fp) in BLOCKED:
+    #    prd.md 只锁写不锁读: 加锁理由是「章节结构由引擎保证」, 不是保密, 而它本来就是给人读的散文。
+    #    task.json / task.md 的读阻是既有行为, 不动 —— 它们的取态另有专门命令, 输出比原文好读。
+    if (fp and ".skein" in parts and os.path.basename(fp) in BLOCKED
+            and not (os.path.basename(fp) == "prd.md" and tool_name == "Read")):
         print(
-            "禁直接读写 .skein/ 的 task.json / task.md — 均由 skein CLI 维护。"
-            "取态: `skein current` / `list` / `subtask list <id>` / `subtask ready <id>`; "
-            "改态: create/confirm/finishing/finish/archive/subtask。",
+            "禁直接读写 .skein/ 的 task.json / task.md / prd.md — 均由 skein CLI 维护。"
+            "取态: `skein current` / `list` / `subtask list <id>` / `subtask ready <id>` / "
+            "`skein prd read <id> --type <章节>`; "
+            "改态: create/confirm/finishing/finish/archive/subtask / "
+            "`skein prd write|add|check|uncheck <id> --type <章节> --list <内容>`。",
             file=sys.stderr,
         )
         return 2

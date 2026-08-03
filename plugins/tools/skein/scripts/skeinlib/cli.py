@@ -32,7 +32,7 @@ app = typer.Typer(
     rich_markup_mode=None,  # docstring 里 [sid] 会被 rich 当样式标签吃掉, 关掉 markup 保留原文
 )
 config_app = typer.Typer(help="读写 .skein/config.yaml 配置", invoke_without_command=True)
-prd_app = typer.Typer(help="读/写/追加/勾选 prd 章节 (目标/边界/验收标准)")
+prd_app = typer.Typer(help="读/写/追加/勾选 prd 章节 (目标/边界/User Stories/验收标准/验证方式/Testing Decisions)")
 
 MUTATING = {"init", "setup", "create", "confirm", "research", "plan", "check", "finishing",
             "finish", "fmt", "archive", "clean",

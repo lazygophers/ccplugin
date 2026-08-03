@@ -52,13 +52,31 @@ def section_read(tasks_dir: Path, tid: str, section: str) -> str:
     return body
 
 
-def _normalize(raw: str, section: str) -> list[str]:
+def _normalize(raw: str, section: str, start: int = 1) -> list[str]:
     """规范化待写入的行:
     - \\n 字面转真换行 (shell 传 $'A\\nB' 或 "A\\nB" 收到字面 \\n)
-    - 目标/验收标准: 裸 `- xxx` → `- [ ] xxx`; 已 checkbox 一律降未勾 `- [ ]` (planning 写路径禁预勾, 勾选权归 check 的 `prd check`); 有序 `N. xxx` → `- [ ] xxx`; 普通非 list 行 → `- [ ] <行>`
-    - 边界: 裸文本行 → `- <行>` (补 list marker 不补 checkbox); 已 `- ` 保留; 已 checkbox 保留不动"""
+    - 目标/验收标准/Testing Decisions (PRD_TODO_SECTIONS): 裸 `- xxx` → `- [ ] xxx`; 已 checkbox 一律降未勾 `- [ ]`
+      (planning 写路径禁预勾, 勾选权归 check 的 `prd check`); 有序 `N. xxx` → `- [ ] xxx`; 普通非 list 行 → `- [ ] <行>`
+    - User Stories: 固定 `N. As a ...` 编号叙述, 不折成 checkbox —— 剥掉来行已有的 `- `/`N.` 前缀取正文,
+      按 `start` 起连续重编号 (`add` 续着已有条目数接, `write` 从 1 重排)
+    - 其余 (边界/验证方式): 裸文本行 → `- <行>` (补 list marker 不补 checkbox); 已 `- ` 保留; 已 checkbox 保留不动"""
     lines = raw.replace("\\n", "\n").split("\n")
     out: list[str] = []
+    if section == "User Stories":
+        n = start
+        for ln in lines:
+            s = ln.strip()
+            if not s:
+                continue
+            if m := re.match(r"^\d+[.)]\s+(.+)$", s):
+                content = m.group(1).strip()
+            elif m := re.match(r"^-\s+(.+)$", s):
+                content = m.group(1).strip()
+            else:
+                content = s
+            out.append(f"{n}. {content}")
+            n += 1
+        return out
     for ln in lines:
         s = ln.strip()
         if not s:
@@ -72,7 +90,7 @@ def _normalize(raw: str, section: str) -> list[str]:
                 out.append(f"- [ ] {m.group(1).strip()}")
             else:  # 普通行 → 整行作 todo 条目
                 out.append(f"- [ ] {s}")
-        else:  # 边界
+        else:  # 边界 / 验证方式
             if re.match(r"^-\s+", s):  # 已 `- `(含 checkbox) 保留
                 out.append(s)
             else:
@@ -81,11 +99,14 @@ def _normalize(raw: str, section: str) -> list[str]:
 
 
 def section_add(tasks_dir: Path, tid: str, section: str, text: str) -> list[str]:
-    """追加 text 到章节末 (已有保留)。返回写后的章节正文行。"""
+    """追加 text 到章节末 (已有保留)。User Stories 续着已有条目数编号, 而非从 1 重排。返回写后的章节正文行。"""
     prd = prd_path(tasks_dir, tid)
     lines = prd.read_text(encoding="utf-8").split("\n")
     s, e = _section_bounds(lines, section)
-    new_items = _normalize(text, section)
+    start = 1
+    if section == "User Stories":
+        start = sum(1 for ln in lines[s:e] if re.match(r"^\d+\.\s+", ln.strip())) + 1
+    new_items = _normalize(text, section, start=start)
     # 在章节正文末 (跳过尾部空行) 插入新条目
     body = lines[s:e]
     while body and body[-1].strip() == "":

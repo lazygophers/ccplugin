@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from skeinlib.workspace import Workspace
 
 from skeinlib.errors import SkeinError
-from skeinlib.task.model import PRD_SECTIONS_V6, PRD_TYPE_ALIAS
+from skeinlib.task.model import PRD_SECTIONS_V6, PRD_TODO_SECTIONS, PRD_TYPE_ALIAS
 from skeinlib.task.prd import section_add, section_check, section_read, section_write
 
 import re
@@ -49,9 +49,9 @@ class Artifacts:
                 f"实际 {sections} — {prd}")
         # 规范化 (行首非缩进; 缩进子 list / 已勾选态不动):
         #   (a) 所有章节: `- ` 且非 checkbox → 补 `- [ ] `
-        #   (b) 仅「目标」「验收标准」「Testing Decisions」章节: 有序列表 `N. ` → `- [ ] ` (逐条可勾选)
+        #   (b) 仅 PRD_TODO_SECTIONS (目标/验收标准/Testing Decisions) 章节: 有序列表 `N. ` → `- [ ] ` (逐条可勾选)
         #       User Stories 不在此列 —— 其 `1. As a ...` 编号格式是 to-spec 固定格式, 不折成 checkbox
-        todo_sections = {"目标", "验收标准", "Testing Decisions"}
+        todo_sections = PRD_TODO_SECTIONS
         out: list[str] = []
         changed, cur = 0, None
         for ln in lines:
