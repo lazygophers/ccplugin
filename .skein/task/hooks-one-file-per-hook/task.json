@@ -19,13 +19,19 @@
         "DISPATCH 改指到位",
         "11 条 hook 全可调用"
       ],
-      "acceptance_done": [],
-      "status": "running",
+      "acceptance_done": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "status": "done",
       "phase": "exec",
       "skills": [],
       "created": 1785759273,
       "started": 1785760055,
-      "finished": null
+      "finished": 1785761096
     },
     {
       "sid": "split-postwrite",
@@ -87,7 +93,7 @@
   "checked": null,
   "checked_end": null,
   "finished": null,
-  "updated": 1785760055,
+  "updated": 1785761096,
   "timeline": [
     {
       "kind": "task",
@@ -109,6 +115,14 @@
       "kind": "subtask",
       "status": "running",
       "at": 1785760055,
+      "sid": "split-gate",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "done",
+      "at": 1785761096,
       "sid": "split-gate",
       "note": "",
       "rollback": false

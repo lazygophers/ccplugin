@@ -45,11 +45,11 @@
         "pytest 410 passed/0 failed"
       ],
       "acceptance_done": [],
-      "status": "pending",
+      "status": "running",
       "phase": "exec",
       "skills": [],
       "created": 1785758772,
-      "started": null,
+      "started": 1785760956,
       "finished": null
     },
     {
@@ -92,7 +92,7 @@
   "checked": null,
   "checked_end": null,
   "finished": null,
-  "updated": 1785759779,
+  "updated": 1785760956,
   "timeline": [
     {
       "kind": "task",
@@ -139,6 +139,14 @@
       "status": "done",
       "at": 1785759779,
       "sid": "estimate-merge",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "running",
+      "at": 1785760956,
+      "sid": "verify",
       "note": "",
       "rollback": false
     }
