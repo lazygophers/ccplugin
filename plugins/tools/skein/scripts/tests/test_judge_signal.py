@@ -97,12 +97,15 @@ def test_ctx_demands_an_explicit_verdict_line() -> None:
 
     判定不写出来就等于没判 —— 事后分不清「判了直接改」和「压根没想直接开干」。
     写出来才让越界当场可见 (判了 flow 却在 Edit / 判了 inline 却改了五个文件)。
+
+    三条路径只查 `_CTX`: 两块文案是拼在一起注入的, 曾经两边都列一遍, 纯属重复占篇幅。
+    `_PREFIX_RULE` 只需给出模板本体 + 指回 `_CTX` 的指针。
     """
     from skeinlib.hooks.judge import _CTX, _PREFIX_RULE
     for text, where in ((_CTX, "_CTX"), (_PREFIX_RULE, "_PREFIX_RULE")):
         assert _verdict_lines(text), f"{where} 没给出判定行格式模板"
-        for path in ("flow", "补充", "inline"):
-            assert path in text, f"{where} 的落地路径缺 {path}"
+    for path in ("flow", "补充", "inline"):
+        assert path in _CTX, f"_CTX 的落地路径缺 {path}"
     assert "第一行" in _PREFIX_RULE, "_PREFIX_RULE 没说明判定行要放第一行"
 
 
@@ -134,12 +137,12 @@ def test_ctx_length_budget() -> None:
     """机械篇幅守卫 —— 唯一会在文案膨胀时报警的机制 (注释里的数字不会失败)。
 
     阈值 = 压缩后实际值 + 少量余量, 不是随便定的圆整数: 余量必须小于本文案里最短一个独立
-    小节 (「## 判定归 AI, 不问用户」, 72 字), 否则「新增一整段」的最小场景也可能滑过去;
+    小节 (「## 其他」, 53 字), 否则「新增一整段」的最小场景也可能滑过去;
     同时要大于一次措辞微调的量级 (几个字到二十来字), 否则改一个标点都要连带改阈值。
     """
     from skeinlib.hooks.judge import _CTX
-    assert len(_CTX) <= 1170, (
-        f"_CTX 篇幅膨胀到 {len(_CTX)} 字, 超过预算 1170 (压缩后实际 1118 + 余量 52)。"
+    assert len(_CTX) <= 850, (
+        f"_CTX 篇幅膨胀到 {len(_CTX)} 字, 超过预算 850 (压缩后实际 804 + 余量 46)。"
         "先看是不是能砍 (§1 三类冗余处置), 确实要加的话同步把这个阈值和下面的注释一起改。"
     )
 
@@ -148,12 +151,32 @@ def test_prefix_rule_length_budget() -> None:
     """`_PREFIX_RULE` 每轮都注入, 单独守 —— 与 `_CTX` 合并成一个总阈值会让任一方的膨胀被
     另一方的余量掩盖 (`_CTX` 单条余量就能吃掉 `_PREFIX_RULE` 全部涨幅还不报警)。
 
-    阈值同样卡在「小于最短一条 bullet (46 字)」的量级, 保证补一条新规则必触发。
+    阈值卡在「小于最短一行 (36 字)」的量级, 保证补一条新规则必触发。
     """
     from skeinlib.hooks.judge import _PREFIX_RULE
-    assert len(_PREFIX_RULE) <= 310, (
-        f"_PREFIX_RULE 篇幅膨胀到 {len(_PREFIX_RULE)} 字, 超过预算 310 (压缩后实际 276 + 余量 34)。"
+    assert len(_PREFIX_RULE) <= 190, (
+        f"_PREFIX_RULE 篇幅膨胀到 {len(_PREFIX_RULE)} 字, 超过预算 190 (压缩后实际 156 + 余量 34)。"
     )
+
+
+def test_ctx_autodrive_continues_past_create_to_a_real_user_gate() -> None:
+    """回归: 「判了 flow 就必须先 create」曾只规定起点, 建完 task 后规则用尽, AI 停手报告完事。
+
+    补的两层意思必须同段出现 (分开写等于给「只读到前半句」留口子):
+    1. 建完 task 后同轮继续跑规划, 不停手等用户再喊一次
+    2. 推进终点是需要真实用户动作的门 (规划确认), 撞到必须停下问用户, 不得代替用户批准
+
+    断言语义 (「建完继续」+「终点是用户门」+「不得代替批准」), 不断具体措辞。
+    """
+    from skeinlib.hooks.judge import _CTX
+    section_start = _CTX.index("## 判了 flow")
+    section_end = _CTX.index("##", section_start + 2)
+    section = _CTX[section_start:section_end]
+
+    assert "create" in section, "该段丢了起点规定 (先 create)"
+    assert "不停手" in section or "继续" in section, "该段没写建完 task 后要继续跑规划"
+    assert "用户" in section, "该段没写推进终点要停给用户"
+    assert "批准" in section or "approved" in section, "该段没写禁止代替用户批准"
 
 
 def test_three_landing_paths_are_defined_with_criteria() -> None:

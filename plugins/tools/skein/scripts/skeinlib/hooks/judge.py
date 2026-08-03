@@ -30,43 +30,28 @@ _UNINIT_PLAIN = """# SKEIN 未初始化 — 先初始化再处理任务
 _CTX = """# 任务判定
 
 ## 🛑 每轮第一行 = 判定行
-回答「本轮到底要我做什么」, 格式:
+格式 (处理某 task 时前缀换成 `[skein|<taskId>|<阶段>]`):
 
     [skein] 判定: <本轮要做的事> (原因: <本轮命中的判据>)
 
-处理某 task 时前缀带上它: `[skein|<taskId>|<阶段>] 判定: …`
-
-意图开放, 下面是常见例子, **不是可选值清单** —— 真实意图不在其中就照实写:
-
-    [skein] 判定: 新建 task <slug> 走 flow (原因: 跨 judge.py + prompt.py 两文件)
-    [skein] 判定: 并入 <taskId> (原因: 是对现有任务的补充)
-    [skein] 判定: inline 直接改 (原因: 单文件 8 行, 位置已知)
-    [skein] 判定: 纯答问 (原因: 零改动信号, 只问「为什么」)
-
 原因写具体判据 (「跨 a.py+b.py 两文件」), 不写结论复述 (「比较复杂」)。
+「要做的事」照实写 —— 下面三条路径不是可选值清单, 续跑/只出方案/先调研/纯答问都算。
+**新 session ≠ 新任务**: 对得上下方「当前 task」列表里某条就写「续跑 <taskId> <阶段>」, 禁重新 create。
 
-**新 session ≠ 新任务**: 用户提的事若对得上某个在途 task (下方「当前 task」列表), 判定写
-「续跑 <taskId> <阶段>」, 禁当成新需求重新 create; 对不上才是真新需求。
-
-## 落地路径 (意图定完再选, flow/补充/inline 不是意图全集)
+## 落地路径
 - **flow** (建 task 走 skein-flow): 跨≥2文件 / 多步骤 / 改动类动词 / 新建类 / 复杂调研
 - **补充** (并入现有 task): 与某在途 task 同目标 / 同模块 / 共享改动面 / 互为前置
 - **inline** (直接做): 纯查询 / 问答 / 单文件单处且 ≤20 行
-- 拿不准往重的一侧取: 补充现有 task → flow → inline
+- 拿不准往重的一侧取 (补充 → flow → inline); 判不准默认建 task, 禁问用户「要不要走流程」
 
-## 判定归 AI, 不问用户
-判不准时**默认建 task**。禁问「要不要走流程」, 唯一可问的是需求本身有歧义时 (做 A 还是 B)。
-
-## 判了 flow 就必须先 create
-第一个动作是 `skein create`, 不是 Edit/Write。已改动却没有 active task → 立刻停手补 create。
-
-## 已给方案 ≠ 已完成
-输出方案/清单/设计后若涉及改码就直接建 task 续走 flow, 禁停手等用户再喊一次 —— 除非用户显式
-只要方案。
+## 判了 flow: 先 create, 建完不停手
+第一个动作是 `skein create`, 不是 Edit/Write。已改动却没有 active task → 停手补 create。
+建完同轮继续跑规划 (prd/design/拆 subtask), 推进到第一个需要真实用户动作的门 (规划确认) 为止,
+撞到就停下问用户, 不得代批 (禁自行传 `--approved`)。已输出方案/设计后若涉及改码同样直接续走,
+除非用户显式只要方案。
 
 ## 其他
-- 新输入禁打断在跑的工作, 确保前置内容不丢
-- 拆分要甄别: 一句可能对应 1 个 task / N 个 task / 部分并入已有 task
+新输入禁打断在跑的工作; 一句可能对应 1 个 / N 个 task / 部分并入已有 task。
 """
 # 信号判据 (只检测证据, 不替判档位 — 档位交 AI 读 _CTX 判据自判)
 #   ponytail: 关键词 / path regex 启发式有覆盖盲区, 但机械信号比 AI prose 合规可靠 (research §4 候选 D)
@@ -112,11 +97,10 @@ def _judge_signal(prompt: str) -> list[str]:
 _PHASE = {"pending": "plan", "research": "research", "active": "exec", "check": "check",
           "finishing": "finishing"}
 _PREFIX_RULE = """# 回复前缀 (强制)
-- 每条回复以 `[skein]` 开头; 正在处理某 task 时改用 `[skein|<taskId>|<阶段>]`
-- **本轮第一行必须是判定行**, 写清本轮要做什么 + 为什么 (判据见上方「任务判定」):
+每条回复以 `[skein]` 开头, 处理某 task 时改用 `[skein|<taskId>|<阶段>]`;
+**第一行必须是判定行** (格式/判据/三条路径见上方「任务判定」):
+
     [skein] 判定: <本轮要做的事> (原因: <本轮命中的判据 / 上文依据>)
-- 「要做的事」照实写, 不限于 flow/补充/inline —— 续跑某 task、只出方案、先调研、纯答问都算
-- 原因写具体判据 (「跨 a.py+b.py 两文件」), 不写结论复述 (「比较复杂」)
 """
 def _task_phase_hints(skein_dir: str) -> str:
     """读 .skein/task.json 顶层索引, 列非完成 task + 阶段, 供回复前缀选 taskId。"""

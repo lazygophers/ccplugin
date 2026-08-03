@@ -6,8 +6,9 @@
 
 - R1 禁填: use_worktree=false 时 create --repos / repos --set 直接拒 (SystemExit)。
 - R2 不展示: 禁用态下 session-context / current / status --json 不含 worktree 段。
-- R3 注入: session-context + hooks user-prompt 都注入「# SKEIN 运行配置」块 (worktree 态 +
-  max_active); 值经 skein.CONFIG_DEFAULTS 兜底, hook 不硬编码。
+- R3 注入: session-context 恒注入「# SKEIN 运行配置」块 (worktree 态 + max_active); hooks
+  user-prompt 只在有在途 task 时才注入同一块 (无在途 task 对本轮判定无输入)。值经
+  skein.CONFIG_DEFAULTS 兜底, hook 不硬编码。
 """
 from __future__ import annotations
 
@@ -144,8 +145,13 @@ def test_session_context_config_block_enabled(skein_cli: SkeinCli, ws: Path) -> 
 
 
 def test_user_prompt_config_block_disabled(skein_cli: SkeinCli, ws: Path) -> None:
-    """禁用态 hooks user-prompt 注入运行配置块: worktree 禁用 + max_active。"""
+    """禁用态 hooks user-prompt 注入运行配置块: worktree 禁用 + max_active。
+
+    运行配置只在有在途 task 时才有输入 (无在途 task 时对本轮判定无意义), 所以本测试须先
+    create 一个 task 才能触发注入 —— 与 test_judge_signal.py 里 prompt.py 的条件注入改动同源。
+    """
     _disable(skein_cli, ws)
+    skein_cli(ws, "create", "feat-up", "--name", "up", "--desc", "d")
     ctx = _user_prompt(ws, "改一下 a.py 的逻辑")
     assert "# SKEIN 运行配置" in ctx, "缺运行配置块"
     assert "禁用" in ctx, f"worktree 未标禁用: {ctx!r}"
@@ -154,7 +160,17 @@ def test_user_prompt_config_block_disabled(skein_cli: SkeinCli, ws: Path) -> Non
 
 def test_user_prompt_config_block_default_from_config_defaults(skein_cli: SkeinCli,
                                                                ws: Path) -> None:
-    """user-prompt 默认值经 CONFIG_DEFAULTS 兜底 (不硬编码): 启用 + max_active=2。"""
+    """user-prompt 默认值经 CONFIG_DEFAULTS 兜底 (不硬编码): 启用 + max_active=2。
+
+    同上, 需先有在途 task 才会注入运行配置块。
+    """
+    skein_cli(ws, "create", "feat-up2", "--name", "up2", "--desc", "d")
     ctx = _user_prompt(ws, "改一下 a.py 的逻辑")
     assert "启用" in ctx, f"默认 worktree 未标启用: {ctx!r}"
     assert "最大并行 subtask: 2" in ctx, f"默认 max_active 非 2: {ctx!r}"
+
+
+def test_user_prompt_no_config_block_without_active_task(skein_cli: SkeinCli, ws: Path) -> None:
+    """无在途 task 时 user-prompt 不注入运行配置块 —— 省掉对本轮判定无输入的一段。"""
+    ctx = _user_prompt(ws, "改一下 a.py 的逻辑")
+    assert "# SKEIN 运行配置" not in ctx, f"无在途 task 不该注入运行配置块: {ctx!r}"
