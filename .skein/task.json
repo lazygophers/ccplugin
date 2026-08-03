@@ -17,7 +17,7 @@
     },
     {
       "id": "skein-flow-enhance",
-      "status": "active",
+      "status": "check",
       "deps": [],
       "priority": "normal",
       "worktree": ".worktrees/skein-skein-flow-enhance",
@@ -26,7 +26,7 @@
       "created": 1785668389,
       "confirmed": 1785668466,
       "started": 1785668467,
-      "checked": null,
+      "checked": 1785744248,
       "checked_end": null,
       "finished": null
     },

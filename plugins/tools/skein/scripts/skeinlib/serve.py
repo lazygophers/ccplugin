@@ -349,6 +349,23 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
         return {"ok": r.returncode == 0, "cmd": body.get("cmd"),
                 "exit": r.returncode, "stdout": r.stdout, "stderr": r.stderr}
 
+    @app.post("/__skein__/finish")
+    def _finish(request: Request) -> Any:  # finish 收尾: 复用 lifecycle.py finish 逻辑
+        try:
+            body = json.loads(request.scope.get("skein_body") or b"{}")
+            tid = body.get("id")
+            if not isinstance(tid, str) or not tid.strip():
+                return JSONResponse({"error": "id 必填"}, status_code=400)
+        except Exception:
+            return JSONResponse({"error": "bad request"}, status_code=400)
+        try:
+            r = subprocess.run([sys.executable, str(SPEC_ENTRY.parent.parent / "skein.py"), "finish", tid],
+                              cwd=str(board.root), capture_output=True, text=True, timeout=60)
+        except Exception as e:
+            return JSONResponse({"error": str(e), "ok": False}, status_code=500)
+        return {"ok": r.returncode == 0, "id": tid,
+                "exit": r.returncode, "stdout": r.stdout, "stderr": r.stderr}
+
     @app.get("/__skein__/config")
     def _cfg_get() -> JSONResponse:  # 读 config (含 ENV override, 前端显示生效值)
         return JSONResponse(board.config())

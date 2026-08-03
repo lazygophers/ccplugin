@@ -60,8 +60,11 @@ TRUTH_FILES = {
 }
 # 不在 `.skein` 工作区范围内的写盘点 (如 .claude/settings*.json), 与本登记处无关, 不要求登记;
 # 含工作区/宿主目录名本身 (`.skein`/`.claude`/`.trellis` —— 这些是路径拼接用的目录锚点字面量,
-# 不是「产物」, 不该被判成待登记的衍生物)。
-OFF_SCOPE_FILES = {"settings.json", "settings.local.json", ".skein", ".claude", ".trellis"}
+# 不是「产物」, 不该被判成待登记的衍生物); 以及被当成子进程拉起的入口脚本 (`skein.py` ——
+# serve.py 的 finish endpoint 组它的路径去 subprocess.run, 是「被执行的源码」不是「被写的产物」,
+# 只因和写盘 sink 同处一个函数体才被启发式扫进来)。
+OFF_SCOPE_FILES = {"settings.json", "settings.local.json", ".skein", ".claude", ".trellis",
+                   "skein.py"}
 
 _FILENAME_RE = re.compile(r"^(\.[\w.\-]+|[\w][\w.\-]*\.[A-Za-z0-9]{1,10}|[\w][\w.\-]*/)$")
 

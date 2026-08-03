@@ -74,8 +74,10 @@ for task in Bash("skein list --status open --json"):  # 认领后按 task 状态
     async Agent("skein:skein-finisher",     {"tid": task.id, "sid": None, "workdir": wd})
     async Agent("skein:skein-specer",       {"tid": task.id, "sid": None, "workdir": wd, "mode": "sediment"})
 
-for task in Bash("skein list --status pending --json"):
-  # 调度 plan
+for task in Bash("skein list --status pending --json"):   # pending 三分路, 无一路问用户
+  if task.ready:                     confirm(task)        # 判据已勾满 → 直接 confirm 进 active
+  elif 缺 plan 产物(prd 未填/无 subtask): 补 plan 收敛(填 prd + 加 subtask + estimate) → confirm
+  else:                              pass                 # 前置未清 (depends_on 未 done), 暂缓
 ```
 
 骨架是 flow 每一轮的唯一驱动，硬规：

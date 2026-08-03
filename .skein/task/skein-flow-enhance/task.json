@@ -2,7 +2,7 @@
   "id": "skein-flow-enhance",
   "name": "skein flow 三项增强",
   "desc": "1.前端加finish入口 2.supertask子task全done后自动推进check 3.编排层补全缺plan的待处理task",
-  "status": "active",
+  "status": "check",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -93,10 +93,10 @@
   "created": 1785668389,
   "started": 1785668467,
   "confirmed": 1785668466,
-  "checked": null,
+  "checked": 1785744248,
   "checked_end": null,
   "finished": null,
-  "updated": 1785744097,
+  "updated": 1785744248,
   "confirmed_by": "user",
   "timeline": [
     {
@@ -114,6 +114,14 @@
       "sid": "f2",
       "note": "",
       "rollback": true
+    },
+    {
+      "kind": "task",
+      "status": "check",
+      "at": 1785744248,
+      "sid": null,
+      "note": "",
+      "rollback": false
     }
   ]
 }

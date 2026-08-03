@@ -497,6 +497,10 @@ class Lifecycle:
         _timeline.append(t, "task", TaskStatus.DONE)
         self.ws.store.save(t)
         self.ws.store.sync()  # 重写顶层索引 (完成 task 仍留看板; retain_days=0 时 _autoclean 即归档)
+
+        # supertask 自动推进不在这里做 —— 归 scheduling.py `_check_candidates` 的 supertask 分支
+        # (下一次 `skein claim` 收进 check)。走 claim 是为了过 pools.gate 记账和 timeline 埋点,
+        # 在 finish 里直接改 parent["status"] 会绕开两者。
         archived = not (self.ws.tasks / tid).exists()  # retain_days<=0 → 已被 _autoclean 归档
         # 原地模式 (无 worktree): 此时才轮到 auto_commit 决定提不提交; 关则改动留工作区由用户自管。
         # 放在 _save/_sync 之后 — 连同 .skein 状态一起提交, 免留下脏索引
