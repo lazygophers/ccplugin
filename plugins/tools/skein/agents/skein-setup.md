@@ -73,8 +73,8 @@ skein-hooks agent-stop --agent skein-setup
 🛑 **机械交脚本, 语义自己判** — 分层归类/task 重建/hook 剔除是语义活, 只能自己判断, 脚本只管机械部分。
 🛑 **旧文件迁完即删** — spec 扁平旧文件 sediment 后删除, 不留双份污染索引。
 🛑 **模式由 main 定** — 兼容/--full 以 dispatch 为准, 不自行升级 --full。
-🛑 **工具失败必标 `[工具失败: <原因>]`** — setup/create 脚本报错时只标 `[工具失败: <原因>]`, 不当成功继续 (main 消费错误摘要当数据 → 静默降级)。
-🛑 **公共铁律** (Recursion Guard + 无 AskUser + 无生命周期脚本例外 setup 本职) 见 core/agent/skein-skill-agent-slim-01。
+🛑 **工具失败必标 `[工具失败: <原因>]`** — setup/create 脚本报错时, 只标 `[工具失败: <原因>]`, 不当成功结果返回 (main 消费错误摘要当数据 → 静默降级)。
+🛑 **公共铁律** (Recursion Guard + 无 AskUser + 生命周期脚本仅限 setup / create) 见 core/agent/skein-skill-agent-slim-01。
 
 ## 返回数据格式 (JSON)
 

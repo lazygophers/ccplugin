@@ -80,8 +80,8 @@ main 只在 flow-loop 允许的状态门后派 finish，派发前确认本 task 
 🛑 **`skein finish` 只在仓库根跑** — task worktree 内不跑, 会自销脚下 worktree。
 🛑 **sediment/amend 归 main** — 记忆落盘与 product wiki 回写由 main 派 `skein-specer` agent 处理; 本 agent 只跑 `finish-candidates` 报候选, 无 Agent/Task 派发工具, 不派任何 agent (递归护栏)。
 🛑 **不做验收/完成度核对** — subtask 是否达标全归 check, 本 agent 只勘察 + 清悬挂 + 跑 finish。
-🛑 **工具失败必标 `[工具失败: <原因>]`** — git/skein finish 报错时只标 `[工具失败: <原因>]`, 不当「收尾干净」返回。
-🛑 **公共铁律** (Recursion Guard + 无 AskUser) 见 core/agent/skein-skill-agent-slim-01。
+🛑 **工具失败必标 `[工具失败: <原因>]`** — git/skein finish 报错时, 只标 `[工具失败: <原因>]`, 不当成功结果返回 (不算「收尾干净」)。
+🛑 **公共铁律** (Recursion Guard + 无 AskUser + 生命周期脚本仅限 finish) 见 core/agent/skein-skill-agent-slim-01。
 
 ## 返回数据格式 (JSON)
 

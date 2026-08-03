@@ -71,13 +71,16 @@
         "三类各收敛为一种措辞",
         "无 agent 被删到看不见约束"
       ],
-      "acceptance_done": [],
-      "status": "running",
+      "acceptance_done": [
+        1,
+        2
+      ],
+      "status": "done",
       "phase": "exec",
       "skills": [],
       "created": 1785736423,
       "started": 1785740825,
-      "finished": 1785741770,
+      "finished": 1785742358,
       "note": "agent 因 ECONNRESET 终止, 无产出, 复位重派"
     },
     {
@@ -116,7 +119,7 @@
   "checked": null,
   "checked_end": null,
   "finished": null,
-  "updated": 1785741770,
+  "updated": 1785742358,
   "confirmed_by": "user",
   "timeline": [
     {

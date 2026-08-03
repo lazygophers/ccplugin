@@ -112,7 +112,7 @@ skein-hooks agent-stop --agent skein-specer
 🛑 **异步 fire-and-forget, 不阻塞任务完成** — main 派出即结束回合, 不等回传 (sediment / auto-fix 同模式); spec 判断/沉淀纯后台, 任务 Done 判定不依赖其回传。
 🛑 **断链只报告不修** — auto-fix 遇断链入 unfixed_links, 改哪头归人工判断决定。
 🛑 **不硬凑沉淀** — 判定门不过不写; 不做召回 (归 skein-recaller)。
-🛑 **工具失败必标 `[工具失败: <原因>]`** — CLI 报错/超时时, 只把 `[工具失败: <原因>]` 当结果回传——原始错误输出不是有效结果 (main 消费错误摘要当数据会静默降级)。
+🛑 **工具失败必标 `[工具失败: <原因>]`** — CLI 报错/超时时, 只标 `[工具失败: <原因>]`, 不当成功结果返回 (原始错误输出不是有效结果, main 消费错误摘要当数据会静默降级)。
 🛑 **公共铁律** (Recursion Guard + 无 AskUser + 无生命周期脚本) 见 core/agent/skein-skill-agent-slim-01。
 
 ## 返回数据格式 (JSON)

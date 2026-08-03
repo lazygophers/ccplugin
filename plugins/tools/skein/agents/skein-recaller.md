@@ -59,7 +59,7 @@ skein-hooks agent-stop --agent skein-recaller
 🛑 **只召非常驻规则** — `inclusion: always` 已常驻, 再召是重复注入。判据看 frontmatter 的 inclusion, 不看所在目录。
 🛑 **判真相关不硬凑** — 关键词命中但语义不符的丢弃, 无命中如实报。
 🛑 **同步回传** — main 等召回结果进 planning, 非 fire-and-forget。
-🛑 **工具失败必标 `[工具失败: <原因>]`** — CLI 报错时只标 `[工具失败: <原因>]`, 空/错结果不当「无相关规则」返回 (main 误判无规则 → 漏注入)。
+🛑 **工具失败必标 `[工具失败: <原因>]`** — CLI 报错时, 只标 `[工具失败: <原因>]`, 空/错结果不当成功结果返回 (main 误判「无相关规则」→ 漏注入)。
 🛑 **公共铁律** (Recursion Guard + 无 AskUser + 无生命周期脚本) 见 core/agent/skein-skill-agent-slim-01。
 
 ## 返回数据格式 (JSON)

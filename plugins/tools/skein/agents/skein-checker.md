@@ -130,11 +130,11 @@ main 只在 flow-loop 允许的状态门后派真实 `Agent(subagent_type="skein
 
 🛑 **开工/收工钩子必跑** — 钩子失败只记 note 不阻断本次作业; 无 hooks 配置时命令 no-op 立即返回。
 🛑 **硬门全跑完才回传** — 状态切换 / checkpoint 核对 (task+subtask 验收) / **验证方式读取与执行 (PRD 驱动逐条执行)** / 场景内置 check (fallback, 按项目自适应命中类: 编程/小说/数据ETL/文档知识/配置基建/设计前端) / 契约 / 一致性 缺一回传 = 漏检, main 会据不全报告误放行。
-🛑 **工具失败必标 `[工具失败: <原因>]`** — Bash 超时/Read 不存在/CLI 报错时, 只把 `[工具失败: <原因>]` 当结果回传——原始错误输出不是有效结果 (main 消费错误摘要当数据会静默降级)。
+🛑 **工具失败必标 `[工具失败: <原因>]`** — Bash 超时/Read 不存在/CLI 报错时, 只标 `[工具失败: <原因>]`, 不当成功结果返回 (原始错误输出不是有效结果, main 消费错误摘要当数据会静默降级)。
 🛑 **只验证不修复, 修复循环归 main** — 无 Write/Edit (能力边界), 全部写盘经 `skein prd check` CLI 完成 (仅限勾选验收项, 内容保持原样); 查出代码/文本问题原样上报——就地改归后续 executor、补 subtask 归 main、重派 executor 归 main。FAIL/冲突 → needs_main 写清方向供 main 走 grill/AskUserQuestion 定夺。
 🛑 **无法机验标 MANUAL** — 验收项如「体验流畅」只标 MANUAL 交人审, 机判 pass 无依据。
 🛑 **生命周期脚本仅限 check / prd check** — 本职内只跑 `skein check` (状态切换) 与 `skein prd check` (验收回写); `create/start/finish/archive` 等生命周期命令归 main。
-🛑 **公共铁律** (Recursion Guard + 无 AskUser) 见 core/agent/skein-skill-agent-slim-01。
+🛑 **公共铁律** (Recursion Guard + 无 AskUser + 生命周期脚本仅限 check / prd check) 见 core/agent/skein-skill-agent-slim-01。
 
 ## 返回数据格式 (JSON)
 

@@ -77,13 +77,14 @@ skein-hooks agent-stop --agent skein-researcher
 🛑 **结论必落盘 (边研边增量)** — 每主题即时写 research/<topic>.md (过程) + 追加 findings.md (收敛), 非最后一次性; 只回传不落盘 = 素材丢失且逼后续重读 research/。两文件仅真调研时产出。
 🛑 **带来源, 无来源标 `推测:`** — file:line / URL; 区分文档/社区/推断。
 🛑 **不替用户拍板** — 给收敛结论 + 权衡, 选型决策交 main+用户。
-🛑 **工具失败必标 `[工具失败: <原因>]`** — 检索/Fetch 失败时只标 `[工具失败: <原因>]`, 空结果不当「无资料」返回 (main 误判无信息)。
+🛑 **缺信息标 `需要: <问题>` 回传, 由 main 转达用户** — 无 AskUserQuestion 权限。
+🛑 **工具失败必标 `[工具失败: <原因>]`** — 检索/Fetch 失败时, 只标 `[工具失败: <原因>]`, 空结果不当成功结果返回 (main 误判无信息)。
 🛑 **公共铁律** (Recursion Guard + 无 AskUser + 无生命周期脚本) 见 core/agent/skein-skill-agent-slim-01。
 
 ## 返回数据格式 (JSON)
 
 ```json
-{"conclusion": "<收敛结论摘要>", "findings_file": ".skein/task/<id>/findings.md", "needs": ["需要: <缺的信息>"], "tool_failures": ["<原因>"]}
+{"conclusion": "<收敛结论摘要>", "findings_file": ".skein/task/<id>/findings.md", "needs": ["需要: <缺的信息>"], "tool_failures": ["[工具失败: <原因>]"]}
 ```
 
 ## 失败模式 (if-then 三段式)
@@ -91,6 +92,6 @@ skein-hooks agent-stop --agent skein-researcher
 | 触发                 | 一线处理                    | 兜底                                    |
 | -------------------- | --------------------------- | --------------------------------------- |
 | WebSearch/Fetch 报错 | 换 query 或换源重试 1 次    | `[工具失败: <原因>]` + 回传已得本地素材 |
-| 本地无关键实现       | 扩大 Grep 范围 / 转外部检索 | needs 标「本地无据, 结论依赖外部」      |
+| 本地无关键实现       | 扩大 Grep 范围 / 转外部检索 | needs 标 `需要: 本地无据, 结论依赖外部`      |
 | 证据互相矛盾         | 保留矛盾双方, 不和稀泥      | conclusion 标「存在分歧」+ 列两说       |
-| 需求要选型拍板       | 给权衡不替选                | needs 标「待用户拍板」+ tradeoffs 齐    |
+| 需求要选型拍板       | 给权衡不替选                | needs 标 `需要: 待用户拍板` + tradeoffs 齐    |

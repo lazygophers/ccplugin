@@ -127,11 +127,11 @@
         "全量回归不超基线"
       ],
       "acceptance_done": [],
-      "status": "pending",
+      "status": "running",
       "phase": "exec",
       "skills": [],
       "created": 1785733613,
-      "started": null,
+      "started": 1785742029,
       "finished": null
     }
   ],
@@ -149,7 +149,7 @@
   "checked": null,
   "checked_end": null,
   "finished": null,
-  "updated": 1785742013,
+  "updated": 1785742029,
   "confirmed_by": "user",
   "timeline": [
     {
@@ -165,6 +165,14 @@
       "status": "running",
       "at": 1785741803,
       "sid": "ui",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "running",
+      "at": 1785742029,
+      "sid": "test",
       "note": "",
       "rollback": false
     }

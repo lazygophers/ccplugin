@@ -82,8 +82,8 @@ skein-hooks agent-stop --agent skein-clean
 🛑 **写盘只经 CLI** — `skein clean` / `git worktree remove` / `git branch -D` (`.skein/` 下 task.json 不经手改路径, hook 硬阻); 归档只走 `skein clean --days` 保留期语义 (`rm .skein/task/<id>` 不等同归档)。
 🛑 **存疑必报用户** — 无对应 task 记录的 worktree、未合并分支、`remove`/`-D` 失败项, 一律保留 + 报用户; 活跃 worktree 只保留一途, 不强删。
 🛑 **看板无需手动刷** — `clean` 已触发 `_sync` 自动重渲染; 孤儿 worktree/分支清理不涉 task.json, 不影响看板。
-🛑 **工具失败必标 `[工具失败: <原因>]`** — CLI/git 报错时只标 `[工具失败: <原因>]`, 不当成功继续 (用户误以为清了)。
-🛑 **公共铁律** (Recursion Guard + 无 AskUser: 存疑报用户走输出报告非 AskUser 工具 + 无生命周期脚本例外 clean 本职) 见 core/agent/skein-skill-agent-slim-01。
+🛑 **工具失败必标 `[工具失败: <原因>]`** — CLI/git 报错时, 只标 `[工具失败: <原因>]`, 不当成功结果返回 (用户误以为清了)。
+🛑 **公共铁律** (Recursion Guard + 无 AskUser + 无生命周期脚本) 见 core/agent/skein-skill-agent-slim-01。
 
 ## 返回数据格式 (JSON)
 
