@@ -3,7 +3,7 @@ title: flow
 category: flow
 keywords: [flow,strict,exec,四阶段,confirm,claim,check]
 status: active
-inclusion: always
+inclusion: auto
 ---
 
 ## skein 流程严格执行

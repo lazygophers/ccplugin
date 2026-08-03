@@ -1,4 +1,5 @@
 ---
+inclusion: auto
 title: config
 layer: core
 category: arch

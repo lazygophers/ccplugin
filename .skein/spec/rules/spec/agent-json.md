@@ -3,7 +3,7 @@ title: agent-json
 category: spec
 keywords: []
 status: active
-inclusion: always
+inclusion: auto
 ---
 
 ## agent 入参只传必要信息
