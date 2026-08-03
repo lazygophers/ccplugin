@@ -383,14 +383,15 @@ def test_guard_output_consistency_with_original() -> None:
     with tempfile.TemporaryDirectory() as tmpdir:
         ws = Path(tmpdir)
 
-        # 测试 permission 功能仍然正常
+        # 测试 permission 功能仍然正常 (用 notes.md 而非 prd.md —— 后者已并入 BLOCKED, 见
+        # test_prd_lock.py, 不再被 permission 自动放行)
         skein_dir = ws / ".skein"
         skein_dir.mkdir(parents=True)
-        prd_file = skein_dir / "task" / "test" / "prd.md"
-        prd_file.parent.mkdir(parents=True)
-        prd_file.write_text("# PRD\n")
+        notes_file = skein_dir / "task" / "test" / "notes.md"
+        notes_file.parent.mkdir(parents=True)
+        notes_file.write_text("# Notes\n")
 
-        d = _make_tool_input(str(prd_file), "Read")
+        d = _make_tool_input(str(notes_file), "Read")
         exit_code, stdout, stderr = _capture_output(cmd_permission, d)
 
         assert exit_code == 0, "permission 应该放行 .skein 内文件读取"

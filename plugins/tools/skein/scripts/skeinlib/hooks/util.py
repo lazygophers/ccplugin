@@ -10,7 +10,7 @@ import os
 import sys
 from typing import Any, Optional, cast
 
-BLOCKED = {"task.json", "task.md"}  # 脚本管理文件, 归 guard, 不由 permission 放行
+BLOCKED = {"task.json", "task.md", "prd.md"}  # 脚本管理文件, 归 guard, 不由 permission 放行
 ENGINE = ("skein.py", "spec.py", "skein ", "skein-spec ")
 
 
