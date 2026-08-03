@@ -1,6 +1,21 @@
 {
   "tasks": [
     {
+      "id": "flow-refs-consolidate",
+      "status": "active",
+      "deps": [],
+      "priority": "normal",
+      "worktree": null,
+      "parent": null,
+      "kind": "task",
+      "created": 1785758772,
+      "confirmed": 1785759037,
+      "started": 1785759037,
+      "checked": null,
+      "checked_end": null,
+      "finished": null
+    },
+    {
       "id": "live-ws-backoff",
       "status": "pending",
       "deps": [],

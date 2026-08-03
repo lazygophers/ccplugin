@@ -3,7 +3,7 @@ name: skein-spec
 description: 规则记忆库 (基于 .skein/spec)。namespace (自由目录, 默认 rules/product/map/external, 目录扫描得非白名单) × inclusion (封闭四值 always/auto/fileMatch/manual, 写在 frontmatter) 正交两维 —— 目录管内容分类, inclusion 管加载策略, 互不决定, 搬目录不改加载策略。planning 时 recall 召回相关规则、task finish 后 sediment 沉淀学习 + prune 自动精简过期/重复/断链/超预算, 经判定门自动写盘 (不逐次问用户)。product namespace 是需求现状 wiki (delta 变更历史 vs state 现状快照分离, 按功能域切页), 现状过时用 amend 改写既有章节 (而非无限追加并存); map namespace 现算目录树+符号骨架 (`map --skeleton`) 合并人写语义页; analyze 对 task 跑只读一致性核查 (验收覆盖率/硬规冲突/范围蔓延/proposed 置信度/接缝存在性); 旧两层结构 (core/recall) 迁移新 namespace 结构见 migrate。另支持空仓 bootstrap 播种规则基线、记忆大面积失效 (大重构/换栈) 时 reconstruct 可逆归档后按项目类型分型重建、maintain 手动体检 (超预算/stale/断链/重复/废弃, 判据按 namespace 分表, --apply 自动修复)、auto-fix (Stop hook 写 .pending-fix 标记 → main 派 skein-specer bg 跑 maintain --apply 全自动修, 断链只报告)。
 user-invocable: true
 argument-hint: "[模式: recall/召回, sediment/沉淀, prune/精简, amend/改写, map/结构现算, analyze/一致性核查, bootstrap/播种, reconstruct/重构, maintain/维护 (加 --apply 自动修)] [--deep=recall/low/full/deep/max/high (reconstruct 模式可选)]"
-arguments: "[模式: recall/召回, sediment/沉淀, prune/精简, amend/改写, map/结构现算, analyze/一致性核查, bootstrap/播种, reconstruct/重构] [--deep=recall/low/full/deep/max/high]"
+arguments: "['recall(召回)|sediment(沉淀)|prune(精简)|amend(改写)|map(结构现算)|analyze(一致性核查)|bootstrap(播种)|reconstruct(重构)', '--deep=recall/low/full/deep/max/high']"
 model: inherit
 effort: medium
 ---
@@ -15,6 +15,7 @@ effort: medium
 **差异化核心**。不同于「按需沉淀单一 spec 文件」, SKEIN 记忆按两个正交维度组织, 基于 `.skein/spec`:
 
 > **绑定 agent (按读/写拆两个, 均 frontmatter `skills: skein:skein-spec`)**:
+>
 > - **读路径 → `skein-recaller`** (只读同步召回员, 单一 recall 职责): recall 检索 (planning) 派它, **main 等召回结果进 planning** (dispatch prompt「已知」段带上)。
 > - **写路径 → `skein-specer`** (记忆写盘员): sediment/amend/reconstruct·maintain/prune 五类写作业 (finish 读 diff + subagent 回传摘要 跑判定门产候选 + 写盘 + reindex)。**异步 fire-and-forget 模式** (被 skein-flow finish 阶段在 finish 闭环后派发): specer 自主跑判定门 + `skein-spec sediment`/`amend` 写盘 + reindex, **无需 main 等待回传** (main 派发即结束回合, 回传到达后只补 output trace; 判定门通过即自主写, 不逐次询问用户)。仅 bootstrap/reconstruct 全局动作跑前一次征同意。
 
@@ -22,12 +23,12 @@ effort: medium
 
 **两者正交**: namespace 决定放哪个目录 (内容分类), inclusion 决定怎么加载 (写在每篇 frontmatter 里, 与目录无关) —— 把文件从一个 namespace 目录搬到另一个**不会**改变它的加载策略, 这条曾被文档写反过, 教用户把文件搬目录来「降级」, 而那什么也不会发生。
 
-| namespace ＼ inclusion | always 常驻注入 (SessionStart) | auto 按需召回 (默认) | fileMatch 按 globs 命中注入 | manual 纯手动检索 |
-|---|---|---|---|---|
-| **rules** (硬规 / 经验规则) | 硬约束 / 命令式契约 (软预算 `spec.always_budget`, 超则告警降级) | 长尾经验规则 (默认落点) | 特定路径触发的规则 | 极冷门参考 |
-| **product** (需求现状 wiki) | 极少见 (核心边界铁律) | 功能域现状页 (默认落点, 见下文) | — | 历史存档快照 |
-| **map** (代码结构语义页) | — | 职责 / 数据流说明页, 配合 `map --skeleton` 现算骨架 | — | — |
-| **external** (外部长文档) | — | 索引摘要 | — | 原文全文, 手动检索 (默认落点) |
+| namespace ＼ inclusion      | always 常驻注入 (SessionStart)                                  | auto 按需召回 (默认)                                | fileMatch 按 globs 命中注入 | manual 纯手动检索             |
+| --------------------------- | --------------------------------------------------------------- | --------------------------------------------------- | --------------------------- | ----------------------------- |
+| **rules** (硬规 / 经验规则) | 硬约束 / 命令式契约 (软预算 `spec.always_budget`, 超则告警降级) | 长尾经验规则 (默认落点)                             | 特定路径触发的规则          | 极冷门参考                    |
+| **product** (需求现状 wiki) | 极少见 (核心边界铁律)                                           | 功能域现状页 (默认落点, 见下文)                     | —                           | 历史存档快照                  |
+| **map** (代码结构语义页)    | —                                                               | 职责 / 数据流说明页, 配合 `map --skeleton` 现算骨架 | —                           | —                             |
+| **external** (外部长文档)   | —                                                               | 索引摘要                                            | —                           | 原文全文, 手动检索 (默认落点) |
 
 namespace 开放不设白名单 (目录扫描得, 新增 namespace 不改代码, 常见 rules/product/map/external), inclusion 是封闭四值。索引: 每个 `<namespace>/index.md` (该 namespace 全规则, 带 category / inclusion / anchors 列) + 顶层 `index.md` 聚合概览。
 
@@ -120,13 +121,13 @@ skein-spec analyze <tid> [--json]
 
 对齐 spec-kit `/speckit.analyze`, 五类只读检查 (不写任何盘), 全启发式关键词/子串匹配, 措辞统一带「候选」字样, 零命中就如实报零冲突, **禁断言违规**:
 
-| 检查 | 比对 |
-|---|---|
-| 验收覆盖率 | prd 验收标准 ↔ subtask 验收项, 报关键词无命中的验收条 (候选未覆盖) |
-| 硬规冲突 | design.md ↔ `inclusion: always` 规则的否定式表述, 报候选 (不断言违规) |
-| 范围蔓延 | subtask 名/desc ↔ prd 全文关键词, 报无命中的 subtask (候选蔓延) |
-| proposed 置信度 | design.md 提及的规则标题 ↔ 该规则 `status: proposed`, 报未验证引用 |
-| 接缝存在性 | design.md「测试接缝」段声明的路径/符号 ↔ codebase, 报未找到 |
+| 检查            | 比对                                                                  |
+| --------------- | --------------------------------------------------------------------- |
+| 验收覆盖率      | prd 验收标准 ↔ subtask 验收项, 报关键词无命中的验收条 (候选未覆盖)    |
+| 硬规冲突        | design.md ↔ `inclusion: always` 规则的否定式表述, 报候选 (不断言违规) |
+| 范围蔓延        | subtask 名/desc ↔ prd 全文关键词, 报无命中的 subtask (候选蔓延)       |
+| proposed 置信度 | design.md 提及的规则标题 ↔ 该规则 `status: proposed`, 报未验证引用    |
+| 接缝存在性      | design.md「测试接缝」段声明的路径/符号 ↔ codebase, 报未找到           |
 
 `--json` 输出机器可读结果供 `skein-checker` 消费; `for-check.md` 的一致性核查段直接调这条, 不再手工 diff 比对。
 
@@ -158,27 +159,27 @@ skein-spec restore <ts>               # 回滚 (撞名不覆盖新规则, 加 re
 
 ## 失败模式 (if-then 三段式: 触发 → 一线修复 → 仍失败兜底)
 
-| 触发 | 一线修复 | 仍失败兜底 |
-|---|---|---|
-| recall grep 无命中 | 放宽 / 换关键词重 grep 一次 (同义词 / 上位类目) | 仍无 → planning 走无规则路径, 不阻塞; 靠 finish sediment 增量补 |
-| `skein-spec sediment/amend/reindex` 报错 | 读脚本 stderr 定位 (路径 / 权限 / 类目名非法 / amend 章节名不存在) | 仍失败 → 该候选暂存草案不落盘, 记 `需要: 手工核对`, 禁半写坏盘 |
-| `always` 常驻超预算告警 | prune 自动降级最少复用的 always 规则到 auto (`sediment` 调 inclusion) | 仍超 → 停手, 提示用户 always 层膨胀, 需人工裁剪硬规集 |
-| reconstruct 重建不满意 | `skein-spec restore <ts>` 从归档恢复 (撞名加 restored- 前缀并存) | 仍失败 → 归档目录仍在 `.skein/spec/.archive/<ts>/`, 手动核对取舍 |
+| 触发                                     | 一线修复                                                              | 仍失败兜底                                                       |
+| ---------------------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| recall grep 无命中                       | 放宽 / 换关键词重 grep 一次 (同义词 / 上位类目)                       | 仍无 → planning 走无规则路径, 不阻塞; 靠 finish sediment 增量补  |
+| `skein-spec sediment/amend/reindex` 报错 | 读脚本 stderr 定位 (路径 / 权限 / 类目名非法 / amend 章节名不存在)    | 仍失败 → 该候选暂存草案不落盘, 记 `需要: 手工核对`, 禁半写坏盘   |
+| `always` 常驻超预算告警                  | prune 自动降级最少复用的 always 规则到 auto (`sediment` 调 inclusion) | 仍超 → 停手, 提示用户 always 层膨胀, 需人工裁剪硬规集            |
+| reconstruct 重建不满意                   | `skein-spec restore <ts>` 从归档恢复 (撞名加 restored- 前缀并存)      | 仍失败 → 归档目录仍在 `.skein/spec/.archive/<ts>/`, 手动核对取舍 |
 
 ## ✅ 正向配方 (命中反面=流程错误)
 
 > 🔒 铁律: sediment+prune 异步 fire-and-forget 禁阻塞 finish; `inclusion: always` 只留命令式硬约束。
 
-| 场景 | 正确做法 (❌ 反面) |
-|---|---|
-| sediment 写盘 / prune 自动 archive | 逐项输出判定 trace, skein-specer 回传后 main 补 (❌ 未输出判定 trace) |
-| 判定门全否 | 跳过不沉淀 (❌ 无增量硬凑沉淀) |
-| 判定门通过要不要问用户 | 自主写盘, 只输出 trace 不硬停 (❌ 逐次 AskUserQuestion 问用户批不批) |
-| finish 闭环 vs sediment/prune | 异步 fire-and-forget, finish 先 archive (❌ 为等 sediment/prune 阻塞闭环) |
-| 写盘更新 index.md | skein-spec sediment/amend 自动同步 (❌ 不同步 index.md / 手改绕过) |
-| 规则分层 | 默认落 `inclusion: auto`, `always` 只留硬约束 (❌ 什么都塞 always 常驻) |
-| product wiki 现状过期 | `amend` 改写既有章节 (❌ sediment 追加并存多个矛盾版本) |
-| amend 目标章节不存在 | 报错列现有章节名, 改走 `sediment` 建新章节 (❌ 静默追加) |
+| 场景                               | 正确做法 (❌ 反面)                                                        |
+| ---------------------------------- | ------------------------------------------------------------------------- |
+| sediment 写盘 / prune 自动 archive | 逐项输出判定 trace, skein-specer 回传后 main 补 (❌ 未输出判定 trace)     |
+| 判定门全否                         | 跳过不沉淀 (❌ 无增量硬凑沉淀)                                            |
+| 判定门通过要不要问用户             | 自主写盘, 只输出 trace 不硬停 (❌ 逐次 AskUserQuestion 问用户批不批)      |
+| finish 闭环 vs sediment/prune      | 异步 fire-and-forget, finish 先 archive (❌ 为等 sediment/prune 阻塞闭环) |
+| 写盘更新 index.md                  | skein-spec sediment/amend 自动同步 (❌ 不同步 index.md / 手改绕过)        |
+| 规则分层                           | 默认落 `inclusion: auto`, `always` 只留硬约束 (❌ 什么都塞 always 常驻)   |
+| product wiki 现状过期              | `amend` 改写既有章节 (❌ sediment 追加并存多个矛盾版本)                   |
+| amend 目标章节不存在               | 报错列现有章节名, 改走 `sediment` 建新章节 (❌ 静默追加)                  |
 
 ## maintain (手动体检, main)
 
