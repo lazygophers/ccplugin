@@ -2,7 +2,7 @@
   "id": "priority-ui-theme",
   "name": "优先级 UI 主题适配",
   "desc": "优先级标签用错色 token: PRIORITY_COLOR_VAR 把徽章底色 --st-check/--destructive 当文字与边框色用, light/dark 对比度 2.23~3.65 均低于 WCAG AA 4.5; 且 normal/low 同映射 --muted-foreground, 四档只显三档",
-  "status": "active",
+  "status": "check",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -96,10 +96,10 @@
   "created": 1785753076,
   "started": 1785753412,
   "confirmed": 1785753412,
-  "checked": null,
+  "checked": 1785754765,
   "checked_end": null,
   "finished": null,
-  "updated": 1785754743,
+  "updated": 1785754765,
   "timeline": [
     {
       "kind": "task",
@@ -162,6 +162,14 @@
       "status": "done",
       "at": 1785754743,
       "sid": "verify",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "task",
+      "status": "check",
+      "at": 1785754765,
+      "sid": null,
       "note": "",
       "rollback": false
     }

@@ -1,0 +1,77 @@
+{
+  "id": "live-ws-backoff",
+  "name": "WS 重连指数退避",
+  "desc": "前端 live WS 断线后固定 2s 无限重连 (lib/live.ts:70), 服务端长时间不可用时形成恒定频率请求风暴, 多标签页叠加更甚; 改为指数退避 + 上限 + 抖动, 连上后重置",
+  "status": "pending",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "backoff",
+      "name": "退避函数与重连调度",
+      "desc": "把重连间隔抽成可独立调用的纯函数 (基数 1s / 倍率 2 / 上限 30s / 全抖动, 随机源可注入), 接进 live WS 的关闭回调替掉固定 2s; 失败计数的重置须避开'连上即清零'导致崩溃循环退化成短间隔的坑; 不动断线横幅时机与重连成功后整页重载的追赶路径。",
+      "estimate": 1.0,
+      "depends_on": [],
+      "acceptance": [
+        "间隔上界随尝试次数递增且收敛到 30s",
+        "首次重试上界<=2000ms",
+        "抖动使同次取值不全等",
+        "成功后计数重置且不被崩溃循环误清零",
+        "横幅首次提示时机未变"
+      ],
+      "acceptance_done": [],
+      "status": "pending",
+      "phase": "exec",
+      "skills": [],
+      "created": 1785755279,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "verify",
+      "name": "单测与重建回归",
+      "desc": "在 src/lib/__tests__/ 下按既有纯函数单测形态覆盖退避函数的数学性质 (单调上界/收敛上限/首值有界/抖动落区间/重置回最短), 注入随机源保证确定性; 跑 npm run build 重建 dist/ 并跑全量 pytest 回归。",
+      "estimate": 1.0,
+      "depends_on": [
+        "backoff"
+      ],
+      "acceptance": [
+        "单测全绿且变异自检能真失败",
+        "npm run build 零错",
+        "pytest 410 passed/0 failed"
+      ],
+      "acceptance_done": [],
+      "status": "pending",
+      "phase": "exec",
+      "skills": [],
+      "created": 1785755279,
+      "started": null,
+      "finished": null
+    }
+  ],
+  "priority": "normal",
+  "estimate": 2.0,
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/live-ws-backoff",
+  "parent": null,
+  "kind": "task",
+  "created": 1785755187,
+  "started": null,
+  "confirmed": null,
+  "checked": null,
+  "checked_end": null,
+  "finished": null,
+  "updated": 1785755279,
+  "timeline": [
+    {
+      "kind": "task",
+      "status": "pending",
+      "at": 1785755187,
+      "sid": null,
+      "note": "",
+      "rollback": false
+    }
+  ]
+}

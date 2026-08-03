@@ -2,7 +2,7 @@
   "tasks": [
     {
       "id": "priority-ui-theme",
-      "status": "active",
+      "status": "check",
       "deps": [],
       "priority": "normal",
       "worktree": null,
@@ -11,6 +11,21 @@
       "created": 1785753076,
       "confirmed": 1785753412,
       "started": 1785753412,
+      "checked": 1785754765,
+      "checked_end": null,
+      "finished": null
+    },
+    {
+      "id": "live-ws-backoff",
+      "status": "pending",
+      "deps": [],
+      "priority": "normal",
+      "worktree": null,
+      "parent": null,
+      "kind": "task",
+      "created": 1785755187,
+      "confirmed": null,
+      "started": null,
       "checked": null,
       "checked_end": null,
       "finished": null
