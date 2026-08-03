@@ -2,7 +2,7 @@
   "id": "task-timeline",
   "name": "task 生命周期时间线",
   "desc": "生命周期时间线落 per-task task.json 独立字段, 含状态回滚记录; 展示以该字段为准, 并叠加预规划阶段",
-  "status": "active",
+  "status": "check",
   "deps": [],
   "contracts": [
     "timeline 事件只追加, 禁修改/删除既有事件 — 一旦可改写, 时间线不再是可信审计记录",
@@ -148,10 +148,10 @@
   "created": 1785732858,
   "started": 1785734041,
   "confirmed": 1785734041,
-  "checked": null,
+  "checked": 1785742735,
   "checked_end": null,
   "finished": null,
-  "updated": 1785742713,
+  "updated": 1785742735,
   "confirmed_by": "user",
   "timeline": [
     {
@@ -175,6 +175,14 @@
       "status": "running",
       "at": 1785742029,
       "sid": "test",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "task",
+      "status": "check",
+      "at": 1785742735,
+      "sid": null,
       "note": "",
       "rollback": false
     }

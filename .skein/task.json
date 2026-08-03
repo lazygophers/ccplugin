@@ -32,7 +32,7 @@
     },
     {
       "id": "task-timeline",
-      "status": "active",
+      "status": "check",
       "deps": [],
       "priority": "normal",
       "worktree": null,
@@ -41,7 +41,7 @@
       "created": 1785732858,
       "confirmed": 1785734041,
       "started": 1785734041,
-      "checked": null,
+      "checked": 1785742735,
       "checked_end": null,
       "finished": null
     },

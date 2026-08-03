@@ -31,15 +31,15 @@
 
 ## 验收标准
 可执行、可核对的完成断言 (逐条):
-- [ ] `TaskData` 有 `timeline` 字段, 元素含 `kind`(task|subtask) / `status` / `at` / `sid`(subtask 事件) / `note` / `rollback`。
-- [ ] 6 处 task 状态迁移 (research/plan/confirm/check/finishing/finish) 与 create 各自追加一条 task 事件。
-- [ ] subtask 的 claim·start / done / fail 各自追加一条 subtask 事件, fail 事件带 note。
-- [ ] 状态序号回退时事件带 `rollback: true` (research→规划中、check→进行中 均命中)。
-- [ ] 事件只追加: 同一 task 连续多次进入 `check` 产生多条 `check` 事件, 不覆盖。
-- [ ] 后端 task 详情输出携带 timeline 原样数组。
-- [ ] 详情页渲染完整阶段骨架, 已发生节点取 timeline 真实时间并实心高亮, 未发生置灰占位。
-- [ ] 同一阶段出现 ≥2 次时该节点显示 `↺ N 轮` 角标。
-- [ ] 无 `timeline` 字段的老 task 详情页正常渲染不报错。
+- [x] `TaskData` 有 `timeline` 字段, 元素含 `kind`(task|subtask) / `status` / `at` / `sid`(subtask 事件) / `note` / `rollback`。
+- [x] 6 处 task 状态迁移 (research/plan/confirm/check/finishing/finish) 与 create 各自追加一条 task 事件。
+- [x] subtask 的 claim·start / done / fail 各自追加一条 subtask 事件, fail 事件带 note。
+- [x] 状态序号回退时事件带 `rollback: true` (research→规划中、check→进行中 均命中)。
+- [x] 事件只追加: 同一 task 连续多次进入 `check` 产生多条 `check` 事件, 不覆盖。
+- [x] 后端 task 详情输出携带 timeline 原样数组。
+- [x] 详情页渲染完整阶段骨架, 已发生节点取 timeline 真实时间并实心高亮, 未发生置灰占位。
+- [x] 同一阶段出现 ≥2 次时该节点显示 `↺ N 轮` 角标。
+- [x] 无 `timeline` 字段的老 task 详情页正常渲染不报错。
 
 ## 验证方式
 每条验收标准的验证手段与通过标准 (plan 阶段必填):
