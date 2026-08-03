@@ -1,21 +1,32 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { startLive, subscribe } from "@/lib/live";
 import { api } from "@/lib/api";
+
+// 项目名跨导航缓存 —— 每次路由切换都要重设标题, 但项目名一个会话内不变, 只请求一次。
+let cachedProj: string | null = null;
 
 // Boots WS live-updates on client side; subscribes globally to trigger page reloads on "data" messages.
 // 断线时渲染顶部横幅提示 (非静默失效); 重连成功走 live.ts 的整页刷路径, 横幅随页面重载一并消失。
 export function LiveBootstrap() {
   const [offline, setOffline] = useState(false);
+  const pathname = usePathname();
 
+  // 动态设页面标题: SKEIN-<项目名>。
+  // 依赖 pathname 而非 [] —— App Router 每次客户端导航都会重新应用 layout.tsx 的
+  // `metadata.title = "SKEIN"`, 只在挂载时设一次的话, 点任何链接跳转后项目名就没了。
   useEffect(() => {
-    // 动态设页面标题: SKEIN-<项目名>
+    if (cachedProj) { document.title = `SKEIN-${cachedProj}`; return; }
     api.id().then((r) => {
       const parts = String(r).replace(/\/\.skein\/?$/, "").split("/");
       const proj = parts[parts.length - 1];
-      if (proj) document.title = `SKEIN-${proj}`;
+      if (proj) { cachedProj = proj; document.title = `SKEIN-${proj}`; }
     }).catch(() => {});
+  }, [pathname]);
+
+  useEffect(() => {
     startLive();
     const unsub = subscribe((msg) => {
       if (msg.type === "data") location.reload();

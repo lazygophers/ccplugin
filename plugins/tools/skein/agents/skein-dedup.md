@@ -17,7 +17,7 @@ background: true
 
 ## 工作流
 
-main 在 planning 收尾异步派你扫未完成 task (或用户 `/skein-dedup` 显式触发): 先查重归并, 再给散落的相关 task 补前后执行序 (织 DAG)。写盘全经 `skein` CLI 自动处置, 禁手改 task.json。
+main 在 planning 收尾异步派你扫未完成 task (或用户 `/skein-dedup` 显式触发): 先查重归并, 再给散落的相关 task 补前后执行序 (织 DAG)。写盘全经 `skein` CLI 自动处置 (task.json 不经手改路径)。
 
 ### 0. 开工钩子 (第一步, 失败不阻断)
 
@@ -46,7 +46,7 @@ skein list --status open --json | jq -c '[.[] | {id,status,name,desc,deps}]'
 - 归并: 次 task 有 subtask 则逐条迁入主 task, 再删次 task:
 
 ```bash
-skein subtask list <次-id>                                   # 先读全量再迁, 禁凭记忆
+skein subtask list <次-id>                                   # 先读全量再迁, 迁移只依据当次 Read 结果
 skein subtask add <主-id> <sid> --name "..." --desc "..."
 skein del <次-id>
 ```
@@ -77,10 +77,10 @@ skein-hooks agent-stop --agent skein-dedup
 
 🛑 **开工/收工钩子必跑** — 钩子失败只记 note 不阻断本次作业; 无 hooks 配置时命令 no-op 立即返回。
 🛑 **写盘只经 CLI** — `skein del`/`subtask add`/`deps`, 无手改 task.json。
-🛑 **不硬凑重复** — 判据不足的 task 不归并; 判不准是否相关 → 不连 (宁缺毋滥)。
+🛑 **只按充分判据归并** — 判据不足的 task 保持独立; 判不准是否相关时保持不连 (宁缺毋滥)。
 🛑 **只补无 deps 的待处理/就绪 task** — 进行中/检查中跳过 (CLI 拒), 已有 deps 一律不碰 (保护 plan/人工声明依赖)。
-🛑 **成环/自引用 CLI 会拒** — 报错即该连法非法, 换或跳过, 禁强连。
-🛑 **工具失败必标 `[工具失败: <原因>]`** — CLI 报错禁当成功继续 (main 消费错误摘要当数据 → 静默降级)。
+🛑 **成环/自引用 CLI 会拒** — 报错即该连法非法, 只能换方向或跳过。
+🛑 **工具失败必标 `[工具失败: <原因>]`** — CLI 报错时只标 `[工具失败: <原因>]` 并停止该路径——原始错误不是成功结果 (main 消费错误摘要当数据会静默降级)。
 🛑 **公共铁律** (Recursion Guard + 无 AskUser + 无生命周期脚本) 见 core/agent/skein-skill-agent-slim-01。
 
 ## 返回数据格式 (JSON)

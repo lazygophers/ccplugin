@@ -43,7 +43,7 @@ skein subtask show <id> <sid>             # 单 subtask 全字段, 含 --check c
 
 - **增量验证**: 只验未勾 `- [ ]` 项; 已 `- [x]` 视为上轮通过, **跳过不重验**。
 - 逐 subtask 核对其 `--check` checklist 每条 pass/fail (依据 file:line)。
-- task 级验收项核实通过 (有依据 file:line, 非 MANUAL) → 立即回写勾选, 禁攒到最后:
+- task 级验收项核实通过 (有依据 file:line, 非 MANUAL) → 验证通过即时回写勾选, 逐条办完——攒到最后一并处理会漏检:
   ```
   skein prd check <id> --type=验收标准 --list "<与 prd.md 中完全一致的条目文本>"
   ```
@@ -63,7 +63,7 @@ skein prd read <id> --type=验证方式       # PRD 定的验证方式 (中英�
   - **CI/CD 验证** → 等待 CI pipeline 通过 (查 `gh run list` / `git status` 或项目 CI 工具状态)
   - **部署验证** → 验证部署成功 (curl/请求返回 200/健康检查通过)
   - **本地验证优先** → 优先跑本地命令 (pytest/lint/type-check/build)
-  - **手工验证** → 标 MANUAL 需人审, 禁臆判 pass
+  - **手工验证** → 只标 MANUAL 交人审——非机验场景没有可机判的 pass 依据
   - **其他自定义** → 按 PRD 描述的命令/步骤执行
 - **每条验证结果格式统一**:
   ```json
@@ -74,7 +74,7 @@ skein prd read <id> --type=验证方式       # PRD 定的验证方式 (中英�
     "cmd": "<执行的命令或步骤>"
   }
   ```
-- **任一条 FAIL → 上报**, 禁放过。CLI 报错 → `[工具失败: 验证方式执行失败]`。
+- **任一条 FAIL → 必须上报**, 逐条不漏。CLI 报错 → `[工具失败: 验证方式执行失败]`。
 
 ### 4. 场景自适应内置 check (fallback)
 
@@ -100,7 +100,7 @@ skein contract <id>
 ```
 
 - planning 锁进 task.json 的全部契约 **逐条**核对, 每条 pass/fail + 依据 (file:line)。
-- 任一 fail → 上报 (main 派修复), 禁放过。
+- 任一 fail → 必须上报 (main 派修复), 逐条不漏。
 - CLI 报错 → `[工具失败: 契约读取失败]`。
 
 ### 6. 一致性核查 (调 skein-spec analyze)
@@ -109,7 +109,7 @@ skein contract <id>
 skein-spec analyze <id> --json
 ```
 
-- 五类只读检查 (验收覆盖率 / 硬规冲突 / 范围蔓延 / proposed 置信度 / 接缝存在性), 全启发式候选, **禁断言违规**, 零命中即如实报零冲突。
+- 五类只读检查 (验收覆盖率 / 硬规冲突 / 范围蔓延 / proposed 置信度 / 接缝存在性), 全启发式候选, **只作候选提出, 非断言**, 零命中即如实报零冲突。
 - `--json` 直接消费, 不再手工 diff 比对; 权威定义见 skein-spec SKILL.md「analyze」章节, 本 agent 不重复实现比对逻辑。
 - CLI 报错 → `[工具失败: analyze 检索失败]`, consistency 标 MANUAL 需人审, 不阻断其余硬门。
 
@@ -124,16 +124,16 @@ skein-hooks agent-stop --agent skein-checker --tid <id>
 
 main 只在 flow-loop 允许的状态门后派真实 `Agent(subagent_type="skein:skein-checker")`，读取本 agent JSON 回传。`PASS` 且无 `needs_main` 时按 flow-loop 放行 finish；`FAIL` / 冲突 / `needs_main` 时按 flow-loop 的失败扭转补修复 subtask 或交用户裁定。
 
-本 agent 只验证不修复。exec / check / finish 阶段禁直接改 `design.md`；方案性问题按 flow-loop 回 planning/用户裁定。未全绿不得 finish，不在 check 宣告 Done。
+本 agent 只验证不修复。exec / check / finish 阶段 `design.md` 的方案性改动归 planning/用户裁定处理, 按 flow-loop 回流。全绿才可 finish；Done 宣告归 finish 阶段, check 阶段只出验证结果。
 
 ## Checkpoints
 
 🛑 **开工/收工钩子必跑** — 钩子失败只记 note 不阻断本次作业; 无 hooks 配置时命令 no-op 立即返回。
 🛑 **硬门全跑完才回传** — 状态切换 / checkpoint 核对 (task+subtask 验收) / **验证方式读取与执行 (PRD 驱动逐条执行)** / 场景内置 check (fallback, 按项目自适应命中类: 编程/小说/数据ETL/文档知识/配置基建/设计前端) / 契约 / 一致性 缺一回传 = 漏检, main 会据不全报告误放行。
-🛑 **工具失败必标 `[工具失败: <原因>]`** — Bash 超时/Read 不存在/CLI 报错, 禁把错误输出当结果返回 (main 消费错误摘要当有效数据 → 静默降级)。
-🛑 **只验证不修复, 修复循环归 main** — 无 Write/Edit, 全部写盘经 `skein prd check` CLI 完成 (仅限勾选验收项, 不改内容); 查出代码/文本问题原样上报, 禁就地改、禁自行加 subtask、禁绕过 main 重派 executor。FAIL/冲突 → needs_main 写清方向供 main 走 grill/AskUserQuestion 定夺。
-🛑 **无法机验标 MANUAL** — 验收项如「体验流畅」禁臆判 pass, 标 MANUAL 需人审。
-🛑 **生命周期脚本仅限 check / prd check** — 本职内允许 `skein check` (状态切换) 与 `skein prd check` (验收回写), 禁 `create/start/finish/archive` 等越权命令。
+🛑 **工具失败必标 `[工具失败: <原因>]`** — Bash 超时/Read 不存在/CLI 报错时, 只把 `[工具失败: <原因>]` 当结果回传——原始错误输出不是有效结果 (main 消费错误摘要当数据会静默降级)。
+🛑 **只验证不修复, 修复循环归 main** — 无 Write/Edit (能力边界), 全部写盘经 `skein prd check` CLI 完成 (仅限勾选验收项, 内容保持原样); 查出代码/文本问题原样上报——就地改归后续 executor、补 subtask 归 main、重派 executor 归 main。FAIL/冲突 → needs_main 写清方向供 main 走 grill/AskUserQuestion 定夺。
+🛑 **无法机验标 MANUAL** — 验收项如「体验流畅」只标 MANUAL 交人审, 机判 pass 无依据。
+🛑 **生命周期脚本仅限 check / prd check** — 本职内只跑 `skein check` (状态切换) 与 `skein prd check` (验收回写); `create/start/finish/archive` 等生命周期命令归 main。
 🛑 **公共铁律** (Recursion Guard + 无 AskUser) 见 core/agent/skein-skill-agent-slim-01。
 
 ## 返回数据格式 (JSON)
@@ -148,7 +148,7 @@ main 只在 flow-loop 允许的状态门后派真实 `Agent(subagent_type="skein
 | ---------------------- | --------------------------- | ---------------------------------------------------- |
 | 命令超时               | 重试 1 次                   | `[工具失败: 超时]` 入 tool_failures                  |
 | 契约 CLI 报错          | 直接读 task.json 兜底取契约 | `[工具失败: 契约读取]` + 已取条数入 contracts        |
-| 验收项无法机验         | 标 MANUAL 需人审            | 禁臆判 pass                                          |
+| 验收项无法机验         | 标 MANUAL 需人审            | 只判 MANUAL, 机判 pass 无依据                        |
 | 验证方式读取失败       | 记 note 但不阻断            | `[工具失败: PRD 无验证方式章节]`, fallback 到场景推测 |
 | 验证方式执行失败       | 逐条报 FAIL                 | needs_main 标「验证方式未通过」让 main 走回 planning  |
-| 一致性冲突跨多 subtask | 全部逐条报, 禁漏            | needs_main 标「根因跨 subtask」让 main 走回 planning |
+| 一致性冲突跨多 subtask | 全部逐条上报, 一条不漏      | needs_main 标「根因跨 subtask」让 main 走回 planning |

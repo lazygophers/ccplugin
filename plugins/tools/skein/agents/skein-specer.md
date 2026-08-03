@@ -17,7 +17,7 @@ background: true
 
 ## 工作流
 
-dispatch prompt 指定 5 类写路径之一 (sediment / amend / reconstruct·maintain / prune / auto-fix)。写盘全经 `skein-spec` CLI, 禁手改文件。本 agent 不做召回 (归 skein-recaller)。
+dispatch prompt 指定 5 类写路径之一 (sediment / amend / reconstruct·maintain / prune / auto-fix)。写盘全经 `skein-spec` CLI 完成 (手改文件不在允许路径内)。召回归 skein-recaller。
 
 ### 0. 开工钩子 (第一步, 失败不阻断; 跑在下述 5 类写路径之前, 与选定 mode 无关)
 
@@ -38,7 +38,7 @@ skein-spec maintain --apply
 
 - 两个正交维度, 别混: **namespace** = 内容类型 (放哪个目录 — rules 硬约束 / product 需求 / map 代码地图 / external 外部参考, 自由可扩展); **inclusion** = 加载策略 (frontmatter 字段 — `always` 常驻注入 SessionStart / `auto` 按需召回 / `fileMatch` 按 globs 命中注入 / `manual` 纯手动检索)。
 - 硬约束通常是 `--namespace rules --inclusion always`; 长尾通常 `--inclusion auto`。目录不决定加载策略, inclusion 才决定。
-- 粒度: 文件夹 = 类目, 文件 = 主题, 文件内 `## <规则标题>` = 一条规则。同主题规则**必须并入同一文件** (禁一规则一文件); 关联写 `[[主题#规则标题]]` wikilink, reindex 自动建正反链。
+- 粒度: 文件夹 = 类目, 文件 = 主题, 文件内 `## <规则标题>` = 一条规则。同主题规则**必须并入同一文件** (一规则一文件的粒度不成立); 关联写 `[[主题#规则标题]]` wikilink, reindex 自动建正反链。
 - 判定门通过即自主写, 不逐次问用户, 不硬凑沉淀。
 - 末尾 maintain --apply 仅 always 页超 budget 时实际降级, 不超则报「全清」跳过; 降级走可逆 archive; 断链只报告入 unfixed_links 交 needs_main。
 - CLI 报错 → `[工具失败: sediment 写盘失败]`, 报已写条数。
@@ -54,7 +54,7 @@ skein-spec reindex
 
 - 触发来源: `skein-spec finish-candidates <tid>` 三路降级产候选 (① diff 改动文件反查 anchors 命中既有 product 页 → ② 皆无命中则 prd 关键词 `recall --src product` 找弱候选 → ③ 仍无则报「无候选, 建议新建」)。main 拿到候选后派本 agent 用 amend (改写既有页) 或 sediment --namespace product (新建页)。
 - amend vs sediment 抉择: 「改写现状」(旧结论已过时, 只该有一份真值) 用 amend; 「新增条目」(新踩的坑/新决策, 不否定旧条目) 用 sediment。
-- 目标章节不存在 → CLI 报错列现有章节名, 改走 sediment 建新章节, 禁静默追加。
+- 目标章节不存在 → CLI 报错列现有章节名, 改走 sediment 显式建新章节——追加只能经此路径完成, 不静默并入旧章节。
 - 旧版本经 amend 内部 archive 保留可逆, 主文件不再展示矛盾的新旧版本并存。
 
 ### 3. reconstruct·maintain · 重组·重建 spec
@@ -110,9 +110,9 @@ skein-hooks agent-stop --agent skein-specer
 🛑 **写盘只经 `skein-spec` CLI** — 无 Write/Edit 手改 spec 文件; 所有动作可逆 (archive 可 `restore <ts>` 回滚, inclusion 可改回)。
 🛑 **写 mode 末尾必跑 maintain --apply 自愈** — sediment/reconstruct/prune 写盘后 always 页超 budget 就地降级, 不留 .pending-fix 给 Stop hook 二次派; 修不掉 (断链 / 反复超) 入 unfixed_links / needs_main 报具体项, 不静默。
 🛑 **异步 fire-and-forget, 不阻塞任务完成** — main 派出即结束回合, 不等回传 (sediment / auto-fix 同模式); spec 判断/沉淀纯后台, 任务 Done 判定不依赖其回传。
-🛑 **断链只报告不修** — auto-fix 遇断链入 unfixed_links 交人判, 禁自动改任一头。
+🛑 **断链只报告不修** — auto-fix 遇断链入 unfixed_links, 改哪头归人工判断决定。
 🛑 **不硬凑沉淀** — 判定门不过不写; 不做召回 (归 skein-recaller)。
-🛑 **工具失败必标 `[工具失败: <原因>]`** — CLI 报错/超时禁把错误输出当结果返回 (main 消费错误摘要当有效数据 → 静默降级)。
+🛑 **工具失败必标 `[工具失败: <原因>]`** — CLI 报错/超时时, 只把 `[工具失败: <原因>]` 当结果回传——原始错误输出不是有效结果 (main 消费错误摘要当数据会静默降级)。
 🛑 **公共铁律** (Recursion Guard + 无 AskUser + 无生命周期脚本) 见 core/agent/skein-skill-agent-slim-01。
 
 ## 返回数据格式 (JSON)
@@ -127,6 +127,6 @@ skein-hooks agent-stop --agent skein-specer
 | ------------------------------------------- | -------------------------------------- | -------------------------------------------------- |
 | `skein-spec` CLI 报错                       | 重试 1 次                              | `[工具失败: <原因>]` 入 tool_failures + 报已写条数 |
 | maintain --apply 修不掉 (断链 / 降级后仍超) | 入 unfixed_links / needs_main 报具体项 | 不静默, 报告待人判                                 |
-| auto-fix 遇断链                             | 入 unfixed_links 只报告                | 禁自动改任一头, needs_main 标「断链需人判」        |
+| auto-fix 遇断链                             | 入 unfixed_links 只报告                | 改哪头归人判, needs_main 标「断链需人判」           |
 | 降级后 always 页仍超预算                    | 继续把次高复用规则降 always→auto       | 仍超 → needs_main 标「always 页超预算需人工重组」  |
 | 全库动作 (reconstruct) 未获同意             | needs_main 标「待用户同意」, 不执行    | 只出体检报告, 不动盘                               |
