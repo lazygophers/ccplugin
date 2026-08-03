@@ -2,7 +2,7 @@
   "id": "cli-typer-migration",
   "name": "CLI 迁移 Typer",
   "desc": "把 skein CLI 从 argparse 全量迁移到 Typer 框架",
-  "status": "finishing",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -93,7 +93,7 @@
   "confirmed": 1785679049,
   "checked": 1785681132,
   "checked_end": 1785681309,
-  "finished": null,
-  "updated": 1785681309,
+  "finished": 1785749489,
+  "updated": 1785749489,
   "confirmed_by": "user"
 }

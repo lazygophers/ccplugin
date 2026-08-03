@@ -17,7 +17,7 @@
     },
     {
       "id": "cli-typer-migration",
-      "status": "finishing",
+      "status": "done",
       "deps": [],
       "priority": "normal",
       "worktree": null,
@@ -28,7 +28,7 @@
       "started": 1785679049,
       "checked": 1785681132,
       "checked_end": 1785681309,
-      "finished": null
+      "finished": 1785749489
     }
   ]
 }

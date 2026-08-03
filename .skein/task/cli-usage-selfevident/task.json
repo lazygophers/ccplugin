@@ -43,11 +43,11 @@
         "无形态残留裸参数名"
       ],
       "acceptance_done": [],
-      "status": "pending",
+      "status": "running",
       "phase": "exec",
       "skills": [],
       "created": 1785748172,
-      "started": null,
+      "started": 1785749402,
       "finished": null
     },
     {
@@ -86,7 +86,7 @@
   "checked": null,
   "checked_end": null,
   "finished": null,
-  "updated": 1785748754,
+  "updated": 1785749402,
   "timeline": [
     {
       "kind": "task",
@@ -109,6 +109,14 @@
       "status": "running",
       "at": 1785748417,
       "sid": "help-text",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "running",
+      "at": 1785749402,
+      "sid": "docs-forms",
       "note": "",
       "rollback": false
     }
