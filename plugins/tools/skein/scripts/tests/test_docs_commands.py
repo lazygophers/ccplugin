@@ -40,14 +40,16 @@ CMD_RE = re.compile(
 def _commands_from_help(text: str) -> list[str]:
     out, started = [], False
     for ln in text.splitlines():
-        if "<command>" in ln or " Commands " in ln:
+        # rich 关掉时 (cli.py 的 rich_markup_mode=None) typer 回落 click 纯文本, 段标题是行首
+        # `Commands:` 而非 `╭─ Commands ─╮` —— 两种都得认, 否则解析出空表, 全仓命令一律被判「不存在」。
+        if "<command>" in ln or " Commands " in ln or ln.rstrip() == "Commands:":
             started = True
             continue
         if not started:
             continue
-        if " Options " in ln or ln.strip().startswith(("options:", "optional", "╰")):
+        if " Options " in ln or ln.strip().startswith(("options:", "Options:", "optional", "╰")):
             break
-        # Typer rich: `│ init              ...`; argparse: `    init              ...`。
+        # Typer rich: `│ init              ...`; click 纯文本/argparse: `    init              ...`。
         m = re.match(r"^\s*(?:│\s*)?([a-z][a-z0-9\-_]*)(?:\s{2,}|$)", ln)
         if m:
             out.append(m.group(1))

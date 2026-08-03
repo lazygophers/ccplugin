@@ -14,7 +14,7 @@ from types import SimpleNamespace
 from typing import Annotated, Any, Optional
 
 try:
-    import typer  # type: ignore[import-not-found]
+    import typer
 except ModuleNotFoundError:
     if os.environ.get("SKEIN_TYPER_BOOTSTRAPPED") != "1":
         env = dict(os.environ, SKEIN_TYPER_BOOTSTRAPPED="1")
@@ -29,6 +29,7 @@ app = typer.Typer(
     help="SKEIN 任务管理引擎 — task 生命周期 + 看板 + 契约\n\n生命周期: init → create → (research ⇄ plan) → confirm(吸收 start) → check → finishing → finish → archive",
     no_args_is_help=True,
     add_completion=False,
+    rich_markup_mode=None,  # docstring 里 [sid] 会被 rich 当样式标签吃掉, 关掉 markup 保留原文
 )
 config_app = typer.Typer(help="读写 .skein/config.yaml 配置", invoke_without_command=True)
 prd_app = typer.Typer(help="读/写/追加/勾选 prd 章节 (目标/边界/验收标准)")
@@ -359,9 +360,16 @@ def subtask(
 
     用法: subtask <action> <tid> [sid]
 
-    action: add(→待处理) / claim(ready→运行中, 批量) / start(待处理·失败→运行中, 单个) /
-    done(运行中→已完成) / fail(运行中→失败) / check(勾验收, 不改状态) /
-    ready(只读预览) / show(单条详情) / list(全表)
+    \b
+    add   <tid> <sid> --name <str> --desc <str> --estimate <num> [--deps] [--skills]  登记→待处理
+    claim <tid>                                                                         批量 ready→运行中
+    start <tid> <sid>                                                                   单个 待处理/失败→运行中
+    done  <tid> <sid> [--passed]                                                        运行中→已完成
+    fail  <tid> <sid> [--note]                                                          运行中→失败
+    check <tid> <sid> [--check]                                                         勾验收, 不改状态
+    ready <tid>                                                                         只读预览
+    show  <tid> <sid>                                                                   单条详情
+    list  <tid>                                                                         全表
     """
     args = list(ctx.args)
     if len(args) < 2 or len(args) > 3:

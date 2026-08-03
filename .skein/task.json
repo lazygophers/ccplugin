@@ -1,6 +1,21 @@
 {
   "tasks": [
     {
+      "id": "cli-usage-selfevident",
+      "status": "active",
+      "deps": [],
+      "priority": "normal",
+      "worktree": null,
+      "parent": null,
+      "kind": "task",
+      "created": 1785748137,
+      "confirmed": 1785748417,
+      "started": 1785748417,
+      "checked": null,
+      "checked_end": null,
+      "finished": null
+    },
+    {
       "id": "cli-typer-migration",
       "status": "finishing",
       "deps": [],
@@ -14,51 +29,6 @@
       "checked": 1785681132,
       "checked_end": 1785681309,
       "finished": null
-    },
-    {
-      "id": "agents-positive",
-      "status": "done",
-      "deps": [],
-      "priority": "normal",
-      "worktree": null,
-      "parent": null,
-      "kind": "task",
-      "created": 1785736306,
-      "confirmed": 1785737132,
-      "started": 1785737132,
-      "checked": 1785746652,
-      "checked_end": 1785746941,
-      "finished": 1785746983
-    },
-    {
-      "id": "skein-flow-enhance",
-      "status": "done",
-      "deps": [],
-      "priority": "normal",
-      "worktree": null,
-      "parent": null,
-      "kind": "task",
-      "created": 1785668389,
-      "confirmed": 1785668466,
-      "started": 1785668467,
-      "checked": 1785744248,
-      "checked_end": 1785746652,
-      "finished": 1785746746
-    },
-    {
-      "id": "task-timeline",
-      "status": "done",
-      "deps": [],
-      "priority": "normal",
-      "worktree": null,
-      "parent": null,
-      "kind": "task",
-      "created": 1785732858,
-      "confirmed": 1785734041,
-      "started": 1785734041,
-      "checked": 1785742735,
-      "checked_end": 1785743288,
-      "finished": 1785743334
     }
   ]
 }
