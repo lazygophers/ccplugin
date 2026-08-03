@@ -83,13 +83,15 @@
       "acceptance": [
         "详情 JSON 含 timeline 数组"
       ],
-      "acceptance_done": [],
-      "status": "pending",
+      "acceptance_done": [
+        1
+      ],
+      "status": "done",
       "phase": "exec",
       "skills": [],
       "created": 1785733613,
-      "started": null,
-      "finished": null
+      "started": 1785740142,
+      "finished": 1785740805
     },
     {
       "sid": "ui",
@@ -145,6 +147,16 @@
   "checked": null,
   "checked_end": null,
   "finished": null,
-  "updated": 1785740098,
-  "confirmed_by": "user"
+  "updated": 1785740805,
+  "confirmed_by": "user",
+  "timeline": [
+    {
+      "kind": "subtask",
+      "status": "running",
+      "at": 1785740142,
+      "sid": "api",
+      "note": "",
+      "rollback": false
+    }
+  ]
 }
