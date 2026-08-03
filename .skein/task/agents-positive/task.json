@@ -97,11 +97,11 @@
         "test_docs_commands 全绿"
       ],
       "acceptance_done": [],
-      "status": "pending",
+      "status": "running",
       "phase": "exec",
       "skills": [],
       "created": 1785736423,
-      "started": null,
+      "started": 1785742394,
       "finished": null
     }
   ],
@@ -119,7 +119,7 @@
   "checked": null,
   "checked_end": null,
   "finished": null,
-  "updated": 1785742358,
+  "updated": 1785742394,
   "confirmed_by": "user",
   "timeline": [
     {
@@ -145,6 +145,14 @@
       "sid": "dedup",
       "note": "",
       "rollback": true
+    },
+    {
+      "kind": "subtask",
+      "status": "running",
+      "at": 1785742394,
+      "sid": "verify",
+      "note": "",
+      "rollback": false
     }
   ]
 }
