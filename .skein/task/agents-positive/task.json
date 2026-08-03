@@ -2,7 +2,7 @@
   "id": "agents-positive",
   "name": "agent 文档正向化",
   "desc": "9 个 skein agent 文件的否定式描述改写为正向可执行表述, 并去除跨文件重复条目",
-  "status": "active",
+  "status": "check",
   "deps": [],
   "contracts": [
     "转写只改措辞, 禁改工作流步骤/章节结构/frontmatter — diff 只落正文",
@@ -96,13 +96,17 @@
         "grep 残留全在豁免清单",
         "test_docs_commands 全绿"
       ],
-      "acceptance_done": [],
-      "status": "failed",
+      "acceptance_done": [
+        1,
+        2,
+        3
+      ],
+      "status": "done",
       "phase": "exec",
       "skills": [],
       "created": 1785736423,
       "started": 1785742394,
-      "finished": 1785743895,
+      "finished": 1785746646,
       "note": "grep残留核对通过(全部命中在豁免清单)、test_docs_commands.py 3 passed 全绿；但 AI 理解度检查跑不通: 沙盒内嵌套 claude -p --bare 调用持续 ConnectionRefused(含最简单 'say hi' prompt 也失败，跨5次尝试、~8分钟仍复现，非CLAUDE.md所说的端点抖动，疑似沙盒环境无法访问 API 路由/凭证)。需要: main 在具备 API 网络权限的环境里补跑 9 文件×3次 AI 理解度检查这一验收项"
     }
   ],
@@ -117,10 +121,10 @@
   "created": 1785736306,
   "started": 1785737132,
   "confirmed": 1785737132,
-  "checked": null,
+  "checked": 1785746652,
   "checked_end": null,
   "finished": null,
-  "updated": 1785743895,
+  "updated": 1785746652,
   "confirmed_by": "user",
   "timeline": [
     {
@@ -152,6 +156,22 @@
       "status": "running",
       "at": 1785742394,
       "sid": "verify",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "done",
+      "at": 1785746646,
+      "sid": "verify",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "task",
+      "status": "check",
+      "at": 1785746652,
+      "sid": null,
       "note": "",
       "rollback": false
     }

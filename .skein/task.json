@@ -2,7 +2,7 @@
   "tasks": [
     {
       "id": "agents-positive",
-      "status": "active",
+      "status": "check",
       "deps": [],
       "priority": "normal",
       "worktree": null,
@@ -11,22 +11,7 @@
       "created": 1785736306,
       "confirmed": 1785737132,
       "started": 1785737132,
-      "checked": null,
-      "checked_end": null,
-      "finished": null
-    },
-    {
-      "id": "skein-flow-enhance",
-      "status": "check",
-      "deps": [],
-      "priority": "normal",
-      "worktree": ".worktrees/skein-skein-flow-enhance",
-      "parent": null,
-      "kind": "task",
-      "created": 1785668389,
-      "confirmed": 1785668466,
-      "started": 1785668467,
-      "checked": 1785744248,
+      "checked": 1785746652,
       "checked_end": null,
       "finished": null
     },
@@ -44,6 +29,21 @@
       "checked": 1785681132,
       "checked_end": 1785681309,
       "finished": null
+    },
+    {
+      "id": "skein-flow-enhance",
+      "status": "done",
+      "deps": [],
+      "priority": "normal",
+      "worktree": null,
+      "parent": null,
+      "kind": "task",
+      "created": 1785668389,
+      "confirmed": 1785668466,
+      "started": 1785668467,
+      "checked": 1785744248,
+      "checked_end": 1785746652,
+      "finished": 1785746746
     },
     {
       "id": "task-timeline",

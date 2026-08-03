@@ -2,7 +2,7 @@
   "id": "skein-flow-enhance",
   "name": "skein flow 三项增强",
   "desc": "1.前端加finish入口 2.supertask子task全done后自动推进check 3.编排层补全缺plan的待处理task",
-  "status": "check",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -78,15 +78,8 @@
   "priority": "normal",
   "estimate": 3.5,
   "repos": [],
-  "worktree": ".worktrees/skein-skein-flow-enhance",
-  "worktrees": [
-    {
-      "repo": ".",
-      "wt": ".worktrees/skein-skein-flow-enhance",
-      "branch": "skein/skein-flow-enhance",
-      "merged": false
-    }
-  ],
+  "worktree": null,
+  "worktrees": [],
   "branch": "skein/skein-flow-enhance",
   "parent": null,
   "kind": "task",
@@ -94,9 +87,9 @@
   "started": 1785668467,
   "confirmed": 1785668466,
   "checked": 1785744248,
-  "checked_end": null,
-  "finished": null,
-  "updated": 1785744248,
+  "checked_end": 1785746652,
+  "finished": 1785746746,
+  "updated": 1785746746,
   "confirmed_by": "user",
   "timeline": [
     {
@@ -119,6 +112,14 @@
       "kind": "task",
       "status": "check",
       "at": 1785744248,
+      "sid": null,
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "task",
+      "status": "finishing",
+      "at": 1785746652,
       "sid": null,
       "note": "",
       "rollback": false
