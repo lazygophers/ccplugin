@@ -47,11 +47,11 @@
         "pytest 410 passed/0 failed"
       ],
       "acceptance_done": [],
-      "status": "pending",
+      "status": "running",
       "phase": "exec",
       "skills": [],
       "created": 1785755279,
-      "started": null,
+      "started": 1785760237,
       "finished": null
     }
   ],
@@ -69,7 +69,7 @@
   "checked": null,
   "checked_end": null,
   "finished": null,
-  "updated": 1785760203,
+  "updated": 1785760237,
   "timeline": [
     {
       "kind": "task",
@@ -100,6 +100,14 @@
       "status": "done",
       "at": 1785760203,
       "sid": "backoff",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "running",
+      "at": 1785760237,
+      "sid": "verify",
       "note": "",
       "rollback": false
     }

@@ -1,10 +1,10 @@
 auto_commit: true
 retain_days: 7
 pools:
-  work: 2
-  gate: 3
+  work: 3
+  gate: 2
 worktree:
-  enabled: false
+  enabled: true
   root: .worktrees
 web:
   serve: true

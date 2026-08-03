@@ -46,6 +46,23 @@
       "finished": null
     },
     {
+      "id": "prd-write-only-via-cli",
+      "status": "pending",
+      "deps": [
+        "hooks-one-file-per-hook"
+      ],
+      "priority": "normal",
+      "worktree": null,
+      "parent": null,
+      "kind": "task",
+      "created": 1785760602,
+      "confirmed": null,
+      "started": null,
+      "checked": null,
+      "checked_end": null,
+      "finished": null
+    },
+    {
       "id": "cli-typer-migration",
       "status": "done",
       "deps": [],

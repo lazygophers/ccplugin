@@ -1,34 +1,20 @@
-"""工具层守门 —— 放行 / 硬阻 / 竞态拦截 / 报错引导。
+"""guard hook —— 硬阻直接读写 task.json/task.md + trellis 未初始化迁移门 + fileMatch 注入
+(原 guard-skein.py)。
 
-四个子命令共一个模块, 因为它们是同一件事的四个面: **AI 与 .skein/ 之间那道边界**。
-permission 放行边界内的常规操作, guard 硬阻边界内的管理文件, batch 拦并发写, report 在
-边界内的脚本炸了时给上下文。改动其一常要顺手看另外三个, 放一起省得跨文件对齐。
-
-阻断语义: 只有 `guard` 会返回 2 (真阻断), 其余一律返回 0 —— 打断的是用户每一次对话。
+阻断语义: 本 hook 是四个 gate 面里唯一会返回 2 (真阻断) 的 —— 打断的是用户每一次对话。
 """
 from __future__ import annotations
 
 import fnmatch
 import json
 import os
-import re
 import sys
 from pathlib import Path
 from typing import Any
 
-from skeinlib.hooks.util import git_root
+from skeinlib.hooks.util import BLOCKED, git_root
 
-BLOCKED = {"task.json", "task.md"}  # 脚本管理文件, 归 guard, 不由 permission 放行
-ENGINE = ("skein.py", "spec.py", "skein ", "skein-spec ")
 GATED = {"Read", "Edit", "Write", "MultiEdit"}
-# 改 .skein 共享状态的子命令 (写 task.json / spec / 看板); 只读命令不在列
-WRITE_CMDS = ("create", "confirm", "research", "plan", "check", "finishing", "finish", "archive", "subtask",
-              "sediment", "reindex", "init", "contract")
-ENGINE_RE = re.compile(r"(?:skein\.py|spec\.py|\bskein\b|\bskein-spec\b)\s+([a-z-]+)")
-ISSUE_URL = "https://github.com/lazygophers/ccplugin/issues/new"
-OURS = ("skein.py", "spec.py", "CLAUDE_PLUGIN_ROOT")
-# bin 短命令: 作为命令词出现 (行首或分隔符后), 避免 `.skein/` 之类路径误匹配
-BIN_RE = re.compile(r"(?:^|[\s;&|(])(?:skein-spec|skein)(?:\s|$)")
 
 
 # ── fileMatch 注入辅助函数 ───────────────────────────────────────────────────
@@ -143,28 +129,6 @@ def _inject_filematch_context(file_path: str, workspace_root: str) -> str:
     return "\n\n".join(matched_bodies)
 
 
-# ── permission (原 allow-skein.py) ──────────────────────────────────────────
-def cmd_permission(d: dict[str, Any]) -> int:
-    """.skein/ 自有内容操作默认同意 (allow 不覆盖 deny, 也不放宽 guard 的 PreToolUse 阻断)。"""
-    def _allow() -> None:
-        print(json.dumps({"hookSpecificOutput": {
-            "hookEventName": "PermissionRequest",
-            "decision": {"behavior": "allow"}}}))
-
-    tool = d.get("tool_name", "")
-    ti = d.get("tool_input", {})
-    if tool == "Bash":
-        if any(k in ti.get("command", "") for k in ENGINE):
-            _allow()
-        return 0
-    if tool in ("Edit", "Write", "Read"):
-        fp = ti.get("file_path", "")
-        parts = fp.replace("\\", "/").split("/")
-        if ".skein" in parts and os.path.basename(fp) not in BLOCKED:
-            _allow()
-    return 0
-
-
 # ── guard (原 guard-skein.py) ───────────────────────────────────────────────
 def cmd_guard(d: dict[str, Any]) -> int:
     """硬阻直接读写 task.json/task.md + trellis 未初始化迁移门 + fileMatch 注入。"""
@@ -216,60 +180,4 @@ def cmd_guard(d: dict[str, Any]) -> int:
             import traceback
             traceback.print_exc(file=sys.stderr)  # 调试输出
 
-    return 0
-
-
-# ── batch (原 batch-skein.py) ───────────────────────────────────────────────
-def _is_write(cmd: str) -> bool:
-    m = ENGINE_RE.search(cmd)
-    return bool(m and m.group(1) in WRITE_CMDS)
-
-
-def cmd_batch(d: dict[str, Any]) -> int:
-    """拦同批 ≥2 个 .skein 状态写命令 (同写 task.json/spec 有竞态)。"""
-    writes = [u for u in d.get("tool_uses", [])
-              if u.get("tool_name") == "Bash" and _is_write(u.get("tool_input", {}).get("command", ""))]
-    if len(writes) < 2:
-        return 0
-    cmds = "; ".join(u.get("tool_input", {}).get("command", "")[:60] for u in writes)
-    reason = (f"并行批含 {len(writes)} 个 .skein 状态写命令 ({cmds}) — 同写 task.json/spec 有竞态, "
-              "后写覆盖前写。改为串行: 一个命令一个回合, 或用 `subtask claim` 一次性认领整批。")
-    print(json.dumps({"decision": "block", "reason": reason,
-                      "hookSpecificOutput": {"hookEventName": "PostToolBatch",
-                                             "additionalContext": reason}}))
-    return 0
-
-
-# ── report (原 report-skein.py) ─────────────────────────────────────────────
-# 「非零退出」有两种, 待遇必须不同:
-#   ① 门拒绝 —— `confirm` 少 --approved、`start` 前置未完成、task 不存在……
-#      引擎主动 `raise SkeinError`, 入口转成 `SystemExit(str(e))`, stderr 只有一行人话。
-#      **这是功能正常工作**, 报「疑似插件 bug 请开 issue」纯属噪声, 还会教坏调用方
-#      (每撞一次门就想去提 issue, 而不是照错误提示补参数)。
-#   ② 真崩 —— 未捕获异常, stderr 带 `Traceback (most recent call last):`。这个才值得报。
-# 判据就用 traceback 标记本身: 引擎的错误路径从不打印 traceback, 打印了就是没接住。
-_TRACEBACK_MARK = "Traceback (most recent call last)"
-
-
-def cmd_report(d: dict[str, Any]) -> int:
-    """本插件脚本失败时注入错误上下文; **仅真崩溃 (带 traceback) 才引导开 issue**。"""
-    cmd = d.get("tool_input", {}).get("command", "")
-    if not (any(k in cmd for k in OURS) or BIN_RE.search(cmd)):
-        return 0
-    err = (d.get("tool_error", "") or "").strip()[:800]  # 截断防上下文膨胀
-    crashed = _TRACEBACK_MARK in err
-    out: dict[str, Any] = {}
-    if crashed:
-        out["hookSpecificOutput"] = {"hookEventName": "PostToolUseFailure", "additionalContext": (
-            f"SKEIN 脚本崩溃 (未捕获异常):\n命令: {cmd[:200]}\n错误: {err}\n"
-            "这不是参数问题 — 引擎的门拒绝只出一行人话, 出 traceback 说明有异常没接住。")}
-        out["systemMessage"] = (
-            f"⚠️ SKEIN 脚本崩溃 (traceback), 疑似插件 bug 请手动开 issue: {ISSUE_URL} "
-            "(附命令+错误+复现步骤)")
-    else:
-        # 门拒绝: 只把错误原文递给调用方, 让它照提示改参数。不提 issue。
-        out["hookSpecificOutput"] = {"hookEventName": "PostToolUseFailure", "additionalContext": (
-            f"SKEIN 命令被拒 (非崩溃, 属正常校验):\n命令: {cmd[:200]}\n错误: {err}\n"
-            "照错误提示改参数/补前置状态即可 — 这是引擎的门在起作用, 不是 bug。")}
-    print(json.dumps(out))
     return 0

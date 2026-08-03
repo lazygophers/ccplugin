@@ -23,10 +23,10 @@ from skeinlib.hooks.util import load_stdin
 
 # 子命令 → "模块名:函数名" (模块相对 skeinlib.hooks)。**禁改成直接存函数对象** —— 见模块 docstring。
 DISPATCH: dict[str, str] = {
-    "permission": "gate:cmd_permission",
-    "guard": "gate:cmd_guard",
-    "batch": "gate:cmd_batch",
-    "report": "gate:cmd_report",
+    "permission": "permission:cmd_permission",
+    "guard": "guard:cmd_guard",
+    "batch": "batch:cmd_batch",
+    "report": "report:cmd_report",
     "fmt": "postwrite:cmd_fmt",
     "spec-meta": "postwrite:cmd_spec_meta",
     "flow-gate": "postwrite:cmd_flow_gate",

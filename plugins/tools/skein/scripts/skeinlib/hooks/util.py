@@ -10,6 +10,9 @@ import os
 import sys
 from typing import Any, Optional, cast
 
+BLOCKED = {"task.json", "task.md"}  # 脚本管理文件, 归 guard, 不由 permission 放行
+ENGINE = ("skein.py", "spec.py", "skein ", "skein-spec ")
+
 
 def git_root(start: str) -> str:
     """从 start 往上找 .git; 找不到就退回 start 自己 (非 git 目录也得能用)。"""

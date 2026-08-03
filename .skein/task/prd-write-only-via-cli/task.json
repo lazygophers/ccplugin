@@ -1,0 +1,102 @@
+{
+  "id": "prd-write-only-via-cli",
+  "name": "prd 只读, 写入收归 CLI",
+  "desc": "prd.md 禁直接 Edit/Write, 全部写入走 skein prd 命令; 前置缺口: 章节写入白名单只有 目标/边界/验收标准 三章, 而 confirm 门要求七章齐备, 不先扩白名单就会把 prd 变成填不完的死局",
+  "status": "pending",
+  "deps": [
+    "hooks-one-file-per-hook"
+  ],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "sections",
+      "name": "章节写入白名单扩到门要求的全部章节",
+      "desc": "prd 章节写入白名单从三章扩到 confirm 门要求的全部章节 (索引除外), 使 write/add/check 对新开放章节可用; 用户故事那章的固定编号格式不得被折成勾选条目; 写不存在的章节名要报错并列出合法章节名。先扩写入路径再上锁, 顺序不可颠倒。",
+      "estimate": 1.0,
+      "depends_on": [],
+      "acceptance": [
+        "门要求的每章都可 write 与 add",
+        "索引章节不开放",
+        "用户故事写入后保持编号格式",
+        "错章节名报错含合法章节清单"
+      ],
+      "acceptance_done": [],
+      "status": "pending",
+      "phase": "exec",
+      "skills": [],
+      "created": 1785760766,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "lock",
+      "name": "prd 加入拦截名单并给指路文案",
+      "desc": "把 prd 文件加入拦截层既有的脚本管理文件名单 (复用同一份名单与同一处判断, 禁另起一套), 使编辑类工具调用被硬阻、授权层不放行; 拦截文案必须给出可照抄的替代命令形态且与真实 CLI 一致; 读操作不受影响; 引擎内部写盘不受影响。",
+      "estimate": 1.0,
+      "depends_on": [
+        "sections"
+      ],
+      "acceptance": [
+        "编辑类调用被拦且文案含可照抄命令",
+        "读放行",
+        "引擎生成模板不受影响",
+        "复用既有名单无第二套实现"
+      ],
+      "acceptance_done": [],
+      "status": "pending",
+      "phase": "exec",
+      "skills": [],
+      "created": 1785760766,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "verify",
+      "name": "端到端无死角验证与回归",
+      "desc": "在临时工作区从建任务跑到 confirm 过门, 全程只用 CLI 填章节, 证明七章无死角; 构造编辑类与读类工具载荷各一, 验证拦与放; 跑全量 pytest 与文档命令扫描 (拦截文案属会被照抄执行的文本, 须纳入同类校验)。",
+      "estimate": 1.0,
+      "depends_on": [
+        "sections",
+        "lock"
+      ],
+      "acceptance": [
+        "临时工作区七章全填得进且 confirm 过门",
+        "编辑被拦读被放行",
+        "拦截文案命令有效",
+        "pytest 410 passed/0 failed"
+      ],
+      "acceptance_done": [],
+      "status": "pending",
+      "phase": "exec",
+      "skills": [],
+      "created": 1785760767,
+      "started": null,
+      "finished": null
+    }
+  ],
+  "priority": "normal",
+  "estimate": 3.0,
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/prd-write-only-via-cli",
+  "parent": null,
+  "kind": "task",
+  "created": 1785760602,
+  "started": null,
+  "confirmed": null,
+  "checked": null,
+  "checked_end": null,
+  "finished": null,
+  "updated": 1785760767,
+  "timeline": [
+    {
+      "kind": "task",
+      "status": "pending",
+      "at": 1785760602,
+      "sid": null,
+      "note": "",
+      "rollback": false
+    }
+  ]
+}

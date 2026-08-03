@@ -24,10 +24,10 @@ from conftest import SCRIPTS  # noqa: E402
 # 每个子命令**允许**加载的 skeinlib.hooks 子模块 (cli/util 是分发骨架, 人人都要)
 BASE = {"skeinlib.hooks", "skeinlib.hooks.cli", "skeinlib.hooks.util"}
 EXPECTED: dict[str, set[str]] = {
-    "permission": BASE | {"skeinlib.hooks.gate"},
-    "guard": BASE | {"skeinlib.hooks.gate"},
-    "batch": BASE | {"skeinlib.hooks.gate"},
-    "report": BASE | {"skeinlib.hooks.gate"},
+    "permission": BASE | {"skeinlib.hooks.permission"},
+    "guard": BASE | {"skeinlib.hooks.guard"},
+    "batch": BASE | {"skeinlib.hooks.batch"},
+    "report": BASE | {"skeinlib.hooks.report"},
     "fmt": BASE | {"skeinlib.hooks.postwrite"},
     "spec-meta": BASE | {"skeinlib.hooks.postwrite"},
     "flow-gate": BASE | {"skeinlib.hooks.postwrite"},
