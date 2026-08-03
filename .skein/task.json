@@ -32,7 +32,7 @@
     },
     {
       "id": "live-ws-backoff",
-      "status": "check",
+      "status": "finishing",
       "deps": [],
       "priority": "normal",
       "worktree": null,
@@ -42,7 +42,7 @@
       "confirmed": 1785760055,
       "started": 1785760055,
       "checked": 1785761399,
-      "checked_end": null,
+      "checked_end": 1785761819,
       "finished": null
     },
     {

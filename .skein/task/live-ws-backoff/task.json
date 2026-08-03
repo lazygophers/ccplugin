@@ -2,7 +2,7 @@
   "id": "live-ws-backoff",
   "name": "WS 重连指数退避",
   "desc": "前端 live WS 断线后固定 2s 无限重连 (lib/live.ts:70), 服务端长时间不可用时形成恒定频率请求风暴, 多标签页叠加更甚; 改为指数退避 + 上限 + 抖动, 连上后重置",
-  "status": "check",
+  "status": "finishing",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -71,9 +71,9 @@
   "started": 1785760055,
   "confirmed": 1785760055,
   "checked": 1785761399,
-  "checked_end": null,
+  "checked_end": 1785761819,
   "finished": null,
-  "updated": 1785761399,
+  "updated": 1785761819,
   "timeline": [
     {
       "kind": "task",
@@ -127,6 +127,14 @@
       "kind": "task",
       "status": "check",
       "at": 1785761399,
+      "sid": null,
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "task",
+      "status": "finishing",
+      "at": 1785761819,
       "sid": null,
       "note": "",
       "rollback": false
