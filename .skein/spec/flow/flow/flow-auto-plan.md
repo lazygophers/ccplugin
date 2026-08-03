@@ -3,7 +3,7 @@ title: flow-auto-plan
 category: flow
 keywords: []
 status: active
-inclusion: always
+inclusion: auto
 ---
 
 ## flow 编排层补 plan 缺失

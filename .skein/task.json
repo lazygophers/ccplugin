@@ -1,21 +1,6 @@
 {
   "tasks": [
     {
-      "id": "agents-positive",
-      "status": "check",
-      "deps": [],
-      "priority": "normal",
-      "worktree": null,
-      "parent": null,
-      "kind": "task",
-      "created": 1785736306,
-      "confirmed": 1785737132,
-      "started": 1785737132,
-      "checked": 1785746652,
-      "checked_end": null,
-      "finished": null
-    },
-    {
       "id": "cli-typer-migration",
       "status": "finishing",
       "deps": [],
@@ -29,6 +14,21 @@
       "checked": 1785681132,
       "checked_end": 1785681309,
       "finished": null
+    },
+    {
+      "id": "agents-positive",
+      "status": "done",
+      "deps": [],
+      "priority": "normal",
+      "worktree": null,
+      "parent": null,
+      "kind": "task",
+      "created": 1785736306,
+      "confirmed": 1785737132,
+      "started": 1785737132,
+      "checked": 1785746652,
+      "checked_end": 1785746941,
+      "finished": 1785746983
     },
     {
       "id": "skein-flow-enhance",

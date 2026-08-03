@@ -3,7 +3,7 @@ title: supertask-auto-check
 category: flow
 keywords: []
 status: active
-inclusion: always
+inclusion: auto
 ---
 
 ## supertask child 全 done 自动进 check

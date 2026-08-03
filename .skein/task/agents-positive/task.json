@@ -2,7 +2,7 @@
   "id": "agents-positive",
   "name": "agent 文档正向化",
   "desc": "9 个 skein agent 文件的否定式描述改写为正向可执行表述, 并去除跨文件重复条目",
-  "status": "check",
+  "status": "done",
   "deps": [],
   "contracts": [
     "转写只改措辞, 禁改工作流步骤/章节结构/frontmatter — diff 只落正文",
@@ -122,9 +122,9 @@
   "started": 1785737132,
   "confirmed": 1785737132,
   "checked": 1785746652,
-  "checked_end": null,
-  "finished": null,
-  "updated": 1785746652,
+  "checked_end": 1785746941,
+  "finished": 1785746983,
+  "updated": 1785746983,
   "confirmed_by": "user",
   "timeline": [
     {
@@ -171,6 +171,14 @@
       "kind": "task",
       "status": "check",
       "at": 1785746652,
+      "sid": null,
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "task",
+      "status": "finishing",
+      "at": 1785746941,
       "sid": null,
       "note": "",
       "rollback": false
