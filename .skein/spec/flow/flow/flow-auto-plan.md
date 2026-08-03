@@ -1,12 +1,10 @@
 ---
 title: flow-auto-plan
 category: flow
-keywords: []
+keywords: [补plan, plan产物, pending, 清空模式, prd未填, 无subtask, estimate, 自动规划]
 status: active
 inclusion: auto
 ---
-
-## flow 编排层补 plan 缺失
 
 ## flow 编排层补 plan 缺失
 
@@ -39,5 +37,5 @@ flow 主循环在发现上述条件时，自动补全 plan 流程：
 - 不改变 brainstorm/grill 的深度思考过程，仅补最小可行的 plan 框架
 
 ### 关联规则
-[[flow/flow-loop.md#主循环骨架#pending 三分路]]
-[[flow/flow-loop.md#状态模型#task 状态]]
+`plugins/tools/skein/skills/skein-flow/references/flow-loop.md` — §3 主循环骨架 (pending 三分路) / §1.1 task 状态。
+写成路径而非 wikilink: flow-loop 是仓库 skill 文档, spec 库无同名条目, wikilink 解析不到。
