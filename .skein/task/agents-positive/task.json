@@ -97,12 +97,13 @@
         "test_docs_commands 全绿"
       ],
       "acceptance_done": [],
-      "status": "running",
+      "status": "failed",
       "phase": "exec",
       "skills": [],
       "created": 1785736423,
       "started": 1785742394,
-      "finished": null
+      "finished": 1785743895,
+      "note": "grep残留核对通过(全部命中在豁免清单)、test_docs_commands.py 3 passed 全绿；但 AI 理解度检查跑不通: 沙盒内嵌套 claude -p --bare 调用持续 ConnectionRefused(含最简单 'say hi' prompt 也失败，跨5次尝试、~8分钟仍复现，非CLAUDE.md所说的端点抖动，疑似沙盒环境无法访问 API 路由/凭证)。需要: main 在具备 API 网络权限的环境里补跑 9 文件×3次 AI 理解度检查这一验收项"
     }
   ],
   "priority": "normal",
@@ -119,7 +120,7 @@
   "checked": null,
   "checked_end": null,
   "finished": null,
-  "updated": 1785742394,
+  "updated": 1785743895,
   "confirmed_by": "user",
   "timeline": [
     {

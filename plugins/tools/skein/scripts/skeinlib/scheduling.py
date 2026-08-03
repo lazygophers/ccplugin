@@ -226,15 +226,22 @@ class Scheduler:
         to_finishing: list[dict[str, Any]] = []
         # 不能用 self.ws.store.active(): STATUS_ACTIVE = {进行中,调研中,收尾中} 不含「检查中」
         # (model.py:22) —— 用它会让下面的「检查中→收尾中」这一路永远遍历不到, 变成死代码。
-        for t in self.ws.store.all_tasks():
+        all_tasks = self.ws.store.all_tasks()
+        for t in all_tasks:
             if t["status"] not in (TaskStatus.ACTIVE, TaskStatus.CHECK):
                 continue
-            subs = t.get("subtasks", [])
-            if not subs:
-                continue
-            all_done = all(s["status"] == SubtaskStatus.DONE for s in subs)
-            if not all_done:
-                continue
+            if t.get("kind") == "supertask":
+                # supertask 聚合层无自身 subtask, 就绪门换成「全部 child task done」(与 finish
+                # 聚合归档门 lifecycle.py:452 同一套 parent==tid 判定, 只是提前到 check 这关)。
+                children = [c for c in all_tasks if c.get("parent") == t["id"]]
+                if not children or not all(c["status"] == TaskStatus.DONE for c in children):
+                    continue
+            else:
+                subs = t.get("subtasks", [])
+                if not subs:
+                    continue
+                if not all(s["status"] == SubtaskStatus.DONE for s in subs):
+                    continue
             if t["status"] == TaskStatus.ACTIVE:
                 to_check.append(t)
             elif t["status"] == TaskStatus.CHECK:

@@ -169,6 +169,36 @@ def test_finish_aggregate_guard(skein_cli: SkeinCli, ws: Path) -> None:
     assert _task(ws, "epic-1")["status"] == TaskStatus.DONE, "super finish 未置 done"
 
 
+# ---------- 8b. child 全 done 后 supertask 自动 check ----------
+def test_supertask_auto_check_when_children_all_done(skein_cli: SkeinCli, ws: Path) -> None:
+    """`claim check` (scheduling._check_candidates): supertask 进行中 + 全部 child done → 自动
+    推进检查中 (无 child/未全 done 都不动, 见 skeinlib/scheduling.py Scheduler._check_candidates)。"""
+    skein_cli(ws, "create", "epic-1", "--name", "聚合", "--desc", "d", "--kind", "supertask")
+    skein_cli(ws, "create", "child-a", "--name", "子A", "--desc", "d", "--parent", "epic-1")
+
+    # supertask 自身无 subtask, confirm 门过不了 — 直接置进行中模拟人工推进过的场景
+    se = _task(ws, "epic-1")
+    se["status"] = TaskStatus.ACTIVE
+    _write_task(ws, "epic-1", se)
+    skein_cli(ws, "board")
+
+    # child 未全 done: claim check 不应把 supertask 收进检查中
+    r1 = skein_cli(ws, "claim", "check")
+    assert json.loads(r1.stdout).get("checked", []) == [], "child 未 done 不该提前自动 check"
+    assert _task(ws, "epic-1")["status"] == TaskStatus.ACTIVE
+
+    # child 全 done
+    ca = _task(ws, "child-a")
+    ca["status"] = TaskStatus.DONE
+    _write_task(ws, "child-a", ca)
+    skein_cli(ws, "board")
+
+    r2 = skein_cli(ws, "claim", "check")
+    data2 = json.loads(r2.stdout)
+    assert "epic-1" in data2.get("checked", []), f"child 全 done 后 supertask 未自动 check: {data2}"
+    assert _task(ws, "epic-1")["status"] == TaskStatus.CHECK, "supertask 未推进检查中"
+
+
 # ---------- 9. 最新 task.json schema ----------
 def test_task_json_schema_fields(skein_cli: SkeinCli, ws: Path) -> None:
     """create 写入最新 parent/kind/status schema。"""

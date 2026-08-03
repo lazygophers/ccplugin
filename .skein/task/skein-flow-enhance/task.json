@@ -41,13 +41,16 @@
         "supertask child 全 done 后自动 check",
         "pytest 通过"
       ],
-      "acceptance_done": [],
-      "status": "running",
+      "acceptance_done": [
+        1,
+        2
+      ],
+      "status": "done",
       "phase": "exec",
       "skills": [],
       "created": 1785668413,
       "started": 1785668818,
-      "finished": 1785741803,
+      "finished": 1785744097,
       "note": "跨会话孤儿, 无存活 agent, 复位待重派"
     },
     {
@@ -93,7 +96,7 @@
   "checked": null,
   "checked_end": null,
   "finished": null,
-  "updated": 1785743432,
+  "updated": 1785744097,
   "confirmed_by": "user",
   "timeline": [
     {
