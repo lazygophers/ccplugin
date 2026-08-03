@@ -47,7 +47,7 @@ skein list --status open --json | jq -c '[.[] | {id,status,name,desc,deps}]'
 
 ```bash
 skein subtask list <次-id>                                   # 先读全量再迁, 迁移只依据当次 Read 结果
-skein subtask add <主-id> <sid> --name "..." --desc "..."
+skein subtask add <主-id> <sid> --name "..." --desc "..." --estimate <小时数>
 skein del <次-id>
 ```
 

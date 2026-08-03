@@ -8,7 +8,7 @@ SKEIN 只认显式依赖边，不推测隐式顺序。
 
 | 层级 | 字段 | 登记位置 | 登记命令 |
 |---|---|---|---|
-| subtask | `depends_on` | per-task `task.json` 的 `subtasks[].depends_on` | `skein subtask add --deps <sid1>,<sid2>` |
+| subtask | `depends_on` | per-task `task.json` 的 `subtasks[].depends_on` | `skein subtask add <tid> <sid> --name <str> --desc <str> --estimate <小时> --deps <sid1>,<sid2>` |
 | task | `deps` | 顶层 task 索引 | `skein create --deps <tid1>,<tid2>` |
 
 `A --deps B` = A 依赖 B，B done 后 A 才 ready。规矩：

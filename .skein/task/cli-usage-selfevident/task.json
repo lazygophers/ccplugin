@@ -42,13 +42,17 @@
         "抽查 5 条命令形态与 --help 必填项一致",
         "无形态残留裸参数名"
       ],
-      "acceptance_done": [],
-      "status": "running",
+      "acceptance_done": [
+        1,
+        2,
+        3
+      ],
+      "status": "done",
       "phase": "exec",
       "skills": [],
       "created": 1785748172,
       "started": 1785749402,
-      "finished": null
+      "finished": 1785749643
     },
     {
       "sid": "verify",
@@ -86,7 +90,7 @@
   "checked": null,
   "checked_end": null,
   "finished": null,
-  "updated": 1785749402,
+  "updated": 1785749643,
   "timeline": [
     {
       "kind": "task",

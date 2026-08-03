@@ -51,7 +51,7 @@ skein-spec sediment --namespace=<ns> [--inclusion=always|auto] --category=<类�
 ```
 skein create <id> --name "标题" --desc "一句话"                    # 逐个重建
 skein contract <id> --add "契约文本"                                # 迁契约 (每条一次)
-skein subtask add <id> <sid> --name "X" --desc "Y" [--deps a,b] [--check "c1;c2"]   # 迁 subtask
+skein subtask add <id> <sid> --name "X" --desc "Y" --estimate <小时数> [--deps a,b] [--check "c1;c2"]   # 迁 subtask
 ```
 
 - 按 `.trellis/` 原语义逐 task 重建, 契约/subtask 逐条迁入。
