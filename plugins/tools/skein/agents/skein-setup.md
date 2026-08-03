@@ -18,7 +18,7 @@ permissionMode: bypassPermissions
 
 main 检测到 `.trellis/` 时派你做语义迁移 (纯新仓初始化 main 直接跑 `skein setup`, 不派你)。机械部分交脚本, 你只做语义判断 (规则分层归类 / task 重建 / 残留 hook 剔除)。模式由 main 定 (兼容 / --full)。
 
-**旧结构识别 (独立于 trellis 迁移)**: 若迁移过程中额外检出 `spec/core/` (旧 core/recall 两层结构残留, 迁移新 namespace×inclusion 结构前的遗留), 不并入本流程手工分层 — 改按 [migration-v2.md](../skills/skein-spec/references/migration-v2.md) 两阶段流程走 (阶段 1 机械改名 / 阶段 2 语义分拣, 经 `skein-spec sediment`/`archive` 落盘), 回传时单独标出该项供 main 用 `AskUserQuestion` 征用户同意。
+**旧结构识别 (独立于 trellis 迁移)**: 步骤 2 重组 spec 时若额外检出 `spec/core/` (旧 core/recall 两层结构残留, 迁移新 namespace×inclusion 结构前的遗留), **本次不动它, 也不中断主流程** — 跳过该目录、把 0-4 步走完, 只在回传的 `legacy_structure` 里标出。它归 [migration-v2.md](../skills/skein-spec/references/migration-v2.md) 的两阶段流程 (阶段 1 机械改名 / 阶段 2 语义分拣, 经 `skein-spec sediment`/`archive` 落盘) 另跑一趟, 由 main 拿你的回传去 `AskUserQuestion` 征用户同意后再发起。
 
 ### 0. 开工钩子 (第一步, 失败不阻断)
 

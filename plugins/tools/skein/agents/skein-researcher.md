@@ -64,6 +64,9 @@ skein-hooks agent-stop --agent skein-researcher
 
 ### bootstrap 模式 (dispatch 含 `mode=bootstrap`)
 
+**替换步骤 1-3** (本地勘察 / 外部检索 / 落盘) 为下述扫库动作; 步骤 0 开工钩子、步骤 4 回传、步骤 5
+收工钩子照跑不变。无外部检索 (只读本仓代码), 落盘路径也另有专属值, 见末条。
+
 扫代码库提炼既有约定为候选规则:
 
 - 扫五维 (命名 / 错误处理 / 测试 / 架构边界 / 构建), 只提既有约定 (≥2 处一致证据), 命令式化描述, 产 rules namespace 候选。

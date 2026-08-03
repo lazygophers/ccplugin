@@ -12,7 +12,7 @@ background: true
 ## 入参格式 (JSON)
 
 ```json
-{"tid": "<task-id>", "sid": null, "workdir": "<工作目录路径>", "mode": "sediment | reconstruct | maintain | prune | auto-fix"}
+{"tid": "<task-id>", "sid": null, "workdir": "<工作目录路径>", "mode": "sediment | amend | reconstruct | maintain | prune | auto-fix"}
 ```
 
 ## 工作流
@@ -118,7 +118,7 @@ skein-hooks agent-stop --agent skein-specer
 ## 返回数据格式 (JSON)
 
 ```json
-{"mode": "sediment | reconstruct | maintain | prune | auto-fix", "written": [{"slug": "<slug>", "namespace": "<ns>", "inclusion": "always | auto | fileMatch | manual", "category": "<类目>"}], "archived": [{"slug": "<slug>", "reason": "stale | 重复 | 废弃 | 断链 | 降级"}], "amended": [{"topic": "<ns/cat/topic>", "section": "<章节名>", "renamed_to": "<新章节名 | null>"}], "unfixed_links": ["<断链 [[slug]] + 缺失端>"], "needs_main": ["<需 main 介入项, 如全库动作待用户同意>"], "tool_failures": ["[工具失败: <原因>]"]}
+{"mode": "sediment | amend | reconstruct | maintain | prune | auto-fix", "written": [{"slug": "<slug>", "namespace": "<ns>", "inclusion": "always | auto | fileMatch | manual", "category": "<类目>"}], "archived": [{"slug": "<slug>", "reason": "stale | 重复 | 废弃 | 断链 | 降级"}], "amended": [{"topic": "<ns/cat/topic>", "section": "<章节名>", "renamed_to": "<新章节名 | null>"}], "unfixed_links": ["<断链 [[slug]] + 缺失端>"], "needs_main": ["<需 main 介入项, 如全库动作待用户同意>"], "tool_failures": ["[工具失败: <原因>]"]}
 ```
 
 ## 失败模式 (if-then 三段式)

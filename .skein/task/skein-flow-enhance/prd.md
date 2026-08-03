@@ -16,11 +16,11 @@
 3. 作为用户, 我想 skein-flow 清空模式不会跳过缺 plan 的待处理 task, 会自动补 plan
 
 ## 验收标准
-- [ ] task 详情页有 finish 按钮, check 全绿时点击后 task 完成
-- [ ] serve.py 有 POST finish endpoint, 调 skein finish
-- [ ] supertask 的 child 全部 done → supertask 自动 check
-- [ ] flow 全空模式扫到待处理且缺 subtask 的 task → 自动补 plan
-- [ ] 全量测试通过
+- [x] task 详情页有 finish 按钮, check 全绿时点击后 task 完成
+- [x] serve.py 有 POST finish endpoint, 调 skein finish
+- [x] supertask 的 child 全部 done → supertask 自动 check
+- [x] flow 全空模式扫到待处理且缺 subtask 的 task → 自动补 plan
+- [x] 全量测试通过
 
 ## Testing Decisions
 - [ ] serve endpoint: 跟现有 POST endpoint 测试模式一致 (test_serve_routes.py)
