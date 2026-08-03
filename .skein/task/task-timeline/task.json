@@ -42,11 +42,11 @@
         "research→pending 事件带 rollback=true"
       ],
       "acceptance_done": [],
-      "status": "pending",
+      "status": "running",
       "phase": "exec",
       "skills": [],
       "created": 1785733613,
-      "started": null,
+      "started": 1785739071,
       "finished": null
     },
     {
@@ -141,6 +141,6 @@
   "checked": null,
   "checked_end": null,
   "finished": null,
-  "updated": 1785734360,
+  "updated": 1785739071,
   "confirmed_by": "user"
 }

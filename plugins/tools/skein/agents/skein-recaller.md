@@ -43,7 +43,7 @@ skein-spec recall <关键词> [--src rules/product/map/code/all]
 
 ### 3. 回传摘要 (区分 rules / product 命中)
 
-命中项按来源 namespace 分组, 压缩为 path + 要点回传 (main 等此结果进 planning); rules 命中是硬规/经验规则, product 命中是需求现状 wiki 页, 两者语义不同禁混一堆罗列。
+命中项按来源 namespace 分组, 压缩为 path + 要点回传 (main 等此结果进 planning); rules 命中是硬规/经验规则, product 命中是需求现状 wiki 页, 两者语义不同, 分组罗列, 不混一堆。
 
 - 最后跑收工钩子 (失败不阻断, 只记 note):
 
@@ -59,7 +59,7 @@ skein-hooks agent-stop --agent skein-recaller
 🛑 **只召非常驻规则** — `inclusion: always` 已常驻, 再召是重复注入。判据看 frontmatter 的 inclusion, 不看所在目录。
 🛑 **判真相关不硬凑** — 关键词命中但语义不符的丢弃, 无命中如实报。
 🛑 **同步回传** — main 等召回结果进 planning, 非 fire-and-forget。
-🛑 **工具失败必标 `[工具失败: <原因>]`** — CLI 报错禁把空/错当「无相关规则」返回 (main 误判无规则 → 漏注入)。
+🛑 **工具失败必标 `[工具失败: <原因>]`** — CLI 报错时只标 `[工具失败: <原因>]`, 空/错结果不当「无相关规则」返回 (main 误判无规则 → 漏注入)。
 🛑 **公共铁律** (Recursion Guard + 无 AskUser + 无生命周期脚本) 见 core/agent/skein-skill-agent-slim-01。
 
 ## 返回数据格式 (JSON)
@@ -74,5 +74,5 @@ skein-hooks agent-stop --agent skein-recaller
 | ------------------------ | ----------------------------- | ----------------------------------- |
 | `skein-spec recall` 报错 | 退化纯 Grep 各 `<namespace>/index.md` | `[工具失败: <原因>]` + 报 Grep 命中 |
 | 关键词命中但语义不符     | 判真相关, 不符则丢弃          | hits 只留真相关, hit_count 如实     |
-| 无任何命中               | 如实回传 hit_count=0          | 禁硬凑不相关规则充数                |
+| 无任何命中               | 如实回传 hit_count=0          | hit_count 如实, 不为凑数塞入无关规则 |
 | 库为空/未建              | 回传 hit_count=0 + note       | 不报错, 视为无长尾规则              |

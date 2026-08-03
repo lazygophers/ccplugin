@@ -67,7 +67,7 @@ skein-hooks agent-stop --agent skein-researcher
 扫代码库提炼既有约定为候选规则:
 
 - 扫五维 (命名 / 错误处理 / 测试 / 架构边界 / 构建), 只提既有约定 (≥2 处一致证据), 命令式化描述, 产 rules namespace 候选。
-- **第六项 product overview** (与前五维性质不同): 额外扫一遍 `README` / `docs/` / 顶层入口文件, 提炼当前系统是什么 (产品定位/核心功能域/主要用户流程), 产 1 篇 product namespace 现状快照候选 (非规则, 不要求 ≥2 处一致证据); 无 README/docs 可提炼 → 该项留空, 禁硬猜。
+- **第六项 product overview** (与前五维性质不同): 额外扫一遍 `README` / `docs/` / 顶层入口文件, 提炼当前系统是什么 (产品定位/核心功能域/主要用户流程), 产 1 篇 product namespace 现状快照候选 (非规则, 不要求 ≥2 处一致证据); 无 README/docs 可提炼 → 该项留空, 不用硬猜填充。
 - 落盘 `.skein/task/bootstrap/research/conventions.md`; 层判定/取舍归 main+用户。
 
 ## Checkpoints
@@ -77,7 +77,7 @@ skein-hooks agent-stop --agent skein-researcher
 🛑 **结论必落盘 (边研边增量)** — 每主题即时写 research/<topic>.md (过程) + 追加 findings.md (收敛), 非最后一次性; 只回传不落盘 = 素材丢失且逼后续重读 research/。两文件仅真调研时产出。
 🛑 **带来源, 无来源标 `推测:`** — file:line / URL; 区分文档/社区/推断。
 🛑 **不替用户拍板** — 给收敛结论 + 权衡, 选型决策交 main+用户。
-🛑 **工具失败必标 `[工具失败: <原因>]`** — 检索/Fetch 失败禁把空当「无资料」返回 (main 误判无信息)。
+🛑 **工具失败必标 `[工具失败: <原因>]`** — 检索/Fetch 失败时只标 `[工具失败: <原因>]`, 空结果不当「无资料」返回 (main 误判无信息)。
 🛑 **公共铁律** (Recursion Guard + 无 AskUser + 无生命周期脚本) 见 core/agent/skein-skill-agent-slim-01。
 
 ## 返回数据格式 (JSON)

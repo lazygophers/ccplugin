@@ -22,13 +22,17 @@
         "对照表落盘且每条含 why 保留证据",
         "章节结构与 frontmatter 未动"
       ],
-      "acceptance_done": [],
-      "status": "running",
+      "acceptance_done": [
+        1,
+        2,
+        3
+      ],
+      "status": "done",
       "phase": "exec",
       "skills": [],
       "created": 1785736422,
       "started": 1785737132,
-      "finished": null
+      "finished": 1785737990
     },
     {
       "sid": "rest",
@@ -43,13 +47,17 @@
         "措辞与对照表一致",
         "结构未动"
       ],
-      "acceptance_done": [],
-      "status": "pending",
+      "acceptance_done": [
+        1,
+        2,
+        3
+      ],
+      "status": "done",
       "phase": "exec",
       "skills": [],
       "created": 1785736423,
-      "started": null,
-      "finished": null
+      "started": 1785738024,
+      "finished": 1785739050
     },
     {
       "sid": "dedup",
@@ -107,6 +115,6 @@
   "checked": null,
   "checked_end": null,
   "finished": null,
-  "updated": 1785737132,
+  "updated": 1785739050,
   "confirmed_by": "user"
 }

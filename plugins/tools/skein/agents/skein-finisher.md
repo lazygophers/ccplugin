@@ -52,7 +52,7 @@ skein-spec finish-candidates <tid>
 skein finish <tid>
 ```
 
-- **必须在仓库根 (pwd) 跑, 禁在 task worktree 内跑** — `finish` 会合并 worktree 分支回 `self.root` 并 `git worktree remove` 销毁它; 若在 worktree 里跑, 等于销毁自己脚下的目录。
+- **只在仓库根 (pwd) 跑, task worktree 内不跑** — `finish` 会合并 worktree 分支回 `self.root` 并 `git worktree remove` 销毁它; 若在 worktree 里跑, 等于销毁自己脚下的目录。
 - 确保在仓库根的做法: 用 `git -C <仓库根>` 前缀跑, 或 `cd` 前先 `pwd` 确认路径不含 `.skein/worktrees/`(或 config 配置的 worktree_root) 再执行；不确定就用绝对仓库根路径显式指定, 不依赖当前 shell cwd。
 - `finish` 内部: worktree 模式 → 强制 commit (不看 auto_commit) → merge --no-ff → worktree remove → 标记完成; 原地模式 → 才按 auto_commit 决定提不提交。冲突时 `finish` 会保留已合并进度并 raise, 原样上报, 不重跑冲突分支。
 
@@ -76,11 +76,11 @@ main 只在 flow-loop 允许的状态门后派 finish，派发前确认本 task 
 ## Checkpoints
 
 🛑 **开工/收工钩子必跑** — 钩子失败只记 note 不阻断本次作业; 无 hooks 配置时命令 no-op 立即返回。
-🛑 **允许跑 `finish`, 仍禁 `create/start/check/archive`** — 生命周期其余命令归 main。
-🛑 **`skein finish` 必须在仓库根跑** — 禁在 task worktree 内跑, 会自销脚下 worktree。
+🛑 **允许跑 `finish`；`create/start/check/archive` 等生命周期命令归 main**。
+🛑 **`skein finish` 只在仓库根跑** — task worktree 内不跑, 会自销脚下 worktree。
 🛑 **sediment/amend 归 main** — 记忆落盘与 product wiki 回写由 main 派 `skein-specer` agent 处理; 本 agent 只跑 `finish-candidates` 报候选, 无 Agent/Task 派发工具, 不派任何 agent (递归护栏)。
 🛑 **不做验收/完成度核对** — subtask 是否达标全归 check, 本 agent 只勘察 + 清悬挂 + 跑 finish。
-🛑 **工具失败必标 `[工具失败: <原因>]`** — git/skein finish 报错禁静默当「收尾干净」返回。
+🛑 **工具失败必标 `[工具失败: <原因>]`** — git/skein finish 报错时只标 `[工具失败: <原因>]`, 不当「收尾干净」返回。
 🛑 **公共铁律** (Recursion Guard + 无 AskUser) 见 core/agent/skein-skill-agent-slim-01。
 
 ## 返回数据格式 (JSON)

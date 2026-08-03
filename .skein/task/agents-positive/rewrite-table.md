@@ -54,6 +54,17 @@
 | skein-dedup.md L80(改写后) `判不准是否相关` | 「判不准」= 判断不确定/不精准, 非「禁止」义, 命中 grep `不准` 属误报, 不转写 |
 | skein-dedup.md L89 `skipped` JSON 示例字段 `<判不准/CLI 拒 的连法 + 原因>` | 同上, JSON 示例字段值, 非约束句, 误报 |
 
+## skein-executor.md / skein-clean.md / skein-setup.md / skein-researcher.md / skein-recaller.md / skein-finisher.md
+
+范式同上三文件套用, 逐条见各文件 diff。豁免同类误报 (非本任务新增, 沿用上表判据):
+
+| 位置 | 原文 | 理由 |
+|---|---|---|
+| skein-executor.md L94 (失败模式表) | `判不准` | 「判不准」= 判断不确定, 非「禁止」义, grep 误报 |
+| skein-setup.md L90/L92 (失败模式表) | `判不准` / `拿不准` | 同上 |
+| skein-researcher.md L70 | `不要求 ≥2 处一致证据` | 「不要求」= 非必须, 非「不要」义, grep 误报 |
+| skein-executor.md L76 | `(worktree 禁用)` | 陈述 worktree 功能未启用的系统状态, 非对 agent 的禁止指令 |
+
 ## 未改动确认
 
-三文件章节结构 (`##`/`###` 标题) 与 frontmatter 逐字未动, 仅正文措辞替换 (`git diff --stat`: checker +12/-12, specer +6/-6, dedup +5/-5, 无 `#` 行改动)。
+九文件章节结构 (`##`/`###` 标题) 与 frontmatter 逐字未动, 仅正文措辞替换 (`git diff --stat`: checker +12/-12, specer +6/-6, dedup +5/-5, clean +8/-8, executor +6/-6, finisher +4/-4, recaller +3/-3, setup +3/-3, researcher +2/-2, 无 `#`/frontmatter 行改动)。

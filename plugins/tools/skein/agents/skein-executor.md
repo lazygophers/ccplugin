@@ -26,7 +26,7 @@ skein-hooks agent-start --agent skein-executor --tid <tid> --sid <sid>
 
 ### 1. 定工作目录 + 读详情
 
-- **worktree 态** (给的是 task worktree 路径) → 只改该 worktree 内文件, 禁碰主工作区。
+- **worktree 态** (给的是 task worktree 路径) → 只改该 worktree 内文件, 主工作区不在改动范围内。
 - **原地态** (标 worktree=null / 仓库根) → 在仓库根改, 无隔离。
 - 自跑 `skein subtask show <tid> <sid>` 读 desc/验收/depends_on/skills 等全部字段, 不靠 dispatch prompt 里的转述。
 - 需 spec 约定佐证时先 `skein-spec recall <关键词>` (namespace×inclusion 记忆库, 只读)。
@@ -72,13 +72,13 @@ exec 不勾 PRD 验收；正式验收归 check。scope 外问题另建 task，�
 ## Checkpoints
 
 🛑 **开工/收工钩子必跑** — 钩子失败只记 note 不阻断本次作业; 无 hooks 配置时命令 no-op 立即返回。
-🛑 **只改工作目录内文件** — worktree 态禁碰主工作区。
-🛑 **禁全仓回滚命令** — `git reset --hard` / `git reset` / `git clean` / `git stash` / `git checkout .` 一律禁用。原地态 (worktree 禁用) 下同一文件可能有并发或已完成 subtask 的改动, 全仓回滚会静默抹掉它们且无人发现。要撤销自己的改动只准 `git checkout -- <你自己改的具体文件>`, 逐个点名。
+🛑 **只改工作目录内文件** — worktree 态下改动范围止步于该 worktree, 不含主工作区。
+🛑 **撤销改动只准 `git checkout -- <自己改的具体文件>` 逐个点名** — `git reset --hard` / `git reset` / `git clean` / `git stash` / `git checkout .` 不在允许范围内。原地态 (worktree 禁用) 下同一文件可能有并发或已完成 subtask 的改动, 全仓回滚会静默抹掉它们且无人发现。
 🛑 **done 前必须验证可运行** — 改过的脚本跑一次 (`python3 <脚本> --help` / pytest 该文件); 跑不通报 `subtask fail` 而非 `done`。报了 done 却 import 就崩, 会让下游 subtask 基于不存在的符号写代码。
 🛑 **读后写硬门** — 改前先 Read 目标文件。
-🛑 **允许自跑 `subtask done/fail`, 仍禁 `create/start/check/finish/archive`** — 后者归 main。
-🛑 **缺信息标 `需要:` 回传 main 转达, 禁直接问用户** — 无 AskUserQuestion 权限。
-🛑 **工具失败必标 `[工具失败: <原因>]`** — 命令失败/Read 不存在禁当有效结果返回。
+🛑 **允许自跑 `subtask done/fail`；`create/start/check/finish/archive` 等生命周期命令归 main**。
+🛑 **缺信息标 `需要: <问题>` 回传, 问题经 main 转达用户** — 无 AskUserQuestion 权限。
+🛑 **工具失败必标 `[工具失败: <原因>]`** — 命令失败/Read 不存在时, 只把 `[工具失败: <原因>]` 当结果回传——原始错误输出不是有效结果。
 🛑 **公共铁律** (Recursion Guard + 无 AskUser + 生命周期脚本仅限 done/fail) 见 core/agent/skein-skill-agent-slim-01。
 
 ## 返回数据格式 (JSON)

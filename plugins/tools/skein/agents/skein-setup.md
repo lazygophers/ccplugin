@@ -43,7 +43,7 @@ skein-spec sediment --namespace=<ns> [--inclusion=always|auto] --category=<类�
 ```
 
 - `rules` namespace 内 `inclusion=always` 放硬约束, `inclusion=auto` 放长尾; 现状类内容归 `product`, 结构说明归 `map`。旧扁平文件迁完即删, 不留双份。
-- 粒度: 文件夹 = 类目, 文件 = 主题, `## <规则标题>` = 一条规则; 同主题并入同一文件 (禁一规则一文件)。
+- 粒度: 文件夹 = 类目, 文件 = 主题, `## <规则标题>` = 一条规则; 同主题并入同一文件——一规则一文件的粒度不成立。
 - 已有碎片文件批量合并走 `skein-spec restructure --map <plan.json>` (源自动归档, `restore <ts>` 可回滚)。
 
 ### 3. 重建 task
@@ -70,10 +70,10 @@ skein-hooks agent-stop --agent skein-setup
 ## Checkpoints
 
 🛑 **开工/收工钩子必跑** — 钩子失败只记 note 不阻断本次作业; 无 hooks 配置时命令 no-op 立即返回。
-🛑 **机械交脚本, 语义自己判** — 分层归类/task 重建/hook 剔除是语义活, 禁全丢给脚本。
+🛑 **机械交脚本, 语义自己判** — 分层归类/task 重建/hook 剔除是语义活, 只能自己判断, 脚本只管机械部分。
 🛑 **旧文件迁完即删** — spec 扁平旧文件 sediment 后删除, 不留双份污染索引。
 🛑 **模式由 main 定** — 兼容/--full 以 dispatch 为准, 不自行升级 --full。
-🛑 **工具失败必标 `[工具失败: <原因>]`** — setup/create 脚本报错禁当成功继续 (main 消费错误摘要当数据 → 静默降级)。
+🛑 **工具失败必标 `[工具失败: <原因>]`** — setup/create 脚本报错时只标 `[工具失败: <原因>]`, 不当成功继续 (main 消费错误摘要当数据 → 静默降级)。
 🛑 **公共铁律** (Recursion Guard + 无 AskUser + 无生命周期脚本例外 setup 本职) 见 core/agent/skein-skill-agent-slim-01。
 
 ## 返回数据格式 (JSON)
