@@ -1,23 +1,6 @@
 {
   "tasks": [
     {
-      "id": "prd-write-only-via-cli",
-      "status": "finishing",
-      "deps": [
-        "hooks-one-file-per-hook"
-      ],
-      "priority": "normal",
-      "worktree": ".worktrees/skein-prd-write-only-via-cli",
-      "parent": null,
-      "kind": "task",
-      "created": 1785760602,
-      "confirmed": 1785766404,
-      "started": 1785766405,
-      "checked": 1785770643,
-      "checked_end": 1785771430,
-      "finished": null
-    },
-    {
       "id": "readme-broken-links",
       "status": "pending",
       "deps": [],
@@ -153,6 +136,23 @@
       "checked": 1785761399,
       "checked_end": 1785761819,
       "finished": 1785762333
+    },
+    {
+      "id": "prd-write-only-via-cli",
+      "status": "done",
+      "deps": [
+        "hooks-one-file-per-hook"
+      ],
+      "priority": "normal",
+      "worktree": null,
+      "parent": null,
+      "kind": "task",
+      "created": 1785760602,
+      "confirmed": 1785766404,
+      "started": 1785766405,
+      "checked": 1785770643,
+      "checked_end": 1785771430,
+      "finished": 1785771521
     },
     {
       "id": "priority-ui-theme",

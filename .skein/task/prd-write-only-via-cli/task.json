@@ -2,7 +2,7 @@
   "id": "prd-write-only-via-cli",
   "name": "prd 只读, 写入收归 CLI",
   "desc": "prd.md 禁直接 Edit/Write, 全部写入走 skein prd 命令; 前置缺口: 章节写入白名单只有 目标/边界/验收标准 三章, 而 confirm 门要求七章齐备, 不先扩白名单就会把 prd 变成填不完的死局",
-  "status": "finishing",
+  "status": "done",
   "deps": [
     "hooks-one-file-per-hook"
   ],
@@ -109,15 +109,8 @@
   "priority": "normal",
   "estimate": 3.0,
   "repos": [],
-  "worktree": ".worktrees/skein-prd-write-only-via-cli",
-  "worktrees": [
-    {
-      "repo": ".",
-      "wt": ".worktrees/skein-prd-write-only-via-cli",
-      "branch": "skein/prd-write-only-via-cli",
-      "merged": false
-    }
-  ],
+  "worktree": null,
+  "worktrees": [],
   "branch": "skein/prd-write-only-via-cli",
   "parent": null,
   "kind": "task",
@@ -126,8 +119,8 @@
   "confirmed": 1785766404,
   "checked": 1785770643,
   "checked_end": 1785771430,
-  "finished": null,
-  "updated": 1785771431,
+  "finished": 1785771521,
+  "updated": 1785771521,
   "timeline": [
     {
       "kind": "task",
@@ -213,6 +206,14 @@
       "kind": "task",
       "status": "finishing",
       "at": 1785771430,
+      "sid": null,
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "task",
+      "status": "done",
+      "at": 1785771521,
       "sid": null,
       "note": "",
       "rollback": false
