@@ -41,13 +41,15 @@
       "acceptance": [
         "research→pending 事件带 rollback=true"
       ],
-      "acceptance_done": [],
-      "status": "running",
+      "acceptance_done": [
+        1
+      ],
+      "status": "done",
       "phase": "exec",
       "skills": [],
       "created": 1785733613,
       "started": 1785739071,
-      "finished": null
+      "finished": 1785739671
     },
     {
       "sid": "wire-sub",
@@ -141,6 +143,6 @@
   "checked": null,
   "checked_end": null,
   "finished": null,
-  "updated": 1785739071,
+  "updated": 1785739671,
   "confirmed_by": "user"
 }

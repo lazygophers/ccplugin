@@ -21,6 +21,7 @@ from skeinlib.task.dag import _sub_estimate_sum
 from skeinlib.errors import SkeinError
 from skeinlib.task.model import (CODE_ID_RE, PRIORITY_DEFAULT, SLUG_RE, SubtaskStatus, SubtaskPhase, STATUS_INFLIGHT, TaskStatus, TS_CHECKED_END, now)
 from skeinlib.task.prd import review_summary, validate_prd, validate_seam
+from skeinlib.task import timeline as _timeline
 from skeinlib.priority import validate_priority
 from skeinlib.worktree import commit_all, destroy_worktrees, git, make_worktree, parse_repos, worktrees_of
 
@@ -93,6 +94,7 @@ class Lifecycle:
             "finished": None,        # 完成时刻 (finish 时置; 保留期从此计)
             "updated": now(),
         }
+        _timeline.append(t, "task", TaskStatus.PENDING)
         self.ws.store.save(t)  # _save 已渲染子任务看板
         self.ws.store.sync()  # 刷新顶层 tasks 索引 + 看板 + html
         self.ws._stage_hooks("create", "after", self.ws._hook_ctx(tid, t=t))
@@ -282,6 +284,7 @@ class Lifecycle:
                 f"`skein subtask add {a.id} <sid> --phase research ...` 登记再发起调研")
         self.ws._stage_hooks("research", "before", self.ws._hook_ctx(a.id, t=t))
         t["status"] = TaskStatus.RESEARCH
+        _timeline.append(t, "task", TaskStatus.RESEARCH)
         self.ws.store.save(t)
         self.ws.store.sync()
         self.ws._stage_hooks("research", "after", self.ws._hook_ctx(a.id, t=t))
@@ -299,6 +302,7 @@ class Lifecycle:
             raise SkeinError(f"{a.id} 调研 subtask 未全完成: {', '.join(undone)} — 先 done 它们再 plan")
         self.ws._stage_hooks("plan", "before", self.ws._hook_ctx(a.id, t=t))
         t["status"] = TaskStatus.PENDING
+        _timeline.append(t, "task", TaskStatus.PENDING)
         self.ws.store.save(t)
         self.ws.store.sync()
         self.ws._stage_hooks("plan", "after", self.ws._hook_ctx(a.id, t=t))
@@ -358,6 +362,7 @@ class Lifecycle:
             t["worktrees"] = []
         if not t.get("started"):
             t["started"] = now()  # exec 时刻 (首次 confirm; 重复不覆盖)
+        _timeline.append(t, "task", TaskStatus.ACTIVE)
         self.ws.store.save(t)
         self.ws.store.sync()
         self.ws._stage_hooks("confirm", "after", self.ws._hook_ctx(a.id, t=t))
@@ -406,6 +411,7 @@ class Lifecycle:
         self.ws._stage_hooks("check", "before", self.ws._hook_ctx(a.id, t=t))
         t["status"] = TaskStatus.CHECK
         t["checked"] = now()
+        _timeline.append(t, "task", TaskStatus.CHECK)
         self.ws.store.save(t)
         self.ws.store.sync()
         self.ws._stage_hooks("check", "after", self.ws._hook_ctx(a.id, t=t))
@@ -428,6 +434,7 @@ class Lifecycle:
         if not t.get(TS_CHECKED_END):
             t[TS_CHECKED_END] = now()
         t["status"] = TaskStatus.FINISHING
+        _timeline.append(t, "task", TaskStatus.FINISHING)
         self.ws.store.save(t)
         self.ws.store.sync()
         self.ws._stage_hooks("finishing", "after", self.ws._hook_ctx(a.id, t=t))
@@ -487,6 +494,7 @@ class Lifecycle:
         t["worktree"] = None
         t["worktrees"] = []
         t["finished"] = now()  # 完成时刻 — 保留期从此计, 超 retain_days 由 _autoclean 归档
+        _timeline.append(t, "task", TaskStatus.DONE)
         self.ws.store.save(t)
         self.ws.store.sync()  # 重写顶层索引 (完成 task 仍留看板; retain_days=0 时 _autoclean 即归档)
         archived = not (self.ws.tasks / tid).exists()  # retain_days<=0 → 已被 _autoclean 归档
