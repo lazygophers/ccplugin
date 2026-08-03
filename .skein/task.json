@@ -2,19 +2,19 @@
   "tasks": [
     {
       "id": "prd-write-only-via-cli",
-      "status": "pending",
+      "status": "finishing",
       "deps": [
         "hooks-one-file-per-hook"
       ],
       "priority": "normal",
-      "worktree": null,
+      "worktree": ".worktrees/skein-prd-write-only-via-cli",
       "parent": null,
       "kind": "task",
       "created": 1785760602,
-      "confirmed": null,
-      "started": null,
-      "checked": null,
-      "checked_end": null,
+      "confirmed": 1785766404,
+      "started": 1785766405,
+      "checked": 1785770643,
+      "checked_end": 1785771430,
       "finished": null
     },
     {
@@ -26,6 +26,21 @@
       "parent": null,
       "kind": "task",
       "created": 1785762850,
+      "confirmed": null,
+      "started": null,
+      "checked": null,
+      "checked_end": null,
+      "finished": null
+    },
+    {
+      "id": "worktree-missing-own-task",
+      "status": "pending",
+      "deps": [],
+      "priority": "normal",
+      "worktree": null,
+      "parent": null,
+      "kind": "task",
+      "created": 1785767030,
       "confirmed": null,
       "started": null,
       "checked": null,
@@ -78,6 +93,21 @@
       "checked": 1785750950,
       "checked_end": 1785751479,
       "finished": 1785751524
+    },
+    {
+      "id": "flow-autodrive-and-slim-ctx",
+      "status": "done",
+      "deps": [],
+      "priority": "normal",
+      "worktree": null,
+      "parent": null,
+      "kind": "task",
+      "created": 1785765994,
+      "confirmed": 1785766404,
+      "started": 1785766404,
+      "checked": 1785768820,
+      "checked_end": 1785769514,
+      "finished": 1785769516
     },
     {
       "id": "flow-refs-consolidate",

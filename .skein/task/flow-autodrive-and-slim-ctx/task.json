@@ -1,0 +1,191 @@
+{
+  "id": "flow-autodrive-and-slim-ctx",
+  "name": "判定走 flow 后自动推进 + 注入文案瘦身",
+  "desc": "user-prompt 注入的 _CTX 只说到「第一个动作是 skein create」就断了, AI 建完 task 就停手不继续跑 flow; 同时 _CTX+_PREFIX_RULE 每轮注入 1391 字且两者判定行规则近乎重复",
+  "status": "done",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "autodrive",
+      "name": "补全 flow 推进规则并写死终点",
+      "desc": "注入文案里 flow 那条规则只写到「先建 task」就断了, 补上「建完继续跑规划, 推到规划确认门为止」并写明不得代替用户批准; 同步新增一条必备语义断言防静默回退",
+      "estimate": 1.0,
+      "depends_on": [],
+      "acceptance": [],
+      "acceptance_done": [],
+      "status": "done",
+      "phase": "exec",
+      "skills": [],
+      "created": 1785766339,
+      "started": 1785766408,
+      "finished": 1785766769
+    },
+    {
+      "sid": "slim",
+      "name": "砍重复与举例, 运行配置改条件注入",
+      "desc": "两块注入文案对判定行规则的重复合并为一处指针; 判定行举例四条压到两条; 运行配置改成有在途 task 时才注入。判据/三条路径/续跑指引一律保留",
+      "estimate": 1.0,
+      "depends_on": [
+        "autodrive"
+      ],
+      "acceptance": [],
+      "acceptance_done": [],
+      "status": "done",
+      "phase": "exec",
+      "skills": [],
+      "created": 1785766339,
+      "started": 1785766953,
+      "finished": 1785768331
+    },
+    {
+      "sid": "verify",
+      "name": "阈值下调与回归",
+      "desc": "双阈值随压缩后实际值同步下调 (余量卡在小于最短小节), 量化改动前后总字数, 跑全量 pytest",
+      "estimate": 0.5,
+      "depends_on": [
+        "autodrive",
+        "slim"
+      ],
+      "acceptance": [],
+      "acceptance_done": [],
+      "status": "done",
+      "phase": "exec",
+      "skills": [],
+      "created": 1785766340,
+      "started": 1785768331,
+      "finished": 1785768820
+    },
+    {
+      "sid": "slim2",
+      "name": "二轮压缩: 合并同义段, 前缀块去重",
+      "desc": "一轮只净省 18 字 (1391→1373), 未兑现省 token 目标。二轮: 已给方案段并入 flow 推进段 (两处「禁停手等用户再喊一次」逐字重复)、判定归AI段并入落地路径末条、其他段两条压成一行、_PREFIX_RULE 去掉与 _CTX 重复的三路径与说明; 同步放宽强制两块都含三路径的断言",
+      "estimate": 0.5,
+      "depends_on": [
+        "slim"
+      ],
+      "acceptance": [],
+      "acceptance_done": [],
+      "status": "done",
+      "phase": "exec",
+      "skills": [],
+      "created": 1785768099,
+      "started": null,
+      "finished": 1785768282
+    }
+  ],
+  "priority": "normal",
+  "estimate": 2.5,
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/flow-autodrive-and-slim-ctx",
+  "parent": null,
+  "kind": "task",
+  "created": 1785765994,
+  "started": 1785766404,
+  "confirmed": 1785766404,
+  "checked": 1785768820,
+  "checked_end": 1785769514,
+  "finished": 1785769516,
+  "updated": 1785769516,
+  "timeline": [
+    {
+      "kind": "task",
+      "status": "pending",
+      "at": 1785765994,
+      "sid": null,
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "task",
+      "status": "active",
+      "at": 1785766404,
+      "sid": null,
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "running",
+      "at": 1785766408,
+      "sid": "autodrive",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "done",
+      "at": 1785766769,
+      "sid": "autodrive",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "running",
+      "at": 1785766953,
+      "sid": "slim",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "done",
+      "at": 1785768282,
+      "sid": "slim2",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "done",
+      "at": 1785768331,
+      "sid": "slim",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "running",
+      "at": 1785768331,
+      "sid": "verify",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "done",
+      "at": 1785768820,
+      "sid": "verify",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "task",
+      "status": "check",
+      "at": 1785768820,
+      "sid": null,
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "task",
+      "status": "finishing",
+      "at": 1785769514,
+      "sid": null,
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "task",
+      "status": "done",
+      "at": 1785769516,
+      "sid": null,
+      "note": "",
+      "rollback": false
+    }
+  ],
+  "confirmed_by": "user"
+}

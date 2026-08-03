@@ -2,7 +2,7 @@
   "id": "prd-write-only-via-cli",
   "name": "prd 只读, 写入收归 CLI",
   "desc": "prd.md 禁直接 Edit/Write, 全部写入走 skein prd 命令; 前置缺口: 章节写入白名单只有 目标/边界/验收标准 三章, 而 confirm 门要求七章齐备, 不先扩白名单就会把 prd 变成填不完的死局",
-  "status": "pending",
+  "status": "finishing",
   "deps": [
     "hooks-one-file-per-hook"
   ],
@@ -20,13 +20,18 @@
         "用户故事写入后保持编号格式",
         "错章节名报错含合法章节清单"
       ],
-      "acceptance_done": [],
-      "status": "pending",
+      "acceptance_done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "done",
       "phase": "exec",
       "skills": [],
       "created": 1785760766,
-      "started": null,
-      "finished": null
+      "started": 1785766408,
+      "finished": 1785768331
     },
     {
       "sid": "lock",
@@ -42,13 +47,18 @@
         "引擎生成模板不受影响",
         "复用既有名单无第二套实现"
       ],
-      "acceptance_done": [],
-      "status": "pending",
+      "acceptance_done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "done",
       "phase": "exec",
       "skills": [],
       "created": 1785760766,
-      "started": null,
-      "finished": null
+      "started": 1785768331,
+      "finished": 1785769805
     },
     {
       "sid": "verify",
@@ -65,30 +75,59 @@
         "拦截文案命令有效",
         "pytest 410 passed/0 failed"
       ],
-      "acceptance_done": [],
-      "status": "pending",
+      "acceptance_done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "done",
       "phase": "exec",
       "skills": [],
       "created": 1785760767,
+      "started": 1785769805,
+      "finished": 1785770643
+    },
+    {
+      "sid": "read-allow",
+      "name": "prd 只锁写, 读放行",
+      "desc": "lock 把 prd.md 加进 BLOCKED 后, guard 的 A 段不分 tool_name, 导致 Read 打 prd.md 也被硬阻 —— 与验收「读 prd 不受影响」冲突。加锁理由是写入结构合法性, 不是保密, 所以 Read 应放行; task.json/task.md 的读阻属既有行为不动",
+      "estimate": 0.5,
+      "depends_on": [
+        "lock"
+      ],
+      "acceptance": [],
+      "acceptance_done": [],
+      "status": "done",
+      "phase": "exec",
+      "skills": [],
+      "created": 1785769409,
       "started": null,
-      "finished": null
+      "finished": 1785769772
     }
   ],
   "priority": "normal",
   "estimate": 3.0,
   "repos": [],
-  "worktree": null,
-  "worktrees": [],
+  "worktree": ".worktrees/skein-prd-write-only-via-cli",
+  "worktrees": [
+    {
+      "repo": ".",
+      "wt": ".worktrees/skein-prd-write-only-via-cli",
+      "branch": "skein/prd-write-only-via-cli",
+      "merged": false
+    }
+  ],
   "branch": "skein/prd-write-only-via-cli",
   "parent": null,
   "kind": "task",
   "created": 1785760602,
-  "started": null,
-  "confirmed": null,
-  "checked": null,
-  "checked_end": null,
+  "started": 1785766405,
+  "confirmed": 1785766404,
+  "checked": 1785770643,
+  "checked_end": 1785771430,
   "finished": null,
-  "updated": 1785760767,
+  "updated": 1785771431,
   "timeline": [
     {
       "kind": "task",
@@ -97,6 +136,87 @@
       "sid": null,
       "note": "",
       "rollback": false
+    },
+    {
+      "kind": "task",
+      "status": "active",
+      "at": 1785766405,
+      "sid": null,
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "running",
+      "at": 1785766408,
+      "sid": "sections",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "done",
+      "at": 1785768331,
+      "sid": "sections",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "running",
+      "at": 1785768331,
+      "sid": "lock",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "done",
+      "at": 1785769772,
+      "sid": "read-allow",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "done",
+      "at": 1785769805,
+      "sid": "lock",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "running",
+      "at": 1785769805,
+      "sid": "verify",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "done",
+      "at": 1785770643,
+      "sid": "verify",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "task",
+      "status": "check",
+      "at": 1785770643,
+      "sid": null,
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "task",
+      "status": "finishing",
+      "at": 1785771430,
+      "sid": null,
+      "note": "",
+      "rollback": false
     }
-  ]
+  ],
+  "confirmed_by": "user"
 }
