@@ -62,13 +62,15 @@
       "acceptance": [
         "fail 事件 note 非空"
       ],
-      "acceptance_done": [],
-      "status": "pending",
+      "acceptance_done": [
+        1
+      ],
+      "status": "done",
       "phase": "exec",
       "skills": [],
       "created": 1785733613,
-      "started": null,
-      "finished": null
+      "started": 1785739688,
+      "finished": 1785740098
     },
     {
       "sid": "api",
@@ -143,6 +145,6 @@
   "checked": null,
   "checked_end": null,
   "finished": null,
-  "updated": 1785739671,
+  "updated": 1785740098,
   "confirmed_by": "user"
 }

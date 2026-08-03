@@ -24,6 +24,7 @@ if TYPE_CHECKING:
 from skeinlib.task.dag import _crit_weight, _split, _split_semi, _sub_estimate_sum, _sub_pct
 from skeinlib.errors import SkeinError
 from skeinlib.task.model import (SubtaskStatus, SubtaskPhase, TaskStatus, PRIORITY_RANK, PRIORITY_DEFAULT, now)
+from skeinlib.task import timeline as _timeline
 from skeinlib.views import _fmt_ts
 
 from typing import TYPE_CHECKING as _TC
@@ -212,6 +213,7 @@ class Scheduler:
                 s["status"] = SubtaskStatus.RUNNING
                 if not s.get("started"):
                     s["started"] = now()  # exec 时刻 (首次认领, 重认领不覆盖)
+                _timeline.append(t, "subtask", SubtaskStatus.RUNNING, sid=sid)
                 claimed.append({"tid": tid, "sid": sid, "name": s["name"],
                                 "phase": s.get("phase", SubtaskPhase.EXEC),
                                 "skills": s.get("skills", []),
@@ -345,6 +347,7 @@ class Scheduler:
                     s["status"] = SubtaskStatus.RUNNING
                     if not s.get("started"):
                         s["started"] = now()  # exec 时刻 (首次认领, 重认领不覆盖)
+                    _timeline.append(t, "subtask", SubtaskStatus.RUNNING, sid=s["sid"])
                 self.ws.store.save(t)  # _save 已渲染子任务看板
             return {"tid": a.tid, "action": a.action,
                     "claimed" if a.action == "claim" else "ready": [
@@ -369,6 +372,7 @@ class Scheduler:
             s["status"] = SubtaskStatus.RUNNING
             if not s.get("started"):
                 s["started"] = now()  # exec 时刻 (首次 start, 重启不覆盖)
+            _timeline.append(t, "subtask", SubtaskStatus.RUNNING, sid=a.sid)
         elif a.action == "check":
             crit = s.get("acceptance", [])
             val = (a.passed or "").strip()
@@ -390,12 +394,14 @@ class Scheduler:
             s["status"] = SubtaskStatus.DONE
             s["finished"] = now()  # 完成时刻
             s["acceptance_done"] = list(range(1, len(s.get("acceptance", [])) + 1))  # 完成即全过 → 100%
+            _timeline.append(t, "subtask", SubtaskStatus.DONE, sid=a.sid)
         elif a.action == "fail":
             self.ws._stage_hooks("subtask.fail", "before", self.ws._hook_ctx(a.tid, a.sid, t=t))
             s["status"] = SubtaskStatus.FAILED
             s["finished"] = now()  # 失败时刻 (与 done 对称)
             if a.note:
                 s["note"] = a.note  # 失败备注 (运行时, 非 planning schema)
+            _timeline.append(t, "subtask", SubtaskStatus.FAILED, sid=a.sid, note=a.note or "")
         self.ws.store.save(t)  # _save 已渲染子任务看板
         if a.action in ("start", "done", "fail"):
             self.ws._stage_hooks(f"subtask.{a.action}", "after", self.ws._hook_ctx(a.tid, a.sid, t=t))
