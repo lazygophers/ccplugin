@@ -15,7 +15,7 @@
 6. 边界情况: 布尔开关型选项 (如 `confirm --summary`) 在形态里不带 `<值>`, 与接值选项可区分。
 
 ## 验收标准
-- [ ] subtask add 的 --estimate 必填在 -h 输出和全部文档形态里都可见;文档命令形态统一 <>必填 []可选;抽样照抄文档命令一次成功;test_docs_commands 全绿
+- [x] subtask add 的 --estimate 必填在 -h 输出和全部文档形态里都可见;文档命令形态统一 <>必填 []可选;抽样照抄文档命令一次成功;test_docs_commands 全绿
 ## 验证方式
 每条验收标准的验证手段与通过标准 (plan 阶段必填):
 - [ ] `--estimate` 可见性: 跑 `skein subtask --help`, 输出里 add 的 sid/--name/--desc/--estimate 四项标为必填 —— 通过标准: 不看源码即可辨认。

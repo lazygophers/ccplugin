@@ -1,21 +1,6 @@
 {
   "tasks": [
     {
-      "id": "cli-usage-selfevident",
-      "status": "active",
-      "deps": [],
-      "priority": "normal",
-      "worktree": null,
-      "parent": null,
-      "kind": "task",
-      "created": 1785748137,
-      "confirmed": 1785748417,
-      "started": 1785748417,
-      "checked": null,
-      "checked_end": null,
-      "finished": null
-    },
-    {
       "id": "cli-typer-migration",
       "status": "done",
       "deps": [],
@@ -29,6 +14,21 @@
       "checked": 1785681132,
       "checked_end": 1785681309,
       "finished": 1785749489
+    },
+    {
+      "id": "cli-usage-selfevident",
+      "status": "done",
+      "deps": [],
+      "priority": "normal",
+      "worktree": null,
+      "parent": null,
+      "kind": "task",
+      "created": 1785748137,
+      "confirmed": 1785748417,
+      "started": 1785748417,
+      "checked": 1785750950,
+      "checked_end": 1785751479,
+      "finished": 1785751524
     }
   ]
 }

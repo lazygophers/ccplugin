@@ -2,7 +2,7 @@
   "id": "cli-usage-selfevident",
   "name": "CLI 用法自明化",
   "desc": "消除 agent/skill 照抄文档命令必然首调失败的问题: subtask add 必填 --estimate 全仓文档未写且 -h 也看不出; 统一用 <> 必填 / [] 可选 标注 bin 命令形态",
-  "status": "active",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -91,10 +91,10 @@
   "created": 1785748137,
   "started": 1785748417,
   "confirmed": 1785748417,
-  "checked": null,
-  "checked_end": null,
-  "finished": null,
-  "updated": 1785750922,
+  "checked": 1785750950,
+  "checked_end": 1785751479,
+  "finished": 1785751524,
+  "updated": 1785751524,
   "timeline": [
     {
       "kind": "task",
@@ -133,6 +133,30 @@
       "status": "running",
       "at": 1785749680,
       "sid": "verify",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "task",
+      "status": "check",
+      "at": 1785750950,
+      "sid": null,
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "task",
+      "status": "finishing",
+      "at": 1785751479,
+      "sid": null,
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "task",
+      "status": "done",
+      "at": 1785751524,
+      "sid": null,
       "note": "",
       "rollback": false
     }
