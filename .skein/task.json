@@ -16,6 +16,21 @@
       "finished": null
     },
     {
+      "id": "task-timeline",
+      "status": "active",
+      "deps": [],
+      "priority": "normal",
+      "worktree": null,
+      "parent": null,
+      "kind": "task",
+      "created": 1785732858,
+      "confirmed": 1785734041,
+      "started": 1785734041,
+      "checked": null,
+      "checked_end": null,
+      "finished": null
+    },
+    {
       "id": "cli-typer-migration",
       "status": "finishing",
       "deps": [],

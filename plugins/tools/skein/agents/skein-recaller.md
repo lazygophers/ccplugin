@@ -45,15 +45,16 @@ skein-spec recall <关键词> [--src rules/product/map/code/all]
 
 命中项按来源 namespace 分组, 压缩为 path + 要点回传 (main 等此结果进 planning); rules 命中是硬规/经验规则, product 命中是需求现状 wiki 页, 两者语义不同禁混一堆罗列。
 
-### 4. 收工钩子
+- 最后跑收工钩子 (失败不阻断, 只记 note):
 
 ```
 skein-hooks agent-stop --agent skein-recaller
 ```
 
+
 ## Checkpoints
 
-🛑 **开工/收工钩子必跑** — 与召回回传同级的固定动作。钩子失败只记 note 不阻断本次召回 (用户钩子挂了不该让召回失败)。无 hooks 配置时命令 no-op 立即返回, 不构成负担。
+🛑 **开工/收工钩子必跑** — 钩子失败只记 note 不阻断本次作业; 无 hooks 配置时命令 no-op 立即返回。
 🛑 **只读, 无写盘** — 无 Write/Edit; 只检索不改 spec。
 🛑 **只召非常驻规则** — `inclusion: always` 已常驻, 再召是重复注入。判据看 frontmatter 的 inclusion, 不看所在目录。
 🛑 **判真相关不硬凑** — 关键词命中但语义不符的丢弃, 无命中如实报。

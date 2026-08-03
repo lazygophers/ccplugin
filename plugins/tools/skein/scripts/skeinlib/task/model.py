@@ -8,6 +8,7 @@ import re
 import time
 
 from enum import StrEnum
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -170,6 +171,16 @@ class TaskExecution(BaseModel):
     branch: str | None = Field(default=None, description="task 分支")
 
 
+class TimelineEvent(BaseModel):
+    """task 生命周期事件 (只追加, 不可改/删)。字段刻意精简 —— 随 task.json 每次 save 全量重写, 长 task 会累积上百条。"""
+    kind: Literal["task", "subtask"] = Field(description="事件所属对象类型")
+    status: str = Field(description="task 事件存 TaskStatus 值, subtask 事件存 SubtaskStatus 值")
+    at: int = Field(description="Unix epoch 秒, 与其余落盘时间字段同制")
+    sid: str | None = Field(default=None, description="仅 subtask 事件携带")
+    note: str = Field(default="", description="失败原因 / 回滚说明")
+    rollback: bool = Field(default=False, description="状态序号回退时 True")
+
+
 class TaskData(BaseModel):
     """task.json 结构。"""
     metadata: TaskMetadata = Field(description="task 元信息")
@@ -178,6 +189,7 @@ class TaskData(BaseModel):
     estimate: float | None = Field(default=None, ge=0, description="预计工时")
     execution: TaskExecution = Field(default_factory=TaskExecution, description="执行结构")
     timing: TaskTiming = Field(default_factory=TaskTiming, description="时间记录")
+    timeline: list[TimelineEvent] = Field(default_factory=list, description="生命周期事件日志 (老 task 缺此字段, 空列表容错)")
 
 
 def now() -> int:

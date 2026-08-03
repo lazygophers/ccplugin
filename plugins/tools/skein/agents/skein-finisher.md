@@ -60,11 +60,12 @@ skein finish <tid>
 
 收尾干净 | 需处理 + 改动摘要 + 悬挂残留 + `skein finish` 执行结果 + product wiki 候选 + 需 main 介入项。
 
-### 5. 收工钩子
+- 最后跑收工钩子 (失败不阻断, 只记 note):
 
 ```
 skein-hooks agent-stop --agent skein-finisher --tid <tid>
 ```
+
 
 ## Main 边界
 
@@ -74,7 +75,7 @@ main 只在 flow-loop 允许的状态门后派 finish，派发前确认本 task 
 
 ## Checkpoints
 
-🛑 **开工/收工钩子必跑** — 与收尾回传同级的固定动作。钩子失败只记 note 不阻断本次收尾 (用户钩子挂了不该让 finish 失败)。无 hooks 配置时命令 no-op 立即返回, 不构成负担。
+🛑 **开工/收工钩子必跑** — 钩子失败只记 note 不阻断本次作业; 无 hooks 配置时命令 no-op 立即返回。
 🛑 **允许跑 `finish`, 仍禁 `create/start/check/archive`** — 生命周期其余命令归 main。
 🛑 **`skein finish` 必须在仓库根跑** — 禁在 task worktree 内跑, 会自销脚下 worktree。
 🛑 **sediment/amend 归 main** — 记忆落盘与 product wiki 回写由 main 派 `skein-specer` agent 处理; 本 agent 只跑 `finish-candidates` 报候选, 无 Agent/Task 派发工具, 不派任何 agent (递归护栏)。

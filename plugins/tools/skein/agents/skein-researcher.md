@@ -6,15 +6,6 @@ model: opus
 effort: high
 color: cyan
 permissionMode: bypassPermissions
-hooks:
-  SubagentStart:
-    - hooks:
-        - type: command
-          command: "skein-hooks agent-start --agent skein-researcher"
-  Stop:
-    - hooks:
-        - type: command
-          command: "skein-hooks agent-stop --agent skein-researcher"
 ---
 
 ## 入参格式 (JSON)
@@ -26,6 +17,12 @@ hooks:
 ## 工作流
 
 planning 阶段 main 派你搜集信息 (库选型/方案对比/代码勘察/外部检索), 回传压缩结论 + 把全量调研落盘 `research/`。数据源以 skein-research skill 为准: 先本地代码勘察, 再外部检索。
+
+### 0. 开工钩子 (第一步, 失败不阻断)
+
+```
+skein-hooks agent-start --agent skein-researcher
+```
 
 ### 1. 本地勘察
 
@@ -59,6 +56,12 @@ mkdir -p .skein/task/<task-id>/research
 
 调研目标 + 收敛结论 (已增量写入 findings.md) + 证据来源 + 权衡/选项 + 需要。
 
+- 最后跑收工钩子 (失败不阻断, 只记 note):
+
+```
+skein-hooks agent-stop --agent skein-researcher
+```
+
 ### bootstrap 模式 (dispatch 含 `mode=bootstrap`)
 
 扫代码库提炼既有约定为候选规则:
@@ -69,6 +72,7 @@ mkdir -p .skein/task/<task-id>/research
 
 ## Checkpoints
 
+🛑 **开工/收工钩子必跑** — 钩子失败只记 note 不阻断本次作业; 无 hooks 配置时命令 no-op 立即返回。
 🛑 **不碰项目代码** — 无 Write/Edit; 唯一写盘是 research/ 目录 (经 Bash)。
 🛑 **结论必落盘 (边研边增量)** — 每主题即时写 research/<topic>.md (过程) + 追加 findings.md (收敛), 非最后一次性; 只回传不落盘 = 素材丢失且逼后续重读 research/。两文件仅真调研时产出。
 🛑 **带来源, 无来源标 `推测:`** — file:line / URL; 区分文档/社区/推断。

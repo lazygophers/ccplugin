@@ -66,15 +66,16 @@ skein deps <后置-id>                                          # 回读校验�
 - **仅对现无 deps 的补前置** — 已有 deps 的一律不碰 (CLI 会拒), 保护人工/plan 声明的依赖。
 - CLI 报错 → `[工具失败: deps 连法非法]`, 说明原因, 换或跳过。
 
-### 4. 收工钩子
+- 最后跑收工钩子 (失败不阻断, 只记 note):
 
 ```
 skein-hooks agent-stop --agent skein-dedup
 ```
 
+
 ## Checkpoints
 
-🛑 **开工/收工钩子必跑** — 与查重/DAG 回传同级的固定动作。钩子失败只记 note 不阻断本次处置 (用户钩子挂了不该让 dedup 失败)。无 hooks 配置时命令 no-op 立即返回, 不构成负担。
+🛑 **开工/收工钩子必跑** — 钩子失败只记 note 不阻断本次作业; 无 hooks 配置时命令 no-op 立即返回。
 🛑 **写盘只经 CLI** — `skein del`/`subtask add`/`deps`, 无手改 task.json。
 🛑 **不硬凑重复** — 判据不足的 task 不归并; 判不准是否相关 → 不连 (宁缺毋滥)。
 🛑 **只补无 deps 的待处理/就绪 task** — 进行中/检查中跳过 (CLI 拒), 已有 deps 一律不碰 (保护 plan/人工声明依赖)。

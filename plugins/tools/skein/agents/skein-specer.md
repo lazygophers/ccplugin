@@ -95,17 +95,18 @@ skein-spec reindex
 - 自动修: 超预算循环降级 always→auto 到总字符 < always_budget / stale 归档 / keywords 重复归档保留最新 / 废弃归档 (全走可逆 archive)。
 - 断链 (`[[slug]]` 目标缺失) **只报告不修** — 修哪头需人判断, 无从自动决断, 入 unfixed_links。
 - 每步追加写 `.audit-log` (7 天轮转, skein-spec 已实现) → 清 `.pending-fix` 标记。
-- **写 mode 自愈后此 mode 不再产生 .pending-fix** — sediment/reconstruct/prune 末尾已跑 maintain --apply 就地清超预算, Stop hook 检测无问题即不写标记; auto-fix mode 保留作兜底兼容 (sediment 遗漏/历史 .pending-fix 残留触发)。
-
-### 6. 收工钩子 (跑在所选 mode 的写路径完成之后)
+- 所选 mode 的写路径跑完后, 最后跑收工钩子 (失败不阻断, 只记 note):
 
 ```
 skein-hooks agent-stop --agent skein-specer
 ```
 
+- **写 mode 自愈后此 mode 不再产生 .pending-fix** — sediment/reconstruct/prune 末尾已跑 maintain --apply 就地清超预算, Stop hook 检测无问题即不写标记; auto-fix mode 保留作兜底兼容 (sediment 遗漏/历史 .pending-fix 残留触发)。
+
+
 ## Checkpoints
 
-🛑 **开工/收工钩子必跑** — 与写盘回传同级的固定动作, 跑在 5 类 mode 之前/之后各一次、与选定 mode 无关。钩子失败只记 note 不阻断本次写盘 (用户钩子挂了不该让 sediment/maintain 失败)。无 hooks 配置时命令 no-op 立即返回, 不构成负担。
+🛑 **开工/收工钩子必跑** — 钩子失败只记 note 不阻断本次作业; 无 hooks 配置时命令 no-op 立即返回。
 🛑 **写盘只经 `skein-spec` CLI** — 无 Write/Edit 手改 spec 文件; 所有动作可逆 (archive 可 `restore <ts>` 回滚, inclusion 可改回)。
 🛑 **写 mode 末尾必跑 maintain --apply 自愈** — sediment/reconstruct/prune 写盘后 always 页超 budget 就地降级, 不留 .pending-fix 给 Stop hook 二次派; 修不掉 (断链 / 反复超) 入 unfixed_links / needs_main 报具体项, 不静默。
 🛑 **异步 fire-and-forget, 不阻塞任务完成** — main 派出即结束回合, 不等回传 (sediment / auto-fix 同模式); spec 判断/沉淀纯后台, 任务 Done 判定不依赖其回传。

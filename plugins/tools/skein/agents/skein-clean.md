@@ -6,15 +6,6 @@ model: haiku
 effort: low
 color: orange
 permissionMode: bypassPermissions
-hooks:
-  SubagentStart:
-    - hooks:
-        - type: command
-          command: "skein-hooks agent-start --agent skein-clean"
-  Stop:
-    - hooks:
-        - type: command
-          command: "skein-hooks agent-stop --agent skein-clean"
 ---
 
 ## 入参格式 (JSON)
@@ -26,6 +17,12 @@ hooks:
 ## 工作流
 
 用户经 `/skein-clean [保留天数]` 调你做安全清扫。**只清已完成/已合并的** — 未 finish 的 active task、未合并分支一律不删, 存疑先报用户裁定。写盘全经 `skein` CLI / git worktree / git branch 命令, 禁手改 `.skein/` 下 task.json (PreToolUse hook 硬阻)。
+
+### 0. 开工钩子 (第一步, 失败不阻断)
+
+```
+skein-hooks agent-start --agent skein-clean
+```
 
 ### 1. 解析入参
 
@@ -71,8 +68,15 @@ git branch --merged
 
 归档了哪些 / 删了哪些 worktree·分支 / 哪些存疑保留交用户裁。
 
+- 最后跑收工钩子 (失败不阻断, 只记 note):
+
+```
+skein-hooks agent-stop --agent skein-clean
+```
+
 ## Checkpoints
 
+🛑 **开工/收工钩子必跑** — 钩子失败只记 note 不阻断本次作业; 无 hooks 配置时命令 no-op 立即返回。
 🛑 **只清已完成/已合并** — 未 finish 的 active task、未合并分支一律不删; 存疑项先报用户裁定, 禁自行删。
 🛑 **不碰 spec 迁移快照** — `.skein/spec/.archive/<ts>/` 是 `skein-spec restructure`/旧结构 migrate 流程的可回滚快照 (`restore <ts>` 依赖其存在), 不属 task/worktree/分支清理范围, 一律不删, 不因「看起来是备份」纳入清扫。
 🛑 **写盘只经 CLI** — `skein clean` / `git worktree remove` / `git branch -D`, 禁手改 `.skein/` 下 task.json (hook 硬阻); 归档走 `skein clean --days` 保留期语义, 禁手动 `rm .skein/task/<id>` 当归档。
