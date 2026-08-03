@@ -25,6 +25,17 @@ type Unsubscribe = () => void;
 const subs = new Set<Subscriber>();
 const taskSubs = new Map<string, Set<Subscriber>>();
 
+// 重连退避: 基数 1s / 倍率 2 / 上限 5min / 全抖动 (取 [0, 上界] 内随机)。
+// 纯函数, 随机源可注入以便测试确定性抖动 (不 mock 全局 Math.random)。
+const BACKOFF_BASE_MS = 1000;
+const BACKOFF_FACTOR = 2;
+const BACKOFF_CAP_MS = 5 * 60 * 1000;
+
+export function backoffDelayMs(attempt: number, random: () => number = Math.random): number {
+  const upper = Math.min(BACKOFF_BASE_MS * BACKOFF_FACTOR ** attempt, BACKOFF_CAP_MS);
+  return random() * upper;
+}
+
 export function subscribe(cb: Subscriber, opts?: { taskId?: string }): Unsubscribe {
   if (opts?.taskId) {
     let set = taskSubs.get(opts.taskId);
@@ -43,6 +54,10 @@ export function startLive() {
   started = true;
   let seen = false;
   let offline = false;
+  let attempt = 0;
+  let stableTimer: ReturnType<typeof setTimeout> | null = null;
+  // 连接存活过这么久才算「稳定」, 才清零失败计数 —— 防止连上立刻又断的崩溃循环把退避冲掉
+  const STABLE_MS = 5000;
 
   function dispatch(payload: string) {
     if (payload === "reload") return location.reload();
@@ -62,12 +77,16 @@ export function startLive() {
     ws.onopen = () => {
       offline = false;
       if (seen) location.reload(); else seen = true;
+      stableTimer = setTimeout(() => { attempt = 0; }, STABLE_MS);
     };
     ws.onmessage = (e) => dispatch(e.data as string);
     ws.onclose = () => {
+      if (stableTimer) { clearTimeout(stableTimer); stableTimer = null; }
       // 首次转为断线时立刻提示 (静默重试期间用户不该以为一切正常)
       if (!offline) { offline = true; subs.forEach(cb => cb({ type: "offline" })); }
-      setTimeout(conn, 2000);  // 无限重连 — 服务端停多久都只挂横幅, 不自毁页面 (用户可能只是重启 serve)
+      // 无限重连 — 服务端停多久都只挂横幅, 不自毁页面 (用户可能只是重启 serve)
+      setTimeout(conn, backoffDelayMs(attempt));
+      attempt++;
     };
     ws.onerror = () => { try { ws.close(); } catch {} };
   })();

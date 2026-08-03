@@ -64,13 +64,18 @@
         "for-plan.md 与 lifecycle.py 注释改指到位",
         "全仓零引用"
       ],
-      "acceptance_done": [],
-      "status": "running",
+      "acceptance_done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "done",
       "phase": "exec",
       "skills": [],
       "created": 1785758993,
       "started": 1785759037,
-      "finished": null
+      "finished": 1785759779
     }
   ],
   "priority": "normal",
@@ -87,7 +92,7 @@
   "checked": null,
   "checked_end": null,
   "finished": null,
-  "updated": 1785759284,
+  "updated": 1785759779,
   "timeline": [
     {
       "kind": "task",
@@ -126,6 +131,14 @@
       "status": "done",
       "at": 1785759284,
       "sid": "merge",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "done",
+      "at": 1785759779,
+      "sid": "estimate-merge",
       "note": "",
       "rollback": false
     }

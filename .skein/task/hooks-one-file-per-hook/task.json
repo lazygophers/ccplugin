@@ -2,7 +2,7 @@
   "id": "hooks-one-file-per-hook",
   "name": "hook 层一 hook 一文件",
   "desc": "gate.py 装 4 个 hook (permission/guard/batch/report), postwrite.py 装 3 个 (fmt/spec-meta/flow-gate); 按一 hook 一文件拆开, 使懒加载真正只加载被调用的那条链, 跑 permission 不再连带付 guard/batch/report 的代价",
-  "status": "pending",
+  "status": "active",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -20,11 +20,11 @@
         "11 条 hook 全可调用"
       ],
       "acceptance_done": [],
-      "status": "pending",
+      "status": "running",
       "phase": "exec",
       "skills": [],
       "created": 1785759273,
-      "started": null,
+      "started": 1785760055,
       "finished": null
     },
     {
@@ -82,12 +82,12 @@
   "parent": null,
   "kind": "task",
   "created": 1785759272,
-  "started": null,
-  "confirmed": null,
+  "started": 1785760055,
+  "confirmed": 1785760055,
   "checked": null,
   "checked_end": null,
   "finished": null,
-  "updated": 1785759273,
+  "updated": 1785760055,
   "timeline": [
     {
       "kind": "task",
@@ -96,6 +96,23 @@
       "sid": null,
       "note": "",
       "rollback": false
+    },
+    {
+      "kind": "task",
+      "status": "active",
+      "at": 1785760055,
+      "sid": null,
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "running",
+      "at": 1785760055,
+      "sid": "split-gate",
+      "note": "",
+      "rollback": false
     }
-  ]
+  ],
+  "confirmed_by": "user"
 }
