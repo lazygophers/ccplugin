@@ -1,6 +1,21 @@
 {
   "tasks": [
     {
+      "id": "priority-ui-theme",
+      "status": "active",
+      "deps": [],
+      "priority": "normal",
+      "worktree": null,
+      "parent": null,
+      "kind": "task",
+      "created": 1785753076,
+      "confirmed": 1785753412,
+      "started": 1785753412,
+      "checked": null,
+      "checked_end": null,
+      "finished": null
+    },
+    {
       "id": "cli-typer-migration",
       "status": "done",
       "deps": [],
