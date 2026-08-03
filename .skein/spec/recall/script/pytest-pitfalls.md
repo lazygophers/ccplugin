@@ -12,7 +12,7 @@ inclusion: auto
 测试中使用 pytest 的 `tmp_path` fixture 时。
 
 ### 陷阱-正解
-**陷阱**：`tmp_path` 生成的目录名固定形如 `test_<函数名>0`，含 `/test_` 子串，会命中其他规则（如 `postwrite.cmd_flow_gate` 对测试路径的豁免规则）而静默放行，导致相关用例假绿/假空。
+**陷阱**：`tmp_path` 生成的目录名固定形如 `test_<函数名>0`，含 `/test_` 子串，会命中其他规则（如 `flow_gate.cmd_flow_gate` 对测试路径的豁免规则）而静默放行，导致相关用例假绿/假空。
 **正解**：用 `copytree` 或 `shutil` 把临时内容复制到不含 `test_` 的独立临时路径后再使用。
 
 ### 铁律

@@ -122,7 +122,7 @@ def test_e2e_fresh_workspace_stays_clean_after_derivative_producing_commands(
     - spec/.archive/ + spec/.audit-log: 同一条 stale 规则再跑 `spec maintain --apply` 归档。
     - .edit-tally/.edit-tally.warned: 无 active task 时跨 2 个源码文件写, 触发 `hooks.py flow-gate`。
     """
-    # flow-gate 对文件路径里含 `/test_`/`/tests/` 的写入直接放行不计数 (postwrite.py cmd_flow_gate:
+    # flow-gate 对文件路径里含 `/test_`/`/tests/` 的写入直接放行不计数 (flow_gate.py cmd_flow_gate:
     # 跳过测试文件自身的改动) —— pytest 默认 tmp_path 目录名形如 `test_e2e_..0`, 恰好撞上这条豁免,
     # 会让本测试的 .edit-tally 断言假红。搬到不含该子串的临时目录, 测的是真实行为而非 pytest 巧合。
     safe_root = Path(tempfile.mkdtemp(prefix="skein-gi-e2e-")) / "ws"

@@ -2,9 +2,9 @@
 
 只读不修, 永远返回 0 —— 修复是 specer agent 的异步职责, 回合结束这一刻不该被体检卡住。
 
-单独一个模块而不并进 postwrite: 它是唯一会加载整个 `skeinlib.spec` 门面的 hook 子命令
-(几十毫秒)。放一起的话, 每次跑 fmt / spec-meta 都得先付这份钱 —— 分开 + cli 懒 dispatch,
-只有真跑 stop-check 时才加载。
+它是唯一会加载整个 `skeinlib.spec` 门面的 hook 子命令 (几十毫秒)。与别的 hook 合模块的话,
+每次跑 fmt / spec-meta 都得先付这份钱 —— 一 hook 一文件 + cli 懒 dispatch, 只有真跑
+stop-check 时才加载。
 """
 from __future__ import annotations
 

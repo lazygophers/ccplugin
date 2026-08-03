@@ -1,21 +1,6 @@
 {
   "tasks": [
     {
-      "id": "hooks-one-file-per-hook",
-      "status": "finishing",
-      "deps": [],
-      "priority": "normal",
-      "worktree": null,
-      "parent": null,
-      "kind": "task",
-      "created": 1785759272,
-      "confirmed": 1785760055,
-      "started": 1785760055,
-      "checked": 1785762727,
-      "checked_end": 1785762855,
-      "finished": null
-    },
-    {
       "id": "prd-write-only-via-cli",
       "status": "pending",
       "deps": [
@@ -108,6 +93,21 @@
       "checked": 1785762855,
       "checked_end": 1785763566,
       "finished": 1785763627
+    },
+    {
+      "id": "hooks-one-file-per-hook",
+      "status": "done",
+      "deps": [],
+      "priority": "normal",
+      "worktree": null,
+      "parent": null,
+      "kind": "task",
+      "created": 1785759272,
+      "confirmed": 1785760055,
+      "started": 1785760055,
+      "checked": 1785762727,
+      "checked_end": 1785762855,
+      "finished": 1785764587
     },
     {
       "id": "live-ws-backoff",
