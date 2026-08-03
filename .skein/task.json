@@ -31,21 +31,6 @@
       "finished": null
     },
     {
-      "id": "live-ws-backoff",
-      "status": "finishing",
-      "deps": [],
-      "priority": "normal",
-      "worktree": null,
-      "parent": null,
-      "kind": "task",
-      "created": 1785755187,
-      "confirmed": 1785760055,
-      "started": 1785760055,
-      "checked": 1785761399,
-      "checked_end": 1785761819,
-      "finished": null
-    },
-    {
       "id": "prd-write-only-via-cli",
       "status": "pending",
       "deps": [
@@ -91,6 +76,21 @@
       "checked": 1785750950,
       "checked_end": 1785751479,
       "finished": 1785751524
+    },
+    {
+      "id": "live-ws-backoff",
+      "status": "done",
+      "deps": [],
+      "priority": "normal",
+      "worktree": null,
+      "parent": null,
+      "kind": "task",
+      "created": 1785755187,
+      "confirmed": 1785760055,
+      "started": 1785760055,
+      "checked": 1785761399,
+      "checked_end": 1785761819,
+      "finished": 1785762333
     },
     {
       "id": "priority-ui-theme",
