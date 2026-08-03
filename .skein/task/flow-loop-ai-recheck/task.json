@@ -1,0 +1,36 @@
+{
+  "id": "flow-loop-ai-recheck",
+  "name": "flow-loop.md 合并后的 AI 理解校验补跑",
+  "desc": "claude -p --bare 端点不可用致 flow-refs-consolidate 的 AI 理解校验未执行, 端点恢复后补跑三次一致性验证",
+  "status": "pending",
+  "deps": [
+    "flow-refs-consolidate"
+  ],
+  "contracts": [],
+  "subtasks": [],
+  "priority": "low",
+  "estimate": null,
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/flow-loop-ai-recheck",
+  "parent": null,
+  "kind": "task",
+  "created": 1785762850,
+  "started": null,
+  "confirmed": null,
+  "checked": null,
+  "checked_end": null,
+  "finished": null,
+  "updated": 1785762850,
+  "timeline": [
+    {
+      "kind": "task",
+      "status": "pending",
+      "at": 1785762850,
+      "sid": null,
+      "note": "",
+      "rollback": false
+    }
+  ]
+}

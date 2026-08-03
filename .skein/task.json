@@ -1,23 +1,8 @@
 {
   "tasks": [
     {
-      "id": "flow-refs-consolidate",
-      "status": "active",
-      "deps": [],
-      "priority": "normal",
-      "worktree": null,
-      "parent": null,
-      "kind": "task",
-      "created": 1785758772,
-      "confirmed": 1785759037,
-      "started": 1785759037,
-      "checked": null,
-      "checked_end": null,
-      "finished": null
-    },
-    {
       "id": "hooks-one-file-per-hook",
-      "status": "active",
+      "status": "finishing",
       "deps": [],
       "priority": "normal",
       "worktree": null,
@@ -26,8 +11,8 @@
       "created": 1785759272,
       "confirmed": 1785760055,
       "started": 1785760055,
-      "checked": null,
-      "checked_end": null,
+      "checked": 1785762727,
+      "checked_end": 1785762855,
       "finished": null
     },
     {
@@ -41,6 +26,38 @@
       "parent": null,
       "kind": "task",
       "created": 1785760602,
+      "confirmed": null,
+      "started": null,
+      "checked": null,
+      "checked_end": null,
+      "finished": null
+    },
+    {
+      "id": "readme-broken-links",
+      "status": "pending",
+      "deps": [],
+      "priority": "normal",
+      "worktree": null,
+      "parent": null,
+      "kind": "task",
+      "created": 1785762850,
+      "confirmed": null,
+      "started": null,
+      "checked": null,
+      "checked_end": null,
+      "finished": null
+    },
+    {
+      "id": "flow-loop-ai-recheck",
+      "status": "pending",
+      "deps": [
+        "flow-refs-consolidate"
+      ],
+      "priority": "low",
+      "worktree": null,
+      "parent": null,
+      "kind": "task",
+      "created": 1785762850,
       "confirmed": null,
       "started": null,
       "checked": null,
@@ -76,6 +93,21 @@
       "checked": 1785750950,
       "checked_end": 1785751479,
       "finished": 1785751524
+    },
+    {
+      "id": "flow-refs-consolidate",
+      "status": "done",
+      "deps": [],
+      "priority": "normal",
+      "worktree": null,
+      "parent": null,
+      "kind": "task",
+      "created": 1785758772,
+      "confirmed": 1785759037,
+      "started": 1785759037,
+      "checked": 1785762855,
+      "checked_end": 1785763566,
+      "finished": 1785763627
     },
     {
       "id": "live-ws-backoff",

@@ -2,7 +2,7 @@
   "id": "hooks-one-file-per-hook",
   "name": "hook 层一 hook 一文件",
   "desc": "gate.py 装 4 个 hook (permission/guard/batch/report), postwrite.py 装 3 个 (fmt/spec-meta/flow-gate); 按一 hook 一文件拆开, 使懒加载真正只加载被调用的那条链, 跑 permission 不再连带付 guard/batch/report 的代价",
-  "status": "active",
+  "status": "finishing",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -75,13 +75,18 @@
         "importtime 不劣化",
         "pytest 410 passed/0 failed"
       ],
-      "acceptance_done": [],
-      "status": "running",
+      "acceptance_done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "done",
       "phase": "exec",
       "skills": [],
       "created": 1785759273,
       "started": 1785761819,
-      "finished": null
+      "finished": 1785762575
     }
   ],
   "priority": "normal",
@@ -95,10 +100,10 @@
   "created": 1785759272,
   "started": 1785760055,
   "confirmed": 1785760055,
-  "checked": null,
-  "checked_end": null,
+  "checked": 1785762727,
+  "checked_end": 1785762855,
   "finished": null,
-  "updated": 1785761819,
+  "updated": 1785762855,
   "timeline": [
     {
       "kind": "task",
@@ -153,6 +158,30 @@
       "status": "running",
       "at": 1785761819,
       "sid": "verify",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "done",
+      "at": 1785762575,
+      "sid": "verify",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "task",
+      "status": "check",
+      "at": 1785762727,
+      "sid": null,
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "task",
+      "status": "finishing",
+      "at": 1785762855,
+      "sid": null,
       "note": "",
       "rollback": false
     }

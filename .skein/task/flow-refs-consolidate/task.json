@@ -2,7 +2,7 @@
   "id": "flow-refs-consolidate",
   "name": "skein-flow 卫星文档并入 flow-loop",
   "desc": "sediment-protocol / root-cause-protocol / scope-boundary 三份 reference 并入 flow-loop.md 对应章节并删除, 同步改 SKILL.md 索引 / dag-scheduling.md / README.md 的指向, 零断链",
-  "status": "active",
+  "status": "done",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -44,13 +44,17 @@
         "AI 理解校验 3 次一致且切题",
         "pytest 410 passed/0 failed"
       ],
-      "acceptance_done": [],
-      "status": "failed",
+      "acceptance_done": [
+        1,
+        2,
+        3
+      ],
+      "status": "done",
       "phase": "exec",
       "skills": [],
       "created": 1785758772,
       "started": 1785760956,
-      "finished": 1785762234,
+      "finished": 1785762824,
       "note": "断链扫描/删除文件零引用/pytest 410 passed 均已过；唯 AI 可理解性校验(claude -p --bare 管道)因端点 ConnectionRefused 持续不可用未能执行(已重试 2 次，各含 10 次内部退避重试，35 分钟内两次均报同一错误)，未伪造通过。其余验收物真实产出，无需额外代码修复(未发现真断链)。"
     },
     {
@@ -90,10 +94,10 @@
   "created": 1785758772,
   "started": 1785759037,
   "confirmed": 1785759037,
-  "checked": null,
-  "checked_end": null,
-  "finished": null,
-  "updated": 1785762234,
+  "checked": 1785762855,
+  "checked_end": 1785763566,
+  "finished": 1785763627,
+  "updated": 1785763627,
   "timeline": [
     {
       "kind": "task",
@@ -157,6 +161,46 @@
       "at": 1785762234,
       "sid": "verify",
       "note": "断链扫描/删除文件零引用/pytest 410 passed 均已过；唯 AI 可理解性校验(claude -p --bare 管道)因端点 ConnectionRefused 持续不可用未能执行(已重试 2 次，各含 10 次内部退避重试，35 分钟内两次均报同一错误)，未伪造通过。其余验收物真实产出，无需额外代码修复(未发现真断链)。",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "running",
+      "at": 1785762824,
+      "sid": "verify",
+      "note": "",
+      "rollback": true
+    },
+    {
+      "kind": "subtask",
+      "status": "done",
+      "at": 1785762824,
+      "sid": "verify",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "task",
+      "status": "check",
+      "at": 1785762855,
+      "sid": null,
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "task",
+      "status": "finishing",
+      "at": 1785763566,
+      "sid": null,
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "task",
+      "status": "done",
+      "at": 1785763627,
+      "sid": null,
+      "note": "",
       "rollback": false
     }
   ],
