@@ -1,6 +1,21 @@
 {
   "tasks": [
     {
+      "id": "agents-positive",
+      "status": "active",
+      "deps": [],
+      "priority": "normal",
+      "worktree": null,
+      "parent": null,
+      "kind": "task",
+      "created": 1785736306,
+      "confirmed": 1785737132,
+      "started": 1785737132,
+      "checked": null,
+      "checked_end": null,
+      "finished": null
+    },
+    {
       "id": "skein-flow-enhance",
       "status": "active",
       "deps": [],

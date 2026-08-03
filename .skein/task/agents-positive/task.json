@@ -1,0 +1,112 @@
+{
+  "id": "agents-positive",
+  "name": "agent 文档正向化",
+  "desc": "9 个 skein agent 文件的否定式描述改写为正向可执行表述, 并去除跨文件重复条目",
+  "status": "active",
+  "deps": [],
+  "contracts": [
+    "转写只改措辞, 禁改工作流步骤/章节结构/frontmatter — diff 只落正文",
+    "语义等价优先: 正向表达更绕的条目保留否定式并列入豁免清单, 附理由",
+    "原文写了 why 的, 转写后 why 原样保留 — 理由是 agent 处理未覆盖情形的唯一依据",
+    "去重保留一处完整表述其余引用它, 禁九处都删到只剩关键词 (agent 文件各自独立加载)"
+  ],
+  "subtasks": [
+    {
+      "sid": "norm",
+      "name": "定转写范式 + 改 3 个高密度文件",
+      "desc": "按 design §1 四类转法改 skein-checker/skein-specer/skein-dedup (24+19+17 处), 产出「原文→新文」对照表落 .skein/task/agents-positive/rewrite-table.md 供后续套用。",
+      "estimate": 2.0,
+      "depends_on": [],
+      "acceptance": [
+        "三文件否定式全转或入豁免清单",
+        "对照表落盘且每条含 why 保留证据",
+        "章节结构与 frontmatter 未动"
+      ],
+      "acceptance_done": [],
+      "status": "running",
+      "phase": "exec",
+      "skills": [],
+      "created": 1785736422,
+      "started": 1785737132,
+      "finished": null
+    },
+    {
+      "sid": "rest",
+      "name": "按范式改其余 6 个文件",
+      "desc": "套用 rewrite-table.md 的范式改 executor/clean/setup/researcher/recaller/finisher, 措辞与前三个保持一致。",
+      "estimate": 2.0,
+      "depends_on": [
+        "norm"
+      ],
+      "acceptance": [
+        "六文件否定式全转或入豁免清单",
+        "措辞与对照表一致",
+        "结构未动"
+      ],
+      "acceptance_done": [],
+      "status": "pending",
+      "phase": "exec",
+      "skills": [],
+      "created": 1785736423,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "dedup",
+      "name": "三类公共条目去重统一",
+      "desc": "design §2 的公共铁律引用/工具失败标记/缺信息回传 三类跨 9 文件统一措辞, 保留一处完整表述其余引用。",
+      "estimate": 1.0,
+      "depends_on": [
+        "rest"
+      ],
+      "acceptance": [
+        "三类各收敛为一种措辞",
+        "无 agent 被删到看不见约束"
+      ],
+      "acceptance_done": [],
+      "status": "pending",
+      "phase": "exec",
+      "skills": [],
+      "created": 1785736423,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "verify",
+      "name": "AI 理解度检查 + 残留核对",
+      "desc": "9 文件逐个跑 CLAUDE.md 规定的理解度检查(同 prompt 3 次), 跑残留 grep 核对豁免清单, 跑 test_docs_commands.py。",
+      "estimate": 1.5,
+      "depends_on": [
+        "dedup"
+      ],
+      "acceptance": [
+        "9 文件理解度检查通过且 3 次一致",
+        "grep 残留全在豁免清单",
+        "test_docs_commands 全绿"
+      ],
+      "acceptance_done": [],
+      "status": "pending",
+      "phase": "exec",
+      "skills": [],
+      "created": 1785736423,
+      "started": null,
+      "finished": null
+    }
+  ],
+  "priority": "normal",
+  "estimate": 7.0,
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/agents-positive",
+  "parent": null,
+  "kind": "task",
+  "created": 1785736306,
+  "started": 1785737132,
+  "confirmed": 1785737132,
+  "checked": null,
+  "checked_end": null,
+  "finished": null,
+  "updated": 1785737132,
+  "confirmed_by": "user"
+}
