@@ -6,7 +6,8 @@ import Link from "next/link";
 import { Sidebar, Topbar } from "@/components/layout";
 import { StatusBadge, StatusDot, ST_META } from "@/components/status";
 import { api, ApiError } from "@/lib/api";
-import { normalizeTask, normalizeTasks, PRIORITY_LABEL, type NormTask, type NormSubtask } from "@/lib/model";
+import { normalizeTask, normalizeTasks, type NormTask, type NormSubtask } from "@/lib/model";
+import { PrioritySelect } from "@/components/priority";
 import { subscribe } from "@/lib/live";
 import { fmtRelative, fmtTime } from "@/lib/format";
 import { renderMd } from "@/lib/md";
@@ -253,10 +254,7 @@ function TaskDetailContent() {
               {/* Basic info */}
               <Card title="基本信息">
                 <InfoRow label="优先级" value={
-                  <select value={task.priority} onChange={(e) => handlePriorityChange(e.target.value)}
-                    className="rounded-md border border-border bg-card/60 px-2 py-1 text-sm text-foreground">
-                    {Object.entries(PRIORITY_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                  </select>
+                  <PrioritySelect value={task.priority} onChange={handlePriorityChange} />
                 } />
                 {task.assignee ? <InfoRow label="负责人" value={String(task.assignee)} /> : null}
                 <InfoRow label="预估工时" value={task.estimate ? `${task.estimate} 小时` : "—"} />

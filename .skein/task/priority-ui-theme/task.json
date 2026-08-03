@@ -44,13 +44,17 @@
         "看板与详情页走同一映射",
         "未知值回落 normal 不炸版"
       ],
-      "acceptance_done": [],
-      "status": "pending",
+      "acceptance_done": [
+        1,
+        2,
+        3
+      ],
+      "status": "done",
       "phase": "exec",
       "skills": [],
       "created": 1785753205,
-      "started": null,
-      "finished": null
+      "started": 1785753642,
+      "finished": 1785753789
     },
     {
       "sid": "verify",
@@ -90,7 +94,7 @@
   "checked": null,
   "checked_end": null,
   "finished": null,
-  "updated": 1785753522,
+  "updated": 1785753789,
   "timeline": [
     {
       "kind": "task",
@@ -121,6 +125,22 @@
       "status": "done",
       "at": 1785753522,
       "sid": "colors",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "running",
+      "at": 1785753642,
+      "sid": "consume",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "done",
+      "at": 1785753789,
+      "sid": "consume",
       "note": "",
       "rollback": false
     }

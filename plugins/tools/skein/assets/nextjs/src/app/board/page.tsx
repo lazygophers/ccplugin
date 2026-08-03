@@ -5,7 +5,8 @@ import Link from "next/link";
 import { Sidebar, Topbar } from "@/components/layout";
 import { StatusBadge, StatusDot, ST_META, ST_ORDER } from "@/components/status";
 import { api, ApiError, type Task } from "@/lib/api";
-import { normalizeTasks, normalizeStatus, applyTaskChangedBatch, PRIORITY_LABEL, PRIORITY_COLOR_VAR, type NormTask, type NormSubtask } from "@/lib/model";
+import { normalizeTasks, normalizeStatus, applyTaskChangedBatch, type NormTask, type NormSubtask } from "@/lib/model";
+import { PriorityBadge, PrioritySelect } from "@/components/priority";
 import { subscribe } from "@/lib/live";
 import { cn } from "@/lib/utils";
 import { fmtRelative, fmtTime } from "@/lib/format";
@@ -525,7 +526,7 @@ function DagCanvas({ layout, statusSet, onSelect, selectedId }: {
                   <>
                     <div className="flex items-center gap-1.5">
                       <div className="min-w-0 flex-1 truncate text-xs font-semibold leading-tight text-foreground">{t.title || t.name || "(未命名)"}</div>
-                      <span className="flex-shrink-0 rounded border px-1 text-[9px] font-medium leading-tight" style={{ color: `var(${PRIORITY_COLOR_VAR[t.priority] || "--muted-foreground"})`, borderColor: `var(${PRIORITY_COLOR_VAR[t.priority] || "--muted-foreground"})` }}>{PRIORITY_LABEL[t.priority] || t.priority || "中"}</span>
+                      <PriorityBadge priority={t.priority} />
                     </div>
                     <div className="flex items-center text-[10px] leading-tight text-muted-foreground">
                       <span className="truncate font-mono">#{t.id}</span>
@@ -594,7 +595,7 @@ function ListView({ tasks, statusSet, onSelect }: { tasks: NormTask[]; statusSet
                     <div className="truncate text-sm text-foreground">{t.title || t.name || "(未命名)"}</div>
                     <div className="truncate font-mono text-xs text-muted-foreground">#{t.id}</div>
                   </div>
-                  <span className="flex-shrink-0 rounded border px-1 text-[9px] font-medium" style={{ color: `var(${PRIORITY_COLOR_VAR[t.priority] || "--muted-foreground"})`, borderColor: `var(${PRIORITY_COLOR_VAR[t.priority] || "--muted-foreground"})` }}>{PRIORITY_LABEL[t.priority] || t.priority || "中"}</span>
+                  <PriorityBadge priority={t.priority} />
                 </div>
               )) : <div className="py-6 text-center text-xs text-muted-foreground">暂无</div>}
             </div>
@@ -647,10 +648,7 @@ function DetailPanel({ task, allTasks, onClose, onConfirm, onFinish, onDelete, o
         {/* Basic info */}
         <DetailCard title="基本信息">
           <InfoRow label="优先级" value={
-            <select value={task.priority} onChange={(e) => onPriorityChange(task.id, e.target.value)}
-              className="rounded-md border border-border bg-card/60 px-2 py-1 text-sm text-foreground">
-              {Object.entries(PRIORITY_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-            </select>
+            <PrioritySelect value={task.priority} onChange={(val) => onPriorityChange(task.id, val)} />
           } />
           <InfoRow label="预估工时" value={task.estimate ? `${task.estimate} h` : "—"} />
           <InfoRow label="进度" value={<ProgressBar value={Number((task as Record<string, unknown>).spct ?? task.progress ?? (st === "done" ? 100 : 0))} colorVar={meta.colorVar} />} />
