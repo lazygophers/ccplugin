@@ -104,13 +104,15 @@
       "acceptance": [
         "tsc --noEmit 0 error"
       ],
-      "acceptance_done": [],
-      "status": "running",
+      "acceptance_done": [
+        1
+      ],
+      "status": "done",
       "phase": "exec",
       "skills": [],
       "created": 1785733613,
       "started": 1785741803,
-      "finished": null
+      "finished": 1785742013
     },
     {
       "sid": "test",
@@ -147,7 +149,7 @@
   "checked": null,
   "checked_end": null,
   "finished": null,
-  "updated": 1785741803,
+  "updated": 1785742013,
   "confirmed_by": "user",
   "timeline": [
     {

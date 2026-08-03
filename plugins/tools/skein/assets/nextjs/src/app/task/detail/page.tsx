@@ -18,23 +18,57 @@ import { ConfirmDialog } from "@/components/confirm-dialog";
 import { IconApprove, IconFinish, IconTrash, IconCopyMini } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
-// ── Timeline stages (from old app.js buildTimeline) ──
+// ── Timeline stages ──
+// timeline (task.json 落盘的 TimelineEvent[]) 存在时按其渲染六段骨架 (对齐 TaskStatus 六态);
+// 缺失/为空 (老 task 无该字段) 回落旧的按当前状态推算的四段渲染。
+interface TimelineEvent { kind: "task" | "subtask"; status: string; at: number; sid: string | null; note: string; rollback: boolean }
+interface Stage { key: string; label: string; desc: string; color: string; time: number | null; done: boolean; current: boolean; rounds?: number }
+
 const STAGE_ORDER: Record<string, number> = { planning: 0, active: 1, check: 2, done: 3 };
 const STAGE_COLORS: Record<string, string> = {
   created: "#74b9e8", started: "#237bb8", checked: "#c9a227", finished: "#48bb78",
 };
 
-function buildStages(task: NormTask) {
+// 六段骨架恒定 (kind=task 的六个 TaskStatus), 与后端 skeinlib/task/model.py TaskStatus 对齐
+const STAGE_META: { key: string; label: string; desc: string; color: string }[] = [
+  { key: "pending", label: "待处理", desc: "任务创建与规划", color: "#74b9e8" },
+  { key: "research", label: "调研中", desc: "需求调研与方案设计", color: "#8e7cc3" },
+  { key: "active", label: "执行中", desc: "任务执行中，子任务调度", color: "#237bb8" },
+  { key: "check", label: "检查中", desc: "checkpoint 核对 + 场景自适应校验", color: "#c9a227" },
+  { key: "finishing", label: "收尾中", desc: "验收通过，归档收尾", color: "#e08e45" },
+  { key: "done", label: "已完成", desc: "任务完成，归档沉淀", color: "#48bb78" },
+];
+
+function buildStagesFromTimeline(task: NormTask, timeline: TimelineEvent[]): Stage[] {
+  return STAGE_META.map((meta): Stage => {
+    const events = timeline.filter(e => e.kind === "task" && e.status === meta.key);
+    const occurred = events.length > 0;
+    return {
+      key: meta.key, label: meta.label, desc: meta.desc, color: meta.color,
+      time: occurred ? events[0].at * 1000 : null,
+      done: occurred,
+      current: task.status === meta.key,
+      rounds: events.length,
+    };
+  });
+}
+
+function buildStagesLegacy(task: NormTask): Stage[] {
   const st = task.status || "planning";
   const idx = STAGE_ORDER[st];
   const byTs = idx == null;
-  const at = (i: number, ts: number | null) => byTs ? !!ts : idx > i;
   return [
-    { key: "planning", label: "规划中", name: "规划中", desc: "任务规划与 PRD 编写", time: task.createdAt, done: idx > 0, current: idx === 0, color: STAGE_COLORS.created },
-    { key: "started", label: "执行", name: "开始执行", desc: "任务执行中，子任务调度", time: task.startedAt, done: idx > 1, current: idx === 1, color: STAGE_COLORS.started },
-    { key: "checked", label: "验收", name: "进入验收", desc: "checkpoint 核对 + 场景自适应校验", time: task.checkedAt, done: idx > 2, current: idx === 2, color: STAGE_COLORS.checked },
-    { key: "finished", label: "完成", name: "已完成", desc: "任务完成，归档沉淀", time: task.finishedAt, done: byTs ? !!task.finishedAt : idx >= 3, current: false, color: STAGE_COLORS.finished },
+    { key: "planning", label: "规划中", desc: "任务规划与 PRD 编写", time: task.createdAt, done: idx > 0, current: idx === 0, color: STAGE_COLORS.created },
+    { key: "started", label: "执行", desc: "任务执行中，子任务调度", time: task.startedAt, done: idx > 1, current: idx === 1, color: STAGE_COLORS.started },
+    { key: "checked", label: "验收", desc: "checkpoint 核对 + 场景自适应校验", time: task.checkedAt, done: idx > 2, current: idx === 2, color: STAGE_COLORS.checked },
+    { key: "finished", label: "完成", desc: "任务完成，归档沉淀", time: task.finishedAt, done: byTs ? !!task.finishedAt : idx >= 3, current: false, color: STAGE_COLORS.finished },
   ];
+}
+
+function buildStages(task: NormTask): Stage[] {
+  const timeline = task.timeline as TimelineEvent[] | undefined;
+  if (Array.isArray(timeline) && timeline.length > 0) return buildStagesFromTimeline(task, timeline);
+  return buildStagesLegacy(task);
 }
 
 function isPlaceholder(src: string): boolean {
@@ -252,10 +286,11 @@ function TaskDetailContent() {
                           <span className={`text-[10px] ${done ? "text-muted-foreground" : "text-muted-foreground/60"}`}>
                             {done ? fmtTime(s.time) : current ? "当前" : "待执行"}
                           </span>
-                          {s.key === "started" && subsOfTask.length > 0 && <span className="text-[10px] text-muted-foreground">{subDone}/{subsOfTask.length} 子任务</span>}
+                          {done && (s.rounds || 0) > 1 && <span className="text-[10px] text-muted-foreground" title={`经历 ${s.rounds} 次该阶段 (含回滚重入)`}>↺{s.rounds}轮</span>}
+                          {(s.key === "started" || s.key === "active") && subsOfTask.length > 0 && <span className="text-[10px] text-muted-foreground">{subDone}/{subsOfTask.length} 子任务</span>}
                         </div>
                         <div className="text-[10px] text-muted-foreground">{s.desc}</div>
-                        {s.key === "started" && subsOfTask.length > 0 && <SubTimeline subs={subsOfTask} taskId={task.id} />}
+                        {(s.key === "started" || s.key === "active") && subsOfTask.length > 0 && <SubTimeline subs={subsOfTask} taskId={task.id} />}
                       </div>
                     );
                   })}
