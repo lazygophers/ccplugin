@@ -67,13 +67,17 @@
         "test_docs_commands 全绿",
         "全量回归不超基线"
       ],
-      "acceptance_done": [],
-      "status": "running",
+      "acceptance_done": [
+        1,
+        2,
+        3
+      ],
+      "status": "done",
       "phase": "exec",
       "skills": [],
       "created": 1785748173,
       "started": 1785749680,
-      "finished": null
+      "finished": 1785750922
     }
   ],
   "priority": "normal",
@@ -90,7 +94,7 @@
   "checked": null,
   "checked_end": null,
   "finished": null,
-  "updated": 1785749680,
+  "updated": 1785750922,
   "timeline": [
     {
       "kind": "task",

@@ -26,8 +26,8 @@
 | `skein parent <id> [--set <parent-id>]` | 无 `--set` 只查当前 parent; `--set <id>` 挂到 supertask/task 下 (拒自引用/父不存在/深度超 2 层/自身已有 child); `--set ""` 摘除。任意状态可改, 与 `deps` 正交, 不碰 deps |
 | `skein subtask add/claim/ready/start/check/show/done/fail/list <task-id> [sid]` | subtask 管理 (add 登记, `--name <str> --desc <str> --estimate <小时>` 必填 / `--phase exec\|research` 默认 exec / claim 整批认领就绪 / ready 只读预览 / start 单个占槽 / check 勾验收 / show 查全字段 / done 完成 / fail 失败 / list 列态) |
 | `skein claim exec\|check` | 全局跨 task 认领批; phase 必填: `exec`=认领 ready subtask → running / `check`=认领 全done 的 进行中 task → 检查中 + 检查通过的 → 收尾中 (占 gate 槽, 待 finisher 跑 finish) |
-| `skein contract list/add <task-id>` | 契约管理 |
-| `skein prd read/write/add/check/uncheck <task-id>` | PRD 章节管理 |
+| `skein contract <task-id>` | 契约管理 (无 `--add` 只查, 带 `--add <str>` 则追加) |
+| `skein prd read/write/add/check/uncheck <task-id>` | PRD 章节管理 (`--type <str>` 全部必填; `read` 无需 `--list`, 其余 `write/add/check/uncheck` 都要 `--list <str>`) |
 
 ### skein-spec
 
