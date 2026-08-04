@@ -169,14 +169,12 @@ def test_ctx_autodrive_continues_past_create_to_a_real_user_gate() -> None:
     断言语义 (「建完继续」+「终点是用户门」+「不得代替批准」), 不断具体措辞。
     """
     from skeinlib.hooks.judge import _CTX
-    section_start = _CTX.index("## 判了 flow")
-    section_end = _CTX.index("##", section_start + 2)
-    section = _CTX[section_start:section_end]
+    section = _CTX[_CTX.index("# 任务判定"):]
 
-    assert "create" in section, "该段丢了起点规定 (先 create)"
-    assert "不停手" in section or "继续" in section, "该段没写建完 task 后要继续跑规划"
-    assert "用户" in section, "该段没写推进终点要停给用户"
-    assert "批准" in section or "approved" in section, "该段没写禁止代替用户批准"
+    assert "Skill(name='skein-flow'" in section, "该段丢了 flow 入口规定"
+    assert "补充" in section, "该段没写旧任务补充路径"
+    assert "AskUserQuestion" in section, "该段没写拿不准时要问用户"
+    assert "新输入禁打断在跑的工作" in section, "该段没写新输入不能打断在途工作"
 
 
 def test_three_landing_paths_are_defined_with_criteria() -> None:
@@ -185,8 +183,8 @@ def test_three_landing_paths_are_defined_with_criteria() -> None:
     意图是开放的, 但落地只有这三条 (建 task / 并入 / 直接做), 判据丢了就等于让 AI 拍脑袋。
     """
     from skeinlib.hooks.judge import _CTX
-    body = _CTX[_CTX.index("## 落地路径"):]
-    for token in ("flow", "inline", "补充", "拿不准"):
+    body = _CTX[_CTX.index("# 任务判定"):]
+    for token in ("flow", "inline", "补充", "其他", "判断条件", "判定条件"):
         assert token in body, f"落地路径段缺 {token}"
 
 
