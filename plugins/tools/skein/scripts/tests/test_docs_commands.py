@@ -3,8 +3,8 @@
 ## 为什么需要这条
 skill / agent 文档里的命令示例**会被 AI 照抄执行**。一条写错的示例不是排版问题, 是 agent 当场
 发出无效命令然后开始猜。而 CLI 改了参数、文档没跟上, 没有任何东西会报警 —— 首次跑这个校验时
-一次性揪出 16 处失效示例, 包括 `skein cancel`(命令不存在)、`skein state finish --force`、
-`skein deps --tree/--reverse`、`skein list --all`、`skein task show`(应为 `skein status`)、
+一次性揪出 16 处失效示例, 包括 `skein cancel`(命令不存在)、`skein task finish --force`、
+`skein task deps --tree/--reverse`、`skein list --all`、旧版 `skein status`(应为 `skein task status`)、
 `skein-spec archive --deep=`(archive 只认 --namespace) 等。
 
 ## 合法面从哪来
@@ -16,7 +16,7 @@ skill / agent 文档里的命令示例**会被 AI 照抄执行**。一条写错�
   这正是要抓的, 因为那样写 agent 会真去敲 CLI。
 - `del` 是唯一公开删除命令; delete/rm/remove 属隐藏兼容别名, 不纳入文档合法面。
 - `view` 不是公开 CLI 子命令; 可视化看板走 `skein serve --open`。
-- task 状态变更统一走 `skein state <transition>`; 顶层旧命令仅兼容，不纳入文档合法面。
+- task 查看、编辑、状态变更统一走 `skein task <action>`; 顶层旧命令与 `state` 旧组仅兼容，不纳入文档合法面。
 """
 from __future__ import annotations
 
@@ -149,15 +149,17 @@ def test_delete_aliases_resolve_to_single_click_command() -> None:
     assert group.get_command(ctx, "remove") is canonical
 
 
-def test_task_state_commands_are_grouped() -> None:
+def test_task_commands_are_grouped() -> None:
     group = cast(TyperGroup, get_command(app))
     ctx = _click.Context(group)
-    state = group.get_command(ctx, "state")
-    assert isinstance(state, TyperGroup)
-    state_ctx = _click.Context(state)
-    for command in ("create", "research", "plan", "confirm", "check", "finishing", "finish"):
+    task = group.get_command(ctx, "task")
+    assert isinstance(task, TyperGroup)
+    task_ctx = _click.Context(task)
+    for command in ("create", "research", "plan", "confirm", "check", "finishing", "finish",
+                    "rename", "parent", "deps", "repos", "estimate", "priority", "status", "show"):
         assert command not in group.commands
-        assert state.get_command(state_ctx, command) is not None
+        assert task.get_command(task_ctx, command) is not None
+    assert "state" not in group.commands
 
 
 def test_current_command_is_not_registered() -> None:
@@ -174,7 +176,7 @@ def test_scanner_actually_catches_bad_examples(tmp_path: Path) -> None:
     doc.write_text(
         "| `skein cancel <id>` | 假子命令 |\n"
         "| `skein list --all` | 假参数 |\n"
-        "`skein state confirm <id> --approved` 是真命令, 该放行\n")
+        "`skein task confirm <id> --approved` 是真命令, 该放行\n")
     problems = _scan([doc])
     assert len(problems) == 2, f"该抓 2 条 (假子命令+假参数), 实际 {len(problems)}: {problems}"
     joined = "\n".join(problems)

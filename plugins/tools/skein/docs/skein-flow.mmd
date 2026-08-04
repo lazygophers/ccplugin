@@ -24,7 +24,7 @@ graph TB
     INIT -.->|检测到 .trellis/| TRELLIS_MIG["skein setup<br/>兼容(留数据) / --full(整删)<br/>派 skein-setup agent 语义迁移"]
   end
 
-  subgraph CreateTask["建 task (skein state create) — 更新 task.json + 初始化文件夹"]
+  subgraph CreateTask["建 task (skein task create) — 更新 task.json + 初始化文件夹"]
     CREATE --> C_JSON[更新 task.json<br/>status=待处理]
     CREATE --> C_FOLDER[初始化 task/&lt;id&gt;/ 文件夹]
     C_FOLDER --> C_PRD["prd.md 脚手架<br/>章节带 - [ ] TODO"]
@@ -55,7 +55,7 @@ graph TB
     DAG_CHECK -->|命中| SPLIT_ASK[AskUserQuestion<br/>拆多 task + task 级 --deps]
     DAG_CHECK -->|未命中| DAG[subtask DAG<br/>skein subtask add --deps<br/>协议先行后并行]
     SPLIT_ASK --> SUPERTASK{需 supertask?<br/>cold-start 收敛后判<br/>默认不建}
-    SUPERTASK -->|是| SUPER[skein state create --kind supertask<br/>child --parent 限2层]
+    SUPERTASK -->|是| SUPER[skein task create --kind supertask<br/>child --parent 限2层]
     SUPERTASK -->|否| DAG
     SUPER --> DAG
     P5 --> CONTRACT_OUT["contracts[]<br/>已由 P4_LOCK 落盘"]
@@ -67,7 +67,7 @@ graph TB
     DESIGN --> USER_CONFIRM
     DAG --> USER_CONFIRM
     CONTRACT_OUT --> USER_CONFIRM
-    USER_CONFIRM -->|通过| CONFIRM_CMD["skein state confirm &lt;id&gt;<br/>用户确认门 (吸收 start): 验 prd + ≥1 subtask<br/>+ doctor 体检 + deps 校验 + 建 worktree<br/>待处理→进行中"]
+    USER_CONFIRM -->|通过| CONFIRM_CMD["skein task confirm &lt;id&gt;<br/>用户确认门 (吸收 start): 验 prd + ≥1 subtask<br/>+ doctor 体检 + deps 校验 + 建 worktree<br/>待处理→进行中"]
     CONFIRM_CMD --> START[进行中]
     USER_CONFIRM -->|驳回| P6
   end
@@ -89,7 +89,7 @@ graph TB
     NEW_TASK --> CLAIM
     DONE --> NEXT{本 task subtask 全 done?}
     NEXT -->|否, 还有就绪| CLAIM
-    NEXT -->|是| TASK_CHECK["skein state check &lt;id&gt;<br/>该 task → 检查中 (独立阶段, 不占 max_active 槽)"]
+    NEXT -->|是| TASK_CHECK["skein task check &lt;id&gt;<br/>该 task → 检查中 (独立阶段, 不占 max_active 槽)"]
     TASK_CHECK --> MORE_TASK{还有未完成 task?}
     MORE_TASK -->|是, 继续调度| CLAIM
     MORE_TASK -->|否| EXEC_PAUSE[全部 task 完成<br/>exec 暂停工作]
@@ -127,7 +127,7 @@ graph TB
   subgraph Finish["Phase 4: 收束 — skein-finish"]
     CHECK_PASS --> INSPECT[收尾勘察<br/>派 skein-finisher 只读 diff+悬挂残留<br/>不做验收核对]
     INSPECT --> CLEAN_SUB["main 清悬挂后台 agent<br/>本 task 派出的均已结束<br/>未关 = 未闭环 禁 finish"]
-    CLEAN_SUB --> FINISH_CMD["skein state finish &lt;id&gt;<br/>原子动作: commit→merge→销 worktree→标记完成<br/>检查中→已完成 (归档=保留期后自动迁移)"]
+    CLEAN_SUB --> FINISH_CMD["skein task finish &lt;id&gt;<br/>原子动作: commit→merge→销 worktree→标记完成<br/>检查中→已完成 (归档=保留期后自动迁移)"]
     FINISH_CMD --> AUTO_COMMIT_CHK{worktree?<br/>是: 强制 commit<br/>否: 才看 auto_commit}
     AUTO_COMMIT_CHK --> ASYNC["异步 fire-and-forget agent<br/>(finish 已闭环, 不阻塞)"]
     ASYNC --> SPECER["skein-specer<br/>sediment + prune"]

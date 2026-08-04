@@ -27,4 +27,4 @@ scaffold + spec 拷贝 + task 迁移 + 接线删除已由 `skein setup [--full]`
 - **spec 已独立拷入 `.skein/spec`** — setup 用 `copytree` 拷贝 (非软链), trellis 零改动。agent 在 `.skein/spec` 原地重组, 安全不碰 trellis。
 - **接线删除无条件** — `skein setup` 已删接线文件/目录 + **硬剔 `.claude/settings*.json` 内 canonical trellis hook 条目** (command 引用 session-start / inject-subagent-context / guard-version / inject-workflow-state 的, 连脚本一并删; rust-fmt 等用户自有 hook 保留)。agent 只清脚本漏网的**残留** hook (command 含 `trellis` 子串但非 canonical 脚本名, 如 `trellis.sh`)。
 - **`--full` 破坏性** — 整删 `.trellis/`; main 派发即视为授权 (用户调 `setup --full` = 同意完全移除)。spec/task 已拷入 `.skein`, 删的是残留数据目录。
-- **task.md / task.json 禁手改** — 迁移经 `skein state create` 等命令, 不直接写 (PreToolUse hook 硬阻)。
+- **task.md / task.json 禁手改** — 迁移经 `skein task create` 等命令, 不直接写 (PreToolUse hook 硬阻)。

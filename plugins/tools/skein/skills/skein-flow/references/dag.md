@@ -9,14 +9,14 @@ SKEIN 只认显式依赖边，不推测隐式顺序。
 | 层级    | 字段         | 登记位置                                        | 登记命令                                                                                         |
 | ------- | ------------ | ----------------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | subtask | `depends_on` | per-task `task.json` 的 `subtasks[].depends_on` | `skein subtask add <tid> <sid> --name <str> --desc <str> --estimate <小时> --deps <sid1>,<sid2>` |
-| task    | `deps`       | 顶层 task 索引                                  | `skein state create --deps <tid1>,<tid2>`                                                              |
+| task    | `deps`       | 顶层 task 索引                                  | `skein task create --deps <tid1>,<tid2>`                                                              |
 
 `A --deps B` = A 依赖 B，B done 后 A 才 ready。规矩：
 
 - 并行与否只看显式 DAG，不靠脚本猜文件重叠；有序关系必须在 planning 写进 `--deps`。
 - 无真实顺序依赖就不加边 —— 伪依赖拉长关键路径、扼杀并行。
 - DAG 是调度真值源：不写 mermaid 图文件，运行态看 `skein subtask list <tid>`，不看任何 md。
-- planning 未登记任何 subtask → `skein state confirm` 硬拒。
+- planning 未登记任何 subtask → `skein task confirm` 硬拒。
 
 `--deps` 必须无环，三个常见挂错：
 
@@ -60,7 +60,7 @@ skein subtask add <tid> st3 --name "加测试"     --desc "覆盖新旧字段两
 
 | 信号                                                    | 判据                                    | 动作                                                                                   |
 | ------------------------------------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------- |
-| 复合嗅味（"X and Y and Z"）/ 多独立能力 / subtask 会 >8 | capability 按**用户行为**拆（非技术层） | 拆多 task：`skein state create <super-id> --kind supertask` + 各 child `--parent <super-id>` |
+| 复合嗅味（"X and Y and Z"）/ 多独立能力 / subtask 会 >8 | capability 按**用户行为**拆（非技术层） | 拆多 task：`skein task create <super-id> --kind supertask` + 各 child `--parent <super-id>` |
 
 - **capability ≠ 技术模块** — capability 是用户行为（「下单」「退款」），非技术层（「DB 层」「API 层」）。按技术层拆 = 跨层耦合依旧的假拆。
 - **walking skeleton 优先** — 第一个 task 强制端到端最薄能跑通（验证数据流 / 契约 / 部署链路假设），非铺平所有能力域。假设证伪早返工，比铺平再发现省。
@@ -89,8 +89,8 @@ subtask.ready = 所有 depends_on 均 done
 
 | 操作                           | 是否被 deps 阻塞 | 说明                           |
 | ------------------------------ | ---------------- | ------------------------------ |
-| `skein state create` / `subtask add` | 否               | planning 可提前做。            |
-| `skein state confirm`                | 是               | task 前置未 done 时拒。        |
+| `skein task create` / `subtask add` | 否               | planning 可提前做。            |
+| `skein task confirm`                | 是               | task 前置未 done 时拒。        |
 | `skein claim exec`             | 是               | subtask 前置未 done 不 ready。 |
 
 ready 数超过空闲槽时按四键稳定排序截取：
@@ -118,9 +118,9 @@ layer(source) = 0; layer(node) = max(layer(dep)) + 1                            
 | 池     | 计数对象                                    | 配置         | 校验位置                        |
 | ------ | ------------------------------------------- | ------------ | ------------------------------- |
 | `work` | `status=running` 的 exec/research subtask   | `pools.work` | `skein claim` / `subtask start` |
-| `gate` | `status=check` / `status=finishing` 的 task | `pools.gate` | `skein state finishing`               |
+| `gate` | `status=check` / `status=finishing` 的 task | `pools.gate` | `skein task finishing`               |
 
-`skein state confirm` 不占池；真正资源约束在 running subtask 与 gate task。
+`skein task confirm` 不占池；真正资源约束在 running subtask 与 gate task。
 
 > **利用率警戒（Kingman 近似）**：work 池利用率 ρ = running/exec 槽位超 80% 时，subtask 等待时间呈非线性增长。planning 阶段若预估 subtask 总量大，考虑提高 `pools.work` 或减少伪依赖释放并行度。
 >

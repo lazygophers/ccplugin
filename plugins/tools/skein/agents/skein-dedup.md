@@ -57,8 +57,8 @@ skein del <次-id>
 
 ```bash
 skein list --status open --json | jq -c '[.[] | select(.status=="待处理" or .status=="调研中") | select((.deps|length)==0) | {id,name,desc}]'
-skein deps <后置-id> --set <前置-id[,前置2]>
-skein deps <后置-id>                                          # 回读校验写入
+skein task deps <后置-id> --set <前置-id[,前置2]>
+skein task deps <后置-id>                                          # 回读校验写入
 ```
 
 - 排序判据: A 的产物是 B 的前提 (schema/基础模块/共享契约先于消费方) → B 依赖 A。方向按逻辑前置, 非生命周期。
@@ -95,5 +95,5 @@ skein-hooks agent-stop --agent skein-dedup
 | -------------------------- | ----------------------------------------------------------- | ------------------------------------------ |
 | `skein` 不在 PATH / list 报错 | 换 `$CLAUDE_PLUGIN_ROOT/bin/skein` 重试 1 次 | `[工具失败: <原因>]`, 无法扫描则空处置回传 |
 | 两 task 疑似重复但判据弱   | 保守不归并, 记 skipped                                      | 宁漏归并不误删有效 task                    |
-| `skein deps` 报成环/自引用 | 换方向或跳过该连                                            | skipped 标「非法连法」+ 原因               |
+| `skein task deps` 报成环/自引用 | 换方向或跳过该连                                            | skipped 标「非法连法」+ 原因               |
 | 已有 deps 的 task 想改序   | 不碰 (CLI 会拒)                                             | skipped 标「保护既有 deps」                |

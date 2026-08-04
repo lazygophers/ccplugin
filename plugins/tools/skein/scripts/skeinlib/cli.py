@@ -35,17 +35,18 @@ class AliasTyperGroup(TyperGroup):
         return super().get_command(ctx, self.aliases.get(cmd_name, cmd_name))
 
 
-STATE_COMMANDS = {"create", "research", "plan", "confirm", "check", "finishing", "finish"}
+TASK_COMMANDS = {"create", "research", "plan", "confirm", "check", "finishing", "finish",
+                 "priority", "estimate", "repos", "deps", "parent", "rename", "status", "show"}
 
 
 app = typer.Typer(
     cls=AliasTyperGroup,
-    help="SKEIN 任务管理引擎 — task 生命周期 + 看板 + 契约\n\n状态变更: state create → (research ⇄ plan) → confirm(吸收 start) → check → finishing → finish",
+    help="SKEIN 任务管理引擎 — task 生命周期 + 看板 + 契约\n\ntask 编辑: task create → (research ⇄ plan) → confirm → check → finishing → finish; task rename/parent/deps/repos/estimate/priority/status",
     no_args_is_help=True,
     add_completion=False,
     rich_markup_mode=None,  # docstring 里 [sid] 会被 rich 当样式标签吃掉, 关掉 markup 保留原文
 )
-state_app = typer.Typer(help="task 状态变更", no_args_is_help=True)
+task_app = typer.Typer(help="task 查看、编辑、状态变更", no_args_is_help=True)
 config_app = typer.Typer(help="读写 .skein/config.yaml 配置", invoke_without_command=True)
 prd_app = typer.Typer(help="读/写/追加/勾选 prd 章节 (目标/边界/User Stories/验收标准/验证方式/Testing Decisions)")
 
@@ -122,7 +123,7 @@ def setup(full: bool = typer.Option(False, "--full"), no_web: bool = typer.Optio
     _run("setup", full=full, no_web=no_web)
 
 
-@state_app.command("create")
+@task_app.command("create")
 def create(
     id: Annotated[str, typer.Argument(help="可读 id")],
     name: Annotated[str, typer.Option("--name", help="task 标题")],
@@ -139,49 +140,49 @@ def create(
          estimate=estimate, priority=priority)
 
 
-@app.command()
+@task_app.command("priority")
 def priority(id: str, set_: Annotated[Optional[str], typer.Option("--set")] = None) -> None:
     """查/改 task 优先级。"""
     _run("priority", id=id, set=set_)
 
 
-@app.command()
+@task_app.command("estimate")
 def estimate(id: str, set_: Annotated[Optional[str], typer.Option("--set")] = None) -> None:
     """查/填 task 预计工时。"""
     _run("estimate", id=id, set=set_)
 
 
-@app.command()
+@task_app.command("repos")
 def repos(id: str, set_: Annotated[Optional[str], typer.Option("--set")] = None) -> None:
     """查/声明 task 目标子 git。"""
     _run("repos", id=id, set=set_)
 
 
-@app.command()
+@task_app.command("deps")
 def deps(id: str, set_: Annotated[Optional[str], typer.Option("--set")] = None) -> None:
     """查/补 task 级前置 DAG。"""
     _run("deps", id=id, set=set_)
 
 
-@app.command()
+@task_app.command("parent")
 def parent(id: str, set_: Annotated[Optional[str], typer.Option("--set")] = None) -> None:
     """查/改既有 task 的 parent 挂载。"""
     _run("parent", id=id, set=set_)
 
 
-@state_app.command("research")
+@task_app.command("research")
 def research(id: str) -> None:
     """待处理→调研中。"""
     _run("research", id=id)
 
 
-@state_app.command("plan")
+@task_app.command("plan")
 def plan(id: str) -> None:
     """调研中→待处理。"""
     _run("plan", id=id)
 
 
-@state_app.command("confirm")
+@task_app.command("confirm")
 def confirm(
     id: str,
     summary: Annotated[bool, typer.Option("--summary")] = False,
@@ -191,19 +192,19 @@ def confirm(
     _run("confirm", id=id, summary=summary, approved=approved)
 
 
-@state_app.command("check")
+@task_app.command("check")
 def check(id: str) -> None:
     """标记 task 进入检查阶段。"""
     _run("check", id=id)
 
 
-@state_app.command("finishing")
+@task_app.command("finishing")
 def finishing(id: str) -> None:
     """检查中→收尾中。"""
     _run("finishing", id=id)
 
 
-@state_app.command("finish")
+@task_app.command("finish")
 def finish(id: str) -> None:
     """收束 task。"""
     _run("finish", id=id)
@@ -230,13 +231,12 @@ def del_(ctx: typer.Context, dry_run: Annotated[bool, typer.Option("--dry-run")]
     _delete(ctx, dry_run)
 
 
-@app.command()
-def rename(tid: str,
-           sid: Annotated[Optional[str], typer.Argument()] = None,
-           id: Annotated[Optional[str], typer.Option("--id")] = None,
-           name: Annotated[Optional[str], typer.Option("--name")] = None) -> None:
-    """重命名 task/subtask。"""
-    _run("rename", tid=tid, sid=sid, id=id, name=name)
+@task_app.command("rename")
+def task_rename(tid: str,
+                id: Annotated[Optional[str], typer.Option("--id")] = None,
+                name: Annotated[Optional[str], typer.Option("--name")] = None) -> None:
+    """重命名 task。"""
+    _run("rename", tid=tid, sid=None, id=id, name=name)
 
 
 @app.command()
@@ -295,16 +295,22 @@ def contract(id: str, add: Annotated[Optional[str], typer.Option("--add")] = Non
     _run("contract", id=id, add=add)
 
 
-@app.command()
-def status(tid: str, sid: Optional[str] = None,
-           json_: Annotated[bool, typer.Option("--json")] = False) -> None:
+@task_app.command("status")
+def task_status(tid: str, json_: Annotated[bool, typer.Option("--json")] = False) -> None:
     """查 task 态 + subtask 汇总。"""
-    _run("status", tid=tid, sid=sid, json=json_)
+    _run("status", tid=tid, sid=None, json=json_)
+
+
+@task_app.command("show")
+def task_show(tid: str, json_: Annotated[bool, typer.Option("--json")] = False) -> None:
+    """查 task 详情。"""
+    _run("status", tid=tid, sid=None, json=json_)
 
 
 @app.command(context_settings={"allow_extra_args": True, "ignore_unknown_options": False})
 def subtask(
     ctx: typer.Context,
+    id: Annotated[Optional[str], typer.Option("--id")] = None,
     name: Annotated[Optional[str], typer.Option("--name")] = None,
     desc: Annotated[Optional[str], typer.Option("--desc")] = None,
     estimate: Annotated[Optional[str], typer.Option("--estimate")] = None,
@@ -326,6 +332,7 @@ def subtask(
     done  <tid> <sid> [--passed]                                                        运行中→已完成
     fail  <tid> <sid> [--note]                                                          运行中→失败
     check <tid> <sid> [--check]                                                         勾验收, 不改状态
+    rename <tid> <sid> [--id] [--name]                                                   重命名 subtask
     ready <tid>                                                                         只读预览
     show  <tid> <sid>                                                                   单条详情
     list  <tid>                                                                         全表
@@ -335,10 +342,13 @@ def subtask(
         raise typer.BadParameter("subtask 用法: subtask <action> <tid> [sid]")
     action, tid = args[0], args[1]
     sid = args[2] if len(args) == 3 else None
-    if action not in ("add", "claim", "ready", "start", "check", "show", "done", "fail", "list"):
-        raise typer.BadParameter("action 仅允许 add/claim/ready/start/check/show/done/fail/list")
-    if action in ("add", "start", "check", "show", "done", "fail") and not sid:
+    if action not in ("add", "claim", "ready", "start", "check", "show", "rename", "done", "fail", "list"):
+        raise typer.BadParameter("action 仅允许 add/claim/ready/start/check/show/rename/done/fail/list")
+    if action in ("add", "start", "check", "show", "rename", "done", "fail") and not sid:
         raise typer.BadParameter(f"subtask {action} 需要 sid")
+    if action == "rename":
+        _run("rename", tid=tid, sid=sid, id=id, name=name)
+        return
     if action == "add":
         missing = [flag for flag, value in (("--name", name), ("--desc", desc), ("--estimate", estimate)) if not value]
         if missing:
@@ -349,13 +359,13 @@ def subtask(
          deps=deps, check=check, phase=phase, note=note, passed=passed, skills=skills)
 
 
-app.add_typer(state_app, name="state")
+app.add_typer(task_app, name="task")
 app.add_typer(config_app, name="config")
 
 
-@state_app.callback()
-def state() -> None:
-    """task 状态变更。"""
+@task_app.callback()
+def task() -> None:
+    """task 查看、编辑、状态变更。"""
 
 
 @config_app.callback(invoke_without_command=True)
@@ -438,9 +448,15 @@ def _run_hidden_command(argv: list[str]) -> bool:
     return False
 
 
-def _rewrite_legacy_state_args(argv: list[str]) -> list[str]:
-    if argv and argv[0] in STATE_COMMANDS:
-        return ["state", *argv]
+def _rewrite_legacy_task_args(argv: list[str]) -> list[str]:
+    if argv[:1] == ["state"]:
+        return ["task", *argv[1:]]
+    if argv[:1] == ["rename"] and len(argv) >= 3 and not argv[2].startswith("-"):
+        return ["subtask", "rename", *argv[1:]]
+    if argv[:1] == ["status"] and len(argv) >= 3:
+        return ["subtask", "show", *argv[1:]]
+    if argv and argv[0] in TASK_COMMANDS:
+        return ["task", *argv]
     return argv
 
 
@@ -457,7 +473,7 @@ def main() -> None:
     globals()["_namespace"] = namespace_with_json
     try:
         if not _run_hidden_command(argv):
-            argv = _rewrite_legacy_state_args(argv)
+            argv = _rewrite_legacy_task_args(argv)
             app(args=argv, prog_name="skein")
     finally:
         globals()["_namespace"] = original_namespace

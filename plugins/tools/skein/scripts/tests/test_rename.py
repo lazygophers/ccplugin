@@ -1,4 +1,4 @@
-"""rename 命令测试 — skein.py rename <tid> [sid] [--id NEW] [--name NEW]。
+"""rename 命令测试 — skein.py task rename <tid> [--id NEW] [--name NEW] / subtask rename <tid> <sid>。
 
 经 conftest 的 skein_cli/ws fixture 跑真实 skein.py CLI 子进程 (tmp_path 隔离)。
 覆盖 (9 用例):
@@ -48,9 +48,9 @@ def _sub(t: dict[str, Any], sid: str) -> dict[str, Any] | None:
 
 # ---------- 1. task --name 改 ----------
 def test_task_rename_name(skein_cli: SkeinCli, ws: Path) -> None:
-    """rename <tid> --name 新名: name 变、id 不变。"""
+    """task rename <tid> --name 新名: name 变、id 不变。"""
     skein_cli(ws, "create", "task-a", "--name", "旧名", "--desc", "d")
-    skein_cli(ws, "rename", "task-a", "--name", "新名")
+    skein_cli(ws, "task", "rename", "task-a", "--name", "新名")
     t = _task(ws, "task-a")
     assert t["name"] == "新名", f"name 未改: {t['name']!r}"
     assert t["id"] == "task-a", f"id 不应变: {t['id']!r}"
@@ -58,9 +58,9 @@ def test_task_rename_name(skein_cli: SkeinCli, ws: Path) -> None:
 
 # ---------- 2. task --id 改 (pending) ----------
 def test_task_rename_id_pending(skein_cli: SkeinCli, ws: Path) -> None:
-    """rename <old> --id <new>: 目录迁移 + task.json id/branch + 顶层索引同步。"""
+    """task rename <old> --id <new>: 目录迁移 + task.json id/branch + 顶层索引同步。"""
     skein_cli(ws, "create", "task-old", "--name", "n", "--desc", "d")
-    skein_cli(ws, "rename", "task-old", "--id", "task-new")
+    skein_cli(ws, "task", "rename", "task-old", "--id", "task-new")
     assert not (ws / ".skein" / "task" / "task-old").exists(), "旧目录未删"
     assert (ws / ".skein" / "task" / "task-new").exists(), "新目录未建"
     t = _task(ws, "task-new")
@@ -75,7 +75,7 @@ def test_task_rename_id_sync_deps(skein_cli: SkeinCli, ws: Path) -> None:
     """B deps A → rename A --id A2: B 的 deps 含 A2 不含 A。"""
     skein_cli(ws, "create", "task-a", "--name", "a", "--desc", "d")
     skein_cli(ws, "create", "task-b", "--name", "b", "--desc", "d", "--deps", "task-a")
-    skein_cli(ws, "rename", "task-a", "--id", "task-a2")
+    skein_cli(ws, "task", "rename", "task-a", "--id", "task-a2")
     deps = _task(ws, "task-b").get("deps") or []
     assert "task-a2" in deps and "task-a" not in deps, f"deps 未同步: {deps}"
 
@@ -85,7 +85,7 @@ def test_task_rename_id_sync_parent(skein_cli: SkeinCli, ws: Path) -> None:
     """C parent P → rename P --id P2: C 的 parent==P2。"""
     skein_cli(ws, "create", "epic-p", "--name", "p", "--desc", "d", "--kind", "supertask")
     skein_cli(ws, "create", "child-c", "--name", "c", "--desc", "d", "--parent", "epic-p")
-    skein_cli(ws, "rename", "epic-p", "--id", "epic-p2")
+    skein_cli(ws, "task", "rename", "epic-p", "--id", "epic-p2")
     assert _task(ws, "child-c")["parent"] == "epic-p2", \
         f"child parent 未同步: {_task(ws, 'child-c')['parent']!r}"
 
@@ -98,36 +98,36 @@ def test_task_rename_id_non_pending_rejected(skein_cli: SkeinCli, ws: Path) -> N
     _fill_prd(ws, "task-a")
     skein_cli(ws, "estimate", "task-a", "--set", "1")  # estimate 硬门: confirm 前须填实工时
     skein_cli(ws, "confirm", "task-a")  # 待处理→进行中 (confirm 吸收 start)
-    r = skein_cli(ws, "rename", "task-a", "--id", "task-x", check=False)
+    r = skein_cli(ws, "task", "rename", "task-a", "--id", "task-x", check=False)
     assert r.returncode != 0 and "仅限 confirm 前" in r.stderr, f"非 pending 改 id 未拒: {r.stderr!r}"
 
 
 # ---------- 6. 改到已占用 id 拒 ----------
 def test_task_rename_id_occupied_rejected(skein_cli: SkeinCli, ws: Path) -> None:
-    """rename A --id B 当 B 已存在 → 拒 (returncode!=0)。"""
+    """task rename A --id B 当 B 已存在 → 拒 (returncode!=0)。"""
     skein_cli(ws, "create", "task-a", "--name", "a", "--desc", "d")
     skein_cli(ws, "create", "task-b", "--name", "b", "--desc", "d")
-    r = skein_cli(ws, "rename", "task-a", "--id", "task-b", check=False)
+    r = skein_cli(ws, "task", "rename", "task-a", "--id", "task-b", check=False)
     assert r.returncode != 0, f"占用 id 未拒: rc={r.returncode}"
 
 
 # ---------- 7. subtask --name 改 ----------
 def test_subtask_rename_name(skein_cli: SkeinCli, ws: Path) -> None:
-    """rename <tid> s1 --name 新子名: subtasks 中 s1 的 name 变。"""
+    """subtask rename <tid> s1 --name 新子名: subtasks 中 s1 的 name 变。"""
     skein_cli(ws, "create", "task-a", "--name", "a", "--desc", "d")
     skein_cli(ws, "subtask", "add", "task-a", "s1", "--name", "旧子名", "--desc", "d", "--estimate", "1")
-    skein_cli(ws, "rename", "task-a", "s1", "--name", "新子名")
+    skein_cli(ws, "subtask", "rename", "task-a", "s1", "--name", "新子名")
     s = _sub(_task(ws, "task-a"), "s1")
     assert s is not None and s["name"] == "新子名", f"子任务 name 未改: {s}"
 
 
 # ---------- 8. subtask --id 改 + 同步 depends_on ----------
 def test_subtask_rename_id_sync_depends(skein_cli: SkeinCli, ws: Path) -> None:
-    """s2 depends s1 → rename <tid> s1 --id s1x: s1x 存在, s2.depends_on 含 s1x 不含 s1。"""
+    """s2 depends s1 → subtask rename <tid> s1 --id s1x: s1x 存在, s2.depends_on 含 s1x 不含 s1。"""
     skein_cli(ws, "create", "task-a", "--name", "a", "--desc", "d")
     skein_cli(ws, "subtask", "add", "task-a", "s1", "--name", "一", "--desc", "d", "--estimate", "1")
     skein_cli(ws, "subtask", "add", "task-a", "s2", "--name", "二", "--desc", "d", "--estimate", "1", "--deps", "s1")
-    skein_cli(ws, "rename", "task-a", "s1", "--id", "s1x")
+    skein_cli(ws, "subtask", "rename", "task-a", "s1", "--id", "s1x")
     t = _task(ws, "task-a")
     assert _sub(t, "s1x") is not None and _sub(t, "s1") is None, "sid 未改名"
     s2 = _sub(t, "s2")
@@ -138,7 +138,7 @@ def test_subtask_rename_id_sync_depends(skein_cli: SkeinCli, ws: Path) -> None:
 
 # ---------- 9. 无 --id 无 --name 拒 ----------
 def test_rename_no_flags_rejected(skein_cli: SkeinCli, ws: Path) -> None:
-    """rename <tid> 无 --id 无 --name → 拒 (returncode!=0)。"""
+    """task rename <tid> 无 --id 无 --name → 拒 (returncode!=0)。"""
     skein_cli(ws, "create", "task-a", "--name", "a", "--desc", "d")
-    r = skein_cli(ws, "rename", "task-a", check=False)
+    r = skein_cli(ws, "task", "rename", "task-a", check=False)
     assert r.returncode != 0, f"无参数 rename 未拒: rc={r.returncode}"

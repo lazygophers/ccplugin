@@ -8,7 +8,7 @@
 | --- | --- | --- |
 | 初始化 / trellis 迁移 | `setup` skill + `skein setup` | 幂等 scaffold; 检测 `.trellis/` → 软链 spec + 派 `skein-setup` agent 语义迁移 (spec 重组 / task 重建 / 清残留); SessionStart 无 `.skein/` 自动 nudge |
 | 强制 task 闭环 | `skein-flow` | 请求强制走 plan→exec→check→finish, 不 inline |
-| supertask 聚合层 | `skein state create --kind supertask` / `skein parent --set` | 需求过大拆多个各自独立闭环的 task 时用聚合父层 (深度限 2 层, 与 deps 正交); 存量 task 可事后用 `parent --set` 改挂/摘除; supertask finish 前要求全部 child 已完成 |
+| supertask 聚合层 | `skein task create --kind supertask` / `skein task parent --set` | 需求过大拆多个各自独立闭环的 task 时用聚合父层 (深度限 2 层, 与 deps 正交); 存量 task 可事后用 `parent --set` 改挂/摘除; supertask finish 前要求全部 child 已完成 |
 | 动态 DAG 编排调度 (双层) | `skein-flow exec 阶段` (`references/dag.md`) | main 作调度器, task 级 + subtask 级同构, 并行只看 `depends_on` DAG, 并发上限 2, 完成即派 (flow exec 委托) |
 | worktree 隔离 | `skein` | 1 task 1 worktree, 主工作区零改动 |
 | 看板 (文本 + 可视化) | `skein board` / `skein serve --open` | `.skein/task.md` 文本看板 + `.skein/task.html` 静态可视化页 (title/标题带项目名; 预估进度总览 + 预计执行顺序图 + 每 task 时间条, 4 主题 6 配色 深浅色, 页内切换器, `serve --open` 按需打开) |
@@ -18,7 +18,7 @@
 | 破坏式重构 | `skein-flow plan 阶段` (heavy 档) | 不保兼容、全站点一次改齐的重构模式, 须任务显式授权 |
 | 质量门 + 一致性核查 | `skein-flow check 阶段` | 派 `skein-checker` 验证 (lint/type/test/契约 + subtask 产物一致性核查), 未过派 `skein-executor` 修复重检; **孤立失败定点修, 跨 subtask 冲突/check 失败 → 深化拆分 (回 plan 拆新 subtask 逐条覆盖直到零冲突)** |
 | 第 3 轮根因复盘 | `skein-flow check 阶段` (`references/flow-loop.md` §9.3) | check 第 3 轮仍 FAIL 时跨维度结构化根因复盘 (需求/设计/实现/环境/测试 5 维 + 预防措施), 出口回 exec 定向重修或停手转人工 |
-| finish 收尾编排门 | `skein-flow finish 阶段` | check 全绿后被 flow 委托: 派 `skein-finisher` 收尾勘察 + 委托 `skein-spec` sediment + 清理悬挂 + `skein state finish` (commit→merge→销 worktree→标记完成, 异步 spec) |
+| finish 收尾编排门 | `skein-flow finish 阶段` | check 全绿后被 flow 委托: 派 `skein-finisher` 收尾勘察 + 委托 `skein-spec` sediment + 清理悬挂 + `skein task finish` (commit→merge→销 worktree→标记完成, 异步 spec) |
 | 冷启动播种 | `skein-spec` (`references/bootstrap-seeding.md`) | 空仓首次接入时扫既有代码库约定 (命名/错误处理/测试/架构边界/构建) 播种规则基线 (一次性, 默认多归 recall) |
 | 主动清理 | `skein-clean` | [仅用户主动] 归档完成 task (保留期外) + 清孤儿 worktree / 悬挂分支 |
 

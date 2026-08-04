@@ -4,28 +4,28 @@
 
 ### skein
 
-| 命令                                                                               | 用途                                                                                                                                                                                                                                       |
-| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `skein init`                                                                       | 初始化 .skein/ 工作区                                                                                                                                                                                                                      |
-| `skein doctor`                                                                     | 健康检查                                                                                                                                                                                                                                   |
-| `skein state create <id> [--name] [--desc] [--deps] [--kind] [--parent] [--repos]` | 创建 task                                                                                                                                                                                                                                  |
-| `skein state research <id>`                                                        | 待处理→调研中: 需已登记 ≥1 `--phase research` subtask                                                                                                                                                                                      |
-| `skein state plan <id>`                                                            | 调研中→待处理: 需调研 subtask 全 done, 收敛回规划                                                                                                                                                                                          |
-| `skein state confirm <id> [--summary\|--approved]`                                 | 用户确认门, **吸收原 `start`**: 待处理→进行中, 一步做完 doctor 体检 + deps 校验 + 建 worktree。裸跑非 TTY 会拒。`--summary` 只打印 PRD 审核摘要不改状态; `--approved` = 已在 `AskUserQuestion` 拿到用户批准                                |
-| `skein state check <id>`                                                           | 进行中→检查中                                                                                                                                                                                                                              |
-| `skein state finishing <id>`                                                       | 检查中→收尾中: 占 gate 池槽位 (`pools.gate`)                                                                                                                                                                                               |
-| `skein state finish <id>`                                                          | 收尾中→已完成: commit→merge→销 worktree (归档=保留期后自动, 非 finish 步)                                                                                                                                                                  |
-| `skein rename <id> <new-id>`                                                       | 重命名                                                                                                                                                                                                                                     |
-| `skein del <id> [<sid>]` `[--dry-run]`                                             | 软删: 整 task 移入 `.skein/trash/`; 给 sid 则只删该 subtask。`--dry-run` 只打印将删什么                                                                                                                                                    |
-| `skein list [--status <态>] [--json]`                                              | 列 task。`--status` 取 待处理/调研中/进行中/检查中/收尾中/已完成 (或 pending/research/active/check/finishing/done), `open`=全部未完成, 逗号多选; `skein list --status open` 可列全部活跃 task                                              |
-| `skein board`                                                                      | 文本看板                                                                                                                                                                                                                                   |
-| `skein serve --open`                                                               | 可视化看板                                                                                                                                                                                                                                 |
-| `skein deps <id> [--set <id1,id2>]`                                                | 无 `--set` 只查; 带则设前置 (仅 pending 且无既有 deps 可写, 脚本查自引用/不存在/成环)                                                                                                                                                      |
-| `skein parent <id> [--set <parent-id>]`                                            | 无 `--set` 只查当前 parent; `--set <id>` 挂到 supertask/task 下 (拒自引用/父不存在/深度超 2 层/自身已有 child); `--set ""` 摘除。任意状态可改, 与 `deps` 正交, 不碰 deps                                                                   |
-| `skein subtask add/claim/ready/start/check/show/done/fail/list <task-id> [sid]`    | subtask 管理 (add 登记, `--name <str> --desc <str> --estimate <小时>` 必填 / `--phase exec\|research` 默认 exec / claim 整批认领就绪 / ready 只读预览 / start 单个占槽 / check 勾验收 / show 查全字段 / done 完成 / fail 失败 / list 列态) |
-| `skein claim exec\|check`                                                          | 全局跨 task 认领批; phase 必填: `exec`=认领 ready subtask → running / `check`=认领 全done 的 进行中 task → 检查中 + 检查通过的 → 收尾中 (占 gate 槽, 待 finisher 跑 finish)                                                                |
-| `skein contract <task-id>`                                                         | 契约管理 (无 `--add` 只查, 带 `--add <str>` 则追加)                                                                                                                                                                                        |
-| `skein prd read/write/add/check/uncheck <task-id>`                                 | PRD 章节管理 (`--type <str>` 全部必填; `read` 无需 `--list`, 其余 `write/add/check/uncheck` 都要 `--list <str>`)                                                                                                                           |
+| 命令                                                                              | 用途                                                                                                                                                                                                                                       |
+| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `skein init`                                                                      | 初始化 .skein/ 工作区                                                                                                                                                                                                                      |
+| `skein doctor`                                                                    | 健康检查                                                                                                                                                                                                                                   |
+| `skein task create <id> [--name] [--desc] [--deps] [--kind] [--parent] [--repos]` | 创建 task                                                                                                                                                                                                                                  |
+| `skein task research <id>`                                                        | 待处理→调研中: 需已登记 ≥1 `--phase research` subtask                                                                                                                                                                                      |
+| `skein task plan <id>`                                                            | 调研中→待处理: 需调研 subtask 全 done, 收敛回规划                                                                                                                                                                                          |
+| `skein task confirm <id> [--summary\|--approved]`                                 | 用户确认门, **吸收原 `start`**: 待处理→进行中, 一步做完 doctor 体检 + deps 校验 + 建 worktree。裸跑非 TTY 会拒。`--summary` 只打印 PRD 审核摘要不改状态; `--approved` = 已在 `AskUserQuestion` 拿到用户批准                                |
+| `skein task check <id>`                                                           | 进行中→检查中                                                                                                                                                                                                                              |
+| `skein task finishing <id>`                                                       | 检查中→收尾中: 占 gate 池槽位 (`pools.gate`)                                                                                                                                                                                               |
+| `skein task finish <id>`                                                          | 收尾中→已完成: commit→merge→销 worktree (归档=保留期后自动, 非 finish 步)                                                                                                                                                                  |
+| `skein task rename <id> [--id <new-id>] [--name <新标题>]`                        | 重命名 task id / 标题                                                                                                                                                                                                                      |
+| `skein del <id> [<sid>]` `[--dry-run]`                                            | 软删: 整 task 移入 `.skein/trash/`; 给 sid 则只删该 subtask。`--dry-run` 只打印将删什么                                                                                                                                                    |
+| `skein list [--status <态>] [--json]`                                             | 列 task。`--status` 取 待处理/调研中/进行中/检查中/收尾中/已完成 (或 pending/research/active/check/finishing/done), `open`=全部未完成, 逗号多选; `skein list --status open` 可列全部活跃 task                                              |
+| `skein board`                                                                     | 文本看板                                                                                                                                                                                                                                   |
+| `skein serve --open`                                                              | 可视化看板                                                                                                                                                                                                                                 |
+| `skein task deps <id> [--set <id1,id2>]`                                          | 无 `--set` 只查; 带则设前置 (仅 pending 且无既有 deps 可写, 脚本查自引用/不存在/成环)                                                                                                                                                      |
+| `skein task parent <id> [--set <parent-id>]`                                      | 无 `--set` 只查当前 parent; `--set <id>` 挂到 supertask/task 下 (拒自引用/父不存在/深度超 2 层/自身已有 child); `--set ""` 摘除。任意状态可改, 与 `deps` 正交, 不碰 deps                                                                   |
+| `skein subtask add/claim/ready/start/check/show/done/fail/list <task-id> [sid]`   | subtask 管理 (add 登记, `--name <str> --desc <str> --estimate <小时>` 必填 / `--phase exec\|research` 默认 exec / claim 整批认领就绪 / ready 只读预览 / start 单个占槽 / check 勾验收 / show 查全字段 / done 完成 / fail 失败 / list 列态) |
+| `skein claim exec\|check`                                                         | 全局跨 task 认领批; phase 必填: `exec`=认领 ready subtask → running / `check`=认领 全done 的 进行中 task → 检查中 + 检查通过的 → 收尾中 (占 gate 槽, 待 finisher 跑 finish)                                                                |
+| `skein contract <task-id>`                                                        | 契约管理 (无 `--add` 只查, 带 `--add <str>` 则追加)                                                                                                                                                                                        |
+| `skein prd read/write/add/check/uncheck <task-id>`                                | PRD 章节管理 (`--type <str>` 全部必填; `read` 无需 `--list`, 其余 `write/add/check/uncheck` 都要 `--list <str>`)                                                                                                                           |
 
 ### skein-spec
 
@@ -97,14 +97,14 @@
 
 ```bash
 # 建 supertask + child (建时声明)
-skein state create <id> --kind supertask --name "<名>"
-skein state create <child1> --parent <id>
-skein state create <child2> --parent <id>
+skein task create <id> --kind supertask --name "<名>"
+skein task create <child1> --parent <id>
+skein task create <child2> --parent <id>
 # child 独立闭环, 末 child → supertask 聚合归档, 深度限 2 层
 
 # 存量 task 改挂 (无需删档重建)
-skein parent <child-existing> --set <id>   # 挂
-skein parent <child-existing> --set ""     # 摘除
+skein task parent <child-existing> --set <id>   # 挂
+skein task parent <child-existing> --set ""     # 摘除
 ```
 
 `parent` 管归属、`deps` 管执行顺序, 两者正交 — 挂 parent 不隐含也不替代 deps。**supertask finish 前, 全部 child 须已完成**, 否则脚本硬拒并列出未完成 child。
@@ -125,21 +125,21 @@ skein parent <child-existing> --set ""     # 摘除
 
 ### 核心概念
 
-| 术语       | 定义                                                            |
-| ---------- | --------------------------------------------------------------- |
-| task       | SKEIN 管理的闭环工作记录                                        |
-| subtask    | task 内最小执行单元, DAG 调度                                   |
-| supertask  | 聚合容器, child 各自独立闭环; `kind=supertask`                  |
-| parent     | task 的父挂载字段 (`skein parent --set`), 与 deps 正交, 限 2 层 |
-| 闭环       | plan→exec→check→finish, 不可跳步                                |
-| worktree   | git worktree, 1 task 1 物理隔离                                 |
-| board      | task.md + task.html, 从 task.json 渲染                          |
-| contract   | planning 锁不变量, check 逐条验证                               |
-| spec       | 规则记忆库 (namespace × inclusion)                              |
-| core       | 违反即错, 每 session 自动注入                                   |
-| recall     | 值得参考, 按关键词召回                                          |
-| sediment   | finish 判 learning → namespace×inclusion / drop                 |
-| compaction | SessionStart 对活跃 task 状态压缩重注入                         |
+| 术语       | 定义                                                                 |
+| ---------- | -------------------------------------------------------------------- |
+| task       | SKEIN 管理的闭环工作记录                                             |
+| subtask    | task 内最小执行单元, DAG 调度                                        |
+| supertask  | 聚合容器, child 各自独立闭环; `kind=supertask`                       |
+| parent     | task 的父挂载字段 (`skein task parent --set`), 与 deps 正交, 限 2 层 |
+| 闭环       | plan→exec→check→finish, 不可跳步                                     |
+| worktree   | git worktree, 1 task 1 物理隔离                                      |
+| board      | task.md + task.html, 从 task.json 渲染                               |
+| contract   | planning 锁不变量, check 逐条验证                                    |
+| spec       | 规则记忆库 (namespace × inclusion)                                   |
+| core       | 违反即错, 每 session 自动注入                                        |
+| recall     | 值得参考, 按关键词召回                                               |
+| sediment   | finish 判 learning → namespace×inclusion / drop                      |
+| compaction | SessionStart 对活跃 task 状态压缩重注入                              |
 
 ### 状态
 

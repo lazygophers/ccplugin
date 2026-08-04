@@ -21,7 +21,7 @@ def prd_path(tasks_dir: Path, tid: str) -> Path:
     # task 存在性由 _load 守 (调用方先 _load); 此处只查 prd.md
     prd = tasks_dir / tid / "prd.md"
     if not prd.exists():
-        raise SkeinError(f"{tid} 无 prd.md — 先 skein state create 再操作章节")
+        raise SkeinError(f"{tid} 无 prd.md — 先 skein task create 再操作章节")
     return prd
 
 
@@ -164,7 +164,7 @@ def validate_prd(tasks_dir: Path, tid: str) -> None:
     (3) 无 `- [ ] TODO` 占位 (模板初始态, 说明该节未填实)。结构不通过 raise SkeinError 阻断。"""
     prd = tasks_dir / tid / "prd.md"
     if not prd.exists():
-        raise SkeinError(f"{tid} prd 未就绪: 无 prd.md — 先 skein state create + 填 prd 再 confirm")
+        raise SkeinError(f"{tid} prd 未就绪: 无 prd.md — 先 skein task create + 填 prd 再 confirm")
     lines = prd.read_text().split("\n")
     if not any(re.match(r"^#\s+\S", ln) for ln in lines):
         raise SkeinError(f"{tid} prd 未就绪: 缺一级标题 — 先填 prd 再 start")

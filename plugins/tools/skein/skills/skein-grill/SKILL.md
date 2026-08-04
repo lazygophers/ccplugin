@@ -32,7 +32,7 @@ effort: high
 
 ## 触发
 
-- 🛑 **planning 硬门 (强制 · STOP)**: skein-flow plan 阶段产出 planning 产物后、`skein state confirm` (吸收原 start) **前 MUST 跑一轮**。**未跑 grill 禁 confirm** — 弱点表未补齐或有未裁决弱点, 停在本步, 禁推进 exec。
+- 🛑 **planning 硬门 (强制 · STOP)**: skein-flow plan 阶段产出 planning 产物后、`skein task confirm` (吸收原 start) **前 MUST 跑一轮**。**未跑 grill 禁 confirm** — 弱点表未补齐或有未裁决弱点, 停在本步, 禁推进 exec。
 - **用户显式**: "盘一下这个方案 / 审下设计 / 红队"。
 
 **不触发 (跳过)**: 纯查询 / 问答 (无 planning 产物) · inline 豁免任务 (无 task) · 同一产物未变更且已 grill 过一轮 (无新增改动)。

@@ -265,13 +265,13 @@ class Lifecycle:
         est = t.get("estimate")
         if est is None or est == "" or not (isinstance(est, (int, float)) and est > 0):
             raise SkeinError(
-                f"{tid} 预计工时未填 — 先 `skein estimate {tid} --set <小时数>` 填实再 confirm")
+                f"{tid} 预计工时未填 — 先 `skein task estimate {tid} --set <小时数>` 填实再 confirm")
         subsum = _sub_estimate_sum(t)
         if subsum and est < subsum:
             raise SkeinError(
                 f"{tid} 预计工时 {est} h 低于 subtask 合计 {subsum} h — "
                 f"task 工时须 ≥ Σ subtask + plan/check 自身开销, "
-                f"`skein estimate {tid} --set <≥{subsum}>`")
+                f"`skein task estimate {tid} --set <≥{subsum}>`")
 
     def research(self, a: argparse.Namespace) -> dict[str, Any]:
         # 待处理 → 调研中: 至少登记一个 phase=research 的 subtask (无调研诉求就不该进这态)。
@@ -317,7 +317,7 @@ class Lifecycle:
         """
         t = self.ws.store.load(a.id)
         if t["status"] == TaskStatus.RESEARCH:
-            raise SkeinError(f"{a.id} 调研中 — 先 `skein state plan {a.id}` 把调研收敛回规划再 confirm")
+            raise SkeinError(f"{a.id} 调研中 — 先 `skein task plan {a.id}` 把调研收敛回规划再 confirm")
         if t["status"] != TaskStatus.PENDING:
             raise SkeinError(f"{a.id} 状态为 {t['status']}, 只能 confirm 待处理 (规划中) task")
         # planning 完成门: 无 subtask / prd 未填齐 / 预计工时未填 → 拒绝开工 (逼先补全规划)
@@ -397,8 +397,8 @@ class Lifecycle:
         raise SkeinError(
             f"{tid} 需用户审核 PRD 后才能开工。两条路 (都要真实用户动作):\n"
             f"  ① 看板点击 (最稳): 打开 task 详情, 点「确认规划」按钮\n"
-            f"  ② 对话确认: `skein state confirm {tid} --summary` 取摘要 → `AskUserQuestion` 请用户"
-            f"批准 → `skein state confirm {tid} --approved`\n"
+            f"  ② 对话确认: `skein task confirm {tid} --summary` 取摘要 → `AskUserQuestion` 请用户"
+            f"批准 → `skein task confirm {tid} --approved`\n"
             f"  🛑 没真问过用户就传 --approved = 伪造审核, 属流程错误")
 
     def check(self, a: argparse.Namespace) -> dict[str, Any]:
@@ -446,7 +446,7 @@ class Lifecycle:
         t = self.ws.store.load(tid)
         if t["status"] != TaskStatus.FINISHING:
             raise SkeinError(f"{tid} 状态 {t['status']}, 只能 finish 收尾中 task — "
-                             f"先 skein state check 再 skein state finishing 占 gate 槽")
+                             f"先 skein task check 再 skein task finishing 占 gate 槽")
         # supertask 聚合归档: finish 前所有 child task(parent 指向它)须全 done
         # ponytail: 遍历 tasks 过滤 parent==tid 找 child (不维护 child_ids 数组, 真值源单一)
         if t.get("kind") == "supertask":

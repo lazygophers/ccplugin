@@ -1,4 +1,4 @@
-"""挂载命令测试 — `skein parent <id> --set <parent>` 给既有 task 补/改/摘 parent。
+"""挂载命令测试 — `skein task parent <id> --set <parent>` 给既有 task 补/改/摘 parent。
 
 经 conftest 的 skein_cli/ws fixture 跑真实 skein.py CLI 子进程 (tmp_path 隔离)。
 校验复用 create 那条 parent 链检查 (父存在/非自引用/父自身非 child), 不另写一套 —— 见

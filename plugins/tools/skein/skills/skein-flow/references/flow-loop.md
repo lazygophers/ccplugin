@@ -4,28 +4,28 @@
 | ------------------------ | --------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | 全空                     | flow · 清空模式 | 不新建 task，取 `skein list --status open --json`，按可推进顺序清空全部未完成 task。无 open task 则报「无待执行 task」。 |
 | `flow` / 缺省 / 任务描述 | flow 默认闭环   | 有任务描述先走 plan 建/并入 task；之后自动续 exec→check→finish。                                                         |
-| `plan`                   | 仅规划          | 推到规划完成态，完成 `skein state confirm --approved` 后停，不续 exec。                                                        |
+| `plan`                   | 仅规划          | 推到规划完成态，完成 `skein task confirm --approved` 后停，不续 exec。                                                        |
 | `exec`                   | 续执行          | 驱动待处理/在途 task 继续闭环到 finish。                                                                                 |
 | `check`                  | 质量门          | 派 `skein-checker` 验证；失败按本文件「失败扭转」。                                                                      |
-| `finish`                 | 收尾门          | check 全绿后派 `skein-finisher` 完成 `skein state finish` 和异步 sediment。                                                    |
+| `finish`                 | 收尾门          | check 全绿后派 `skein-finisher` 完成 `skein task finish` 和异步 sediment。                                                    |
 
 硬规：无参/任务描述 -> flow 闭环闭环模式；只有显式 `plan` 才在 confirm 后停，不续 exec。
 
 ## 任务流程框架
 
 ```
-Bash(skein state create <tid> --name <任务标题> --desc <任务描述> --priority <优先级,默认中> [--parent 父任务ID] [--deps 依赖任务ID] [--estimate 估计耗时>)
+Bash(skein task create <tid> --name <任务标题> --desc <任务描述> --priority <优先级,默认中> [--parent 父任务ID] [--deps 依赖任务ID] [--estimate 估计耗时>)
 
 PLAN:
 def reearch():
   # 建 research 子任务
   for subtask in research_subtasks:
     Bash(skein subtask add <tid> --name <subtask标题> --desc <subtask描述> [--deps 依赖sid] [--estimate 估计耗时] [--skills 技能列表])
-  Bash(skein state research <tid>)
+  Bash(skein task research <tid>)
 
   Wait(research subtask done) # 等待主循环调度
   Agent(sub_agent='skein-spec', prompt='sediment', context=fork, task=<tid>, step='research')
-  Bash(skein state plan <tid>)
+  Bash(skein task plan <tid>)
 
 # 编写需求文档、设计文档等
 for 任务规划:
@@ -54,22 +54,22 @@ for 任务规划:
   if plan_finished:
     break
 
-summary = Bash(skein state confirm <tid> --summary)
+summary = Bash(skein task confirm <tid> --summary)
 if AskUserQuestion(summary) != '确认':
   goto Plan(分析失败原因，并重新规划任务)
 else:
-  Bash(skein state confirm <tid> --approved)
+  Bash(skein task confirm <tid> --approved)
 
 if 模式 == 'plan':
   exit 0
 
 Wait(subtask done) # 等待主循环调度
-Bash(skein state check <tid>)
+Bash(skein task check <tid>)
 
 if Wait(check done) != 'pass': # 等待主循环调度
   goto Plan(分析失败原因，并重新规划任务)
 else:
-  Bash(skein state finish <tid>)
+  Bash(skein task finish <tid>)
 
 Agent(sub_agent='skein-spec', prompt='sediment', context=fork, task=<tid>, step='finish')
 Wait(finish done) # 等待主循环调度
@@ -97,7 +97,7 @@ for task in Bash("skein list --status open --json"):  # 认领后按 task 状态
 
 for task in Bash("skein list --status pending --json"):   # pending 三分路, 非焦点只完成 plan, 不续 exec
   if task.ready:                     confirm(task)        # 判据已勾满 → 完成 confirm, plan 闭合
-    Bash(skein state confirm <task.id> --approved)
+    Bash(skein task confirm <task.id> --approved)
   else:
     Plan(task)
 ```
@@ -125,11 +125,11 @@ for task in Bash("skein list --status pending --json"):   # pending 三分路, �
 
 - 先查未完成 task，判新诉求是并入现有 task 还是新建；同目标 / 同模块 / 共享改动面 / 互为前置默认并入，只有目标独立且无共享改动面才新建。
 - 判 direct-fix / standard / heavy：direct-fix 仅限单文件单处 ≤20 行且位置已知；跨 ≥2 文件、多步、外部调研、文档交付一律建 task。
-- 需要调研时，先登记 `--phase research` subtask，再 `skein state research <id>`；`skein-researcher` 只读调研，结论落 `.skein/task/<id>/research/` 与 `findings.md`，全 done 后 `skein state plan <id>` 收敛回 pending。
+- 需要调研时，先登记 `--phase research` subtask，再 `skein task research <id>`；`skein-researcher` 只读调研，结论落 `.skein/task/<id>/research/` 与 `findings.md`，全 done 后 `skein task plan <id>` 收敛回 pending。
 - brainstorm / 关键取舍用 `AskUserQuestion`；事实先自查，决策才问用户，禁止把可查事实甩给用户。
 - 写齐 planning 工件：PRD 七段无 TODO、design 与测试接缝、subtask DAG/check/estimate、task estimate、contracts。
 - 跑 grill 硬门：按弱点表逐项裁决并补回 PRD/design/contracts/subtask；有未裁决弱点不得 confirm。
-- `skein state confirm --summary` 只给用户审、不改状态；用户明确批准后才 `skein state confirm --approved`，裸 `skein state confirm` 不作为自动过门手段。
+- `skein task confirm --summary` 只给用户审、不改状态；用户明确批准后才 `skein task confirm --approved`，裸 `skein task confirm` 不作为自动过门手段。
 - flow 默认焦点 task 通过 confirm 后直接续 exec；显式 `plan` 完成 confirm 后停，不续 exec。
 - 参考 [dag.md](dag.md) 设计task/subtask 的编排以确保依赖关系得到满足、任务调度最高效
 

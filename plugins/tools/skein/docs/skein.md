@@ -78,12 +78,12 @@
 | from → to | 触发 | 动作 |
 | --- | --- | --- |
 | (无) → 待处理 | plan 完成 | 产出 prd/design/findings + subtask DAG + contracts |
-| 待处理 → 调研中 | `skein state research` | 需已登记 ≥1 `--phase research` subtask |
-| 调研中 → 待处理 | `skein state plan` | 需调研 subtask 全 done, 收敛回规划 |
-| 待处理 → 进行中 | `skein state confirm` | 用户确认门 (**吸收 start**): 验 prd + ≥1 subtask + doctor 体检 + deps 校验, 一步建 worktree 直接开工, 无就绪中间态 |
-| 进行中 → 检查中 | `skein state check` | 全部 subtask 完成后手工/编排触发 |
-| 检查中 → 收尾中 | `skein state finishing` | 占 gate 池槽位 (上限 `pools.gate`) |
-| 收尾中 → 已完成 | `skein state finish` | merge → 销wt → 标记完成 + 异步 spec sediment |
+| 待处理 → 调研中 | `skein task research` | 需已登记 ≥1 `--phase research` subtask |
+| 调研中 → 待处理 | `skein task plan` | 需调研 subtask 全 done, 收敛回规划 |
+| 待处理 → 进行中 | `skein task confirm` | 用户确认门 (**吸收 start**): 验 prd + ≥1 subtask + doctor 体检 + deps 校验, 一步建 worktree 直接开工, 无就绪中间态 |
+| 进行中 → 检查中 | `skein task check` | 全部 subtask 完成后手工/编排触发 |
+| 检查中 → 收尾中 | `skein task finishing` | 占 gate 池槽位 (上限 `pools.gate`) |
+| 收尾中 → 已完成 | `skein task finish` | merge → 销wt → 标记完成 + 异步 spec sediment |
 | 已完成 → (归档) | retain_days 到期 / =0 立即, **且关联链全完成** | 目录迁移 task/archive/…, 非状态值 |
 | 任意 → (软删) | `skein del` | 移入 `.skein/trash/`, active task 会先清 worktree/branch |
 
@@ -139,11 +139,11 @@
 | 步骤 | 执行者 | 说明 |
 | --- | --- | --- |
 | 完成度检查 | finisher (只读) | git diff + subtask 全完成 + 无 dangling |
-| 占 gate 槽 | `skein state finishing` | 检查中 → 收尾中, gate 池有空槽才能进 |
-| 合并+销wt | skein state finish | 收尾中 task 各子 worktree → 主分支, 合并后即销 wt/branch |
-| 标记完成 | skein state finish | status=已完成, 记 finished 时刻 |
+| 占 gate 槽 | `skein task finishing` | 检查中 → 收尾中, gate 池有空槽才能进 |
+| 合并+销wt | skein task finish | 收尾中 task 各子 worktree → 主分支, 合并后即销 wt/branch |
+| 标记完成 | skein task finish | status=已完成, 记 finished 时刻 |
 
-**Supertask 收束门**: `kind=supertask` 的 task finish 前, 所有 `parent` 指向它的 child task 必须**全部已完成** (status=已完成), 否则 `skein state finish` 硬拒并列出未完成 child。子 task 各自独立走完整 plan→exec→check→finish 闭环, supertask 自身不占 worktree、只在末尾做聚合收束。详见「[Supertask](#supertask)」。
+**Supertask 收束门**: `kind=supertask` 的 task finish 前, 所有 `parent` 指向它的 child task 必须**全部已完成** (status=已完成), 否则 `skein task finish` 硬拒并列出未完成 child。子 task 各自独立走完整 plan→exec→check→finish 闭环, supertask 自身不占 worktree、只在末尾做聚合收束。详见「[Supertask](#supertask)」。
 | Sediment | skein-specer | 异步 fire-and-forget: learning → core / recall / drop |
 | 归档 | _autoclean | retain_days 到期目录迁移 `task/archive/<年>/<月-日>/<id>/` (wt 已销) |
 
@@ -173,9 +173,9 @@ order-create-api                  s1 参数校验
 
 ```bash
 # task 级
-skein state create order-pay --deps "order-create-api,user-auth"
-skein deps order-pay                      # 只查前置
-skein deps order-pay --set "a,b"          # 设前置 (仅 pending 且无既有 deps 可写)
+skein task create order-pay --deps "order-create-api,user-auth"
+skein task deps order-pay                      # 只查前置
+skein task deps order-pay --set "a,b"          # 设前置 (仅 pending 且无既有 deps 可写)
 ```
 
 ```yaml
@@ -217,18 +217,18 @@ subtasks:
 
 ```bash
 # 建 supertask + child (建时声明)
-skein state create <super-id> --kind supertask --name "<名>"
-skein state create <child-id> --parent <super-id>
+skein task create <super-id> --kind supertask --name "<名>"
+skein task create <child-id> --parent <super-id>
 
 # 存量 task 改挂 (无需删档重建)
-skein parent <id>                    # 查当前 parent (无父打印 "(无父)")
-skein parent <id> --set <parent-id>  # 挂到 supertask/task 下
-skein parent <id> --set ""           # 摘除 (parent 置空)
+skein task parent <id>                    # 查当前 parent (无父打印 "(无父)")
+skein task parent <id> --set <parent-id>  # 挂到 supertask/task 下
+skein task parent <id> --set ""           # 摘除 (parent 置空)
 ```
 
-`--parent`/`skein parent --set` 落盘前硬拒: 自引用、`parent` 指向不存在 task、深度超 2 层 (父自身已是 child, 即父的 parent 非空)、以及 `skein parent --set` 特有的一条 —— 若目标 task 自己已是别的 task 的 parent (已有 child 挂它), 再给它挂父会让那些 child 变 3 层, 直接拒绝 (先摘除那些 child 或改挂别处)。
+`--parent`/`skein task parent --set` 落盘前硬拒: 自引用、`parent` 指向不存在 task、深度超 2 层 (父自身已是 child, 即父的 parent 非空)、以及 `skein task parent --set` 特有的一条 —— 若目标 task 自己已是别的 task 的 parent (已有 child 挂它), 再给它挂父会让那些 child 变 3 层, 直接拒绝 (先摘除那些 child 或改挂别处)。
 
-**收束约束**: supertask finish 前, 全部 child (parent 指向它的 task) 须已完成, 否则 `skein state finish` 硬拒并列出未完成 child — 见「Phase 4: Finish」。
+**收束约束**: supertask finish 前, 全部 child (parent 指向它的 task) 须已完成, 否则 `skein task finish` 硬拒并列出未完成 child — 见「Phase 4: Finish」。
 
 ### Worktree 模型
 

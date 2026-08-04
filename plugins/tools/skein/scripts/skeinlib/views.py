@@ -201,7 +201,7 @@ def _view_board_data(snap: Snapshot) -> dict[str, Any]:
     work_running = sum(1 for t in tasks for s in t.get("subtasks", []) if s.get("status") == SubtaskStatus.RUNNING)
     gate_running = cnt.get(TaskStatus.CHECK, 0) + cnt.get(TaskStatus.FINISHING, 0)
 
-    # 下一个可执行: 无进行中态 task 时, 首个依赖已清的待处理 task (可 skein state confirm 开工)
+    # 下一个可执行: 无进行中态 task 时, 首个依赖已清的待处理 task (可 skein task confirm 开工)
     next_up_id: Optional[str] = None
     if not any(cnt.get(s, 0) for s in STATUS_ACTIVE):
         next_up_id = next((t["id"] for t in tasks

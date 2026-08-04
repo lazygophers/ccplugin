@@ -262,7 +262,7 @@ class BoardSourceMixin:
         if cmd == "create":
             if not (s("id") and s("name") and s("desc")):
                 return None
-            argv = ["create", g("id"), "--name", g("name"), "--desc", g("desc")]
+            argv = ["task", "create", g("id"), "--name", g("name"), "--desc", g("desc")]
             return base + (argv + ["--deps", g("deps")] if s("deps") else argv)
         if cmd == "subtask-add":
             if not (s("id") and s("sid") and s("name") and s("desc") and s("estimate")):
@@ -287,11 +287,11 @@ class BoardSourceMixin:
             # 「AskUserQuestion + --approved」只靠流程纪律)。argv 固定, 不接受前端传 flag。
             # 不开 --summary 端点: 用户是在 task 详情里看着 PRD 点的按钮, 摘要已在眼前;
             # `--summary` 那个 CLI 参数仍在, 供 AskUserQuestion 通道直接跑 CLI 用。
-            return base + ["confirm", g("id"), "--approved"] if s("id") else None
+            return base + ["task", "confirm", g("id"), "--approved"] if s("id") else None
         if cmd == "finish":  # 看板「强制完成」: 进行中/检查中 → 已完成 (合并 worktree)
-            return base + ["finish", g("id")] if s("id") else None
+            return base + ["task", "finish", g("id")] if s("id") else None
         if cmd == "priority":  # 看板/详情页直接改优先级 (任意状态均可改, 合法值由 CLI 侧 validate_priority 校验)
-            return base + ["priority", g("id"), "--set", g("set")] if (s("id") and s("set")) else None
+            return base + ["task", "priority", g("id"), "--set", g("set")] if (s("id") and s("set")) else None
         if cmd == "del":  # 看板「删除任务」: 软删进 .skein/trash/ 可恢复 (仅整 task, 不开放 sid 级)
             return base + ["del", g("id")] if s("id") else None
         if cmd == "prd":  # 网页端 prd 章节编辑: read/write/add/check/uncheck (复用 CLI 同一写盘逻辑)
