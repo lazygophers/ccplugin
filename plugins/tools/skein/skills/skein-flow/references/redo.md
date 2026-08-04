@@ -7,7 +7,7 @@ redo 解的是 session 意外结束后的状态卡死，不是回滚：只改 su
 | 起点状态    | redo 行为                                                                                                       |
 | ----------- | --------------------------------------------------------------------------------------------------------------- |
 | `pending`   | 无 running 可复位；续 plan 到收敛。带 `--plan` 时停在 confirm 前。                                              |
-| `research`  | 复位 running research subtask；续 research 到 done，再 `skein plan` 回 pending。带 `--plan` 时停在 confirm 前。 |
+| `research`  | 复位 running research subtask；续 research 到 done，再 `skein state plan` 回 pending。带 `--plan` 时停在 confirm 前。 |
 | `active`    | 复位全部 running subtask，再回 exec 调度。                                                                      |
 | `check`     | 无 subtask 可复位；直接重派 `skein-checker`。带 `--plan` 时说明已过规划阶段，参数未生效。                       |
 | `finishing` | 无 subtask 可复位；直接重派 `skein-finisher`。带 `--plan` 时说明已过规划阶段，参数未生效。                      |

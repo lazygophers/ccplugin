@@ -1,4 +1,4 @@
-"""`skein confirm` 的人审门 — PRD 必须经用户过目才能进就绪。
+"""`skein state confirm` 的人审门 — PRD 必须经用户过目才能进就绪。
 
 **本文件刻意不走 conftest 的 `run_skein`**: 那个 helper 为了让 28 处调用点能跑, 会自动补上
 `--approved`。用它来测这道门等于用绕过器测绕过器 —— 门哪天退化成 no-op, 那 28 个调用点一个
@@ -82,7 +82,7 @@ def test_bare_confirm_is_refused_and_names_both_channels(ws: Path) -> None:
     报错文案是给 AI 读的操作指引 —— 只说「被拒」不说怎么过, AI 会自己瞎试。
     """
     tid = _ready_task(ws)
-    r = _raw(ws, "confirm", tid)
+    r = _raw(ws, "state", "confirm", tid)
     assert r.returncode != 0, f"无 --approved 竟放行: {r.stdout}"
     assert "需用户审核" in r.stderr, r.stderr
     assert "看板点击" in r.stderr, f"未提看板通道: {r.stderr}"
@@ -98,7 +98,8 @@ def test_cli_never_blocks_on_stdin(ws: Path) -> None:
     这里会 TimeoutExpired 而不是静静地挂在真实调用里。
     """
     tid = _ready_task(ws)
-    for args in (["confirm", tid], ["confirm", tid, "--summary"], ["confirm", tid, "--approved"]):
+    for args in (["state", "confirm", tid], ["state", "confirm", tid, "--summary"],
+                 ["state", "confirm", tid, "--approved"]):
         r = subprocess.run([sys.executable, str(SKEIN), *args], cwd=ws,
                            stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=20)
         assert r.returncode in (0, 1), f"{args} 退出码异常 {r.returncode}: {r.stderr}"
@@ -107,7 +108,7 @@ def test_cli_never_blocks_on_stdin(ws: Path) -> None:
 def test_summary_prints_and_does_not_change_state(ws: Path) -> None:
     """`--summary` 只出摘要 (给 main 塞进 AskUserQuestion / 看板对话框), 不动状态。"""
     tid = _ready_task(ws)
-    r = _raw(ws, "confirm", tid, "--summary")
+    r = _raw(ws, "state", "confirm", tid, "--summary")
     assert r.returncode == 0, r.stderr
     data = json.loads(r.stdout)
     summary = data.get("summary", "")
@@ -118,7 +119,7 @@ def test_summary_prints_and_does_not_change_state(ws: Path) -> None:
 def test_summary_shows_what_user_needs_to_judge(ws: Path) -> None:
     """摘要要够用户判断该不该放行: 目标 / 边界 / 验收 / subtask 拆解 / 工时。"""
     tid = _ready_task(ws)
-    data = json.loads(_raw(ws, "confirm", tid, "--summary").stdout)
+    data = json.loads(_raw(ws, "state", "confirm", tid, "--summary").stdout)
     out = data.get("summary", "")
     for must in ("目标", "边界", "验收标准", "subtask", "预计工时",
                  "让 confirm 真的需要人看", "[s1]"):
@@ -128,7 +129,7 @@ def test_summary_shows_what_user_needs_to_judge(ws: Path) -> None:
 def test_approved_passes_and_records_channel(ws: Path) -> None:
     """`--approved` → 放行, 记 confirmed_by + 时间戳。"""
     tid = _ready_task(ws)
-    r = _raw(ws, "confirm", tid, "--approved")
+    r = _raw(ws, "state", "confirm", tid, "--approved")
     assert r.returncode == 0, f"--approved 仍被拒: {r.stderr}"
     t = _task(ws, tid)
     assert t["status"] == "active"  # confirm 吸收 start: 待处理→进行中, 无就绪中间态
@@ -139,7 +140,7 @@ def test_approved_passes_and_records_channel(ws: Path) -> None:
 def test_structural_gates_still_run_before_review(ws: Path) -> None:
     """人审门在结构门**之后** —— 缺 subtask 时该报缺 subtask, 不该先要人审一个残缺的 PRD。"""
     run_skein(ws, "create", "bare", "--name", "空", "--desc", "d")
-    r = _raw(ws, "confirm", "bare")
+    r = _raw(ws, "state", "confirm", "bare")
     assert "无 subtask 登记" in r.stderr, r.stderr
     assert "需用户审核" not in r.stderr, "结构不全就不该惊动用户"
 
@@ -147,7 +148,7 @@ def test_structural_gates_still_run_before_review(ws: Path) -> None:
 def test_summary_also_gated_by_structure(ws: Path) -> None:
     """`--summary` 同样走结构门 —— 免得把一份残缺 PRD 端到用户面前让人批。"""
     run_skein(ws, "create", "bare-two", "--name", "空", "--desc", "d")
-    r = _raw(ws, "confirm", "bare-two", "--summary")
+    r = _raw(ws, "state", "confirm", "bare-two", "--summary")
     assert r.returncode != 0 and "无 subtask 登记" in r.stderr, r.stderr
 
 

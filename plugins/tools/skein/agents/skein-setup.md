@@ -49,7 +49,7 @@ skein-spec sediment --namespace=<ns> [--inclusion=always|auto] --category=<类�
 ### 3. 重建 task
 
 ```
-skein create <id> --name "标题" --desc "一句话"                    # 逐个重建
+skein state create <id> --name "标题" --desc "一句话"                    # 逐个重建
 skein contract <id> --add "契约文本"                                # 迁契约 (每条一次)
 skein subtask add <id> <sid> --name "X" --desc "Y" --estimate <小时数> [--deps a,b] [--check "c1;c2"]   # 迁 subtask
 ```

@@ -1,7 +1,7 @@
 """`hooks.py report` 只在**真崩溃**时喊 bug —— 门拒绝不算 bug。
 
 ## 起因
-冒烟时跑了一条少参数的 `skein confirm <id>` (没带 `--approved`)。引擎按设计拒绝, 打印一行
+冒烟时跑了一条少参数的 `skein state confirm <id>` (没带 `--approved`)。引擎按设计拒绝, 打印一行
 「需用户审核 PRD 后才能进就绪…」并退 1。而 report hook 不看错误长什么样, 一律弹:
 
     ⚠️ SKEIN 脚本报错, 疑似插件 bug 请手动开 issue: …
@@ -51,7 +51,7 @@ def _report(cmd: str, err: str) -> dict[str, Any]:
 
 def test_gate_rejection_does_not_cry_bug() -> None:
     """门拒绝 (无 traceback): 递错误原文, **不**提 issue。"""
-    out = _report("skein.py confirm smoke-task", GATE_ERR)
+    out = _report("skein.py state confirm smoke-task", GATE_ERR)
     assert "systemMessage" not in out, (
         f"门拒绝被报成插件 bug 了: {out.get('systemMessage')!r} — "
         "撞门是 skein 的常态, 每撞一次就叫用户提 issue 是噪声。")
@@ -80,7 +80,7 @@ def test_unrelated_command_stays_silent() -> None:
 
 def test_bin_wrapper_command_is_recognised() -> None:
     """`bin/skein` 短命令 (不含 .py) 也要认得出是我们的 —— 生产环境走的正是它。"""
-    out = _report("skein confirm smoke-task", GATE_ERR)
+    out = _report("skein state confirm smoke-task", GATE_ERR)
     assert out, "bin 短命令没被识别为 skein 脚本"
 
 

@@ -35,13 +35,17 @@ class AliasTyperGroup(TyperGroup):
         return super().get_command(ctx, self.aliases.get(cmd_name, cmd_name))
 
 
+STATE_COMMANDS = {"create", "research", "plan", "confirm", "check", "finishing", "finish"}
+
+
 app = typer.Typer(
     cls=AliasTyperGroup,
-    help="SKEIN 任务管理引擎 — task 生命周期 + 看板 + 契约\n\n生命周期: init → create → (research ⇄ plan) → confirm(吸收 start) → check → finishing → finish",
+    help="SKEIN 任务管理引擎 — task 生命周期 + 看板 + 契约\n\n状态变更: state create → (research ⇄ plan) → confirm(吸收 start) → check → finishing → finish",
     no_args_is_help=True,
     add_completion=False,
     rich_markup_mode=None,  # docstring 里 [sid] 会被 rich 当样式标签吃掉, 关掉 markup 保留原文
 )
+state_app = typer.Typer(help="task 状态变更", no_args_is_help=True)
 config_app = typer.Typer(help="读写 .skein/config.yaml 配置", invoke_without_command=True)
 prd_app = typer.Typer(help="读/写/追加/勾选 prd 章节 (目标/边界/User Stories/验收标准/验证方式/Testing Decisions)")
 
@@ -118,7 +122,7 @@ def setup(full: bool = typer.Option(False, "--full"), no_web: bool = typer.Optio
     _run("setup", full=full, no_web=no_web)
 
 
-@app.command()
+@state_app.command("create")
 def create(
     id: Annotated[str, typer.Argument(help="可读 id")],
     name: Annotated[str, typer.Option("--name", help="task 标题")],
@@ -165,19 +169,19 @@ def parent(id: str, set_: Annotated[Optional[str], typer.Option("--set")] = None
     _run("parent", id=id, set=set_)
 
 
-@app.command()
+@state_app.command("research")
 def research(id: str) -> None:
     """待处理→调研中。"""
     _run("research", id=id)
 
 
-@app.command()
+@state_app.command("plan")
 def plan(id: str) -> None:
     """调研中→待处理。"""
     _run("plan", id=id)
 
 
-@app.command()
+@state_app.command("confirm")
 def confirm(
     id: str,
     summary: Annotated[bool, typer.Option("--summary")] = False,
@@ -187,19 +191,19 @@ def confirm(
     _run("confirm", id=id, summary=summary, approved=approved)
 
 
-@app.command()
+@state_app.command("check")
 def check(id: str) -> None:
     """标记 task 进入检查阶段。"""
     _run("check", id=id)
 
 
-@app.command()
+@state_app.command("finishing")
 def finishing(id: str) -> None:
     """检查中→收尾中。"""
     _run("finishing", id=id)
 
 
-@app.command()
+@state_app.command("finish")
 def finish(id: str) -> None:
     """收束 task。"""
     _run("finish", id=id)
@@ -351,7 +355,13 @@ def subtask(
          deps=deps, check=check, phase=phase, note=note, passed=passed, skills=skills)
 
 
+app.add_typer(state_app, name="state")
 app.add_typer(config_app, name="config")
+
+
+@state_app.callback()
+def state() -> None:
+    """task 状态变更。"""
 
 
 @config_app.callback(invoke_without_command=True)
@@ -434,6 +444,12 @@ def _run_hidden_command(argv: list[str]) -> bool:
     return False
 
 
+def _rewrite_legacy_state_args(argv: list[str]) -> list[str]:
+    if argv and argv[0] in STATE_COMMANDS:
+        return ["state", *argv]
+    return argv
+
+
 def main() -> None:
     argv, cli_debug, cli_json = _strip_global_flags(sys.argv[1:])
     DBG.enable(cli_debug or debug_enabled(None))
@@ -447,6 +463,7 @@ def main() -> None:
     globals()["_namespace"] = namespace_with_json
     try:
         if not _run_hidden_command(argv):
+            argv = _rewrite_legacy_state_args(argv)
             app(args=argv, prog_name="skein")
     finally:
         globals()["_namespace"] = original_namespace

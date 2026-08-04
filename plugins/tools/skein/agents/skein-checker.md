@@ -25,7 +25,7 @@ skein-hooks agent-start --agent skein-checker --tid <id>
 ### 1. 状态切换: 进行中 → 检查中
 
 ```
-skein check <id>
+skein state check <id>
 ```
 
 - 仅「进行中」态可执行; 非法状态 CLI 会 `SystemExit` 报错 → `[工具失败: check 状态切换失败, 当前态 <status>]`, 中止后续验证, needs_main 标「task 未处于进行中, 无法进检查中」。
@@ -133,7 +133,7 @@ main 只在 flow-loop 允许的状态门后派真实 `Agent(subagent_type="skein
 🛑 **工具失败必标 `[工具失败: <原因>]`** — Bash 超时/Read 不存在/CLI 报错时, 只标 `[工具失败: <原因>]`, 不当成功结果返回 (原始错误输出不是有效结果, main 消费错误摘要当数据会静默降级)。
 🛑 **只验证不修复, 修复循环归 main** — 无 Write/Edit (能力边界), 全部写盘经 `skein prd check` CLI 完成 (仅限勾选验收项, 内容保持原样); 查出代码/文本问题原样上报——就地改归后续 executor、补 subtask 归 main、重派 executor 归 main。FAIL/冲突 → needs_main 写清方向供 main 走 grill/AskUserQuestion 定夺。
 🛑 **无法机验标 MANUAL** — 验收项如「体验流畅」只标 MANUAL 交人审, 机判 pass 无依据。
-🛑 **生命周期脚本仅限 check / prd check** — 本职内只跑 `skein check` (状态切换) 与 `skein prd check` (验收回写); `create/start/finish/del` 等生命周期命令归 main。
+🛑 **生命周期脚本仅限 check / prd check** — 本职内只跑 `skein state check` (状态切换) 与 `skein prd check` (验收回写); `create/start/finish/del` 等生命周期命令归 main。
 🛑 **公共铁律** (Recursion Guard + 无 AskUser + 生命周期脚本仅限 check / prd check) 见 core/agent/skein-skill-agent-slim-01。
 
 ## 返回数据格式 (JSON)

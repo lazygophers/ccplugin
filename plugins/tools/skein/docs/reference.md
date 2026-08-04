@@ -8,13 +8,13 @@
 | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `skein init`                                                                    | 初始化 .skein/ 工作区                                                                                                                                                                                                                      |
 | `skein doctor`                                                                  | 健康检查                                                                                                                                                                                                                                   |
-| `skein create <id> [--name] [--desc] [--deps] [--kind] [--parent] [--repos]`    | 创建 task                                                                                                                                                                                                                                  |
-| `skein research <id>`                                                           | 待处理→调研中: 需已登记 ≥1 `--phase research` subtask                                                                                                                                                                                      |
-| `skein plan <id>`                                                               | 调研中→待处理: 需调研 subtask 全 done, 收敛回规划                                                                                                                                                                                          |
-| `skein confirm <id> [--summary\|--approved]`                                    | 用户确认门, **吸收原 `start`**: 待处理→进行中, 一步做完 doctor 体检 + deps 校验 + 建 worktree。裸跑非 TTY 会拒。`--summary` 只打印 PRD 审核摘要不改状态; `--approved` = 已在 `AskUserQuestion` 拿到用户批准                                |
-| `skein check <id>`                                                              | 进行中→检查中                                                                                                                                                                                                                              |
-| `skein finishing <id>`                                                          | 检查中→收尾中: 占 gate 池槽位 (`pools.gate`)                                                                                                                                                                                               |
-| `skein finish <id>`                                                             | 收尾中→已完成: commit→merge→销 worktree (归档=保留期后自动, 非 finish 步)                                                                                                                                                                  |
+| `skein state create <id> [--name] [--desc] [--deps] [--kind] [--parent] [--repos]`    | 创建 task                                                                                                                                                                                                                                  |
+| `skein state research <id>`                                                           | 待处理→调研中: 需已登记 ≥1 `--phase research` subtask                                                                                                                                                                                      |
+| `skein state plan <id>`                                                               | 调研中→待处理: 需调研 subtask 全 done, 收敛回规划                                                                                                                                                                                          |
+| `skein state confirm <id> [--summary\|--approved]`                                    | 用户确认门, **吸收原 `start`**: 待处理→进行中, 一步做完 doctor 体检 + deps 校验 + 建 worktree。裸跑非 TTY 会拒。`--summary` 只打印 PRD 审核摘要不改状态; `--approved` = 已在 `AskUserQuestion` 拿到用户批准                                |
+| `skein state check <id>`                                                              | 进行中→检查中                                                                                                                                                                                                                              |
+| `skein state finishing <id>`                                                          | 检查中→收尾中: 占 gate 池槽位 (`pools.gate`)                                                                                                                                                                                               |
+| `skein state finish <id>`                                                             | 收尾中→已完成: commit→merge→销 worktree (归档=保留期后自动, 非 finish 步)                                                                                                                                                                  |
 | `skein rename <id> <new-id>`                                                    | 重命名                                                                                                                                                                                                                                     |
 | `skein del <id> [<sid>]` `[--dry-run]`                                          | 软删: 整 task 移入 `.skein/trash/`; 给 sid 则只删该 subtask。`--dry-run` 只打印将删什么                                                                                                                                                    |
 | `skein current`                                                                 | 活跃 task                                                                                                                                                                                                                                  |
@@ -98,9 +98,9 @@
 
 ```bash
 # 建 supertask + child (建时声明)
-skein create <id> --kind supertask --name "<名>"
-skein create <child1> --parent <id>
-skein create <child2> --parent <id>
+skein state create <id> --kind supertask --name "<名>"
+skein state create <child1> --parent <id>
+skein state create <child2> --parent <id>
 # child 独立闭环, 末 child → supertask 聚合归档, 深度限 2 层
 
 # 存量 task 改挂 (无需删档重建)

@@ -50,7 +50,7 @@ skein setup   # 幂等 scaffold + 输出 manifest JSON
 | 新增一条规则 | `skein-spec sediment --namespace <ns> [--inclusion always\|auto] --category <cat> --topic <主题> --title <T>` | 追加为主题文件章节 + 自动 reindex |
 
 - **改 spec 盘后必 `reindex`** — 索引 (三份 index.md) 落后于实际盘面 = 召回失效。
-- **task.json / task.md 禁手改** — 经 `skein create/start/...` 命令维护, PreToolUse hook 硬阻直接写。
+- **task.json / task.md 禁手改** — 经 `skein state create/start/...` 命令维护, PreToolUse hook 硬阻直接写。
 
 ## 铁律 (通用)
 
@@ -64,7 +64,7 @@ skein setup   # 幂等 scaffold + 输出 manifest JSON
 
 | 场景 | 正确做法 (❌ 反面) |
 |---|---|
-| 改 `.skein/task*` | 经 `skein create/start/...` 命令改 (❌ 手改绕脚本 → PreToolUse hook 硬阻 + 破坏索引一致性) |
+| 改 `.skein/task*` | 经 `skein state create/start/...` 命令改 (❌ 手改绕脚本 → PreToolUse hook 硬阻 + 破坏索引一致性) |
 | 改 spec 盘面后 | 必跑 `skein-spec reindex` (❌ 不 reindex → 三份 index.md 落后盘面 = 召回失效) |
 | 检测到 `.trellis/` | 先 `AskUserQuestion` 选兼容 / `--full` 再迁移 (❌ 直接 `setup --full` → 未问用户整删可能丢数据) |
 | 已初始化仓重跑 | 正常重跑, config/spec 存在则跳过 (❌ 当报错 → setup 幂等, 重跑安全不覆盖) |
