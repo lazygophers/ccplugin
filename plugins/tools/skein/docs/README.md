@@ -51,7 +51,7 @@ skein init    # 或由 skein-setup skill 自动触发
 ```
 skein current    # 活跃 task
 skein board      # 文本看板
-skein view       # 可视化 HTML 看板
+skein serve --open  # 可视化 HTML 看板
 ```
 
 ## 核心概念

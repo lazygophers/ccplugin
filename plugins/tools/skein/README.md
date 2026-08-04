@@ -11,7 +11,7 @@
 | supertask 聚合层 | `skein create --kind supertask` / `skein parent --set` | 需求过大拆多个各自独立闭环的 task 时用聚合父层 (深度限 2 层, 与 deps 正交); 存量 task 可事后用 `parent --set` 改挂/摘除; supertask finish 前要求全部 child 已完成 |
 | 动态 DAG 编排调度 (双层) | `skein-flow exec 阶段` (`references/dag.md`) | main 作调度器, task 级 + subtask 级同构, 并行只看 `depends_on` DAG, 并发上限 2, 完成即派 (flow exec 委托) |
 | worktree 隔离 | `skein` | 1 task 1 worktree, 主工作区零改动 |
-| 看板 (文本 + 可视化) | `skein board` / `view` | `.skein/task.md` 文本看板 + `.skein/task.html` 静态可视化页 (title/标题带项目名; 预估进度总览 + 预计执行顺序图 + 每 task 时间条, 4 主题 6 配色 深浅色, 页内切换器, `view` 按需打开) |
+| 看板 (文本 + 可视化) | `skein board` / `skein serve --open` | `.skein/task.md` 文本看板 + `.skein/task.html` 静态可视化页 (title/标题带项目名; 预估进度总览 + 预计执行顺序图 + 每 task 时间条, 4 主题 6 配色 深浅色, 页内切换器, `serve --open` 按需打开) |
 | planning 入口 | `skein-flow plan 阶段` | 判新旧 + 登记 + brainstorm + grill 硬门 (必走) |
 | **namespace×inclusion 规则记忆** | `skein-spec` | **差异化核心** (见下) |
 | 对抗式审查 | `skein-grill` | 需求/工件对抗校对 (planning 硬门) |
@@ -42,7 +42,7 @@
 ├── .gitignore         # init 生成: 忽略 task.md/task.html/board/ (自动渲染); 另补 worktree_root 到根 .gitignore
 ├── task.json          # {tasks:[{id,status,deps,worktree}]} 全未归档 task (脚本维护)
 ├── task.md            # 顶层看板 (task.json 渲染, git 忽略, 禁直接编辑)
-├── task.html          # 静态可视化看板 (title/标题带项目名; task.json 渲染, git 忽略, `skein view` 打开)
+├── task.html          # 静态可视化看板 (title/标题带项目名; task.json 渲染, git 忽略, `skein serve --open` 打开)
 ├── board/             # 主题/配色 CSS (从插件 assets 拷贝, git 忽略, html link 引入)
 ├── config.yaml        # pools.work:2 / pools.gate:3 / retain_days:7 / auto_commit:true (仅原地模式生效) / worktree_root:.worktrees / board_theme / board_palette / board_mode
 └── task/

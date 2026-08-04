@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import argparse
 import sys
-from types import SimpleNamespace
 from typing import cast
 
 from skeinlib.hooks.runner import DBG, debug_enabled
@@ -115,6 +114,6 @@ def _run_hidden_command(argv: list[str], cli_debug: bool) -> bool:
         "inject-core": m.inject_core,
         "session-start": m.session_start,
         "subagent-start": m.subagent_start,
-    }[cmd](SimpleNamespace(cmd=cmd))
+    }[cmd](argparse.Namespace(cmd=cmd))
     DBG.log(f"✓ {cmd} 完成", style="bold green")
     return True

@@ -119,7 +119,7 @@ class Admin:
         if not web_enabled:
             Config(self.ws.dir / "config.yaml").set("web.serve", False)
         else:
-            print("可视化看板: 运行 `skein view` 起 http 服务打开 (常驻服务由 monitor 起)。", file=sys.stderr)
+            print("可视化看板: 运行 `skein serve --open` 起 http 服务打开 (常驻服务由 monitor 起)。", file=sys.stderr)
         manifest = {
             "web_serve": web_enabled,
             "mode": "full" if a.full else "compat",

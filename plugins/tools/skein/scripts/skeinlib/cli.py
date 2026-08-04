@@ -15,6 +15,7 @@ from typing import Annotated, Any, Optional
 
 try:
     import typer
+    from typer import _click
     from typer.core import TyperGroup
 except ModuleNotFoundError:
     if os.environ.get("SKEIN_TYPER_BOOTSTRAPPED") != "1":
@@ -30,7 +31,7 @@ from skeinlib.task.model import PRD_TYPE_ALIAS
 class AliasTyperGroup(TyperGroup):
     aliases = {"delete": "del", "rm": "del", "remove": "del"}
 
-    def get_command(self, ctx: typer.Context, cmd_name: str):
+    def get_command(self, ctx: _click.Context, cmd_name: str) -> _click.Command | None:
         return super().get_command(ctx, self.aliases.get(cmd_name, cmd_name))
 
 
@@ -78,7 +79,7 @@ def _dispatch(a: SimpleNamespace) -> None:
         "current": sk.query.current, "ready": sk.query.ready,
         "status": sk.query.status, "list": sk.query.list_,
         "fmt": sk.artifacts.fmt, "prd": sk.artifacts.prd, "contract": sk.artifacts.contract,
-        "view": sk.view, "serve": sk.serve, "doctor": sk.doctor,
+        "serve": sk.serve, "doctor": sk.doctor,
     }
     DBG.rule(f"skein {a.cmd}")
     DBG.kv({k: v for k, v in vars(a).items() if k not in ("cmd", "debug") and v not in (None, False)}, title="参数")
@@ -290,15 +291,10 @@ def board() -> None:
 
 
 @app.command()
-def view() -> None:
-    """起 http 服务并打开可视化看板。"""
-    _run("view")
-
-
-@app.command()
-def serve(auto: Annotated[bool, typer.Option("--auto")] = False) -> None:
+def serve(auto: Annotated[bool, typer.Option("--auto")] = False,
+          open_: Annotated[bool, typer.Option("--open")] = False) -> None:
     """持久看板 http 服务。"""
-    _run("serve", auto=auto)
+    _run("serve", auto=auto, open_browser=open_)
 
 
 @app.command()

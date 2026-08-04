@@ -48,7 +48,7 @@ class BoardSourceMixin:
         def config(self) -> dict[str, Any]: ...
         def _wt_shown(self) -> bool: ...
 
-    # ---- 看板可视化 (http 实时渲染, 不落盘; `skein view` / `skein serve` 起服务) ----
+    # ---- 看板可视化 (http 实时渲染, 不落盘; `skein serve` 起服务, `--open` 打开浏览器) ----
     def _snapshot(self) -> Snapshot:
         # 一次目录扫描 → 6 board 视图统一输入 (每请求构造一次)
         pools = self.config()["pools"]
@@ -309,16 +309,11 @@ class BoardSourceMixin:
                 argv += ["--list", g("list")]
             return base + argv
         return None  # 非白名单 → 拒绝
-    def view(self, _: argparse.Namespace) -> None:
-        cfg = self.config()
-        if not cfg["web"]["serve"]:
-            print("看板 http 服务已在 config.yaml 关闭 (web.serve=false), 无法打开。", file=sys.stderr)
-            return
-        self._run_server(open_browser=cfg["web"]["board_open"])
     def serve(self, a: argparse.Namespace) -> None:
         # 持久看板 http 服务入口, 由 experimental.monitors (personal-scope, session 启动) + 用户手动跑维护。lock 去重: 同项目只跑一个。
         # --auto: monitor 自动起模式, 遵 config web.serve 开关 (关则 no-op)。手动跑省略 → 用户显式意图, 无视开关强起。
         auto = getattr(a, "auto", False)
+        open_browser = getattr(a, "open_browser", False)
         f = self.dir / "config.yaml"
         if not f.exists():
             # auto 是每 session 起的 monitor — 无 .skein 的项目里每次都喊会刷屏, 只 --debug 才说;
@@ -333,7 +328,8 @@ class BoardSourceMixin:
         # tty 区分: 手动终端跑 (tty) 印启动 URL 且遵 board_open 自动开浏览器; monitor 管道 (非 tty) 静默且绝不弹窗 (每 session when:always, 弹窗会骚扰)。
         # --debug 强制打印启动 URL: 非 tty 手动调试 (管道/被捕获) 也能看到服务地址, 否则误判"无法启动"; 浏览器仍只 tty 开 (非 tty 弹窗骚扰)。
         manual = sys.stdout.isatty()
-        self._run_server(open_browser=manual and cfg["web"]["board_open"], quiet=not (manual or DBG.enabled))
+        self._run_server(open_browser=(manual and cfg["web"]["board_open"]) or open_browser,
+                         quiet=not (manual or DBG.enabled))
     def _data_rev(self) -> str:
         # 数据 rev: task.json (顶层 + 各 task) 最大 mtime_ns。变 → WS 推 "data" → 软刷新只 swap .layout。
         return max_mtime([self.dir / "task.json"] + list(self.tasks.glob("*/task.json")))

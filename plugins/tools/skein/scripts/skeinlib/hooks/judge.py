@@ -30,7 +30,8 @@ _UNINIT_PLAIN = """# SKEIN 未初始化 — 先初始化再处理任务
 _CTX = """# 任务判定
 
 ## 🛑 每轮第一行 = 判定行
-格式 (处理某 task 时前缀换成 `[skein|<taskId>]`):`[skein] 判定: <flow/inline/补充> (原因: <本轮命中的判据>)`
+格式 (处理某 task 时前缀换成 `[skein|<taskId>]`):
+[skein] 判定: <flow/inline/补充> (原因: <本轮命中的判据>)
 
 原因写具体判据 (「跨 a.py+b.py 两文件」), 不写结论复述 (「比较复杂」)。
 新的输入 != 新任务，需要对上下文进行判定，如果是旧任务，则作为补充继续旧任务的执行，如果是新任务，则先排队，按照 Skill(skein-flow) 调度部分完成则立即开始当前任务的流程。
@@ -41,7 +42,8 @@ _CTX = """# 任务判定
 - **inline** (直接做): 纯查询 / 问答 / 单文件单处且 ≤20 行
 - 拿不准往重的一侧取 (补充 → flow → inline); 判不准使用 AskUserQuestion 询问用户
 
-如果判定了 flow，立即走 /skein:skein-flow 的流程
+## 判了 flow
+先 create task; 同轮继续跑规划不停手, 直到规划确认用户门; 不得代替用户批准。
 
 ## 其他
 新输入禁打断在跑的工作; 一句可能对应 1 个 / N 个 task / 部分并入已有 task。
@@ -92,6 +94,7 @@ _PHASE = {"pending": "plan", "research": "research", "active": "exec", "check": 
 _PREFIX_RULE = """# 回复前缀 (强制)
 每条回复以 `[skein]` 开头, 处理某 task 时改用 `[skein|<taskId>|<阶段>]`;
 **第一行必须是判定行** (格式/判据/三条路径见上方「任务判定」):
+[skein] 判定: <flow/inline/补充> (原因: <本轮命中的判据>)
 """
 def _task_phase_hints(skein_dir: str) -> str:
     """读 .skein/task.json 顶层索引, 列非完成 task + 阶段, 供回复前缀选 taskId。"""

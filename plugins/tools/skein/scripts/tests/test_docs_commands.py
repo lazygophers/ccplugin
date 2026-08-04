@@ -15,6 +15,7 @@ skill / agent 文档里的命令示例**会被 AI 照抄执行**。一条写错�
 - skill 模式不是 CLI 子命令。文档里若把模式名写成 `skein-spec reconstruct` 会被判错 ——
   这正是要抓的, 因为那样写 agent 会真去敲 CLI。
 - `del` 是唯一公开删除命令; delete/rm/remove 属隐藏兼容别名, 不纳入文档合法面。
+- `view` 不是公开 CLI 子命令; 可视化看板走 `skein serve --open`。
 """
 from __future__ import annotations
 
@@ -22,9 +23,12 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+from typing import cast
 
 import conftest  # noqa: F401  模块体把 scripts/ 塞进 sys.path
 from conftest import MEM, SCRIPTS, SKEIN  # noqa: E402
+from typer import _click
+from typer.core import TyperGroup
 from typer.main import get_command
 
 from skeinlib.cli import app
@@ -131,15 +135,17 @@ def test_all_doc_command_examples_are_valid() -> None:
 
 
 def test_delete_aliases_resolve_to_single_click_command() -> None:
-    group = get_command(app)
-    assert group.get_command(None, "del") is not None
+    group = cast(TyperGroup, get_command(app))
+    ctx = _click.Context(group)
+    assert group.get_command(ctx, "del") is not None
+    assert "view" not in group.commands
     assert "delete" not in group.commands
     assert "rm" not in group.commands
     assert "remove" not in group.commands
-    canonical = group.get_command(None, "del")
-    assert group.get_command(None, "delete") is canonical
-    assert group.get_command(None, "rm") is canonical
-    assert group.get_command(None, "remove") is canonical
+    canonical = group.get_command(ctx, "del")
+    assert group.get_command(ctx, "delete") is canonical
+    assert group.get_command(ctx, "rm") is canonical
+    assert group.get_command(ctx, "remove") is canonical
 
 
 def test_scanner_actually_catches_bad_examples(tmp_path: Path) -> None:
