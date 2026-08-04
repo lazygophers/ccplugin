@@ -4,3 +4,5 @@ from skeinlib.hooks import git_root, load_stdin
 
 BLOCKED = {"task.json", "task.md", "prd.md"}
 ENGINE = ("skein.py", "spec.py", "skein ", "skein-spec ")
+
+__all__ = ["BLOCKED", "ENGINE", "git_root", "load_stdin"]

@@ -8,3 +8,5 @@ SPEC_RE = re.compile(r"(?:^|/)\.skein/spec/[^/]+/[^/]+/.+\.md$")
 SPEC_REQUIRED = ("title", "namespace", "inclusion", "keywords")
 SPEC_INCLUSIONS = ("always", "auto", "fileMatch", "manual")
 _parse_fm = parse_spec_frontmatter
+
+__all__ = ["SPEC_RE", "SPEC_REQUIRED", "SPEC_INCLUSIONS", "cmd_spec_meta", "_parse_fm"]

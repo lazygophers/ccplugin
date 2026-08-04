@@ -1,3 +1,5 @@
 from __future__ import annotations
 
 from skeinlib.hooks import DISPATCH, _ARGV_DISPATCH, _resolve, main, self_check
+
+__all__ = ["DISPATCH", "_ARGV_DISPATCH", "_resolve", "main", "self_check"]

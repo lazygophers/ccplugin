@@ -429,11 +429,11 @@ def run_config(skein_dir: str) -> tuple[bool, int, bool]:
         config = Config(os.path.join(skein_dir, "config.yaml")).cfg.model_dump(by_alias=True)
     except (OSError, ValueError):
         config = CONFIG_DEFAULTS
-    max_active = config["pools"]["work"]
-    env_max_active = os.environ.get("CLAUDE_PLUGIN_OPTION_MAX_ACTIVE")
-    if env_max_active and env_max_active.strip().isdigit():
-        max_active = int(env_max_active)
-    return bool(config["worktree"]["enabled"]), int(max_active), bool(config["auto_commit"])
+    worker_limit = config["pools"]["work"]
+    env_worker_limit = os.environ.get("CLAUDE_PLUGIN_OPTION_MAX_ACTIVE")
+    if env_worker_limit and env_worker_limit.strip().isdigit():
+        worker_limit = int(env_worker_limit)
+    return bool(config["worktree"]["enabled"]), int(worker_limit), bool(config["auto_commit"])
 
 
 def cmd_user_prompt(payload: dict[str, Any]) -> int:
@@ -454,11 +454,11 @@ def cmd_user_prompt(payload: dict[str, Any]) -> int:
         phase_hints = task_phase_hints(skein_dir)
         context += "\n\n" + PREFIX_RULE + phase_hints
         if phase_hints:
-            worktree_enabled, max_active, auto_commit = run_config(skein_dir)
+            worktree_enabled, worker_limit, auto_commit = run_config(skein_dir)
             worktree_text = "启用 (task 各开 worktree 隔离)" if worktree_enabled else "禁用 (原地执行, 无 worktree)"
             auto_commit_text = ("强制 (worktree 模式必自动 commit, 本配置不生效)" if worktree_enabled
                                 else ("启用 (finish 时自动 commit)" if auto_commit else "禁用 (改动需手动 commit)"))
-            context += f"\n\n# SKEIN 运行配置\n- worktree: {worktree_text}\n- 最大并行 subtask: {max_active}\n- auto_commit: {auto_commit_text}"
+            context += f"\n\n# SKEIN 运行配置\n- worktree: {worktree_text}\n- 最大并行 subtask: {worker_limit}\n- auto_commit: {auto_commit_text}"
     print(json.dumps({"hookSpecificOutput": {
         "hookEventName": "UserPromptSubmit", "additionalContext": context}}))
     return 0
