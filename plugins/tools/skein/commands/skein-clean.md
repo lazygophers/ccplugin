@@ -71,5 +71,5 @@ agent: skein-clean
 | 入参 N 大于 config `retain_days` | 视为无效, 脚本每次 `_sync` 按 config ceiling 自动归档 (❌ 当有效对待) |
 | 保留期内的完成 task | 认作正常状态保留 (❌ 当漏归档强行 archive) |
 | 无对应 task 记录的孤儿 worktree | 报用户裁定 (❌ 直接删) |
-| 归档 task | 走 `skein archive <id>` (❌ 手动 `rm .skein/task/<id>` 当归档) |
+| 归档 task | 走自动归档或 `skein clean --days <N>` (❌ 手动 `rm .skein/task/<id>` 当归档) |
 | 看板刷新 | 无需手动 — `clean` 已 `_sync` 自动重渲染 (❌ 以为要手动刷看板) |

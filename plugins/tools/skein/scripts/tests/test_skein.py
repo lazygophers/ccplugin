@@ -169,17 +169,19 @@ def main() -> None:
         assert "task-2" in board, "看板缺 task 行"
         assert "focus:" not in board, "看板不应再有 focus footer"
 
-        # archive in_progress task → 销 worktree/branch + 从顶层索引移除
+        # task-2 finish 后 retain_days=0 自动归档 → 依赖可视为完成
         wt2 = d / json.loads((d / ".skein/task/task-2/task.json").read_text())["worktree"]
         assert wt2.exists()
-        sk(d, "archive", "task-2")
-        assert not wt2.exists(), "archive 未销 worktree"
+        sk(d, "check", "task-2")
+        sk(d, "finishing", "task-2")
+        sk(d, "finish", "task-2")
+        assert not wt2.exists(), "finish 未销 worktree"
         br = subprocess.run(["git", "branch", "--list", "skein/task-2"], cwd=d,
                             capture_output=True, text=True).stdout
-        assert "skein/task-2" not in br, "archive 未删 branch"
+        assert "skein/task-2" not in br, "finish 未删 branch"
         top = json.loads((d / ".skein/task.json").read_text())
-        assert not any(x["id"] == "task-2" for x in top["tasks"]), "archive 未从顶层索引移除"
-        assert sk(d, "current", check=False).returncode == 0, "archive 后 current 崩溃"
+        assert not any(x["id"] == "task-2" for x in top["tasks"]), "自动归档未从顶层索引移除"
+        assert sk(d, "current", check=False).returncode == 0, "自动归档后 current 崩溃"
 
         # task 级 ready: task-3 前置(task-2)已归档→视完成 → task-3 可 confirm
         rout = sk(d, "ready").stdout

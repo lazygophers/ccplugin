@@ -513,23 +513,6 @@ class Lifecycle:
         return {"id": tid, "status": TaskStatus.DONE, "archived": archived,
                 "remaining": [x["id"] for x in rest]}
 
-    def archive(self, a: argparse.Namespace) -> dict[str, Any]:
-        # 归档 = 丢弃 (不 merge): 先销 worktree/branch, 免残留悬挂
-        f = self.ws.tasks / a.id / "task.json"
-        t = json.loads(f.read_text()) if f.exists() else None
-        self.ws._stage_hooks("archive", "before", self.ws._hook_ctx(a.id, t=t))
-        if t is not None:
-            for w in worktrees_of(t):
-                sub = self.ws.root if w["repo"] == "." else self.ws.root / w["repo"]
-                wt = self.ws.root / w["wt"]
-                if wt.exists():
-                    git("worktree", "remove", str(wt), "--force", cwd=sub, check=False)
-                git("branch", "-D", w["branch"], cwd=sub, check=False)
-        self.ws.store.archive_task(a.id)
-        self.ws.store.sync()  # 重写顶层 tasks 索引 (去掉已归档 task)
-        self.ws._stage_hooks("archive", "after", self.ws._hook_ctx(a.id, t=t))
-        return {"id": a.id, "archived": True}
-
     def del_(self, a: argparse.Namespace) -> dict[str, Any]:
         # 删 task (软删 → .skein/trash/<id>.<date>/, 可恢复) 或单 subtask (直接移除, 不进 trash)
         tid = a.task_id
@@ -560,7 +543,7 @@ class Lifecycle:
                                        for w in worktrees_of(t)]
             return result
 
-        # 在途 task (进行中/检查中/收尾中) 先销 worktree/分支 (finish/archive 同策略, 免悬挂); 待处理/调研中/done 无 worktree, 跳过
+        # 在途 task (进行中/检查中/收尾中) 先销 worktree/分支 (finish/del 同策略, 免悬挂); 待处理/调研中/done 无 worktree, 跳过
         if t["status"] in STATUS_INFLIGHT:
             destroy_worktrees(t, self.ws.root)
         dst = self.ws.trash_dir / f"{tid}.{datetime.datetime.now().strftime('%Y%m%d')}"
@@ -617,7 +600,7 @@ class Lifecycle:
         if t["status"] not in (TaskStatus.PENDING, TaskStatus.RESEARCH):
             raise SkeinError(
                 f"task id 重命名仅限 confirm 前 (待处理/调研中): {tid} 当前 {t['status']} "
-                "(在途 task 有 live worktree/branch, 不支持改 id; 先 finish/archive, 或只改 --name)")
+                "(在途 task 有 live worktree/branch, 不支持改 id; 先 finish 或 del, 或只改 --name)")
         if not SLUG_RE.match(new_id):
             raise SkeinError(f"非法 id: {new_id!r} — 须为 kebab-case slug (小写字母/数字/连字符, 字母数字开头)")
         if CODE_ID_RE.match(new_id):

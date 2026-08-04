@@ -135,19 +135,20 @@ def test_finish_done_merges_and_destroys_worktree(skein_cli: SkeinCli, ws: Path)
     assert not (ws / ".worktrees" / f"skein-{tid}").exists(), "worktree 未销"
 
 
-def test_archive_removes_from_board(skein_cli: SkeinCli, ws: Path) -> None:
-    """archive: done task 移入归档, list 不再列出。"""
+def test_finish_autoclean_removes_from_board(skein_cli: SkeinCli, ws: Path) -> None:
+    """retain_days=0: finish 后自动归档, list 不再列出。"""
+    cfg = ws / ".skein/config.yaml"
+    cfg.write_text(cfg.read_text().replace("retain_days: 7", "retain_days: 0"))
     tid = _mk(skein_cli, ws, active=True)
     skein_cli(ws, "check", tid)
     skein_cli(ws, "finishing", tid)
-    skein_cli(ws, "finish", tid)
-    r = skein_cli(ws, "archive", tid)
+    r = skein_cli(ws, "finish", tid)
     assert r.returncode == 0
     assert _status_of(skein_cli, ws, tid) == "<missing>"
 
 
-def test_full_chain_create_to_archive(skein_cli: SkeinCli, ws: Path) -> None:
-    """全链路: create → confirm(进行中) → check → finishing → finish → archive。"""
+def test_full_chain_create_to_finish(skein_cli: SkeinCli, ws: Path) -> None:
+    """全链路: create → confirm(进行中) → check → finishing → finish。"""
     tid = _mk(skein_cli, ws, "feat-chain", active=True)
     assert _status_of(skein_cli, ws, tid) == TaskStatus.ACTIVE
     skein_cli(ws, "check", tid)
@@ -156,8 +157,6 @@ def test_full_chain_create_to_archive(skein_cli: SkeinCli, ws: Path) -> None:
     assert _status_of(skein_cli, ws, tid) == TaskStatus.FINISHING
     skein_cli(ws, "finish", tid)
     assert _status_of(skein_cli, ws, tid) == TaskStatus.DONE
-    skein_cli(ws, "archive", tid)
-    assert _status_of(skein_cli, ws, tid) == "<missing>"
 
 
 # ---------- 非法转换 (应拒) ----------
@@ -329,9 +328,7 @@ def test_confirm_prd_ok_passes(skein_cli: SkeinCli, ws: Path) -> None:
 
 
 def test_op_on_missing_task_rejected(skein_cli: SkeinCli, ws: Path) -> None:
-    """非法: 对不存在的 task 操作 — confirm/finish/check 经 _load 拒 (exit 1)。
-
-    注: archive 对不存在 task 静默 exit 0 (_archive 早退, 见 archive 幂等测试), 不在此断言。"""
+    """非法: 对不存在的 task 操作 — confirm/finish/check 经 _load 拒 (exit 1)。"""
     for cmd in ("confirm", "finish", "check"):
         args = [cmd, "ghost-task"] + (["--approved"] if cmd == "confirm" else [])
         r = skein_cli(ws, *args, check=False)
@@ -368,20 +365,6 @@ def test_finish_after_done_rejected(skein_cli: SkeinCli, ws: Path) -> None:
     assert r.returncode == 1
     assert "只能 finish 收尾中" in r.stdout + r.stderr
     assert _status_of(skein_cli, ws, tid) == TaskStatus.DONE
-
-
-def test_archive_already_archived_idempotent(skein_cli: SkeinCli, ws: Path) -> None:
-    """幂等边界: archive 已归档 task — 当前实现静默返回 exit 0 (待确认: 应否报不存在)。
-
-    archive 调 _archive: src 不存在直接 return, 不报错。"""
-    tid = _mk(skein_cli, ws, active=True)
-    skein_cli(ws, "check", tid)
-    skein_cli(ws, "finishing", tid)
-    skein_cli(ws, "finish", tid)
-    skein_cli(ws, "archive", tid)
-    r = skein_cli(ws, "archive", tid, check=False)
-    assert r.returncode == 0, "archive 已归档当前幂等返回 0 (见 _archive 早退)"
-    assert _status_of(skein_cli, ws, tid) == "<missing>"
 
 
 def test_subtask_add_duplicate_rejected(skein_cli: SkeinCli, ws: Path) -> None:

@@ -76,7 +76,7 @@ exec 不勾 PRD 验收；正式验收归 check。scope 外问题另建 task，�
 🛑 **撤销改动只准 `git checkout -- <自己改的具体文件>` 逐个点名** — `git reset --hard` / `git reset` / `git clean` / `git stash` / `git checkout .` 不在允许范围内。原地态 (worktree 禁用) 下同一文件可能有并发或已完成 subtask 的改动, 全仓回滚会静默抹掉它们且无人发现。
 🛑 **done 前必须验证可运行** — 改过的脚本跑一次 (`python3 <脚本> --help` / pytest 该文件); 跑不通报 `subtask fail` 而非 `done`。报了 done 却 import 就崩, 会让下游 subtask 基于不存在的符号写代码。
 🛑 **读后写硬门** — 改前先 Read 目标文件。
-🛑 **允许自跑 `subtask done/fail`；`create/start/check/finish/archive` 等生命周期命令归 main**。
+🛑 **允许自跑 `subtask done/fail`；`create/start/check/finish/del` 等生命周期命令归 main**。
 🛑 **缺信息标 `需要: <问题>` 回传, 由 main 转达用户** — 无 AskUserQuestion 权限。
 🛑 **工具失败必标 `[工具失败: <原因>]`** — 命令失败/Read 不存在时, 只标 `[工具失败: <原因>]`, 不当成功结果返回 (原始错误输出不是有效结果)。
 🛑 **公共铁律** (Recursion Guard + 无 AskUser + 生命周期脚本仅限 done/fail) 见 core/agent/skein-skill-agent-slim-01。

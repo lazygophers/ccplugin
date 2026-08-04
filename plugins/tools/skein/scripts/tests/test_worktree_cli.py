@@ -239,12 +239,11 @@ def test_cli_subtask_add_parse_deps_skills_check(skein_cli: SkeinCli, ws: Path) 
     assert s2["acceptance"] == ["验收1", "验收2"]
 
 
-def test_cli_start_finish_archive_no_extra_arg(skein_cli: SkeinCli, ws: Path) -> None:
-    """finish/archive 只收单 positional id, 未知 flag → argparse exit 2。"""
+def test_cli_finish_no_extra_arg(skein_cli: SkeinCli, ws: Path) -> None:
+    """finish 只收单 positional id, 未知 flag → argparse exit 2。"""
     tid = _mk(skein_cli, ws)
     _advance_to_finishing(skein_cli, ws, tid)
     skein_cli(ws, "finish", tid)
-    skein_cli(ws, "archive", tid)
     r = skein_cli(ws, "finish", "--bogus", tid, check=False)
     assert r.returncode == 2, "未知 flag 应 argparse exit 2"
 

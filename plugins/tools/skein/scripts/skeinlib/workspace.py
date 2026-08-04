@@ -164,7 +164,7 @@ class Workspace:
                 "worktree": worktree, "repo_root": str(self.root)}
 
     def _stage_hooks(self, stage: str, when: str, ctx: dict[str, Any]) -> None:
-        """阶段 before/after 钩子入口 — create/confirm/start/check/finish/archive/subtask.* 共用。
+        """阶段 before/after 钩子入口 — create/confirm/research/plan/check/finishing/finish/subtask.* 共用。
         before 失败阻断该阶段 (SkeinError); after 失败仅告警, 阶段结果不变 (阻断语义见 hooks.runner._run_hooks)。
         无 hooks.<stage>.<when> 配置 → 零开销直返, 不构造 env/不 fork (design.md §5)。"""
         whens = self._hooks_cfg().get(stage)

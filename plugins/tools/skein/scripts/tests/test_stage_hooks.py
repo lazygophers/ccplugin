@@ -1,10 +1,10 @@
-"""8 个阶段命令 (create/confirm/check/finish/archive/subtask.start/done/fail) 的
+"""7 个阶段命令 (create/confirm/check/finish/subtask.start/done/fail) 的
 before/after 钩子接线测试 (config-hooks/c4) — 唯一接缝 = CLI 命令边界 (design.md 测试接缝段):
 经真实 skein.py 子进程跑, 断言退出码 + 钩子副作用 (标记文件), 不断言内部实现。
 start 已随 confirm 吸收删除, 不再单独有 start 阶段 (见 test_confirm_before_and_after_fire)。
 
 覆盖 4 条验收 + c8 补的 recursion guard CLI 级用例:
-1. 8 个阶段的 before/after 均能触发
+1. 7 个阶段的 before/after 均能触发
 2. check.before 失败使 check 不发生 (阻断语义 — 本特性核心价值)
 3. 非法阶段名报错且列出全部合法值
 4. 未配钩子的阶段行为零变化 (既有 test_statemachine.py 全绿即证明, 本文件只加 hooks 场景)
@@ -63,7 +63,7 @@ def _find(ws: Path, name: str) -> bool:
     return any(ws.rglob(name))
 
 
-# ---------- 验收1: 8 个阶段的 before/after 均能触发 ----------
+# ---------- 验收1: 7 个阶段的 before/after 均能触发 ----------
 
 def test_create_before_and_after_fire(skein_cli: SkeinCli, ws: Path) -> None:
     _append_hooks_yaml(ws, """
@@ -129,25 +129,6 @@ hooks:
     assert r.returncode == 0, r.stderr
     assert _find(ws, "finish-before.marker")
     assert _find(ws, "finish-after.marker")
-
-
-def test_archive_before_and_after_fire(skein_cli: SkeinCli, ws: Path) -> None:
-    tid = _mk(skein_cli, ws, "feat-f", ready=True)
-    skein_cli(ws, "check", tid)
-    skein_cli(ws, "finishing", tid)
-    skein_cli(ws, "finish", tid)
-    _append_hooks_yaml(ws, """
-hooks:
-  archive:
-    before:
-      - command: "touch archive-before.marker"
-    after:
-      - command: "touch archive-after.marker"
-""")
-    r = skein_cli(ws, "archive", tid)
-    assert r.returncode == 0
-    assert _find(ws, "archive-before.marker")
-    assert _find(ws, "archive-after.marker")
 
 
 def test_subtask_start_before_and_after_fire(skein_cli: SkeinCli, ws: Path) -> None:
@@ -269,7 +250,7 @@ def test_illegal_stage_name_warns_but_does_not_block(skein_cli: SkeinCli, ws: Pa
     r = skein_cli(ws, "create", "feat-m", "--name", "feat-m", "--desc", "d", check=False)
     assert r.returncode == 0, f"配置笔误不该阻断 create: {r.stderr}"
     assert "chekc" in r.stderr, f"未告警拼错的阶段名: {r.stderr}"
-    for legal in ("create", "confirm", "exec", "check", "finish", "archive",
+    for legal in ("create", "confirm", "exec", "check", "finish",
                   "subtask.start", "subtask.done", "subtask.fail"):
         assert legal in r.stderr, f"合法阶段名清单缺 {legal}"
     assert not _find(ws, "never.marker"), "非法阶段名不该被静默执行"

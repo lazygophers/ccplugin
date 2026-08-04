@@ -5,7 +5,7 @@
 
 | 类型 | 触发点 | 配置路径 |
 | --- | --- | --- |
-| 阶段钩子 | `skein` 的 9 个状态迁移命令 (create/confirm/start/check/finish/archive/subtask.start/done/fail) 前后 | `hooks.<阶段名>.<before\|after>` |
+| 阶段钩子 | `skein` 的状态迁移命令 (create/confirm/research/plan/exec/check/finishing/finish/subtask.start/done/fail) 前后 | `hooks.<阶段名>.<before\|after>` |
 | agent 钩子 | agent 生命周期起止 (由 agent 工作流自己在 dispatch 时调用) | `hooks.agent.<agent名\|"*">.<start\|stop>` |
 
 `hooks` 键整体可选 —— 不配则零开销 (不解析、不构造 env、不 fork 子进程), 详见 [§ 零开销路径](#零开销路径)。
@@ -14,7 +14,7 @@
 
 ```yaml
 hooks:
-  # 阶段钩子: key 直接是 STAGE_NAMES 里的合法阶段名 (见下表), hooks 下无中间层
+  # 阶段钩子: key 直接是 HooksConfig schema 里的合法阶段名 (见下表), hooks 下无中间层
   check:
     before:
       - command: "npm run lint"        # 必填, shell 字符串
@@ -49,10 +49,10 @@ hooks:
 
 ## 2. 阶段名全表
 
-`hooks.<name>` 的 `<name>` 仅接受以下 10 个 (常量 `STAGE_NAMES`, `scripts/skeinlib/hooks/runner.py`):
+`hooks.<name>` 的 `<name>` 仅接受以下字段 (`HooksConfig`, `scripts/skeinlib/config/manager.py`):
 
 ```
-create  confirm  start  exec  check  finish  archive
+create  confirm  research  plan  exec  check  finishing  finish
 subtask.start  subtask.done  subtask.fail
 ```
 

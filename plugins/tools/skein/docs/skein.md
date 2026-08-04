@@ -58,7 +58,7 @@
 | Guard | 拦截 | 例外 |
 | --- | --- | --- |
 | 文件守卫 | AI 直接读写 task.json/task.md | 通过 skein 命令 |
-| batch 守卫 | 并发 start/finish/archive | 串行 |
+| batch 守卫 | 并发 confirm/finish/clean | 串行 |
 | trellis 迁移守卫 | 同时 .trellis/ + .skein/ | 迁移完成 |
 
 ---
@@ -86,7 +86,7 @@
 | 检查中 → 收尾中 | `skein finishing` | 占 gate 池槽位 (上限 `pools.gate`) |
 | 收尾中 → 已完成 | `skein finish` | merge → 销wt → 标记完成 + 异步 spec sediment |
 | 已完成 → (归档) | retain_days 到期 / =0 立即, **且关联链全完成** | 目录迁移 task/archive/…, 非状态值 |
-| 任意 → (丢弃) | `skein archive` | 删 worktree, 不合并 |
+| 任意 → (软删) | `skein del` | 移入 `.skein/trash/`, active task 会先清 worktree/branch |
 
 ### Phase 1: Plan
 

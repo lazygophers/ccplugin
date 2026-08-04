@@ -63,7 +63,7 @@ class AgentHooks(BaseModel):
 class HooksConfig(BaseModel):
     """hooks 完整结构 — 阶段钩子 + subtask 事件钩子 + agent 钩子。
 
-    合法 scope = STAGE_NAMES (9 个阶段 + 3 个 subtask 事件)。
+    合法 scope = STAGE_NAMES (8 个阶段 + 3 个 subtask 事件)。
     agent 钩子键名是动态 agent 名 (如 skein-executor), 值为 AgentHooks。
     """
     # 阶段钩子
@@ -75,7 +75,6 @@ class HooksConfig(BaseModel):
     check: StageHooks = Field(default_factory=StageHooks)
     finishing: StageHooks = Field(default_factory=StageHooks)
     finish: StageHooks = Field(default_factory=StageHooks)
-    archive: StageHooks = Field(default_factory=StageHooks)
     # subtask 事件钩子
     subtask_start: StageHooks = Field(default_factory=StageHooks, alias="subtask.start", description="subtask 启动时")
     subtask_done: StageHooks = Field(default_factory=StageHooks, alias="subtask.done", description="subtask 完成时")

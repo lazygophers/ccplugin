@@ -15,7 +15,6 @@
 | `skein check <id>`                                                              | 进行中→检查中                                                                                                                                                                                                                              |
 | `skein finishing <id>`                                                          | 检查中→收尾中: 占 gate 池槽位 (`pools.gate`)                                                                                                                                                                                               |
 | `skein finish <id>`                                                             | 收尾中→已完成: commit→merge→销 worktree (归档=保留期后自动, 非 finish 步)                                                                                                                                                                  |
-| `skein archive <id>`                                                            | 归档 (丢弃 worktree, 不合并)                                                                                                                                                                                                               |
 | `skein rename <id> <new-id>`                                                    | 重命名                                                                                                                                                                                                                                     |
 | `skein del <id> [<sid>]` `[--dry-run]`                                          | 软删: 整 task 移入 `.skein/trash/`; 给 sid 则只删该 subtask。`--dry-run` 只打印将删什么                                                                                                                                                    |
 | `skein current`                                                                 | 活跃 task                                                                                                                                                                                                                                  |
@@ -81,14 +80,14 @@
 ### 场景表
 
 | #   | 场景         | 例              | 要点                              |
-| --- | ------------ | --------------- | --------------------------------- | ------- |
+| --- | ------------ | --------------- | --------------------------------- | ------------------ |
 | 1   | 单功能开发   | 加手机号登录    | brainstorm 选型, grill, contract  |
 | 2   | 破坏式重构   | User→UserDTO    | 全站 grep 一次改, worktree 可丢弃 |
 | 3   | 调研选型     | 选队列方案      | researcher 只读, 结论→sediment    |
 | 4   | 多 task 并行 | 导出+样式       | `--deps` 声明, pools.work=2       |
 | 5   | 根因 bug     | 金额差 1 分     | 共享函数修, 补回归测试            |
 | 6   | 模糊请求     | —               | 自动按信号路由                    |
-| 7   | 中途出问题   | exec/check 卡住 | 自愈→根因复盘                     | archive |
+| 7   | 中途出问题   | exec/check 卡住 | 自愈→根因复盘                     | 软删走 `skein del` |
 | 8   | 冷启动空仓   | 空 spec/        | bootstrap 扫 5 维, 默认 recall    |
 | 9   | 清理残留     | 孤儿 worktree   | `/skein-clean`                    |
 | 10  | 大需求冷启动 | 「重构支付」    | 愿景翻译→supertask, grill 3 轴    |
@@ -113,13 +112,13 @@ skein parent <child-existing> --set ""     # 摘除
 
 ### 错误处理
 
-| 阶段   | 失败           | 重试            | 兜底            |
-| ------ | -------------- | --------------- | --------------- |
-| exec   | subtask 报错   | 重派 ≤2 轮      | 停手回传        |
-| check  | lint/type/test | 修复重跑        | 第 3 轮根因复盘 |
-| check  | contract       | 评估回退        | —               |
-| finish | 合并冲突       | auto abort→手动 | 禁强解          |
-| 任意   | 方案跑歪       | —               | `skein archive` |
+| 阶段   | 失败           | 重试            | 兜底             |
+| ------ | -------------- | --------------- | ---------------- |
+| exec   | subtask 报错   | 重派 ≤2 轮      | 停手回传         |
+| check  | lint/type/test | 修复重跑        | 第 3 轮根因复盘  |
+| check  | contract       | 评估回退        | —                |
+| finish | 合并冲突       | auto abort→手动 | 禁强解           |
+| 任意   | 方案跑歪       | —               | `skein del` 软删 |
 
 ---
 

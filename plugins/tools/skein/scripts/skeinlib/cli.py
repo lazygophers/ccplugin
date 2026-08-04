@@ -37,7 +37,7 @@ class AliasTyperGroup(TyperGroup):
 
 app = typer.Typer(
     cls=AliasTyperGroup,
-    help="SKEIN 任务管理引擎 — task 生命周期 + 看板 + 契约\n\n生命周期: init → create → (research ⇄ plan) → confirm(吸收 start) → check → finishing → finish → archive",
+    help="SKEIN 任务管理引擎 — task 生命周期 + 看板 + 契约\n\n生命周期: init → create → (research ⇄ plan) → confirm(吸收 start) → check → finishing → finish",
     no_args_is_help=True,
     add_completion=False,
     rich_markup_mode=None,  # docstring 里 [sid] 会被 rich 当样式标签吃掉, 关掉 markup 保留原文
@@ -46,7 +46,7 @@ config_app = typer.Typer(help="读写 .skein/config.yaml 配置", invoke_without
 prd_app = typer.Typer(help="读/写/追加/勾选 prd 章节 (目标/边界/User Stories/验收标准/验证方式/Testing Decisions)")
 
 MUTATING = {"init", "setup", "create", "confirm", "research", "plan", "check", "finishing",
-            "finish", "fmt", "archive", "clean",
+            "finish", "fmt", "clean",
             "contract", "repos", "deps", "parent", "estimate", "priority", "subtask", "claim",
             "prd", "del",
             "rename", "config"}
@@ -70,7 +70,7 @@ def _dispatch(a: SimpleNamespace) -> None:
         "create": sk.lifecycle.create, "confirm": sk.lifecycle.confirm,
         "research": sk.lifecycle.research, "plan": sk.lifecycle.plan,
         "check": sk.lifecycle.check, "finishing": sk.lifecycle.finishing,
-        "finish": sk.lifecycle.finish, "archive": sk.lifecycle.archive,
+        "finish": sk.lifecycle.finish,
         "repos": sk.lifecycle.repos, "deps": sk.lifecycle.deps,
         "parent": sk.lifecycle.parent,
         "estimate": sk.lifecycle.estimate, "priority": sk.lifecycle.priority, "rename": sk.lifecycle.rename,
@@ -209,12 +209,6 @@ def finish(id: str) -> None:
 def fmt(id: str) -> None:
     """规范化 prd.md。"""
     _run("fmt", id=id)
-
-
-@app.command()
-def archive(id: str) -> None:
-    """归档 task。"""
-    _run("archive", id=id)
 
 
 def _delete(ctx: typer.Context, dry_run: bool = False) -> None:

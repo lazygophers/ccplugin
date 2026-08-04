@@ -167,7 +167,7 @@ graph TB
   end
 
   subgraph Exception["异常处理"]
-    ARCHIVE_ANY[skein archive] -.->|任意状态可丢弃| FINISH_CMD
+    DISCARD_ANY[skein del] -.->|任意状态软删| FINISH_CMD
     CONFLICT[finish merge 冲突] --> RESOLVE["5 步纪律: see state / find intent /<br/>resolve each hunk / run checks / finish<br/>🛑 禁 --abort, 禁 invent new behavior"]
     RESOLVE -->|解不开| MANUAL["停手 保留 worktree<br/>报用户裁 (附双方 commit + intent)<br/>禁强制覆盖"]
     INPLACE_NO_COMMIT["原地模式 + auto_commit=false<br/>有未提交改动"] --> LEAVE_UNCOMMITTED["finish 照常完成<br/>改动留工作区<br/>汇报提示用户自行 commit"]
