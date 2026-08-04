@@ -35,6 +35,9 @@ for 任务规划:
   if need_research:
     reearch()
 
+  if exist_skill("ask-matt"):
+    Skill(name="ask-matt", prompt="使用 AskUserQuestion 询问")
+
 # 建子任务
 for task in subtasks:
   Bash(skein subtask add <tid> --name <task标题> --desc <task描述> [--deps 依赖sid] [--estimate 估计耗时] [--skills 技能列表])
