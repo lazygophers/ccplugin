@@ -1,6 +1,6 @@
-# for-plan — planning 工件写法
+# plan — planning 工件写法
 
-plan 的状态推进、research 分流、confirm、人审门、plan-ahead、出口规则见 [flow-loop.md §4](flow-loop.md#4-plan-过程)。本文件只写四件工件各自怎么落。
+plan 的状态推进、research 分流、confirm、人审门、plan-ahead、出口规则见 [flow-loop.md](flow-loop.md#plan-过程)。本文件只写四件工件各自怎么落。
 
 ## prd.md
 
@@ -30,7 +30,7 @@ skein contract <id>
 
 ## subtask DAG 与 estimate
 
-拆分原则、登记模板、挂边约束见 [dag-scheduling.md §2](dag-scheduling.md#2-拆分与落盘)。每个 subtask 必有 sid/name/desc/estimate/check。
+拆分原则、登记模板、挂边约束见 [dag.md](dag.md#2-拆分与落盘)。每个 subtask 必有 sid/name/desc/estimate/check。
 
 ### 预计工时硬门 (estimate)
 
@@ -64,4 +64,4 @@ subtask 工时在 `subtask add` 时已必填，走到 confirm 时 Σ 一定齐 �
 
 ## 收敛不了时
 
-只产出可行动问题：缺什么信息、影响哪个工件、推荐选项是什么。是否停顿以 [flow-loop.md §10](flow-loop.md#10-停顿白名单) 为准。
+只产出可行动问题：缺什么信息、影响哪个工件、推荐选项是什么。是否停顿以 [flow-loop.md](flow-loop.md#停顿白名单) 为准。

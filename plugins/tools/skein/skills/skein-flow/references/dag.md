@@ -1,4 +1,4 @@
-# subtask DAG — 拆分与调度
+# dag — 拆分与调度
 
 planning 怎么拆 subtask、依赖怎么挂，以及脚本据此如何调度（ready 判定、排序、池模型）。执行循环、自愈、阶段跳转见 [flow-loop.md](flow-loop.md)。
 
@@ -6,10 +6,10 @@ planning 怎么拆 subtask、依赖怎么挂，以及脚本据此如何调度（
 
 SKEIN 只认显式依赖边，不推测隐式顺序。
 
-| 层级 | 字段 | 登记位置 | 登记命令 |
-|---|---|---|---|
+| 层级    | 字段         | 登记位置                                        | 登记命令                                                                                         |
+| ------- | ------------ | ----------------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | subtask | `depends_on` | per-task `task.json` 的 `subtasks[].depends_on` | `skein subtask add <tid> <sid> --name <str> --desc <str> --estimate <小时> --deps <sid1>,<sid2>` |
-| task | `deps` | 顶层 task 索引 | `skein create --deps <tid1>,<tid2>` |
+| task    | `deps`       | 顶层 task 索引                                  | `skein create --deps <tid1>,<tid2>`                                                              |
 
 `A --deps B` = A 依赖 B，B done 后 A 才 ready。规矩：
 
@@ -20,21 +20,21 @@ SKEIN 只认显式依赖边，不推测隐式顺序。
 
 `--deps` 必须无环，三个常见挂错：
 
-| 陷阱 | 示例 | 正确做法 |
-|---|---|---|
-| 互相依赖 | A depends_on B，B depends_on A | 拆共享前置 C，A/B 都依赖 C。 |
+| 陷阱              | 示例                                        | 正确做法                                 |
+| ----------------- | ------------------------------------------- | ---------------------------------------- |
+| 互相依赖          | A depends_on B，B depends_on A              | 拆共享前置 C，A/B 都依赖 C。             |
 | 修复 subtask 挂错 | fix depends_on 失败项，导致原失败项无法重跑 | fix 挂失败项原前置；原失败项再依赖 fix。 |
-| 跨层跳挂 | 下游直接挂源头，绕过中间真实依赖 | 按真实数据/接口依赖挂边。 |
+| 跨层跳挂          | 下游直接挂源头，绕过中间真实依赖            | 按真实数据/接口依赖挂边。                |
 
 ## 2. 拆分与落盘
 
 先用一张表理清 subtask + 依赖 + 验收 + skills（skills 0-n 逗号分隔），再逐行落盘：
 
-| subtask | depends_on | 验收标准 (checklist) | skills |
-|---|---|---|---|
-| st1 | - | 迁移可回滚; 新列有默认值 | db-migration |
-| st2 | st1 | 新字段透传响应; 旧字段不删 | - |
-| st3 | st1 | 覆盖新旧字段两条路径 | - |
+| subtask | depends_on | 验收标准 (checklist)       | skills       |
+| ------- | ---------- | -------------------------- | ------------ |
+| st1     | -          | 迁移可回滚; 新列有默认值   | db-migration |
+| st2     | st1        | 新字段透传响应; 旧字段不删 | -            |
+| st3     | st1        | 覆盖新旧字段两条路径       | -            |
 
 > st1 = **契约 subtask**（定 schema）：st2/st3 只依赖它、互不依赖 → st1 done 即并行，是「协议先行，后并行」的落地形。
 
@@ -57,8 +57,8 @@ skein subtask add <tid> st3 --name "加测试"     --desc "覆盖新旧字段两
 
 归一 vs 分立的判据见 [flow-loop.md §0.1](flow-loop.md#01-作用域边界)（默认归一）。只有下列 cold-start 信号命中才升级为多 task：
 
-| 信号 | 判据 | 动作 |
-|---|---|---|
+| 信号                                                    | 判据                                    | 动作                                                                                   |
+| ------------------------------------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------- |
 | 复合嗅味（"X and Y and Z"）/ 多独立能力 / subtask 会 >8 | capability 按**用户行为**拆（非技术层） | 拆多 task：`skein create <super-id> --kind supertask` + 各 child `--parent <super-id>` |
 
 - **capability ≠ 技术模块** — capability 是用户行为（「下单」「退款」），非技术层（「DB 层」「API 层」）。按技术层拆 = 跨层耦合依旧的假拆。
@@ -68,11 +68,11 @@ skein subtask add <tid> st3 --name "加测试"     --desc "覆盖新旧字段两
 
 > skein 不强制 TDD（行为正确性由 subtask 验收标准约束）。本段用于识别验收设计本身的问题。
 
-| 反模式 | 症状 | 为何坏 |
-|---|---|---|
+| 反模式                     | 症状                                          | 为何坏                                     |
+| -------------------------- | --------------------------------------------- | ------------------------------------------ |
 | **implementation-coupled** | 测试 mock 内部 / 测私有方法 / 走 side channel | 绑实现细节，重构即崩（行为没变但测试全红） |
-| **tautological** | assertion 重算 expected 用了被测的同一段逻辑 | 永真，自己证明自己对 |
-| **horizontal-slicing** | 全测试先写完再一口气全实现 | 违反 tracer-bullet；一处设计错波及全测试集 |
+| **tautological**           | assertion 重算 expected 用了被测的同一段逻辑  | 永真，自己证明自己对                       |
+| **horizontal-slicing**     | 全测试先写完再一口气全实现                    | 违反 tracer-bullet；一处设计错波及全测试集 |
 
 **pre-agreed seam 纪律**：写验收标准前先写下 seam 并确认 —— 被测单元与外部交互的边界在哪（依赖注入点 / 接口契约）。未确认 seam 不写测试。subtask 的验收 checklist 即隐含 seam（写明「输入 X → 输出 Y」就把 seam 钉死，不约束实现如何达成）。
 
@@ -86,11 +86,11 @@ subtask.ready = 所有 depends_on 均 done
                 且 pools.work 有空槽
 ```
 
-| 操作 | 是否被 deps 阻塞 | 说明 |
-|---|---|---|
-| `skein create` / `subtask add` | 否 | planning 可提前做。 |
-| `skein confirm` | 是 | task 前置未 done 时拒。 |
-| `skein claim exec` | 是 | subtask 前置未 done 不 ready。 |
+| 操作                           | 是否被 deps 阻塞 | 说明                           |
+| ------------------------------ | ---------------- | ------------------------------ |
+| `skein create` / `subtask add` | 否               | planning 可提前做。            |
+| `skein confirm`                | 是               | task 前置未 done 时拒。        |
+| `skein claim exec`             | 是               | subtask 前置未 done 不 ready。 |
 
 ready 数超过空闲槽时按稳定排序截取：拓扑深度降序（阻塞下游最多者优先）→ task 登记序 → subtask 登记序。
 
@@ -101,22 +101,22 @@ layer(source) = 0; layer(node) = max(layer(dep)) + 1                          # 
 
 ## 6. 双池模型
 
-| 池 | 计数对象 | 配置 | 校验位置 |
-|---|---|---|---|
-| `work` | `status=running` 的 exec/research subtask | `pools.work` | `skein claim` / `subtask start` |
-| `gate` | `status=check` / `status=finishing` 的 task | `pools.gate` | `skein finishing` |
+| 池     | 计数对象                                    | 配置         | 校验位置                        |
+| ------ | ------------------------------------------- | ------------ | ------------------------------- |
+| `work` | `status=running` 的 exec/research subtask   | `pools.work` | `skein claim` / `subtask start` |
+| `gate` | `status=check` / `status=finishing` 的 task | `pools.gate` | `skein finishing`               |
 
 `skein confirm` 不占池；真正资源约束在 running subtask 与 gate task。
 
 ## 7. claim 命令族
 
-| 命令 | 范围 | 语义 |
-|---|---|---|
-| `skein claim` | 全局跨 task | 同时处理 exec + check 两路，只推状态不做路由；派谁由 main 按 task 状态判，见 [flow-loop.md §3](flow-loop.md#3-主循环骨架)。 |
-| `skein claim exec` | 全局跨 task | 只认领 ready subtask 并标 `running`。 |
-| `skein claim check` | 全局跨 task | 只认领可进 check / finishing 的 task。 |
-| `skein subtask claim <tid>` | 单 task | 单 task 内批量认领。 |
-| `skein subtask start <tid> <sid>` | 单 subtask | 启动 pending/failed subtask。 |
+| 命令                              | 范围        | 语义                                                                                                                        |
+| --------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `skein claim`                     | 全局跨 task | 同时处理 exec + check 两路，只推状态不做路由；派谁由 main 按 task 状态判，见 [flow-loop.md §3](flow-loop.md#3-主循环骨架)。 |
+| `skein claim exec`                | 全局跨 task | 只认领 ready subtask 并标 `running`。                                                                                       |
+| `skein claim check`               | 全局跨 task | 只认领可进 check / finishing 的 task。                                                                                      |
+| `skein subtask claim <tid>`       | 单 task     | 单 task 内批量认领。                                                                                                        |
+| `skein subtask start <tid> <sid>` | 单 subtask  | 启动 pending/failed subtask。                                                                                               |
 
 任一 claim 加 `--dry-run` = 只读预览，不改状态。
 

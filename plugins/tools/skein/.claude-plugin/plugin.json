@@ -35,7 +35,7 @@
     "keywords": [
         "task-management",
         "task-orchestration",
-        "dag-scheduling",
+        "dag",
         "worktree",
         "sub-agent",
         "rules-memory",
