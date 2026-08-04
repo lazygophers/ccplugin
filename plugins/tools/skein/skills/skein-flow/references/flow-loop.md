@@ -15,7 +15,9 @@
 
 ```
 Bash(skein create <tid> --name <任务标题> --desc <任务描述> --priority <优先级,默认中> [--parent 父任务ID] [--deps 依赖任务ID] [--estimate 估计耗时>)
-for Plan(规划任务) == 需要 research:
+
+PLAN:
+def reearch():
   # 建 research 子任务
   for subtask in research_subtasks:
     Bash(skein subtask add <tid> --name <subtask标题> --desc <subtask描述> [--deps 依赖sid] [--estimate 估计耗时] [--skills 技能列表])
@@ -26,8 +28,12 @@ for Plan(规划任务) == 需要 research:
   Bash(skein plan <tid>)
 
 # 编写需求文档、设计文档等
-Write(.skein/task/<tid>/prd.md) | Bash(skein prd write <tid> --types <goal|scope|stories|acceptance|verification|testing> --list <需求列表,支持多个>)
-Write(.skein/task/<tid>/design.md)
+for 任务规划:
+  Write(.skein/task/<tid>/prd.md) | Bash(skein prd write <tid> --types <goal|scope|stories|acceptance|verification|testing> --list <需求列表,支持多个>)
+  Write(.skein/task/<tid>/design.md)
+
+  if need_research:
+    reearch()
 
 # 建子任务
 for task in subtasks:
@@ -46,7 +52,7 @@ Wait(subtask done) # 等待主循环调度
 Bash(skein check <tid>)
 
 if Wait(check done) != 'pass': # 等待主循环调度
-  goto Plan
+  goto Plan(分析失败原因，并重新规划任务)
 else:
   Bash(skein finish <tid>)
 
