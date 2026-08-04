@@ -16,6 +16,21 @@
       "finished": null
     },
     {
+      "id": "test",
+      "status": "pending",
+      "deps": [],
+      "priority": "normal",
+      "worktree": null,
+      "parent": null,
+      "kind": "task",
+      "created": 1785806629,
+      "confirmed": null,
+      "started": null,
+      "checked": null,
+      "checked_end": null,
+      "finished": null
+    },
+    {
       "id": "worktree-missing-own-task",
       "status": "pending",
       "deps": [],
@@ -48,51 +63,6 @@
       "finished": null
     },
     {
-      "id": "cli-typer-migration",
-      "status": "done",
-      "deps": [],
-      "priority": "normal",
-      "worktree": null,
-      "parent": null,
-      "kind": "task",
-      "created": 1785678205,
-      "confirmed": 1785679049,
-      "started": 1785679049,
-      "checked": 1785681132,
-      "checked_end": 1785681309,
-      "finished": 1785749489
-    },
-    {
-      "id": "cli-usage-selfevident",
-      "status": "done",
-      "deps": [],
-      "priority": "normal",
-      "worktree": null,
-      "parent": null,
-      "kind": "task",
-      "created": 1785748137,
-      "confirmed": 1785748417,
-      "started": 1785748417,
-      "checked": 1785750950,
-      "checked_end": 1785751479,
-      "finished": 1785751524
-    },
-    {
-      "id": "flow-autodrive-and-slim-ctx",
-      "status": "done",
-      "deps": [],
-      "priority": "normal",
-      "worktree": null,
-      "parent": null,
-      "kind": "task",
-      "created": 1785765994,
-      "confirmed": 1785766404,
-      "started": 1785766404,
-      "checked": 1785768820,
-      "checked_end": 1785769514,
-      "finished": 1785769516
-    },
-    {
       "id": "flow-refs-consolidate",
       "status": "done",
       "deps": [],
@@ -106,68 +76,6 @@
       "checked": 1785762855,
       "checked_end": 1785763566,
       "finished": 1785763627
-    },
-    {
-      "id": "hooks-one-file-per-hook",
-      "status": "done",
-      "deps": [],
-      "priority": "normal",
-      "worktree": null,
-      "parent": null,
-      "kind": "task",
-      "created": 1785759272,
-      "confirmed": 1785760055,
-      "started": 1785760055,
-      "checked": 1785762727,
-      "checked_end": 1785762855,
-      "finished": 1785764587
-    },
-    {
-      "id": "live-ws-backoff",
-      "status": "done",
-      "deps": [],
-      "priority": "normal",
-      "worktree": null,
-      "parent": null,
-      "kind": "task",
-      "created": 1785755187,
-      "confirmed": 1785760055,
-      "started": 1785760055,
-      "checked": 1785761399,
-      "checked_end": 1785761819,
-      "finished": 1785762333
-    },
-    {
-      "id": "prd-write-only-via-cli",
-      "status": "done",
-      "deps": [
-        "hooks-one-file-per-hook"
-      ],
-      "priority": "normal",
-      "worktree": null,
-      "parent": null,
-      "kind": "task",
-      "created": 1785760602,
-      "confirmed": 1785766404,
-      "started": 1785766405,
-      "checked": 1785770643,
-      "checked_end": 1785771430,
-      "finished": 1785771521
-    },
-    {
-      "id": "priority-ui-theme",
-      "status": "done",
-      "deps": [],
-      "priority": "normal",
-      "worktree": null,
-      "parent": null,
-      "kind": "task",
-      "created": 1785753076,
-      "confirmed": 1785753412,
-      "started": 1785753412,
-      "checked": 1785754765,
-      "checked_end": 1785755928,
-      "finished": 1785755974
     }
   ]
 }

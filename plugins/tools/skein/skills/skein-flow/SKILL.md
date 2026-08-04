@@ -19,3 +19,5 @@ case redo:
 case flow/exec/check/finish/default:
     use [references/flow-loop.md](references/flow-loop.md)
 ```
+
+`!skein config | jq -r 'if ."worktree.enabled"==true then "以 worktree 的方式执行任务，"+."worktree.root" else "直接在当前 repo 执行任务" end'`
