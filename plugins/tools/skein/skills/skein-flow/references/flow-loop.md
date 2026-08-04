@@ -34,13 +34,22 @@ for 任务规划:
 
   if need_research:
     reearch()
+    continue
 
   # 建子任务
   for task in subtasks:
     Bash(skein subtask add <tid> --name <task标题> --desc <task描述> [--deps 依赖sid] [--estimate 估计耗时] [--skills 技能列表])
 
-  if exist_skill("ask-matt"):
-    Skill(name="ask-matt", prompt="使用 AskUserQuestion 询问")
+  if need_grill:
+    if exist_skill("ask-matt"):
+      Skill(name="ask-matt", prompt="使用 AskUserQuestion 询问")
+    elif exist_skill("grill-me"):
+      Skill(name="grill-me", prompt="使用 AskUserQuestion 询问")
+    elif exist_skill("grill-doc"):
+      Skill(name="grill-doc", prompt="使用 AskUserQuestion 询问")
+    else:
+      Skill(name="skein-grill")
+    continue
 
   if plan_finished:
     break
