@@ -62,10 +62,10 @@
 ## 用法
 
 ```
-/skein-flow exec <任务描述>
+复杂/多步/跨文件请求会自动触发 skein-flow skill。
 ```
 
-或直接触发 `skein-flow` skill (复杂/多步/跨文件请求自动加载)。
+也可以在请求里明确说明“走 skein-flow 闭环”。
 
 ## 完整文档
 

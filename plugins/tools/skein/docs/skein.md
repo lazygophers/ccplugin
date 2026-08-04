@@ -14,7 +14,7 @@
 
 | Skill | 职责 | 入口 |
 | --- | --- | --- |
-| skein-flow | 主线编排: plan→exec→check→finish 四阶段单一真值源, 参数路由 (`/skein-flow [flow\|plan\|exec\|check\|finish]`, 缺省 = flow 全闭环)。plan=brainstorm+research+grill+DAG / exec=claim exec+dispatch / check=lint+type+test+contract / finish=merge+sediment+archive | 自动 (flow 信号) |
+| skein-flow | 主线编排: plan→exec→check→finish 四阶段单一真值源, 参数路由 (flow/plan/exec/check/finish, 缺省 = flow 全闭环)。plan=brainstorm+research+grill+DAG / exec=claim exec+dispatch / check=lint+type+test+contract / finish=merge+sediment+archive | 自动 (flow 信号) |
 | skein-spec | 规则记忆: recall/sediment/bootstrap/prune | 按需 |
 | skein-grill | 对抗审查: red team (plan 后硬门) | flow 调用 |
 | skein-research | 调研: 代码 survey + 外部搜索 | plan/exec 调用 |
@@ -295,9 +295,8 @@ created: 2026-07-11
 | Recall | plan | skein-recaller | `skein-spec recall <query>` → FTS5 → 注入 |
 | Sediment | finish | skein-specer | learning → namespace×inclusion / drop |
 | Bootstrap | 首次空仓 | skein-researcher | 扫 5 维约定 → 定 namespace×inclusion → 落盘 |
-| Maintain | 定期 | skein-specer | `skein-spec maintain` 全量健康检查 |
-| Prune | 定期 | skein-specer | `/skein-spec prune` (skill 模式) 归档 stale/重复 |
-| Reconstruct | 按需 | skein-specer | `/skein-spec reconstruct` (skill 模式) 按项目类型重建 |
+| Maintain | 定期 | skein-specer | `skein-spec maintain` 全量健康检查; `--apply` 时归档 stale/重复 |
+| Reconstruct | 按需 | skein-specer | 记忆库 skill 的 reconstruct 模式按项目类型重建 |
 | Auto-fix | stop-check hook | skein-specer | `.pending-fix` → 启动修复 |
 
 ### 注入路径

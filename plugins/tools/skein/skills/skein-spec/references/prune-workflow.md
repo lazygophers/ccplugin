@@ -13,10 +13,10 @@ sediment 写盘后, skein-specer 顺带跑一轮精简: 扫全 namespace 规则,
 
 | namespace | 生效判据 | 处置 |
 |---|---|---|
-| **rules** (含未归类的历史目录, 默认判据集) | stale (超 180 天无更新) / keywords 重复 (同组 ≥3 条, 保留最新) / deprecated·superseded / orphan (无入度 + active + 超 180 天) | 命中任一即 `skein-spec archive <path>` (可逆) |
-| **external** | deprecated·superseded | `skein-spec archive <path>`; 无 stale / keywords 重复 / orphan 判据 |
+| **rules** (含未归类的历史目录, 默认判据集) | stale (超 180 天无更新) / keywords 重复 (同组 ≥3 条, 保留最新) / deprecated·superseded / orphan (无入度 + active + 超 180 天) | 命中任一即由 `skein-spec maintain --apply` 自动归档 (可逆) |
+| **external** | deprecated·superseded | 由 `skein-spec maintain --apply` 自动归档; 无 stale / keywords 重复 / orphan 判据 |
 | **product** | anchors 失效 | **只报告, 禁自动 archive** (需求真值只有人知道该不该删); 无 stale / keywords 重复 / deprecated / orphan 判据 (需求真值无时效性、无入度要求) |
-| **map** | anchors 失效 | `skein-spec archive <path>` (骨架现算, 语义页失效无损) |
+| **map** | anchors 失效 | 由 `skein-spec maintain --apply` 自动归档 (骨架现算, 语义页失效无损) |
 
 **为什么 product 特殊**: rules/external/map 的判据 (stale、重复、废弃) 衡量的是「这条内容还值不值得留在记忆里」, 时效性与入度都是合理信号; product 是需求现状 wiki, 只有人才知道某个功能域是否真的下线, 时效久不代表过时 (可能就是稳定不变), 所以 product 只留 anchors 失效一项做**提示**, 处置权留给人。
 
@@ -37,7 +37,7 @@ sediment 写盘后, skein-specer 顺带跑一轮精简: 扫全 namespace 规则,
 
 ## 6. archive 语义
 
-- **可逆, 不删文件** — 全走 `skein-spec archive <path>` 归档到 `.skein/spec/.archive/<ts>/`, 如需恢复 `skein-spec restore <ts>`。
+- **可逆, 不删文件** — 全走 `skein-spec maintain --apply` 自动归档到 `.skein/spec/.archive/<ts>/`, 如需恢复 `skein-spec restore <ts>`。
 - 归档后 index 自动重建 (被归档条目从 active 规则集移出)。
 - 已归档的项后续 maintain/prune 不会重复检出 (已移出扫描范围)。
 

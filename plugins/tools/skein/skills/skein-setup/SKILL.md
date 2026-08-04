@@ -14,7 +14,7 @@ user-invocable: true
 
 两用途：**① 未初始化仓库 → 建 `.skein/` 工作区**；**② 已初始化 → 手动优化 `.skein/` 结构**。**幂等** — 重跑安全。
 
-> 触发: 用户显式 `/skein-setup`, 或 SessionStart hook 注入「无 `.skein/`」提示后 main 主动调用。
+> 触发: 用户显式要求初始化 / 迁移 / 维护 SKEIN 工作区, 或 SessionStart hook 注入「无 `.skein/`」提示后 main 主动调用。
 
 ## 分流
 

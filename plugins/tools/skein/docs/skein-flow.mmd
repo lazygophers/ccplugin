@@ -148,8 +148,8 @@ graph TB
     PLAN_MEM[plan 阶段] --> RECALLER["skein-recaller<br/>skein-spec recall &lt;query&gt;<br/>main 等结果进 planning"]
     RECALLER --> FTS5["FTS5 BM25 检索<br/>(全 namespace, 跳 inclusion=always)"]
     FTS5 --> INJECT_R[注入 planning dispatch 已知段]
-    EMPTY[首次空仓 + 代码有体量] --> BOOTSTRAP["/skein-spec bootstrap (skill 模式)<br/>main 提议 + AskUserQuestion 征同意<br/>派 skein-researcher 扫 5 维约定<br/>候选定 ns×inclusion + sediment 写盘"]
-    DRIFT[大重构/换栈/记忆漂移/接手可疑仓] --> RECONSTRUCT["/skein-spec reconstruct (skill 模式)<br/>6 档深度 (recall/low/full/deep/max/high)<br/>archive (可逆) + 分型扫描 + 重建"]
+    EMPTY[首次空仓 + 代码有体量] --> BOOTSTRAP["记忆库 skill bootstrap 模式<br/>main 提议 + AskUserQuestion 征同意<br/>派 skein-researcher 扫 5 维约定<br/>候选定 ns×inclusion + sediment 写盘"]
+    DRIFT[大重构/换栈/记忆漂移/接手可疑仓] --> RECONSTRUCT["记忆库 skill reconstruct 模式<br/>6 档深度 (recall/low/full/deep/max/high)<br/>archive (可逆) + 分型扫描 + 重建"]
     BOOTSTRAP --> WRITE[写盘 + 自动 reindex<br/>skein-spec sediment --namespace --inclusion<br/>--category --title --keywords --body-file]
     RECONSTRUCT --> WRITE
     CORE --> WRITE

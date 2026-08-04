@@ -12,9 +12,8 @@ skill / agent 文档里的命令示例**会被 AI 照抄执行**。一条写错�
 / `config set` …) 及其 flag。所以新增命令自动纳入, 删掉的也不会留下永远红的断言。
 
 ## 刻意不管的
-- `/skein-spec reconstruct` 这类**斜杠开头**的是 skill 模式 (slash command), 不是 CLI 子命令,
-  跳过。文档里若把模式名写成 `skein-spec reconstruct` (无斜杠) 会被判错 —— 这正是要抓的,
-  因为那样写 agent 会真去敲 CLI。
+- skill 模式不是 CLI 子命令。文档里若把模式名写成 `skein-spec reconstruct` 会被判错 ——
+  这正是要抓的, 因为那样写 agent 会真去敲 CLI。
 - `del` 是唯一公开删除命令; delete/rm/remove 属隐藏兼容别名, 不纳入文档合法面。
 """
 from __future__ import annotations
@@ -131,19 +130,17 @@ def test_all_doc_command_examples_are_valid() -> None:
 def test_scanner_actually_catches_bad_examples(tmp_path: Path) -> None:
     """自检: 喂假文档必须被抓出来 —— 否则上面那条哪天因正则写崩而永远绿, 谁也发现不了。
 
-    喂进去的四行分别覆盖: 假子命令 / 假参数 / slash 命令(该放行) / 真命令(该放行)。
+    喂进去的三行分别覆盖: 假子命令 / 假参数 / 真命令(该放行)。
     """
     doc = tmp_path / "fake.md"
     doc.write_text(
         "| `skein cancel <id>` | 假子命令 |\n"
         "| `skein list --all` | 假参数 |\n"
-        "`/skein-spec reconstruct` 是 skill 模式, 该放行\n"
         "`skein confirm <id> --approved` 是真命令, 该放行\n")
     problems = _scan([doc])
     assert len(problems) == 2, f"该抓 2 条 (假子命令+假参数), 实际 {len(problems)}: {problems}"
     joined = "\n".join(problems)
     assert "cancel" in joined and "--all" in joined, joined
-    assert "reconstruct" not in joined, "slash 开头的 skill 模式被误判成 CLI 命令"
     assert "--approved" not in joined, "真命令被误判"
 
 

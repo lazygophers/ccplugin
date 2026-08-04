@@ -12,7 +12,12 @@ background: true
 ## 入参格式 (JSON)
 
 ```json
-{"tid": "<task-id>", "sid": null, "workdir": "<工作目录路径>", "mode": "sediment | amend | reconstruct | maintain | prune | auto-fix"}
+{
+	"tid": "<task-id>",
+	"sid": null,
+	"workdir": "<工作目录路径>",
+	"mode": "sediment | amend | reconstruct | maintain | prune | auto-fix"
+}
 ```
 
 ## 工作流
@@ -60,7 +65,7 @@ skein-spec reindex
 ### 3. reconstruct·maintain · 重组·重建 spec
 
 ```
-# reconstruct 是 skill 模式不是 CLI 子命令: 由 main 经 `/skein-spec reconstruct` 驱动,
+# reconstruct 是记忆库 skill 模式不是 CLI 子命令: 由 main 触发,
 # 落到本 agent 就是「archive 清库 → 逐条 sediment 重建」两步 CLI:
 skein-spec archive [--namespace <ns>]   # 可逆清库 (旧规则进 .archive/<ts>/)
 skein-spec maintain       # 全量体检: 超预算/stale/断链/重复/废弃
@@ -76,7 +81,7 @@ skein-spec maintain --apply
 全 namespace 按判据归档, 直接减 SessionStart 常驻注入 token:
 
 ```
-skein-spec archive <slug>    # stale/keywords 重复/废弃/断链, 可逆不删, protected 跳过
+skein-spec maintain --apply  # stale/keywords 重复/废弃/断链, 可逆不删, protected 跳过
 # 归档后确认 always 页不超预算 (prune 已减量, 跑一次收尾确认)
 skein-spec maintain --apply
 ```
@@ -103,7 +108,6 @@ skein-hooks agent-stop --agent skein-specer
 
 - **写 mode 自愈后此 mode 不再产生 .pending-fix** — sediment/reconstruct/prune 末尾已跑 maintain --apply 就地清超预算, Stop hook 检测无问题即不写标记; auto-fix mode 保留作兜底兼容 (sediment 遗漏/历史 .pending-fix 残留触发)。
 
-
 ## Checkpoints
 
 🛑 **开工/收工钩子必跑** — 钩子失败只记 note 不阻断本次作业; 无 hooks 配置时命令 no-op 立即返回。
@@ -118,7 +122,30 @@ skein-hooks agent-stop --agent skein-specer
 ## 返回数据格式 (JSON)
 
 ```json
-{"mode": "sediment | amend | reconstruct | maintain | prune | auto-fix", "written": [{"slug": "<slug>", "namespace": "<ns>", "inclusion": "always | auto | fileMatch | manual", "category": "<类目>"}], "archived": [{"slug": "<slug>", "reason": "stale | 重复 | 废弃 | 断链 | 降级"}], "amended": [{"topic": "<ns/cat/topic>", "section": "<章节名>", "renamed_to": "<新章节名 | null>"}], "unfixed_links": ["<断链 [[slug]] + 缺失端>"], "needs_main": ["<需 main 介入项, 如全库动作待用户同意>"], "tool_failures": ["[工具失败: <原因>]"]}
+{
+	"mode": "sediment | amend | reconstruct | maintain | prune | auto-fix",
+	"written": [
+		{
+			"slug": "<slug>",
+			"namespace": "<ns>",
+			"inclusion": "always | auto | fileMatch | manual",
+			"category": "<类目>"
+		}
+	],
+	"archived": [
+		{ "slug": "<slug>", "reason": "stale | 重复 | 废弃 | 断链 | 降级" }
+	],
+	"amended": [
+		{
+			"topic": "<ns/cat/topic>",
+			"section": "<章节名>",
+			"renamed_to": "<新章节名 | null>"
+		}
+	],
+	"unfixed_links": ["<断链 [[slug]] + 缺失端>"],
+	"needs_main": ["<需 main 介入项, 如全库动作待用户同意>"],
+	"tool_failures": ["[工具失败: <原因>]"]
+}
 ```
 
 ## 失败模式 (if-then 三段式)
@@ -127,6 +154,6 @@ skein-hooks agent-stop --agent skein-specer
 | ------------------------------------------- | -------------------------------------- | -------------------------------------------------- |
 | `skein-spec` CLI 报错                       | 重试 1 次                              | `[工具失败: <原因>]` 入 tool_failures + 报已写条数 |
 | maintain --apply 修不掉 (断链 / 降级后仍超) | 入 unfixed_links / needs_main 报具体项 | 不静默, 报告待人判                                 |
-| auto-fix 遇断链                             | 入 unfixed_links 只报告                | 改哪头归人判, needs_main 标「断链需人判」           |
+| auto-fix 遇断链                             | 入 unfixed_links 只报告                | 改哪头归人判, needs_main 标「断链需人判」          |
 | 降级后 always 页仍超预算                    | 继续把次高复用规则降 always→auto       | 仍超 → needs_main 标「always 页超预算需人工重组」  |
 | 全库动作 (reconstruct) 未获同意             | needs_main 标「待用户同意」, 不执行    | 只出体检报告, 不动盘                               |
