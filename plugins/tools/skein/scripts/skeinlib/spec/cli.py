@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from types import SimpleNamespace
 from typing import cast
 
 from skeinlib.hooks.runner import DBG, debug_enabled
@@ -24,9 +25,6 @@ def main() -> None:
                    help="rich 美化叙事到 stderr — 展示命令与参数 (stdout 保持机器纯净; 亦可 SKEIN_DEBUG=1)")
     sub = p.add_subparsers(dest="cmd", required=True, metavar="<command>")
     sub.add_parser("init", help="初始化 .skein/spec 库 (幂等)")
-    sub.add_parser("inject-core", help="输出 core 层全部规则正文 (常驻注入)")
-    sub.add_parser("session-start", help="[hook 用] 每 session 注入 core 规则索引")
-    sub.add_parser("subagent-start", help="[hook 用] 每 subagent 注入 core 全文 + spec 纪律")
     sub.add_parser("reindex", help="重建各层 index.md + 顶层总索引 (改盘后同步)")
     r = sub.add_parser("recall", help="按关键词 FTS5 BM25 排序 recall (无 .recall.db/MATCH 失败 → grep fallback)")
     r.add_argument("query", help="任务关键词")
@@ -86,6 +84,9 @@ def main() -> None:
     # --debug 可置子命令前后任意位置: 预剥离 argv (argparse 子解析器不认父级 flag)
     cli_debug = any(x in ("-d", "--debug") for x in sys.argv[1:])
     sys.argv[1:] = [x for x in sys.argv[1:] if x not in ("-d", "--debug")]
+    hidden = _run_hidden_command(sys.argv[1:], cli_debug)
+    if hidden:
+        return
     a = p.parse_args()
     DBG.enable(cli_debug or debug_enabled(None))  # 单例原地开关, 见 hooks.runner.Debug.enable
     DBG.rule(f"spec {a.cmd}")
@@ -101,3 +102,19 @@ def main() -> None:
         "map": m.map, "amend": m.amend, "finish-candidates": m.finish_candidates,
     }[cast(str, a.cmd)](a)
     DBG.log(f"✓ {a.cmd} 完成", style="bold green")
+
+
+def _run_hidden_command(argv: list[str], cli_debug: bool) -> bool:
+    if not argv or argv[0] not in {"inject-core", "session-start", "subagent-start"}:
+        return False
+    DBG.enable(cli_debug or debug_enabled(None))
+    cmd = argv[0]
+    DBG.rule(f"spec {cmd}")
+    m = Spec()
+    {
+        "inject-core": m.inject_core,
+        "session-start": m.session_start,
+        "subagent-start": m.subagent_start,
+    }[cmd](SimpleNamespace(cmd=cmd))
+    DBG.log(f"✓ {cmd} 完成", style="bold green")
+    return True

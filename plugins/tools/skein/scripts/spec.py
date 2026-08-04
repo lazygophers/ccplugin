@@ -16,8 +16,6 @@ title/category/keywords/status/inclusion — 时间类字段一律不写 (注入
 
 命令:
   skein-spec init
-  skein-spec inject-core                     输出全部 always 页正文 (调试用)
-  skein-spec session-start                   SessionStart hook: 产 hook JSON 注入常驻规则索引
   skein-spec recall "<query>"                FTS5 BM25 全 namespace 召回 (无索引/MATCH 失败 → grep fallback)
   skein-spec sediment --namespace rules [--inclusion always|auto|fileMatch|manual]
             --category git --topic merge --title T --keywords "a,b" --body-file /path

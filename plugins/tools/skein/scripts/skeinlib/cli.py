@@ -38,7 +38,7 @@ MUTATING = {"init", "setup", "create", "confirm", "research", "plan", "check", "
             "finish", "fmt", "archive", "clean",
             "contract", "repos", "deps", "parent", "estimate", "priority", "subtask", "claim",
             "prd", "del", "delete", "rm", "remove",
-            "rename", "config", "migrate-priority", "migrate-ready"}
+            "rename", "config"}
 
 
 def _namespace(cmd: str, **kwargs: object) -> SimpleNamespace:
@@ -56,8 +56,6 @@ def _dispatch(a: SimpleNamespace) -> None:
     dispatch = {
         "init": sk.admin.init, "setup": sk.admin.setup, "config": sk.admin.config_cmd,
         "clean": sk.admin.clean, "board": sk.admin.board,
-        "migrate-priority": sk.admin.migrate_priority,
-        "migrate-ready": sk.admin.migrate_ready,
         "create": sk.lifecycle.create, "confirm": sk.lifecycle.confirm,
         "research": sk.lifecycle.research, "plan": sk.lifecycle.plan,
         "check": sk.lifecycle.check, "finishing": sk.lifecycle.finishing,
@@ -224,24 +222,6 @@ def del_(ctx: typer.Context, dry_run: Annotated[bool, typer.Option("--dry-run")]
     _delete(ctx, dry_run, "del")
 
 
-@app.command(context_settings={"allow_extra_args": True, "ignore_unknown_options": False})
-def delete(ctx: typer.Context, dry_run: Annotated[bool, typer.Option("--dry-run")] = False) -> None:
-    """del alias。"""
-    _delete(ctx, dry_run, "delete")
-
-
-@app.command(context_settings={"allow_extra_args": True, "ignore_unknown_options": False})
-def rm(ctx: typer.Context, dry_run: Annotated[bool, typer.Option("--dry-run")] = False) -> None:
-    """del alias。"""
-    _delete(ctx, dry_run, "rm")
-
-
-@app.command(context_settings={"allow_extra_args": True, "ignore_unknown_options": False})
-def remove(ctx: typer.Context, dry_run: Annotated[bool, typer.Option("--dry-run")] = False) -> None:
-    """del alias。"""
-    _delete(ctx, dry_run, "remove")
-
-
 @app.command()
 def rename(tid: str,
            sid: Annotated[Optional[str], typer.Argument()] = None,
@@ -255,18 +235,6 @@ def rename(tid: str,
 def clean(days: Annotated[Optional[int], typer.Option("--days")] = None) -> None:
     """归档完成超保留期的 task。"""
     _run("clean", days=days)
-
-
-@app.command("migrate-priority")
-def migrate_priority() -> None:
-    """存量数字优先级迁移。"""
-    _run("migrate-priority")
-
-
-@app.command("migrate-ready")
-def migrate_ready() -> None:
-    """存量中文 status 迁移。"""
-    _run("migrate-ready")
 
 
 @app.command()
@@ -322,12 +290,6 @@ def view() -> None:
 def serve(auto: Annotated[bool, typer.Option("--auto")] = False) -> None:
     """持久看板 http 服务。"""
     _run("serve", auto=auto)
-
-
-@app.command("session-context")
-def session_context() -> None:
-    """hook 用: 注入活跃 task 状态。"""
-    _run("session-context")
 
 
 @app.command()
@@ -466,6 +428,22 @@ def _strip_global_flags(argv: list[str]) -> tuple[list[str], bool, bool]:
     return [arg for arg in argv if arg not in ("-d", "--debug", "-j", "--json")], cli_debug, cli_json
 
 
+def _run_hidden_command(argv: list[str]) -> bool:
+    if argv == ["session-context"]:
+        _run("session-context")
+        return True
+    if not argv or argv[0] not in {"delete", "rm", "remove"}:
+        return False
+    args = argv[1:]
+    dry_run = "--dry-run" in args
+    task_args = [arg for arg in args if arg != "--dry-run"]
+    if len(task_args) < 1 or len(task_args) > 2 or any(arg.startswith("-") for arg in task_args):
+        raise typer.BadParameter(f"{argv[0]} 用法: {argv[0]} <task_id> [subtask_sid] [--dry-run]")
+    _run(argv[0], task_id=task_args[0], subtask_sid=task_args[1] if len(task_args) == 2 else None,
+         dry_run=dry_run)
+    return True
+
+
 def main() -> None:
     argv, cli_debug, cli_json = _strip_global_flags(sys.argv[1:])
     DBG.enable(cli_debug or debug_enabled(None))
@@ -478,6 +456,7 @@ def main() -> None:
 
     globals()["_namespace"] = namespace_with_json
     try:
-        app(args=argv, prog_name="skein")
+        if not _run_hidden_command(argv):
+            app(args=argv, prog_name="skein")
     finally:
         globals()["_namespace"] = original_namespace

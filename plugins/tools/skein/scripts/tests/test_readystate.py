@@ -1,20 +1,15 @@
 """存量「就绪」status 一次性迁移。
 
-覆盖: 迁到待处理 / 备份可回滚 / 幂等 / 非就绪跳过 / CLI 后 doctor 通过。
+覆盖: 迁到待处理 / 备份可回滚 / 幂等 / 非就绪跳过。
 设计见 .skein/task/concurrency-pools/design.md「s9 存量就绪态迁移」。
 """
 from __future__ import annotations
 
 import json
-import subprocess
 from pathlib import Path
-from typing import Callable
 
 import conftest  # noqa: F401  模块体把 scripts/ 塞进 sys.path
 from skeinlib.readystate import migrate_ready_status  # noqa: E402
-
-SkeinCli = Callable[..., subprocess.CompletedProcess[str]]
-
 
 def _mk_task(tasks_dir: Path, tid: str, status: str) -> Path:
     d = tasks_dir / tid
@@ -73,25 +68,3 @@ def test_migrate_ready_status_skips_non_ready_and_missing_field(tmp_path: Path) 
 
     result = migrate_ready_status(root, tasks_dir, archive_dir)
     assert result["migrated"] == []
-
-
-def test_migrate_ready_cli_then_doctor_passes(ws: Path, skein_cli: SkeinCli) -> None:
-    skein_cli(ws, "create", "feat-x", "--name", "feat-x", "--desc", "d")
-    tj = ws / ".skein" / "task" / "feat-x" / "task.json"
-    t = json.loads(tj.read_text())
-    t["status"] = "就绪"  # 模拟存量就绪态
-    tj.write_text(json.dumps(t, ensure_ascii=False))
-
-    r = skein_cli(ws, "migrate-ready")
-    data = json.loads(r.stdout)
-    assert len(data["migrated"]) == 1
-    assert json.loads(tj.read_text())["status"] == "pending"
-
-    skein_cli(ws, "doctor")  # check=True 默认, 非 0 退出即抛
-
-
-def test_migrate_ready_cli_noop_when_nothing_to_migrate(ws: Path, skein_cli: SkeinCli) -> None:
-    skein_cli(ws, "create", "feat-y", "--name", "feat-y", "--desc", "d")
-    r = skein_cli(ws, "migrate-ready")
-    data = json.loads(r.stdout)
-    assert data["migrated"] == []

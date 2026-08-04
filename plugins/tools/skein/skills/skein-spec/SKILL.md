@@ -1,9 +1,9 @@
 ---
 name: skein-spec
-description: 规则记忆库 (基于 .skein/spec)。namespace (自由目录, 默认 rules/product/map/external, 目录扫描得非白名单) × inclusion (封闭四值 always/auto/fileMatch/manual, 写在 frontmatter) 正交两维 —— 目录管内容分类, inclusion 管加载策略, 互不决定, 搬目录不改加载策略。planning 时 recall 召回相关规则、task finish 后 sediment 沉淀学习 + prune 自动精简过期/重复/断链/超预算, 经判定门自动写盘 (不逐次问用户)。product namespace 是需求现状 wiki (delta 变更历史 vs state 现状快照分离, 按功能域切页), 现状过时用 amend 改写既有章节 (而非无限追加并存); map namespace 现算目录树+符号骨架 (`map --skeleton`) 合并人写语义页; analyze 对 task 跑只读一致性核查 (验收覆盖率/硬规冲突/范围蔓延/proposed 置信度/接缝存在性); 旧两层结构 (core/recall) 迁移新 namespace 结构见 migrate。另支持空仓 bootstrap 播种规则基线、记忆大面积失效 (大重构/换栈) 时 reconstruct 可逆归档后按项目类型分型重建、maintain 手动体检 (超预算/stale/断链/重复/废弃, 判据按 namespace 分表, --apply 自动修复)、auto-fix (Stop hook 写 .pending-fix 标记 → main 派 skein-specer bg 跑 maintain --apply 全自动修, 断链只报告)。
+description: 规则记忆库 (基于 .skein/spec)。namespace (自由目录, 默认 rules/product/map/external, 目录扫描得非白名单) × inclusion (封闭四值 always/auto/fileMatch/manual, 写在 frontmatter) 正交两维 —— 目录管内容分类, inclusion 管加载策略, 互不决定, 搬目录不改加载策略。planning 时 recall 召回相关规则、task finish 后 sediment 沉淀学习 + maintain 自动精简过期/重复/断链/超预算, 经判定门自动写盘 (不逐次问用户)。product namespace 是需求现状 wiki (delta 变更历史 vs state 现状快照分离, 按功能域切页), 现状过时用 amend 改写既有章节 (而非无限追加并存); map namespace 现算目录树+符号骨架 (`map --skeleton`) 合并人写语义页; analyze 对 task 跑只读一致性核查 (验收覆盖率/硬规冲突/范围蔓延/proposed 置信度/接缝存在性); 旧两层结构 (core/recall) 迁移新 namespace 结构见 migrate。另支持空仓 bootstrap 播种规则基线、记忆大面积失效 (大重构/换栈) 时 reconstruct 可逆归档后按项目类型分型重建、maintain 手动体检 (超预算/stale/断链/重复/废弃, 判据按 namespace 分表, --apply 自动修复)、auto-fix (Stop hook 写 .pending-fix 标记 → main 派 skein-specer bg 跑 maintain --apply 全自动修, 断链只报告)。
 user-invocable: true
-argument-hint: "[模式: recall/召回, sediment/沉淀, prune/精简, amend/改写, map/结构现算, analyze/一致性核查, bootstrap/播种, reconstruct/重构, maintain/维护 (加 --apply 自动修)] [--deep=recall/low/full/deep/max/high (reconstruct 模式可选)]"
-arguments: "['recall(召回)|sediment(沉淀)|prune(精简)|amend(改写)|map(结构现算)|analyze(一致性核查)|bootstrap(播种)|reconstruct(重构)', '--deep=recall/low/full/deep/max/high']"
+argument-hint: "[模式: recall/召回, sediment/沉淀, amend/改写, map/结构现算, analyze/一致性核查, bootstrap/播种, reconstruct/重构, maintain/维护 (加 --apply 自动修)] [--deep=recall/low/full/deep/max/high (reconstruct 模式可选)]"
+arguments: "['recall(召回)|sediment(沉淀)|amend(改写)|map(结构现算)|analyze(一致性核查)|bootstrap(播种)|reconstruct(重构)|maintain(维护)', '--deep=recall/low/full/deep/max/high']"
 model: inherit
 effort: medium
 ---

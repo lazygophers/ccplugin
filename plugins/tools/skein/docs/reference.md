@@ -34,9 +34,6 @@
 | 命令 | 用途 |
 | --- | --- |
 | `init` | 初始化 spec 目录 |
-| `inject-core` | 全文注入 rules 规则 (常驻) |
-| `session-start` | [hook 用] 每 session 注入 rules 规则索引 |
-| `subagent-start` | [hook 用] 每 subagent 注入 rules 全文 + spec 纪律 |
 | `reindex` | 重建各层 index.md + 顶层总索引 (改盘后同步) |
 | `recall <query>` | 按关键词 FTS5 BM25 排序 recall |
 | `sediment [--namespace <ns>] [--inclusion] [--category]` | 沉淀一条规则 + 自动 reindex |
@@ -50,25 +47,10 @@
 | `map` | [只读] 现算目录树+符号+行数 (不写盘) |
 | `amend` | 改写既有章节正文, 其余章节与 frontmatter 逐字不动; 改前 archive 旧版; --rename-section 同步更新反链; 后自动 reindex |
 | `finish-candidates` | [finish 用] 为 task 生成候选 product wiki 页 (三路降级: anchors反查→prd关键词recall→皆无建议新建) |
-| `bootstrap [--scan]` | 冷启动播种 |
 | `-d, --debug` | rich 美化叙事到 stderr — 展示命令与参数 (stdout 保持机器纯净; 亦可 SKEIN_DEBUG=1) |
 
-> **Deprecated 命令**: `prune` (改用 `maintain --apply`), `reconstruct` (改用 `maintain`), `recall free` (改用 `recall` 全文模式), `inject-core` (保留兼容, 内部已映射到 `inject-core` 规则 namespace)
 
-### skein-hooks
-
-| 命令 | 用途 |
-| --- | --- |
-| `permission` | 自动批准 .skein/ 操作 |
-| `guard` | 阻止直接读写脚本管理文件 |
-| `batch` | 阻止并发状态写 |
-| `report` | 错误上下文注入 |
-| `fmt` | 自动格式化 prd.md |
-| `spec-meta` | 检查 spec frontmatter |
-| `stop-check` | 扫描 spec → .pending-fix |
-| `user-prompt` | 信号路由 |
-| `flow-gate` | 跨文件改动无 active task 时提示补建 |
-| `agent-start` / `agent-stop` | agent 生命周期钩子入口, 跑 `config.yaml` 的 `hooks.agent.*` (详见 [hooks.md](hooks.md)) |
+> Hook 内部入口不作为用户命令暴露; 技术细节见 [hooks.md](hooks.md)。
 
 ### Config
 

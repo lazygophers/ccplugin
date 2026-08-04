@@ -6,7 +6,7 @@
 `max_active` 单键已拆成 `pools: {work, gate}`, 旧键**直接删不留 fallback** (design.md §5)。
 
 合理保留 (逐条判定, 非真残留, 见下方各测试内注释):
-- `readystate.py` / `migrate-ready` CLI: 一次性迁移旧「就绪」status → 待处理, 必须认识该
+- `readystate.py`: 一次性迁移旧「就绪」status → 待处理, 必须认识该
   字面量才能迁移, 删了迁移就失效。
 - `doctor.py` 残留 `max_active` 体检: 故意认识这个已废弃键才能提示用户清理, 删了 doctor 就
   报不出这条。

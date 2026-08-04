@@ -118,27 +118,12 @@ def test_create_defaults_priority_to_normal(ws: Path, skein_cli: SkeinCli) -> No
     assert t["priority"] == "normal"
 
 
-def test_migrate_priority_cli_then_doctor_passes(ws: Path, skein_cli: SkeinCli) -> None:
-    skein_cli(ws, "create", "feat-x", "--name", "feat-x", "--desc", "d")
-    tj = ws / ".skein" / "task" / "feat-x" / "task.json"
-    t = json.loads(tj.read_text())
-    t["priority"] = 7  # 模拟存量数字优先级
-    tj.write_text(json.dumps(t, ensure_ascii=False))
-
-    r = skein_cli(ws, "migrate-priority")
-    data = json.loads(r.stdout)
-    assert len(data["migrated"]) == 1
-    assert json.loads(tj.read_text())["priority"] == "high"
-
-    skein_cli(ws, "doctor")  # check=True 默认, 非 0 退出即抛
-
-
 def test_doctor_rejects_illegal_priority_value(ws: Path, skein_cli: SkeinCli) -> None:
     """违规: task.json priority 非四档枚举值 (如未迁移的存量数字) → doctor exit 1。"""
     skein_cli(ws, "create", "feat-x", "--name", "feat-x", "--desc", "d")
     tj = ws / ".skein" / "task" / "feat-x" / "task.json"
     t = json.loads(tj.read_text())
-    t["priority"] = 7  # 未经 migrate-priority 的存量数字, doctor 应判非法 (非 migrate 通道自己修)
+    t["priority"] = 7
     tj.write_text(json.dumps(t, ensure_ascii=False))
     r = skein_cli(ws, "doctor", check=False)
     assert r.returncode == 1

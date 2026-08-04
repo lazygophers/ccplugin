@@ -15,7 +15,7 @@ skill / agent 文档里的命令示例**会被 AI 照抄执行**。一条写错�
 - `/skein-spec reconstruct` 这类**斜杠开头**的是 skill 模式 (slash command), 不是 CLI 子命令,
   跳过。文档里若把模式名写成 `skein-spec reconstruct` (无斜杠) 会被判错 —— 这正是要抓的,
   因为那样写 agent 会真去敲 CLI。
-- `del/delete/rm/remove` 四个别名需要逐个校验。
+- `del` 是唯一公开删除命令; delete/rm/remove 属隐藏兼容别名, 不纳入文档合法面。
 """
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ import conftest  # noqa: F401  模块体把 scripts/ 塞进 sys.path
 from conftest import MEM, SCRIPTS, SKEIN  # noqa: E402
 
 PLUGIN = SCRIPTS.parent
-ALIASES = ("del", "delete", "rm", "remove")   # dispatch 里有, --help 不列
+ALIASES = ("del",)   # dispatch 里有, --help 不列
 # 散文里的假阳性: README 讲名字来源「skein of yarn」
 PROSE_SKIP = ("skein of",)
 
