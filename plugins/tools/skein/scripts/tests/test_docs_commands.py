@@ -25,6 +25,9 @@ from pathlib import Path
 
 import conftest  # noqa: F401  模块体把 scripts/ 塞进 sys.path
 from conftest import MEM, SCRIPTS, SKEIN  # noqa: E402
+from typer.main import get_command
+
+from skeinlib.cli import app
 
 PLUGIN = SCRIPTS.parent
 ALIASES = ("del",)   # dispatch 里有, --help 不列
@@ -125,6 +128,18 @@ def test_all_doc_command_examples_are_valid() -> None:
     problems = _scan()
     assert not problems, (
         f"文档里有 {len(problems)} 条 CLI 示例跑不通 (AI 会照抄执行):\n  " + "\n  ".join(problems))
+
+
+def test_delete_aliases_resolve_to_single_click_command() -> None:
+    group = get_command(app)
+    assert group.get_command(None, "del") is not None
+    assert "delete" not in group.commands
+    assert "rm" not in group.commands
+    assert "remove" not in group.commands
+    canonical = group.get_command(None, "del")
+    assert group.get_command(None, "delete") is canonical
+    assert group.get_command(None, "rm") is canonical
+    assert group.get_command(None, "remove") is canonical
 
 
 def test_scanner_actually_catches_bad_examples(tmp_path: Path) -> None:

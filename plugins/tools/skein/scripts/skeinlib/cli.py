@@ -15,6 +15,7 @@ from typing import Annotated, Any, Optional
 
 try:
     import typer
+    from typer.core import TyperGroup
 except ModuleNotFoundError:
     if os.environ.get("SKEIN_TYPER_BOOTSTRAPPED") != "1":
         env = dict(os.environ, SKEIN_TYPER_BOOTSTRAPPED="1")
@@ -25,7 +26,16 @@ from skeinlib.hooks.runner import DBG, debug_enabled
 from skeinlib.commands import Skein, _persist_bash_cwd_env, _workspace_lock
 from skeinlib.task.model import PRD_TYPE_ALIAS
 
+
+class AliasTyperGroup(TyperGroup):
+    aliases = {"delete": "del", "rm": "del", "remove": "del"}
+
+    def get_command(self, ctx: typer.Context, cmd_name: str):
+        return super().get_command(ctx, self.aliases.get(cmd_name, cmd_name))
+
+
 app = typer.Typer(
+    cls=AliasTyperGroup,
     help="SKEIN 任务管理引擎 — task 生命周期 + 看板 + 契约\n\n生命周期: init → create → (research ⇄ plan) → confirm(吸收 start) → check → finishing → finish → archive",
     no_args_is_help=True,
     add_completion=False,
@@ -37,7 +47,7 @@ prd_app = typer.Typer(help="读/写/追加/勾选 prd 章节 (目标/边界/User
 MUTATING = {"init", "setup", "create", "confirm", "research", "plan", "check", "finishing",
             "finish", "fmt", "archive", "clean",
             "contract", "repos", "deps", "parent", "estimate", "priority", "subtask", "claim",
-            "prd", "del", "delete", "rm", "remove",
+            "prd", "del",
             "rename", "config"}
 
 
@@ -63,8 +73,7 @@ def _dispatch(a: SimpleNamespace) -> None:
         "repos": sk.lifecycle.repos, "deps": sk.lifecycle.deps,
         "parent": sk.lifecycle.parent,
         "estimate": sk.lifecycle.estimate, "priority": sk.lifecycle.priority, "rename": sk.lifecycle.rename,
-        "del": sk.lifecycle.del_, "delete": sk.lifecycle.del_,
-        "rm": sk.lifecycle.del_, "remove": sk.lifecycle.del_,
+        "del": sk.lifecycle.del_,
         "claim": sk.scheduler.claim, "subtask": sk.scheduler.subtask,
         "current": sk.query.current, "ready": sk.query.ready,
         "status": sk.query.status, "list": sk.query.list_,
@@ -207,19 +216,19 @@ def archive(id: str) -> None:
     _run("archive", id=id)
 
 
-def _delete(ctx: typer.Context, dry_run: bool = False, cmd: str = "del") -> None:
+def _delete(ctx: typer.Context, dry_run: bool = False) -> None:
     args = list(ctx.args)
     if len(args) < 1 or len(args) > 2:
-        raise typer.BadParameter(f"{cmd} 用法: {cmd} <task_id> [subtask_sid]")
+        raise typer.BadParameter("del 用法: del <task_id> [subtask_sid]")
     task_id = args[0]
     subtask_sid = args[1] if len(args) == 2 else None
-    _run(cmd, task_id=task_id, subtask_sid=subtask_sid, dry_run=dry_run)
+    _run("del", task_id=task_id, subtask_sid=subtask_sid, dry_run=dry_run)
 
 
 @app.command("del", context_settings={"allow_extra_args": True, "ignore_unknown_options": False})
 def del_(ctx: typer.Context, dry_run: Annotated[bool, typer.Option("--dry-run")] = False) -> None:
     """删 task 或单 subtask。"""
-    _delete(ctx, dry_run, "del")
+    _delete(ctx, dry_run)
 
 
 @app.command()
@@ -432,16 +441,7 @@ def _run_hidden_command(argv: list[str]) -> bool:
     if argv == ["session-context"]:
         _run("session-context")
         return True
-    if not argv or argv[0] not in {"delete", "rm", "remove"}:
-        return False
-    args = argv[1:]
-    dry_run = "--dry-run" in args
-    task_args = [arg for arg in args if arg != "--dry-run"]
-    if len(task_args) < 1 or len(task_args) > 2 or any(arg.startswith("-") for arg in task_args):
-        raise typer.BadParameter(f"{argv[0]} 用法: {argv[0]} <task_id> [subtask_sid] [--dry-run]")
-    _run(argv[0], task_id=task_args[0], subtask_sid=task_args[1] if len(task_args) == 2 else None,
-         dry_run=dry_run)
-    return True
+    return False
 
 
 def main() -> None:
