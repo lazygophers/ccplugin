@@ -90,7 +90,7 @@ def always_budget_tokens() -> int:
     always_budget 缺失/非正整数 → fallback 到 spec.core_budget (字符) → 默认 517 字符 ≈ 300 token。
 
     读原始 YAML (非 pydantic Config) 以区分「用户显式设了」和「pydantic 补了默认值」。"""
-    from skeinlib.token_conversion import estimate_tokens_from_chars
+    from skeinlib.utils.token_conversion import estimate_tokens_from_chars
     import yaml as _yaml  # type: ignore[import-untyped]
 
     cfg_path = spec_root().parent / "config.yaml"

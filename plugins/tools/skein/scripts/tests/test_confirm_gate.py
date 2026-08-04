@@ -159,7 +159,7 @@ def test_board_whitelist_maps_confirm_to_fixed_argv() -> None:
     这是人审门最硬的一条通道 (main 没浏览器点不了), 所以端点侧的 argv 必须写死:
     只认 `id`, 其余键一律忽略 —— 前端能拼 flag 的话, 这条通道就退化成跟 --approved 一样了。
     """
-    from skeinlib.exec_policy import exec_argv
+    from skeinlib.utils.exec_policy import exec_argv
     argv = exec_argv({"cmd": "confirm", "id": "feat-x", "extra": "--force", "flags": "-rf"})
     assert argv is not None and argv[-3:] == ["confirm", "feat-x", "--approved"], argv
     assert "--force" not in argv and "-rf" not in argv, f"前端传的 flag 泄进 argv: {argv}"
@@ -174,7 +174,7 @@ def test_board_whitelist_maps_confirm_to_fixed_argv() -> None:
 
 def test_board_confirm_does_not_shell_out(ws: Path) -> None:
     """id 里的 shell 元字符只是普通字符串 — argv 固定构造, 从不拼 shell。"""
-    from skeinlib.exec_policy import exec_argv
+    from skeinlib.utils.exec_policy import exec_argv
     argv = exec_argv({"cmd": "confirm", "id": "x; rm -rf /"})
     assert argv is not None and argv[-2] == "x; rm -rf /", argv
     assert not any(";" in a for a in argv[:-2]), "元字符逃到了别的 argv 位"

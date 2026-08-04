@@ -6,7 +6,7 @@
 1. `boardsource._run_server` 调 `self._probe_same_project(...)`, 而那个方法早已提成
    `serve.probe_same_project(...)` 模块函数 → `AttributeError: 'Skein' object has no
    attribute '_probe_same_project'`, **只在真起 serve 时才炸**。
-2. `uvicorn.run("skein:_serve_app_factory")` 的模块字符串没跟着函数搬家 (另有测试守)。
+2. `uvicorn.run("skeinlib.web.serve:_serve_app_factory")` 的模块字符串没跟着函数搬家 (另有测试守)。
 
 共同点: 失效点在**运行时才解析**, 而覆盖它的测试要么起真服务、要么开浏览器, 单测天然摸不到。
 Python 又没有编译期检查, 于是搬完家全绿, 用户跑起来才崩。
@@ -26,14 +26,14 @@ import ast
 import inspect
 
 import conftest  # noqa: F401  模块体把 scripts/ 塞进 sys.path
-from skeinlib.admin import Admin  # noqa: E402
-from skeinlib.artifacts import Artifacts  # noqa: E402
-from skeinlib.commands import Skein  # noqa: E402
-from skeinlib.lifecycle import Lifecycle  # noqa: E402
-from skeinlib.query import Query  # noqa: E402
-from skeinlib.scheduling import Scheduler  # noqa: E402
+from skeinlib.core.admin import Admin  # noqa: E402
+from skeinlib.core.artifacts import Artifacts  # noqa: E402
+from skeinlib.core.commands import Skein  # noqa: E402
+from skeinlib.core.lifecycle import Lifecycle  # noqa: E402
+from skeinlib.core.query import Query  # noqa: E402
+from skeinlib.core.scheduling import Scheduler  # noqa: E402
 from skeinlib.spec.facade import Spec  # noqa: E402
-from skeinlib.workspace import Workspace  # noqa: E402
+from skeinlib.core.workspace import Workspace  # noqa: E402
 
 # 五个协作对象 (commands.Skein 的装配图)。它们不再共享一个 self, 而是持有 self.ws ——
 # 于是同一类故障换了个马甲: `self.ws.<搬走的方法>`。下面第二条检查专治这个。

@@ -9,7 +9,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from skeinlib.errors import SkeinError
+from skeinlib.utils.errors import SkeinError
 from skeinlib.task.model import PRD_SECTIONS, PRD_SECTIONS_V6, PRD_TODO_SECTIONS
 
 # ---- prd 章节 CLI (读/追加/覆盖写/勾选) ----

@@ -27,7 +27,7 @@ def cmd_fmt(payload: dict[str, Any]) -> int:
     if not match:
         return 0
     root = normalized_path[:match.start()] or (payload.get("cwd") or os.getcwd())
-    from skeinlib.paths import SKEIN_ENTRY
+    from skeinlib.utils.paths import SKEIN_ENTRY
     try:
         subprocess.run([sys.executable, str(SKEIN_ENTRY), "fmt", match.group(1)], cwd=root,
                        capture_output=True, timeout=10)

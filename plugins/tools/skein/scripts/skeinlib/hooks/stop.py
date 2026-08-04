@@ -8,7 +8,7 @@ from typing import Any
 def cmd_stop_check(_: dict[str, Any]) -> int:
     from skeinlib.spec.facade import Spec
     from skeinlib.spec.model import always_budget_tokens
-    from skeinlib.token_conversion import estimate_tokens_from_chars
+    from skeinlib.utils.token_conversion import estimate_tokens_from_chars
     spec = Spec()
     if not spec.root.exists():
         return 0

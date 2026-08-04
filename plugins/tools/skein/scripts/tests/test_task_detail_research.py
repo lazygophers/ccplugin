@@ -9,7 +9,7 @@ import importlib.util
 import os
 from pathlib import Path
 
-from skeinlib.views import _view_task_detail
+from skeinlib.web.views import _view_task_detail
 
 _SKEIN = Path(__file__).resolve().parent.parent / "skein.py"
 _spec = importlib.util.spec_from_file_location("skein_detail", _SKEIN)

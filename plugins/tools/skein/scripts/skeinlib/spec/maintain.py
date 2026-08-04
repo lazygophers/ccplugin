@@ -16,7 +16,7 @@ import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional, cast
 
-from skeinlib.errors import SkeinError
+from skeinlib.utils.errors import SkeinError
 from skeinlib.spec.model import (AUDIT_RETENTION_DAYS, DEFAULT_MAINTAIN_POLICY,
                                  KEYWORDS_DUP_THRESHOLD, MAINTAIN_POLICY, STALE_DAYS,
                                  always_budget_tokens, now)
@@ -166,7 +166,7 @@ class MaintainMixin:
 
         # 判据 (全部): 超预算 — always 页总 token, 与 --namespace 过滤无关 (跨 namespace 全局关切), 恒跑
         core_text = self._core_text_raw()
-        from skeinlib.token_conversion import estimate_tokens_from_chars
+        from skeinlib.utils.token_conversion import estimate_tokens_from_chars
         budget = always_budget_tokens()
         estimated_tokens = estimate_tokens_from_chars(len(core_text))
         if estimated_tokens > budget:
@@ -405,7 +405,7 @@ class MaintainMixin:
         return rel
     def _degrade_core_to_budget(self) -> list[str]:
         """循环降 top-1 最大 always 页 → auto, 直到 always 总 token < always_budget_tokens() 或无 always 页。返回降级路径列表。"""
-        from skeinlib.token_conversion import estimate_tokens_from_chars
+        from skeinlib.utils.token_conversion import estimate_tokens_from_chars
         degraded: list[str] = []
         while True:
             core_text = self._core_text_raw()
@@ -447,7 +447,7 @@ class MaintainMixin:
     # ---- degrade 子命令 ----
     def degrade(self, a: argparse.Namespace) -> None:
         if getattr(a, "auto", False):
-            from skeinlib.token_conversion import estimate_tokens_from_chars
+            from skeinlib.utils.token_conversion import estimate_tokens_from_chars
             before_tokens = estimate_tokens_from_chars(len(self._core_text_raw()))
             degraded = self._degrade_core_to_budget()
             after_tokens = estimate_tokens_from_chars(len(self._core_text_raw()))

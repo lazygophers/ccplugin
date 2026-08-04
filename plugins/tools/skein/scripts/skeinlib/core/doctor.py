@@ -25,11 +25,11 @@ from typing import TYPE_CHECKING, Any, Optional
 import yaml  # type: ignore[import-untyped]
 
 from skeinlib.hooks.runner import budget_guard
-from skeinlib.errors import SkeinError
+from skeinlib.utils.errors import SkeinError
 from skeinlib.task.dag import detect_cycle
 from skeinlib.task.model import (PHASE_OF, PRIORITY_RANK, SLUG_RE, SubtaskStatus, STATUS_INFLIGHT, TaskStatus)
-from skeinlib.worktree import worktrees_of
-from skeinlib.paths import SCRIPTS_DIR
+from skeinlib.infra.worktree import worktrees_of
+from skeinlib.utils.paths import SCRIPTS_DIR
 
 if TYPE_CHECKING:
     from skeinlib.task.store import TaskStore

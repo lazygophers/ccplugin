@@ -16,12 +16,12 @@ from typing import Any
 
 from conftest import (SKEIN, make_git_repo, make_ws,  # 单一实现, 见 conftest 顶部说明
                       run_git as git, run_skein as sk)
-from skeinlib.commands import Skein, _workspace_lock
+from skeinlib.core.commands import Skein, _workspace_lock
 from skeinlib.config import Config
 from skeinlib.task.dag import _sub_pct, _task_pct
-from skeinlib.errors import SkeinError
+from skeinlib.utils.errors import SkeinError
 from skeinlib.task.model import (SubtaskStatus, TaskStatus)
-from skeinlib.views import _view_board_data
+from skeinlib.web.views import _view_board_data
 
 
 def _load(mod_name: str) -> ModuleType:

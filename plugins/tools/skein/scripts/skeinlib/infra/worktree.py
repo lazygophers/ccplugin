@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any, Optional, cast
 
 from skeinlib.hooks.runner import DBG
-from skeinlib.errors import SkeinError
+from skeinlib.utils.errors import SkeinError
 
 
 def git(*args: str, cwd: Optional[Path] = None, check: bool = True, capture: bool = True) -> subprocess.CompletedProcess[str]:

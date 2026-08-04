@@ -28,14 +28,14 @@ Workspace          路径 / 生效配置 / TaskStore / 阶段钩子     ← 共�
 """
 from __future__ import annotations
 
-from skeinlib.admin import Admin
-from skeinlib.artifacts import Artifacts
-from skeinlib.boardsource import BoardSourceMixin
-from skeinlib.doctor import DoctorMixin
-from skeinlib.lifecycle import Lifecycle
-from skeinlib.query import Query
-from skeinlib.scheduling import Scheduler
-from skeinlib.workspace import Workspace, _persist_bash_cwd_env, _workspace_lock
+from skeinlib.core.admin import Admin
+from skeinlib.core.artifacts import Artifacts
+from skeinlib.web.boardsource import BoardSourceMixin
+from skeinlib.core.doctor import DoctorMixin
+from skeinlib.core.lifecycle import Lifecycle
+from skeinlib.core.query import Query
+from skeinlib.core.scheduling import Scheduler
+from skeinlib.core.workspace import Workspace, _persist_bash_cwd_env, _workspace_lock
 
 # cli.py / serve.py 按名取用 —— 实现已搬进 workspace.py, 这里只保留对外符号
 __all__ = ["Skein", "_persist_bash_cwd_env", "_workspace_lock"]

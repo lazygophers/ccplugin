@@ -13,8 +13,8 @@ from typing import Callable
 import pytest
 
 import conftest  # noqa: F401  模块体把 scripts/ 塞进 sys.path
-from skeinlib.errors import SkeinError  # noqa: E402
-from skeinlib.priority import (migrate_priority_values, priority_from_legacy,  # noqa: E402
+from skeinlib.utils.errors import SkeinError  # noqa: E402
+from skeinlib.task.priority import (migrate_priority_values, priority_from_legacy,  # noqa: E402
                                validate_priority)
 
 SkeinCli = Callable[..., subprocess.CompletedProcess[str]]

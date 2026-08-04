@@ -27,8 +27,8 @@ from pathlib import Path
 from typing import Any, Callable, Optional, cast
 
 from skeinlib.hooks.runner import DBG
-from skeinlib.board import render_board, render_task_board, render_vision
-from skeinlib.errors import SkeinError
+from skeinlib.infra.board import render_board, render_task_board, render_vision
+from skeinlib.utils.errors import SkeinError
 from skeinlib.task.model import PRIORITY_DEFAULT, PRIORITY_RANK, STATUS_ACTIVE, STATUS_ORDER, TaskStatus, TS_CHECKED_END, now
 
 

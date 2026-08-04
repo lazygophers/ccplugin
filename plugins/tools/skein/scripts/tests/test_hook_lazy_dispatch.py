@@ -30,7 +30,7 @@ def test_legacy_modules_only_reexport_single_file_functions() -> None:
     for module_name in HOOK_MODULES:
         module = __import__(f"skeinlib.hooks.{module_name}", fromlist=["*"])
         for name in dir(module):
-            if name.startswith("cmd_") or name in {"_run_hooks", "_judge_signal", "_task_phase_hints", "git_root", "load_stdin"}:
+            if name.startswith("cmd_") or name in {"_run_hooks", "judge_signal", "task_phase_hints", "git_root", "load_stdin"}:
                 assert callable(getattr(module, name)) or name in {"git_root", "load_stdin"}
 
 

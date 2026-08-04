@@ -311,7 +311,7 @@ def test_default_budget_is_same_on_both_paths() -> None:
         r = subprocess.run(
             [sys.executable, "-c",
              f"import sys; sys.path.insert(0, {script_dir!r}); "
-             "from skeinlib.spec.model import always_budget_tokens; from skeinlib.token_conversion import CHAR_TO_TOKEN_RATIO; "
+             "from skeinlib.spec.model import always_budget_tokens; from skeinlib.utils.token_conversion import CHAR_TO_TOKEN_RATIO; "
              "tokens = always_budget_tokens(); print(int(tokens / CHAR_TO_TOKEN_RATIO))"],
             cwd=td, capture_output=True, text=True, check=True)
     fallback_chars = int(r.stdout.strip())

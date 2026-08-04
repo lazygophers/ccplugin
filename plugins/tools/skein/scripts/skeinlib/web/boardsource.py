@@ -1,6 +1,6 @@
 """`DataSource` 的 Skein 侧实现 + serve 命令的生命周期编排。
 
-`skeinlib/serve.py` 里的 `build_app` 只认 `DataSource` Protocol; 本文件是它的**生产 adapter**
+`skeinlib/web/serve.py` 里的 `build_app` 只认 `DataSource` Protocol; 本文件是它的**生产 adapter**
 (测试那个假的在 tests/test_serve_routes.py, 两个 adapter 才算真 seam)。
 
 ## 为什么是 mixin
@@ -21,10 +21,10 @@ from typing import TYPE_CHECKING, Any, Callable, Optional, cast
 
 from skeinlib.hooks.runner import DBG
 from skeinlib.config import Config
-from skeinlib.serve import (build_app, install_serve_deps, max_mtime, probe_same_project,
+from skeinlib.web.serve import (build_app, install_serve_deps, max_mtime, probe_same_project,
                             serve_deps_present, dist_dir)
-from skeinlib.views import Snapshot
-from skeinlib.paths import SCRIPTS_DIR, SKEIN_ENTRY
+from skeinlib.web.views import Snapshot
+from skeinlib.utils.paths import SCRIPTS_DIR, SKEIN_ENTRY
 
 if TYPE_CHECKING:
     from skeinlib.task.store import TaskStore
@@ -338,7 +338,7 @@ class BoardSourceMixin:
                 # app 字符串必须与 _serve_app_factory 的**当前**所在模块一致 —— uvicorn 靠字符串
                 # 在 reload 子进程里 import, 函数搬了家而字符串没跟着改, 表现是 serve 起不来
                 # ("Attribute not found in module"), 且只在真起服务时才暴露。
-                uvicorn.run("skeinlib.serve:_serve_app_factory", factory=True, host="127.0.0.1", port=port,
+                uvicorn.run("skeinlib.web.serve:_serve_app_factory", factory=True, host="127.0.0.1", port=port,
                             log_level="warning", access_log=False, reload=True, reload_dirs=[script_dir])  # 阻塞; SIGINT/SIGTERM 优雅停机
                 # 正常退出（SIGINT/SIGTERM）
                 break

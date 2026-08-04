@@ -9,13 +9,13 @@ import argparse
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from skeinlib.workspace import Workspace
+    from skeinlib.core.workspace import Workspace
 
 from skeinlib.task.dag import _sub_pct, _task_pct
-from skeinlib.errors import SkeinError
+from skeinlib.utils.errors import SkeinError
 from skeinlib.task.model import (PRIORITY_DEFAULT, SubtaskStatus, TaskStatus, _STATUS_ALIAS)
 
-from skeinlib.worktree import worktrees_of
+from skeinlib.infra.worktree import worktrees_of
 
 
 class Query:

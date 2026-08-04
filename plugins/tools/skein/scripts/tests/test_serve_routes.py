@@ -19,7 +19,7 @@ from typing import Any
 
 import conftest  # noqa: F401  先 import 它: 模块体把 scripts/ 塞进 sys.path (standalone 直跑时 pytest 不在)
 from skeinlib.config import Config  # noqa: E402
-from skeinlib.serve import build_app  # noqa: E402
+from skeinlib.web.serve import build_app  # noqa: E402
 from test_views_char import TNOW, _load, _seed  # noqa: E402
 
 

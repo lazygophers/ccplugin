@@ -17,7 +17,7 @@ import shutil
 from pathlib import Path
 from typing import Any, Optional
 
-from skeinlib.errors import SkeinError
+from skeinlib.utils.errors import SkeinError
 from skeinlib.task.model import PRIORITIES, PRIORITY_DEFAULT
 
 

@@ -24,21 +24,18 @@ from types import ModuleType
 from typing import Any
 
 from conftest import SKEIN, run_git as git  # 单一实现, 见 conftest 顶部说明
-import skeinlib.migrate as _mig_mod
 from skeinlib.task import model as _model_mod
 from skeinlib.task import store as _store_mod
-import skeinlib.views as views_mod
-# shim 搬包后, now() 的实际持有者是底层实现模块, patch shim 的 now 无效
 import skeinlib.web.views as _web_views_mod
 import skeinlib.task.migrate as _task_migrate_mod
 
 
 def _now_holders() -> list[Any]:
     """所有可能持有 `now` 名字的模块 (model 定义它, 其余 `from ... import now` 各存一份)。"""
-    return [_model_mod, views_mod, _store_mod, _mig_mod, _web_views_mod, _task_migrate_mod]
+    return [_model_mod, _web_views_mod, _store_mod, _task_migrate_mod]
 
 from skeinlib.task.model import SubtaskStatus, TaskStatus
-from skeinlib.views import (_view_archive_list, _view_board_data, _view_dashboard,
+from skeinlib.web.views import (_view_archive_list, _view_board_data, _view_dashboard,
                             _view_queue, _view_search, _view_task_detail)
 
 GOLDEN: Path = Path(__file__).parent / "views_golden.json"

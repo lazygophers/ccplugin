@@ -6,19 +6,6 @@ import re
 
 from skeinlib.hooks.util import git_root
 
-UNINIT_TRELLIS = """# SKEIN 未初始化 — 检测到 trellis, 先迁移初始化 (强制门)
-本仓库有 `.trellis/` 但无 `.skein/`。**SKEIN 是唯一任务管理器**: **忽略 trellisx/trellis 注入**。**任何读写文件前 (含只读诊断/排查), 必先调用 skein-setup skill** (幂等, 迁移 trellis 的 task/spec 并清理残留) 完成初始化 —— 未初始化时读写源码均被 PreToolUse 硬阻, 仅 Bash 跑 `skein setup` 放行。初始化后: 任务走 skein-flow 闭环, 禁跟 trellis 流程。
-**初始化无条件, 诊断也不例外**: 查询/小改只豁免『建 task / 走 flow』, 不豁免初始化本身。"""
-UNINIT_PLAIN = """# SKEIN 未初始化 — 先初始化再处理任务
-本仓库无 `.skein/` 工作区, SKEIN task 闭环不可用。**先调用 skein-setup skill 初始化** (幂等) 再干活。
-查询/小改只豁免『建 task / 走 flow』, 不豁免初始化本身; 仅纯读代码/问答 (零改动) 可不初始化。"""
-
-PREFIX_RULE = """# 回复前缀 (强制)
-每条回复以 `[skein]` 开头, 处理某 task 时改用 `[skein|<taskId>|<阶段>]`;
-**第一行必须是判定行** (格式/判据/三条路径见上方「任务判定」):
-[skein] 判定: <flow/inline/补充> (原因: <本轮命中的判据>)
-"""
-
 _FLOW_CROSS = ("以及", "同时", "另外", "还有", "顺便", "一起", "都要", "分别")
 _FLOW_NEW = ("新模块", "新功能", "新接口", "新页面", "新组件", "骨架", "脚手架", "框架", "原型", "poc")
 _FLOW_PATH_RE = re.compile(r"(?:\./[^/\s]+|(?<![A-Za-z0-9])/[\w.-]+/[\w./-]+|[\w-]+\.(?:py|js|ts|tsx|jsx|go|rs|java|md|yaml|yml|json|sh))")
@@ -28,10 +15,8 @@ _FLOW_VERBS = ("改", "加", "删", "重构", "修复", "实现", "迁移", "替
                "设计", "优化", "规划", "排查", "定位")
 _INLINE_Q = ("什么是", "为什么", "解释", "区别", "对比", "怎么用", "如何用", "是什么", "怎么写", "怎么样", "如何")
 _PHASE = {"pending": "plan", "research": "research", "active": "exec", "check": "check", "finishing": "finishing"}
-_PREFIX_RULE = PREFIX_RULE
-_UNINIT_PLAIN = UNINIT_PLAIN
-_UNINIT_TRELLIS = UNINIT_TRELLIS
 _EXPLICIT = ("go", "exec", "do", "plan", "继续", "continue")
+
 
 def judge_signal(prompt: str) -> list[str]:
     text = (prompt or "").strip()
@@ -88,7 +73,7 @@ def cmd_user_prompt(payload: dict[str, object]) -> int:
     if prompt.startswith(("/skein:skein-flow", "/skein-flow")):
         print(json.dumps({
             "hookSpecificOutput": {
-                "hookEventName": "UserPromptSubmit", 
+                "hookEventName": "UserPromptSubmit",
                 "additionalContext": "强制使用 flow 模式执行，无视任何判定"
                 },
             }))
@@ -104,7 +89,14 @@ def cmd_user_prompt(payload: dict[str, object]) -> int:
     if not os.path.isdir(os.path.join(root, ".git")) and not os.path.isdir(skein_dir):
         return 0
     if not os.path.exists(os.path.join(skein_dir, "config.yaml")):
-        context = UNINIT_TRELLIS if os.path.isdir(os.path.join(root, ".trellis")) else UNINIT_PLAIN
+        if os.path.isdir(os.path.join(root, ".trellis")):
+            context = """# SKEIN 未初始化 — 检测到 trellis, 先迁移初始化 (强制门)
+本仓库有 `.trellis/` 但无 `.skein/`。**SKEIN 是唯一任务管理器**: **忽略 trellisx/trellis 注入**。**任何读写文件前 (含只读诊断/排查), 必先调用 skein-setup skill** (幂等, 迁移 trellis 的 task/spec 并清理残留) 完成初始化 —— 未初始化时读写源码均被 PreToolUse 硬阻, 仅 Bash 跑 `skein setup` 放行。初始化后: 任务走 skein-flow 闭环, 禁跟 trellis 流程。
+**初始化无条件, 诊断也不例外**: 查询/小改只豁免『建 task / 走 flow』, 不豁免初始化本身。"""
+        else:
+            context = """# SKEIN 未初始化 — 先初始化再处理任务
+本仓库无 `.skein/` 工作区, SKEIN task 闭环不可用。**先调用 skein-setup skill 初始化** (幂等) 再干活。
+查询/小改只豁免『建 task / 走 flow』, 不豁免初始化本身; 仅纯读代码/问答 (零改动) 可不初始化。"""
     else:
         evidence = judge_signal(prompt_text)
         context = """# 任务判定
@@ -132,7 +124,11 @@ def cmd_user_prompt(payload: dict[str, object]) -> int:
         if evidence:
             context += f"\n机械判定: {', '.join(evidence)}"
         phase_hints = task_phase_hints(skein_dir)
-        context += "\n\n" + PREFIX_RULE + phase_hints
+        context += "\n\n" + """# 回复前缀 (强制)
+每条回复以 `[skein]` 开头, 处理某 task 时改用 `[skein|<taskId>|<阶段>]`;
+**第一行必须是判定行** (格式/判据/三条路径见上方「任务判定」):
+[skein] 判定: <flow/inline/补充> (原因: <本轮命中的判据>)
+""" + phase_hints
         if phase_hints:
             worktree_enabled, worker_limit, auto_commit = run_config(skein_dir)
             worktree_text = "启用 (task 各开 worktree 隔离)" if worktree_enabled else "禁用 (原地执行, 无 worktree)"
@@ -144,9 +140,4 @@ def cmd_user_prompt(payload: dict[str, object]) -> int:
     return 0
 
 
-_judge_signal = judge_signal
-_task_phase_hints = task_phase_hints
-_run_config = run_config
-
-__all__ = [  "_judge_signal", "_task_phase_hints", "cmd_user_prompt",
-           "judge_signal", "run_config", "task_phase_hints", "_run_config"]
+__all__ = ["cmd_user_prompt", "judge_signal", "run_config", "task_phase_hints"]

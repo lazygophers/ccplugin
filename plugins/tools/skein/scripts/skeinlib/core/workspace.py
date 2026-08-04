@@ -24,11 +24,11 @@ from pathlib import Path
 from typing import Any, Iterator, Optional, cast
 
 from skeinlib.config import Config
-from skeinlib.errors import SkeinError
+from skeinlib.utils.errors import SkeinError
 from skeinlib.hooks.runner import DBG, HookBlocked, _run_hooks
 from skeinlib.task.model import TaskStatus
 from skeinlib.task.store import TaskStore
-from skeinlib.worktree import git, worktrees_of
+from skeinlib.infra.worktree import git, worktrees_of
 
 # 插件无法直接发货 settings.json 的 env 块 (plugin.json 无 env 字段)。
 # 官方持久化 env 的机制: SessionStart hook 往 $CLAUDE_ENV_FILE 追加 export。

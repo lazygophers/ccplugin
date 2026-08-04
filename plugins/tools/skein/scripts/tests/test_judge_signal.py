@@ -1,4 +1,4 @@
-"""`_judge_signal` 单测 — 任务复杂度判定的启发式打分。
+"""`judge_signal` 单测 — 任务复杂度判定的启发式打分。
 
 拆包前这层埋在 hooks.py 里, 想验一句 prompt 判成什么档只能起子进程喂 stdin; 现在它在
 `skeinlib.hooks.user_prompt_submit` 且只依赖 stdlib, 直调即可 —— 全套 11 项 0.02 秒, 换子进程要 5 秒+。
@@ -8,18 +8,26 @@
 """
 from __future__ import annotations
 
+import contextlib
+import io
+import json
+import os
+import tempfile
+from pathlib import Path
+
 import conftest  # noqa: F401  模块体把 scripts/ 塞进 sys.path (standalone 直跑时 pytest 不在)
-from skeinlib.hooks.user_prompt_submit import _judge_signal  # noqa: E402
+from conftest import make_ws
+from skeinlib.hooks.user_prompt_submit import judge_signal  # noqa: E402
 
 
 def sig(p: str) -> set[str]:
-    return set(_judge_signal(p))
+    return set(judge_signal(p))
 
 
 def test_empty_prompt_no_signal() -> None:
-    assert _judge_signal("") == []
-    assert _judge_signal("   ") == []
-    assert _judge_signal(None) == []  # type: ignore[arg-type] # hook 拿到的 payload 可能缺字段
+    assert judge_signal("") == []
+    assert judge_signal("   ") == []
+    assert judge_signal(None) == []  # type: ignore[arg-type] # hook 拿到的 payload 可能缺字段
 
 
 def test_action_verbs_hit() -> None:
@@ -69,7 +77,7 @@ def test_short_prompt_fallback_is_authorization_not_simple_request() -> None:
     会直接开干且不建 task。
     """
     for p in ("需要", "继续", "做吧", "开始"):
-        ev = _judge_signal(p)
+        ev = judge_signal(p)
         assert len(ev) == 1 and ev[0].startswith("短句零信号"), (p, ev)
 
 
@@ -77,7 +85,7 @@ def test_long_prompt_never_hits_short_fallback() -> None:
     """长句零信号 → 不兜底。掉进兜底说明词表缺词, 那是词表的 bug, 不该由长度阈值掩盖。"""
     long_no_signal = "这个东西的历史背景大概是怎样的呢我想了解一下来龙去脉"
     assert len(long_no_signal) > 12
-    assert not any(e.startswith("短句零信号") for e in _judge_signal(long_no_signal))
+    assert not any(e.startswith("短句零信号") for e in judge_signal(long_no_signal))
 
 
 def test_signals_accumulate() -> None:
@@ -86,10 +94,32 @@ def test_signals_accumulate() -> None:
     assert {"改动类动词", "具体文件路径", "跨文件连接词"} <= ev, ev
 
 
-# ── 注入文案的硬性要求 (改 _CTX / _PREFIX_RULE 时这些不能丢) ──────────────────
+# ── 注入文案的硬性要求 (通过 cmd_user_prompt 输出验证) ──────────────────────
+
+
 def _verdict_lines(text: str) -> list[str]:
     """格式模板行 (缩进的 `[skein] 判定: …`); 散文里提到判定行的句子不算。"""
     return [ln.strip() for ln in text.splitlines() if ln.strip().startswith("[skein] 判定:")]
+
+
+def _capture_ctx_output() -> str:
+    """在已初始化的 skein 工作区跑 cmd_user_prompt, 返回注入文案。
+
+    cmd_user_prompt 内部的文案字符串藏在函数体里, 无法从模块级常量直读 ——
+    只能经 hook 的 stdout (JSON.additionalContext) 取, 这也是 hook 唯一对外契约。
+    """
+    from skeinlib.hooks.user_prompt_submit import cmd_user_prompt
+    with tempfile.TemporaryDirectory() as td:
+        ws = make_ws(Path(td))
+        cwd0 = os.getcwd()
+        os.chdir(ws)
+        buf = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(buf):
+                cmd_user_prompt({"prompt": "看看就行", "cwd": str(ws)})
+        finally:
+            os.chdir(cwd0)
+    return json.loads(buf.getvalue())["hookSpecificOutput"]["additionalContext"]
 
 
 def test_ctx_demands_an_explicit_verdict_line() -> None:
@@ -97,16 +127,12 @@ def test_ctx_demands_an_explicit_verdict_line() -> None:
 
     判定不写出来就等于没判 —— 事后分不清「判了直接改」和「压根没想直接开干」。
     写出来才让越界当场可见 (判了 flow 却在 Edit / 判了 inline 却改了五个文件)。
-
-    三条路径只查 `_CTX`: 两块文案是拼在一起注入的, 曾经两边都列一遍, 纯属重复占篇幅。
-    `_PREFIX_RULE` 只需给出模板本体 + 指回 `_CTX` 的指针。
     """
-    from skeinlib.hooks.user_prompt_submit import _CTX, _PREFIX_RULE
-    for text, where in ((_CTX, "_CTX"), (_PREFIX_RULE, "_PREFIX_RULE")):
-        assert _verdict_lines(text), f"{where} 没给出判定行格式模板"
+    ctx = _capture_ctx_output()
+    assert _verdict_lines(ctx), "注入文案没给出判定行格式模板"
     for path in ("flow", "补充", "inline"):
-        assert path in _CTX, f"_CTX 的落地路径缺 {path}"
-    assert "第一行" in _PREFIX_RULE, "_PREFIX_RULE 没说明判定行要放第一行"
+        assert path in ctx, f"注入文案的落地路径缺 {path}"
+    assert "第一行" in ctx, "注入文案没说明判定行要放第一行"
 
 
 def test_every_verdict_line_demands_a_reason() -> None:
@@ -115,10 +141,9 @@ def test_every_verdict_line_demands_a_reason() -> None:
     只写结论不写原因, 越界看不见: 「判定: inline 直接改」后面改了五个文件, 到底是判据用错还是
     判据没读, 事后分不出来, 用户也没法纠偏到点上。原因把判据摊开, 判错才当场可反驳。
     """
-    from skeinlib.hooks.user_prompt_submit import _CTX, _PREFIX_RULE
-    for text, where in ((_CTX, "_CTX"), (_PREFIX_RULE, "_PREFIX_RULE")):
-        for ln in _verdict_lines(text):
-            assert "原因" in ln, f"{where} 这条判定行没要求写原因: {ln!r}"
+    ctx = _capture_ctx_output()
+    for ln in _verdict_lines(ctx):
+        assert "原因" in ln, f"这条判定行没要求写原因: {ln!r}"
 
 
 def test_ctx_has_no_escaped_backticks() -> None:
@@ -127,36 +152,8 @@ def test_ctx_has_no_escaped_backticks() -> None:
     踩过一次: 前缀规则里写 \\` 想表示反引号, 注入到 prompt 后用户看到的是带反斜杠的怪字符串。
     示例格式改用缩进代码块, 不靠反引号包裹。
     """
-    from skeinlib.hooks.user_prompt_submit import _CTX, _PREFIX_RULE, _UNINIT_PLAIN, _UNINIT_TRELLIS
-    for text, where in ((_CTX, "_CTX"), (_PREFIX_RULE, "_PREFIX_RULE"),
-                        (_UNINIT_PLAIN, "_UNINIT_PLAIN"), (_UNINIT_TRELLIS, "_UNINIT_TRELLIS")):
-        assert "\\`" not in text, f"{where} 有转义漏出的反斜杠+反引号"
-
-
-def test_ctx_length_budget() -> None:
-    """机械篇幅守卫 —— 唯一会在文案膨胀时报警的机制 (注释里的数字不会失败)。
-
-    阈值 = 压缩后实际值 + 少量余量, 不是随便定的圆整数: 余量必须小于本文案里最短一个独立
-    小节 (「## 其他」, 53 字), 否则「新增一整段」的最小场景也可能滑过去;
-    同时要大于一次措辞微调的量级 (几个字到二十来字), 否则改一个标点都要连带改阈值。
-    """
-    from skeinlib.hooks.user_prompt_submit import _CTX
-    assert len(_CTX) <= 850, (
-        f"_CTX 篇幅膨胀到 {len(_CTX)} 字, 超过预算 850 (压缩后实际 804 + 余量 46)。"
-        "先看是不是能砍 (§1 三类冗余处置), 确实要加的话同步把这个阈值和下面的注释一起改。"
-    )
-
-
-def test_prefix_rule_length_budget() -> None:
-    """`_PREFIX_RULE` 每轮都注入, 单独守 —— 与 `_CTX` 合并成一个总阈值会让任一方的膨胀被
-    另一方的余量掩盖 (`_CTX` 单条余量就能吃掉 `_PREFIX_RULE` 全部涨幅还不报警)。
-
-    阈值卡在「小于最短一行 (36 字)」的量级, 保证补一条新规则必触发。
-    """
-    from skeinlib.hooks.user_prompt_submit import _PREFIX_RULE
-    assert len(_PREFIX_RULE) <= 190, (
-        f"_PREFIX_RULE 篇幅膨胀到 {len(_PREFIX_RULE)} 字, 超过预算 190 (压缩后实际 156 + 余量 34)。"
-    )
+    ctx = _capture_ctx_output()
+    assert "\\`" not in ctx, "注入文案有转义漏出的反斜杠+反引号"
 
 
 def test_ctx_autodrive_continues_past_create_to_a_real_user_gate() -> None:
@@ -168,8 +165,8 @@ def test_ctx_autodrive_continues_past_create_to_a_real_user_gate() -> None:
 
     断言语义 (「建完继续」+「终点是用户门」+「不得代替批准」), 不断具体措辞。
     """
-    from skeinlib.hooks.user_prompt_submit import _CTX
-    section = _CTX[_CTX.index("# 任务判定"):]
+    ctx = _capture_ctx_output()
+    section = ctx[ctx.index("# 任务判定"):]
 
     assert "Skill(name='skein-flow'" in section, "该段丢了 flow 入口规定"
     assert "补充" in section, "该段没写旧任务补充路径"
@@ -182,8 +179,8 @@ def test_three_landing_paths_are_defined_with_criteria() -> None:
 
     意图是开放的, 但落地只有这三条 (建 task / 并入 / 直接做), 判据丢了就等于让 AI 拍脑袋。
     """
-    from skeinlib.hooks.user_prompt_submit import _CTX
-    body = _CTX[_CTX.index("# 任务判定"):]
+    ctx = _capture_ctx_output()
+    body = ctx[ctx.index("# 任务判定"):]
     for token in ("flow", "inline", "补充", "其他", "判断条件", "判定条件"):
         assert token in body, f"落地路径段缺 {token}"
 

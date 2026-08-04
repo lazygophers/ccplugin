@@ -63,11 +63,6 @@ cli/          CLI 入口 — Typer 命令树 + dispatch + 工作区锁          
 五个协作对象的依赖**只走构造入参** —— `Scheduler(ws, lifecycle)` 这一行就是完整依赖清单。
 门面上刻意没有转发方法, `cli/main.py` 的 dispatch 直接指到 `sk.lifecycle.create` 这一级。
 
-## 顶层 shim 文件
-顶层 *.py 文件 (errors.py, paths.py, workspace.py, serve.py, views.py 等) 均为一行 re-export shim,
-指向对应子包内的实际实现。存在原因: 分批迁移不破坏现有 import 路径 (19+ 处 `from skeinlib.errors import SkeinError`)。
-后续可统一改为 `from skeinlib.utils.errors import SkeinError` 后删 shim。
-
 ## 入口
 `scripts/skein.py` / `spec.py` / `hooks.py` 三个薄壳, 只做 sys.path 接线 + 调 main。
 业务代码禁写在入口文件里。

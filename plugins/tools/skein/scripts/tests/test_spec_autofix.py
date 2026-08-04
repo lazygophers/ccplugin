@@ -333,7 +333,7 @@ def test_stop_check_writes_pending_fix(mem_ws: Path, mem_cli: MemCli) -> None:
     payload = json.loads(marker.read_text())
     assert set(("ts", "core_chars", "core_tokens", "budget_tokens", "problems")) <= set(payload), \
         f"pending-fix 缺字段: {payload.keys()}"
-    from skeinlib.token_conversion import estimate_tokens_from_chars
+    from skeinlib.utils.token_conversion import estimate_tokens_from_chars
     # budget_tokens 是配置 char 预算换算后的 token 数, 非原始 8000 (chars→tokens 系数见 token_conversion.py)
     assert payload["budget_tokens"] == estimate_tokens_from_chars(8000), \
         f"budget_tokens 值错: {payload['budget_tokens']}"

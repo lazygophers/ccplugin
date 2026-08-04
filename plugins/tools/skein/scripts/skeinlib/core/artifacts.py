@@ -13,9 +13,9 @@ import argparse
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from skeinlib.workspace import Workspace
+    from skeinlib.core.workspace import Workspace
 
-from skeinlib.errors import SkeinError
+from skeinlib.utils.errors import SkeinError
 from skeinlib.task.model import PRD_SECTIONS_V6, PRD_TODO_SECTIONS, PRD_TYPE_ALIAS
 from skeinlib.task.prd import section_add, section_check, section_read, section_write
 

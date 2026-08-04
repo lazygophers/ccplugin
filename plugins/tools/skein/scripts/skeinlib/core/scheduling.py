@@ -19,10 +19,10 @@ import json
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from skeinlib.workspace import Workspace
+    from skeinlib.core.workspace import Workspace
 
 from skeinlib.task.dag import _crit_weight, _split, _split_semi, _sub_estimate_sum, _sub_pct
-from skeinlib.errors import SkeinError
+from skeinlib.utils.errors import SkeinError
 from skeinlib.task.model import (SubtaskStatus, SubtaskPhase, TaskStatus, PRIORITY_RANK, PRIORITY_DEFAULT, now)
 from skeinlib.task import timeline as _timeline
 from skeinlib.task.timeline import fmt_ts as _fmt_ts
@@ -30,7 +30,7 @@ from skeinlib.task.timeline import fmt_ts as _fmt_ts
 from typing import TYPE_CHECKING as _TC
 
 if _TC:
-    from skeinlib.lifecycle import Lifecycle
+    from skeinlib.core.lifecycle import Lifecycle
 
 # work 池出线打分 (design.md §4) —— 常数放模块级不进 config: 三个可调旋钮 = 三个没人知道
 # 该填什么的旋钮, 真需要调再说。关键路径权重占绝对主导 (W_CRIT 远大于其余两项), 保证这套打分

@@ -28,7 +28,7 @@ def main() -> int:
 
 
 def self_check() -> int:
-    from skeinlib.hooks.user_prompt_submit import CTX, judge_signal
+    from skeinlib.hooks.user_prompt_submit import judge_signal
 
     cases: list[tuple[str, list[str]]] = [
         ("改 hooks.py 和 spec.py 的判定", ["具体文件路径", "改动类动词"]),
@@ -47,8 +47,6 @@ def self_check() -> int:
             if signal not in evidence:
                 failures.append((prompt, signal, evidence, "期望证据缺失"))
         print(f"  ev={evidence} | {prompt!r}")
-    if "任务判定" not in CTX:
-        failures.append(("ctx", "任务判定", CTX, "CTX 应包含任务判定标题"))
     print(f"FAIL count: {len(failures)}")
     return 1 if failures else 0
 

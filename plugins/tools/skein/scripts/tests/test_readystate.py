@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 
 import conftest  # noqa: F401  模块体把 scripts/ 塞进 sys.path
-from skeinlib.readystate import migrate_ready_status  # noqa: E402
+from skeinlib.task.readystate import migrate_ready_status  # noqa: E402
 
 def _mk_task(tasks_dir: Path, tid: str, status: str) -> Path:
     d = tasks_dir / tid

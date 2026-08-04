@@ -17,12 +17,12 @@ import sys
 from pathlib import Path
 from typing import Any, AsyncIterator, Callable, Iterable, Optional, cast
 
-from skeinlib.debug import debug_enabled
-from skeinlib.paths import PLUGIN_ROOT, SPEC_ENTRY
-from skeinlib.exec_policy import exec_argv
+from skeinlib.utils.debug import debug_enabled
+from skeinlib.utils.paths import PLUGIN_ROOT, SPEC_ENTRY
+from skeinlib.utils.exec_policy import exec_argv
 import yaml  # type: ignore[import-untyped]
 from skeinlib.config import Config, ConfigData
-from skeinlib.views import (DataSource, _cards_signature, _spec_frontmatter, _view_archive,
+from skeinlib.web.views import (DataSource, _cards_signature, _spec_frontmatter, _view_archive,
                             _view_board_data, _view_dashboard, _view_queue, _view_search,
                             _view_task_detail)
 

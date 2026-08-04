@@ -47,7 +47,7 @@ if _HERE not in sys.path:
 
 def _run_main() -> None:
     from skeinlib.cli import main
-    from skeinlib.errors import SkeinError
+    from skeinlib.utils.errors import SkeinError
 
     try:
         main()
@@ -63,8 +63,8 @@ def main() -> None:
 
 
 if __name__ != "__main__":
-    from skeinlib.commands import Skein  # noqa: E402  对外符号: 测试与 hooks 按名取用
-    from skeinlib.errors import SkeinError  # noqa: E402
+    from skeinlib.core.commands import Skein  # noqa: E402  对外符号: 测试与 hooks 按名取用
+    from skeinlib.utils.errors import SkeinError  # noqa: E402
     __all__ = ["Skein", "SkeinError", "main"]
 
 

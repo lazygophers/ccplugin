@@ -37,7 +37,7 @@ class InjectMixin:
         budget = always_budget_tokens()
         if len(text) > 0:  # 这里比较字符数与 token 预算，需要换算
             # 估算当前文本的 token 数
-            from skeinlib.token_conversion import estimate_tokens_from_chars
+            from skeinlib.utils.token_conversion import estimate_tokens_from_chars
             estimated_tokens = estimate_tokens_from_chars(len(text))
             if estimated_tokens > budget:
                 sys.stderr.write(
@@ -68,7 +68,7 @@ class InjectMixin:
         # hook 热路径: 不跑 git log (use_git=False), 文件系统 mtime 够判"该体检了"
         mt = self._mtimes(use_git=False)
         oldest = max((self._age_days(f, mt, now_ts) for f in self._always_files()), default=0)
-        from skeinlib.token_conversion import estimate_tokens_from_chars
+        from skeinlib.utils.token_conversion import estimate_tokens_from_chars
         if estimate_tokens_from_chars(len(core_text)) > always_budget_tokens() or oldest > STALE_DAYS:
             ctx += f"\n⚠️ core 超 budget / 有 > {STALE_DAYS}天老规则, 跑 `skein-spec maintain` 体检"
         print(json.dumps({"hookSpecificOutput": {

@@ -7,9 +7,9 @@ import os
 import sys
 from typing import Any, Callable, Optional, cast
 
-# debug 基础设施从本文件抽到 skeinlib/debug.py (ADR 0003 S2)。
-# 此处 re-export 保向后兼容: hooks 子模块仍可 `from skeinlib.hooks import DBG`。
-from skeinlib.debug import DBG, Debug, budget_guard, debug_enabled, est_tokens
+# debug 基础设施从本文件抽到 skeinlib/utils/debug.py (ADR 0003 S2)。
+# 此处 re-export: hooks 子模块仍可 `from skeinlib.hooks import DBG`。
+from skeinlib.utils.debug import DBG, Debug, budget_guard, debug_enabled, est_tokens
 
 DISPATCH: dict[str, str] = {
     "permission": "permission_request:cmd_permission",

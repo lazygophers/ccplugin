@@ -12,7 +12,7 @@ from __future__ import annotations
 from pathlib import Path
 
 # ── 路径基准 (单一真值源) ──────────────────────────────────────────────────────
-# 本文件位于 skeinlib/utils/paths.py, 比原 skeinlib/paths.py 深一层:
+# 本文件位于 skeinlib/utils/paths.py:
 #   Path(__file__).resolve().parent          = skeinlib/utils/
 #   .parent                                  = skeinlib/
 #   .parent.parent                           = scripts/

@@ -20,7 +20,7 @@ from typing import Any, cast
 
 from pydantic import BaseModel, Field
 
-from skeinlib.errors import SkeinError
+from skeinlib.utils.errors import SkeinError
 from skeinlib.spec.text import _frontmatter
 
 # 硬规否定式关键词 + 其后紧跟的短语 (最多 20 字, 到常见分隔符为止) — 用于硬规冲突候选提取

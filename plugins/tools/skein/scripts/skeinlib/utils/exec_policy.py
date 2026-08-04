@@ -8,7 +8,7 @@ from __future__ import annotations
 import sys
 from typing import Any, Optional, cast
 
-from skeinlib.paths import SKEIN_ENTRY
+from skeinlib.utils.paths import SKEIN_ENTRY
 
 
 def exec_argv(body: dict[str, Any]) -> Optional[list[str]]:

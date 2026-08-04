@@ -15,15 +15,15 @@ import argparse
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from skeinlib.workspace import Workspace
+    from skeinlib.core.workspace import Workspace
 
 from skeinlib.task.dag import _sub_estimate_sum, detect_cycle
-from skeinlib.errors import SkeinError
+from skeinlib.utils.errors import SkeinError
 from skeinlib.task.model import (CODE_ID_RE, PRIORITY_DEFAULT, SLUG_RE, SubtaskStatus, SubtaskPhase, STATUS_INFLIGHT, TaskStatus, TS_CHECKED_END, now)
 from skeinlib.task.prd import review_summary, validate_prd, validate_seam
 from skeinlib.task import timeline as _timeline
-from skeinlib.priority import validate_priority
-from skeinlib.worktree import commit_all, destroy_worktrees, git, make_worktree, parse_repos, worktrees_of
+from skeinlib.task.priority import validate_priority
+from skeinlib.infra.worktree import commit_all, destroy_worktrees, git, make_worktree, parse_repos, worktrees_of
 
 import datetime
 import json

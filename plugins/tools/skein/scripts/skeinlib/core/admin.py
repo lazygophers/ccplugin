@@ -10,17 +10,17 @@ import argparse
 from typing import Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from skeinlib.workspace import Workspace
+    from skeinlib.core.workspace import Workspace
 
 import yaml  # type: ignore[import-untyped]
 from skeinlib.config import Config, ConfigData
-from skeinlib.derivatives import gi_entries
-from skeinlib.errors import SkeinError
+from skeinlib.utils.derivatives import gi_entries
+from skeinlib.utils.errors import SkeinError
 from skeinlib.task.model import TaskStatus
-from skeinlib.migrate import (disable_trellisx_plugin, migrate_trellis_tasks,
+from skeinlib.task.migrate import (disable_trellisx_plugin, migrate_trellis_tasks,
                               purge_trellis_hooks, purge_wiring, settings_trellis_notes)
-from skeinlib.paths import SPEC_ENTRY
-from skeinlib.worktree import ignore_worktree_dir
+from skeinlib.utils.paths import SPEC_ENTRY
+from skeinlib.infra.worktree import ignore_worktree_dir
 
 import contextlib
 import json

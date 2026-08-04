@@ -112,7 +112,7 @@ def test_max_active_not_in_config_defaults() -> None:
 
 def test_snapshot_kwarg_renamed_from_max_active() -> None:
     """`Snapshot` 构造已不接受 `max_active=` 关键字 (改名 `pool_work`, s8 收口 s7 遗留)。"""
-    from skeinlib.views import Snapshot
+    from skeinlib.web.views import Snapshot
     import inspect
     params = inspect.signature(Snapshot.__init__).parameters
     assert "max_active" not in params

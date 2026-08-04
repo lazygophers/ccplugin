@@ -24,7 +24,7 @@ except ModuleNotFoundError:
     raise
 
 from skeinlib.hooks.runner import DBG, debug_enabled
-from skeinlib.commands import Skein, _persist_bash_cwd_env, _workspace_lock
+from skeinlib.core.commands import Skein, _persist_bash_cwd_env, _workspace_lock
 from skeinlib.task.model import PRD_TYPE_ALIAS
 
 

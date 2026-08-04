@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from conftest import HOOKS
-from skeinlib.derivatives import DERIVATIVES
+from skeinlib.utils.derivatives import DERIVATIVES
 
 SkeinCli = Callable[..., object]
 MemCli = Callable[..., object]

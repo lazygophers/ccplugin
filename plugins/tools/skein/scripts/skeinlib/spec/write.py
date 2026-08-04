@@ -14,7 +14,7 @@ import re
 
 from pydantic import BaseModel, Field
 
-from skeinlib.errors import SkeinError
+from skeinlib.utils.errors import SkeinError
 from skeinlib.spec.text import _frontmatter, _slug, _strip_frontmatter, _sections
 
 

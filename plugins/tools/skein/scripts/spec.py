@@ -49,7 +49,7 @@ _HERE = os.path.dirname(os.path.realpath(__file__))
 if _HERE not in sys.path:
     sys.path.insert(0, _HERE)
 
-from skeinlib.errors import SkeinError  # noqa: E402
+from skeinlib.utils.errors import SkeinError  # noqa: E402
 from skeinlib.spec.cli import main  # noqa: E402
 from skeinlib.spec.facade import Spec  # noqa: E402  对外符号: hooks.py 按名取用
 
