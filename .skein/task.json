@@ -1,68 +1,6 @@
 {
   "tasks": [
     {
-      "id": "readme-broken-links",
-      "status": "pending",
-      "deps": [],
-      "priority": "normal",
-      "worktree": null,
-      "parent": null,
-      "kind": "task",
-      "created": 1785762850,
-      "confirmed": null,
-      "started": null,
-      "checked": null,
-      "checked_end": null,
-      "finished": null
-    },
-    {
-      "id": "test",
-      "status": "pending",
-      "deps": [],
-      "priority": "normal",
-      "worktree": null,
-      "parent": null,
-      "kind": "task",
-      "created": 1785806629,
-      "confirmed": null,
-      "started": null,
-      "checked": null,
-      "checked_end": null,
-      "finished": null
-    },
-    {
-      "id": "worktree-missing-own-task",
-      "status": "pending",
-      "deps": [],
-      "priority": "normal",
-      "worktree": null,
-      "parent": null,
-      "kind": "task",
-      "created": 1785767030,
-      "confirmed": null,
-      "started": null,
-      "checked": null,
-      "checked_end": null,
-      "finished": null
-    },
-    {
-      "id": "flow-loop-ai-recheck",
-      "status": "pending",
-      "deps": [
-        "flow-refs-consolidate"
-      ],
-      "priority": "low",
-      "worktree": null,
-      "parent": null,
-      "kind": "task",
-      "created": 1785762850,
-      "confirmed": null,
-      "started": null,
-      "checked": null,
-      "checked_end": null,
-      "finished": null
-    },
-    {
       "id": "flow-refs-consolidate",
       "status": "done",
       "deps": [],
