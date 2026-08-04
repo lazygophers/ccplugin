@@ -32,8 +32,6 @@ _PREFIX_RULE = PREFIX_RULE
 _UNINIT_PLAIN = UNINIT_PLAIN
 _UNINIT_TRELLIS = UNINIT_TRELLIS
 _EXPLICIT = ("go", "exec", "do", "plan", "继续", "continue")
-_EXPLICIT_PREFIX = ("/skein-", "/skein:skein-", "skein-")
-
 
 def judge_signal(prompt: str) -> list[str]:
     text = (prompt or "").strip()
@@ -90,15 +88,15 @@ def cmd_user_prompt(payload: dict[str, object]) -> int:
     if prompt.startswith(("/skein:skein-flow", "/skein-flow")):
         print(json.dumps({
             "hookSpecificOutput": {
-        "hookEventName": "UserPromptSubmit", 
-        "additionalContext": context
-        },
-        }))
+                "hookEventName": "UserPromptSubmit", 
+                "additionalContext": "强制使用 flow 模式执行，无视任何判定"
+                },
+            }))
         return 0
 
     prompt_text = prompt.strip() if isinstance(prompt, str) else ""
 
-    if prompt_text in _EXPLICIT or prompt_text.startswith(_EXPLICIT_PREFIX):
+    if prompt_text in _EXPLICIT or prompt_text.startswith(("/skein-", "/skein:skein-", "skein-")):
         return 0
     cwd = payload.get("cwd") or os.getcwd()
     root = git_root(cwd if isinstance(cwd, str) else os.getcwd())
