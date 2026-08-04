@@ -48,14 +48,15 @@ skein subtask add <tid> st3 --name "加测试"     --desc "覆盖新旧字段两
 
 `sid`/`--name`/`--desc`/`--estimate` 四者必填（缺一即报错退出），字段全表查 `skein subtask --help`。
 
-**求最短工期（min makespan）**：就绪批由脚本按拓扑深度优先派，planning 只需做对两件事：
+**求最短工期（min makespan）**：就绪批由脚本打分排序后截到空闲槽位（打分细则见 §5），planning 只需做对三件事：
 
 - **协议先行，后并行** — 先识别 subtask 间共享契约（接口签名 / 数据结构 / 类型 / API 格式 / DB schema），把「定契约」抽成单个前置 subtask，所有实现 subtask 只 `--deps` 它、彼此不互挂 → 契约 done 即全批并行。反模式：让实现 A 依赖实现 B 只因「B 先写了接口」—— 应把接口提成独立前置。
-- **压关键路径** — 长任务尽量前置，让下游能早并行。
+- **压关键路径** — 长任务（`--estimate` 大）尽量前置，让下游能早并行。脚本的 `crit_weight` 已用 `estimate` 加权算最长工期链（CPM），estimate 填得准直接影响调度质量。
+- **瓶颈不饿（Drum Buffer）** — work 池是系统瓶颈（固定并发槽），首要目标是让瓶颈永不空闲。若 ready 数 < 空闲槽且仍有 pending subtask，说明依赖链过深（可并行化未并行化），回 planning 审视 DAG。
 
 ## 3. 复杂度天花板：cold-start 大需求
 
-归一 vs 分立的判据见 [flow-loop.md §0.1](flow-loop.md#01-作用域边界)（默认归一）。只有下列 cold-start 信号命中才升级为多 task：
+归一 vs 分立的判据见 [flow-loop.md#作用域边界](flow-loop.md#作用域边界)（默认归一）。只有下列 cold-start 信号命中才升级为多 task：
 
 | 信号                                                    | 判据                                    | 动作                                                                                   |
 | ------------------------------------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------- |
@@ -92,12 +93,25 @@ subtask.ready = 所有 depends_on 均 done
 | `skein confirm`                | 是               | task 前置未 done 时拒。        |
 | `skein claim exec`             | 是               | subtask 前置未 done 不 ready。 |
 
-ready 数超过空闲槽时按稳定排序截取：拓扑深度降序（阻塞下游最多者优先）→ task 登记序 → subtask 登记序。
+ready 数超过空闲槽时按四键稳定排序截取：
 
 ```text
-crit_weight(node) = 1 + max(crit_weight(child) for child in children(node))   # 叶子 = 1
-layer(source) = 0; layer(node) = max(layer(dep)) + 1                          # BFS 分层, 看板渲染用
+排序键 (降序优先):
+  1. task 优先级 (urgent=3 > high=2 > normal=1 > low=0)
+  2. score = crit_weight × 100 + 等待小时数 × 1 + (exec phase ? 1 : 0)
+  3. task 登记序
+  4. subtask 登记序
 ```
+
+score 的三项权重设计：`W_CRIT >> W_WAIT ≈ W_EXEC`。关键路径权重占绝对主导（保证 makespan 最小化），等待时长和 exec phase 只在同 crit 级别内微调 —— `W_WAIT` 防饿死（等够久的低 crit subtask 能翻盘），`W_EXEC` 软优先 exec phase（同分时 exec 先走，但 research 不会被无限期饿死）。
+
+```text
+# CPM 加权关键路径: estimate 加权的最长下游工期链 (非跳数)
+crit_weight(node) = estimate(node) + max(crit_weight(child) for child in children(node))   # 叶子 = estimate
+layer(source) = 0; layer(node) = max(layer(dep)) + 1                                      # BFS 分层, 看板渲染用
+```
+
+> CPM（关键路径法）：`crit_weight` 用 `estimate` 加权而非跳数，因为 0.5h 前置和 8h 前置在跳数模型中等权，但工期影响差 16 倍。前端 ETA 计算已用相同逻辑，两端一致。
 
 ## 6. 双池模型
 
@@ -108,16 +122,20 @@ layer(source) = 0; layer(node) = max(layer(dep)) + 1                          # 
 
 `skein confirm` 不占池；真正资源约束在 running subtask 与 gate task。
 
+> **利用率警戒（Kingman 近似）**：work 池利用率 ρ = running/exec 槽位超 80% 时，subtask 等待时间呈非线性增长。planning 阶段若预估 subtask 总量大，考虑提高 `pools.work` 或减少伪依赖释放并行度。
+>
+> **gate 优先级反转风险**：gate 池满时，urgent task 的 check/finishing 可能被 low priority task 阻塞。若频繁出现，考虑提高 `pools.gate` 或拆分大体量 task 减少 gate 占用时长。
+
 ## 7. claim 命令族
 
-| 命令                              | 范围        | 语义                                                                                                                        |
-| --------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `skein claim`                     | 全局跨 task | 同时处理 exec + check 两路，只推状态不做路由；派谁由 main 按 task 状态判，见 [flow-loop.md §3](flow-loop.md#3-主循环骨架)。 |
-| `skein claim exec`                | 全局跨 task | 只认领 ready subtask 并标 `running`。                                                                                       |
-| `skein claim check`               | 全局跨 task | 只认领可进 check / finishing 的 task。                                                                                      |
-| `skein subtask claim <tid>`       | 单 task     | 单 task 内批量认领。                                                                                                        |
-| `skein subtask start <tid> <sid>` | 单 subtask  | 启动 pending/failed subtask。                                                                                               |
+| 命令                              | 范围        | 语义                                                                                                                              |
+| --------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `skein claim`                     | 全局跨 task | 同时处理 exec + check 两路，只推状态不做路由；派谁由 main 按 task 状态判，见 [flow-loop.md#主循环骨架](flow-loop.md#主循环骨架)。 |
+| `skein claim exec`                | 全局跨 task | 只认领 ready subtask 并标 `running`。                                                                                             |
+| `skein claim check`               | 全局跨 task | 只认领可进 check / finishing 的 task。                                                                                            |
+| `skein subtask claim <tid>`       | 单 task     | 单 task 内批量认领。                                                                                                              |
+| `skein subtask start <tid> <sid>` | 单 subtask  | 启动 pending/failed subtask。                                                                                                     |
 
 任一 claim 加 `--dry-run` = 只读预览，不改状态。
 
-exec 统一派 `skein:skein-executor`，dispatch 只给 tid、sid、工作目录，executor 自读 `skein subtask show <tid> <sid>`；完整载体规则见 [flow-loop.md §3.1](flow-loop.md#31-派发载体)。完成即派、失败自愈、redo 续跑见 [flow-loop.md §5](flow-loop.md#5-exec-过程)、[§8](flow-loop.md#8-redo-断点续跑)、[§9](flow-loop.md#9-失败扭转)。
+exec 统一派 `skein:skein-executor`，dispatch 只给 tid、sid、工作目录，executor 自读 `skein subtask show <tid> <sid>`。完成即派、失败重试、断点续跑见 [flow-loop.md#主循环骨架](flow-loop.md#主循环骨架) 与 [redo.md](redo.md)。
