@@ -39,7 +39,7 @@ spec/       规则记忆库 (namespace × inclusion)               → errors
 业务代码禁写在入口文件里。
 
 ## 本文件保持零 import
-`skeinlib.hooks.judge` 在**每个 prompt** 的热路径上, 而 `import skeinlib.hooks.judge` 必然先
+`skeinlib.hooks.user_prompt_submit` 在**每个 prompt** 的热路径上, 而 `import skeinlib.hooks.user_prompt_submit` 必然先
 执行本文件。这里 import 一个 `pathlib` 就给每次对话加 2.5ms —— 路径常量因此单独放 `paths.py`。
 禁在此处加任何 import。
 """

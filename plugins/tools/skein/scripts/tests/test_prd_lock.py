@@ -21,8 +21,8 @@ from typing import Any, Callable
 from conftest import SkeinCli
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from skeinlib.hooks.guard import cmd_guard
-from skeinlib.hooks.permission import cmd_permission
+from skeinlib.hooks.permission_request import cmd_permission
+from skeinlib.hooks.pre_tool_use import cmd_guard
 from skeinlib.hooks.util import BLOCKED
 
 TID = "prd-lock"

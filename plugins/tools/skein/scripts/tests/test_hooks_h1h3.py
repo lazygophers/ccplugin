@@ -21,10 +21,10 @@ from typing import Any, Callable
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from skeinlib.hooks.guard import cmd_guard
-from skeinlib.hooks.permission import cmd_permission
-from skeinlib.hooks.spec_meta import cmd_spec_meta
-from skeinlib.hooks.stopcheck import cmd_stop_check
+from skeinlib.hooks.permission_request import cmd_permission
+from skeinlib.hooks.post_tool_use import cmd_spec_meta
+from skeinlib.hooks.pre_tool_use import cmd_guard
+from skeinlib.hooks.stop import cmd_stop_check
 from skeinlib.hooks.util import git_root
 
 
