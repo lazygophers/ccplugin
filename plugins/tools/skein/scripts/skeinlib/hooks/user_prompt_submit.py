@@ -12,35 +12,13 @@ UNINIT_TRELLIS = """# SKEIN 未初始化 — 检测到 trellis, 先迁移初始�
 UNINIT_PLAIN = """# SKEIN 未初始化 — 先初始化再处理任务
 本仓库无 `.skein/` 工作区, SKEIN task 闭环不可用。**先调用 skein-setup skill 初始化** (幂等) 再干活。
 查询/小改只豁免『建 task / 走 flow』, 不豁免初始化本身; 仅纯读代码/问答 (零改动) 可不初始化。"""
-CTX = """# 任务判定
 
-🛑 每轮第一行 = 判定行
-[skein] 判定: <flow/inline/补充> (原因: <本轮命中的判据>)
-
-- **flow**:
-    - 判定条件：跨≥2文件 / 多步骤 / 改动类动词 / 新建类 / 复杂调研
-    - 执行流程：Skill(name='skein-flow', description=<用户输入>)
-- **补充**:
-    - 判断条件：与某在途 task 同目标 / 同模块 / 共享改动面 / 互为前置
-    - 执行流程：Skill(name='skein-flow', description=<用户输入>)
-- **inline**:
-    - 判断条件：纯查询 / 问答 / 单文件单处且 ≤20 行
-    - 执行流程：main 中直接执行
-- **其他**:
-    - 使用 AskUserQuestion 询问用户
-
-注意：
-1. 原因写具体判据 (「跨 a.py+b.py 两文件」), 不写结论复述 (「比较复杂」)
-2. 新的输入 != 新任务，需要对上下文进行判定，如果是旧任务，则作为补充继续旧任务的执行，如果是新任务，则先排队，进入 flow 流程
-3. 新输入禁打断在跑的工作; 一句可能对应 1 个 / N 个 task / 部分并入已有 task
-"""
 PREFIX_RULE = """# 回复前缀 (强制)
 每条回复以 `[skein]` 开头, 处理某 task 时改用 `[skein|<taskId>|<阶段>]`;
 **第一行必须是判定行** (格式/判据/三条路径见上方「任务判定」):
 [skein] 判定: <flow/inline/补充> (原因: <本轮命中的判据>)
 """
 
-_CTX = CTX
 _FLOW_CROSS = ("以及", "同时", "另外", "还有", "顺便", "一起", "都要", "分别")
 _FLOW_NEW = ("新模块", "新功能", "新接口", "新页面", "新组件", "骨架", "脚手架", "框架", "原型", "poc")
 _FLOW_PATH_RE = re.compile(r"(?:\./[^/\s]+|(?<![A-Za-z0-9])/[\w.-]+/[\w./-]+|[\w-]+\.(?:py|js|ts|tsx|jsx|go|rs|java|md|yaml|yml|json|sh))")
@@ -109,7 +87,17 @@ def run_config(skein_dir: str) -> tuple[bool, int, bool]:
 
 def cmd_user_prompt(payload: dict[str, object]) -> int:
     prompt = (payload.get("prompt", "") or "")
+    if prompt.startswith(("/skein:skein-flow", "/skein-flow")):
+        print(json.dumps({
+            "hookSpecificOutput": {
+        "hookEventName": "UserPromptSubmit", 
+        "additionalContext": context
+        },
+        }))
+        return 0
+
     prompt_text = prompt.strip() if isinstance(prompt, str) else ""
+
     if prompt_text in _EXPLICIT or prompt_text.startswith(_EXPLICIT_PREFIX):
         return 0
     cwd = payload.get("cwd") or os.getcwd()
@@ -121,9 +109,30 @@ def cmd_user_prompt(payload: dict[str, object]) -> int:
         context = UNINIT_TRELLIS if os.path.isdir(os.path.join(root, ".trellis")) else UNINIT_PLAIN
     else:
         evidence = judge_signal(prompt_text)
-        context = CTX
+        context = """# 任务判定
+
+🛑 每轮第一行 = 判定行
+[skein] 判定: <flow/inline/补充> (原因: <本轮命中的判据>)
+
+- **flow**:
+    - 判定条件：跨≥2文件 / 多步骤 / 改动类动词 / 新建类 / 复杂调研
+    - 执行流程：Skill(name='skein-flow', description=<用户输入>)
+- **补充**:
+    - 判断条件：与某在途 task 同目标 / 同模块 / 共享改动面 / 互为前置
+    - 执行流程：Skill(name='skein-flow', description=<用户输入>)
+- **inline**:
+    - 判断条件：纯查询 / 问答 / 单文件单处且 ≤20 行
+    - 执行流程：main 中直接执行
+- **其他**:
+    - 使用 AskUserQuestion 询问用户
+
+注意：
+1. 原因写具体判据 (「跨 a.py+b.py 两文件」), 不写结论复述 (「比较复杂」)
+2. 新的输入 != 新任务，需要对上下文进行判定，如果是旧任务，则作为补充继续旧任务的执行，如果是新任务，则先排队，进入 flow 流程
+3. 新输入禁打断在跑的工作; 一句可能对应 1 个 / N 个 task / 部分并入已有 task
+"""
         if evidence:
-            context += f"\n本次命中: {', '.join(evidence)}"
+            context += f"\n机械判定: {', '.join(evidence)}"
         phase_hints = task_phase_hints(skein_dir)
         context += "\n\n" + PREFIX_RULE + phase_hints
         if phase_hints:
@@ -141,7 +150,5 @@ _judge_signal = judge_signal
 _task_phase_hints = task_phase_hints
 _run_config = run_config
 
-__all__ = ["CTX", "PREFIX_RULE", "UNINIT_PLAIN", "UNINIT_TRELLIS", "_CTX", "_FLOW_CROSS", "_FLOW_NEW",
-           "_FLOW_PATH_RE", "_FLOW_STEPS", "_FLOW_VERBS", "_INLINE_Q", "_PHASE", "_PREFIX_RULE",
-           "_UNINIT_PLAIN", "_UNINIT_TRELLIS", "_judge_signal", "_task_phase_hints", "cmd_user_prompt",
-           "judge_signal", "run_config", "task_phase_hints", "_EXPLICIT", "_EXPLICIT_PREFIX", "_run_config"]
+__all__ = [  "_judge_signal", "_task_phase_hints", "cmd_user_prompt",
+           "judge_signal", "run_config", "task_phase_hints", "_run_config"]

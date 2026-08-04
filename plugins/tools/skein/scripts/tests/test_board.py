@@ -33,6 +33,7 @@ from typing import Any
 from conftest import SKEIN, make_ws as _init_ws, run_skein as sk  # 单一实现, 见 conftest 顶部说明
 from skeinlib.views import _cards_signature, _view_board_data
 from skeinlib.task.store import TaskStore
+from skeinlib.exec_policy import exec_argv
 
 _STANDALONE: bool = False  # python3 test_board.py 直跑时置 True (免 _import_pytest skip 崩 __main__)
 
@@ -180,15 +181,15 @@ def test_priority_on_board_and_exec_whitelist() -> None:
             assert card["priority"] == "urgent", "看板卡片应显示真实优先级 (非兜底 normal)"
 
             # 白名单: 合法改优先级请求 → 固定 argv (id/set 均需给, 绝不 shell 拼串)
-            argv = sk_obj._exec_argv({"cmd": "priority", "id": "prio-demo", "set": "low"})
+            argv = exec_argv({"cmd": "priority", "id": "prio-demo", "set": "low"})
             assert argv is not None and argv[-4:] == ["priority", "prio-demo", "--set", "low"]
 
             # 缺 set / 缺 id 均拒 (不静默放行半截请求)
-            assert sk_obj._exec_argv({"cmd": "priority", "id": "prio-demo"}) is None
-            assert sk_obj._exec_argv({"cmd": "priority", "set": "low"}) is None
+            assert exec_argv({"cmd": "priority", "id": "prio-demo"}) is None
+            assert exec_argv({"cmd": "priority", "set": "low"}) is None
 
             # 白名单外命令一律拒 (禁越权写)
-            assert sk_obj._exec_argv({"cmd": "priority-hack", "id": "prio-demo", "set": "low"}) is None
+            assert exec_argv({"cmd": "priority-hack", "id": "prio-demo", "set": "low"}) is None
         finally:
             os.chdir(cwd0)
 

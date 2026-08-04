@@ -122,7 +122,7 @@ def test_uvicorn_app_string_resolves() -> None:
 
     scripts = Path(__file__).resolve().parent.parent
     found = []
-    for f in [scripts / "skein.py", *sorted((scripts / "skeinlib").glob("*.py"))]:
+    for f in [scripts / "skein.py", *sorted((scripts / "skeinlib").rglob("*.py"))]:
         for m in re.finditer(r'uvicorn\.run\(\s*"([^"]+)"', f.read_text()):
             found.append((f.name, m.group(1)))
     assert found, "全仓没找到 uvicorn.run(\"<mod>:<attr>\") 形式的 app 字符串"

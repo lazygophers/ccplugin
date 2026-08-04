@@ -100,3 +100,33 @@ def _pending_queue(tasks: list[dict[str, Any]], dep_unfinished: Any) -> list[dic
             })
     q.sort(key=lambda x: (x["trank"], x["ti"], not x["ready"], -x["crit"], x["i"]))
     return q
+
+def detect_cycle(graph: dict[str, list[str]]) -> Optional[list[str]]:
+    """三色 DFS 环检测 — 返回首个环路径 (节点序列含首尾) 或 None。
+    纯函数, 给 lifecycle.deps 和 doctor 各调一份 (ADR 0003 G4 消除重复)。"""
+    WHITE, GRAY, BLACK = 0, 1, 2
+    color = {n: WHITE for n in graph}
+    stack: list[str] = []
+
+    def _dfs(n: str) -> Optional[list[str]]:
+        color[n] = GRAY
+        stack.append(n)
+        for m in graph.get(n, []):
+            if m not in color:
+                continue
+            if color[m] == GRAY:
+                return stack[stack.index(m):] + [m]
+            if color[m] == WHITE:
+                r = _dfs(m)
+                if r:
+                    return r
+        color[n] = BLACK
+        stack.pop()
+        return None
+
+    for n in graph:
+        if color[n] == WHITE:
+            r = _dfs(n)
+            if r:
+                return r
+    return None

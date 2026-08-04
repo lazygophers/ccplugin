@@ -5,7 +5,8 @@
 """
 from __future__ import annotations
 
-from typing import Any, Literal
+import time as _time
+from typing import Any, Literal, Optional
 
 from skeinlib.task.model import SubtaskStatus, TaskStatus, now
 
@@ -59,3 +60,9 @@ def append(t: dict[str, Any], kind: Literal["task", "subtask"], status: str, *,
         "note": note,
         "rollback": rollback,
     })
+
+
+def fmt_ts(ts: Optional[int]) -> str:
+    """epoch 秒 → 本地可读时间; None/0 → '-'。
+    从 views._fmt_ts 下沉到中立层, 供 scheduling 和 views 共用 (ADR 0003 G6)。"""
+    return _time.strftime("%Y-%m-%d %H:%M", _time.localtime(ts)) if ts else "-"
