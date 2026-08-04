@@ -36,6 +36,7 @@
         "task-management",
         "task-orchestration",
         "dag",
+        "scheduling",
         "worktree",
         "sub-agent",
         "rules-memory",

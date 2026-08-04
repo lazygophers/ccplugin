@@ -8,6 +8,14 @@ model: sonnet
 effort: medium
 ---
 
-如果需要以 flow 模式运行（默认模式），参考 [references/flow-loop.md](references/flow-loop.md)，里面有详细的任务执行各阶段的说明，并确保以此为准推进
-如果只需要 plan 模式运行，参考 [references/plan.md](references/plan.md)，里面有 plan 相关的内容
-如果是 redo 模式运行，参考 [references/for-reloopdo.md](references/for-loop.md) ，重新调度正在执行的任务
+args: $1
+
+```
+switch $args
+case plan:
+    use [references/plan.md](references/plan.md)
+case redo:
+    use [references/redo.md](references/redo.md)
+case flow/exec/check/finish/default:
+    use [references/flow-loop.md](references/flow-loop.md)
+```

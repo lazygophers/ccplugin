@@ -1,8 +1,4 @@
-# flow-loop — flow 执行过程唯一真值源
-
-本文件收敛 `/skein-flow` 的执行过程：参数路由、状态硬门、plan→exec→check→finish 循环、redo 断点续跑、失败扭转、自愈、停顿与终止。其他 `references/*.md` 只保留职责边界、命令参数、载体规则或工件写法，不重复流程。
-
-## 参数路由
+# flow 模式
 
 | `$1`                     | 阶段            | 行为                                                                                                                     |
 | ------------------------ | --------------- | ------------------------------------------------------------------------------------------------------------------------ |
@@ -12,9 +8,8 @@
 | `exec`                   | 续执行          | 驱动待处理/在途 task 继续闭环到 finish。                                                                                 |
 | `check`                  | 质量门          | 派 `skein-checker` 验证；失败按本文件「失败扭转」。                                                                      |
 | `finish`                 | 收尾门          | check 全绿后派 `skein-finisher` 完成 `skein finish` 和异步 sediment。                                                    |
-| `redo <tid> [--plan]`    | 断点续跑        | 复位孤儿 running subtask，再按当前状态续跑；`--plan` 只对规划中起点有效。                                                |
 
-硬规：无参/任务描述不是 `plan`。flow 默认一路做完；只有显式 `plan` 才停在 confirm 前。
+硬规：无参/任务描述 -> flow 闭环闭环模式；只有显式 `plan` 才停在 confirm 前。
 
 ## 作用域边界
 
@@ -183,30 +178,6 @@ plan 阶段沉淀的决策（grill/design 推出但本轮 check 未验证）落 
 - diff 改动文件反查 anchors 命中既有 product 页 → 该页即候选 → `amend` 改写。
 - 无命中 → `skein-spec recall --src product` 以 prd 关键词找弱候选。
 - 仍无 → 报「无候选，可能是新功能域，建议新建」，**禁摊派到不相关的既有页**，可按需 `sediment --namespace product` 新建。
-
-## redo 断点续跑
-
-redo 解的是 session 意外结束后的状态卡死，不是回滚：只改 subtask 状态，不删除、不撤销上一轮已产出的文件改动，也不新增引擎命令（复位就用现有 `subtask fail` + `subtask start` 拼法）。
-
-动手前必须说明：redo 期间禁止有 agent 在跑；全部 running subtask 一律当孤儿，不做心跳/存活探测/时长阈值。
-
-| 起点状态    | redo 行为                                                                                                       |
-| ----------- | --------------------------------------------------------------------------------------------------------------- |
-| `pending`   | 无 running 可复位；续 plan 到收敛。带 `--plan` 时停在 confirm 前。                                              |
-| `research`  | 复位 running research subtask；续 research 到 done，再 `skein plan` 回 pending。带 `--plan` 时停在 confirm 前。 |
-| `active`    | 复位全部 running subtask，再回 exec 调度。                                                                      |
-| `check`     | 无 subtask 可复位；直接重派 `skein-checker`。带 `--plan` 时说明已过规划阶段，参数未生效。                       |
-| `finishing` | 无 subtask 可复位；直接重派 `skein-finisher`。带 `--plan` 时说明已过规划阶段，参数未生效。                      |
-| `done`      | 报已闭环，无事可做。                                                                                            |
-
-active 起点复位固定拼法：
-
-```bash
-skein subtask fail <tid> <sid> --note "redo 孤儿复位: session 意外退出, 全部运行中一律当孤儿"
-skein subtask start <tid> <sid>
-```
-
-复位后必须回传被复位清单；无 running subtask 时回传「无运行中 subtask 需复位，直接续调度」。
 
 ## 失败扭转
 
