@@ -10,14 +10,13 @@
         → .skein/ 工作区
 ```
 
-### Skills (5)
+### Skills (4)
 
 | Skill | 职责 | 入口 |
 | --- | --- | --- |
 | skein-flow | 主线编排: plan→exec→check→finish 四阶段单一真值源, 参数路由 (flow/plan/exec/check/finish, 缺省 = flow 全闭环)。plan=brainstorm+research+grill+DAG / exec=claim exec+dispatch / check=lint+type+test+contract / finish=merge+sediment+archive | 自动 (flow 信号) |
 | skein-spec | 规则记忆: recall/sediment/bootstrap/prune | 按需 |
 | skein-grill | 对抗审查: red team (plan 后硬门) | flow 调用 |
-| skein-research | 调研: 代码 survey + 外部搜索 | plan/exec 调用 |
 | skein-clean | 清理: 孤儿 worktree / 悬挂分支 | 手动 |
 | skein-setup | 初始化 / trellis 迁移 | 首次 |
 
@@ -27,7 +26,7 @@
 | --- | --- | --- |
 | skein-executor | 全读写 | 默认执行, 写代码/配置 |
 | skein-checker | 只读 | lint/type/test/contract 验证 |
-| skein-researcher | 只读 | 代码 survey + 外部搜索 |
+| skein-researcher | 只读 | 本地代码/环境/API 文档 + 第三方平台调研, 按需加载用户已有 research skills |
 | skein-finisher | 只读 | 完成度检查 |
 | skein-specer | 只写 spec/ | sediment/reconstruct/prune |
 | skein-recaller | 只读 spec/ | 按关键词召回规则 |

@@ -34,7 +34,7 @@ TASK_STATUS_DISPLAY: dict[TaskStatus, str] = {
 }
 
 
-# 两套语义分离: STATUS_ACTIVE = 有人正在干活的态 (含调研/收尾, current 显示用);
+# 两套语义分离: STATUS_ACTIVE = 有人正在干活的态 (含调研/收尾, 运行态判断用);
 # STATUS_INFLIGHT = 已建 worktree 需在 finish/del 时销毁的态 (调研中未建 worktree, 不在此列)
 STATUS_ACTIVE = {TaskStatus.ACTIVE, TaskStatus.RESEARCH, TaskStatus.FINISHING}
 STATUS_INFLIGHT = {TaskStatus.ACTIVE, TaskStatus.CHECK, TaskStatus.FINISHING}

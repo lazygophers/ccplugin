@@ -247,8 +247,6 @@ class BoardSourceMixin:
             return base + (argv + ["--status", g("status")] if s("status") else argv)
         if cmd == "ready":
             return base + ["ready"]
-        if cmd == "current":
-            return base + ["current"]
         if cmd == "doctor":
             return base + ["doctor"]
         if cmd == "status":

@@ -5,7 +5,7 @@
 本文件只测禁用态: worktree 概念在填写/展示/注入三层的消失与配置块注入。
 
 - R1 禁填: use_worktree=false 时 create --repos / repos --set 直接拒 (SystemExit)。
-- R2 不展示: 禁用态下 session-context / current / status --json 不含 worktree 段。
+- R2 不展示: 禁用态下 session-context / list --status open / status --json 不含 worktree 段。
 - R3 注入: session-context 恒注入「# SKEIN 运行配置」块 (worktree 态 + max_active); hooks
   user-prompt 只在有在途 task 时才注入同一块 (无在途 task 对本轮判定无输入)。值经
   skein.CONFIG_DEFAULTS 兜底, hook 不硬编码。
@@ -99,8 +99,8 @@ def test_status_json_worktree_null_when_disabled(skein_cli: SkeinCli, ws: Path) 
     assert task.get("worktrees", []) == [], f"禁用态 worktrees 非空: {task.get('worktrees')!r}"
 
 
-def test_current_no_worktree_col_when_disabled(skein_cli: SkeinCli, ws: Path) -> None:
-    """禁用态 current 输出不含 worktree 目录段 (.worktrees 路径不出现)。"""
+def test_open_list_no_worktree_col_when_disabled(skein_cli: SkeinCli, ws: Path) -> None:
+    """禁用态 open list 输出不含 worktree 目录段 (.worktrees 路径不出现)。"""
     _disable(skein_cli, ws)
     tid = "feat-cur"
     skein_cli(ws, "create", tid, "--name", tid, "--desc", "d")
@@ -108,8 +108,8 @@ def test_current_no_worktree_col_when_disabled(skein_cli: SkeinCli, ws: Path) ->
     _fill_prd(ws, tid)
     skein_cli(ws, "estimate", tid, "--set", "1")  # estimate 硬门: confirm 前须填实工时
     skein_cli(ws, "confirm", tid)
-    out = skein_cli(ws, "current").stdout
-    assert ".worktrees" not in out, f"禁用态 current 泄露 worktree 路径: {out!r}"
+    out = skein_cli(ws, "list", "--status", "open").stdout
+    assert ".worktrees" not in out, f"禁用态 open list 泄露 worktree 路径: {out!r}"
 
 
 def test_session_context_hides_worktree_when_disabled(skein_cli: SkeinCli, ws: Path) -> None:

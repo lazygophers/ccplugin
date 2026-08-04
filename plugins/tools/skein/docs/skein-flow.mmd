@@ -40,7 +40,7 @@ graph TB
     P0 -->|清晰输入| P2[Brainstorm 需求/方案]
     P1 --> P2
     P2 --> P3{research 判定门<br/>明确需/明确不需/<br/>保守灰区自动派/激进灰区问用户}
-    P3 -->|是| RESEARCHER["skein-researcher<br/>代码勘察 + 外部搜索(agent-reach优先)<br/>边研边增量写 findings.md + research/"]
+    P3 -->|是| RESEARCHER["skein-researcher<br/>本地/API 文档 + 第三方平台调研<br/>按需加载用户 research skills<br/>边研边增量写 findings.md + research/"]
     P3 -->|否| P4_LOCK["锁定契约<br/>skein contract &lt;id&gt; --add<br/>MUST/禁/边界条件 逐条锁进 task.json"]
     RESEARCHER --> FINDINGS
     RESEARCHER --> P4_LOCK

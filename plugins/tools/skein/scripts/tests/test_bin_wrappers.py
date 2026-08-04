@@ -147,7 +147,7 @@ def test_hook_import_stays_lean() -> None:
 
 # skein / spec 的**只读**子命令 (跑一遍不改盘)。写命令另有各自的测试, 这里只验「不挂住」。
 NON_BLOCKING_PROBE = [
-    ("skein", ["list"]), ("skein", ["current"]), ("skein", ["ready"]), ("skein", ["board"]),
+    ("skein", ["list"]), ("skein", ["ready"]), ("skein", ["board"]),
     ("skein", ["doctor"]), ("skein", ["status", "nope"]), ("skein", ["claim", "exec", "--dry-run"]),
     ("spec", ["list"]), ("spec", ["inject-core"]), ("spec", ["maintain"]),
     ("spec", ["recall", "x"]), ("spec", ["session-start"]),

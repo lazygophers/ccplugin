@@ -47,7 +47,7 @@ AUDIT_RETENTION_DAYS = 7  # .audit-log 保留窗口; 每次写前清掉 7 天前
 AGENT_CATEGORIES: dict[str, list[str]] = {
     "skein-executor": ["script", "git"],
     "skein-checker": ["script"],
-    "skein-researcher": ["script", "skill"],
+    "skein-researcher": ["script"],
     "skein-finisher": ["script", "git"],
     # setup/dedup/specer 未列 → 默认 fallback 纯索引
 }

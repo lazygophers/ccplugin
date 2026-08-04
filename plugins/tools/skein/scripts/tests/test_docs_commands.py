@@ -160,6 +160,11 @@ def test_task_state_commands_are_grouped() -> None:
         assert state.get_command(state_ctx, command) is not None
 
 
+def test_current_command_is_not_registered() -> None:
+    group = cast(TyperGroup, get_command(app))
+    assert "current" not in group.commands
+
+
 def test_scanner_actually_catches_bad_examples(tmp_path: Path) -> None:
     """自检: 喂假文档必须被抓出来 —— 否则上面那条哪天因正则写崩而永远绿, 谁也发现不了。
 

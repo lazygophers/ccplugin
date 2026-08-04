@@ -181,7 +181,7 @@ def main() -> None:
         assert "skein/task-2" not in br, "finish 未删 branch"
         top = json.loads((d / ".skein/task.json").read_text())
         assert not any(x["id"] == "task-2" for x in top["tasks"]), "自动归档未从顶层索引移除"
-        assert sk(d, "current", check=False).returncode == 0, "自动归档后 current 崩溃"
+        assert sk(d, "list", "--status", "open", check=False).returncode == 0, "自动归档后 open list 崩溃"
 
         # task 级 ready: task-3 前置(task-2)已归档→视完成 → task-3 可 confirm
         rout = sk(d, "ready").stdout

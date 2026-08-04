@@ -80,7 +80,7 @@ def _dispatch(a: SimpleNamespace) -> None:
         "estimate": sk.lifecycle.estimate, "priority": sk.lifecycle.priority, "rename": sk.lifecycle.rename,
         "del": sk.lifecycle.del_,
         "claim": sk.scheduler.claim, "subtask": sk.scheduler.subtask,
-        "current": sk.query.current, "ready": sk.query.ready,
+        "ready": sk.query.ready,
         "status": sk.query.status, "list": sk.query.list_,
         "fmt": sk.artifacts.fmt, "prd": sk.artifacts.prd, "contract": sk.artifacts.contract,
         "serve": sk.serve, "doctor": sk.doctor,
@@ -243,12 +243,6 @@ def rename(tid: str,
 def clean(days: Annotated[Optional[int], typer.Option("--days")] = None) -> None:
     """归档完成超保留期的 task。"""
     _run("clean", days=days)
-
-
-@app.command()
-def current() -> None:
-    """列全部 active task。"""
-    _run("current")
 
 
 @app.command()

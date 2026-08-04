@@ -1,4 +1,4 @@
-"""`Query` — 只读投影: current / ready / status / list。
+"""`Query` — 只读投影: ready / status / list。
 
 全部**不写盘**, 所以 `cli.main` 不给这几条命令加工作区写锁 (见 cli.py 的 `MUTATING`)。
 新增命令若会写盘, 别放这个类 —— 放进来就绕过锁了。
