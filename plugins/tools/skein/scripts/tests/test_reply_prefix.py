@@ -1,9 +1,12 @@
-"""回复前缀强制注入测试 — 两注入点: UserPromptSubmit (hooks.py) + SessionStart (skein.py)。
+"""回复前缀强制注入测试 — 注入点: SessionStart (skein.py session-context)。
+
+「回复前缀」属常驻规则, SessionStart 注入一次即可; UserPromptSubmit 不再重复 (避免每轮冗余)。
+UserPromptSubmit 仍保留 phase_hints (按 prompt 给出 active task 阶段提示, 非常驻)。
 
 经 conftest 的 ws/skein_cli fixture 跑真实脚本子进程 (tmp_path 隔离)。
 覆盖 (5 用例):
-  1. user-prompt 普通 prompt → additionalContext 含 `[skein]` + 前缀规则关键字。
-  2. user-prompt (create+start 一个进行中 task) → 含 task id 且标注 `(exec)`。
+  1. user-prompt 普通 prompt → 不再含「回复前缀」常驻段 (常驻归 SessionStart)。
+  2. user-prompt (create+start 一个进行中 task) → 含 task id 且标注 `(exec)` (phase_hints 仍保留)。
   3. session-context 无 active → 恒注入前缀规则 + `[skein]`。
   4. session-context (create+start) → 含 `当前 active task:` + `id(exec)`。
   5. phase 映射 进行中→exec (并入 2/4)。
@@ -57,12 +60,11 @@ def _start_task(skein_cli: SkeinCli, ws: Path, tid: str) -> None:
     skein_cli(ws, "confirm", tid)  # 待处理→进行中 用户确认门 (吸收 start)
 
 
-# ---------- 1. user-prompt 注入前缀规则 ----------
-def test_user_prompt_injects_prefix_rule(ws: Path) -> None:
-    """普通 prompt → additionalContext 含 `[skein]` + 前缀规则关键字。"""
+# ---------- 1. user-prompt 不再注入常驻前缀段 (常驻归 SessionStart) ----------
+def test_user_prompt_does_not_inject_resident_prefix(ws: Path) -> None:
+    """普通 prompt → 不再含「回复前缀」常驻段 (常驻规则由 SessionStart 一次性注入)。"""
     ctx = _user_prompt(ws, "帮我看看这个函数")
-    assert "[skein]" in ctx, f"缺 [skein] 前缀标记: {ctx!r}"
-    assert "回复前缀" in ctx, f"缺前缀规则关键字: {ctx!r}"
+    assert "回复前缀" not in ctx, f"UserPromptSubmit 不应重复注入常驻前缀段: {ctx!r}"
 
 
 # ---------- 2. user-prompt 列 active task 阶段 ----------

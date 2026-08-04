@@ -124,12 +124,8 @@ def cmd_user_prompt(payload: dict[str, object]) -> int:
         if evidence:
             context += f"\n机械判定: {', '.join(evidence)}"
         phase_hints = task_phase_hints(skein_dir)
-        context += "\n\n" + """# 回复前缀 (强制)
-每条回复以 `[skein]` 开头, 处理某 task 时改用 `[skein|<taskId>|<阶段>]`;
-**第一行必须是判定行** (格式/判据/三条路径见上方「任务判定」):
-[skein] 判定: <flow/inline/补充> (原因: <本轮命中的判据>)
-""" + phase_hints
         if phase_hints:
+            context += "\n" + phase_hints
             worktree_enabled, worker_limit, auto_commit = run_config(skein_dir)
             worktree_text = "启用 (task 各开 worktree 隔离)" if worktree_enabled else "禁用 (原地执行, 无 worktree)"
             auto_commit_text = ("强制 (worktree 模式必自动 commit, 本配置不生效)" if worktree_enabled
