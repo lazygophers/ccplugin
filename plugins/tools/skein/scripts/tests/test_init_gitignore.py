@@ -222,3 +222,48 @@ def test_truth_files_never_git_ignored(ws: Path, skein_cli: SkeinCli) -> None:
     }
     for label, rel in truth_files.items():
         assert not _is_ignored(root, rel), f"真值文件被误忽略: {label} ({rel})"
+
+
+def test_flow_gate_self_heals_stale_gitignore(ws: Path, skein_cli: SkeinCli) -> None:
+    """非 init 路径也会补 `.skein/.gitignore` —— 老工作区 (init 于登记处新增 .edit-tally 之前)
+    跑 flow-gate 时应自愈, 免得 .edit-tally 漏网进版本库。
+
+    场景: 手造一份**缺 .edit-tally/.edit-tally.warned** 的旧版 .gitignore, 跑 flow-gate
+    (跨 2 个源码文件), 断言两条已被自动补入。
+    """
+    # flow-gate 对路径含 `/test_`/`/tests/` 的写入直接放行不计数 (cmd_flow_gate 的豁免) ——
+    # pytest 的 tmp_path 目录名含本函数名 `test_flow_gate_self_heals`, 撞上该豁免会让 hook
+    # 早返, 断言假红。搬到不含该子串的临时目录 (沿用 test_e2e 的先例)。
+    safe_root = Path(tempfile.mkdtemp(prefix="skein-gi-heal-")) / "ws"
+    shutil.copytree(ws, safe_root)
+    root = safe_root
+    skein_cli(root, "init")  # 幂等保状态 (ws fixture 已 init, 拷贝后路径变, 重 init 一次更稳)
+    # 伪造老版本 .gitignore: 只留早期条目, 删掉 .edit-tally*
+    gi = root / ".skein" / ".gitignore"
+    gi.write_text(
+        "# skein 自动渲染/衍生, 不入库\n"
+        "task.md\nvision.md\n*.lock\ntrash/\n",
+        encoding="utf-8",
+    )
+    # flow-gate 探针: 两个源码文件, 触发计数写入 .edit-tally
+    probes = [root / "gi_probe_a.py", root / "gi_probe_b.py"]
+    for p in probes:
+        p.write_text("# probe\n", encoding="utf-8")
+        _run_hook_stdin(root, "flow-gate",
+                        {"tool_input": {"file_path": str(p)}, "cwd": str(root)})
+    try:
+        # 自愈断言: .edit-tally/.edit-tally.warned 已被补入 .gitignore
+        lines = gi.read_text(encoding="utf-8").splitlines()
+        assert ".edit-tally" in lines, "flow-gate 未自愈: .edit-tally 仍缺于 .gitignore"
+        assert ".edit-tally.warned" in lines, "flow-gate 未自愈: .edit-tally.warned 仍缺于 .gitignore"
+        # 用户手写条目保留 (不破坏)
+        assert "task.md" in lines and "vision.md" in lines, "自愈破坏了既有手写条目"
+        # 真实产出物确实被 git 忽略 (查 git 行为, 不读文本)
+        for rel in (".skein/.edit-tally", ".skein/.edit-tally.warned"):
+            r = subprocess.run(["git", "check-ignore", "-q", rel], cwd=root, capture_output=True)
+            assert r.returncode == 0, f"自愈后 {rel} 仍被 git 视为未忽略"
+    finally:
+        shutil.rmtree(safe_root.parent, ignore_errors=True)
+        for p in probes:
+            if p.exists():
+                p.unlink()

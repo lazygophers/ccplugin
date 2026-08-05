@@ -119,6 +119,13 @@ def cmd_flow_gate(payload: dict[str, Any]) -> int:
     warned_path = os.path.join(skein_dir, ".edit-tally.warned")
     if os.path.exists(warned_path):
         return 0
+    # 写衍生物前幂等补 `.skein/.gitignore` (老工作区可能 init 于登记处新增 .edit-tally 之前)
+    from pathlib import Path
+    from skeinlib.utils.derivatives import ensure_gitignore
+    try:
+        ensure_gitignore(Path(skein_dir))
+    except OSError:
+        pass
     import time
     try:
         seen: set[str] = set()

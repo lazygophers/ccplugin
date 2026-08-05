@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 import yaml  # type: ignore[import-untyped]
 from skeinlib.config import Config, ConfigData
-from skeinlib.utils.derivatives import gi_entries
+from skeinlib.utils.derivatives import ensure_gitignore
 from skeinlib.utils.errors import SkeinError
 from skeinlib.task.model import TaskStatus
 from skeinlib.task.migrate import (disable_trellisx_plugin, migrate_trellis_tasks,
@@ -63,21 +63,7 @@ class Admin:
         if not cfg.exists():
             Config(cfg).reload()  # reload 文件不存在时自动写默认配置
         # .skein/.gitignore — 条目从 derivatives.DERIVATIVES 单一登记处导出 (单一来源, 见该模块)
-        gi = self.ws.dir / ".gitignore"
-        GI_ENTRIES = gi_entries()
-        if not gi.exists():
-            gi.write_text("# skein 自动渲染/衍生, 不入库\n" + "\n".join(GI_ENTRIES) + "\n")
-        else:
-            # 幂等补缺: 已存文件检查缺行补 (不破坏用户手写条目, 不重复已有)
-            lines = gi.read_text(encoding="utf-8").splitlines()
-            have = {ln.strip() for ln in lines if ln.strip() and not ln.startswith("#")}
-            missing = [e for e in GI_ENTRIES if e not in have]
-            if missing:
-                with gi.open("a", encoding="utf-8") as fh:
-                    if lines and lines[-1].strip():
-                        fh.write("\n")
-                    fh.write("# skein 衍生/临时文件 (init 自动补缺)\n")
-                    fh.write("\n".join(missing) + "\n")
+        ensure_gitignore(self.ws.dir)
         # worktree 目录在 git 根 (worktree.root), .skein/.gitignore 管不到 → 补到根 .gitignore
         # (仅 git 仓库需要; 非 git 无 worktree, 不制造多余 .gitignore)。子仓的忽略由 make_worktree 各自补。
         if self.ws.git:
