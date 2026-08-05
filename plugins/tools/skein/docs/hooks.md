@@ -148,34 +148,14 @@ hooks:
 但落盘 `config.yaml` 的 hooks 段逐字未变, `pwned` 文件未生成 (回归测试
 `tests/test_board.py::test_serve_config_post`)。
 
-## 6. `_yaml_load` 解析器 ceiling
+## 6. YAML 解析 (PyYAML)
 
-`config.yaml` 用仓库自研的 mini YAML 解析器 (`_yaml_load`) 读, 不依赖 `PyYAML`。
-支持的子集刚好覆盖 `hooks` 结构需要的形状, **不支持的语法直接报错并指出行号**, 不静默降级
-(静默降级 = 用户配置无声失效, 是最难查的一类故障)。
-
-支持:
-
-| 语法 | 例 |
-| --- | --- |
-| 2 空格缩进嵌套 dict | `hooks:\n  agent:\n    skein-executor:\n      start: echo hi` |
-| `- ` 开头的 list of dict | `before:\n  - command: echo one\n  - command: echo two` |
-| 标量 (字符串/整数/布尔/负数) | `timeout: 120` / `continue_on_error: false` |
-| `#` 行内注释 (引号内的 `#` 不截断) | `command: "echo #1"  # 备注` |
-| 带引号的键 (通配符 `"*"` 必须加引号) | `"*":\n  stop: echo bye` |
-
-不支持 (报错含行号, 不静默降级):
-
-| 语法 | 报错关键字 |
-| --- | --- |
-| 锚点 `&anchor` / 引用 `*ref` | `锚点/引用` |
-| 多行标量 (`\|` / `>`) | `多行标量` |
-| 流式语法 (`{a: 1}` / `[1, 2]`) | `流式语法` |
-| 多文档标记 (`---`) | `多文档` |
-| tab 缩进 | `tab 缩进` |
-| 未闭合引号 | `未闭合引号` |
-
-回归测试见 `scripts/tests/test_yaml_load.py`。
+`config.yaml` 用 `PyYAML` (`yaml.safe_load` / `yaml.safe_dump`) 读写在
+`skeinlib/config/manager.py` 的 `Config._reload` / `_flush`。pydantic 的 `ConfigData`
+模型 (`extra="forbid"` / `populate_by_name=True`) 负责结构与字段校验 —— 未知键 / 非法阶段名
+在 `model_validate` 时抛 `ValidationError`, 被 `_hooks_cfg` 的 try/except 接住回退为 `{}` (空
+hooks, 不阻断主命令)。YAML 语法的全支持面由 PyYAML 提供 (锚点/多行/流式/多文档均可用,
+不再有受限子集)。
 
 ## 7. agent frontmatter 的 hooks 声明当前被 plugin 限制忽略
 

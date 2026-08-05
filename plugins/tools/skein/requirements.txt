@@ -1,5 +1,20 @@
-# SKEIN 看板 serve (FastAPI + uvicorn) 运行依赖。
-# SessionStart hook (ensure-deps.py) 缺失时后台 pip install; serve 启动前亦兜底自装。
-# 仅 `skein serve` 需要; task 生命周期 (init/create/start/finish...) 纯 stdlib, 无依赖。
+# SKEIN 运行依赖。SessionStart hook (plugin.json) 异步 `pip3 install -r requirements.txt`
+# 兜底自装; `skein serve` 启动前亦兜底自装。
+#
+# 核心依赖 (task 生命周期 init/create/start/finish/list/... 全部需要):
+#   typer     CLI 框架 (skeinlib/cli/main.py 顶层 import)
+#   pydantic  配置/数据模型 v2 API (config/manager.py, task/model.py, spec/* 顶层 import)
+#   pyyaml    config.yaml 读写 (config/manager.py, core/{admin,doctor,workspace}, web/serve 顶层 import)
+#
+# 可选依赖 (仅 `skein serve` 看板服务需要):
+#   fastapi   HTTP 路由 + WebSocket 热重载 (web/serve.py)
+#   uvicorn   ASGI server (web/boardsource.py)
+#
+# 不列:
+#   click  — typer 已带, cli/main.py 的 _click 仅在 typer<0.12 退化路径直引
+#   rich   — utils/debug.py lazy import (try/except, 缺则回落 stderr 纯文本)
+typer>=0.9.0
+pydantic>=2.0
+pyyaml>=6.0
 fastapi>=0.110
 uvicorn[standard]>=0.29
