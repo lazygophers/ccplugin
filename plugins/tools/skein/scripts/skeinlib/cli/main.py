@@ -15,9 +15,18 @@ from typing import Annotated, Any, Optional
 
 try:
     import typer
-    from typer import _click
     from typer.core import TyperGroup
-except ModuleNotFoundError:
+    # typer ≥0.12 把 click 封进内部 `_click` 包 (隔离 click 8.1/9 弃用噪声); 旧版 (<0.12)
+    # 直接 re-export 顶层 `click`。`_click` 在旧版不存在会抛 ImportError (非 ModuleNotFoundError),
+    # 两路都要兜住 —— `cannot import name '_click'` 正是用户旧全局 typer 报的错。
+    try:
+        from typer import _click  # typer ≥0.12
+    except ImportError:
+        import click as _click  # type: ignore[no-redef]  # typer <0.12 (顶层 click 即 typer 的 click)
+except ImportError:
+    # typer 整体缺失或内部结构异常 → 改用 uv run 的隔离环境重跑 (那里有锁定的可用版本)。
+    # 注意异常类用 ImportError (ModuleNotFoundError 是其子类, 但反向不成立 —— 旧版 typer 缺
+    # `_click` 抛的是 ImportError 而非 ModuleNotFoundError, 原代码只接后者导致 bootstrap 漏触发)。
     if os.environ.get("SKEIN_TYPER_BOOTSTRAPPED") != "1":
         env = dict(os.environ, SKEIN_TYPER_BOOTSTRAPPED="1")
         raise SystemExit(subprocess.run(["uv", "run", "python3", *sys.argv], env=env).returncode)
