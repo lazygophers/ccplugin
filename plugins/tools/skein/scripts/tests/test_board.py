@@ -166,6 +166,49 @@ def test_cards_signature_covers_display_fields() -> None:
             os.chdir(cwd0)
 
 
+def test_data_rev_detects_doc_only_edits() -> None:
+    """「前端不刷新」bug 回归: 编辑 prd.md/design.md/findings.md (不动 task.json) 必须让
+    _data_rev 变 + _task_mtimes 定位到该 task —— 否则 serve WS 推送漏抓文档编辑, 详情页永远不刷新。
+
+    _data_rev 旧版只看 task.json, 文档编辑走不进去; 本测试钉死扩展后的监听面。
+    """
+    with tempfile.TemporaryDirectory() as td:
+        d = Path(td)
+        _init_ws(d)
+        sk(d, "create", "doc-watch", "--name", "文档监听", "--desc", "d")
+        m = _load()
+        cwd0 = os.getcwd()
+        os.chdir(d)
+        try:
+            sk_obj = m.Skein()
+            base_rev = sk_obj._data_rev()
+            base_mtimes = sk_obj._task_mtimes()
+
+            # 编辑 prd.md (仅文档, 不动 task.json) → _data_rev 必须变
+            time.sleep(0.01)  # 防 mtime 精度不足 (HFS+ 1s 粒度; APFS ns 粒度, 此 sleep 仅为跨平台保险)
+            prd = d / ".skein/task/doc-watch/prd.md"
+            prd.write_text(prd.read_text() + "\n\n## 新增\n- [ ] 编辑测试\n", encoding="utf-8")
+            assert sk_obj._data_rev() != base_rev, "编辑 prd.md 后 _data_rev 未变 (WS 推送会漏抓)"
+            mtimes2 = sk_obj._task_mtimes()
+            assert mtimes2["doc-watch"] != base_mtimes["doc-watch"], "_task_mtimes 未定位到 doc-watch 的 prd 编辑"
+
+            # 编辑 design.md → 同理
+            time.sleep(0.01)
+            (d / ".skein/task/doc-watch/design.md").write_text("# 设计\n新增设计内容\n", encoding="utf-8")
+            assert sk_obj._data_rev() != mtimes2 and sk_obj._data_rev() != base_rev, "编辑 design.md 后 _data_rev 未变"
+
+            # research/ 子目录新建一篇 → 也应被抓
+            time.sleep(0.01)
+            (d / ".skein/task/doc-watch/research").mkdir(exist_ok=True)
+            (d / ".skein/task/doc-watch/research/note.md").write_text("# 笔记\n", encoding="utf-8")
+            new_rev = sk_obj._data_rev()
+            assert new_rev != base_rev, "新增 research/*.md 后 _data_rev 未变"
+            mtimes3 = sk_obj._task_mtimes()
+            assert mtimes3["doc-watch"] != mtimes2["doc-watch"], "_task_mtimes 未反映 research/ 新增"
+        finally:
+            os.chdir(cwd0)
+
+
 def test_priority_on_board_and_exec_whitelist() -> None:
     """p4: 看板卡片显示真实优先级 (非兜底值) + 页面改优先级复用白名单 exec 通道 (未新增专用写接口)。"""
     with tempfile.TemporaryDirectory() as td:

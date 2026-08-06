@@ -201,14 +201,13 @@ class DoctorMixin:
                 import yaml as _yaml
                 raw_cfg = _yaml.safe_load(cfg_yaml.read_text(encoding="utf-8")) or {}
                 raw_hooks = raw_cfg.get("hooks", {}) if isinstance(raw_cfg, dict) else {}
-                from skeinlib.config import HooksConfig, HookEntry
-                legal_stages = set(HooksConfig.model_fields.keys()) | {
-                    info.alias for info in HooksConfig.model_fields.values() if info.alias}
+                from skeinlib.config import HOOK_STAGE_DISPLAY, LEGAL_HOOK_STAGES, HookEntry
                 for stage_name in raw_hooks:
                     if stage_name == "agent":
                         continue  # agent 钩子是动态键, 单独处理
-                    if stage_name not in legal_stages:
-                        errs.append(f"hooks.{stage_name}: 非法阶段名 (合法: {sorted(legal_stages)})")
+                    if stage_name not in LEGAL_HOOK_STAGES:
+                        errs.append(f"hooks.{stage_name}: 非法阶段名 (合法阶段: {HOOK_STAGE_DISPLAY}"
+                                    f"; hooks.agent.<agent名> 是 agent 钩子, 不是阶段)")
                         continue
                     for when in ("before", "after"):
                         for entry in raw_hooks[stage_name].get(when, []):

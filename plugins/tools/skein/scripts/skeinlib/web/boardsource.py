@@ -251,8 +251,42 @@ class BoardSourceMixin:
         self._run_server(open_browser=(manual and cfg["web"]["board_open"]) or open_browser,
                          quiet=not (manual or DBG.enabled))
     def _data_rev(self) -> str:
-        # 数据 rev: task.json (顶层 + 各 task) 最大 mtime_ns。变 → WS 推 "data" → 软刷新只 swap .layout。
-        return max_mtime([self.dir / "task.json"] + list(self.tasks.glob("*/task.json")))
+        # 数据 rev: task.json (顶层 + 各 task) + task 详情页文档 (prd/design/findings + research/*.md) 最大 mtime_ns。
+        # 变 → WS 推 task-changed/data。task.json 是状态主真值; 文档是详情页富内容, 改动也需实时推前端
+        # (否则编辑 prd.md 后详情页不刷新, 即「前端不刷新」bug 的典型成因)。
+        return max_mtime([self.dir / "task.json"] + self._task_watch_files())
+    def _task_watch_files(self) -> list[Path]:
+        """所有 task 目录下需监听的文件 (task.json + prd/design/findings + research/*.md)。
+
+        供 _data_rev (聚合 max mtime) 和 _task_mtimes (per-task mtime, 定位变更 task 用) 共用,
+        同一文件清单做两份视图, 避免两处各扫一遍目录。
+        """
+        files: list[Path] = []
+        for tdir in self.tasks.glob("*/"):
+            files.append(tdir / "task.json")
+            for fn in ("prd.md", "design.md", "findings.md"):
+                files.append(tdir / fn)
+            rdir = tdir / "research"
+            if rdir.is_dir():
+                files.extend(p for p in rdir.glob("*.md") if p.is_file())
+        return files
+    def _task_mtimes(self) -> dict[str, str]:
+        """per-task 最大 mtime_ns (task.json + 文档) → 定位哪个 task 变了, 推精准 task-changed。
+
+        _data_rev 只能告诉我们「有东西变了」, 这里告诉我们「是哪个 task 的文件变了」, 让详情页只刷该 task
+        而非全量重拉。无 task 目录 → 空 dict。
+        """
+        out: dict[str, str] = {}
+        for tdir in self.tasks.glob("*/"):
+            tid = tdir.name
+            files = [tdir / "task.json"]
+            for fn in ("prd.md", "design.md", "findings.md"):
+                files.append(tdir / fn)
+            rdir = tdir / "research"
+            if rdir.is_dir():
+                files.extend(p for p in rdir.glob("*.md") if p.is_file())
+            out[tid] = max_mtime(files)
+        return out
     def _asset_rev(self) -> str:
         # 资产 rev: dist/ 构建产物最大 mtime_ns。变 → WS 推 "reload" → 整页 reload。
         return max_mtime([p for p in dist_dir().rglob("*") if p.is_file()])

@@ -85,6 +85,14 @@ class HooksConfig(BaseModel):
     model_config = {"populate_by_name": True, "extra": "forbid"}
 
 
+# 合法阶段键 (校验用): python 名 + 点号 alias 都收; 排除 agent —— 它是 agent 钩子命名空间不是阶段
+LEGAL_HOOK_STAGES: set[str] = {n for n in HooksConfig.model_fields if n != "agent"} | {
+    i.alias for i in HooksConfig.model_fields.values() if i.alias}
+# 展示用: 每个阶段只出一次, 有 alias 取点号形式 (报错列表里 subtask_done/subtask.done 不重复列)
+HOOK_STAGE_DISPLAY: list[str] = sorted(
+    (i.alias or n) for n, i in HooksConfig.model_fields.items() if n != "agent")
+
+
 class ConfigData(BaseModel):
     """config.yaml 完整结构 — config.yaml 的单一类型契约。
 
@@ -128,11 +136,16 @@ class Config:
                 self._cfg = ConfigData.model_validate(raw)
                 self._validation_error = None
             except Exception as e:
-                # hooks 非法键/未知字段 → 降级为默认配置, 保留错误供 doctor 检测
-                self._cfg = ConfigData()
+                # hooks 非法键/未知字段 → 只降级 hooks 段, 其余顶层键 (pools/worktree/...) 保原值。
+                # 整份回默认会让一个笔误的 hook 键静默清空全部配置。
                 self._validation_error = str(e)
-            # 缺失顶层键 → pydantic 补了默认值 → 回写盘保持文件完整
-            if raw and not raw.keys() >= {f for f in ConfigData.model_fields}:
+                try:
+                    self._cfg = ConfigData.model_validate({**raw, "hooks": {}})
+                except Exception:
+                    self._cfg = ConfigData()  # hooks 之外也有错 → 才整份降级
+            # 缺失顶层键 → pydantic 补了默认值 → 回写盘保持文件完整。
+            # 校验失败时禁回写: 生效配置是降级值, 写回去等于拿默认值覆盖用户原文件。
+            if raw and not self._validation_error and not raw.keys() >= {f for f in ConfigData.model_fields}:
                 self._write()
         else:
             self._cfg = ConfigData()

@@ -8,6 +8,7 @@ from __future__ import annotations
 from skeinlib.config.manager import (
     Config, ConfigData, PoolsConfig, WorktreeConfig, WebConfig, SpecConfig,
     HooksConfig, StageHooks, AgentHooks, HookEntry,
+    LEGAL_HOOK_STAGES, HOOK_STAGE_DISPLAY,
 )
 
 # CONFIG_DEFAULTS: 从 pydantic model 默认值生成 (单一真值源 = ConfigData Field defaults)
@@ -17,5 +18,6 @@ __all__ = [
     "Config",
     "ConfigData", "PoolsConfig", "WorktreeConfig", "WebConfig", "SpecConfig",
     "HooksConfig", "StageHooks", "AgentHooks", "HookEntry",
+    "LEGAL_HOOK_STAGES", "HOOK_STAGE_DISPLAY",
     "CONFIG_DEFAULTS",
 ]

@@ -123,26 +123,23 @@ function TaskDetailContent() {
 
   useEffect(() => { load(); }, [load]);
 
-  // 详情页订阅本 task 的逐条变更消息, 局部合并进 raw/task (不重跑 load, 不动 docs/prd/依赖等其余 state) ——
-  // card 只是展示字段子集 (见 views.py _cards_signature), spread 合并保留 raw 里 card 没有的富字段
-  // (docs/research/prd/parentTask/childTasks)。card 为空 = task 已归档/删除, 判定详情页不存在。
-  // 合并基底必须是未 normalize 过的 raw, 不能是已 normalize 的 task —— task 上已有 normalizeTask 派生出
-  // 的 title 字段, 若拿它做合并基底, 陈旧的 title 会盖掉 card 新来的 name (normalizeTask 优先取 title)。
+  // 详情页订阅本 task 的变更消息 → 触发 load() 重拉完整数据 (含 docs/prd/subtask/契约/依赖)。
+  // 不做局部 card 合并: card 只携带看板卡片展示字段 (见 views.py _cards_signature), 缺 docs/research/prd
+  // 等详情页富内容 —— 仅 spread 合并会让 prd.md / design.md / research/ 的编辑在前端永远不刷新
+  // (典型「前端不刷新」bug)。load() 一次完整 GET /__skein__/task 是 O(单 task) 的, 详情页只看一个 task,
+  // 重拉开销可接受。抗抖: 多条 task-changed 攒到一起一次 load (批量调度场景)。
+  // card 为空 = task 已归档/删除, 直接判定详情页不存在。
   useEffect(() => {
     if (!id) return;
-    // 订阅全局消息 (data) + 本 task 消息 (task-changed)
+    let pending = false;
+    const flush = () => { pending = false; load(); };
     const unsubGlobal = subscribe((msg) => {
-      if (msg.type === "data") load(); // 整页刷新
+      if (msg.type === "data") load();
     });
     const unsubTask = subscribe((msg) => {
       if (msg.type !== "task-changed") return;
       if (!msg.card) { setNotFound(true); setTask(null); return; }
-      const card = msg.card;
-      setRaw(prev => {
-        const next = prev ? { ...prev, ...card } : card;
-        setTask(normalizeTask(next));
-        return next;
-      });
+      if (!pending) { pending = true; requestAnimationFrame(flush); }
     }, { taskId: id });
     return () => { unsubGlobal(); unsubTask(); };
   }, [id, load]);
