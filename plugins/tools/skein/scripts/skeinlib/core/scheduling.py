@@ -24,6 +24,7 @@ if TYPE_CHECKING:
 from skeinlib.task.dag import _crit_weight, _split, _split_semi, _sub_estimate_sum, _sub_pct
 from skeinlib.utils.errors import SkeinError
 from skeinlib.task.model import (SubtaskStatus, SubtaskPhase, TaskStatus, PRIORITY_RANK, PRIORITY_DEFAULT,
+                                 STATUS_ACTIVE,
                                  ESTIMATE_HINT, parse_hours, now)
 from skeinlib.task import timeline as _timeline
 from skeinlib.task.timeline import fmt_ts as _fmt_ts
@@ -388,6 +389,19 @@ class Scheduler:
         t = self.ws.store.load(a.tid)
         s = self.ws._sub(t, a.sid)
         if a.action == "start":
+            # task 必须先进可调度态 —— 否则 `subtask start` 就是一条绕过 confirm 人审门的暗道:
+            # pending task 的 subtask 照样能 start→done 把活全干完, 干完才发现 task 卡在 pending
+            # 进不了 check ("状态 pending, 只有进行中 task 能进检查"), 人审等于没发生。
+            # claim 路径走 _schedulable() 早就筛过状态, 只有这条单点路径漏了。
+            if t["status"] not in STATUS_ACTIVE:
+                raise SkeinError(
+                    f"{a.tid} 状态 {t['status']}, 不能 start subtask — "
+                    f"先 `skein task confirm {a.tid}` 过人审门进「进行中」"
+                    f"(调研类 subtask 走 `skein task research {a.tid}`)")
+            if t["status"] == TaskStatus.RESEARCH and s.get("phase") != SubtaskPhase.RESEARCH:
+                raise SkeinError(
+                    f"{a.tid} 调研中, 只能 start phase=research 的 subtask — "
+                    f"先 `skein task plan {a.tid}` 收敛回规划再 confirm")
             if s["status"] not in (SubtaskStatus.PENDING, SubtaskStatus.FAILED):
                 raise SkeinError(f"{a.sid} 状态 {s['status']}, 只能 start 待处理/失败")
             done = {x["sid"] for x in t["subtasks"] if x["status"] == SubtaskStatus.DONE}

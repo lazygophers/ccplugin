@@ -44,11 +44,35 @@ class AliasTyperGroup(TyperGroup):
         return super().get_command(ctx, self.aliases.get(cmd_name, cmd_name))
 
 
+class TaskTyperGroup(TyperGroup):
+    """task 子命令组 —— 未知的「通用改写」命令给出状态机指引。
+
+    `task update --status active` 是最自然的猜测 (多数 CLI 都这么设计), 但 skein 的状态变更
+    是逐阶段命令。裸一句 "No such command 'update'" 换来的只是第二次瞎猜。
+    """
+
+    _STATE_GUESSES = {"update", "set", "modify", "edit", "transition", "move"}
+
+    def get_command(self, ctx: _click.Context, cmd_name: str) -> _click.Command | None:
+        cmd = super().get_command(ctx, cmd_name)
+        if cmd is None and cmd_name in self._STATE_GUESSES:
+            # _click 是 typer 的内部 shim, 只 re-export 了 ClickException —— 用它, 别用
+            # UsageError (旧/新版 typer 都不保证暴露)。
+            raise _click.ClickException(
+                f"task 无 {cmd_name} 命令 — 状态变更走逐阶段命令: "
+                "confirm (待处理→进行中) / research+plan (待处理⇄调研中) / "
+                "check (进行中→检查中) / finishing (检查中→收尾中) / finish (收尾中→已完成); "
+                "改字段用 task rename / priority / estimate / deps / parent / repos")
+        return cmd
+
+
 TASK_COMMANDS = {"create", "research", "plan", "confirm", "check", "finishing", "finish",
                  "priority", "estimate", "repos", "deps", "parent", "rename", "status", "show"}
 
 # prd --type 的合法值提示 — 中英 alias 都收, help 里只列英文短名 (够 agent 用且不撑爆一行)
 _PRD_TYPE_HELP = "章节: goal|scope|stories|acceptance|verification|testing (中文段名亦可), 一次只写一段"
+# check/uncheck 的 --list 与 write/add 的 --list 同名但语义相反 (匹配 vs 内容) —— 必须点破
+_PRD_MATCH_HELP = "要勾的条目原文子串 (不是序号! 先 `prd read` 看原文再取一段唯一子串)"
 
 
 app = typer.Typer(
@@ -58,7 +82,7 @@ app = typer.Typer(
     add_completion=False,
     rich_markup_mode=None,  # docstring 里 [sid] 会被 rich 当样式标签吃掉, 关掉 markup 保留原文
 )
-task_app = typer.Typer(help="task 查看、编辑、状态变更", no_args_is_help=True)
+task_app = typer.Typer(cls=TaskTyperGroup, help="task 查看、编辑、状态变更", no_args_is_help=True)
 config_app = typer.Typer(help="读写 .skein/config.yaml 配置", invoke_without_command=True)
 prd_app = typer.Typer(help="读/写/追加/勾选 prd 章节 (目标/边界/User Stories/验收标准/验证方式/Testing Decisions)")
 design_app = typer.Typer(help="读/写 design.md 测试接缝段 (confirm 硬门校验的那段)")
@@ -470,15 +494,15 @@ def prd_add(id: str, type_: Annotated[str, typer.Option("--type", help=_PRD_TYPE
 
 @prd_app.command("check")
 def prd_check(id: str, type_: Annotated[str, typer.Option("--type", help=_PRD_TYPE_HELP)],
-              list_: Annotated[str, typer.Option("--list")]) -> None:
-    """勾选条目。"""
+              list_: Annotated[str, typer.Option("--list", help=_PRD_MATCH_HELP)]) -> None:
+    """勾选条目 (--list 传条目原文子串, 非序号)。"""
     _prd_action("check", id, type_, list_)
 
 
 @prd_app.command("uncheck")
 def prd_uncheck(id: str, type_: Annotated[str, typer.Option("--type", help=_PRD_TYPE_HELP)],
-                list_: Annotated[str, typer.Option("--list")]) -> None:
-    """反勾选条目。"""
+                list_: Annotated[str, typer.Option("--list", help=_PRD_MATCH_HELP)]) -> None:
+    """反勾选条目 (--list 传条目原文子串, 非序号)。"""
     _prd_action("uncheck", id, type_, list_)
 
 

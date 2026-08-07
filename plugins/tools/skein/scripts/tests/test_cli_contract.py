@@ -9,6 +9,9 @@
 5. `skein task list` / `--status all` 这两个自然猜测不再是错
 6. --unattended 需 config 预先授权; 授权后 confirmed_by 留痕
 7. --like 克隆既有 task 的 planning 骨架 (周期任务免重复 planning)
+8. subtask start 不得在 task 未 confirm 时放行 (否则人审门形同虚设)
+9. `task update --status` 这类猜测给出状态机指引
+10. prd check 的 --list 是匹配串不是序号 (与 write/add 的 --list 同名反义)
 """
 from __future__ import annotations
 
@@ -16,6 +19,11 @@ import json
 from pathlib import Path
 
 from conftest import SkeinCli
+
+
+def _sub(ws: Path, tid: str) -> list[dict[str, object]]:
+    t = json.loads((ws / ".skein" / "task" / tid / "task.json").read_text(encoding="utf-8"))
+    return list(t["subtasks"])
 
 
 def _mk(cli: SkeinCli, ws: Path, tid: str = "demo", **kw: str) -> None:
@@ -148,3 +156,67 @@ def test_like_clones_planning_skeleton(skein_cli: SkeinCli, ws: Path) -> None:
     assert [s["sid"] for s in subs] == ["st1"], subs
     assert subs[0]["status"] == "pending" and subs[0]["started"] is None, subs
     assert subs[0]["estimate"] == 1.0, subs
+
+
+# ---------- 8. subtask start 不得绕过 confirm 人审门 ----------
+def test_subtask_start_blocked_before_confirm(skein_cli: SkeinCli, ws: Path) -> None:
+    """pending task 的 subtask 不能 start —— 否则活全干完了 task 还卡 pending 进不了 check,
+    人审门等于没发生 (实测有会话正是这么绕过去的)。"""
+    _mk(skein_cli, ws)
+    skein_cli(ws, "subtask", "add", "demo", "st1",
+              "--name", "a", "--desc", "b", "--estimate", "1")
+    r = skein_cli(ws, "subtask", "start", "demo", "st1", check=False)
+    assert r.returncode != 0, "pending task 的 subtask 不该能 start"
+    assert "confirm" in r.stdout + r.stderr, f"报错须指向 confirm: {r.stdout}{r.stderr}"
+    assert _sub(ws, "demo")[0]["status"] == "pending", "被拒后状态不该变"
+
+
+def test_subtask_start_allowed_after_confirm(skein_cli: SkeinCli, ws: Path) -> None:
+    """confirm 过门进 active 后, 同一条 start 正常放行 (证明上面那道门不是一刀切)。"""
+    _mk(skein_cli, ws)
+    _fill_planning(skein_cli, ws, "demo")
+    skein_cli(ws, "task", "confirm", "demo", "--approved")
+    skein_cli(ws, "subtask", "start", "demo", "st1")
+    assert _sub(ws, "demo")[0]["status"] == "running", _sub(ws, "demo")
+
+
+def test_research_task_only_starts_research_subtask(skein_cli: SkeinCli, ws: Path) -> None:
+    """调研中 task 只放行 phase=research 的 subtask, exec 的仍须先 plan→confirm。"""
+    _mk(skein_cli, ws)
+    skein_cli(ws, "subtask", "add", "demo", "rs1", "--name", "查", "--desc", "查",
+              "--estimate", "1", "--phase", "research")
+    skein_cli(ws, "subtask", "add", "demo", "ex1", "--name", "做", "--desc", "做",
+              "--estimate", "1")
+    skein_cli(ws, "task", "research", "demo")
+    skein_cli(ws, "subtask", "start", "demo", "rs1")  # research 放行
+    r = skein_cli(ws, "subtask", "start", "demo", "ex1", check=False)
+    assert r.returncode != 0, "调研中不该能 start exec subtask"
+    assert "plan" in r.stdout + r.stderr, f"报错须指向 plan: {r.stdout}{r.stderr}"
+
+
+# ---------- 9. 未知命令的状态机指引 ----------
+def test_task_update_guess_gets_state_machine_hint(skein_cli: SkeinCli, ws: Path) -> None:
+    """`task update --status X` 是最自然的猜测, 裸 "No such command" 只换来第二次瞎猜。"""
+    _mk(skein_cli, ws)
+    r = skein_cli(ws, "task", "update", "demo", "--status", "active", check=False)
+    msg = r.stdout + r.stderr
+    assert "confirm" in msg and "finish" in msg, f"须列出逐阶段命令: {msg}"
+
+
+# ---------- 10. prd check 的 --list 是匹配串不是序号 ----------
+def test_prd_check_list_help_says_substring_not_index(skein_cli: SkeinCli, ws: Path) -> None:
+    """write/add 的 --list 是内容, check 的 --list 是匹配串 —— 同名反义, help 必须点破,
+    否则调用方会传序号 `--list 1` 然后撞上「无匹配」。"""
+    out = skein_cli(ws, "prd", "check", "--help").stdout
+    assert "不是序号" in out, f"--list help 须点明非序号: {out}"
+
+
+def test_prd_check_by_substring_works(skein_cli: SkeinCli, ws: Path) -> None:
+    """按原文子串勾选生效, 传序号则报可诊断的错。"""
+    _mk(skein_cli, ws)
+    skein_cli(ws, "prd", "write", "demo", "--type", "goal", "--list", "交付完整报告")
+    r = skein_cli(ws, "prd", "check", "demo", "--type", "goal", "--list", "1", check=False)
+    assert r.returncode != 0 and "无匹配" in r.stdout + r.stderr, f"序号应报错: {r.stdout}"
+    skein_cli(ws, "prd", "check", "demo", "--type", "goal", "--list", "交付完整报告")
+    body = json.loads(skein_cli(ws, "prd", "read", "demo", "--type", "goal").stdout)["body"]
+    assert "- [x] 交付完整报告" in body, f"子串勾选未生效: {body}"

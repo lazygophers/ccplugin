@@ -107,9 +107,9 @@ def test_timeline_rollback_task_level(skein_cli: SkeinCli, ws: Path) -> None:
 
 # ---------- 3. rollback: subtask 级 (fail 后重 start 视为回滚) ----------
 def test_timeline_rollback_subtask_level(skein_cli: SkeinCli, ws: Path) -> None:
-    tid = "feat-sub"
-    skein_cli(ws, "create", tid, "--name", "任务", "--desc", "d")
-    skein_cli(ws, "subtask", "add", tid, "s1", "--name", "子一", "--desc", "d", "--estimate", "2")
+    # 先过 confirm 进「进行中」—— subtask start 要求 task 已在可调度态
+    tid = _ready_task(ws, skein_cli, "feat-sub")
+    skein_cli(ws, "confirm", tid, "--approved")
 
     skein_cli(ws, "subtask", "start", tid, "s1")
     skein_cli(ws, "subtask", "fail", tid, "s1", "--note", "boom")
@@ -150,8 +150,9 @@ def test_timeline_multi_round_check_is_idempotent(skein_cli: SkeinCli, ws: Path)
 
 # ---------- 5. 老数据容错: task.json 缺 "timeline" 字段不崩 ----------
 def test_timeline_legacy_data_missing_field_tolerated(skein_cli: SkeinCli, ws: Path) -> None:
-    tid = "feat-legacy"
-    skein_cli(ws, "create", tid, "--name", "任务", "--desc", "d")
+    # 先推到「进行中」再抹 timeline —— start 要求 task 可调度, 与本用例要验的老数据自愈无关
+    tid = _ready_task(ws, skein_cli, "feat-legacy")
+    skein_cli(ws, "confirm", tid, "--approved")
     t = _task(ws, tid)
     assert "timeline" in t
     del t["timeline"]  # 模拟 timeline 功能上线前的老 task.json
@@ -164,15 +165,15 @@ def test_timeline_legacy_data_missing_field_tolerated(skein_cli: SkeinCli, ws: P
     assert status_data.get("timeline", []) == [], f"缺字段应回落空列表: {status_data.get('timeline')}"
 
     # 写路径: 后续动作 (subtask add + start) 触发 timeline.append, 应自愈补回字段而非崩
-    r_add = skein_cli(ws, "subtask", "add", tid, "s1", "--name", "子一", "--desc", "d", "--estimate", "1")
+    r_add = skein_cli(ws, "subtask", "add", tid, "s2", "--name", "子二", "--desc", "d", "--estimate", "1")
     assert r_add.returncode == 0, f"老数据下新增 subtask 不该崩: {r_add.stderr}"
-    r_start = skein_cli(ws, "subtask", "start", tid, "s1")
+    r_start = skein_cli(ws, "subtask", "start", tid, "s2")
     assert r_start.returncode == 0, f"老数据下 start 不该崩: {r_start.stderr}"
 
     t2 = _task(ws, tid)
     tl2 = _timeline(t2)
     assert len(tl2) == 1, f"老数据自愈后应正常追加新事件: {tl2}"
-    assert tl2[0]["kind"] == "subtask" and tl2[0]["status"] == "running" and tl2[0]["sid"] == "s1"
+    assert tl2[0]["kind"] == "subtask" and tl2[0]["status"] == "running" and tl2[0]["sid"] == "s2"
 
 
 if __name__ == "__main__":
