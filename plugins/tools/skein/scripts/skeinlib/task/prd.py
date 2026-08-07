@@ -183,19 +183,52 @@ def validate_prd(tasks_dir: Path, tid: str) -> None:
             f"把占位整行替换为真实内容再 start")
 
 
-def validate_seam(tasks_dir: Path, tid: str) -> None:
-    """confirm 前校验 design.md「测试接缝 (seam)」段非占位。"""
+_SEAM_HEADING = re.compile(r"^##\s+测试接缝\b.*$")
+
+
+def _seam_bounds(tasks_dir: Path, tid: str) -> tuple[Path, list[str], int, int]:
+    """定位 design.md「## 测试接缝」段 → (路径, 全文行, 正文 start, 正文 end)。"""
     design = tasks_dir / tid / "design.md"
     if not design.exists():
-        raise SkeinError(f"{tid} design.md 不存在 — 无法校验测试接缝段")
-    text = design.read_text()
-    m = re.search(r"^##\s+测试接缝\b.*$", text, re.MULTILINE)
-    if not m:
+        raise SkeinError(f"{tid} design.md 不存在 — 无法定位测试接缝段")
+    lines = design.read_text(encoding="utf-8").split("\n")
+    head = next((i for i, ln in enumerate(lines) if _SEAM_HEADING.match(ln)), None)
+    if head is None:
         raise SkeinError(f"{tid} design.md 缺测试接缝段 — {design}")
-    nxt = re.search(r"^##\s+", text[m.end():], re.MULTILINE)
-    body = text[m.end():m.end() + nxt.start()] if nxt else text[m.end():]
+    end = next((i for i in range(head + 1, len(lines)) if lines[i].startswith("## ")), len(lines))
+    return design, lines, head + 1, end
+
+
+def seam_read(tasks_dir: Path, tid: str) -> str:
+    """读 design.md 测试接缝段正文。"""
+    _, lines, s, e = _seam_bounds(tasks_dir, tid)
+    return "\n".join(lines[s:e]).strip("\n")
+
+
+def seam_write(tasks_dir: Path, tid: str, text: str) -> list[str]:
+    """整段清重建 design.md 测试接缝正文 (对齐 `prd write` 语义)。
+
+    confirm 拿测试接缝当硬门, 但此前只有手改文件一条路 —— 有校验没写入口, 每个 task 都得
+    Read+Edit 一趟。这里补上, 让 planning 全程走 CLI。
+    """
+    design, lines, s, e = _seam_bounds(tasks_dir, tid)
+    items = [f"- {ln.strip().lstrip('-').strip()}"
+             for ln in text.replace("\\n", "\n").split("\n") if ln.strip()]
+    if not items:
+        raise SkeinError("--list 为空 — 至少写一条测试接缝")
+    lines[s:e] = ["", *items, ""]
+    design.write_text("\n".join(lines), encoding="utf-8")
+    return items
+
+
+def validate_seam(tasks_dir: Path, tid: str) -> None:
+    """confirm 前校验 design.md「测试接缝 (seam)」段非占位。"""
+    design, lines, s, e = _seam_bounds(tasks_dir, tid)
+    body = "\n".join(lines[s:e])
     if re.search(r"-\s*\[[ xX]\]\s*TODO\b", body):
-        raise SkeinError(f"{tid} design.md 测试接缝段仍是占位未填 — {design}")
+        raise SkeinError(
+            f"{tid} design.md 测试接缝段仍是占位未填 — "
+            f"`skein design seam {tid} --list '<接缝1>\\n<接缝2>'` 或直接编辑 {design}")
 
 
 def review_summary(tasks_dir: Path, tid: str, t: dict[str, Any]) -> str:

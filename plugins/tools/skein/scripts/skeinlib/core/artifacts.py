@@ -17,7 +17,8 @@ if TYPE_CHECKING:
 
 from skeinlib.utils.errors import SkeinError
 from skeinlib.task.model import PRD_SECTIONS_V6, PRD_TODO_SECTIONS, PRD_TYPE_ALIAS
-from skeinlib.task.prd import section_add, section_check, section_read, section_write
+from skeinlib.task.prd import (section_add, section_check, section_read, section_write,
+                               seam_read, seam_write)
 
 import re
 
@@ -103,6 +104,23 @@ class Artifacts:
             return {"id": tid, "section": section, "action": "uncheck", "matched": n}
         else:
             raise SkeinError(f"未知 prd 动作: {act}")
+
+    def design(self, a: argparse.Namespace) -> dict[str, Any]:
+        """design.md 测试接缝段 CLI 入口: seam/read <id> [--list TEXT]。
+
+        design.md 其余部分是自由散文 (架构/取舍), 不做章节化 CLI —— 只有测试接缝段被 confirm
+        当硬门校验, 所以只有它需要脚本写入口。
+        """
+        tid = a.id.strip()
+        self.ws.store.load(tid)  # task 存在性校验
+        if a.action == "read":
+            return {"id": tid, "section": "测试接缝", "body": seam_read(self.ws.tasks, tid)}
+        if a.action != "seam":
+            raise SkeinError(f"未知 design 动作: {a.action} — 仅 seam/read")
+        if not a.list:
+            raise SkeinError("seam 需要 --list (文本内容, \\n 多行)")
+        items = seam_write(self.ws.tasks, tid, a.list)
+        return {"id": tid, "section": "测试接缝", "action": "write", "items": len(items)}
 
     def contract(self, a: argparse.Namespace) -> dict[str, Any]:
         t = self.ws.store.load(a.id)

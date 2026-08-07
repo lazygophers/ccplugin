@@ -49,9 +49,10 @@ def _readback(skein_cli: SkeinCli, ws: Path, path: str) -> str | None:
 
 # ---------- 1. 无参展示全部 ----------
 def test_show_all(skein_cli: SkeinCli, ws: Path) -> None:
-    """config 无参 → flat JSON dict, 10 叶 (跳过 hooks), 含 pools.work=2 与 worktree.enabled=False。"""
+    """config 无参 → flat JSON dict, 11 叶 (跳过 hooks), 含 pools.work=2 与 worktree.enabled=False。"""
     data = _flat(skein_cli, ws)
-    assert len(data) == 10, f"应 10 叶, 得 {len(data)}: {data}"
+    assert len(data) == 11, f"应 11 叶, 得 {len(data)}: {data}"
+    assert data.get("confirm.unattended") is False, f"缺 confirm.unattended 默认 False: {data}"
     assert data.get("pools.work") == 2, f"缺 pools.work=2: {data}"
     assert data.get("worktree.enabled") is False, f"缺 worktree.enabled=False: {data}"
 
@@ -182,6 +183,7 @@ def test_flat_config_missing_keys_backfilled(skein_cli: SkeinCli, ws: Path) -> N
         "worktree": {"enabled": False, "root": ".worktrees"},
         "web": {"serve": True, "board_open": True},
         "spec": {"core_budget": 400, "always_budget": 517},
+        "confirm": {"unattended": False},
         "hooks": {s: {"before": [], "after": []} for s in _STAGES} | {"agent": {}},
     }, f"缺键回填不符: {data}"
     text = cfg.read_text()

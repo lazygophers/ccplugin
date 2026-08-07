@@ -106,6 +106,20 @@ PRIORITY_DEFAULT = TaskPriority.NORMAL
 PRIORITY_RANK: dict[TaskPriority, int] = {TaskPriority.URGENT: 3, TaskPriority.HIGH: 2,
                                           TaskPriority.NORMAL: 1, TaskPriority.LOW: 0}
 
+# 工时统一解析 — task/subtask estimate 三个入口共用, 免得「小时」这个隐式单位只写在报错里。
+# 裸数字按小时; 收 `30m` / `1.5h` 后缀是因为 agent 天然写带单位的值 (实测占 CLI 失败的一大半)。
+ESTIMATE_UNITS: dict[str, float] = {"m": 1 / 60, "h": 1.0}
+ESTIMATE_HINT = "预计工时单位=小时 (0.5=30分钟); 也收 `30m` / `1.5h` 后缀"
+
+
+def parse_hours(raw: object) -> float:
+    """工时 → 小时 float。非法抛 ValueError (调用方裹成 SkeinError/BadParameter)。"""
+    s = str(raw).strip().lower()
+    unit = ESTIMATE_UNITS.get(s[-1:])
+    if unit is not None and s[:-1]:
+        return round(float(s[:-1]) * unit, 4)
+    return float(s)
+
 # 时间戳英文 key
 TS_CREATED = "created"
 TS_CONFIRMED = "confirmed"

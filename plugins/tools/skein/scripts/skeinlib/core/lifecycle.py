@@ -19,7 +19,8 @@ if TYPE_CHECKING:
 
 from skeinlib.task.dag import _sub_estimate_sum, detect_cycle
 from skeinlib.utils.errors import SkeinError
-from skeinlib.task.model import (CODE_ID_RE, PRIORITY_DEFAULT, SLUG_RE, SubtaskStatus, SubtaskPhase, STATUS_INFLIGHT, TaskStatus, TS_CHECKED_END, now)
+from skeinlib.task.model import (CODE_ID_RE, PRIORITY_DEFAULT, SLUG_RE, SubtaskStatus, SubtaskPhase, STATUS_INFLIGHT,
+                                 TaskStatus, TS_CHECKED_END, ESTIMATE_HINT, parse_hours, now)
 from skeinlib.task.prd import review_summary, validate_prd, validate_seam
 from skeinlib.task import timeline as _timeline
 from skeinlib.task.priority import validate_priority
@@ -77,11 +78,16 @@ class Lifecycle:
         (self.ws.tasks / tid).mkdir(parents=True)
         self._scaffold(tid, a.name)  # 落 prd/design/findings 脚手架 (planning 填)
         deps = [d.strip() for d in (a.deps or "").split(",") if d.strip()]
+        raw_est = getattr(a, "estimate", None)
+        try:
+            est = parse_hours(raw_est) if raw_est not in (None, "") else None
+        except ValueError:
+            raise SkeinError(f"预计工时非法: {raw_est!r} — {ESTIMATE_HINT}")
         t = {
             "id": tid, "name": a.name, "desc": a.desc,
             "status": TaskStatus.PENDING, "deps": deps, "contracts": [], "subtasks": [],
             "priority": validate_priority(getattr(a, "priority", None)),  # 四档枚举, 未指定落中档
-            "estimate": getattr(a, "estimate", None),  # 预计工时(小时), plan 阶段必填, confirm 硬门校验
+            "estimate": est,  # 预计工时(小时), plan 阶段必填, confirm 硬门校验
             "repos": repos,          # planning 声明的目标子 git (rel 路径; 空=单根/原地模式)
             "worktree": None, "worktrees": [], "branch": f"skein/{tid}",
             "parent": parent_id,     # 父 supertask id; None=独立 task (create 默认; --parent 指向 supertask)
@@ -94,11 +100,41 @@ class Lifecycle:
             "finished": None,        # 完成时刻 (finish 时置; 保留期从此计)
             "updated": now(),
         }
+        cloned = self._clone_planning(tid, t, getattr(a, "like", None))
         _timeline.append(t, "task", TaskStatus.PENDING)
         self.ws.store.save(t)  # _save 已渲染子任务看板
         self.ws.store.sync()  # 刷新顶层 tasks 索引 + 看板 + html
         self.ws._stage_hooks("create", "after", self.ws._hook_ctx(tid, t=t))
-        return {"id": tid, "path": str(self.ws.tasks / tid)}
+        out = {"id": tid, "path": str(self.ws.tasks / tid)}
+        if cloned:
+            out["cloned_from"] = cloned
+        return out
+
+    def _clone_planning(self, tid: str, t: dict[str, Any], src_id: str | None) -> str | None:
+        """`--like <src>`: 把 src 的 prd/design/subtask 骨架搬过来, 状态全部重置。
+
+        周期任务 (cron 巡检之类) 每轮都是同一份 planning, 从零重写六段 PRD + design + subtask
+        纯属重复劳动 —— 实测一个 cron 会话为同一个 intent 建了 5 个内容雷同的 task。
+        已完成的 src 也能当模板 (done task 恰恰是最靠谱的模板)。
+        """
+        if not src_id:
+            return None
+        src = self.ws.store.load(src_id)  # 不存在直接 raise
+        for fn in ("prd.md", "design.md"):
+            p = self.ws.tasks / src_id / fn
+            if p.exists():
+                (self.ws.tasks / tid / fn).write_text(p.read_text(encoding="utf-8"), encoding="utf-8")
+        clones: list[dict[str, Any]] = []
+        for s in src.get("subtasks") or []:
+            c = {**s, "status": SubtaskStatus.PENDING, "acceptance_done": [],
+                 "created": now(), "started": None, "finished": None}
+            for k in ("note", "passed", "timeline"):  # 上一轮的执行期留痕, 不跟着克隆
+                c.pop(k, None)
+            clones.append(c)
+        t["subtasks"] = clones
+        if t.get("estimate") is None:
+            t["estimate"] = src.get("estimate")
+        return src_id
 
     def _scaffold(self, tid: str, name: str) -> None:
         """落 planning 双工件脚手架 (prd 主入口 / design 详细设计).
@@ -165,9 +201,9 @@ class Lifecycle:
         if t["status"] not in (TaskStatus.PENDING, TaskStatus.RESEARCH):
             raise SkeinError(f"{a.id} 状态 {t['status']}, estimate 只能在 confirm 前 (待处理/调研中) 设置")
         try:
-            val = float(a.set)
+            val = parse_hours(a.set)
         except ValueError:
-            raise SkeinError(f"预计工时须为数字(小时): {a.set!r}")
+            raise SkeinError(f"预计工时非法: {a.set!r} — {ESTIMATE_HINT}")
         if val <= 0:
             raise SkeinError(f"预计工时须为正数: {val}")
         t["estimate"] = val
@@ -257,6 +293,23 @@ class Lifecycle:
                 f"task 工时须 ≥ Σ subtask + plan/check 自身开销, "
                 f"`skein task estimate {tid} --set <≥{subsum}>`")
 
+    def _planning_gaps(self, tid: str, t: dict[str, Any]) -> list[str]:
+        """跑齐全部 planning 硬门, 返回未就绪项文案 (空 = 全过)。"""
+        gaps: list[str] = []
+        if not (t.get("subtasks") or []):
+            gaps.append(f"无 subtask 登记 — `skein subtask add {tid} <sid> --name <标题> "
+                        f"--desc <描述> --estimate <小时>`")
+        gates: tuple[Callable[[], None], ...] = (
+            lambda: validate_prd(self.ws.tasks, tid),
+            lambda: validate_seam(self.ws.tasks, tid),
+            lambda: self._validate_estimate(tid, t))
+        for gate in gates:
+            try:
+                gate()
+            except SkeinError as e:
+                gaps.append(str(e).removeprefix(f"{tid} "))
+        return gaps
+
     def research(self, a: argparse.Namespace) -> dict[str, Any]:
         # 待处理 → 调研中: 至少登记一个 phase=research 的 subtask (无调研诉求就不该进这态)。
         t = self.ws.store.load(a.id)
@@ -304,16 +357,17 @@ class Lifecycle:
             raise SkeinError(f"{a.id} 调研中 — 先 `skein task plan {a.id}` 把调研收敛回规划再 confirm")
         if t["status"] != TaskStatus.PENDING:
             raise SkeinError(f"{a.id} 状态为 {t['status']}, 只能 confirm 待处理 (规划中) task")
-        # planning 完成门: 无 subtask / prd 未填齐 / 预计工时未填 → 拒绝开工 (逼先补全规划)
-        subs = t.get("subtasks") or []
-        if len(subs) == 0:
-            raise SkeinError(f"{a.id} 无 subtask 登记 — 先 skein subtask add 拆分再 confirm")
-        validate_prd(self.ws.tasks, a.id)
-        validate_seam(self.ws.tasks, a.id)
-        self._validate_estimate(a.id, t)
+        # planning 完成门: 无 subtask / prd 未填齐 / design 接缝占位 / 预计工时未填 → 拒绝开工。
+        # 收集式而非 fail-fast: 四道门逐条报会逼调用方来回三四趟 (填 design → 撞 estimate →
+        # 撞 prd TODO), 每趟都是一次完整往返。一次列全, 一次补齐。
+        if gaps := self._planning_gaps(a.id, t):
+            raise SkeinError(
+                f"{a.id} planning 未就绪 ({len(gaps)} 项待补):\n"
+                + "\n".join(f"  {i}. {g}" for i, g in enumerate(gaps, 1)))
         if getattr(a, "summary", False):
             return {"summary": review_summary(self.ws.tasks, a.id, t)}
-        channel = self._require_user_review(a.id, bool(getattr(a, "approved", False)))
+        channel = self._require_user_review(a.id, bool(getattr(a, "approved", False)),
+                                            bool(getattr(a, "unattended", False)))
         # 吸收原 start 的前置校验: doctor 体检 + deps + prd double-check (confirm 后被改空的兜底)
         self._doctor(a)
         self.ws._stage_hooks("confirm", "before", self.ws._hook_ctx(a.id, t=t))
@@ -355,7 +409,7 @@ class Lifecycle:
                 "worktrees": t["worktrees"], "worktree": t["worktree"]}
 
     # ---- 人审门 (待处理→进行中 的最后一道) ----
-    def _require_user_review(self, tid: str, approved: bool) -> str:
+    def _require_user_review(self, tid: str, approved: bool, unattended: bool = False) -> str:
         """PRD 必须经用户过目才允许开工。返回审核渠道 (写进 `confirmed_by`)。
 
         ## 为什么要有这道门
@@ -372,18 +426,28 @@ class Lifecycle:
         |---|---|
         | 看板点击 | 用户在 task 详情面板/详情页点「确认规划」→ `POST /__skein__/exec` 白名单转 `confirm <id> --approved`。**AI 没有浏览器, 点不了** |
         | 对话确认 | main 先 `confirm <id> --summary` 取摘要 → `AskUserQuestion` 请用户批准 → 带 `--approved` 再跑 |
+        | 无人值守 | cron/CI 没有用户可问 → `--unattended` (需 `confirm.unattended=true` 预先授权), 留痕 `confirmed_by=unattended` |
 
         前者 AI 物理上做不到, 后者靠流程纪律 (`AskUserQuestion` 的答案 AI 伪造不了, 但"有没有
         真的问"这一步得 main 自觉) —— 与「有没有真的派 agent」同级。
         """
         if approved:
             return "user"
+        if unattended:
+            # 无人值守 (cron/CI): 没有用户可问, 传 --approved 只会是伪造。给一条留痕的合法路,
+            # 但要用户在 config 里先授权一次 —— 否则这个 flag 就等于把人审门整个删掉。
+            if not self.ws.config()["confirm"]["unattended"]:
+                raise SkeinError(
+                    f"{tid} --unattended 未授权 — 无人值守放行需先 "
+                    f"`skein config set confirm.unattended true` (用户显式开一次)")
+            return "unattended"
         raise SkeinError(
             f"{tid} 需用户审核 PRD 后才能开工。两条路 (都要真实用户动作):\n"
             f"  ① 看板点击 (最稳): 打开 task 详情, 点「确认规划」按钮\n"
             f"  ② 对话确认: `skein task confirm {tid} --summary` 取摘要 → `AskUserQuestion` 请用户"
             f"批准 → `skein task confirm {tid} --approved`\n"
-            f"  🛑 没真问过用户就传 --approved = 伪造审核, 属流程错误")
+            f"  🛑 没真问过用户就传 --approved = 伪造审核, 属流程错误\n"
+            f"  ⏱ cron/CI 等无人值守场景走 --unattended (需先 config 授权), 别拿 --approved 冒充人审")
 
     def check(self, a: argparse.Namespace) -> dict[str, Any]:
         # 进行中→检查中: 记 checked 时刻 (board 展示等待/执行时间用)。仅 active 可进检查。

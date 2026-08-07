@@ -23,7 +23,8 @@ if TYPE_CHECKING:
 
 from skeinlib.task.dag import _crit_weight, _split, _split_semi, _sub_estimate_sum, _sub_pct
 from skeinlib.utils.errors import SkeinError
-from skeinlib.task.model import (SubtaskStatus, SubtaskPhase, TaskStatus, PRIORITY_RANK, PRIORITY_DEFAULT, now)
+from skeinlib.task.model import (SubtaskStatus, SubtaskPhase, TaskStatus, PRIORITY_RANK, PRIORITY_DEFAULT,
+                                 ESTIMATE_HINT, parse_hours, now)
 from skeinlib.task import timeline as _timeline
 from skeinlib.task.timeline import fmt_ts as _fmt_ts
 
@@ -40,6 +41,26 @@ if _TC:
 _W_CRIT = 100.0
 _W_WAIT = 1.0
 _W_EXEC = 1.0
+
+
+def _dispatch_hints(claimed: list[dict[str, Any]] | None = None,
+                    checked: list[str] | None = None,
+                    finishing: list[str] | None = None) -> list[dict[str, str]]:
+    """claim 认领了什么 → main 该派哪个 agent。
+
+    认领只改状态, 真正推进靠 main 派 agent。调用方拿到 `checked: [tid]` 却不知道下一步是派
+    checker, 就会退化成轮询 `skein list` 干等 task 自己变 —— 实测发生过。把派发对象写进回显。
+    """
+    hints: list[dict[str, str]] = []
+    for c in claimed or []:
+        agent = ("skein:skein-researcher" if c.get("phase") == SubtaskPhase.RESEARCH
+                 else "skein:skein-executor")
+        hints.append({"agent": agent, "tid": c["tid"], "sid": c["sid"], "why": "执行该 subtask"})
+    for tid in checked or []:
+        hints.append({"agent": "skein:skein-checker", "tid": tid, "why": "验收该 task"})
+    for tid in finishing or []:
+        hints.append({"agent": "skein:skein-finisher", "tid": tid, "why": "收尾合并该 task"})
+    return hints
 
 
 def _score(s: dict[str, Any], crit_val: int) -> float:
@@ -219,7 +240,7 @@ class Scheduler:
                                 "skills": s.get("skills", []),
                                 "acceptance": s.get("acceptance", [])})
             self.ws.store.save(t)
-        return {"claimed": claimed, "count": len(claimed)}
+        return {"claimed": claimed, "count": len(claimed), "next": _dispatch_hints(claimed=claimed)}
 
     def _check_candidates(self) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         to_check: list[dict[str, Any]] = []
@@ -294,7 +315,8 @@ class Scheduler:
                 finishing.append(t["id"])
             except SkeinError as e:
                 errors.append({"tid": t["id"], "action": "finishing", "error": str(e)})
-        result: dict[str, Any] = {"checked": checked, "finishing": finishing}
+        result: dict[str, Any] = {"checked": checked, "finishing": finishing,
+                                  "next": _dispatch_hints(checked=checked, finishing=finishing)}
         if errors:
             result["errors"] = errors
         return result
@@ -306,9 +328,9 @@ class Scheduler:
             if any(s["sid"] == a.sid for s in subs):
                 raise SkeinError(f"subtask 已存在: {a.tid}/{a.sid}")
             try:
-                est = float(a.estimate)
+                est = parse_hours(a.estimate)
             except (TypeError, ValueError):
-                raise SkeinError(f"subtask 预计工时须为数字(小时): {a.estimate!r}")
+                raise SkeinError(f"subtask 预计工时非法: {a.estimate!r} — {ESTIMATE_HINT}")
             if est <= 0:
                 raise SkeinError(f"subtask 预计工时须为正数: {est}")
             subs.append({

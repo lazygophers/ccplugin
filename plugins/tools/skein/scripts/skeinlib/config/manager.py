@@ -32,6 +32,13 @@ class WebConfig(BaseModel):
     board_open: bool = Field(default=True, description="启动时是否自动打开浏览器 (仅 tty 生效)")
 
 
+class ConfirmConfig(BaseModel):
+    """confirm 人审门配置。"""
+    unattended: bool = Field(default=False, description=(
+        "允许无人值守放行 confirm (cron/CI 场景)。开启后 `confirm --unattended` 免真人批准, "
+        "confirmed_by 记 'unattended' 留痕; 默认 false —— 有人在的会话必须走真实用户批准"))
+
+
 class SpecConfig(BaseModel):
     """Spec 注入预算配置 (字符数, 非 token)。"""
     core_budget: int = Field(default=400, ge=0, description="SessionStart 常驻注入预算")
@@ -105,6 +112,7 @@ class ConfigData(BaseModel):
     worktree: WorktreeConfig = Field(default_factory=WorktreeConfig)
     web: WebConfig = Field(default_factory=WebConfig)
     spec: SpecConfig = Field(default_factory=SpecConfig)
+    confirm: ConfirmConfig = Field(default_factory=ConfirmConfig)
     hooks: HooksConfig = Field(default_factory=HooksConfig, description="hooks 配置 (阶段+agent 钩子)")
 
 

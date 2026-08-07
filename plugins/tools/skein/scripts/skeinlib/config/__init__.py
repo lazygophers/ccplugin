@@ -6,7 +6,7 @@ YAML 解析用 PyYAML; 配置结构由 pydantic 校验。
 from __future__ import annotations
 
 from skeinlib.config.manager import (
-    Config, ConfigData, PoolsConfig, WorktreeConfig, WebConfig, SpecConfig,
+    Config, ConfigData, PoolsConfig, WorktreeConfig, WebConfig, SpecConfig, ConfirmConfig,
     HooksConfig, StageHooks, AgentHooks, HookEntry,
     LEGAL_HOOK_STAGES, HOOK_STAGE_DISPLAY,
 )
@@ -16,7 +16,7 @@ CONFIG_DEFAULTS = ConfigData().model_dump(by_alias=True)
 
 __all__ = [
     "Config",
-    "ConfigData", "PoolsConfig", "WorktreeConfig", "WebConfig", "SpecConfig",
+    "ConfigData", "PoolsConfig", "WorktreeConfig", "WebConfig", "SpecConfig", "ConfirmConfig",
     "HooksConfig", "StageHooks", "AgentHooks", "HookEntry",
     "LEGAL_HOOK_STAGES", "HOOK_STAGE_DISPLAY",
     "CONFIG_DEFAULTS",

@@ -34,7 +34,7 @@ except ImportError:
 
 from skeinlib.hooks.runner import DBG, debug_enabled
 from skeinlib.core.commands import Skein, _persist_bash_cwd_env, _workspace_lock
-from skeinlib.task.model import PRD_TYPE_ALIAS
+from skeinlib.task.model import PRD_SECTIONS, PRD_TYPE_ALIAS, PRIORITIES, PRIORITY_DEFAULT, ESTIMATE_HINT
 
 
 class AliasTyperGroup(TyperGroup):
@@ -47,6 +47,9 @@ class AliasTyperGroup(TyperGroup):
 TASK_COMMANDS = {"create", "research", "plan", "confirm", "check", "finishing", "finish",
                  "priority", "estimate", "repos", "deps", "parent", "rename", "status", "show"}
 
+# prd --type 的合法值提示 — 中英 alias 都收, help 里只列英文短名 (够 agent 用且不撑爆一行)
+_PRD_TYPE_HELP = "章节: goal|scope|stories|acceptance|verification|testing (中文段名亦可), 一次只写一段"
+
 
 app = typer.Typer(
     cls=AliasTyperGroup,
@@ -58,11 +61,12 @@ app = typer.Typer(
 task_app = typer.Typer(help="task 查看、编辑、状态变更", no_args_is_help=True)
 config_app = typer.Typer(help="读写 .skein/config.yaml 配置", invoke_without_command=True)
 prd_app = typer.Typer(help="读/写/追加/勾选 prd 章节 (目标/边界/User Stories/验收标准/验证方式/Testing Decisions)")
+design_app = typer.Typer(help="读/写 design.md 测试接缝段 (confirm 硬门校验的那段)")
 
 MUTATING = {"init", "setup", "create", "confirm", "research", "plan", "check", "finishing",
             "finish", "fmt", "clean",
             "contract", "repos", "deps", "parent", "estimate", "priority", "subtask", "claim",
-            "prd", "del",
+            "prd", "design", "del",
             "rename", "config"}
 
 
@@ -92,7 +96,8 @@ def _dispatch(a: SimpleNamespace) -> None:
         "claim": sk.scheduler.claim, "subtask": sk.scheduler.subtask,
         "ready": sk.query.ready,
         "status": sk.query.status, "list": sk.query.list_,
-        "fmt": sk.artifacts.fmt, "prd": sk.artifacts.prd, "contract": sk.artifacts.contract,
+        "fmt": sk.artifacts.fmt, "prd": sk.artifacts.prd, "design": sk.artifacts.design,
+        "contract": sk.artifacts.contract,
         "serve": sk.serve, "doctor": sk.doctor,
     }
     DBG.rule(f"skein {a.cmd}")
@@ -141,22 +146,27 @@ def create(
     repos: Annotated[Optional[str], typer.Option("--repos")] = None,
     kind: Annotated[str, typer.Option("--kind")] = "task",
     parent: Annotated[Optional[str], typer.Option("--parent")] = None,
-    estimate: Annotated[Optional[float], typer.Option("--estimate")] = None,
-    priority: Annotated[Optional[str], typer.Option("--priority")] = None,
+    estimate: Annotated[Optional[str], typer.Option("--estimate", help=ESTIMATE_HINT)] = None,
+    priority: Annotated[Optional[str], typer.Option(
+        "--priority", help=f"仅允许: {', '.join(PRIORITIES)} (默认 {PRIORITY_DEFAULT})")] = None,
+    like: Annotated[Optional[str], typer.Option(
+        "--like", help="拿既有 task (含已完成的) 当模板: 克隆 prd/design/subtask 骨架, 状态全重置")] = None,
 ) -> None:
     """登记新 task。"""
     _run("create", id=id, name=name, desc=desc, deps=deps, repos=repos, kind=kind, parent=parent,
-         estimate=estimate, priority=priority)
+         estimate=estimate, priority=priority, like=like)
 
 
 @task_app.command("priority")
-def priority(id: str, set_: Annotated[Optional[str], typer.Option("--set")] = None) -> None:
+def priority(id: str, set_: Annotated[Optional[str], typer.Option(
+        "--set", help=f"仅允许: {', '.join(PRIORITIES)}")] = None) -> None:
     """查/改 task 优先级。"""
     _run("priority", id=id, set=set_)
 
 
 @task_app.command("estimate")
-def estimate(id: str, set_: Annotated[Optional[str], typer.Option("--set")] = None) -> None:
+def estimate(id: str, set_: Annotated[Optional[str], typer.Option(
+        "--set", help=ESTIMATE_HINT)] = None) -> None:
     """查/填 task 预计工时。"""
     _run("estimate", id=id, set=set_)
 
@@ -196,9 +206,11 @@ def confirm(
     id: str,
     summary: Annotated[bool, typer.Option("--summary")] = False,
     approved: Annotated[bool, typer.Option("--approved")] = False,
+    unattended: Annotated[bool, typer.Option(
+        "--unattended", help="无人值守放行 (cron/CI); 需先 config set confirm.unattended true")] = False,
 ) -> None:
     """用户确认门。"""
-    _run("confirm", id=id, summary=summary, approved=approved)
+    _run("confirm", id=id, summary=summary, approved=approved, unattended=unattended)
 
 
 @task_app.command("check")
@@ -273,10 +285,17 @@ def claim(
 
 
 @app.command("list")
-def list_(status: Annotated[Optional[str], typer.Option("--status")] = None,
+def list_(status: Annotated[Optional[str], typer.Option(
+              "--status", help="pending/research/active/check/finishing/done (中文名亦可), "
+                               "open=全部未完成, all=不筛; 逗号分隔可多选")] = None,
           json_: Annotated[bool, typer.Option("--json")] = False) -> None:
     """列所有 task。"""
     _run("list", status=status, json=json_)
+
+
+# `skein task list` 是最自然的猜测 (task 组里其余全是 task 子命令), 但真命令在顶层。
+# 与其让调用方吃一次 "No such command 'list'", 不如在 task 组里转发同一个实现。
+task_app.command("list")(list_)
 
 
 @app.command()
@@ -322,7 +341,7 @@ def subtask(
     id: Annotated[Optional[str], typer.Option("--id")] = None,
     name: Annotated[Optional[str], typer.Option("--name")] = None,
     desc: Annotated[Optional[str], typer.Option("--desc")] = None,
-    estimate: Annotated[Optional[str], typer.Option("--estimate")] = None,
+    estimate: Annotated[Optional[str], typer.Option("--estimate", help=ESTIMATE_HINT)] = None,
     deps: Annotated[Optional[str], typer.Option("--deps")] = None,
     check: Annotated[Optional[str], typer.Option("--check")] = None,
     phase: Annotated[Optional[str], typer.Option("--phase")] = None,
@@ -397,11 +416,30 @@ def config_reset() -> None:
 
 
 app.add_typer(prd_app, name="prd")
+app.add_typer(design_app, name="design")
 
 
 @prd_app.callback()
 def prd() -> None:
     """PRD 章节操作。"""
+
+
+@design_app.callback()
+def design() -> None:
+    """design.md 测试接缝段操作。"""
+
+
+@design_app.command("seam")
+def design_seam(id: str, list_: Annotated[str, typer.Option(
+        "--list", help="接缝条目, \\n 分隔多条; 整段清重建 (同 prd write 语义)")]) -> None:
+    """写 design.md 测试接缝段 (confirm 硬门)。"""
+    _run("design", action="seam", id=id, list=list_)
+
+
+@design_app.command("read")
+def design_read(id: str) -> None:
+    """读 design.md 测试接缝段。"""
+    _run("design", action="read", id=id, list=None)
 
 
 def _prd_action(action: str, id: str, type_: str, list_: Optional[str]) -> None:
@@ -411,34 +449,34 @@ def _prd_action(action: str, id: str, type_: str, list_: Optional[str]) -> None:
 
 
 @prd_app.command("read")
-def prd_read(id: str, type_: Annotated[str, typer.Option("--type")]) -> None:
+def prd_read(id: str, type_: Annotated[str, typer.Option("--type", help=_PRD_TYPE_HELP)]) -> None:
     """读章节正文。"""
     _prd_action("read", id, type_, None)
 
 
 @prd_app.command("write")
-def prd_write(id: str, type_: Annotated[str, typer.Option("--type")],
+def prd_write(id: str, type_: Annotated[str, typer.Option("--type", help=_PRD_TYPE_HELP)],
               list_: Annotated[str, typer.Option("--list")]) -> None:
     """整章清重建。"""
     _prd_action("write", id, type_, list_)
 
 
 @prd_app.command("add")
-def prd_add(id: str, type_: Annotated[str, typer.Option("--type")],
+def prd_add(id: str, type_: Annotated[str, typer.Option("--type", help=_PRD_TYPE_HELP)],
             list_: Annotated[str, typer.Option("--list")]) -> None:
     """追加条目。"""
     _prd_action("add", id, type_, list_)
 
 
 @prd_app.command("check")
-def prd_check(id: str, type_: Annotated[str, typer.Option("--type")],
+def prd_check(id: str, type_: Annotated[str, typer.Option("--type", help=_PRD_TYPE_HELP)],
               list_: Annotated[str, typer.Option("--list")]) -> None:
     """勾选条目。"""
     _prd_action("check", id, type_, list_)
 
 
 @prd_app.command("uncheck")
-def prd_uncheck(id: str, type_: Annotated[str, typer.Option("--type")],
+def prd_uncheck(id: str, type_: Annotated[str, typer.Option("--type", help=_PRD_TYPE_HELP)],
                 list_: Annotated[str, typer.Option("--list")]) -> None:
     """反勾选条目。"""
     _prd_action("uncheck", id, type_, list_)
