@@ -1,8 +1,8 @@
 ---
 name: skein-performance
 description: 淀查 skein 插件的性能问题并优化建议
-argument-hint: [claude code session-id]
-arguments: ["session-id"]
+argument-hint: "[claude code session-id]"
+arguments: "[session-id]"
 ---
 
 # 任务：skein 插件深度审计与优化调研
@@ -28,9 +28,19 @@ arguments: ["session-id"]
     - 识别所有不必要的重复 IO、重复工具调用、重复上下文加载操作
     - 评估参数缓存、上下文复用的可行性与优化空间
 
+4.  **内存占用与性能优化**
+    - 分析插件在执行过程中占用的内存大小、CPU 占用率、磁盘 I/O 等资源指标
+    - 识别是否存在内存泄漏、资源占用过高等问题
+    - 评估插件在不同场景下的性能表现，是否符合预期
+
+5.  **Tokens 消耗优化**
+    - 分析插件在执行过程中消耗的 Tokens 数量，是否超过预期
+    - 识别是否存在重复计算、冗余操作、无效请求等问题
+    - 评估插件在不同场景下的 Tokens 消耗表现，是否符合预期
+
 ## 深度调研要求
 
-启用深度检索能力（含 deepresearch 模式 + `/agent-reach` 指令）完成行业方案调研，检索范围覆盖：
+启用深度检索能力完成行业方案调研，检索范围覆盖：
 
 - GitHub：同类 CLI 插件、Agent 工具链的主流开源实现
 - 技术社区：小红书、Twitter/X 等平台的工程实践与踩坑分享
@@ -42,6 +52,11 @@ arguments: ["session-id"]
 2.  Agent Skills 编排的标准范式与避坑指南
 3.  CLI 参数复用、内存缓存的成熟解决方案
 4.  插件性能优化的通用手段与评估指标
+
+建议工具：
+
+- Skills('agent-reach')
+- MCP('octocode')
 
 ## 输出规范
 
