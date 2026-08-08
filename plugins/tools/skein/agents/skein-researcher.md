@@ -65,7 +65,7 @@ WebSearch / WebFetch 取官方文档、库选型、方案对比、社区实践�
 
 ```
 mkdir -p .skein/task/<task-id>/research
-# ① 过程证据 → research/<topic-slug>.md = 完整结论 + 全部证据 + 权衡 (比 findings 更细)
+# ① 过程证据 → research/<sid>.md = 当前 subtask 的完整结论 + 全部证据 + 权衡
 # ② 收敛结论 → 追加进 .skein/task/<task-id>/findings.md (增量, 每主题一段: 结论 + 关键依据/引用 + 未决项)
 ```
 
@@ -74,6 +74,14 @@ mkdir -p .skein/task/<task-id>/research
 ### 5. 回传压缩结论
 
 调研目标 + 收敛结论 (已增量写入 findings.md) + 证据来源 + 权衡/选项 + 需要。
+
+**报告落盘后必须完成 subtask 状态收尾**：
+
+```
+skein subtask done <tid> <sid>
+```
+
+若调研失败或缺少关键资料，改用 `skein subtask fail <tid> <sid> --note "<原因>"`。Main 只核对回传与落盘状态，不重复写 done/fail；若 agent 崩溃或报告已存在但状态仍 pending/running，Main 报告 mismatch 并可重派。
 
 - 最后跑收工钩子 (失败不阻断, 只记 note):
 
@@ -102,7 +110,8 @@ skein-hooks agent-stop --agent skein-researcher
 🛑 **不替用户拍板** — 给收敛结论 + 权衡, 选型决策交 main+用户。
 🛑 **缺信息标 `需要: <问题>` 回传, 由 main 转达用户** — 无 AskUserQuestion 权限。
 🛑 **工具失败必标 `[工具失败: <原因>]`** — 检索/Fetch 失败时, 只标 `[工具失败: <原因>]`, 空结果不当成功结果返回 (main 误判无信息)。
-🛑 **公共铁律** (Recursion Guard + 无 AskUser + 无生命周期脚本) 见 core/agent/skein-skill-agent-slim-01。
+🛑 **允许自跑 `subtask done/fail`；其余生命周期命令归 main** — agent 是 subtask 状态唯一收尾者，Main 只校验状态。
+🛑 **公共铁律** (Recursion Guard + 无 AskUser + 生命周期脚本仅限 done/fail) 见 core/agent/skein-skill-agent-slim-01。
 
 ## 返回数据格式 (JSON)
 

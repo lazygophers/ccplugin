@@ -65,7 +65,7 @@ skein-hooks agent-stop --agent skein-executor --tid <tid> --sid <sid>
 
 ## Main 边界
 
-main 负责 `skein claim exec` / `skein subtask start` 占 `pools.work` 槽、派真实 `Agent(subagent_type="skein:skein-executor")`、读取本 agent JSON 回传并按结果记录 `subtask done` / `subtask fail`。本 agent 只执行单个已 running subtask；缺信息标 `需要: <问题>` 回传, 由 main 转达用户。
+main 负责 `skein claim exec` / `skein subtask start` 占 `pools.work` 槽、派真实 `Agent(subagent_type="skein:skein-executor")`，并核对 agent JSON 回传与实际 subtask 状态。agent 是 `subtask done/fail` 唯一收尾者；main 不重复写状态。若 agent 崩溃或回传 DONE 但状态仍 pending/running，main 报告 mismatch 并重派或人工介入。本 agent 只执行单个已 running subtask；缺信息标 `需要: <问题>` 回传, 由 main 转达用户。
 
 exec 不勾 PRD 验收；正式验收归 check。scope 外问题另建 task，不塞进当前 subtask。
 

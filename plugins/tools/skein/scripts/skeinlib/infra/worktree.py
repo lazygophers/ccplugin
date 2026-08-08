@@ -45,12 +45,29 @@ def worktrees_of(t: dict[str, Any]) -> list[dict[str, Any]]:
     return []
 
 
+def workdir_for(t: dict[str, Any], repo: str | None = None, root: Path | None = None) -> str:
+    wts = worktrees_of(t)
+    if not wts:
+        return str(root or Path.cwd())
+    if repo is None:
+        if len(wts) > 1:
+            raise SkeinError(f"{t['id']} 有多个 worktree — subtask 必须声明 --repo")
+        wt = wts[0]
+    else:
+        matches = [w for w in wts if w.get("repo") == repo]
+        if not matches:
+            raise SkeinError(f"{t['id']} 未找到 repo={repo!r} 的 worktree")
+        wt = matches[0]
+    return str((root or Path.cwd()) / wt["wt"])
+
+
 def commit_all(cwd: Path, msg: str) -> None:
     # git add -A + commit; 无改动时静默 (nothing to commit 不算错)
     git("add", "-A", cwd=cwd)
     r = git("commit", "-m", msg, cwd=cwd, check=False)
     if r.returncode != 0 and "nothing to commit" not in (r.stdout + r.stderr):
         sys.stderr.write(r.stdout + r.stderr)
+        raise SkeinError(f"git commit 失败 (cwd={cwd})")
 
 
 def ignore_worktree_dir(repo_dir: Path, cfg: dict[str, Any]) -> None:
@@ -106,5 +123,13 @@ def destroy_worktrees(t: dict[str, Any], root: Path) -> None:
         wt = root / w["wt"]
         if wt.exists():
             # --force: 即使有未提交改动/未跟踪文件也强删 (del 是用户明确销毁意图)
-            git("worktree", "remove", str(wt), "--force", cwd=sub, check=False)
-        git("branch", "-D", w["branch"], cwd=sub, check=False)
+            removed = git("worktree", "remove", str(wt), "--force", cwd=sub, check=False)
+            if removed.returncode != 0:
+                raise SkeinError(
+                    f"worktree 清理失败 ({w['wt']}): {removed.stdout}{removed.stderr}"
+                )
+        deleted = git("branch", "-D", w["branch"], cwd=sub, check=False)
+        if deleted.returncode != 0:
+            raise SkeinError(
+                f"branch 清理失败 ({w['branch']}): {deleted.stdout}{deleted.stderr}"
+            )

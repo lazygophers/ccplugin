@@ -21,6 +21,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from skeinlib.core.workspace import Workspace
 
+from skeinlib.infra.worktree import workdir_for
 from skeinlib.task.dag import _crit_weight, _split, _split_semi, _sub_estimate_sum, _sub_pct
 from skeinlib.utils.errors import SkeinError
 from skeinlib.task.model import (SubtaskStatus, SubtaskPhase, TaskStatus, PRIORITY_RANK, PRIORITY_DEFAULT,
@@ -46,22 +47,66 @@ _W_EXEC = 1.0
 
 def _dispatch_hints(claimed: list[dict[str, Any]] | None = None,
                     checked: list[str] | None = None,
-                    finishing: list[str] | None = None) -> list[dict[str, str]]:
-    """claim 认领了什么 → main 该派哪个 agent。
-
-    认领只改状态, 真正推进靠 main 派 agent。调用方拿到 `checked: [tid]` 却不知道下一步是派
-    checker, 就会退化成轮询 `skein list` 干等 task 自己变 —— 实测发生过。把派发对象写进回显。
-    """
-    hints: list[dict[str, str]] = []
+                    finishing: list[str] | None = None,
+                    tasks: dict[str, dict[str, Any]] | None = None,
+                    root: Any = None) -> list[dict[str, Any]]:
+    """claim 认领了什么 → main 该派哪个 agent。"""
+    hints: list[dict[str, Any]] = []
     for c in claimed or []:
         agent = ("skein:skein-researcher" if c.get("phase") == SubtaskPhase.RESEARCH
                  else "skein:skein-executor")
-        hints.append({"agent": agent, "tid": c["tid"], "sid": c["sid"], "why": "执行该 subtask"})
+        hint = {"agent": agent, "tid": c["tid"], "sid": c["sid"], "why": "执行该 subtask"}
+        if tasks:
+            t = tasks[c["tid"]]
+            repo = c.get("repo")
+            if repo is None and len(t.get("worktrees") or []) > 1:
+                hint["mismatch"] = "multi_repo_subtask_missing_repo"
+            else:
+                try:
+                    hint["workdir"] = workdir_for(t, repo, root)
+                except SkeinError as e:
+                    hint["mismatch"] = "invalid_workdir"
+                    hint["error"] = str(e)
+                if repo is not None:
+                    hint["repo"] = repo
+        hints.append(hint)
     for tid in checked or []:
-        hints.append({"agent": "skein:skein-checker", "tid": tid, "why": "验收该 task"})
+        hint: dict[str, Any] = {
+            "agent": "skein:skein-checker", "tid": tid, "why": "验收该 task"
+        }
+        if tasks:
+            t = tasks[tid]
+            wts = t.get("worktrees") or []
+            if len(wts) > 1:
+                hint["workdirs"] = [workdir_for(t, w.get("repo"), root) for w in wts]
+            else:
+                hint["workdir"] = workdir_for(t, root=root)
+        hints.append(hint)
     for tid in finishing or []:
-        hints.append({"agent": "skein:skein-finisher", "tid": tid, "why": "收尾合并该 task"})
+        hint = {"agent": "skein:skein-finisher", "tid": tid, "why": "收尾合并该 task"}
+        if tasks:
+            hint["workdir"] = str(root or ".")
+        hints.append(hint)
     return hints
+
+
+def _report_mismatches(ws: "Workspace") -> list[dict[str, str]]:
+    """报告文件已落盘但 subtask 未收尾，供 main 重派或介入。"""
+    mismatches: list[dict[str, str]] = []
+    for t in ws.store.all_tasks():
+        if t.get("status") != TaskStatus.RESEARCH:
+            continue
+        report_dir = ws.tasks / t["id"] / "research"
+        if not report_dir.is_dir():
+            continue
+        for s in t.get("subtasks", []):
+            report = report_dir / f"{s['sid']}.md"
+            if (s.get("phase") == SubtaskPhase.RESEARCH
+                    and s.get("status") in (SubtaskStatus.PENDING, SubtaskStatus.RUNNING)
+                    and report.is_file()):
+                mismatches.append({"tid": t["id"], "sid": s["sid"],
+                                   "reason": "research_report_exists_subtask_not_finished"})
+    return mismatches
 
 
 def _score(s: dict[str, Any], crit_val: int) -> float:
@@ -187,20 +232,33 @@ class Scheduler:
         task_filter = getattr(a, "task", None)
         if task_filter:
             batch = [(t, s) for t, s in batch if t["id"] == task_filter]
-        items = [{
-            "task": t["id"],
-            "subtask": s["sid"],
-            "name": s["name"],
-            "phase": s.get("phase", SubtaskPhase.EXEC),
-            "skills": s.get("skills", []),
-            "acceptance": s.get("acceptance", []),
-        } for t, s in batch]
+        items = []
+        mismatches: list[dict[str, str]] = []
+        for t, s in batch:
+            item = {
+                "task": t["id"],
+                "subtask": s["sid"],
+                "name": s["name"],
+                "phase": s.get("phase", SubtaskPhase.EXEC),
+                "repo": s.get("repo"),
+                "skills": s.get("skills", []),
+                "acceptance": s.get("acceptance", []),
+            }
+            try:
+                item["workdir"] = workdir_for(t, s.get("repo"), self.ws.root)
+            except SkeinError as e:
+                item["mismatch"] = "invalid_workdir"
+                item["error"] = str(e)
+                mismatches.append({"tid": t["id"], "sid": s["sid"],
+                                   "reason": "invalid_workdir", "error": str(e)})
+            items.append(item)
         data: dict[str, Any] = {
             "ready": items,
             "count": len(items),
             "task_filter": task_filter,
             "claim_command": "skein claim exec",
             "single_claim_command": "skein subtask start <tid> <sid>",
+            "mismatches": mismatches + _report_mismatches(self.ws),
         }
         if not items:
             data["empty"] = {"reason": "task_filter_no_ready", "task": task_filter} if task_filter else self._empty_batch_info()
@@ -238,10 +296,14 @@ class Scheduler:
                 _timeline.append(t, "subtask", SubtaskStatus.RUNNING, sid=sid)
                 claimed.append({"tid": tid, "sid": sid, "name": s["name"],
                                 "phase": s.get("phase", SubtaskPhase.EXEC),
+                                "repo": s.get("repo"),
                                 "skills": s.get("skills", []),
                                 "acceptance": s.get("acceptance", [])})
             self.ws.store.save(t)
-        return {"claimed": claimed, "count": len(claimed), "next": _dispatch_hints(claimed=claimed)}
+        tasks = {t["id"]: t for t in self.ws.store.all_tasks()}
+        return {"claimed": claimed, "count": len(claimed),
+                "next": _dispatch_hints(claimed=claimed, tasks=tasks, root=self.ws.root),
+                "mismatches": _report_mismatches(self.ws)}
 
     def _check_candidates(self) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         to_check: list[dict[str, Any]] = []
@@ -316,11 +378,27 @@ class Scheduler:
                 finishing.append(t["id"])
             except SkeinError as e:
                 errors.append({"tid": t["id"], "action": "finishing", "error": str(e)})
+        tasks = {t["id"]: t for t in self.ws.store.all_tasks()}
         result: dict[str, Any] = {"checked": checked, "finishing": finishing,
-                                  "next": _dispatch_hints(checked=checked, finishing=finishing)}
+                                  "next": _dispatch_hints(checked=checked, finishing=finishing,
+                                                           tasks=tasks, root=self.ws.root),
+                                  "mismatches": _report_mismatches(self.ws)}
         if errors:
             result["errors"] = errors
         return result
+
+    def flow(self, a: argparse.Namespace) -> dict[str, Any]:
+        """执行一次调度 tick：认领 exec/check，并返回 Agent 派发提示。"""
+        result = self.claim(argparse.Namespace(
+            phase=None,
+            task=getattr(a, "task", None),
+            dry_run=getattr(a, "dry_run", False),
+        ))
+        return {
+            "action": "flow run",
+            "dry_run": getattr(a, "dry_run", False),
+            "result": result,
+        }
 
     def subtask(self, a: argparse.Namespace) -> dict[str, Any]:
         if a.action == "add":
@@ -334,6 +412,12 @@ class Scheduler:
                 raise SkeinError(f"subtask 预计工时非法: {a.estimate!r} — {ESTIMATE_HINT}")
             if est <= 0:
                 raise SkeinError(f"subtask 预计工时须为正数: {est}")
+            repo = (getattr(a, "repo", None) or "").strip() or None
+            declared_repos = t.get("repos") or []
+            if repo is not None and repo not in declared_repos:
+                raise SkeinError(f"{a.tid} 未声明 repo={repo!r} — 先用 `skein task repos {a.tid} --set ...` 声明")
+            if repo is None and len(declared_repos) > 1:
+                raise SkeinError(f"{a.tid} 有多个 repo — subtask add 必须声明 --repo")
             subs.append({
                 "sid": a.sid, "name": a.name, "desc": a.desc,
                 "estimate": est,  # 预计工时(小时), add 必填; task estimate 须 ≥ Σ 本字段
@@ -342,6 +426,7 @@ class Scheduler:
                 "acceptance_done": [],  # 已通过验收标准序号(1-based); 完成百分比 = len/len(acceptance)
                 "status": SubtaskStatus.PENDING,
                 "phase": getattr(a, "phase", None) or SubtaskPhase.EXEC,  # exec(默认) | research
+                "repo": repo,
                 "skills": _split(a.skills),  # 关联 skills (0-n)
                 "created": now(),   # 创建时刻
                 "started": None,    # exec 时刻 (claim/start →运行中 时置)
@@ -356,6 +441,7 @@ class Scheduler:
             return {"tid": a.tid, "subtasks": [{"sid": s["sid"], "status": s["status"],
                     "name": s["name"], "pct": _sub_pct(s),
                     "estimate": s.get("estimate"),
+                    "repo": s.get("repo"),
                     "depends_on": s.get("depends_on", []),
                     "acceptance": s.get("acceptance", []),
                     "skills": s.get("skills", [])} for s in subs]}
@@ -383,8 +469,17 @@ class Scheduler:
                     "claimed" if a.action == "claim" else "ready": [
                         {"sid": s["sid"], "name": s["name"],
                          "phase": s.get("phase", SubtaskPhase.EXEC),
+                         "repo": s.get("repo"),
+                         "workdir": workdir_for(t, s.get("repo"), self.ws.root),
                          "skills": s.get("skills", []), "acceptance": s.get("acceptance", [])}
-                        for s in batch]}
+                        for s in batch],
+                    "next": _dispatch_hints(
+                        claimed=[{"tid": a.tid, "sid": s["sid"],
+                                  "phase": s.get("phase", SubtaskPhase.EXEC),
+                                  "repo": s.get("repo")} for s in batch],
+                        tasks={a.tid: t}, root=self.ws.root
+                    ) if a.action == "claim" else [],
+                    "mismatches": _report_mismatches(self.ws)}
         # start / done / fail / check 均针对单 sid
         t = self.ws.store.load(a.tid)
         s = self.ws._sub(t, a.sid)

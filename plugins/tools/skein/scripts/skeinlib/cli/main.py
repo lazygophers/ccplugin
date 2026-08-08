@@ -5,6 +5,7 @@
 """
 from __future__ import annotations
 
+import inspect
 import json
 import os
 import subprocess
@@ -35,6 +36,23 @@ except ImportError:
 from skeinlib.hooks.runner import DBG, debug_enabled
 from skeinlib.core.commands import Skein, _persist_bash_cwd_env, _workspace_lock
 from skeinlib.task.model import PRD_SECTIONS, PRD_TYPE_ALIAS, PRIORITIES, PRIORITY_DEFAULT, ESTIMATE_HINT
+
+
+if len(inspect.signature(typer.core.TyperOption.make_metavar).parameters) == 2:
+    _typer_option_make_metavar = typer.core.TyperOption.make_metavar
+
+    def _compatible_option_make_metavar(self: Any, ctx: Any = None) -> str:
+        return _typer_option_make_metavar(self, ctx)
+
+    typer.core.TyperOption.make_metavar = _compatible_option_make_metavar
+
+if len(inspect.signature(typer.core.TyperArgument.make_metavar).parameters) == 1:
+    _typer_argument_make_metavar = typer.core.TyperArgument.make_metavar
+
+    def _compatible_argument_make_metavar(self: Any, ctx: Any = None) -> str:
+        return _typer_argument_make_metavar(self)
+
+    typer.core.TyperArgument.make_metavar = _compatible_argument_make_metavar
 
 
 class AliasTyperGroup(TyperGroup):
@@ -90,7 +108,7 @@ design_app = typer.Typer(help="读/写 design.md 测试接缝段 (confirm 硬门
 MUTATING = {"init", "setup", "create", "confirm", "research", "plan", "check", "finishing",
             "finish", "fmt", "clean",
             "contract", "repos", "deps", "parent", "estimate", "priority", "subtask", "claim",
-            "prd", "design", "del",
+            "prd", "design", "flow", "del",
             "rename", "config"}
 
 
@@ -117,7 +135,7 @@ def _dispatch(a: SimpleNamespace) -> None:
         "parent": sk.lifecycle.parent,
         "estimate": sk.lifecycle.estimate, "priority": sk.lifecycle.priority, "rename": sk.lifecycle.rename,
         "del": sk.lifecycle.del_,
-        "claim": sk.scheduler.claim, "subtask": sk.scheduler.subtask,
+        "claim": sk.scheduler.claim, "flow": sk.scheduler.flow, "subtask": sk.scheduler.subtask,
         "ready": sk.query.ready,
         "status": sk.query.status, "list": sk.query.list_,
         "fmt": sk.artifacts.fmt, "prd": sk.artifacts.prd, "design": sk.artifacts.design,
@@ -308,6 +326,18 @@ def claim(
     _run("claim", phase=phase, task=task, dry_run=dry_run)
 
 
+@app.command()
+def flow(
+    action: Annotated[str, typer.Argument(help="run")],
+    task: Annotated[Optional[str], typer.Option("--task")] = None,
+    dry_run: Annotated[bool, typer.Option("--dry-run")] = False,
+) -> None:
+    """自动认领并输出 Agent 派发指令。"""
+    if action != "run":
+        raise typer.BadParameter("flow action 仅允许 run")
+    _run("flow", action=action, task=task, dry_run=dry_run)
+
+
 @app.command("list")
 def list_(status: Annotated[Optional[str], typer.Option(
               "--status", help="pending/research/active/check/finishing/done (中文名亦可), "
@@ -369,6 +399,7 @@ def subtask(
     deps: Annotated[Optional[str], typer.Option("--deps")] = None,
     check: Annotated[Optional[str], typer.Option("--check")] = None,
     phase: Annotated[Optional[str], typer.Option("--phase")] = None,
+    repo: Annotated[Optional[str], typer.Option("--repo", help="多 repo task 的目标 repo")] = None,
     note: Annotated[Optional[str], typer.Option("--note")] = None,
     passed: Annotated[Optional[str], typer.Option("--passed")] = None,
     skills: Annotated[Optional[str], typer.Option("--skills")] = None,
@@ -378,7 +409,7 @@ def subtask(
     用法: subtask <action> <tid> [sid]
 
     \b
-    add   <tid> <sid> --name <str> --desc <str> --estimate <num> [--deps] [--skills]  登记→待处理
+    add   <tid> <sid> --name <str> --desc <str> --estimate <num> [--deps] [--skills] [--repo]  登记→待处理
     claim <tid>                                                                         批量 ready→运行中
     start <tid> <sid>                                                                   单个 待处理/失败→运行中
     done  <tid> <sid> [--passed]                                                        运行中→已完成
@@ -408,7 +439,7 @@ def subtask(
     if phase not in (None, "exec", "research"):
         raise typer.BadParameter("phase 仅允许 exec/research")
     _run("subtask", action=action, tid=tid, sid=sid, name=name, desc=desc, estimate=estimate,
-         deps=deps, check=check, phase=phase, note=note, passed=passed, skills=skills)
+         deps=deps, check=check, phase=phase, repo=repo, note=note, passed=passed, skills=skills)
 
 
 app.add_typer(task_app, name="task")

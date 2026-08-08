@@ -18,7 +18,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from conftest import SkeinCli
+from conftest import SkeinCli, run_git
 
 
 def _sub(ws: Path, tid: str) -> list[dict[str, object]]:
@@ -220,3 +220,91 @@ def test_prd_check_by_substring_works(skein_cli: SkeinCli, ws: Path) -> None:
     skein_cli(ws, "prd", "check", "demo", "--type", "goal", "--list", "交付完整报告")
     body = json.loads(skein_cli(ws, "prd", "read", "demo", "--type", "goal").stdout)["body"]
     assert "- [x] 交付完整报告" in body, f"子串勾选未生效: {body}"
+
+
+# ---------- 11. flow run 调度契约 ----------
+def test_flow_run_claims_and_dispatches_without_running_agents(
+    skein_cli: SkeinCli, ws: Path,
+) -> None:
+    _mk(skein_cli, ws)
+    _fill_planning(skein_cli, ws, "demo")
+    skein_cli(ws, "task", "confirm", "demo", "--approved")
+
+    dry = json.loads(skein_cli(ws, "flow", "run", "--dry-run").stdout)
+    assert dry["dry_run"] is True
+    assert _sub(ws, "demo")[0]["status"] == "pending"
+
+    result = json.loads(skein_cli(ws, "flow", "run").stdout)["result"]
+    assert result["exec"]["next"][0]["agent"] == "skein:skein-executor"
+    assert result["exec"]["next"][0]["sid"] == "st1"
+    assert _sub(ws, "demo")[0]["status"] == "running"
+
+
+def test_flow_run_advances_to_check_without_confirm_or_finish(
+    skein_cli: SkeinCli, ws: Path,
+) -> None:
+    _mk(skein_cli, ws)
+    _fill_planning(skein_cli, ws, "demo")
+    skein_cli(ws, "task", "confirm", "demo", "--approved")
+    skein_cli(ws, "subtask", "done", "demo", "st1")
+
+    result = json.loads(skein_cli(ws, "flow", "run").stdout)["result"]
+    assert result["check"]["next"][0]["agent"] == "skein:skein-checker"
+    status = json.loads(skein_cli(ws, "task", "status", "demo", "--json").stdout)["task"]["status"]
+    assert status == "check"
+
+
+def test_report_state_mismatch_is_reported(skein_cli: SkeinCli, ws: Path) -> None:
+    _mk(skein_cli, ws)
+    skein_cli(ws, "subtask", "add", "demo", "rs1", "--name", "调研", "--desc", "资料",
+              "--estimate", "1", "--phase", "research")
+    skein_cli(ws, "task", "estimate", "demo", "--set", "1")
+    skein_cli(ws, "task", "research", "demo")
+    report = ws / ".skein" / "task" / "demo" / "research" / "rs1.md"
+    report.parent.mkdir()
+    report.write_text("# report\n", encoding="utf-8")
+
+    result = json.loads(skein_cli(ws, "flow", "run", "--dry-run").stdout)["result"]
+    assert {m["sid"] for m in result["exec"]["mismatches"]} == {"rs1"}
+    skein_cli(ws, "subtask", "start", "demo", "rs1")
+    result = json.loads(skein_cli(ws, "flow", "run", "--dry-run").stdout)["result"]
+    assert {m["sid"] for m in result["exec"]["mismatches"]} == {"rs1"}
+
+
+def test_multi_repo_requires_repo_and_maps_dispatch_workdirs(
+    skein_cli: SkeinCli, ws: Path,
+) -> None:
+    skein_cli(ws, "config", "set", "worktree.enabled", "true")
+    for name in ("child-a", "child-b"):
+        child = ws / name
+        child.mkdir()
+        run_git(child, "init", "-q")
+        run_git(child, "config", "user.email", "t@t.dev")
+        run_git(child, "config", "user.name", "t")
+        (child / "seed.txt").write_text("s\n")
+        run_git(child, "add", "-A")
+        run_git(child, "commit", "-qm", "seed")
+
+    _mk(skein_cli, ws)
+    skein_cli(ws, "task", "repos", "demo", "--set", "child-a,child-b")
+    missing = skein_cli(ws, "subtask", "add", "demo", "st1", "--name", "干活",
+                        "--desc", "描述", "--estimate", "1", check=False)
+    assert missing.returncode != 0 and "--repo" in missing.stdout + missing.stderr
+    unknown = skein_cli(ws, "subtask", "add", "demo", "st1", "--name", "干活",
+                        "--desc", "描述", "--estimate", "1", "--repo", "other", check=False)
+    assert unknown.returncode != 0 and "未声明 repo" in unknown.stdout + unknown.stderr
+    for sid, repo in (("st1", "child-a"), ("st2", "child-b")):
+        skein_cli(ws, "subtask", "add", "demo", sid, "--name", "干活", "--desc", "描述",
+                  "--estimate", "1", "--repo", repo)
+    for type_, text in (("goal", "目标一"), ("scope", "边界一"),
+                        ("stories", "As a dev, I want X, so that Y"),
+                        ("acceptance", "验收一"), ("verification", "跑命令"),
+                        ("testing", "只测外部行为")):
+        skein_cli(ws, "prd", "write", "demo", "--type", type_, "--list", text)
+    skein_cli(ws, "design", "seam", "demo", "--list", "走 CLI 边界")
+    skein_cli(ws, "task", "estimate", "demo", "--set", "2")
+    skein_cli(ws, "task", "confirm", "demo", "--approved")
+    result = json.loads(skein_cli(ws, "flow", "run", "--dry-run").stdout)["result"]
+    by_sid = {item["subtask"]: item for item in result["exec"]["ready"]}
+    assert by_sid["st1"]["workdir"] == str(ws / "child-a" / ".worktrees" / "skein-demo")
+    assert by_sid["st2"]["workdir"] == str(ws / "child-b" / ".worktrees" / "skein-demo")

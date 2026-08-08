@@ -506,58 +506,65 @@ class Lifecycle:
         cfg = self.ws.config()
         wts = worktrees_of(t)
         self.ws._stage_hooks("finish", "before", self.ws._hook_ctx(tid, t=t))
-        conflicts: list[tuple[str, str]] = []  # [(repo, 冲突输出)] — 部分子 git 冲突时保留已合并进度, task 留 active 供幂等重跑
+        conflicts: list[tuple[str, str]] = []
         for w in wts:
             if w.get("merged"):
-                continue  # 幂等: 前次已合并的子 git 跳过 (部分冲突重跑场景)
-            sub = self.ws.root if w["repo"] == "." else self.ws.root / w["repo"]  # merge 落各子 git
+                continue
+            sub = self.ws.root if w["repo"] == "." else self.ws.root / w["repo"]
             wt = self.ws.root / w["wt"]
             if not wt.exists():
-                sys.stderr.write(
-                    f"{tid} worktree 缺失 ({w['wt']}) — 跳过, 分支 {w['branch']} 若有提交未并入\n")
-                w["merged"] = True  # 缺失即无从合并, 标记免卡住
-                continue
-            # worktree 场景强制 commit, 不看 auto_commit — 未提交改动 merge 不进主干,
-            # 且下面 worktree remove --force 会连同丢弃 (auto_commit 只管原地模式, 见 finish 末尾)
+                raise SkeinError(
+                    f"{tid} worktree 缺失 ({w['wt']}) — 无法确认分支 {w['branch']} 已合并"
+                )
             commit_all(wt, f"skein({tid}): {t['name']}")
-            # 合并回该子 git 的主工作区
             m = git("merge", "--no-ff", w["branch"], "-m",
                     f"skein: merge {tid} {t['name']}", cwd=sub, check=False)
             if m.returncode != 0:
-                git("merge", "--abort", cwd=sub, check=False)
-                conflicts.append((w["repo"], m.stdout + m.stderr))
+                aborted = git("merge", "--abort", cwd=sub, check=False)
+                detail = m.stdout + m.stderr
+                if aborted.returncode != 0:
+                    detail += "\nmerge --abort 失败: " + aborted.stdout + aborted.stderr
+                conflicts.append((w["repo"], detail))
                 continue
-            git("worktree", "remove", str(wt), "--force", cwd=sub, check=False)
-            git("branch", "-D", w["branch"], cwd=sub, check=False)
+            removed = git("worktree", "remove", str(wt), "--force", cwd=sub, check=False)
+            if removed.returncode != 0:
+                self.ws.store.save(t)
+                self.ws.store.sync()
+                raise SkeinError(
+                    f"{tid} worktree 清理失败 ({w['wt']}): "
+                    f"{removed.stdout}{removed.stderr}"
+                )
+            deleted = git("branch", "-D", w["branch"], cwd=sub, check=False)
+            if deleted.returncode != 0:
+                self.ws.store.save(t)
+                self.ws.store.sync()
+                raise SkeinError(
+                    f"{tid} branch 清理失败 ({w['branch']}): "
+                    f"{deleted.stdout}{deleted.stderr}"
+                )
             w["merged"] = True
         if conflicts:
-            # 保存已合并进度 (worktrees 各 merged 标记), task 仍 active — 解冲突后重跑 finish 只补未合并子 git
             t["worktrees"] = wts
             self.ws.store.save(t)
             self.ws.store.sync()
             detail = "\n".join(f"  子 git {r}: 冲突已 abort" for r, _ in conflicts)
             raise SkeinError(
-                f"{tid} 部分子 git 合并冲突, 已合并的保留、task 仍 active。"
+                f"{tid} 部分子 git 合并冲突, 已合并的保留、task 仍 finishing。"
                 f"解冲突后重跑 finish (幂等跳过已合并):\n{detail}")
+
+        # 先完成 worktree 合并和 finish.after；失败时 task 保持 finishing，可重试。
+        if not wts and self.ws.git and cfg.get("auto_commit", True):
+            commit_all(self.ws.root, f"skein({tid}): {t['name']}")
+        self.ws._stage_hooks("finish", "after", self.ws._hook_ctx(tid, t=t))
         t["status"] = TaskStatus.DONE
         t["worktree"] = None
         t["worktrees"] = []
-        t["finished"] = now()  # 完成时刻 — 保留期从此计, 超 retain_days 由 _autoclean 归档
+        t["finished"] = now()
         _timeline.append(t, "task", TaskStatus.DONE)
         self.ws.store.save(t)
-        self.ws.store.sync()  # 重写顶层索引 (完成 task 仍留看板; retain_days=0 时 _autoclean 即归档)
-
-        # supertask 自动推进不在这里做 —— 归 scheduling.py `_check_candidates` 的 supertask 分支
-        # (下一次 `skein claim` 收进 check)。走 claim 是为了过 pools.gate 记账和 timeline 埋点,
-        # 在 finish 里直接改 parent["status"] 会绕开两者。
-        archived = not (self.ws.tasks / tid).exists()  # retain_days<=0 → 已被 _autoclean 归档
-        # 原地模式 (无 worktree): 此时才轮到 auto_commit 决定提不提交; 关则改动留工作区由用户自管。
-        # 放在 _save/_sync 之后 — 连同 .skein 状态一起提交, 免留下脏索引
-        if not wts and self.ws.git and cfg.get("auto_commit", True):
-            commit_all(self.ws.root, f"skein({tid}): {t['name']}")
-        cfg = self.ws.config()
+        self.ws.store.sync()
+        archived = not (self.ws.tasks / tid).exists()
         rest = self.ws.store.active()
-        self.ws._stage_hooks("finish", "after", self.ws._hook_ctx(tid, t=t))
         return {"id": tid, "status": TaskStatus.DONE, "archived": archived,
                 "remaining": [x["id"] for x in rest]}
 
