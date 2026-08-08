@@ -508,41 +508,42 @@ class Lifecycle:
         self.ws._stage_hooks("finish", "before", self.ws._hook_ctx(tid, t=t))
         conflicts: list[tuple[str, str]] = []
         for w in wts:
-            if w.get("merged"):
-                continue
             sub = self.ws.root if w["repo"] == "." else self.ws.root / w["repo"]
             wt = self.ws.root / w["wt"]
-            if not wt.exists():
-                raise SkeinError(
-                    f"{tid} worktree 缺失 ({w['wt']}) — 无法确认分支 {w['branch']} 已合并"
-                )
-            commit_all(wt, f"skein({tid}): {t['name']}")
-            m = git("merge", "--no-ff", w["branch"], "-m",
-                    f"skein: merge {tid} {t['name']}", cwd=sub, check=False)
-            if m.returncode != 0:
-                aborted = git("merge", "--abort", cwd=sub, check=False)
-                detail = m.stdout + m.stderr
-                if aborted.returncode != 0:
-                    detail += "\nmerge --abort 失败: " + aborted.stdout + aborted.stderr
-                conflicts.append((w["repo"], detail))
-                continue
-            removed = git("worktree", "remove", str(wt), "--force", cwd=sub, check=False)
-            if removed.returncode != 0:
+            if not w.get("merged"):
+                if not wt.exists():
+                    raise SkeinError(
+                        f"{tid} worktree 缺失 ({w['wt']}) — 无法确认分支 {w['branch']} 已合并"
+                    )
+                commit_all(wt, f"skein({tid}): {t['name']}")
+                m = git("merge", "--no-ff", w["branch"], "-m",
+                        f"skein: merge {tid} {t['name']}", cwd=sub, check=False)
+                if m.returncode != 0:
+                    aborted = git("merge", "--abort", cwd=sub, check=False)
+                    detail = m.stdout + m.stderr
+                    if aborted.returncode != 0:
+                        detail += "\nmerge --abort 失败: " + aborted.stdout + aborted.stderr
+                    conflicts.append((w["repo"], detail))
+                    continue
+                w["merged"] = True
                 self.ws.store.save(t)
                 self.ws.store.sync()
-                raise SkeinError(
-                    f"{tid} worktree 清理失败 ({w['wt']}): "
-                    f"{removed.stdout}{removed.stderr}"
-                )
-            deleted = git("branch", "-D", w["branch"], cwd=sub, check=False)
-            if deleted.returncode != 0:
-                self.ws.store.save(t)
-                self.ws.store.sync()
-                raise SkeinError(
-                    f"{tid} branch 清理失败 ({w['branch']}): "
-                    f"{deleted.stdout}{deleted.stderr}"
-                )
-            w["merged"] = True
+            if wt.exists():
+                removed = git("worktree", "remove", str(wt), "--force", cwd=sub, check=False)
+                if removed.returncode != 0:
+                    raise SkeinError(
+                        f"{tid} worktree 清理失败 ({w['wt']}): "
+                        f"{removed.stdout}{removed.stderr}"
+                    )
+            branch = git("rev-parse", "--verify", f"refs/heads/{w['branch']}",
+                         cwd=sub, check=False)
+            if branch.returncode == 0:
+                deleted = git("branch", "-D", w["branch"], cwd=sub, check=False)
+                if deleted.returncode != 0:
+                    raise SkeinError(
+                        f"{tid} branch 清理失败 ({w['branch']}): "
+                        f"{deleted.stdout}{deleted.stderr}"
+                    )
         if conflicts:
             t["worktrees"] = wts
             self.ws.store.save(t)

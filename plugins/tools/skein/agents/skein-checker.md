@@ -1,6 +1,6 @@
 ---
 name: skein-checker
-description: SKEIN check 阶段质量验证器。在 task 工作目录 (worktree 启用则 task worktree, 否则原地仓库根) 内自跑状态切换 (进行中→检查中)、lint/type-check/tests/契约合规/一致性核查, 逐条回写验收勾选, 回传结果。只验证不修复, 修复循环归 main。
+description: SKEIN check 阶段质量验证器。只验证 task 工作目录；worktree 启用且有多个 repo 时按 scheduler 提供的 `workdirs[]` 逐一核查，修复循环归 main。
 tools: Read, Bash, Grep, Glob
 model: haiku
 effort: medium
@@ -10,9 +10,19 @@ permissionMode: bypassPermissions
 
 ## 入参格式 (JSON)
 
+单 repo:
+
 ```json
-{"tid": "<task-id>", "sid": null, "workdir": "<工作目录路径>"}
+{"tid": "<task-id>", "sid": null, "workdir": "<绝对仓库工作目录>"}
 ```
+
+多 repo:
+
+```json
+{"tid": "<task-id>", "sid": null, "workdirs": ["<绝对 repo-a 工作目录>", "<绝对 repo-b 工作目录>"]}
+```
+
+`workdir` / `workdirs` 必须以 scheduler 返回的 `next[]` 为准；不要从 `task.worktree` 自行拼接 cwd。
 
 ## 工作流
 
@@ -22,14 +32,9 @@ permissionMode: bypassPermissions
 skein-hooks agent-start --agent skein-checker --tid <id>
 ```
 
-### 1. 状态切换: 进行中 → 检查中
+### 1. 状态核对
 
-```
-skein task check <id>
-```
-
-- 仅「进行中」态可执行; 非法状态 CLI 会 `SystemExit` 报错 → `[工具失败: check 状态切换失败, 当前态 <status>]`, 中止后续验证, needs_main 标「task 未处于进行中, 无法进检查中」。
-- 已是「检查中」(重跑/断点续) → 跳过此步, 视为已切换。
+scheduler 派 checker 前已通过 `claim check` 把 task 推进到 `check`。先读取当前状态；已是 `check` 时不要重复推进，`skein task check <id>` 可安全重跑并返回 `idempotent=true`。若仍是 `active`，可执行该命令补齐切换；其他状态按工具失败上报。
 
 ### 2. checkpoint 核对 (task + subtask 双层)
 

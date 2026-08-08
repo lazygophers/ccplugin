@@ -38,9 +38,11 @@ def research():
     Bash(skein subtask add <tid> <sid> --name <subtask标题> --desc <subtask描述> --estimate <小时> --phase research [--deps 依赖sid] [--skills 技能列表])
   Bash(skein task research <tid>)
 
-  Wait(research subtask done) # 等待主循环调度
-  Agent(sub_agent='skein:skein-specer', prompt='sediment', context=fork, task=<tid>, step='research')
-  Bash(skein task plan <tid>)
+  Bash("skein flow run")
+  # 直接消费 result.next[]，按 hint.agent 派 researcher/executor/checker/finisher
+  # main 核对 Agent 回传、research report 与实际 subtask 状态，不替 Agent 补写 done/fail
+  # checker 只验证；finisher 在 scheduler 给出的仓库根执行 finish
+
 
 # 编写需求文档、设计文档等
 for 任务规划:
@@ -80,47 +82,38 @@ else:
 if 模式 == 'plan':
   exit 0
 
-Wait(subtask done) # 等待主循环调度
-Bash(skein task check <tid>)
-
-if Wait(check done) != 'pass': # 等待主循环调度
-  goto Plan(分析失败原因，并重新规划任务)
-else:
-  Bash(skein task finish <tid>)
-
-Agent(sub_agent='skein:skein-specer', prompt='sediment', context=fork, task=<tid>, step='finish')
-Wait(finish done) # 等待主循环调度
+  Bash("skein flow run")
+  dispatch result.next[]
+  校验已结束 Agent 回传、报告与实际状态
+  若仍有 next 或在途状态，继续下一 tick
 
 print('任务完成')
 ```
 
 ## 主循环骨架
 
-`skein claim` 的回显里有 `next: [{agent, tid, sid}]` —— **认领只改状态，推进靠你按 `next` 派 agent**。
-拿到 `checked: [X]` 就该立刻派 `skein-checker X`，**不要轮询 `skein list` 等状态自己变**（等不到，那是活锁）。
+`skein flow run` 是一次 scheduler tick：自动认领 ready exec/check，并把 Agent 派发信息放进返回的 `next[]`。只消费 hint 的 `agent`、`tid`、`sid`、`workdir` / `workdirs`；不要从 `skein list` 重建 dispatch，也不要从 `task.worktree` 自行拼接 cwd。
+
+researcher/executor 完成工作后自行执行 `skein subtask done <tid> <sid>`，失败执行 `skein subtask fail <tid> <sid> --note "<原因>"`。main 只核对回传、报告和实际状态；报告已存在但 research subtask 仍 pending/running 时报告 mismatch。checker 只验证，scheduler 已推进 task 到 `check` 时安全幂等重跑。finisher 只在绝对仓库根执行 `skein task finish <tid>`，不在将被销毁的 task worktree 内执行。多 repo checker 使用 `workdirs[]`。
+
+`--summary` 只属于 `task confirm`；`subtask done` 不接受该选项。
 
 ```text
-Bash("skein claim")                                   # 一次 claim, 两路认领: ready subtask 标 running;
-                                                      # 全 done 的 active→check, 全 done 的 check→finishing
-                                                      # 回显 next[] 直接给出该派的 agent + tid/sid
-for task in Bash("skein list --status open --json"):  # 认领后按 task 状态分派
-  wd = task.worktree or repo_root
-  if task.status == "research":
-    for st in task.subtasks where st.status == "running" and st.phase == "research":
-      async Agent(sub_agent="skein:skein-researcher", tid=task.id, sid=st.sid, workdir=wd)
-  elif task.status == "active":
-    for st in task.subtasks where st.status == "running":
-      async Agent(sub_agent="skein:skein-executor", tid=task.id, sid=st.sid, workdir=wd)
-  elif task.status == "check":
-    async Agent(sub_agent="skein:skein-checker", tid=task.id, sid=None, workdir=wd)
-  elif task.status == "finishing":
-    async Agent(sub_agent="skein:skein-finisher", tid=task.id, sid=None, workdir=wd)
+result = Bash("skein flow run")
+for hint in result.next:
+  # 只按 hint.agent 派发；使用 hint.workdir 或 hint.workdirs
+  # 不从 task.worktree 或 task.status 自行推导执行目录和 Agent
+  async Agent(
+    sub_agent=hint.agent,
+    tid=hint.tid,
+    sid=hint.sid,
+    workdir=hint.workdir,
+    workdirs=hint.workdirs,
+  )
 
-for task in Bash("skein list --status pending --json"):   # pending 三分路, 非焦点只完成 plan, 不续 exec
-  if task.ready:                     confirm(task)        # 判据已勾满 → 完成 confirm, plan 闭合
-    Bash(skein task confirm <task.id> --approved)
-  else:
-    Plan(task)
+# researcher/executor 自行执行 subtask done/fail；main 核对回传与实际状态
+# mismatch、FAIL、冲突、在途状态：报告或继续下一次 flow tick，不伪造状态
+# 显式 plan 模式在 confirm 后停止；其他模式持续消费后续 result.next
 ```
 
 ## 调度原则

@@ -11,8 +11,10 @@ permissionMode: bypassPermissions
 ## 入参格式 (JSON)
 
 ```json
-{"tid": "<task-id>", "sid": null, "workdir": "<工作目录路径>"}
+{"tid": "<task-id>", "sid": null, "workdir": "<绝对仓库根>"}
 ```
+
+scheduler 返回的 `workdir` 是执行 `skein task finish <tid>` 的仓库根，不是待销毁的 task worktree。多 repo task 仍从该根统一执行 finish；checker 的 `workdirs[]` 仅用于逐 repo 勘察。
 
 ## 工作流
 
@@ -24,17 +26,17 @@ check 全绿后 main 派你做 finish 收尾。**验收/完成度核对已由 ch
 skein-hooks agent-start --agent skein-finisher --tid <tid>
 ```
 
-### 1. 读改动全貌 (task 工作目录)
+### 1. 读改动全貌
+
+`workdir` 是仓库根。先在根仓执行：
 
 ```
-git -C <工作目录> diff --stat
-git -C <工作目录> diff
-git -C <工作目录> status --short
+git -C <仓库根> diff --stat
+git -C <仓库根> diff
+git -C <仓库根> status --short
 ```
 
-- 工作目录: worktree 启用则 task worktree, 否则原地仓库根 (以 dispatch 为准)。
-- 查未提交文件 / 调试代码 / TODO 遗留 / 临时文件 / 空目录, 列入 dangling。
-- 命令报错 → `[工具失败: <原因>]`, 上报无法勘察。
+worktree 启用时，改动位于 task worktree；需要勘察时先根据 task 记录和 repo 列出各 worktree，但不要把任何 task worktree 当作 finish 的执行 cwd。多 repo 场景逐一核对各 repo 的 worktree 改动；最终仍回仓库根执行 finish。
 
 ### 2. 查 product wiki 候选 (finish-candidates 三路降级)
 

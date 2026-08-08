@@ -78,9 +78,24 @@ def _dispatch_hints(claimed: list[dict[str, Any]] | None = None,
             t = tasks[tid]
             wts = t.get("worktrees") or []
             if len(wts) > 1:
-                hint["workdirs"] = [workdir_for(t, w.get("repo"), root) for w in wts]
+                workdirs: list[str] = []
+                errors: list[str] = []
+                for w in wts:
+                    try:
+                        workdirs.append(workdir_for(t, w.get("repo"), root))
+                    except SkeinError as e:
+                        errors.append(str(e))
+                if errors:
+                    hint["mismatch"] = "invalid_workdir"
+                    hint["errors"] = errors
+                else:
+                    hint["workdirs"] = workdirs
             else:
-                hint["workdir"] = workdir_for(t, root=root)
+                try:
+                    hint["workdir"] = workdir_for(t, root=root)
+                except SkeinError as e:
+                    hint["mismatch"] = "invalid_workdir"
+                    hint["error"] = str(e)
         hints.append(hint)
     for tid in finishing or []:
         hint = {"agent": "skein:skein-finisher", "tid": tid, "why": "收尾合并该 task"}
@@ -465,21 +480,31 @@ class Scheduler:
                         s["started"] = now()  # exec 时刻 (首次认领, 重认领不覆盖)
                     _timeline.append(t, "subtask", SubtaskStatus.RUNNING, sid=s["sid"])
                 self.ws.store.save(t)  # _save 已渲染子任务看板
+            items: list[dict[str, Any]] = []
+            mismatches: list[dict[str, str]] = []
+            for s in batch:
+                item = {"sid": s["sid"], "name": s["name"],
+                        "phase": s.get("phase", SubtaskPhase.EXEC),
+                        "repo": s.get("repo"),
+                        "skills": s.get("skills", []),
+                        "acceptance": s.get("acceptance", [])}
+                try:
+                    item["workdir"] = workdir_for(t, s.get("repo"), self.ws.root)
+                except SkeinError as e:
+                    item["mismatch"] = "invalid_workdir"
+                    item["error"] = str(e)
+                    mismatches.append({"tid": a.tid, "sid": s["sid"],
+                                       "reason": "invalid_workdir", "error": str(e)})
+                items.append(item)
             return {"tid": a.tid, "action": a.action,
-                    "claimed" if a.action == "claim" else "ready": [
-                        {"sid": s["sid"], "name": s["name"],
-                         "phase": s.get("phase", SubtaskPhase.EXEC),
-                         "repo": s.get("repo"),
-                         "workdir": workdir_for(t, s.get("repo"), self.ws.root),
-                         "skills": s.get("skills", []), "acceptance": s.get("acceptance", [])}
-                        for s in batch],
+                    "claimed" if a.action == "claim" else "ready": items,
                     "next": _dispatch_hints(
                         claimed=[{"tid": a.tid, "sid": s["sid"],
                                   "phase": s.get("phase", SubtaskPhase.EXEC),
                                   "repo": s.get("repo")} for s in batch],
                         tasks={a.tid: t}, root=self.ws.root
                     ) if a.action == "claim" else [],
-                    "mismatches": _report_mismatches(self.ws)}
+                    "mismatches": mismatches + _report_mismatches(self.ws)}
         # start / done / fail / check 均针对单 sid
         t = self.ws.store.load(a.tid)
         s = self.ws._sub(t, a.sid)
