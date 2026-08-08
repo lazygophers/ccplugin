@@ -90,7 +90,7 @@ TASK_COMMANDS = {"create", "research", "plan", "confirm", "check", "finishing", 
 # prd --type 的合法值提示 — 中英 alias 都收, help 里只列英文短名 (够 agent 用且不撑爆一行)
 _PRD_TYPE_HELP = "章节: goal|scope|stories|acceptance|verification|testing (中文段名亦可), 一次只写一段"
 # check/uncheck 的 --list 与 write/add 的 --list 同名但语义相反 (匹配 vs 内容) —— 必须点破
-_PRD_MATCH_HELP = "要勾的条目原文子串 (不是序号! 先 `prd read` 看原文再取一段唯一子串)"
+_PRD_MATCH_HELP = "要勾的条目原文子串 (先 `prd read` 看原文取一段唯一子串); 也收纯数字 = 章节内第 N 条"
 
 
 app = typer.Typer(

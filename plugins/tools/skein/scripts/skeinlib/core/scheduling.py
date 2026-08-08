@@ -45,6 +45,26 @@ _W_WAIT = 1.0
 _W_EXEC = 1.0
 
 
+def _hint_prompt(hint: dict[str, Any]) -> str:
+    """按 hint 生成成品 dispatch prompt。
+
+    agent 契约本来就是「只给 tid+sid+workdir, 详情自读」, 让 main 现编 prompt 只有两个下场:
+    编太长被 Agent 工具拒 (实测发生过), 或干脆不派自己上手做。这里直接给成品串, main 复制即可。
+    """
+    where = hint.get("workdir") or (hint.get("workdirs") or ["<未知>"])[0]
+    tid = hint["tid"]
+    if hint.get("sid"):
+        return (f"tid={tid} sid={hint['sid']} workdir={where}。"
+                f"先 `skein subtask show {tid} {hint['sid']}` 自读全部字段, "
+                f"在 workdir 内完成该 subtask, 收尾自跑 subtask done/fail。")
+    if hint["agent"].endswith("skein-checker"):
+        dirs = hint.get("workdirs") or [where]
+        return (f"tid={tid} workdirs={json.dumps(dirs, ensure_ascii=False)}。"
+                f"按 agent 定义逐门验收该 task, 只验证不修复, 回传 JSON。")
+    return (f"tid={tid} workdir={where}。"
+            f"在该仓库根勘察 git 改动并跑 `skein task finish {tid}`, 回传收尾摘要。")
+
+
 def _dispatch_hints(claimed: list[dict[str, Any]] | None = None,
                     checked: list[str] | None = None,
                     finishing: list[str] | None = None,
@@ -55,7 +75,8 @@ def _dispatch_hints(claimed: list[dict[str, Any]] | None = None,
     for c in claimed or []:
         agent = ("skein:skein-researcher" if c.get("phase") == SubtaskPhase.RESEARCH
                  else "skein:skein-executor")
-        hint = {"agent": agent, "tid": c["tid"], "sid": c["sid"], "why": "执行该 subtask"}
+        hint: dict[str, Any] = {"agent": agent, "tid": c["tid"], "sid": c["sid"],
+                                "why": "执行该 subtask"}
         if tasks:
             t = tasks[c["tid"]]
             repo = c.get("repo")
@@ -71,9 +92,7 @@ def _dispatch_hints(claimed: list[dict[str, Any]] | None = None,
                     hint["repo"] = repo
         hints.append(hint)
     for tid in checked or []:
-        hint: dict[str, Any] = {
-            "agent": "skein:skein-checker", "tid": tid, "why": "验收该 task"
-        }
+        hint = {"agent": "skein:skein-checker", "tid": tid, "why": "验收该 task"}
         if tasks:
             t = tasks[tid]
             wts = t.get("worktrees") or []
@@ -102,6 +121,9 @@ def _dispatch_hints(claimed: list[dict[str, Any]] | None = None,
         if tasks:
             hint["workdir"] = str(root or ".")
         hints.append(hint)
+    for h in hints:
+        if "mismatch" not in h:
+            h["prompt"] = _hint_prompt(h)
     return hints
 
 

@@ -554,8 +554,6 @@ class Lifecycle:
                 f"解冲突后重跑 finish (幂等跳过已合并):\n{detail}")
 
         # 先完成 worktree 合并和 finish.after；失败时 task 保持 finishing，可重试。
-        if not wts and self.ws.git and cfg.get("auto_commit", True):
-            commit_all(self.ws.root, f"skein({tid}): {t['name']}")
         self.ws._stage_hooks("finish", "after", self.ws._hook_ctx(tid, t=t))
         t["status"] = TaskStatus.DONE
         t["worktree"] = None
@@ -564,6 +562,10 @@ class Lifecycle:
         _timeline.append(t, "task", TaskStatus.DONE)
         self.ws.store.save(t)
         self.ws.store.sync()
+        # commit 必须排在 save/sync 之后: 先 commit 会把 .skein/task.json 的完成态和归档移动
+        # 留在工作区外, finish 完仓库仍是脏的 (原地模式实测)。
+        if not wts and self.ws.git and cfg.get("auto_commit", True):
+            commit_all(self.ws.root, f"skein({tid}): {t['name']}")
         archived = not (self.ws.tasks / tid).exists()
         rest = self.ws.store.active()
         return {"id": tid, "status": TaskStatus.DONE, "archived": archived,

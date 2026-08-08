@@ -134,10 +134,24 @@ def section_check(tasks_dir: Path, tid: str, section: str, match: str, flag: boo
     prd = prd_path(tasks_dir, tid)
     lines = prd.read_text(encoding="utf-8").split("\n")
     s, e = _section_bounds(lines, section)
+    # 纯数字 --list 按章节内第 N 条 (1-based) 解: agent 天然会传序号 (write 的 --list 是内容,
+    # check 的是匹配串, 同名反义), 一律当子串匹配的结果就是必然「无匹配」白跑一轮。
+    if match.strip().isdigit():
+        items = [i for i in range(s, e) if re.match(r"^-\s+\[[ xX]\]\s+", lines[i])]
+        idx = int(match.strip())
+        if not 1 <= idx <= len(items):
+            raise SkeinError(f"章节「{section}」只有 {len(items)} 条, 序号 {idx} 越界 — "
+                             f"先 `prd read` 看原文")
+        target: set[int] | None = {items[idx - 1]}
+    else:
+        target = None
     hit = 0
     for i in range(s, e):
         ln = lines[i]
-        if match not in ln:
+        if target is not None:
+            if i not in target:
+                continue
+        elif match not in ln:
             continue
         if flag:
             new = re.sub(r"^-\s+\[ \]\s+", "- [x] ", ln)
@@ -149,7 +163,7 @@ def section_check(tasks_dir: Path, tid: str, section: str, match: str, flag: boo
     if hit == 0:
         # 零命中: 可能 match 写错, 或目标行已是目标态 (幂等场景)
         # 区分: 章节内有含 match 的行但已是目标态 → 幂等不算错; 完全无含 match 的行 → 报错
-        any_match = any(match in lines[i] for i in range(s, e))
+        any_match = (target is not None) or any(match in lines[i] for i in range(s, e))
         if not any_match:
             raise SkeinError(f"章节「{section}」无匹配「{match}」的行 — 检查 --list 文本")
         # 已是目标态, 幂等无变化
