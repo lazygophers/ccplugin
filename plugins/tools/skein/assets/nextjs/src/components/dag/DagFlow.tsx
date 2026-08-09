@@ -165,12 +165,13 @@ export function DagFlow({
       }
       const isDim = chain ? !chain.has(n.id) : false;
       const opacity = dimmed ? 0.4 : isDim ? 0.15 : 1;
+      const zIndex = hoverId === n.id ? 1000 : ((n.style as CSSProperties)?.zIndex ?? 0);
       return {
         ...n,
-        style: { ...(n.style as CSSProperties), opacity },
+        style: { ...(n.style as CSSProperties), opacity, zIndex },
       };
     });
-  }, [nodes, chain, dimStatusSet, nodeStatusOf]);
+  }, [nodes, chain, dimStatusSet, nodeStatusOf, hoverId]);
 
   const handleNodeClick: NodeMouseHandler = useCallback((_, node) => {
     // 映射回原始 task id

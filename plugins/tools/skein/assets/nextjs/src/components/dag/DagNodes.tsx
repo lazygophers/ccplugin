@@ -57,7 +57,7 @@ export const TaskCardNode = memo(function TaskCardNode({ data, selected }: NodeP
 
       {/* Hover 悬浮卡片 */}
       {hovered && (
-        <div className="pointer-events-none absolute left-0 top-full z-50 mt-2 w-80 rounded-lg border border-border/40 bg-card/95 p-4 shadow-xl backdrop-blur-md">
+        <div className="pointer-events-none absolute left-0 top-full z-[9999] mt-2 w-80 rounded-lg border border-border/40 bg-card/95 p-4 shadow-xl backdrop-blur-md">
           <div className="mb-1.5 flex items-center gap-2">
             <span className="h-2 w-2 rounded-full" style={{ backgroundColor: `var(${meta.colorVar})` }} />
             <span className="text-xs font-semibold text-foreground">{task.title || task.name || task.id}</span>
