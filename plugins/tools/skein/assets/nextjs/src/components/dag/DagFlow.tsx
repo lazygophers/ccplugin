@@ -194,9 +194,10 @@ export function DagFlow({
         nodesConnectable={false}
         elementsSelectable={true}
         proOptions={{ hideAttribution: true }}
-        fitView={fitView}
-        minZoom={0.1}
-        maxZoom={2}
+        fitView
+        fitViewOptions={{ maxZoom: 1, minZoom: 0.3 }}
+        minZoom={0.2}
+        maxZoom={1}
         panOnDrag={true}
         zoomOnScroll={true}
         zoomOnDoubleClick={false}

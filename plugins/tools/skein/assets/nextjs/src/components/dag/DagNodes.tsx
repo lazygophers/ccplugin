@@ -102,14 +102,15 @@ export const TaskGroupNode = memo(function TaskGroupNode({ data, selected }: Nod
         backgroundColor: `color-mix(in srgb, var(${meta.colorVar}) 6%, transparent)`,
         width: "100%",
         height: "100%",
+        pointerEvents: "none",
       }}
     >
-      <Handle type="target" position={Position.Top} style={{ opacity: 0, top: 0 }} />
       <div
         className="dag-group-header flex cursor-pointer items-center gap-2 overflow-hidden rounded-t-md border-b px-2"
         style={{
           borderColor: `var(${meta.colorVar})`,
           backgroundColor: `color-mix(in srgb, var(${meta.colorVar}) 22%, var(--card))`,
+          pointerEvents: "auto",
         }}
       >
         <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: `var(${meta.colorVar})` }} />
@@ -123,8 +124,6 @@ export const TaskGroupNode = memo(function TaskGroupNode({ data, selected }: Nod
           <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: `var(${meta.colorVar})` }} />
         </div>
       </div>
-      <div className="flex-1" />
-      <Handle type="source" position={Position.Bottom} style={{ opacity: 0, bottom: 0 }} />
     </div>
   );
 });
