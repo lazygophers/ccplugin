@@ -7,7 +7,7 @@ import type { NormTask, NormSubtask } from "./model";
 
 const elk = new ELK();
 
-// ELK base layout options — Layered (Sugiyama) 方向 TB
+// ELK base layout options — Layered (Sugiyama) 方向 DOWN
 const BASE_OPTS: Record<string, string> = {
   "elk.algorithm": "layered",
   "elk.direction": "DOWN",
@@ -26,11 +26,15 @@ export const DAG_DENSITY: Record<string, DensityOpts> = {
   mini:    { w: 120, h: 32, gapX: 42, gapY: 33 },
 };
 
+// ELK id 必须合法: 只允许字母数字下划线
+const toElkId = (id: string) => id.replace(/[^a-zA-Z0-9_]/g, "_");
+
 // ── 看板 DAG 布局 (含 supertask 分组) ──
 export async function layoutBoardDAG(
   tasks: NormTask[],
   density: keyof typeof DAG_DENSITY = "compact",
 ): Promise<{ nodes: Node[]; edges: Edge[] }> {
+  if (!tasks.length) return { nodes: [], edges: [] };
   const d = DAG_DENSITY[density] || DAG_DENSITY.compact;
   const byId = new Map(tasks.map(t => [t.id, t]));
 
@@ -43,39 +47,35 @@ export async function layoutBoardDAG(
     }
   }
   const groupIds = [...childrenOf.keys()].filter(pid => childrenOf.get(pid)!.length > 0);
-
-  // 构造 ELK graph JSON
-  const layoutId = (id: string) => id.replace(/[^a-zA-Z0-9_]/g, "_");
-  const elkNodes: any[] = [];
-  const elkEdges: any[] = [];
   const groupIdSet = new Set(groupIds);
   const childIdSet = new Set(groupIds.flatMap(g => childrenOf.get(g)!));
+  const childToGroup = new Map<string, string>();
+  for (const g of groupIds) for (const c of childrenOf.get(g)!) childToGroup.set(c, g);
 
-  // 独立 task → 顶层节点
+  // 构造 ELK 顶层节点
+  const elkTopNodes: any[] = [];
   for (const t of tasks) {
-    if (childIdSet.has(t.id)) continue;
+    if (childIdSet.has(t.id)) continue; // child 跳过, 放到 compound 内
     if (groupIdSet.has(t.id)) {
-      // supertask → 顶层 compound 节点, children 在内部
+      // supertask → compound 节点
       const children = childrenOf.get(t.id)!;
-      const childNodes = children.map(cid => ({
-        id: layoutId(cid),
-        width: d.w,
-        height: d.h,
-        layoutOptions: { "elk.portConstraints": "FIXED_SIDE" },
-      }));
-      elkNodes.push({
-        id: layoutId(t.id),
+      elkTopNodes.push({
+        id: toElkId(t.id),
         width: d.w + 28,
         height: d.h * Math.max(1, children.length) + 42,
         layoutOptions: {
-          ...BASE_OPTS,
           "elk.padding": "[top=28,left=14,bottom=14,right=14]",
         },
-        children: childNodes,
+        children: children.map(cid => ({
+          id: toElkId(cid),
+          width: d.w,
+          height: d.h,
+        })),
       });
     } else {
-      elkNodes.push({
-        id: layoutId(t.id),
+      // 独立 task
+      elkTopNodes.push({
+        id: toElkId(t.id),
         width: d.w,
         height: d.h,
       });
@@ -83,24 +83,15 @@ export async function layoutBoardDAG(
   }
 
   // 边: deps 关系 (父子关系不画边)
-  const childToGroup = new Map<string, string>();
-  for (const g of groupIds) for (const c of childrenOf.get(g)!) childToGroup.set(c, g);
-
-  let edgeSeq = 0;
+  // 关键: 跨层级边 (外部→compound 内部 child) 需 hierarchyHandling: INCLUDE_CHILDREN
+  const elkEdges: any[] = [];
   for (const t of tasks) {
     for (const dep of t.deps || []) {
       if (!byId.has(dep)) continue;
-      const fromId = childToGroup.has(dep) ? layoutId(dep) : layoutId(dep);
-      const toId = layoutId(t.id);
-      // 确保两端都在图中
-      const fromInGroup = childToGroup.has(dep);
-      const toInGroup = childToGroup.has(t.id);
       elkEdges.push({
-        id: `e${edgeSeq++}`,
-        sources: [fromId],
-        targets: [toId],
-        // 跨容器边: 容器→容器, 需容器做端口
-        ...(fromInGroup !== toInGroup && fromInGroup ? {} : {}),
+        id: `e_${toElkId(dep)}_${toElkId(t.id)}`,
+        sources: [toElkId(dep)],
+        targets: [toElkId(t.id)],
       });
     }
   }
@@ -109,112 +100,65 @@ export async function layoutBoardDAG(
     id: "root",
     layoutOptions: {
       ...BASE_OPTS,
+      "elk.hierarchyHandling": "INCLUDE_CHILDREN",
       "elk.padding": "[top=20,left=40,bottom=20,right=40]",
     },
-    children: elkNodes,
+    children: elkTopNodes,
     edges: elkEdges,
   };
 
   const result = await elk.layout(root);
 
-  // 提取 React Flow 节点
+  // 提取 React Flow 节点 — compound 节点的坐标是绝对的, child 坐标是相对于 compound 的
   const rfNodes: Node[] = [];
-  const rfEdges: Edge[] = [];
+  const elkIdToTaskId = new Map<string, string>();
+  for (const t of tasks) elkIdToTaskId.set(toElkId(t.id), t.id);
 
-  function extractNodes(elkNode: any, offset = { x: 0, y: 0 }) {
-    const ox = (elkNode.x || 0) + offset.x;
-    const oy = (elkNode.y || 0) + offset.y;
-    // compound 节点本身 → group node
+  function walk(elkNode: any, parentElkId: string | null, absX: number, absY: number) {
+    const x = (elkNode.x || 0) + absX;
+    const y = (elkNode.y || 0) + absY;
     if (elkNode.children && elkNode.children.length > 0) {
-      const taskId = reverseId(elkNode.id);
-      const task = byId.get(taskId);
+      // compound 节点 → group node (绝对坐标)
+      const taskId = elkIdToTaskId.get(elkNode.id);
+      const task = taskId ? byId.get(taskId) : null;
       if (task) {
         rfNodes.push({
           id: elkNode.id,
           type: "taskGroup",
-          position: { x: ox, y: oy },
+          position: { x, y },
           data: { task, width: elkNode.width, height: elkNode.height },
           style: { width: elkNode.width, height: elkNode.height },
         });
       }
-      for (const child of elkNode.children) {
-        extractNodes(child, { x: ox, y: oy });
-      }
+      for (const child of elkNode.children) walk(child, elkNode.id, x, y);
     } else {
-      const taskId = reverseId(elkNode.id);
-      const task = byId.get(taskId);
+      // 叶子节点
+      const taskId = elkIdToTaskId.get(elkNode.id);
+      const task = taskId ? byId.get(taskId) : null;
       if (task) {
         rfNodes.push({
           id: elkNode.id,
-          position: { x: ox, y: oy },
+          position: { x, y },
           type: "taskCard",
-          data: { task },
+          data: { task, groupId: parentElkId },
           style: { width: elkNode.width, height: elkNode.height },
-          parentId: undefined, // 将在下面处理
         });
       }
     }
   }
+  for (const n of (result.children || [])) walk(n, null, 0, 0);
 
-  // 映射 ELK compound → React Flow parentNode
-  function extractWithParent(elkNode: any, parentId: string | null = null, offset = { x: 0, y: 0 }) {
-    const ox = (elkNode.x || 0) + offset.x;
-    const oy = (elkNode.y || 0) + offset.y;
-    if (elkNode.children && elkNode.children.length > 0) {
-      const taskId = reverseId(elkNode.id);
-      const task = byId.get(taskId);
-      if (task) {
-        rfNodes.push({
-          id: elkNode.id,
-          type: "taskGroup",
-          position: { x: ox, y: oy },
-          data: { task, width: elkNode.width, height: elkNode.height },
-          style: { width: elkNode.width, height: elkNode.height },
-        });
-      }
-      for (const child of elkNode.children) {
-        extractWithParent(child, elkNode.id, { x: ox, y: oy });
-      }
-    } else {
-      const taskId = reverseId(elkNode.id);
-      const task = byId.get(taskId);
-      if (task) {
-        rfNodes.push({
-          id: elkNode.id,
-          position: { x: ox, y: oy },
-          type: "taskCard",
-          data: { task, groupId: parentId },
-          style: { width: elkNode.width, height: elkNode.height },
-          ...(parentId ? { parentId: parentId } : {}),
-        });
-      }
-    }
-  }
-
-  const idMap = new Map<string, string>();
-  // 记录 ELK id → task id 映射
-  for (const t of tasks) idMap.set(layoutId(t.id), t.id);
-
-  function reverseId(elkId: string): string {
-    return idMap.get(elkId) || elkId;
-  }
-
-  rfNodes.length = 0;
-  extractWithParent(result);
-
-  // 边
-  rfEdges.length = 0;
-  for (const t of tasks) {
-    for (const dep of t.deps || []) {
-      if (!byId.has(dep)) continue;
-      rfEdges.push({
+  // React Flow 边
+  const rfEdges: Edge[] = tasks.flatMap(t =>
+    (t.deps || [])
+      .filter(dep => byId.has(dep))
+      .map(dep => ({
         id: `edge-${dep}-${t.id}`,
-        source: layoutId(dep),
-        target: layoutId(t.id),
+        source: toElkId(dep),
+        target: toElkId(t.id),
         type: "smoothstep",
-      });
-    }
-  }
+      }))
+  );
 
   return { nodes: rfNodes, edges: rfEdges };
 }
@@ -227,53 +171,36 @@ export async function layoutSubtaskDAG(
   const w = opts?.w || 148;
   const h = opts?.h || 48;
   const byId = new Map(subs.map(s => [s.id, s]));
-  const layoutId = (id: string) => id.replace(/[^a-zA-Z0-9_]/g, "_");
 
-  const elkNodes = subs.map(s => ({
-    id: layoutId(s.id),
-    width: w,
-    height: h,
-  }));
-
+  const elkNodes = subs.map(s => ({ id: toElkId(s.id), width: w, height: h }));
   const elkEdges: any[] = [];
   for (const s of subs) {
     for (const dep of s.deps || []) {
       if (!byId.has(dep)) continue;
-      elkEdges.push({
-        id: `e-${dep}-${s.id}`,
-        sources: [layoutId(dep)],
-        targets: [layoutId(s.id)],
-      });
+      elkEdges.push({ id: `e_${toElkId(dep)}_${toElkId(s.id)}`, sources: [toElkId(dep)], targets: [toElkId(s.id)] });
     }
   }
 
-  const root = {
+  const result = await elk.layout({
     id: "root",
-    layoutOptions: {
-      ...BASE_OPTS,
-      "elk.padding": "[top=16,left=16,bottom=16,right=16]",
-    },
+    layoutOptions: { ...BASE_OPTS, "elk.padding": "[top=16,left=16,bottom=16,right=16]" },
     children: elkNodes,
     edges: elkEdges,
-  };
+  });
 
-  const result = await elk.layout(root);
-  const idMap = new Map<string, string>();
-  for (const s of subs) idMap.set(layoutId(s.id), s.id);
+  const elkIdToSubId = new Map<string, string>();
+  for (const s of subs) elkIdToSubId.set(toElkId(s.id), s.id);
 
   const rfNodes: Node[] = (result.children || []).map((n: any) => ({
     id: n.id,
     position: { x: n.x, y: n.y },
     type: "subtaskCard",
-    data: { sub: byId.get(idMap.get(n.id) || n.id)! },
+    data: { sub: byId.get(elkIdToSubId.get(n.id) || n.id)! },
     style: { width: n.width, height: n.height },
   }));
 
   const rfEdges: Edge[] = elkEdges.map(e => ({
-    id: e.id,
-    source: e.sources[0],
-    target: e.targets[0],
-    type: "smoothstep",
+    id: e.id, source: e.sources[0], target: e.targets[0], type: "smoothstep",
   }));
 
   return { nodes: rfNodes, edges: rfEdges };
@@ -314,11 +241,9 @@ export async function layoutDepDAG(
     queue.push(...(downstreamOf.get(id) || []).filter(d => !visited.has(d)));
   }
 
-  // 父子关系
+  // 父子关系纳入
   const parentId = task.parent;
-  if (parentId && byId.has(parentId) && !visited.has(parentId)) {
-    visited.add(parentId);
-  }
+  if (parentId && byId.has(parentId) && !visited.has(parentId)) visited.add(parentId);
   if (task.kind === "supertask") {
     for (const t of allTasks) {
       if (t.parent === taskId && !visited.has(t.id)) visited.add(t.id);
@@ -331,54 +256,36 @@ export async function layoutDepDAG(
   }
 
   const inTasks = [...visited].map(id => byId.get(id)!).filter(Boolean);
-  const layoutId = (id: string) => id.replace(/[^a-zA-Z0-9_]/g, "_");
-
-  const elkNodes = inTasks.map(t => ({
-    id: layoutId(t.id),
-    width: 160,
-    height: 40,
-  }));
-
+  const elkNodes = inTasks.map(t => ({ id: toElkId(t.id), width: 160, height: 40 }));
   const elkEdges: any[] = [];
   for (const t of inTasks) {
     for (const dep of t.deps || []) {
       if (!visited.has(dep)) continue;
-      elkEdges.push({
-        id: `e-${dep}-${t.id}`,
-        sources: [layoutId(dep)],
-        targets: [layoutId(t.id)],
-      });
+      elkEdges.push({ id: `e_${toElkId(dep)}_${toElkId(t.id)}`, sources: [toElkId(dep)], targets: [toElkId(t.id)] });
     }
   }
 
-  const root = {
+  const result = await elk.layout({
     id: "root",
-    layoutOptions: {
-      ...BASE_OPTS,
-      "elk.padding": "[top=16,left=20,bottom=16,right=20]",
-    },
+    layoutOptions: { ...BASE_OPTS, "elk.padding": "[top=16,left=20,bottom=16,right=20]" },
     children: elkNodes,
     edges: elkEdges,
-  };
+  });
 
-  const result = await elk.layout(root);
-  const idMap = new Map<string, string>();
-  for (const t of inTasks) idMap.set(layoutId(t.id), t.id);
+  const elkIdToTaskId = new Map<string, string>();
+  for (const t of inTasks) elkIdToTaskId.set(toElkId(t.id), t.id);
 
   const rfNodes: Node[] = (result.children || []).map((n: any) => ({
     id: n.id,
     position: { x: n.x, y: n.y },
     type: "depTaskCard",
-    data: { task: byId.get(idMap.get(n.id) || n.id)!, isCenter: idMap.get(n.id) === taskId },
+    data: { task: byId.get(elkIdToTaskId.get(n.id) || n.id)!, isCenter: elkIdToTaskId.get(n.id) === taskId },
     style: { width: n.width, height: n.height },
   }));
 
   const rfEdges: Edge[] = elkEdges.map(e => ({
-    id: e.id,
-    source: e.sources[0],
-    target: e.targets[0],
-    type: "smoothstep",
+    id: e.id, source: e.sources[0], target: e.targets[0], type: "smoothstep",
   }));
 
-  return { nodes: rfNodes, edges: rfEdges, centerId: layoutId(taskId) };
+  return { nodes: rfNodes, edges: rfEdges, centerId: toElkId(taskId) };
 }
