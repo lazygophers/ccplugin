@@ -21,8 +21,8 @@ from typing import TYPE_CHECKING, Any, Callable, Optional, cast
 
 from skeinlib.hooks.runner import DBG
 from skeinlib.config import Config
-from skeinlib.web.serve import (build_app, install_serve_deps, max_mtime, probe_same_project,
-                            serve_deps_present, dist_dir)
+from skeinlib.web.serve import (build_app, ensure_dist_built, install_serve_deps, max_mtime,
+                            probe_same_project, serve_deps_present, dist_dir)
 from skeinlib.web.views import Snapshot
 from skeinlib.utils.paths import SCRIPTS_DIR, SKEIN_ENTRY
 
@@ -329,6 +329,9 @@ class BoardSourceMixin:
             if not serve_deps_present():
                 print("SKEIN 看板依赖安装失败 — 手动 pip install -r requirements.txt", file=sys.stderr, flush=True)
                 return
+
+        # dist/ 不再入库 — 启动前确保已编译 (首次自动 npm build)。
+        ensure_dist_built(quiet=quiet)
 
         import uvicorn
 

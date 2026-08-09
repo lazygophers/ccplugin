@@ -47,11 +47,47 @@ def install_serve_deps() -> None:
 
 
 def dist_dir() -> Path:
-    """插件自带的前端构建产物目录 `<plugin>/assets/dist/`。
+    """插件前端构建产物目录 `<plugin>/assets/dist/`。
 
     本文件在 `<plugin>/scripts/skeinlib/` 下, 故要往上三级才到插件根。
-    dist/ 是 Next.js static export 产物, 已提交到 git, 用户无需 build。"""
+    dist/ 是 Next.js static export 产物, 不入库, serve 启动时自动编译。"""
     return (PLUGIN_ROOT / "assets" / "dist").resolve()
+
+
+def ensure_dist_built(quiet: bool = False) -> None:
+    """dist/ 不存在时自动编译 Next.js 前端。
+
+    源码在 assets/nextjs/, 输出到 assets/dist/ (next.config.ts output='export')。
+    需要 Node.js + pnpm; 编译失败不阻塞 serve (dist_dir 仍返回路径, 后续 404 可接受)。
+    """
+    dd = dist_dir()
+    if (dd / "index.html").is_file():
+        return  # 已编译
+    nextjs_dir = PLUGIN_ROOT / "assets" / "nextjs"
+    if not nextjs_dir.is_dir():
+        if not quiet:
+            print("SKEIN 前端源码缺失 (assets/nextjs/), 无法自动编译", file=sys.stderr, flush=True)
+        return
+    import shutil as _sh
+    npm = _sh.which("npm") or _sh.which("pnpm") or _sh.which("yarn")
+    if not npm:
+        if not quiet:
+            print("SKEIN 自动编译需要 Node.js (npm/pnpm/yarn), 未找到", file=sys.stderr, flush=True)
+        return
+    if not quiet:
+        print("SKEIN 前端首次编译中 (assets/nextjs → assets/dist) …", flush=True)
+    try:
+        # 先装依赖再 build; pnpm 优先 (项目有 pnpm-lock.yaml)
+        pkg_mgr = "pnpm" if _sh.which("pnpm") else "npm"
+        subprocess.run([pkg_mgr, "install"], cwd=str(nextjs_dir),
+                       capture_output=True, text=True, check=True, timeout=120)
+        subprocess.run([pkg_mgr, "run", "build"], cwd=str(nextjs_dir),
+                       capture_output=True, text=True, check=True, timeout=180)
+        if not quiet:
+            print("SKEIN 前端编译完成", flush=True)
+    except Exception as e:
+        if not quiet:
+            print(f"SKEIN 前端编译失败: {e}", file=sys.stderr, flush=True)
 
 
 def probe_same_project(port: int, proj_id: str, lock_id_path: str) -> bool:
