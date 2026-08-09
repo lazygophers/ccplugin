@@ -115,10 +115,10 @@ export async function layoutBoardDAG(
   for (const t of tasks) elkIdToTaskId.set(toElkId(t.id), t.id);
 
   function walk(elkNode: any, parentElkId: string | null, absX: number, absY: number) {
-    const x = (elkNode.x || 0) + absX;
-    const y = (elkNode.y || 0) + absY;
     if (elkNode.children && elkNode.children.length > 0) {
-      // compound 节点 → group node (绝对坐标)
+      // compound 节点 → group node (绝对坐标, 相对于 root)
+      const x = (elkNode.x || 0) + absX;
+      const y = (elkNode.y || 0) + absY;
       const taskId = elkIdToTaskId.get(elkNode.id);
       const task = taskId ? byId.get(taskId) : null;
       if (task) {
@@ -130,9 +130,12 @@ export async function layoutBoardDAG(
           style: { width: elkNode.width, height: elkNode.height },
         });
       }
-      for (const child of elkNode.children) walk(child, elkNode.id, x, y);
+      // child 用 ELK 的相对坐标 (不加 absX/absY), 设 parentId 让 RF 正确裁剪边
+      for (const child of elkNode.children) walk(child, elkNode.id, 0, 0);
     } else {
-      // 叶子节点
+      // 叶子节点: 若有 parent 则坐标相对于 parent, 否则绝对坐标
+      const x = (elkNode.x || 0) + absX;
+      const y = (elkNode.y || 0) + absY;
       const taskId = elkIdToTaskId.get(elkNode.id);
       const task = taskId ? byId.get(taskId) : null;
       if (task) {
@@ -142,6 +145,7 @@ export async function layoutBoardDAG(
           type: "taskCard",
           data: { task, rawId: taskId, groupId: parentElkId },
           style: { width: elkNode.width, height: elkNode.height },
+          ...(parentElkId ? { parentId: parentElkId, extent: "parent" as const } : {}),
         });
       }
     }
