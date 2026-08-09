@@ -79,6 +79,8 @@ sediment 写盘后 skein-specer 顺带跑一轮精简: 扫全 namespace, 按判�
 
 ## product wiki (现状记忆, namespace=product)
 
+> 编写 product wiki 时参考 [skein-flow/references/writing-for-agents.md](../skein-flow/references/writing-for-agents.md) 的 information hierarchy — 现状页 (state) 用 in-file reference 格式，决策变更 (delta) 落 rules namespace 作 ADR 式记录。
+
 区别于 rules 的「决策 / 规则」(为什么这样改), product namespace 只存**当前系统现状** —— 单一功能域此刻是什么样, 不叠加历史决策链。
 
 - **delta vs state**: sediment 沉淀的是「决策变更」(踩过的坑 / 为什么这样约定), 落 rules namespace; product 只留**现状快照**, 旧结论过时直接 `amend` 改写, 不追加并存多个矛盾版本 (这一条决定了 product 与 rules 的判据也不同, 见上文 prune 分表)。

@@ -80,6 +80,9 @@ def cmd_user_prompt(payload: dict[str, object]) -> int:
             }))
         return 0
 
+    if prompt.startswith(("/skein:skein-plan", "/skein-plan")):
+        return 0  # 用户已显式调用 skein-plan，不注入 flow 判定
+
     prompt_text = prompt.strip() if isinstance(prompt, str) else ""
 
     if prompt_text in _EXPLICIT or prompt_text.startswith(("/skein-", "/skein:skein-", "skein-")):

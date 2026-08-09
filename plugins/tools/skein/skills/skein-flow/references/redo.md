@@ -4,6 +4,8 @@ redo 解的是 session 意外结束后的状态卡死，不是回滚：只改 su
 
 动手前必须说明：redo 期间禁止有 agent 在跑；全部 running subtask 一律当孤儿，不做心跳/存活探测/时长阈值。
 
+> planning 工件写法与 DAG 拆分模型已移至 skein-plan skill（[plan.md](../../skein-plan/references/plan.md) / [dag.md](../../skein-plan/references/dag.md)）。redo 的 `--plan` 指停在 confirm 前，不续 exec — 同 skein-flow 的 plan 路由。
+
 | 起点状态    | redo 行为                                                                                                       |
 | ----------- | --------------------------------------------------------------------------------------------------------------- |
 | `pending`   | 无 running 可复位；续 plan 到收敛。带 `--plan` 时停在 confirm 前。                                              |

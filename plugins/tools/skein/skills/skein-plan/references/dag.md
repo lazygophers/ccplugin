@@ -1,6 +1,6 @@
 # dag — 拆分与调度
 
-planning 怎么拆 subtask、依赖怎么挂，以及脚本据此如何调度（ready 判定、排序、池模型）。执行循环、自愈、阶段跳转见 [flow-loop.md](flow-loop.md)。
+planning 怎么拆 subtask、依赖怎么挂，以及脚本据此如何调度（ready 判定、排序、池模型）。执行循环、自愈、阶段跳转见 [skein-flow/references/flow-loop.md](../../skein-flow/references/flow-loop.md)。
 
 ## 1. 依赖模型
 
@@ -56,7 +56,7 @@ skein subtask add <tid> st3 --name "加测试"     --desc "覆盖新旧字段两
 
 ## 3. 复杂度天花板：cold-start 大需求
 
-归一 vs 分立的判据见 [flow-loop.md#作用域边界](flow-loop.md#作用域边界)（默认归一）。只有下列 cold-start 信号命中才升级为多 task：
+归一 vs 分立的判据见 [skein-flow/references/flow-loop.md#作用域边界](../../skein-flow/references/flow-loop.md#作用域边界)（默认归一）。只有下列 cold-start 信号命中才升级为多 task：
 
 | 信号                                                    | 判据                                    | 动作                                                                                   |
 | ------------------------------------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------- |
@@ -130,7 +130,7 @@ layer(source) = 0; layer(node) = max(layer(dep)) + 1                            
 
 | 命令                              | 范围        | 语义                                                                                                                              |
 | --------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `skein claim`                     | 全局跨 task | 同时处理 exec + check 两路，只推状态不做路由；派谁由 main 按 task 状态判，见 [flow-loop.md#主循环骨架](flow-loop.md#主循环骨架)。 |
+| `skein claim`                     | 全局跨 task | 同时处理 exec + check 两路，只推状态不做路由；派谁由 main 按 task 状态判，见 [skein-flow/references/flow-loop.md#主循环骨架](../../skein-flow/references/flow-loop.md#主循环骨架)。 |
 | `skein claim exec`                | 全局跨 task | 只认领 ready subtask 并标 `running`。                                                                                             |
 | `skein claim check`               | 全局跨 task | 只认领可进 check / finishing 的 task。                                                                                            |
 | `skein subtask claim <tid>`       | 单 task     | 单 task 内批量认领。                                                                                                              |
@@ -138,4 +138,4 @@ layer(source) = 0; layer(node) = max(layer(dep)) + 1                            
 
 任一 claim 加 `--dry-run` = 只读预览，不改状态。
 
-exec 统一派 `skein:skein-executor`，dispatch 只给 tid、sid、工作目录，executor 自读 `skein subtask show <tid> <sid>`。完成即派、失败重试、断点续跑见 [flow-loop.md#主循环骨架](flow-loop.md#主循环骨架) 与 [redo.md](redo.md)。
+exec 统一派 `skein:skein-executor`，dispatch 只给 tid、sid、工作目录，executor 自读 `skein subtask show <tid> <sid>`。完成即派、失败重试、断点续跑见 [skein-flow/references/flow-loop.md#主循环骨架](../../skein-flow/references/flow-loop.md#主循环骨架) 与 [redo.md](../../skein-flow/references/redo.md)。
