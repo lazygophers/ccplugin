@@ -65,6 +65,11 @@ def test_routes_real() -> None:
                 assert c.get("/__skein__/task", params={"id": "ghost1"}).status_code == 404
                 assert c.get("/__skein__/task").status_code == 422  # id 必填, 禁 path 参数
                 assert c.get("/").status_code == 200
+                # 尾斜杠两形都要直出 SPA: next.config.ts 开了 trailingSlash, 前端自己产出的
+                # 链接就带尾斜杠; 只声明无斜杠那条时 `/task/detail/` 会掉进 /task 数据 mount → 404
+                for url in ("/task/detail?id=alpha", "/task/detail/?id=alpha"):
+                    r = c.get(url, follow_redirects=False)
+                    assert r.status_code == 200, f"{url} -> {r.status_code}"
         finally:
             os.chdir(cwd0)
 

@@ -440,8 +440,13 @@ function TaskDetailContent() {
               {subs.length >= 2 && <SubtaskDagCard subs={subs} />}
 
               {/* Design doc */}
-              {docs.design && !isPlaceholder(docs.design) && (
+              {/* design.md 存在即展示: 只有标题/冒号行的模板态也要露出来 —— 「测试接缝还没填」
+                  正是 confirm 硬门会拦的事, 藏起来等于让用户到 confirm 报错时才知道 */}
+              {docs.design && (
                 <Card title="详细设计" icon="fa-sitemap">
+                  {isPlaceholder(docs.design) && (
+                    <p className="mb-2 text-xs text-muted-foreground">尚未填写，以下为模板占位</p>
+                  )}
                   <div className="md-body text-xs leading-relaxed text-foreground" dangerouslySetInnerHTML={{ __html: renderMd(docs.design) }} />
                 </Card>
               )}

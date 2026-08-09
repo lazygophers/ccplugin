@@ -502,7 +502,11 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
 
     # task/detail SPA 页面: 必须在 /task mount 之前, 否则被 task 数据 StaticFiles 拦截 → 404。
     # Next.js 输出 dist/task/detail/index.html, 但 /task mount 指向 .skein/task/ (数据目录)。
+    # 尾斜杠两形都要声明: `/task/detail/` 不声明就会掉进下面的 /task 数据 mount, 去
+    # .skein/task/detail/ 里找目录 → 404。Starlette 的 redirect_slashes 只补「无尾斜杠→有」,
+    # 补不了反向, 而浏览器地址栏、外链、复制粘贴带尾斜杠是常态。
     @app.get("/task/detail", response_class=HTMLResponse)
+    @app.get("/task/detail/", response_class=HTMLResponse)
     async def _spa_task_detail() -> str:
         return (dist_dir() / "task" / "detail" / "index.html").read_text(encoding="utf-8")
 
