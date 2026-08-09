@@ -78,7 +78,7 @@ def test_no_live_code_path_treats_ready_as_task_status() -> None:
 
 def test_no_top_level_start_subcommand() -> None:
     """顶层 argparse 无 `start` verb (`subtask start` 是子 action, 语义不同, 不算残留)。"""
-    src = (SKEINLIB / "cli.py").read_text(encoding="utf-8")
+    src = (SKEINLIB / "cli" / "main.py").read_text(encoding="utf-8")
     assert 'sub.add_parser("start"' not in src
     assert "sub.add_parser('start'" not in src
 
@@ -97,9 +97,9 @@ def test_top_level_skein_py_start_rejected() -> None:
 
 # 认识字面量 "max_active" 的合理保留点 (逐条判过, 非真残留):
 _MAX_ACTIVE_ALLOW = {
-    SKEINLIB / "doctor.py",       # 故意体检残留旧键, 提示用户清理
-    SKEINLIB / "hooks" / "prompt.py",  # CLAUDE_PLUGIN_OPTION_MAX_ACTIVE: 公开插件 env 选项名, 非内部配置键, 改名是破坏性 API 变更, 不属本 task 范围
-    SKEINLIB / "workspace.py",    # 同上, 该文件读同一个公开 env 选项
+    SKEINLIB / "core" / "doctor.py",  # 故意体检残留旧键, 提示用户清理
+    SKEINLIB / "hooks" / "user_prompt_submit.py",  # CLAUDE_PLUGIN_OPTION_MAX_ACTIVE: 公开插件 env 选项名, 非内部配置键, 改名是破坏性 API 变更, 不属本 task 范围
+    SKEINLIB / "core" / "workspace.py",  # 同上, 该文件读同一个公开 env 选项
 }
 
 

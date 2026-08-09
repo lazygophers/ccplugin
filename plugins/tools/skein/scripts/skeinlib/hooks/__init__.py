@@ -11,6 +11,10 @@ from typing import Any, Callable, Optional, cast
 # 此处 re-export: hooks 子模块仍可 `from skeinlib.hooks import DBG`。
 from skeinlib.utils.debug import DBG, Debug, budget_guard, debug_enabled, est_tokens
 
+# 显式 re-export: 子模块 `from skeinlib.hooks import DBG` 要走这里 (mypy --strict 认 __all__)
+__all__ = ["DBG", "Debug", "budget_guard", "debug_enabled", "est_tokens",
+           "HookBlocked", "DISPATCH", "git_root", "_prefix_lines", "_run_hooks"]
+
 DISPATCH: dict[str, str] = {
     "permission": "permission_request:cmd_permission",
     "guard": "pre_tool_use:cmd_guard",

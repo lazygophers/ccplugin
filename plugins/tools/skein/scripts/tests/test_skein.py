@@ -375,7 +375,9 @@ def test_multirepo() -> None:
         sk(d, "create", "feat", "--name", "跨仓", "--desc", "改两仓", "--repos", "repoA,repoB")
         rl = sk(d, "repos", "feat").stdout
         assert "repoA" in rl and "repoB" in rl, rl
-        sk(d, "subtask", "add", "feat", "s1", "--name", "改A", "--desc", "d", "--estimate", "1")
+        # 多 repo task 的 subtask 必须点名 --repo (否则 workdir 无从推导)
+        sk(d, "subtask", "add", "feat", "s1", "--name", "改A", "--desc", "d", "--estimate", "1",
+           "--repo", "repoA")
         (d / ".skein/task/feat/prd.md").write_text(
             "# feat — PRD\n\n## 目标\n- 改两仓\n\n## 边界\n- 范围内: a\n\n"
             "## User Stories\n1. As a user, I want cross-repo changes\n\n"

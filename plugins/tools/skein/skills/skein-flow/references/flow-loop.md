@@ -19,12 +19,12 @@
 | `skein subtask add <tid> <sid> --name <str> --desc <str> --estimate <小时> [--deps sid1,sid2] [--skills] [--check] [--phase exec\|research]` | `<sid>` 是**位置参数**不是 `--id`；`sid`/`--name`/`--desc`/`--estimate` 四者缺一即拒 |
 | `skein prd write <tid> --type <段名> --list <条目>` | `--type` **单数**，一次只写一段；段名 `goal\|scope\|stories\|acceptance\|verification\|testing` |
 | `skein list --status <open\|all\|pending\|...>` | 顶层命令；`skein task list` 是转发别名，两者等价 |
-| `skein prd check <tid> --type <段名> --list <条目原文子串>` | `check/uncheck` 的 `--list` 是**匹配串**，`write/add` 的 `--list` 是**内容** —— 同名反义。传序号（`--list 1`）必然「无匹配」，先 `prd read` 取原文 |
+| `skein prd check <tid> --type <段名> --list <条目原文子串\|序号>` | `check/uncheck` 的 `--list` 是**匹配串**，`write/add` 的 `--list` 是**内容** —— 同名反义。纯数字按章节内第 N 条解（1-based），其余按子串匹配，拿不准先 `prd read` |
 | 状态变更 | **没有 `task update --status`**。逐阶段命令：`confirm`（待处理→进行中）/ `research`+`plan`（待处理⇄调研中）/ `check` / `finishing` / `finish`。改字段才用 `task rename\|priority\|estimate\|deps\|parent\|repos` |
 
 **`subtask start` 不是开工的入口，`task confirm` 才是**。task 没过 confirm 门（还在待处理），它的 subtask 一律 start 不了 —— 别指望先干活后补审。
 
-**禁把多条 skein 写成 `&&` 长链** —— 中途失败会留下半成品 task（`create` 成功但 `prd write` 失败 → 重跑撞 `id 已占用`，只能换 id，留孤儿）。分开发，每条看回显。
+**禁把多条 skein 写成 `&&` 长链** —— 中途失败会留下半成品 task（`create` 成功但 `prd write` 失败 → 重跑撞 `id 已占用`，只能换 id，留孤儿）。分开发，每条看回显。**PreToolUse 已硬阻**：单条 Bash 里串 ≥2 个状态写命令直接被拒。
 
 ## 任务流程框架
 
@@ -92,7 +92,9 @@ print('任务完成')
 
 ## 主循环骨架
 
-`skein flow run` 是一次 scheduler tick：自动认领 ready exec/check，并把 Agent 派发信息放进返回的 `next[]`。只消费 hint 的 `agent`、`tid`、`sid`、`workdir` / `workdirs`；不要从 `skein list` 重建 dispatch，也不要从 `task.worktree` 自行拼接 cwd。
+`skein flow run` 是一次 scheduler tick：自动认领 ready exec/check，并把 Agent 派发信息放进返回的 `next[]`。只消费 hint 的 `agent`、`tid`、`sid`、`workdir` / `workdirs`、`prompt`；不要从 `skein list` 重建 dispatch，也不要从 `task.worktree` 自行拼接 cwd。
+
+**`prompt` 是 scheduler 生成的成品串，原样传给 Agent，别自己重写加料** —— 自撰 prompt 有两个实测下场：写太长被 Agent 工具拒，或干脆不派、main 自己把活干了（一场会话 479 次 Edit 全在 main，executor 一次没派）。running subtask 的活归 executor；main 亲做会被 PostToolUse 提醒。
 
 researcher/executor 完成工作后自行执行 `skein subtask done <tid> <sid>`，失败执行 `skein subtask fail <tid> <sid> --note "<原因>"`。main 只核对回传、报告和实际状态；报告已存在但 research subtask 仍 pending/running 时报告 mismatch。checker 只验证，scheduler 已推进 task 到 `check` 时安全幂等重跑。finisher 只在绝对仓库根执行 `skein task finish <tid>`，不在将被销毁的 task worktree 内执行。多 repo checker 使用 `workdirs[]`。
 
@@ -103,13 +105,7 @@ result = Bash("skein flow run")
 for hint in result.next:
   # 只按 hint.agent 派发；使用 hint.workdir 或 hint.workdirs
   # 不从 task.worktree 或 task.status 自行推导执行目录和 Agent
-  async Agent(
-    sub_agent=hint.agent,
-    tid=hint.tid,
-    sid=hint.sid,
-    workdir=hint.workdir,
-    workdirs=hint.workdirs,
-  )
+  async Agent(subagent_type=hint.agent, prompt=hint.prompt)   # prompt 原样用, 不重写
 
 # researcher/executor 自行执行 subtask done/fail；main 核对回传与实际状态
 # mismatch、FAIL、冲突、在途状态：报告或继续下一次 flow tick，不伪造状态

@@ -31,7 +31,7 @@ skein-hooks agent-start --agent skein-executor --tid <tid> --sid <sid>
 - 自跑 `skein subtask show <tid> <sid>` 读 desc/验收/depends_on/skills 等全部字段, 不靠 dispatch prompt 里的转述。
 - 需 spec 约定佐证时先 `skein-spec recall <关键词>` (namespace×inclusion 记忆库, 只读)。
 - 缺信息 (验收模糊/依赖不明) → needs 标 `需要: <问题>`, 不猜, 不直接问用户。
-- **你被派时 subtask 已是 running 态 (main 用 claim exec 前置占槽), 不重复占槽、不跑 claim exec/start**。
+- **你被派时 subtask 已是 running 态 (main 用 `skein claim` / `skein flow run` 前置占槽), 不重复占槽、不跑 claim/start**。
 
 ### 2. 定位现状
 
@@ -65,7 +65,7 @@ skein-hooks agent-stop --agent skein-executor --tid <tid> --sid <sid>
 
 ## Main 边界
 
-main 负责 `skein claim exec` / `skein subtask start` 占 `pools.work` 槽、派真实 `Agent(subagent_type="skein:skein-executor")`，并核对 agent JSON 回传与实际 subtask 状态。agent 是 `subtask done/fail` 唯一收尾者；main 不重复写状态。若 agent 崩溃或回传 DONE 但状态仍 pending/running，main 报告 mismatch 并重派或人工介入。本 agent 只执行单个已 running subtask；缺信息标 `需要: <问题>` 回传, 由 main 转达用户。
+main 负责 `skein claim` (或 `skein subtask claim <tid>` / `skein subtask start`) 占 `pools.work` 槽、派真实 `Agent(subagent_type="skein:skein-executor")`，并核对 agent JSON 回传与实际 subtask 状态。agent 是 `subtask done/fail` 唯一收尾者；main 不重复写状态。若 agent 崩溃或回传 DONE 但状态仍 pending/running，main 报告 mismatch 并重派或人工介入。本 agent 只执行单个已 running subtask；缺信息标 `需要: <问题>` 回传, 由 main 转达用户。
 
 exec 不勾 PRD 验收；正式验收归 check。scope 外问题另建 task，不塞进当前 subtask。
 

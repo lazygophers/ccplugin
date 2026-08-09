@@ -119,7 +119,9 @@ def _capture_ctx_output() -> str:
                 cmd_user_prompt({"prompt": "看看就行", "cwd": str(ws)})
         finally:
             os.chdir(cwd0)
-    return json.loads(buf.getvalue())["hookSpecificOutput"]["additionalContext"]
+    ctx = json.loads(buf.getvalue())["hookSpecificOutput"]["additionalContext"]
+    assert isinstance(ctx, str)
+    return ctx
 
 
 def test_ctx_demands_an_explicit_verdict_line() -> None:
@@ -168,7 +170,8 @@ def test_ctx_autodrive_continues_past_create_to_a_real_user_gate() -> None:
     ctx = _capture_ctx_output()
     section = ctx[ctx.index("# 任务判定"):]
 
-    assert "Skill(name='skein-flow'" in section, "该段丢了 flow 入口规定"
+    # 必须是插件全限定名: 裸 `skein-flow` 实测报过 `Unknown skill`
+    assert "skein:skein-flow" in section, "该段丢了 flow 入口规定"
     assert "补充" in section, "该段没写旧任务补充路径"
     assert "AskUserQuestion" in section, "该段没写拿不准时要问用户"
     assert "新输入禁打断在跑的工作" in section, "该段没写新输入不能打断在途工作"

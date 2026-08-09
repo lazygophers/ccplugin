@@ -204,19 +204,24 @@ def test_task_update_guess_gets_state_machine_hint(skein_cli: SkeinCli, ws: Path
 
 
 # ---------- 10. prd check 的 --list 是匹配串不是序号 ----------
-def test_prd_check_list_help_says_substring_not_index(skein_cli: SkeinCli, ws: Path) -> None:
-    """write/add 的 --list 是内容, check 的 --list 是匹配串 —— 同名反义, help 必须点破,
-    否则调用方会传序号 `--list 1` 然后撞上「无匹配」。"""
+def test_prd_check_list_help_covers_both_forms(skein_cli: SkeinCli, ws: Path) -> None:
+    """write/add 的 --list 是内容, check 的 --list 是匹配串 —— 同名反义, help 必须点破;
+    序号形态现已受支持, help 也要写明, 免得调用方还得试一轮才知道。"""
     out = skein_cli(ws, "prd", "check", "--help").stdout
-    assert "不是序号" in out, f"--list help 须点明非序号: {out}"
+    assert "子串" in out and "第 N 条" in out, f"--list help 须写清两种形态: {out}"
 
 
-def test_prd_check_by_substring_works(skein_cli: SkeinCli, ws: Path) -> None:
-    """按原文子串勾选生效, 传序号则报可诊断的错。"""
+def test_prd_check_by_substring_or_index_works(skein_cli: SkeinCli, ws: Path) -> None:
+    """按原文子串勾选生效; 纯数字按第 N 条勾, 越界才报错。"""
     _mk(skein_cli, ws)
     skein_cli(ws, "prd", "write", "demo", "--type", "goal", "--list", "交付完整报告")
-    r = skein_cli(ws, "prd", "check", "demo", "--type", "goal", "--list", "1", check=False)
-    assert r.returncode != 0 and "无匹配" in r.stdout + r.stderr, f"序号应报错: {r.stdout}"
+    r = skein_cli(ws, "prd", "check", "demo", "--type", "goal", "--list", "9", check=False)
+    assert r.returncode != 0 and "越界" in r.stdout + r.stderr, f"越界序号应报错: {r.stdout}"
+    skein_cli(ws, "prd", "uncheck", "demo", "--type", "goal", "--list", "1")
+    skein_cli(ws, "prd", "check", "demo", "--type", "goal", "--list", "1")
+    body1 = json.loads(skein_cli(ws, "prd", "read", "demo", "--type", "goal").stdout)["body"]
+    assert "- [x] 交付完整报告" in body1, f"序号勾选未生效: {body1}"
+    skein_cli(ws, "prd", "uncheck", "demo", "--type", "goal", "--list", "交付完整报告")
     skein_cli(ws, "prd", "check", "demo", "--type", "goal", "--list", "交付完整报告")
     body = json.loads(skein_cli(ws, "prd", "read", "demo", "--type", "goal").stdout)["body"]
     assert "- [x] 交付完整报告" in body, f"子串勾选未生效: {body}"

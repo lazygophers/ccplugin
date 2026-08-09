@@ -95,6 +95,44 @@ def cmd_spec_meta(payload: dict[str, Any]) -> int:
     return 0
 
 
+def _dispatch_reminder(skein_dir: str, tasks: list[dict[str, Any]]) -> int:
+    """main 在「有 running subtask」时自己动手改源码 → 提醒改派 executor (每 task 一次)。
+
+    实测缺口: 一场会话 479 次 Edit 全在 main 里, `skein-executor` 一次没派 —— 原 flow gate 见到
+    有 active task 就直接放行, 恰好把这条路留空。running subtask 是已认领占槽的活, 该由 agent 干。
+    """
+    hot: list[tuple[str, str]] = []
+    for t in tasks:
+        if t.get("status") != "active":
+            continue
+        tid = t.get("id", "")
+        # 顶层 task.json 是去规范化索引, 不含 subtasks —— 真值在 per-task 文件里
+        try:
+            with open(os.path.join(skein_dir, "task", tid, "task.json"), encoding="utf-8") as file:
+                subs = json.loads(file.read()).get("subtasks", [])
+        except (OSError, ValueError):
+            continue
+        hot += [(tid, sub.get("sid", "")) for sub in subs if sub.get("status") == "running"]
+    if not hot:
+        return 0
+    marker = os.path.join(skein_dir, ".dispatch.warned")
+    try:
+        warned = set(open(marker, encoding="utf-8").read().split()) if os.path.exists(marker) else set()
+        fresh = [f"{tid}/{sid}" for tid, sid in hot if f"{tid}/{sid}" not in warned]
+        if not fresh:
+            return 0
+        with open(marker, "w", encoding="utf-8") as file:
+            file.write("\n".join(sorted(warned | set(fresh))))
+    except OSError:
+        return 0
+    print(json.dumps({"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": (
+        f"⚠️ {', '.join(fresh)} 已 claim 占槽处于「运行中」, 但源码改动发生在 main 里 —— "
+        "running subtask 的活归 `skein:skein-executor`。\n"
+        "跑 `skein flow run` 取 next[], 直接用 hint 里的 `agent` + `prompt` 派 Agent, 别自己代劳。\n"
+        "若确实要 main 亲做 (交互/裁决类): 先 `skein subtask fail <tid> <sid> --note` 释放槽, 别让它挂着。")}}))
+    return 0
+
+
 def cmd_flow_gate(payload: dict[str, Any]) -> int:
     file_path = (payload.get("tool_input", {}) or {}).get("file_path", "")
     if not file_path or not file_path.endswith(_SRC_EXT):
@@ -108,11 +146,13 @@ def cmd_flow_gate(payload: dict[str, Any]) -> int:
     try:
         with open(os.path.join(skein_dir, "task.json"), encoding="utf-8") as file:
             tasks = json.loads(file.read()).get("tasks", [])
-        if any(task.get("status") in ("进行中", "检查中") for task in tasks):
+        # 落盘值是英文枚举 (model.py TaskStatus), 不是看板展示名 —— 早先写成「进行中」是死条件,
+        # 导致有 active task 时照样报「无 active task」, 且 tally 从不清理。
+        if any(task.get("status") in ("active", "check") for task in tasks):
             for path in (os.path.join(skein_dir, ".edit-tally"), os.path.join(skein_dir, ".edit-tally.warned")):
                 if os.path.exists(path):
                     os.remove(path)
-            return 0
+            return _dispatch_reminder(skein_dir, tasks)
     except (OSError, ValueError):
         return 0
     tally_path = os.path.join(skein_dir, ".edit-tally")

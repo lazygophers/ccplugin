@@ -38,21 +38,23 @@ from skeinlib.core.commands import Skein, _persist_bash_cwd_env, _workspace_lock
 from skeinlib.task.model import PRD_SECTIONS, PRD_TYPE_ALIAS, PRIORITIES, PRIORITY_DEFAULT, ESTIMATE_HINT
 
 
+# 跨 typer 版本的 make_metavar 签名兼容 shim。给 stub 打补丁天然过不了 method-assign/call-arg,
+# 这四条 ignore 是上游签名漂移的代价, 不是本仓类型债 —— 逐条限定 error code, 不开全局豁免。
 if len(inspect.signature(typer.core.TyperOption.make_metavar).parameters) == 2:
     _typer_option_make_metavar = typer.core.TyperOption.make_metavar
 
     def _compatible_option_make_metavar(self: Any, ctx: Any = None) -> str:
         return _typer_option_make_metavar(self, ctx)
 
-    typer.core.TyperOption.make_metavar = _compatible_option_make_metavar
+    typer.core.TyperOption.make_metavar = _compatible_option_make_metavar  # type: ignore[method-assign]
 
 if len(inspect.signature(typer.core.TyperArgument.make_metavar).parameters) == 1:
     _typer_argument_make_metavar = typer.core.TyperArgument.make_metavar
 
     def _compatible_argument_make_metavar(self: Any, ctx: Any = None) -> str:
-        return _typer_argument_make_metavar(self)
+        return _typer_argument_make_metavar(self)  # type: ignore[call-arg]
 
-    typer.core.TyperArgument.make_metavar = _compatible_argument_make_metavar
+    typer.core.TyperArgument.make_metavar = _compatible_argument_make_metavar  # type: ignore[method-assign,assignment]
 
 
 class AliasTyperGroup(TyperGroup):

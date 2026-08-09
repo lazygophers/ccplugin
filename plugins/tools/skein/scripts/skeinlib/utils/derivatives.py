@@ -31,6 +31,7 @@ DERIVATIVES: list[Derivative] = [
     Derivative("spec/*/backlinks.md", "spec/index.py _rebuild_backlinks_md (正反链表)"),
     Derivative(".edit-tally", "hooks/flow_gate.py cmd_flow_gate 计数标记"),
     Derivative(".edit-tally.warned", "hooks/flow_gate.py cmd_flow_gate 已提醒标记"),
+    Derivative(".dispatch.warned", "hooks/post_tool_use.py _dispatch_reminder 已提醒标记"),
     Derivative("index.html", "assets/nextjs `pnpm build` (Next.js static export → assets/dist/)"),
     Derivative(".priority-migration-backup/", "priority.py migrate_priority_values 迁移前快照, 供回滚"),
     Derivative(".ready-migration-backup/", "readystate.py migrate_ready_status 迁移前快照, 供回滚"),

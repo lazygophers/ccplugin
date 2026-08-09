@@ -69,7 +69,8 @@ def run_config(skein_dir: str) -> tuple[bool, int, bool]:
 
 
 def cmd_user_prompt(payload: dict[str, object]) -> int:
-    prompt = (payload.get("prompt", "") or "")
+    raw = payload.get("prompt", "") or ""
+    prompt = raw if isinstance(raw, str) else str(raw)
     if prompt.startswith(("/skein:skein-flow", "/skein-flow")):
         print(json.dumps({
             "hookSpecificOutput": {
@@ -106,10 +107,10 @@ def cmd_user_prompt(payload: dict[str, object]) -> int:
 
 - **flow**:
     - 判定条件：跨≥2文件 / 多步骤 / 改动类动词 / 新建类 / 复杂调研
-    - 执行流程：Skill(name='skein-flow', description=<用户输入>)
+    - 执行流程：Skill(skill='skein:skein-flow', args=<用户输入>)
 - **补充**:
     - 判断条件：与某在途 task 同目标 / 同模块 / 共享改动面 / 互为前置
-    - 执行流程：Skill(name='skein-flow', description=<用户输入>)
+    - 执行流程：Skill(skill='skein:skein-flow', args=<用户输入>)
 - **inline**:
     - 判断条件：纯查询 / 问答 / 单文件单处且 ≤20 行
     - 执行流程：main 中直接执行

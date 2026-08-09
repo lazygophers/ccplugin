@@ -2,7 +2,7 @@
 name: skein-checker
 description: SKEIN check 阶段质量验证器。只验证 task 工作目录；worktree 启用且有多个 repo 时按 scheduler 提供的 `workdirs[]` 逐一核查，修复循环归 main。
 tools: Read, Bash, Grep, Glob
-model: haiku
+model: sonnet
 effort: medium
 color: green
 permissionMode: bypassPermissions
@@ -34,7 +34,7 @@ skein-hooks agent-start --agent skein-checker --tid <id>
 
 ### 1. 状态核对
 
-scheduler 派 checker 前已通过 `claim check` 把 task 推进到 `check`。先读取当前状态；已是 `check` 时不要重复推进，`skein task check <id>` 可安全重跑并返回 `idempotent=true`。若仍是 `active`，可执行该命令补齐切换；其他状态按工具失败上报。
+scheduler 派 checker 前已在 `skein flow run` 的 check 路把 task 推进到 `check`。先读取当前状态；已是 `check` 时不要重复推进，`skein task check <id>` 可安全重跑并返回 `idempotent=true`。若仍是 `active`，可执行该命令补齐切换；其他状态按工具失败上报。
 
 ### 2. checkpoint 核对 (task + subtask 双层)
 
