@@ -331,6 +331,50 @@
   50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--st-active) 25%, transparent); }
 }
 
+/* ═══ React Flow DAG 边状态色 ═══ */
+.react-flow__edge.dag-edge-ready .react-flow__edge-path {
+  stroke: var(--st-done);
+}
+.react-flow__edge.dag-edge-blocked .react-flow__edge-path {
+  stroke: var(--st-active);
+}
+.react-flow__edge.dag-edge-stuck .react-flow__edge-path {
+  stroke: var(--st-failed);
+}
+.react-flow__edge.dag-edge-blocked .react-flow__edge-path {
+  stroke-dasharray: 0;
+}
+.react-flow__edge.dag-edge-stuck .react-flow__edge-path {
+  stroke-dasharray: 7 5;
+}
+/* arrow marker 颜色 */
+.react-flow__edge.dag-edge-ready .react-flow__arrowhead {
+  fill: var(--st-done);
+}
+.react-flow__edge.dag-edge-blocked .react-flow__arrowhead {
+  fill: var(--st-active);
+}
+.react-flow__edge.dag-edge-stuck .react-flow__arrowhead {
+  fill: var(--st-failed);
+}
+
+/* React Flow 容器透明底适配主题 */
+.dag-flow-container .react-flow {
+  background-color: transparent;
+}
+.dag-flow-container .react-flow__controls {
+  background-color: var(--card);
+  border-color: var(--border);
+}
+.dag-flow-container .react-flow__controls-button {
+  background-color: var(--card);
+  border-color: var(--border);
+  fill: var(--foreground);
+}
+.dag-flow-container .react-flow__controls-button:hover {
+  background-color: var(--muted);
+}
+
 /* ═══ Select 主题适配 ═══ */
 select {
   background-color: var(--background);

@@ -12,7 +12,9 @@ import { subscribe } from "@/lib/live";
 import { fmtRelative, fmtTime } from "@/lib/format";
 import { renderMd } from "@/lib/md";
 import { etaOf, etaText, fmtHours, actualOf, deltaText, type EtaResult } from "@/lib/eta";
-import { drawEdgesPaths, buildDepDAG } from "@/lib/depdag";
+import { layoutSubtaskDAG, layoutDepDAG } from "@/lib/elk-layout";
+import { DagFlow, DagFlowProvider, SubtaskCardNode, DepTaskNode } from "@/components/dag";
+import type { Node, Edge } from "@xyflow/react";
 import { ProgressBar } from "@/components/progress-bar";
 import { useToast } from "@/components/toast";
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -544,161 +546,71 @@ function SubTimeline({ subs, taskId }: { subs: NormSubtask[]; taskId: string }) 
   );
 }
 
-// ── Subtask DAG card ──
+// ── Subtask DAG card (React Flow) ──
+const SUBTASK_NODE_TYPES = { subtaskCard: SubtaskCardNode };
+
 function SubtaskDagCard({ subs }: { subs: NormSubtask[] }) {
-  const { layout } = useSubtaskLayout(subs);
-  const { paths, markers } = useMemo(() => {
-    if (!layout) return { paths: [] as ReturnType<typeof drawEdgesPaths>["paths"], markers: [] as ReturnType<typeof drawEdgesPaths>["markers"] };
-    return drawEdgesPaths(layout.edges);
-  }, [layout]);
-  const wrapRef = useRef<HTMLDivElement>(null);
+  const [nodes, setNodes] = useState<Node[]>([]);
+  const [edges, setEdges] = useState<Edge[]>([]);
 
-  const onMouseDown = useCallback((e: React.MouseEvent) => {
-    const wrap = wrapRef.current; if (!wrap) return;
-    if (e.target instanceof Element && e.target.closest("a, button")) return;
-    const startX = e.clientX, startY = e.clientY, sl = wrap.scrollLeft, st = wrap.scrollTop;
-    wrap.style.cursor = "grabbing";
-    const move = (ev: MouseEvent) => { wrap.scrollLeft = sl - (ev.clientX - startX); wrap.scrollTop = st - (ev.clientY - startY); };
-    const up = () => { wrap.style.cursor = "grab"; window.removeEventListener("mousemove", move); window.removeEventListener("mouseup", up); };
-    window.addEventListener("mousemove", move); window.addEventListener("mouseup", up);
-    e.preventDefault();
-  }, []);
+  useEffect(() => {
+    if (!subs.length) return;
+    layoutSubtaskDAG(subs).then(({ nodes, edges }) => {
+      setNodes(nodes);
+      setEdges(edges);
+    });
+  }, [subs]);
 
-  if (!layout || !layout.nodes.length) return null;
+  if (!subs.length) return null;
 
   return (
     <Card title="子任务 DAG" icon="fa-sitemap">
-      <div className="overflow-auto" ref={wrapRef} onMouseDown={onMouseDown} style={{ cursor: "grab", maxHeight: "400px" }}>
-        <div className="relative mx-auto" style={{ width: layout.width, height: layout.height }}>
-          <svg className="pointer-events-none absolute inset-0" style={{ width: "100%", height: "100%" }}>
-            <defs>
-              {markers.map(m => <marker key={m.id} id={m.id} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill={`var(--${m.color})`} /></marker>)}
-            </defs>
-            {paths.map((p, i) => <path key={i} d={p.d} fill="none" stroke={p.stroke} strokeWidth={p.strokeWidth} strokeOpacity={p.strokeOpacity} strokeDasharray={p.dashArray} markerEnd={p.markerEnd} />)}
-          </svg>
-          {layout.nodes.map(n => {
-            const t = n.sub as NormSubtask; if (!t) return null;
-            const sm = ST_META[t.status] || ST_META.planning;
-            return (
-              <div key={n.id} className={`absolute flex cursor-pointer items-center gap-2 overflow-hidden rounded-md border transition-all hover:shadow-md ${t.status === "done" ? "opacity-50" : ""}`} style={{ left: n.x, top: n.y, width: n.w, height: n.h, borderColor: `var(${sm.colorVar})`, backgroundColor: `color-mix(in srgb, var(${sm.colorVar}) 20%, var(--card))` }} title={t.title || t.name || t.id}>
-                <span className="ml-2 h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: `var(${sm.colorVar})` }} />
-                <div className="min-w-0 flex-1 pr-2">
-                  <div className="truncate text-xs font-semibold leading-tight text-foreground">{t.title || t.name || t.id}</div>
-                  <div className="truncate text-[10px] leading-tight text-muted-foreground hover:text-primary cursor-pointer" onClick={() => navigator.clipboard?.writeText(t.sid)} title="点击复制">{sm.label} · {t.sid}</div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+      <div style={{ height: "300px" }}>
+        <DagFlowProvider>
+          <DagFlow
+            nodes={nodes}
+            edges={edges}
+            nodeTypes={SUBTASK_NODE_TYPES}
+            minHeight={200}
+            enableHoverChain={false}
+            showControls={false}
+          />
+        </DagFlowProvider>
       </div>
     </Card>
   );
 }
 
-function useSubtaskLayout(subs: NormSubtask[]) {
-  return useMemo(() => {
-    if (!subs.length) return { layout: null };
-    const byId = new Map(subs.map(s => [s.id, s]));
-    const depsOf = (id: string) => (byId.get(id)?.deps || []).filter(d => byId.has(d));
-    const s = { w: 148, h: 48, gapX: 16, gapY: 24, padX: 16, padY: 24 };
-    const ids = [...byId.keys()];
-    // simple tiered layout
-    const lay = new Map<string, number>();
-    const inSet = new Set(ids);
-    const topo: string[] = [];
-    const dmap = new Map(ids.map(id => [id, depsOf(id).filter(d => inSet.has(d))]));
-    const left = new Map(ids.map(id => [id, dmap.get(id)!.length]));
-    const succ = new Map(ids.map(id => [id, [] as string[]]));
-    for (const id of ids) for (const d of dmap.get(id)!) succ.get(d)!.push(id);
-    const q = ids.filter(id => left.get(id) === 0);
-    const seen = new Set<string>();
-    while (q.length) { const cur = q.shift()!; seen.add(cur); topo.push(cur); for (const nx of succ.get(cur)!) { left.set(nx, left.get(nx)! - 1); if (left.get(nx) === 0) q.push(nx); } }
-    for (const id of ids) if (!seen.has(id)) topo.push(id);
-    for (const id of topo) lay.set(id, Math.max(0, ...depsOf(id).map(d => (lay.get(d) ?? -1) + 1)));
-    const tiers: string[][] = [];
-    for (const id of topo) (tiers[lay.get(id)!] || (tiers[lay.get(id)!] = [])).push(id);
-    const colW = s.w + s.gapX, rowH = s.h + s.gapY;
-    const nodes: any[] = [];
-    const nmap = new Map<string, any>();
-    tiers.forEach((tier, ti) => tier.forEach((id, ri) => {
-      const n = { id, x: s.padX + ti * colW, y: s.padY + ri * rowH, w: s.w, h: s.h, rowH: s.h, band: 0, sub: byId.get(id)! };
-      nodes.push(n); nmap.set(id, n);
-    }));
-    const edges: any[] = [];
-    for (const id of ids) for (const d of depsOf(id)) { const from = nmap.get(d), to = nmap.get(id); if (from && to) edges.push({ from, to, bends: [], cross: false, laneY: 0 }); }
-    const width = s.padX * 2 + tiers.length * colW;
-    const height = s.padY * 2 + Math.max(1, ...tiers.map(t => t.length)) * rowH;
-    return { layout: { nodes, edges, width, height } };
-  }, [subs]);
-}
+// ── Dep DAG view (React Flow) ──
+const DEP_NODE_TYPES = { depTaskCard: DepTaskNode };
 
-// ── Dep DAG view (from old depdag.js depDAGView) ──
 function DepDagView({ taskId, allTasks }: { taskId: string; allTasks: NormTask[] }) {
-  const dag = useMemo(() => buildDepDAG(taskId, allTasks), [taskId, allTasks]);
-  const { paths, markers } = useMemo(() => drawEdgesPaths(dag.edges), [dag.edges]);
+  const [nodes, setNodes] = useState<Node[]>([]);
+  const [edges, setEdges] = useState<Edge[]>([]);
+  const [centerId, setCenterId] = useState<string>("");
 
-  // Hover chain highlight
-  const [hoverId, setHoverId] = useState<string | null>(null);
-  const chain = useMemo(() => {
-    if (!hoverId) return null;
-    const succ = new Map<string, string[]>(), pred = new Map<string, string[]>();
-    for (const e of dag.edges) {
-      if (!succ.has(e.from.id)) succ.set(e.from.id, []);
-      if (!pred.has(e.to.id)) pred.set(e.to.id, []);
-      succ.get(e.from.id)!.push(e.to.id);
-      pred.get(e.to.id)!.push(e.from.id);
-    }
-    const seen = new Set([hoverId]);
-    for (const adj of [succ, pred]) {
-      const queue = [hoverId];
-      while (queue.length) {
-        for (const nx of adj.get(queue.shift()!) || []) {
-          if (seen.has(nx)) continue;
-          seen.add(nx);
-          queue.push(nx);
-        }
-      }
-    }
-    return seen;
-  }, [hoverId, dag.edges]);
+  useEffect(() => {
+    layoutDepDAG(taskId, allTasks).then(({ nodes, edges, centerId }) => {
+      setNodes(nodes);
+      setEdges(edges);
+      setCenterId(centerId);
+    });
+  }, [taskId, allTasks]);
 
-  if (dag.nodes.length <= 1) return <div className="py-6 text-center text-xs text-muted-foreground">暂无上下游依赖</div>;
+  if (nodes.length <= 1) return <div className="py-6 text-center text-xs text-muted-foreground">暂无上下游依赖</div>;
 
   return (
-    <div className="overflow-x-auto">
-      <div className="relative" style={{ width: dag.width, height: dag.height }}
-        onMouseOver={(e) => { const link = (e.target as Element).closest("[data-node-id]"); setHoverId(link?.getAttribute("data-node-id") || null); }}
-        onMouseLeave={() => setHoverId(null)}
-      >
-        {/* 父子包裹: 用容器框表达归属, 不画箭头边 (与看板同规则) */}
-        {dag.groups.map(g => (
-          <div key={g.id} className="pointer-events-none absolute rounded-lg border border-dashed border-primary/30 bg-primary/[0.03]" style={{ left: g.x, top: g.y, width: g.w, height: g.h }} />
-        ))}
-        <svg className="pointer-events-none absolute inset-0" style={{ width: "100%", height: "100%" }}>
-          <defs>
-            {markers.map(m => <marker key={m.id} id={m.id} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill={`var(--${m.color})`} /></marker>)}
-          </defs>
-          {paths.map((p, i) => <path key={i} d={p.d} fill="none" stroke={p.stroke} strokeWidth={p.strokeWidth}
-            strokeOpacity={chain ? (chain.has(p.fromId) && chain.has(p.toId) ? "0.95" : "0.1") : p.strokeOpacity}
-            markerEnd={p.markerEnd} />)}
-        </svg>
-        {dag.nodes.map(n => {
-          const meta = ST_META[n.task.status] || ST_META.planning;
-          const inChain = chain?.has(n.id) ?? false;
-          const isDim = chain ? !inChain : false;
-          return (
-            <Link key={n.id} prefetch={false} href={`/task/detail/?id=${n.id}`} data-node-id={n.id}
-              className={`absolute flex items-center gap-2 rounded-md border px-2 py-1 transition-all hover:shadow-md ${n.isCenter ? "ring-2 ring-primary" : ""}`}
-              style={{ left: n.x, top: n.y, width: n.w, height: n.h, opacity: isDim ? 0.15 : 1, borderColor: `color-mix(in srgb, var(${meta.colorVar}) 30%, var(--border))`, backgroundColor: "var(--card)" }}
-              title={n.task.title || n.task.name || n.id}
-            >
-              <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full" style={{ backgroundColor: `var(${meta.colorVar})` }} />
-              <span className="flex-1 truncate text-xs font-medium text-foreground">{n.task.title || n.task.name || n.id}</span>
-              {n.isCenter && <i className="fa fa-star text-xs text-primary" />}
-            </Link>
-          );
-        })}
-      </div>
+    <div style={{ height: "300px" }}>
+      <DagFlowProvider>
+        <DagFlow
+          nodes={nodes}
+          edges={edges}
+          nodeTypes={DEP_NODE_TYPES}
+          minHeight={200}
+          enableHoverChain={true}
+          showControls={false}
+        />
+      </DagFlowProvider>
     </div>
   );
 }

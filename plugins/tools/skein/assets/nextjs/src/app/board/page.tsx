@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, useRef, useCallback } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import Link from "next/link";
 import { Sidebar, Topbar } from "@/components/layout";
 import { StatusBadge, StatusDot, ST_META, ST_ORDER } from "@/components/status";
@@ -12,175 +12,20 @@ import { cn } from "@/lib/utils";
 import { fmtRelative, fmtTime } from "@/lib/format";
 import { renderMd } from "@/lib/md";
 import { etaOf, etaText, fmtHours, actualOf, deltaText, overallSummary } from "@/lib/eta";
-import { drawEdgesPaths, buildDepDAG, type DagEdge } from "@/lib/depdag";
-import { layoutTiered, layoutDAG, type LayoutNode, type GroupBox, type Density } from "@/lib/board-layout";
+import { layoutBoardDAG, layoutSubtaskDAG } from "@/lib/elk-layout";
+import { DagFlow, DagFlowProvider, TaskCardNode, TaskGroupNode, SubtaskCardNode } from "@/components/dag";
 import { ProgressBar } from "@/components/progress-bar";
 import { useToast } from "@/components/toast";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { IconApprove, IconFinish, IconDetail, IconTrash, IconClose, IconCopyMini } from "@/components/icons";
+import type { Node, Edge } from "@xyflow/react";
 
 const ALL_STATUSES = ["planning", "research", "active", "check", "finishing", "done"];
 const DEFAULT_ACTIVE = ["planning", "research", "active", "check", "finishing"];  // 「全选/取消」基准 — 排除 done
 const DEFAULT_FILTER = new Set(DEFAULT_ACTIVE);
 
-// ── Sugiyama layout (ported from old board.js) ──
-interface LayoutEdge extends DagEdge {}
-
-interface SugiOpts { colW: number; rowH: number; padX: number; padY: number; gapX: number; gapY: number; }
-
-function sugiyama(ids: string[], depsOf: (id: string) => string[], opt: SugiOpts & { maxWidth?: number; viewH?: number }) {
-  const { colW, rowH, padX, padY, gapX, gapY } = opt;
-  const maxWidth = opt.maxWidth || 1200;
-  const viewH = opt.viewH || 800;
-  const idSet = new Set(ids);
-  const deps = new Map<string, string[]>(), succ = new Map<string, string[]>();
-  for (const id of ids) { deps.set(id, []); succ.set(id, []); }
-  for (const id of ids) {
-    const seen = new Set<string>();
-    for (const d of depsOf(id)) {
-      if (!idSet.has(d) || d === id || seen.has(d)) continue;
-      seen.add(d); deps.get(id)!.push(d); succ.get(d)!.push(id);
-    }
-  }
-  // 1. rank
-  const rank = new Map<string, number>();
-  const indeg = new Map(ids.map(i => [i, deps.get(i)!.length]));
-  let frontier = ids.filter(i => indeg.get(i) === 0);
-  let settled = 0;
-  while (frontier.length) {
-    const next: string[] = [];
-    for (const id of frontier) {
-      settled++;
-      let r = 0;
-      for (const d of deps.get(id)!) r = Math.max(r, (rank.has(d) ? rank.get(d)! : -1) + 1);
-      rank.set(id, r);
-      for (const s of succ.get(id)!) { indeg.set(s, indeg.get(s)! - 1); if (indeg.get(s) === 0) next.push(s); }
-    }
-    frontier = next;
-  }
-  if (settled < ids.length) {
-    for (const id of ids) { if (rank.has(id)) continue; let r = 0; for (const d of deps.get(id)!) if (rank.has(d)) r = Math.max(r, rank.get(d)! + 1); rank.set(id, r); }
-  }
-  // sink compact
-  for (const id of ids.slice().sort((a, b) => rank.get(b)! - rank.get(a)!)) {
-    const ss = succ.get(id)!; if (!ss.length) continue;
-    let m = Infinity; for (const s of ss) m = Math.min(m, rank.get(s)!);
-    if (m - 1 > rank.get(id)!) rank.set(id, m - 1);
-  }
-  const usedRanks = [...new Set(ids.map(i => rank.get(i)!))].sort((a, b) => a - b);
-  const remap = new Map(usedRanks.map((r, i) => [r, i] as [number, number]));
-  for (const id of ids) rank.set(id, remap.get(rank.get(id)!)!);
-  const L = usedRanks.length;
-  // 2. edges + dummy nodes
-  const layers: { id: string; rank: number; dummy: boolean; x: number; y: number; y0: number; band: number }[][] = Array.from({ length: L }, () => []);
-  const nodeOf = new Map<string, any>();
-  for (const id of ids) { const n = { id, rank: rank.get(id)!, dummy: false, x: 0, y: 0, y0: 0, band: 0 }; nodeOf.set(id, n); layers[n.rank].push(n); }
-  const edges: { from: any; to: any; chain: any[] }[] = [];
-  let dseq = 0;
-  for (const id of ids) {
-    for (const d of deps.get(id)!) {
-      const from = nodeOf.get(d), to = nodeOf.get(id);
-      const chain: any[] = [];
-      for (let r = from.rank + 1; r < to.rank; r++) { const dn = { id: `~d${dseq++}`, rank: r, dummy: true, x: 0, y: 0, y0: 0, band: 0 }; layers[r].push(dn); chain.push(dn); }
-      edges.push({ from, to, chain });
-    }
-  }
-  const adjUp = new Map<any, any[]>(), adjDown = new Map<any, any[]>();
-  const link = (a: any, b: any) => { if (!adjDown.has(a)) adjDown.set(a, []); if (!adjUp.has(b)) adjUp.set(b, []); adjDown.get(a)!.push(b); adjUp.get(b)!.push(a); };
-  for (const e of edges) { let prev = e.from; for (const dn of e.chain) { link(prev, dn); prev = dn; } link(prev, e.to); }
-  // 3. cross min
-  const posIn = new Map<any, number>();
-  const reindex = () => { for (const l of layers) l.forEach((n, i) => posIn.set(n, i)); };
-  reindex();
-  const medianOf = (n: any, adj: Map<any, any[]>) => { const ps: number[] = (adj.get(n) || []).map((m: any) => posIn.get(m)).filter((v: any): v is number => v != null); if (!ps.length) return -1; const mid = ps.length >> 1; return ps.length % 2 ? ps[mid] : (ps[mid - 1] + ps[mid]) / 2; };
-  const crossOf = (a: any, b: any, adj: Map<any, any[]>) => { const pa: number[] = (adj.get(a) || []).map((m: any) => posIn.get(m)).filter((v: any): v is number => v != null); const pb: number[] = (adj.get(b) || []).map((m: any) => posIn.get(m)).filter((v: any): v is number => v != null); let c = 0; for (const x of pa) for (const y of pb) if (y < x) c++; return c; };
-  const idxs = layers.map((_, i) => i);
-  for (let it = 0; it < 6; it++) {
-    const down = it % 2 === 0;
-    const seq = down ? idxs.slice(1) : idxs.slice(0, -1).reverse();
-    const adj = down ? adjUp : adjDown;
-    for (const li of seq) {
-      const layer = layers[li];
-      const med = new Map<any, number>();
-      layer.forEach((n, i) => { const m = medianOf(n, adj); med.set(n, m < 0 ? i : m); });
-      layer.sort((a, b) => med.get(a)! - med.get(b)!);
-      reindex();
-      if (layer.length <= 200) {
-        for (let round = 0; round < 4; round++) {
-          let improved = false;
-          for (let i = 0; i + 1 < layer.length; i++) {
-            const a = layer[i], b = layer[i + 1];
-            if (crossOf(a, b, adj) > crossOf(b, a, adj)) { layer[i] = b; layer[i + 1] = a; posIn.set(b, i); posIn.set(a, i + 1); improved = true; }
-          }
-          if (!improved) break;
-        }
-      }
-    }
-    reindex();
-  }
-  // 4. fold bands
-  const K = Math.max(1, Math.floor((maxWidth - padX * 2) / colW));
-  const bandH = Math.max(4, Math.floor((viewH || 800) / rowH)) * rowH;
-  const DUMMY_H = 28;
-  const hOf = (n: any) => (n.dummy ? DUMMY_H : rowH);
-  const seat: { band: number; col: number; cols: number }[] = [];
-  let curBand = 0, curCol = 0;
-  for (const l of layers) {
-    const need = l.reduce((a, n) => a + hOf(n), 0);
-    const cols = Math.min(K, Math.max(1, Math.ceil(need / bandH)));
-    if (curCol + cols > K && curCol > 0) { curBand++; curCol = 0; }
-    seat.push({ band: curBand, col: curCol, cols });
-    curCol += cols;
-  }
-  const bands = curBand + 1;
-  const bandOf = (li: number) => seat[li].band;
-  // 5. coords
-  layers.forEach((l, li) => {
-    const st = seat[li]; let col = 0, acc = 0;
-    for (const n of l) {
-      const nh = hOf(n);
-      if (acc + nh > bandH && acc > 0 && col < st.cols - 1) { col++; acc = 0; }
-      n.x = (st.col + col) * colW; n.y = acc; n.y0 = acc; n.band = st.band; acc += nh;
-    }
-  });
-  const SLACK = 3 * rowH;
-  for (let pass = 0; pass < 3; pass++) {
-    const seq = pass % 2 === 0 ? idxs : idxs.slice().reverse();
-    const adj = pass % 2 === 0 ? adjUp : adjDown;
-    for (const li of seq) {
-      if (seat[li].cols > 1) continue;
-      const layer = layers[li]; const band = bandOf(li);
-      let prev = -Infinity;
-      for (const n of layer) {
-        const ns = (adj.get(n) || []).filter((m: any) => m.band === band);
-        let want = n.y;
-        if (ns.length) { const ys = ns.map((m: any) => m.y).sort((a: number, b: number) => a - b); const mid = ys.length >> 1; want = ys.length % 2 ? ys[mid] : (ys[mid - 1] + ys[mid]) / 2; }
-        want = Math.max(n.y0 - SLACK, Math.min(n.y0 + SLACK, want));
-        n.y = Math.max(want, prev);
-        prev = n.y + hOf(n);
-      }
-    }
-  }
-  const span = Array.from({ length: bands }, () => ({ lo: Infinity, hi: -Infinity }));
-  let usedCols = 1;
-  layers.forEach((l, li) => {
-    const s = span[seat[li].band]; usedCols = Math.max(usedCols, seat[li].col + seat[li].cols);
-    for (const n of l) { s.lo = Math.min(s.lo, n.y); s.hi = Math.max(s.hi, n.y + hOf(n)); }
-  });
-  const bandTop: { top: number; shift: number }[] = [];
-  const bandsInfo: { top: number; bottom: number }[] = [];
-  let accY = 0;
-  for (const s of span) {
-    if (s.lo === Infinity) { s.lo = 0; s.hi = 0; }
-    bandTop.push({ top: accY, shift: -s.lo });
-    bandsInfo.push({ top: accY + padY, bottom: accY + (s.hi - s.lo) + padY });
-    accY += (s.hi - s.lo) + rowH;
-  }
-  const all = layers.flat();
-  for (const n of all) { const bt = bandTop[n.band]; n.x += padX; n.y += bt.shift + bt.top + padY; }
-  const maxY = all.reduce((m, n) => Math.max(m, n.y + (n.dummy ? 0 : rowH - gapY)), 0);
-  return { layers, edges, bandCols: usedCols, bandsInfo, width: usedCols * colW + padX * 2, height: maxY + padY };
-}
+// React Flow node types (stable ref)
+const BOARD_NODE_TYPES = { taskCard: TaskCardNode, taskGroup: TaskGroupNode };
 
 // ── Components ──
 
@@ -191,7 +36,6 @@ export default function BoardPage() {
   const [view, setView] = useState<"dag" | "list">("dag");
   const [statusSet, setStatusSet] = useState<Set<string>>(new Set(DEFAULT_FILTER));
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const density: Density = "compact";
   const [viewBox, setViewBox] = useState({ w: 1200, h: 800 });
   const wrapRef = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLDivElement>(null);
@@ -248,8 +92,6 @@ export default function BoardPage() {
     return () => window.removeEventListener("resize", measure);
   }, [view, selectedId]);
 
-  useEffect(() => {}, []); // placeholder removed
-
   const countBy = useMemo(() => {
     const c: Record<string, number> = {};
     for (const t of allTasks) c[t.status] = (c[t.status] || 0) + 1;
@@ -257,8 +99,6 @@ export default function BoardPage() {
   }, [allTasks]);
 
   const summary = useMemo(() => overallSummary(allTasks, 2), [allTasks]);
-
-  const layout = useMemo(() => view === "dag" ? layoutDAG(allTasks, viewBox, density) : null, [allTasks, viewBox, density, view]);
 
   const selectedTask = selectedId ? allTasks.find(t => t.id === selectedId) || null : null;
 
@@ -350,23 +190,13 @@ export default function BoardPage() {
           {/* Main area: DAG/list + optional detail panel (absolute overlay, 不压缩 DAG 画布) */}
           <div ref={mainRef} className="relative min-h-0 flex-1 overflow-hidden rounded-lg border border-border/30 bg-transparent">
             {/* DAG/List canvas — 始终占满容器，详情面板浮在其上 */}
-            <div className={cn("absolute inset-0 board-dag-wrap", view === "list" ? "overflow-hidden" : "overflow-auto")} ref={wrapRef}
-              onMouseDown={(e) => {
-                if (e.target instanceof Element && e.target.closest(".dag-node-wrap, button, a")) return;
-                const wrap = wrapRef.current; if (!wrap) return;
-                const startX = e.clientX, startY = e.clientY, startSL = wrap.scrollLeft, startST = wrap.scrollTop;
-                wrap.style.cursor = "grabbing";
-                const move = (ev: MouseEvent) => { wrap.scrollLeft = startSL - (ev.clientX - startX); wrap.scrollTop = startST - (ev.clientY - startY); };
-                const up = () => { wrap.style.cursor = "grab"; window.removeEventListener("mousemove", move); window.removeEventListener("mouseup", up); };
-                window.addEventListener("mousemove", move); window.addEventListener("mouseup", up);
-                e.preventDefault();
-              }}
-              style={{ cursor: view === "dag" ? "grab" : "default" } as React.CSSProperties}
-            >
+            <div className={cn("absolute inset-0 board-dag-wrap", view === "list" ? "overflow-hidden" : "overflow-hidden")} ref={wrapRef}>
               {loading ? (
                 <div className="py-16 text-center text-muted-foreground">加载中…</div>
-              ) : view === "dag" && layout ? (
-                <DagCanvas layout={layout} statusSet={statusSet} onSelect={setSelectedId} selectedId={selectedId} />
+              ) : view === "dag" ? (
+                <DagFlowProvider>
+                  <BoardDagCanvas tasks={allTasks} statusSet={statusSet} onSelect={setSelectedId} selectedId={selectedId} />
+                </DagFlowProvider>
               ) : (
                 <ListView tasks={allTasks} statusSet={statusSet} onSelect={setSelectedId} />
               )}
@@ -428,146 +258,46 @@ export default function BoardPage() {
   );
 }
 
-// ── DAG Canvas ──
-function DagCanvas({ layout, statusSet, onSelect, selectedId }: {
-  layout: { nodes: LayoutNode[]; edges: DagEdge[]; groups: GroupBox[]; width: number; height: number; density: Density };
+// ── Board DAG Canvas (React Flow) ──
+function BoardDagCanvas({ tasks, statusSet, onSelect, selectedId }: {
+  tasks: NormTask[];
   statusSet: Set<string>;
   onSelect: (id: string) => void;
   selectedId: string | null;
 }) {
-  const { nodes, edges, groups, width, height, density } = layout;
-  const { paths, markers } = useMemo(() => drawEdgesPaths(edges, (e) => ({
-    dimmed: !(statusSet.has((e.from as LayoutNode).task?.status || "planning") && statusSet.has((e.to as LayoutNode).task?.status || "planning")),
-  })), [edges, statusSet]);
+  const [nodes, setNodes] = useState<Node[]>([]);
+  const [edges, setEdges] = useState<Edge[]>([]);
+  const [layoutLoading, setLayoutLoading] = useState(true);
 
-  // Hover chain highlight
-  const [hoverId, setHoverId] = useState<string | null>(null);
-  const chain = useMemo(() => {
-    if (!hoverId) return null;
-    const succ = new Map<string, string[]>(), pred = new Map<string, string[]>();
-    for (const e of edges) { if (!succ.has(e.from.id)) succ.set(e.from.id, []); if (!pred.has(e.to.id)) pred.set(e.to.id, []); succ.get(e.from.id)!.push(e.to.id); pred.get(e.to.id)!.push(e.from.id); }
-    const seen = new Set([hoverId]);
-    for (const adj of [succ, pred]) { const queue = [hoverId]; while (queue.length) { for (const nx of adj.get(queue.shift()!) || []) { if (seen.has(nx)) continue; seen.add(nx); queue.push(nx); } } }
-    return seen;
-  }, [hoverId, edges]);
+  useEffect(() => {
+    if (!tasks.length) { setNodes([]); setEdges([]); setLayoutLoading(false); return; }
+    setLayoutLoading(true);
+    layoutBoardDAG(tasks, "compact").then(({ nodes, edges }) => {
+      setNodes(nodes);
+      setEdges(edges);
+      setLayoutLoading(false);
+    });
+  }, [tasks]);
 
+  const nodeStatusOf = useMemo(() => (node: Node) => {
+    const task = node.data?.task as NormTask | undefined;
+    return task?.status || "planning";
+  }, []);
+
+  if (layoutLoading) return <div className="py-16 text-center text-muted-foreground">布局计算中…</div>;
   if (!nodes.length) return <div className="py-16 text-center text-muted-foreground">暂无任务</div>;
 
   return (
-    <div className="relative dag-canvas" style={{ width, height, minWidth: "100%" }}
-      onMouseOver={(e) => { const card = (e.target as Element).closest("[data-node-id]"); setHoverId(card?.getAttribute("data-node-id") || null); }}
-      onMouseLeave={() => setHoverId(null)}
-    >
-      <svg className="pointer-events-none absolute inset-0 dag-edges" style={{ width: "100%", height: "100%" }} aria-hidden="true">
-        <defs>
-          {markers.map(m => (
-            <marker key={m.id} id={m.id} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-              <path d="M 0 0 L 10 5 L 0 10 z" fill={`var(--${m.color})`} />
-            </marker>
-          ))}
-        </defs>
-        {paths.map((p, i) => (
-          <path key={i} d={p.d} fill="none" stroke={p.stroke} strokeWidth={p.strokeWidth}
-            strokeOpacity={chain ? (chain.has(p.fromId) && chain.has(p.toId) ? "0.95" : "0.1") : p.strokeOpacity}
-            strokeDasharray={p.dashArray}
-            markerEnd={p.markerEnd}
-            className="dag-edge"
-            data-from={p.fromId} data-to={p.toId}
-          />
-        ))}
-      </svg>
-      {groups.map(g => {
-        const st = g.parent.status || "planning";
-        const meta = ST_META[st] || ST_META.planning;
-        const doneCount = g.children.filter(c => c.status === "done").length;
-        const pct = g.children.length ? Math.round((doneCount / g.children.length) * 100) : 0;
-        return (
-          <div key={g.id} className="dag-group-box absolute rounded-lg border-2 border-dashed"
-            style={{ left: g.x, top: g.y, width: g.w, height: g.h, borderColor: `var(${meta.colorVar})`, backgroundColor: `color-mix(in srgb, var(${meta.colorVar}) 6%, transparent)` }}>
-            <div
-              onClick={(e) => { e.preventDefault(); onSelect(g.id); }}
-              className={cn("dag-group-header flex cursor-pointer items-center gap-2 overflow-hidden rounded-t-md border-b px-2", selectedId === g.id && "ring-2 ring-primary")}
-              style={{ height: g.headerH, borderColor: `var(${meta.colorVar})`, backgroundColor: `color-mix(in srgb, var(${meta.colorVar}) 22%, var(--card))` }}
-            >
-              <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: `var(${meta.colorVar})` }} />
-              <span className="truncate text-xs font-semibold text-foreground">{g.parent.title || g.parent.name || g.id}</span>
-              <span className="ml-auto flex-shrink-0 font-mono text-[10px] text-muted-foreground">{doneCount}/{g.children.length}</span>
-              <div className="ml-1 h-1.5 w-12 flex-shrink-0 overflow-hidden rounded-full bg-muted">
-                <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: `var(${meta.colorVar})` }} />
-              </div>
-            </div>
-          </div>
-        );
-      })}
-      {nodes.map(n => {
-        const t = n.task; if (!t) return null;
-        const st = t.status || "planning";
-        const meta = ST_META[st] || ST_META.planning;
-        const dimmed = !statusSet.has(st);
-        const inChain = chain?.has(n.id) ?? false;
-        const isDim = chain ? !inChain : false;
-        const mini = density === "mini";
-        const subs = (t.subtasks || []) as NormSubtask[];
-        const subDone = subs.filter(s => s.status === "done").length;
-        return (
-          <div key={n.id} className="dag-node-wrap absolute" data-node-id={n.id}
-            style={{ left: n.x, top: n.y, width: n.w, opacity: dimmed ? 0.4 : (isDim ? 0.15 : 1), transition: "opacity 0.15s" }}>
-            <div
-              onClick={(e) => { e.preventDefault(); onSelect(n.id); }}
-              data-task-id={n.id}
-              className={cn("flex cursor-pointer items-center gap-2 overflow-hidden rounded-md border transition-all hover:shadow-md", selectedId === n.id && "ring-2 ring-primary", st === "active" && "dag-node-active")}
-              style={{ height: n.h, borderColor: `var(${meta.colorVar})`, backgroundColor: `color-mix(in srgb, var(${meta.colorVar}) 20%, var(--card))` }}
-            >
-              <span className="h-2 w-2 flex-shrink-0 rounded-full ml-2" style={{ backgroundColor: `var(${meta.colorVar})` }} />
-              <div className="min-w-0 flex-1 pr-2">
-                {mini ? (
-                  <div className="truncate text-xs leading-none text-foreground">{t.title || t.name || t.id}</div>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-1.5">
-                      <div className="min-w-0 flex-1 truncate text-xs font-semibold leading-tight text-foreground">{t.title || t.name || "(未命名)"}</div>
-                      <PriorityBadge priority={t.priority} />
-                    </div>
-                    <div className="flex items-center text-[10px] leading-tight text-muted-foreground">
-                      <span className="truncate font-mono">#{t.id}</span>
-                      {subs.length > 0 && <span className="flex-shrink-0 ml-1">{subDone}/{subs.length}</span>}
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-            {/* Hover 悬浮卡片 */}
-            {hoverId === n.id && (
-              <div className="pointer-events-none absolute left-0 top-full z-50 mt-2 w-80 rounded-lg border border-border/40 bg-card/95 p-4 shadow-xl backdrop-blur-md">
-                <div className="mb-1.5 flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: `var(${meta.colorVar})` }} />
-                  <span className="text-xs font-semibold text-foreground">{t.title || t.name || t.id}</span>
-                  <span className="ml-auto rounded px-1.5 py-0.5 text-[9px] font-medium text-white" style={{ backgroundColor: `var(${meta.colorVar})` }}>{meta.label}</span>
-                </div>
-                <div className="mb-1.5 font-mono text-[10px] text-muted-foreground">#{t.id}</div>
-                {(t.desc || t.description) && (
-                  <div className="mb-2 line-clamp-3 text-xs leading-relaxed text-muted-foreground">{t.desc || t.description}</div>
-                )}
-                {subs.length > 0 && (
-                  <div className="mb-1.5">
-                    <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                      <span>子任务进度</span>
-                      <span>{subDone}/{subs.length}</span>
-                    </div>
-                    <div className="mt-0.5 h-1 overflow-hidden rounded-full bg-muted">
-                      <div className="h-full rounded-full transition-all" style={{ width: `${subs.length ? Math.round(subDone / subs.length * 100) : 0}%`, backgroundColor: `var(${meta.colorVar})` }} />
-                    </div>
-                  </div>
-                )}
-                {(t.deps && t.deps.length > 0) && (
-                  <div className="text-[10px] text-muted-foreground">依赖: {t.deps.join(", ")}</div>
-                )}
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
+    <DagFlow
+      nodes={nodes}
+      edges={edges}
+      nodeTypes={BOARD_NODE_TYPES}
+      dimStatusSet={statusSet}
+      selectedId={selectedId}
+      onSelect={onSelect}
+      nodeStatusOf={nodeStatusOf}
+      enableHoverChain={true}
+    />
   );
 }
 
@@ -827,54 +557,33 @@ function TaskTimeline({ task, eta, subs }: { task: NormTask; eta: { main: string
   );
 }
 
-// ── Subtask DAG (mini, draggable pan, same style as task DAG) ──
+// ── Subtask DAG (React Flow mini) ──
+const SUBTASK_NODE_TYPES = { subtaskCard: SubtaskCardNode };
+
 function SubtaskDag({ subs }: { subs: NormSubtask[] }) {
-  const layout = useMemo(() => {
-    const byId = new Map(subs.map(s => [s.id, s]));
-    const s = { colW: 160, rowH: 60, padX: 16, padY: 24, gapX: 16, gapY: 24 };
-    const depsOf = (id: string) => (byId.get(id)?.deps || []).filter(d => byId.has(d));
-    return layoutTiered([...byId.keys()], depsOf, { w: s.colW - s.gapX, h: s.rowH - s.gapY, gapX: s.gapX, gapY: s.gapY, padX: s.padX, padY: s.padY }, 580, (id) => ({ sub: byId.get(id)! }));
+  const [nodes, setNodes] = useState<Node[]>([]);
+  const [edges, setEdges] = useState<Edge[]>([]);
+
+  useEffect(() => {
+    if (!subs.length) return;
+    layoutSubtaskDAG(subs).then(({ nodes, edges }) => {
+      setNodes(nodes);
+      setEdges(edges);
+    });
   }, [subs]);
 
-  const { paths, markers } = useMemo(() => drawEdgesPaths(layout.edges), [layout.edges]);
-  const wrapRef = useRef<HTMLDivElement>(null);
-
-  const onMouseDown = useCallback((e: React.MouseEvent) => {
-    const wrap = wrapRef.current; if (!wrap) return;
-    if (e.target instanceof Element && e.target.closest("a, button")) return;
-    const startX = e.clientX, startY = e.clientY, sl = wrap.scrollLeft, st = wrap.scrollTop;
-    wrap.style.cursor = "grabbing";
-    const move = (ev: MouseEvent) => { wrap.scrollLeft = sl - (ev.clientX - startX); wrap.scrollTop = st - (ev.clientY - startY); };
-    const up = () => { wrap.style.cursor = "grab"; window.removeEventListener("mousemove", move); window.removeEventListener("mouseup", up); };
-    window.addEventListener("mousemove", move); window.addEventListener("mouseup", up);
-    e.preventDefault();
-  }, []);
-
-  if (!layout.nodes.length) return <div className="py-4 text-center text-xs text-muted-foreground">暂无子任务</div>;
+  if (!subs.length) return <div className="py-4 text-center text-xs text-muted-foreground">暂无子任务</div>;
 
   return (
-    <div className="overflow-auto" ref={wrapRef} onMouseDown={onMouseDown} style={{ cursor: "grab", maxHeight: "400px" }}>
-      <div className="relative mx-auto" style={{ width: layout.width, height: layout.height }}>
-        <svg className="pointer-events-none absolute inset-0" style={{ width: "100%", height: "100%" }}>
-          <defs>
-            {markers.map(m => <marker key={m.id} id={m.id} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill={`var(--${m.color})`} /></marker>)}
-          </defs>
-          {paths.map((p, i) => <path key={i} d={p.d} fill="none" stroke={p.stroke} strokeWidth={p.strokeWidth} strokeOpacity={p.strokeOpacity} strokeDasharray={p.dashArray} markerEnd={p.markerEnd} />)}
-        </svg>
-        {layout.nodes.map(n => {
-          const sub = (n as any).sub as NormSubtask; if (!sub) return null;
-          const sm = ST_META[sub.status] || ST_META.planning;
-          return (
-            <div key={n.id} className="absolute flex cursor-pointer items-center gap-2 overflow-hidden rounded-md border transition-all hover:shadow-md" style={{ left: n.x, top: n.y, width: n.w, height: n.h, opacity: sub.status === "done" ? 0.5 : 1, borderColor: `var(${sm.colorVar})`, backgroundColor: `color-mix(in srgb, var(${sm.colorVar}) 20%, var(--card))` }} title={sub.title || sub.name || sub.id}>
-              <span className="ml-2 h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: `var(${sm.colorVar})` }} />
-              <div className="min-w-0 flex-1 pr-2">
-                <div className="truncate text-xs font-semibold leading-tight text-foreground">{sub.title || sub.name || sub.id}</div>
-                <div className="truncate text-[10px] leading-tight text-muted-foreground">{sm.label}</div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
+    <DagFlowProvider>
+      <DagFlow
+        nodes={nodes}
+        edges={edges}
+        nodeTypes={SUBTASK_NODE_TYPES}
+        minHeight={200}
+        enableHoverChain={false}
+        showControls={false}
+      />
+    </DagFlowProvider>
   );
 }
