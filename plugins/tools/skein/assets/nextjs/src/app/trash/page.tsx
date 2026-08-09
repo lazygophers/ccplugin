@@ -5,6 +5,7 @@ import { Sidebar, Topbar } from "@/components/layout";
 import { api } from "@/lib/api";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { useToast } from "@/components/toast";
+import { Trash2, X } from "lucide-react";
 
 interface TrashItem { id: string; name: string; desc: string; status: string; deletedAt?: string }
 
@@ -63,7 +64,7 @@ export default function TrashPage() {
                 onClick={() => setClearAll(true)}
                 className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-1.5 text-xs text-destructive hover:bg-destructive/20"
               >
-                <i className="fa fa-times mr-1" />清空垃圾桶
+                <X className="mr-1 inline h-3.5 w-3.5" />清空垃圾桶
               </button>
             )}
           </div>
@@ -76,7 +77,7 @@ export default function TrashPage() {
                   className="flex items-start gap-4 rounded-xl border border-border/40 bg-card/60 p-4 opacity-75"
                 >
                   <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: `color-mix(in srgb, var(--destructive) 10%, transparent)`, color: "var(--destructive)" }}>
-                    <i className="fa fa-trash text-lg" />
+                    <Trash2 className="h-5 w-5" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="mb-1 flex items-center gap-2">
@@ -92,14 +93,14 @@ export default function TrashPage() {
                     onClick={() => setPurgeTarget(t)}
                     className="flex-shrink-0 rounded-md border border-destructive/40 px-2 py-1 text-xs text-destructive hover:bg-destructive/10"
                   >
-                    <i className="fa fa-times mr-1" />永久删除
+                    <X className="mr-1 inline h-3.5 w-3.5" />永久删除
                   </button>
                 </div>
               ))}
             </div>
           ) : (
             <div className="py-20 text-center">
-              <i className="fa fa-trash mb-3 text-4xl text-muted-foreground opacity-40" />
+              <Trash2 className="mb-3 h-10 w-10 text-muted-foreground opacity-40" />
               <div className="text-muted-foreground">垃圾桶为空</div>
             </div>
           )}

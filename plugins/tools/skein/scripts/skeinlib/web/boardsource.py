@@ -330,7 +330,7 @@ class BoardSourceMixin:
                 print("SKEIN 看板依赖安装失败 — 手动 pip install -r requirements.txt", file=sys.stderr, flush=True)
                 return
 
-        # dist/ 不再入库 — 启动前确保已编译 (首次自动 npm build)。
+        # dist/ 不再入库 — 启动前确保已编译 (自动 npm build, 强制行为)。
         ensure_dist_built(quiet=quiet)
 
         import uvicorn

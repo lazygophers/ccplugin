@@ -208,6 +208,7 @@
   }
   body {
     @apply text-foreground;
+    font-size: 16px;
     background-color: var(--background);
     background-image:
       linear-gradient(180deg, var(--oc-foam-100) 0%, var(--oc-ocean-100) 40%, var(--oc-ocean-200) 70%, transparent 100%),
@@ -215,6 +216,9 @@
     background-attachment: fixed;
     min-height: 100vh;
   }
+  /* 全局最小字号 16px — Tailwind 小于 16px 的字号工具类全部强制提升到 16px */
+  .text-xs, .text-\[10px\], .text-\[9px\], .text-\[11px\], .text-\[8px\] { font-size: 16px !important; }
+  .text-sm { font-size: 16px !important; }
   .dark body {
     background-color: var(--background);
     background-image:
@@ -322,13 +326,23 @@
 }
 .icon-btn[data-tip]:hover::after { opacity: 1; }
 
-/* ═══ 执行中 task 呼吸动效 ═══ */
+/* ═══ 执行中 task 动效 — 强脉冲 + 发光 + 缩放 + 边框 ═══ */
 .dag-node-active {
-  animation: dag-breathe 2.5s ease-in-out infinite;
+  animation: dag-pulse 1.2s ease-in-out infinite;
 }
-@keyframes dag-breathe {
-  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--st-active) 0%, transparent); }
-  50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--st-active) 25%, transparent); }
+@keyframes dag-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 2px var(--st-active),
+                0 0 12px 4px color-mix(in srgb, var(--st-active) 60%, transparent);
+    filter: brightness(1.1);
+    transform: scale(1.02);
+  }
+  50% {
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--st-active) 50%, transparent),
+                0 0 30px 10px color-mix(in srgb, var(--st-active) 70%, transparent);
+    filter: brightness(1.25);
+    transform: scale(1.05);
+  }
 }
 
 /* ═══ React Flow DAG 边状态色 ═══ */
@@ -341,12 +355,6 @@
 .react-flow__edge.dag-edge-stuck .react-flow__edge-path {
   stroke: var(--st-failed);
 }
-.react-flow__edge.dag-edge-blocked .react-flow__edge-path {
-  stroke-dasharray: 0;
-}
-.react-flow__edge.dag-edge-stuck .react-flow__edge-path {
-  stroke-dasharray: none;
-}
 /* arrow marker 颜色 */
 .react-flow__edge.dag-edge-ready .react-flow__arrowhead {
   fill: var(--st-done);
@@ -357,10 +365,31 @@
 .react-flow__edge.dag-edge-stuck .react-flow__arrowhead {
   fill: var(--st-failed);
 }
+/* 锁定箭头尺寸, 不随 strokeWidth 缩放 */
+.react-flow__arrowhead,
+.react-flow__edge .react-flow__arrowhead closed {
+  markerUnits: userSpaceOnUse !important;
+}
+
+/* React Flow 定义 marker 的 SVG defs */
+.react-flow__edges defs marker {
+  markerUnits: userSpaceOnUse !important;
+}
 
 /* React Flow 容器透明底适配主题 */
+.dag-flow-container {
+  overflow-x: hidden !important;
+  overflow-y: hidden !important;
+}
 .dag-flow-container .react-flow {
   background-color: transparent;
+  overflow: hidden !important;
+}
+.dag-flow-container .react-flow__pane {
+  cursor: default;
+}
+.dag-flow-container .react-flow__edges svg {
+  overflow: visible;
 }
 .dag-flow-container .react-flow__controls {
   background-color: var(--card);

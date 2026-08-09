@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { startLive, subscribe } from "@/lib/live";
 import { api } from "@/lib/api";
+import { AlertTriangle } from "lucide-react";
 
 // 项目名跨导航缓存 —— 每次路由切换都要重设标题, 但项目名一个会话内不变, 只请求一次。
 let cachedProj: string | null = null;
@@ -39,7 +40,7 @@ export function LiveBootstrap() {
   return (
     <div className="pointer-events-none fixed inset-x-0 top-0 z-[300] flex justify-center pt-3">
       <div className="pointer-events-auto rounded-lg bg-coral-600/90 px-4 py-2 text-sm text-white shadow-lg backdrop-blur-md">
-        <i className="fa fa-exclamation-triangle mr-1.5" />
+        <AlertTriangle className="mr-1.5 inline h-4 w-4" />
         连接已断开, 正在重连…
       </div>
     </div>

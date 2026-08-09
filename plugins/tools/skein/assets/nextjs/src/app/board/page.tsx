@@ -8,6 +8,7 @@ import { api, ApiError, type Task } from "@/lib/api";
 import { normalizeTasks, normalizeStatus, applyTaskChangedBatch, type NormTask, type NormSubtask } from "@/lib/model";
 import { PriorityBadge, PrioritySelect } from "@/components/priority";
 import { subscribe } from "@/lib/live";
+import { Archive, Network, List, CheckSquare, Square, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fmtRelative, fmtTime } from "@/lib/format";
 import { renderMd } from "@/lib/md";
@@ -176,13 +177,13 @@ export default function BoardPage() {
             <div className="flex flex-shrink-0 items-center gap-3">
               {countBy.done > 0 && (
                 <button onClick={cleanDone} title="归档全部已完成任务" className="rounded-full border border-border bg-transparent px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/30">
-                  <i className="fa fa-archive mr-1.5" />清理已完成
+                  <Archive className="mr-1.5 inline h-3.5 w-3.5" />清理已完成
                 </button>
               )}
               {/* View toggle */}
               <div className="flex items-center gap-1 rounded-lg border border-border bg-card/60 p-1">
-                <button onClick={() => setView("dag")} className={cn("rounded-md px-3 py-1.5 text-sm font-medium transition-colors", view === "dag" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground")}><i className="fa fa-sitemap mr-1.5" />DAG</button>
-                <button onClick={() => setView("list")} className={cn("rounded-md px-3 py-1.5 text-sm font-medium transition-colors", view === "list" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground")}><i className="fa fa-list mr-1.5" />列表</button>
+                <button onClick={() => setView("dag")} className={cn("rounded-md px-3 py-1.5 text-sm font-medium transition-colors", view === "dag" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground")}><Network className="mr-1.5 inline h-3.5 w-3.5" />DAG</button>
+                <button onClick={() => setView("list")} className={cn("rounded-md px-3 py-1.5 text-sm font-medium transition-colors", view === "list" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground")}><List className="mr-1.5 inline h-3.5 w-3.5" />列表</button>
               </div>
             </div>
           </div>
@@ -320,7 +321,7 @@ function ListView({ tasks, statusSet, onSelect }: { tasks: NormTask[]; statusSet
             <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
               {list.length ? list.map(t => (
                 <div key={t.id} onClick={() => onSelect(t.id)} className={cn("flex cursor-pointer items-center gap-2 rounded-lg p-2 transition-colors hover:bg-muted/30", st === "active" && "dag-node-active")}>
-                  <i className={`fa ${meta.icon} text-xs`} style={{ color: `var(${meta.colorVar})` }} />
+                  {(() => { const Icon = meta.icon; return <Icon className="h-3 w-3" style={{ color: `var(${meta.colorVar})` }} />; })()}
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm text-foreground">{t.title || t.name || "(未命名)"}</div>
                     <div className="truncate font-mono text-xs text-muted-foreground">#{t.id}</div>
@@ -404,7 +405,7 @@ function DetailPanel({ task, allTasks, onClose, onConfirm, onFinish, onDelete, o
                 <div className="space-y-1.5">
                   {sec.items.map((item, j) => (
                     <div key={j} className="flex items-start gap-2 text-sm">
-                      <i className={`fa ${item.done ? "fa-check-square" : "fa-square-o"} mt-0.5 flex-shrink-0`} style={{ color: item.done ? "var(--st-done)" : "var(--muted-foreground)" }} />
+                      {item.done ? <CheckSquare className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: "var(--st-done)" }} /> : <Square className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: "var(--muted-foreground)" }} />}
                       <span className={item.done ? "text-muted-foreground line-through" : "text-foreground"}>{item.text}</span>
                     </div>
                   ))}
@@ -530,7 +531,7 @@ function TaskTimeline({ task, eta, subs }: { task: NormTask; eta: { main: string
                         <div key={sub.sid} className="flex items-start gap-2">
                           {isDone ? (
                             <span className="mt-0.5 flex h-3.5 w-3.5 flex-shrink-0 items-center justify-center rounded-full text-[8px] text-white" style={{ backgroundColor: `var(${sm.colorVar})` }}>
-                              <i className="fa fa-check" />
+                              <Check className="h-2.5 w-2.5" />
                             </span>
                           ) : (
                             <span className="mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full" style={{ backgroundColor: `var(${sm.colorVar})` }} />

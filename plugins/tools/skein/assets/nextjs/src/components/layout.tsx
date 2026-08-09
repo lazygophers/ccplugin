@@ -5,17 +5,18 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
-import { SettingsModal } from "@/components/settings";
+import { LayoutDashboard, Network, ListOrdered, CheckSquare, FileText, Archive, Trash2, Settings as SettingsIcon, HelpCircle, Menu, Sun, Moon } from "lucide-react";
 
 const NAV_ITEMS = [
-  { href: "/dashboard", label: "概览", icon: "fa-dashboard" },
-  { href: "/board", label: "看板", icon: "fa-sitemap" },
-  { href: "/queue", label: "队列", icon: "fa-list-ol" },
-  { href: "/tasks", label: "任务", icon: "fa-tasks" },
-  { href: "/spec", label: "规范", icon: "fa-file-text-o" },
-  { href: "/archive", label: "归档", icon: "fa-archive" },
-  { href: "/trash", label: "垃圾桶", icon: "fa-trash" },
-  { href: "/help", label: "帮助", icon: "fa-question-circle" },
+  { href: "/dashboard", label: "概览", icon: LayoutDashboard },
+  { href: "/board", label: "看板", icon: Network },
+  { href: "/queue", label: "队列", icon: ListOrdered },
+  { href: "/tasks", label: "任务", icon: CheckSquare },
+  { href: "/spec", label: "规范", icon: FileText },
+  { href: "/archive", label: "归档", icon: Archive },
+  { href: "/trash", label: "垃圾桶", icon: Trash2 },
+  { href: "/settings", label: "设置", icon: SettingsIcon },
+  { href: "/help", label: "帮助", icon: HelpCircle },
 ];
 
 export function Sidebar() {
@@ -54,11 +55,10 @@ export function Sidebar() {
         </div>
 
         <nav className="flex-1 overflow-y-auto p-3">
-          <div className="mb-1 px-2.5 pt-3 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
-            工作台
-          </div>
+          <div className="mb-1 px-2.5 pt-3" />
           {NAV_ITEMS.map((item) => {
             const active = pathname === item.href || pathname.startsWith(item.href + "/");
+            const Icon = item.icon;
             return (
               <Link
                 key={item.href}
@@ -72,14 +72,14 @@ export function Sidebar() {
                     : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                 )}
               >
-                <i className={`fa ${item.icon} w-4 text-center text-sm`} />
+                <Icon className="h-4 w-4 shrink-0" />
                 <span>{item.label}</span>
               </Link>
             );
           })}
         </nav>
 
-        <div className="border-t border-border/50 p-3">
+        <div className="flex items-center justify-center border-t border-border/50 p-3">
           <ThemeToggle />
         </div>
       </aside>
@@ -107,17 +107,16 @@ function ThemeToggle() {
   return (
     <button
       onClick={toggle}
-      className="flex h-[34px] w-full items-center gap-2.5 rounded-md px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+      title={isDark ? "切换亮色" : "切换暗色"}
+      className="flex h-[32px] w-[32px] items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
     >
-      <i className={`fa ${isDark ? "fa-sun-o" : "fa-moon-o"} w-4 text-center text-sm`} />
-      <span>切换主题</span>
+      {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
     </button>
   );
 }
 
 export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
   const pathname = usePathname();
-  const [showSettings, setShowSettings] = useState(false);
   const [projName, setProjName] = useState("");
   const title = NAV_ITEMS.find((n) => pathname.startsWith(n.href))?.label || "SKEIN";
 
@@ -130,29 +129,27 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
   }, []);
 
   return (
-    <>
-      <header className="sticky top-0 z-10 flex h-12 items-center gap-4 border-b border-border/30 bg-card/40 px-6 backdrop-blur-md">
-        <button
-          onClick={onMenuClick}
-          className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-muted-foreground lg:hidden"
+    <header className="sticky top-0 z-10 flex h-12 items-center gap-4 border-b border-border/30 bg-card/40 px-6 backdrop-blur-md">
+      <button
+        onClick={onMenuClick}
+        className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-muted-foreground lg:hidden"
+      >
+        <Menu className="h-4 w-4" />
+      </button>
+      <div className="flex items-center gap-2 text-sm">
+        {projName && <span className="font-medium text-foreground">{projName}</span>}
+        {projName && <span className="text-muted-foreground">/</span>}
+        <span className="text-muted-foreground">{title}</span>
+      </div>
+      <div className="ml-auto">
+        <Link
+          href="/settings"
+          prefetch={false}
+          className={`rounded-md p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground ${pathname.startsWith("/settings") ? "text-primary" : ""}`}
         >
-          <i className="fa fa-bars" />
-        </button>
-        <div className="flex items-center gap-2 text-sm">
-          {projName && <span className="font-medium text-foreground">{projName}</span>}
-          {projName && <span className="text-muted-foreground">/</span>}
-          <span className="text-muted-foreground">{title}</span>
-        </div>
-        <div className="ml-auto">
-          <button
-            onClick={() => setShowSettings(true)}
-            className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-          >
-            <i className="fa fa-cog" />
-          </button>
-        </div>
-      </header>
-      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
-    </>
+          <SettingsIcon className="h-4 w-4" />
+        </Link>
+      </div>
+    </header>
   );
 }

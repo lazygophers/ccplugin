@@ -6,6 +6,7 @@ import { Sidebar, Topbar } from "@/components/layout";
 import { StatusBadge, StatusDot } from "@/components/status";
 import { api, type QueueItem } from "@/lib/api";
 import { normalizeTasks, PRIORITY_RANK } from "@/lib/model";
+import { List, Inbox } from "lucide-react";
 
 export default function QueuePage() {
   const [items, setItems] = useState<QueueItem[]>([]);
@@ -47,7 +48,7 @@ export default function QueuePage() {
           <div className="overflow-hidden rounded-lg border border-border/30 bg-transparent p-0">
             <div className="flex items-center justify-between border-b border-border/40 p-4">
               <div className="flex items-center gap-2">
-                <i className="fa fa-list-ul text-primary" />
+                <List className="h-4 w-4 text-primary" />
                 <span className="font-semibold text-foreground">队列列表</span>
               </div>
               <span className="text-xs text-muted-foreground">按优先级排序</span>
@@ -74,7 +75,7 @@ export default function QueuePage() {
               </div>
             ) : (
               <div className="py-16 text-center">
-                <i className="fa fa-inbox mb-3 text-4xl text-muted-foreground opacity-40" />
+                <Inbox className="mb-3 h-10 w-10 text-muted-foreground opacity-40" />
                 <div className="text-muted-foreground">队列为空</div>
               </div>
             )}

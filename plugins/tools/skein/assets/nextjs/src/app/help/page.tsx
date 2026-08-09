@@ -2,6 +2,7 @@
 
 import { Sidebar, Topbar } from "@/components/layout";
 import { ST_META } from "@/components/status";
+import { RefreshCw, Circle, ArrowRight } from "lucide-react";
 
 // task 状态流转: planning ⇄ research → active → check → finishing → done (confirm 已吸收原 start)
 // subtask 状态: planning → active → done/failed
@@ -148,7 +149,7 @@ export default function HelpPage() {
                 ))}
               </div>
               <div className="mb-3 flex items-center gap-2 rounded-md border border-dashed border-border/50 px-3 py-2 text-xs text-muted-foreground">
-                <i className="fa fa-refresh" />
+                <RefreshCw className="inline h-3 w-3" />
                 <span>failed 可重派 (skein subtask start), 或插修复 subtask 定点修根因后重跑</span>
               </div>
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -178,11 +179,11 @@ export default function HelpPage() {
                 ].map((p, i) => (
                   <div key={p.label} className="flex items-center gap-3">
                     <div className="flex items-center gap-2 rounded-lg border px-3 py-1.5" style={{ borderColor: `var(${p.color})` }}>
-                      <i className="fa fa-circle text-[8px]" style={{ color: `var(${p.color})` }} />
+                      <Circle className="h-2 w-2" style={{ color: `var(${p.color})` }} />
                       <span className="font-mono text-xs font-bold text-foreground">{p.label}</span>
                       <span className="text-xs text-muted-foreground">{p.desc}</span>
                     </div>
-                    {i < 3 && <i className="fa fa-arrow-right text-muted-foreground" />}
+                    {i < 3 && <ArrowRight className="h-4 w-4 text-muted-foreground" />}
                   </div>
                 ))}
                 <span className="text-xs text-muted-foreground">→ 循环下一个 task</span>

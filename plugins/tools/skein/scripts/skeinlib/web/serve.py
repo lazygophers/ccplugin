@@ -147,7 +147,8 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
             watch_dirs.append(spec_root)
         nextjs_src = PLUGIN_ROOT / "assets" / "nextjs" / "src"
         nextjs_root = PLUGIN_ROOT / "assets" / "nextjs"
-        if nextjs_src.is_dir():
+        front_watch_enabled = nextjs_src.is_dir()
+        if front_watch_enabled:
             watch_dirs.append(nextjs_src)
 
         # 前端重编译状态: build 进行中时置 True, 跳过期间的新事件 (防抖)。
@@ -256,7 +257,7 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
             # changes 是 set[(change_type, path)]; 判定来源目录 → 分别路由
             any_task = any(Path(p).is_relative_to(board.tasks) for _, p in changes)
             any_spec = spec_root.exists() and any(Path(p).is_relative_to(spec_root) for _, p in changes)
-            any_front = nextjs_src.is_dir() and any(Path(p).is_relative_to(nextjs_src) for _, p in changes)
+            any_front = front_watch_enabled and any(Path(p).is_relative_to(nextjs_src) for _, p in changes)
             if any_task:
                 await _diff_and_push()
             if any_spec:

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, createContext, useContext, type ReactNode } from "react";
+import { CheckCircle, AlertCircle } from "lucide-react";
 
 type Toast = { id: number; msg: string; type: "info" | "success" | "error" };
 
@@ -34,8 +35,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               : "bg-card/90 text-foreground border border-border/30"
             }`}
           >
-            {t.type === "success" && <i className="fa fa-check-circle mr-1.5" />}
-            {t.type === "error" && <i className="fa fa-exclamation-circle mr-1.5" />}
+            {t.type === "success" && <CheckCircle className="mr-1.5 inline h-4 w-4" />}
+            {t.type === "error" && <AlertCircle className="mr-1.5 inline h-4 w-4" />}
             {t.msg}
           </div>
         ))}

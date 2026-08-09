@@ -7,6 +7,7 @@ import { renderMd } from "@/lib/md";
 import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { useToast } from "@/components/toast";
+import { Plus, Search, X, ChevronRight, FileText, Pencil, Trash2, File, Loader2 } from "lucide-react";
 
 export default function SpecPage() {
   const toast = useToast();
@@ -220,13 +221,13 @@ export default function SpecPage() {
               onClick={() => { setShowCreate(true); setNewNs(""); setNewCat(""); setNewName(""); }}
               className="rounded-md bg-primary px-3 py-1.5 text-xs text-primary-foreground hover:bg-primary/90"
             >
-              <i className="fa fa-plus mr-1" />新建
+              <Plus className="mr-1 inline h-3.5 w-3.5" />新建
             </button>
           </div>
 
           {/* 搜索框 */}
           <div className="relative mb-4 flex-shrink-0">
-            <i className="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
               value={searchQ}
@@ -236,7 +237,7 @@ export default function SpecPage() {
             />
             {searchQ && (
               <button onClick={() => setSearchQ("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                <i className="fa fa-times" />
+                <X className="h-4 w-4" />
               </button>
             )}
           </div>
@@ -290,12 +291,12 @@ export default function SpecPage() {
                 <>
                   {searching && (
                     <div className="py-6 text-center text-sm text-muted-foreground">
-                      <i className="fa fa-spinner fa-spin mr-2" />搜索中…
+                      <Loader2 className="mr-2 inline h-4 w-4 animate-spin" />搜索中…
                     </div>
                   )}
                   {!searching && searchResults.length === 0 && (
                     <div className="py-6 text-center text-sm text-muted-foreground">
-                      <i className="fa fa-search mb-2 text-2xl opacity-40" />
+                      <Search className="mb-2 h-7 w-7 opacity-40" />
                       <div>无匹配结果</div>
                     </div>
                   )}
@@ -333,7 +334,7 @@ export default function SpecPage() {
                           onClick={() => toggleNs(nsKey)}
                           className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-muted/30"
                         >
-                          <i className={cn("fa fa-chevron-right text-[10px] text-muted-foreground transition-transform", nsOpen && "rotate-90")} />
+                          <ChevronRight className={cn("h-3 w-3 text-muted-foreground transition-transform", nsOpen && "rotate-90")} />
                           <span className="text-sm font-bold text-foreground">{ns}</span>
                         </button>
                         {nsOpen && (
@@ -348,7 +349,7 @@ export default function SpecPage() {
                                     onClick={() => toggleCat(catKey)}
                                     className="flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-left transition-colors hover:bg-muted/30"
                                   >
-                                    <i className={cn("fa fa-chevron-right text-[9px] text-muted-foreground transition-transform", catOpen && "rotate-90")} />
+                                    <ChevronRight className={cn("h-2.5 w-2.5 text-muted-foreground transition-transform", catOpen && "rotate-90")} />
                                     <span className="text-xs font-semibold text-muted-foreground">{cat}</span>
                                   </button>
                                   {catOpen && (
@@ -366,7 +367,7 @@ export default function SpecPage() {
                                                 : "text-foreground/80 hover:bg-muted/30"
                                             )}
                                           >
-                                            <i className="fa fa-file-text-o text-[9px] text-muted-foreground/60" />
+                                            <FileText className="h-2.5 w-2.5 text-muted-foreground/60" />
                                             <span className="truncate text-xs">{m?.title || s.title}</span>
                                             {m?.keywords?.[0] && (
                                               <span className="ml-auto rounded bg-muted/40 px-1 py-0.5 text-[8px] text-muted-foreground/80">{m.keywords[0]}</span>
@@ -386,7 +387,7 @@ export default function SpecPage() {
                   })}
                   {filteredSpecs.length === 0 && (
                     <div className="py-10 text-center">
-                      <i className="fa fa-file-text-o mb-2 text-3xl text-muted-foreground opacity-40" />
+                      <FileText className="mb-2 h-8 w-8 text-muted-foreground opacity-40" />
                       <div className="text-muted-foreground text-sm">{specs.length === 0 ? "暂无规范" : "无匹配筛选"}</div>
                     </div>
                   )}
@@ -407,10 +408,10 @@ export default function SpecPage() {
                       {!editMode ? (
                         <>
                           <button onClick={() => setEditMode(true)} className="rounded-md border border-border px-2 py-1 text-xs text-foreground hover:bg-muted/30">
-                            <i className="fa fa-pencil mr-1" />编辑
+                            <Pencil className="mr-1 inline h-3.5 w-3.5" />编辑
                           </button>
                           <button onClick={() => selected && setDeleteTarget(selected)} className="rounded-md border border-destructive/40 px-2 py-1 text-xs text-destructive hover:bg-destructive/10">
-                            <i className="fa fa-trash mr-1" />删除
+                            <Trash2 className="mr-1 inline h-3.5 w-3.5" />删除
                           </button>
                         </>
                       ) : (
@@ -438,7 +439,7 @@ export default function SpecPage() {
               ) : (
                 <div className="flex min-h-0 flex-1 items-center justify-center rounded-lg border border-dashed border-border/50 text-muted-foreground">
                   <div className="text-center">
-                    <i className="fa fa-file-o mb-2 text-3xl opacity-40" />
+                    <File className="mb-2 h-8 w-8 opacity-40" />
                     <div className="text-sm">选择左侧规范查看</div>
                   </div>
                 </div>

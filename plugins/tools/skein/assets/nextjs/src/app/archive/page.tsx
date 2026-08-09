@@ -8,6 +8,7 @@ import { api, type Task } from "@/lib/api";
 import { normalizeTasks } from "@/lib/model";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { useToast } from "@/components/toast";
+import { Trash2, CheckCircle, Archive } from "lucide-react";
 
 export default function ArchivePage() {
   const toast = useToast();
@@ -67,7 +68,7 @@ export default function ArchivePage() {
                 onClick={() => setClearAll(true)}
                 className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-1.5 text-xs text-destructive hover:bg-destructive/20"
               >
-                <i className="fa fa-trash mr-1" />全部移到垃圾桶
+                <Trash2 className="mr-1 inline h-3.5 w-3.5" />全部移到垃圾桶
               </button>
             )}
           </div>
@@ -80,7 +81,7 @@ export default function ArchivePage() {
                   className="flex items-start gap-4 rounded-xl border border-border/40 bg-card/60 p-4 transition-all hover:border-border hover:bg-muted/30"
                 >
                   <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: `color-mix(in srgb, var(--st-done) 10%, transparent)`, color: "var(--st-done)" }}>
-                    <i className="fa fa-check-circle text-lg" />
+                    <CheckCircle className="h-5 w-5" />
                   </div>
                   <Link href={`/task/detail/?id=${t.id}`} prefetch={false} className="min-w-0 flex-1">
                     <div className="mb-1 flex items-center gap-2">
@@ -110,7 +111,7 @@ export default function ArchivePage() {
             </div>
           ) : (
             <div className="py-20 text-center">
-              <i className="fa fa-archive mb-3 text-4xl text-muted-foreground opacity-40" />
+              <Archive className="mb-3 h-10 w-10 text-muted-foreground opacity-40" />
               <div className="text-muted-foreground">暂无归档</div>
             </div>
           )}

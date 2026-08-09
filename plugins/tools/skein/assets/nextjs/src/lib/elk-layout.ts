@@ -1,5 +1,5 @@
-// ELK 布局适配层 — 输入 tasks/subs + 视口尺寸, 输出 React Flow 节点/边
-// elkjs 提供 Layered (Sugiyama) 布局, 替代原自研 sugiyama() + layoutDAG()
+// ELK 布局适配层 — 输入 tasks/subs, 输出 RF 节点/边
+// ELK 做节点定位 + 正交边路由 (保证不穿 card), 前端做波形平滑
 
 import ELK from "elkjs";
 import type { Edge, Node } from "@xyflow/react";
@@ -7,32 +7,44 @@ import type { NormTask, NormSubtask } from "./model";
 
 const elk = new ELK();
 
-// ELK base layout options — Layered (Sugiyama) 方向 DOWN
+// 大间距: edgeNode=80 保证边离 card 足够远
 const BASE_OPTS: Record<string, string> = {
   "elk.algorithm": "layered",
   "elk.direction": "DOWN",
-  "elk.layered.spacing.nodeNodeBetweenLayers": "60",
-  "elk.layered.spacing.nodeNode": "30",
+  "elk.layered.spacing.nodeNodeBetweenLayers": "180",
+  "elk.layered.spacing.nodeNode": "90",
   "elk.layered.nodePlacement.strategy": "NETWORK_SIMPLEX",
   "elk.layered.crossingMinimization.strategy": "LAYER_SWEEP",
-  "elk.spacing.edgeNode": "20",
+  "elk.spacing.edgeNode": "80",
+  "elk.layered.spacing.edgeEdge": "30",
+  "elk.layered.spacing.edgeEdgeBetweenLayers": "35",
 };
 
 export interface DensityOpts { w: number; h: number; gapX: number; gapY: number }
 
 export const DAG_DENSITY: Record<string, DensityOpts> = {
   large:   { w: 260, h: 76, gapX: 54, gapY: 39 },
-  compact: { w: 240, h: 72, gapX: 42, gapY: 33 },
+  compact: { w: 280, h: 80, gapX: 42, gapY: 33 },
   mini:    { w: 120, h: 32, gapX: 42, gapY: 33 },
 };
 
-// ELK id 必须合法: 只允许字母数字下划线
 const toElkId = (id: string) => id.replace(/[^a-zA-Z0-9_]/g, "_");
 
-// ── 看板 DAG 布局 (含 supertask 分组) ──
-// 策略: 所有 task (含 supertask 的 child) 作为顶层平级节点参与 ELK 布局, 不用 compound 层级。
-// 布局完成后, supertask 的 group 框根据其 children 的实际坐标算包围盒, 作为纯视觉装饰渲染。
-// 这样所有边都是顶层节点间的边, 不存在跨 compound 层级的穿框问题。
+function extractEdgePoints(result: { edges?: any[] }): Map<string, { x: number; y: number }[]> {
+  const map = new Map<string, { x: number; y: number }[]>();
+  for (const e of (result.edges || []) as any[]) {
+    const points: { x: number; y: number }[] = [];
+    for (const s of (e.sections || []) as any[]) {
+      if (s.startPoint) points.push({ x: s.startPoint.x, y: s.startPoint.y });
+      for (const b of (s.bendPoints || []) as any[]) points.push({ x: b.x, y: b.y });
+      if (s.endPoint) points.push({ x: s.endPoint.x, y: s.endPoint.y });
+    }
+    if (points.length) map.set(e.id, points);
+  }
+  return map;
+}
+
+// ── 看板 DAG 布局 ──
 export async function layoutBoardDAG(
   tasks: NormTask[],
   density: keyof typeof DAG_DENSITY = "compact",
@@ -41,7 +53,6 @@ export async function layoutBoardDAG(
   const d = DAG_DENSITY[density] || DAG_DENSITY.compact;
   const byId = new Map(tasks.map(t => [t.id, t]));
 
-  // 父子分组
   const childrenOf = new Map<string, string[]>();
   for (const t of tasks) {
     if (t.parent && t.parent !== t.id && byId.has(t.parent)) {
@@ -51,20 +62,13 @@ export async function layoutBoardDAG(
   }
   const groupIds = [...childrenOf.keys()].filter(pid => childrenOf.get(pid)!.length > 0);
   const groupIdSet = new Set(groupIds);
-  const childIdSet = new Set(groupIds.flatMap(g => childrenOf.get(g)!));
 
-  // 所有 task 作为顶层节点 (supertask 本身不参与, 只做 group 框)
   const layoutTaskIds = tasks.filter(t => !groupIdSet.has(t.id)).map(t => t.id);
-  const elkNodes = layoutTaskIds.map(id => ({
-    id: toElkId(id),
-    width: d.w,
-    height: d.h,
-  }));
+  const elkNodes = layoutTaskIds.map(id => ({ id: toElkId(id), width: d.w, height: d.h }));
 
-  // 边: deps 关系 (父子关系不画边)
   const elkEdges: any[] = [];
   for (const t of tasks) {
-    if (groupIdSet.has(t.id)) continue; // supertask 本身不出边
+    if (groupIdSet.has(t.id)) continue;
     for (const dep of t.deps || []) {
       if (!byId.has(dep) || groupIdSet.has(dep)) continue;
       elkEdges.push({
@@ -75,23 +79,34 @@ export async function layoutBoardDAG(
     }
   }
 
+  let vseq = 0;
+  for (const gid of groupIds) {
+    const kids = childrenOf.get(gid)!.filter(kid => !groupIdSet.has(kid));
+    for (let i = 0; i < kids.length - 1; i++) {
+      elkEdges.push({
+        id: `v${vseq++}`,
+        sources: [toElkId(kids[i])],
+        targets: [toElkId(kids[i + 1])],
+        layoutOptions: { "elk.layered.priority.constraint": "1" },
+      });
+    }
+  }
+
   const result = await elk.layout({
     id: "root",
-    layoutOptions: {
-      ...BASE_OPTS,
-      "elk.padding": "[top=20,left=40,bottom=20,right=40]",
-    },
+    layoutOptions: { ...BASE_OPTS, "elk.padding": "[top=20,left=40,bottom=20,right=40]" },
     children: elkNodes,
     edges: elkEdges,
   });
 
-  // 提取 RF 节点 (全部顶层, 绝对坐标)
   const elkIdToTaskId = new Map<string, string>();
   for (const id of layoutTaskIds) elkIdToTaskId.set(toElkId(id), id);
   const posMap = new Map<string, { x: number; y: number; w: number; h: number }>();
   for (const n of (result.children || []) as any[]) {
     posMap.set(n.id, { x: n.x || 0, y: n.y || 0, w: n.width || 0, h: n.height || 0 });
   }
+
+  const edgePoints = extractEdgePoints(result);
 
   const rfNodes: Node[] = [];
   for (const n of (result.children || []) as any[]) {
@@ -108,12 +123,11 @@ export async function layoutBoardDAG(
     });
   }
 
-  // group 框: 根据 children 实际坐标算包围盒
-  const GROUP_PAD = 14;
+  const GROUP_PAD = 30;
   const GROUP_HEADER = 28;
   for (const gid of groupIds) {
-    const kids = childrenOf.get(gid)!.map(kid => toElkId(kid));
-    const kidPos = kids.map(k => posMap.get(k)).filter(Boolean) as { x: number; y: number; w: number; h: number }[];
+    const kidSet = new Set(childrenOf.get(gid)!.map(kid => toElkId(kid)));
+    const kidPos = [...kidSet].map(k => posMap.get(k)).filter(Boolean) as { x: number; y: number; w: number; h: number }[];
     if (!kidPos.length) continue;
     const minX = Math.min(...kidPos.map(p => p.x)) - GROUP_PAD;
     const minY = Math.min(...kidPos.map(p => p.y)) - GROUP_PAD - GROUP_HEADER;
@@ -121,28 +135,33 @@ export async function layoutBoardDAG(
     const maxY = Math.max(...kidPos.map(p => p.y + p.h)) + GROUP_PAD;
     const parentTask = byId.get(gid);
     if (!parentTask) continue;
+    // 子 task 完成统计 (用实际 children task 状态, 不是 subtask)
+    const childTasks = childrenOf.get(gid)!.map(kid => byId.get(kid)).filter(Boolean) as NormTask[];
+    const childDone = childTasks.filter(t => t.status === "done").length;
+    const childTotal = childTasks.length;
     rfNodes.push({
       id: `group_${toElkId(gid)}`,
       position: { x: minX, y: minY },
       type: "taskGroup",
-      data: { task: parentTask, rawId: gid },
+      data: { task: parentTask, rawId: gid, childDone, childTotal },
       style: { width: maxX - minX, height: maxY - minY },
       draggable: false,
       selectable: true,
     });
   }
 
-  // RF 边: 只保留真实 deps 边 (去掉虚拟约束边)
   const rfEdges: Edge[] = [];
   for (const t of tasks) {
     if (groupIdSet.has(t.id)) continue;
     for (const dep of t.deps || []) {
       if (!byId.has(dep) || groupIdSet.has(dep)) continue;
+      const elkEdgeId = `e_${toElkId(dep)}_${toElkId(t.id)}`;
       rfEdges.push({
         id: `edge-${dep}-${t.id}`,
         source: toElkId(dep),
         target: toElkId(t.id),
-        type: "smoothstep",
+        type: "elkpath",
+        data: { points: edgePoints.get(elkEdgeId) || [] },
       });
     }
   }
@@ -150,13 +169,13 @@ export async function layoutBoardDAG(
   return { nodes: rfNodes, edges: rfEdges };
 }
 
-// ── Subtask DAG 布局 (简单分层, 无分组) ──
+// ── Subtask DAG 布局 ──
 export async function layoutSubtaskDAG(
   subs: NormSubtask[],
   opts?: { w?: number; h?: number },
 ): Promise<{ nodes: Node[]; edges: Edge[] }> {
-  const w = opts?.w || 220;
-  const h = opts?.h || 64;
+  const w = opts?.w || 260;
+  const h = opts?.h || 72;
   const byId = new Map(subs.map(s => [s.id, s]));
 
   const elkNodes = subs.map(s => ({ id: toElkId(s.id), width: w, height: h }));
@@ -177,6 +196,7 @@ export async function layoutSubtaskDAG(
 
   const elkIdToSubId = new Map<string, string>();
   for (const s of subs) elkIdToSubId.set(toElkId(s.id), s.id);
+  const edgePoints = extractEdgePoints(result);
 
   const rfNodes: Node[] = (result.children || []).map((n: any) => {
     const subId = elkIdToSubId.get(n.id) || n.id;
@@ -189,14 +209,15 @@ export async function layoutSubtaskDAG(
     };
   });
 
-  const rfEdges: Edge[] = elkEdges.map(e => ({
-    id: e.id, source: e.sources[0], target: e.targets[0], type: "smoothstep",
+  const rfEdges: Edge[] = elkEdges.map((e: any) => ({
+    id: e.id, source: e.sources[0], target: e.targets[0], type: "elkpath",
+    data: { points: edgePoints.get(e.id) || [] },
   }));
 
   return { nodes: rfNodes, edges: rfEdges };
 }
 
-// ── 依赖关系图布局 (以某 task 为中心的上下游) ──
+// ── 依赖关系图布局 ──
 export async function layoutDepDAG(
   taskId: string,
   allTasks: NormTask[],
@@ -205,7 +226,6 @@ export async function layoutDepDAG(
   const task = byId.get(taskId);
   if (!task) return { nodes: [], edges: [], centerId: taskId };
 
-  // BFS 收集上下游
   const visited = new Set<string>([taskId]);
   const downstreamOf = new Map<string, string[]>();
   for (const t of allTasks) {
@@ -231,7 +251,6 @@ export async function layoutDepDAG(
     queue.push(...(downstreamOf.get(id) || []).filter(d => !visited.has(d)));
   }
 
-  // 父子关系纳入
   const parentId = task.parent;
   if (parentId && byId.has(parentId) && !visited.has(parentId)) visited.add(parentId);
   if (task.kind === "supertask") {
@@ -246,7 +265,7 @@ export async function layoutDepDAG(
   }
 
   const inTasks = [...visited].map(id => byId.get(id)!).filter(Boolean);
-  const elkNodes = inTasks.map(t => ({ id: toElkId(t.id), width: 160, height: 40 }));
+  const elkNodes = inTasks.map(t => ({ id: toElkId(t.id), width: 200, height: 48 }));
   const elkEdges: any[] = [];
   for (const t of inTasks) {
     for (const dep of t.deps || []) {
@@ -264,6 +283,7 @@ export async function layoutDepDAG(
 
   const elkIdToTaskId = new Map<string, string>();
   for (const t of inTasks) elkIdToTaskId.set(toElkId(t.id), t.id);
+  const edgePoints = extractEdgePoints(result);
 
   const rfNodes: Node[] = (result.children || []).map((n: any) => {
     const tid = elkIdToTaskId.get(n.id) || n.id;
@@ -276,8 +296,9 @@ export async function layoutDepDAG(
     };
   });
 
-  const rfEdges: Edge[] = elkEdges.map(e => ({
-    id: e.id, source: e.sources[0], target: e.targets[0], type: "smoothstep",
+  const rfEdges: Edge[] = elkEdges.map((e: any) => ({
+    id: e.id, source: e.sources[0], target: e.targets[0], type: "elkpath",
+    data: { points: edgePoints.get(e.id) || [] },
   }));
 
   return { nodes: rfNodes, edges: rfEdges, centerId: toElkId(taskId) };

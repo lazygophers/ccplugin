@@ -10,6 +10,7 @@ import { normalizeTask, normalizeTasks, type NormTask, type NormSubtask } from "
 import { PrioritySelect } from "@/components/priority";
 import { subscribe } from "@/lib/live";
 import { fmtRelative, fmtTime } from "@/lib/format";
+import { AlertTriangle, Flag, Check, XCircle, CheckSquare, Square, History, Share2, Network, Link2, Settings as Cog, Target, FileText, Handshake, FlaskConical, type LucideIcon } from "lucide-react";
 import { renderMd } from "@/lib/md";
 import { etaOf, etaText, fmtHours, actualOf, deltaText, type EtaResult } from "@/lib/eta";
 import { layoutSubtaskDAG, layoutDepDAG } from "@/lib/elk-layout";
@@ -170,7 +171,7 @@ function TaskDetailContent() {
         <Topbar />
         <main className="flex-1 p-6">
           <div className="py-16 text-center">
-            <i className="fa fa-exclamation-triangle mb-3 text-4xl text-muted-foreground opacity-40" />
+            <AlertTriangle className="mb-3 h-10 w-10 text-muted-foreground opacity-40" />
             <h2 className="text-lg font-semibold text-foreground">任务不存在</h2>
             <p className="mt-1 text-sm text-muted-foreground">ID: {id}</p>
             <Link prefetch={false} href="/tasks/" className="mt-3 inline-block text-sm text-primary hover:underline">返回任务列表</Link>
@@ -216,7 +217,7 @@ function TaskDetailContent() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="mb-2 flex items-center gap-3">
-                  <i className={`fa ${meta.icon} text-xl`} style={{ color: `var(${meta.colorVar})` }} />
+                  {(() => { const Icon = meta.icon; return <Icon className="h-5 w-5" style={{ color: `var(${meta.colorVar})` }} />; })()}
                   <h1 className="text-3xl font-bold text-foreground">{task.title || task.name || "(未命名)"}</h1>
                 </div>
                 <div className="flex items-center gap-3 text-sm text-muted-foreground">
@@ -267,7 +268,7 @@ function TaskDetailContent() {
               </Card>
 
               {/* Timeline */}
-              <Card title="生命周期时间线" icon="fa-history">
+              <Card title="生命周期时间线" icon={History}>
                 {eta && <div className="mb-3 text-xs text-muted-foreground">{eta.main}{eta.detail ? ` · ${eta.detail}` : ""}</div>}
                 <div className="relative pl-4">
                   <div className="absolute left-[5px] top-0 h-full w-px bg-border" />
@@ -296,7 +297,7 @@ function TaskDetailContent() {
 
               {/* Subtask list */}
               {subs.length > 0 && (
-                <Card title="子任务列表" icon="fa-tasks">
+                <Card title="子任务列表" icon={CheckSquare}>
                   <div className="space-y-2">
                     {subs.map(s => (
                       <div key={s.sid} className="flex items-start gap-3 rounded-md p-2 transition-colors hover:bg-muted/30">
@@ -321,7 +322,7 @@ function TaskDetailContent() {
 
               {/* Dep DAG */}
               {(depTasks.length > 0 || dependents.length > 0) && (
-                <Card title={`依赖关系图 (${depTasks.length + dependents.length + 1})`} icon="fa-share-alt">
+                <Card title={`依赖关系图 (${depTasks.length + dependents.length + 1})`} icon={Share2}>
                   <DepDagView taskId={task.id} allTasks={depAll} />
                 </Card>
               )}
@@ -332,7 +333,7 @@ function TaskDetailContent() {
                 const ct = (raw?.childTasks || []) as Record<string, unknown>[];
                 if (!pt && ct.length === 0) return null;
                 return (
-                <Card title="父子关系" icon="fa-sitemap">
+                <Card title="父子关系" icon={Network}>
                   {pt && (
                     <div className="mb-2">
                       <div className="mb-1 text-[10px] text-muted-foreground">父任务</div>
@@ -370,31 +371,31 @@ function TaskDetailContent() {
 
               {/* Dep links */}
               {depTasks.length > 0 && (
-                <Card title="前置依赖" icon="fa-link">
+                <Card title="前置依赖" icon={Link2}>
                   <div className="space-y-2">{depTasks.map(d => <DepLink key={d.id} task={d} />)}</div>
                 </Card>
               )}
               {dependents.length > 0 && (
-                <Card title="被依赖" icon="fa-share-alt">
+                <Card title="被依赖" icon={Share2}>
                   <div className="space-y-2">{dependents.map(d => <DepLink key={d.id} task={d} />)}</div>
                 </Card>
               )}
 
               {/* Actions */}
-              <Card title="操作" icon="fa-cog">
+              <Card title="操作" icon={Cog}>
                 <div className="flex flex-wrap gap-2">
                   {st === "planning" && (
                     <button onClick={async () => { try { await api.exec("confirm", { id: task.id }); toast("已确认规划", "success"); setTimeout(load, 500); } catch { toast("确认失败", "error"); } }} className="w-full rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90">
-                      <i className="fa fa-check mr-1.5" />确认规划 → 执行
+                      <Check className="mr-1.5 inline h-3.5 w-3.5" />确认规划 → 执行
                     </button>
                   )}
                   {st === "check" && (
                     <button onClick={() => setConfirmAction({ type: "finish" })} className="w-full rounded-md border border-primary px-3 py-2 text-xs font-medium text-primary transition-colors hover:bg-primary/10">
-                      <i className="fa fa-flag-checkered mr-1.5" />完成收尾
+                      <Flag className="mr-1.5 inline h-3.5 w-3.5" />完成收尾
                     </button>
                   )}
                   <button onClick={() => setConfirmAction({ type: "delete" })} className="w-full rounded-md border border-destructive px-3 py-2 text-xs font-medium text-destructive transition-colors hover:bg-destructive/10">
-                    <i className="fa fa-times-circle mr-1.5" />删除任务
+                    <XCircle className="mr-1.5 inline h-3.5 w-3.5" />删除任务
                   </button>
                 </div>
               </Card>
@@ -410,12 +411,12 @@ function TaskDetailContent() {
 
               {/* PRD sections */}
               {prd.map((sec, i) => (
-                <Card key={i} title={`${sec.name}${sec.badge ? ` (${sec.badge[0]}/${sec.badge[1]})` : ""}`} icon={sec.name === "目标" ? "fa-bullseye" : sec.name === "验收标准" ? "fa-check-square-o" : "fa-file-text-o"}>
+                <Card key={i} title={`${sec.name}${sec.badge ? ` (${sec.badge[0]}/${sec.badge[1]})` : ""}`} icon={sec.name === "目标" ? Target : sec.name === "验收标准" ? CheckSquare : FileText}>
                   {sec.items && sec.items.length ? (
                     <div className="space-y-2">
                       {sec.items.map((item, j) => (
                         <div key={j} className="flex items-start gap-3 text-sm">
-                          <i className={`fa ${item.done ? "fa-check-square" : "fa-square-o"} mt-0.5 flex-shrink-0`} style={{ color: item.done ? "var(--st-done)" : "var(--muted-foreground)" }} />
+                          {item.done ? <CheckSquare className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: "var(--st-done)" }} /> : <Square className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: "var(--muted-foreground)" }} />}
                           <span className={item.done ? "text-muted-foreground line-through" : "text-foreground"}>{item.text}</span>
                         </div>
                       ))}
@@ -426,7 +427,7 @@ function TaskDetailContent() {
 
               {/* Contracts */}
               {task.contracts && task.contracts.length > 0 && (
-                <Card title="契约" icon="fa-handshake-o">
+                <Card title="契约" icon={Handshake}>
                   <div className="space-y-3">
                     {task.contracts.map((c, i) => (
                       <div key={i} className="rounded-lg border border-border/40 bg-muted/20 p-3">
@@ -445,7 +446,7 @@ function TaskDetailContent() {
               {/* design.md 存在即展示: 只有标题/冒号行的模板态也要露出来 —— 「测试接缝还没填」
                   正是 confirm 硬门会拦的事, 藏起来等于让用户到 confirm 报错时才知道 */}
               {docs.design && (
-                <Card title="详细设计" icon="fa-sitemap">
+                <Card title="详细设计" icon={Network}>
                   {isPlaceholder(docs.design) && (
                     <p className="mb-2 text-xs text-muted-foreground">尚未填写，以下为模板占位</p>
                   )}
@@ -455,7 +456,7 @@ function TaskDetailContent() {
 
               {/* Findings + research */}
               {(docs.findings || Object.entries(research).filter(([, b]) => !isPlaceholder(b)).length > 0) && (
-                <Card title="调研" icon="fa-flask">
+                <Card title="调研" icon={FlaskConical}>
                   {docs.findings && !isPlaceholder(docs.findings) ? (
                     <div className="md-body text-xs leading-relaxed text-foreground" dangerouslySetInnerHTML={{ __html: renderMd(docs.findings) }} />
                   ) : <p className="text-sm text-muted-foreground">无收敛结论</p>}
@@ -524,7 +525,7 @@ function SubTimeline({ subs, taskId }: { subs: NormSubtask[]; taskId: string }) 
             <div key={s.sid} className="flex items-start gap-2">
               {isDone ? (
                 <span className="mt-0.5 flex h-3.5 w-3.5 flex-shrink-0 items-center justify-center rounded-full text-[8px] text-white" style={{ backgroundColor: `var(${meta.colorVar})` }}>
-                  <i className="fa fa-check" />
+                  <Check className="h-2.5 w-2.5" />
                 </span>
               ) : (
                 <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full" style={{ backgroundColor: `var(${meta.colorVar})` }} />
@@ -564,7 +565,7 @@ function SubtaskDagCard({ subs }: { subs: NormSubtask[] }) {
   if (!subs.length) return null;
 
   return (
-    <Card title="子任务 DAG" icon="fa-sitemap">
+    <Card title="子任务 DAG" icon={Network}>
       <div style={{ height: "300px" }}>
         <DagFlowProvider>
           <DagFlow
@@ -616,11 +617,11 @@ function DepDagView({ taskId, allTasks }: { taskId: string; allTasks: NormTask[]
 }
 
 // ── Shared components ──
-function Card({ title, icon, children }: { title: string; icon?: string; children: React.ReactNode }) {
+function Card({ title, icon: Icon, children }: { title: string; icon?: LucideIcon; children: React.ReactNode }) {
   return (
     <div className="rounded-lg border border-border bg-card/60 p-4">
       <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
-        {icon && <i className={`fa ${icon} text-primary`} />}
+        {Icon && <Icon className="h-4 w-4 text-primary" />}
         {title}
       </h3>
       {children}

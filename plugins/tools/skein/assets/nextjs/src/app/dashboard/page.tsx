@@ -7,6 +7,7 @@ import { StatusBadge, StatusDot, ST_META, ST_ORDER } from "@/components/status";
 import { api, type DashboardData, type Task } from "@/lib/api";
 import { normalizeTasks, normalizeStatus } from "@/lib/model";
 import { cn } from "@/lib/utils";
+import { Loader2, Clock, Check, Pencil, Zap, CheckSquare, type LucideIcon } from "lucide-react";
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
@@ -39,10 +40,10 @@ export default function DashboardPage() {
 
           {/* KPI */}
           <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <KpiCard label="进行中" value={statusDist.active || 0} icon="fa-spinner" colorVar="--st-active" hint={`${statusDist.check || 0} 个待验收`} />
-            <KpiCard label="待办" value={(statusDist.planning || 0)} icon="fa-clock-o" colorVar="--st-planning" hint="待 confirm" />
-            <KpiCard label="已完成" value={statusDist.done || 0} icon="fa-check" colorVar="--st-done" hint={`${Math.round((statusDist.done || 0) / total * 100)}%`} />
-            <KpiCard label="规划中" value={statusDist.planning || 0} icon="fa-pencil-square-o" colorVar="--st-planning" hint="待 confirm" />
+            <KpiCard label="进行中" value={statusDist.active || 0} icon={Loader2} colorVar="--st-active" hint={`${statusDist.check || 0} 个待验收`} />
+            <KpiCard label="待办" value={(statusDist.planning || 0)} icon={Clock} colorVar="--st-planning" hint="待 confirm" />
+            <KpiCard label="已完成" value={statusDist.done || 0} icon={Check} colorVar="--st-done" hint={`${Math.round((statusDist.done || 0) / total * 100)}%`} />
+            <KpiCard label="规划中" value={statusDist.planning || 0} icon={Pencil} colorVar="--st-planning" hint="待 confirm" />
           </div>
 
           {/* Status distribution — stacked bar */}
@@ -90,10 +91,10 @@ export default function DashboardPage() {
           {/* Lists */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <div className="lg:col-span-2">
-              <TaskListCard title="最近活跃" icon="fa-bolt" tasks={recentActive} emptyText="暂无进行中的任务" />
+              <TaskListCard title="最近活跃" icon={Zap} tasks={recentActive} emptyText="暂无进行中的任务" />
             </div>
             <div>
-              <TaskListCard title="最近完成" icon="fa-check-square-o" tasks={recentDone} emptyText="暂无已完成的任务" />
+              <TaskListCard title="最近完成" icon={CheckSquare} tasks={recentDone} emptyText="暂无已完成的任务" />
             </div>
           </div>
         </main>
@@ -102,13 +103,13 @@ export default function DashboardPage() {
   );
 }
 
-function KpiCard({ label, value, icon, colorVar, hint }: { label: string; value: number | string; icon: string; colorVar: string; hint?: string }) {
+function KpiCard({ label, value, icon: Icon, colorVar, hint }: { label: string; value: number | string; icon: LucideIcon; colorVar: string; hint?: string }) {
   return (
     <div className="rounded-lg border border-border bg-card/60 p-4 transition-colors hover:border-border/60">
       <div className="mb-2 flex items-start justify-between">
         <span className="text-xs font-medium text-muted-foreground">{label}</span>
         <div className="flex h-9 w-9 items-center justify-center rounded-lg" style={{ backgroundColor: `color-mix(in srgb, var(${colorVar}) 10%, transparent)`, color: `var(${colorVar})` }}>
-          <i className={`fa ${icon}`} />
+          <Icon className="h-4 w-4" />
         </div>
       </div>
       <div className="mb-1 text-2xl font-bold text-foreground">{value}</div>
@@ -117,28 +118,28 @@ function KpiCard({ label, value, icon, colorVar, hint }: { label: string; value:
   );
 }
 
-function TaskListCard({ title, icon, tasks, emptyText }: { title: string; icon: string; tasks: { id: string; title?: string; name?: string; description?: string; desc?: string; status: string }[]; emptyText: string }) {
+function TaskListCard({ title, icon: Icon, tasks, emptyText }: { title: string; icon: LucideIcon; tasks: { id: string; title?: string; name?: string; description?: string; desc?: string; status: string }[]; emptyText: string }) {
   return (
     <div className="rounded-lg border border-border bg-card/60 p-4">
       <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
-        <i className={`fa ${icon} text-primary`} />
+        <Icon className="h-4 w-4 text-primary" />
         {title}
       </h3>
       {tasks.length ? (
-        <div className="divide-y divide-border/50">
-          {tasks.map((t) => (
-            <Link key={t.id} href={`/task/detail/?id=${t.id}`} prefetch={false} className="flex cursor-pointer items-center gap-3 rounded-lg p-2 transition-colors hover:bg-muted/30">
+        <div className="space-y-2">
+          {tasks.map(t => (
+            <Link key={t.id} href={`/task/detail/?id=${t.id}`} prefetch={false} className="flex items-center gap-3 rounded-lg bg-muted/20 p-2 transition-colors hover:bg-muted/40">
               <StatusDot status={t.status} />
               <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-medium text-foreground">{t.title || t.name || "(未命名)"}</div>
-                <div className="truncate text-xs text-muted-foreground">{t.description || t.desc || t.id}</div>
+                <div className="truncate text-sm text-foreground">{t.title || t.name || t.desc || t.id}</div>
+                <div className="font-mono text-xs text-muted-foreground">#{t.id}</div>
               </div>
               <StatusBadge status={t.status} />
             </Link>
           ))}
         </div>
       ) : (
-        <div className="py-10 text-center text-sm text-muted-foreground">{emptyText}</div>
+        <div className="py-8 text-center text-sm text-muted-foreground">{emptyText}</div>
       )}
     </div>
   );
