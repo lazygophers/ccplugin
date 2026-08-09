@@ -3,7 +3,7 @@
 // 看板 DAG 节点类型: taskCard (普通 task) 和 taskGroup (supertask 容器)
 // SubtaskCardNode (子任务 mini), DepTaskNode (依赖图)
 
-import { memo, useState } from "react";
+import { memo } from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { PriorityBadge } from "@/components/priority";
 import { ST_META } from "@/components/status";
@@ -13,7 +13,6 @@ import type { NormTask, NormSubtask } from "@/lib/model";
 // ── 普通任务卡片 ──
 export const TaskCardNode = memo(function TaskCardNode({ data, selected }: NodeProps) {
   const task = data.task as NormTask;
-  const [hovered, setHovered] = useState(false);
   if (!task) return null;
 
   const st = task.status || "planning";
@@ -22,11 +21,7 @@ export const TaskCardNode = memo(function TaskCardNode({ data, selected }: NodeP
   const subDone = subs.filter(s => s.status === "done").length;
 
   return (
-    <div
-      className="dag-node-wrap relative"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
+    <div className="dag-node-wrap group relative">
       <Handle type="target" position={Position.Top} style={{ opacity: 0, top: 0 }} />
       <div
         className={cn(
@@ -55,9 +50,8 @@ export const TaskCardNode = memo(function TaskCardNode({ data, selected }: NodeP
       </div>
       <Handle type="source" position={Position.Bottom} style={{ opacity: 0, bottom: 0 }} />
 
-      {/* Hover 悬浮卡片 */}
-      {hovered && (
-        <div className="pointer-events-none absolute left-0 top-full z-[9999] mt-2 w-80 rounded-lg border border-border/40 bg-card/95 p-4 shadow-xl backdrop-blur-md">
+      {/* Hover 悬浮卡片 — CSS group-hover, 不依赖 RF 事件 */}
+      <div className="pointer-events-none absolute left-0 top-full z-[9999] mt-2 w-80 rounded-lg border border-border/40 bg-card/95 p-4 shadow-xl backdrop-blur-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity duration-150">
           <div className="mb-1.5 flex items-center gap-2">
             <span className="h-2 w-2 rounded-full" style={{ backgroundColor: `var(${meta.colorVar})` }} />
             <span className="text-xs font-semibold text-foreground">{task.title || task.name || task.id}</span>
@@ -81,8 +75,7 @@ export const TaskCardNode = memo(function TaskCardNode({ data, selected }: NodeP
           {(task.deps && task.deps.length > 0) && (
             <div className="text-[10px] text-muted-foreground">依赖: {task.deps.join(", ")}</div>
           )}
-        </div>
-      )}
+      </div>
     </div>
   );
 });

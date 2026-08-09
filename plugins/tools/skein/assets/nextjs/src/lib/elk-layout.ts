@@ -30,6 +30,9 @@ export const DAG_DENSITY: Record<string, DensityOpts> = {
 const toElkId = (id: string) => id.replace(/[^a-zA-Z0-9_]/g, "_");
 
 // ── 看板 DAG 布局 (含 supertask 分组) ──
+// 策略: 所有 task (含 supertask 的 child) 作为顶层平级节点参与 ELK 布局, 不用 compound 层级。
+// 布局完成后, supertask 的 group 框根据其 children 的实际坐标算包围盒, 作为纯视觉装饰渲染。
+// 这样所有边都是顶层节点间的边, 不存在跨 compound 层级的穿框问题。
 export async function layoutBoardDAG(
   tasks: NormTask[],
   density: keyof typeof DAG_DENSITY = "compact",
@@ -49,46 +52,21 @@ export async function layoutBoardDAG(
   const groupIds = [...childrenOf.keys()].filter(pid => childrenOf.get(pid)!.length > 0);
   const groupIdSet = new Set(groupIds);
   const childIdSet = new Set(groupIds.flatMap(g => childrenOf.get(g)!));
-  const childToGroup = new Map<string, string>();
-  for (const g of groupIds) for (const c of childrenOf.get(g)!) childToGroup.set(c, g);
 
-  // 构造 ELK 顶层节点
-  const elkTopNodes: any[] = [];
-  for (const t of tasks) {
-    if (childIdSet.has(t.id)) continue; // child 跳过, 放到 compound 内
-    if (groupIdSet.has(t.id)) {
-      // supertask → compound 节点, 尺寸由 ELK 根据 children + padding 自动计算
-      const children = childrenOf.get(t.id)!;
-      elkTopNodes.push({
-        id: toElkId(t.id),
-        // 不设固定 width/height — ELK INCLUDE_CHILDREN 会根据 child 尺寸+padding 自动展开
-        width: 10, // 最小占位, ELK 会展开
-        height: 10,
-        layoutOptions: {
-          "elk.padding": "[top=28,left=14,bottom=14,right=14]",
-        },
-        children: children.map(cid => ({
-          id: toElkId(cid),
-          width: d.w,
-          height: d.h,
-        })),
-      });
-    } else {
-      // 独立 task
-      elkTopNodes.push({
-        id: toElkId(t.id),
-        width: d.w,
-        height: d.h,
-      });
-    }
-  }
+  // 所有 task 作为顶层节点 (supertask 本身不参与, 只做 group 框)
+  const layoutTaskIds = tasks.filter(t => !groupIdSet.has(t.id)).map(t => t.id);
+  const elkNodes = layoutTaskIds.map(id => ({
+    id: toElkId(id),
+    width: d.w,
+    height: d.h,
+  }));
 
   // 边: deps 关系 (父子关系不画边)
-  // 关键: 跨层级边 (外部→compound 内部 child) 需 hierarchyHandling: INCLUDE_CHILDREN
   const elkEdges: any[] = [];
   for (const t of tasks) {
+    if (groupIdSet.has(t.id)) continue; // supertask 本身不出边
     for (const dep of t.deps || []) {
-      if (!byId.has(dep)) continue;
+      if (!byId.has(dep) || groupIdSet.has(dep)) continue;
       elkEdges.push({
         id: `e_${toElkId(dep)}_${toElkId(t.id)}`,
         sources: [toElkId(dep)],
@@ -97,70 +75,78 @@ export async function layoutBoardDAG(
     }
   }
 
-  const root = {
+  const result = await elk.layout({
     id: "root",
     layoutOptions: {
       ...BASE_OPTS,
-      "elk.hierarchyHandling": "INCLUDE_CHILDREN",
       "elk.padding": "[top=20,left=40,bottom=20,right=40]",
     },
-    children: elkTopNodes,
+    children: elkNodes,
     edges: elkEdges,
-  };
+  });
 
-  const result = await elk.layout(root);
-
-  // 提取 React Flow 节点 — compound 节点的坐标是绝对的, child 坐标是相对于 compound 的
-  const rfNodes: Node[] = [];
+  // 提取 RF 节点 (全部顶层, 绝对坐标)
   const elkIdToTaskId = new Map<string, string>();
-  for (const t of tasks) elkIdToTaskId.set(toElkId(t.id), t.id);
-
-  function walk(elkNode: any, parentElkId: string | null, absX: number, absY: number) {
-    const x = (elkNode.x || 0) + absX;
-    const y = (elkNode.y || 0) + absY;
-    if (elkNode.children && elkNode.children.length > 0) {
-      // compound 节点 → group node (绝对坐标)
-      const taskId = elkIdToTaskId.get(elkNode.id);
-      const task = taskId ? byId.get(taskId) : null;
-      if (task) {
-        rfNodes.push({
-          id: elkNode.id,
-          type: "taskGroup",
-          position: { x, y },
-          data: { task, rawId: taskId, width: elkNode.width, height: elkNode.height },
-          style: { width: elkNode.width, height: elkNode.height },
-        });
-      }
-      // child 也用绝对坐标 (叠加 compound 位置), 不设 parentId
-      // 不用 RF 父子机制: 避免 extent:'parent' 导致坐标裁剪和边线路径问题
-      for (const child of elkNode.children) walk(child, elkNode.id, x, y);
-    } else {
-      const taskId = elkIdToTaskId.get(elkNode.id);
-      const task = taskId ? byId.get(taskId) : null;
-      if (task) {
-        rfNodes.push({
-          id: elkNode.id,
-          position: { x, y },
-          type: "taskCard",
-          data: { task, rawId: taskId, groupId: parentElkId },
-          style: { width: elkNode.width, height: elkNode.height },
-        });
-      }
-    }
+  for (const id of layoutTaskIds) elkIdToTaskId.set(toElkId(id), id);
+  const posMap = new Map<string, { x: number; y: number; w: number; h: number }>();
+  for (const n of (result.children || []) as any[]) {
+    posMap.set(n.id, { x: n.x || 0, y: n.y || 0, w: n.width || 0, h: n.height || 0 });
   }
-  for (const n of (result.children || [])) walk(n, null, 0, 0);
 
-  // React Flow 边
-  const rfEdges: Edge[] = tasks.flatMap(t =>
-    (t.deps || [])
-      .filter(dep => byId.has(dep))
-      .map(dep => ({
+  const rfNodes: Node[] = [];
+  for (const n of (result.children || []) as any[]) {
+    const taskId = elkIdToTaskId.get(n.id);
+    if (!taskId) continue;
+    const task = byId.get(taskId);
+    if (!task) continue;
+    rfNodes.push({
+      id: n.id,
+      position: { x: n.x || 0, y: n.y || 0 },
+      type: "taskCard",
+      data: { task, rawId: taskId },
+      style: { width: n.width || d.w, height: n.height || d.h },
+    });
+  }
+
+  // group 框: 根据 children 实际坐标算包围盒
+  const GROUP_PAD = 14;
+  const GROUP_HEADER = 28;
+  for (const gid of groupIds) {
+    const kids = childrenOf.get(gid)!.map(kid => toElkId(kid));
+    const kidPos = kids.map(k => posMap.get(k)).filter(Boolean) as { x: number; y: number; w: number; h: number }[];
+    if (!kidPos.length) continue;
+    const minX = Math.min(...kidPos.map(p => p.x)) - GROUP_PAD;
+    const minY = Math.min(...kidPos.map(p => p.y)) - GROUP_PAD - GROUP_HEADER;
+    const maxX = Math.max(...kidPos.map(p => p.x + p.w)) + GROUP_PAD;
+    const maxY = Math.max(...kidPos.map(p => p.y + p.h)) + GROUP_PAD;
+    const parentTask = byId.get(gid);
+    if (!parentTask) continue;
+    rfNodes.push({
+      id: `group_${toElkId(gid)}`,
+      position: { x: minX, y: minY },
+      type: "taskGroup",
+      data: { task: parentTask, rawId: gid },
+      style: { width: maxX - minX, height: maxY - minY },
+      draggable: false,
+      selectable: true,
+      zIndex: -1,
+    });
+  }
+
+  // RF 边: 只保留真实 deps 边 (去掉虚拟约束边)
+  const rfEdges: Edge[] = [];
+  for (const t of tasks) {
+    if (groupIdSet.has(t.id)) continue;
+    for (const dep of t.deps || []) {
+      if (!byId.has(dep) || groupIdSet.has(dep)) continue;
+      rfEdges.push({
         id: `edge-${dep}-${t.id}`,
         source: toElkId(dep),
         target: toElkId(t.id),
         type: "smoothstep",
-      }))
-  );
+      });
+    }
+  }
 
   return { nodes: rfNodes, edges: rfEdges };
 }
