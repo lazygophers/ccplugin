@@ -40,7 +40,7 @@ export const TaskCardNode = memo(function TaskCardNode({ data, selected }: NodeP
         <div className="min-w-0 flex-1 pr-2.5">
           <div className="flex items-center gap-1.5">
             <div className="min-w-0 flex-1 truncate text-sm font-semibold leading-tight text-foreground">
-              {task.title || task.name || "(未命名)"}
+              {task.title || task.name || task.id}
             </div>
             <PriorityBadge priority={task.priority} />
           </div>
