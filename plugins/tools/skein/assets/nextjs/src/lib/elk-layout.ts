@@ -168,8 +168,8 @@ export async function layoutSubtaskDAG(
   subs: NormSubtask[],
   opts?: { w?: number; h?: number },
 ): Promise<{ nodes: Node[]; edges: Edge[] }> {
-  const w = opts?.w || 148;
-  const h = opts?.h || 48;
+  const w = opts?.w || 200;
+  const h = opts?.h || 56;
   const byId = new Map(subs.map(s => [s.id, s]));
 
   const elkNodes = subs.map(s => ({ id: toElkId(s.id), width: w, height: h }));
