@@ -179,7 +179,7 @@ export function DagFlow({
   }, [onSelect]);
 
   return (
-    <div className={`dag-flow-container ${className}`} style={{ width: "100%", height: "100%", position: "absolute", inset: 0 }}>
+    <div className={`dag-flow-container ${className}`} style={{ width: "100%", height: "100%", minHeight, position: "relative" }}>
       <ReactFlow
         nodes={styledNodes}
         edges={styledEdges}

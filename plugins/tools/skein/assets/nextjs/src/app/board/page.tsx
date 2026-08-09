@@ -575,15 +575,17 @@ function SubtaskDag({ subs }: { subs: NormSubtask[] }) {
   if (!subs.length) return <div className="py-4 text-center text-xs text-muted-foreground">暂无子任务</div>;
 
   return (
-    <DagFlowProvider>
-      <DagFlow
-        nodes={nodes}
-        edges={edges}
-        nodeTypes={SUBTASK_NODE_TYPES}
-        minHeight={200}
-        enableHoverChain={false}
-        showControls={false}
-      />
-    </DagFlowProvider>
+    <div style={{ height: "250px" }}>
+      <DagFlowProvider>
+        <DagFlow
+          nodes={nodes}
+          edges={edges}
+          nodeTypes={SUBTASK_NODE_TYPES}
+          minHeight={200}
+          enableHoverChain={false}
+          showControls={false}
+        />
+      </DagFlowProvider>
+    </div>
   );
 }
