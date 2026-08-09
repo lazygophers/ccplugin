@@ -30,6 +30,8 @@ export const TaskCardNode = memo(function TaskCardNode({ data, selected }: NodeP
           st === "active" && "dag-node-active",
         )}
         style={{
+          width: "220px",
+          height: "64px",
           borderColor: `var(${meta.colorVar})`,
           backgroundColor: `color-mix(in srgb, var(${meta.colorVar}) 20%, var(--card))`,
         }}
@@ -141,6 +143,8 @@ export const SubtaskCardNode = memo(function SubtaskCardNode({ data }: NodeProps
       <div
         className="flex cursor-pointer items-center gap-2 overflow-hidden rounded-md border transition-all hover:shadow-md"
         style={{
+          width: "200px",
+          height: "56px",
           opacity: sub.status === "done" ? 0.5 : 1,
           borderColor: `var(${sm.colorVar})`,
           backgroundColor: `color-mix(in srgb, var(${sm.colorVar}) 20%, var(--card))`,
@@ -174,6 +178,8 @@ export const DepTaskNode = memo(function DepTaskNode({ data }: NodeProps) {
           isCenter && "ring-2 ring-primary",
         )}
         style={{
+          width: "160px",
+          height: "40px",
           borderColor: `color-mix(in srgb, var(${meta.colorVar}) 30%, var(--border))`,
           backgroundColor: "var(--card)",
         }}
