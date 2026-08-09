@@ -92,7 +92,7 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
     clients: set[Any] = set()  # 活跃热重载 WS 连接
 
     async def _watch_loop() -> None:
-        # 250ms 轮询比 rev。资产变 (css/js/结构) → {type:"reload"} 整页刷 (换 head)。
+        # watchfiles (Rust 后端 notify) 事件驱动 — 监听 task 目录 + spec 目录, 文件变即触发。
         # 数据变 (task.json + 文档) → 两路:
         #   (a) _cards_signature diff 命中 (status/计数/字段) → 逐 task id 推 {type:"task-changed", id, card}
         #       (card 含看板卡片全字段 + subtable, board 页 + detail 页据此增量刷新)。
@@ -100,70 +100,55 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
         #       card 用当前快照 (让 detail 页 load() 重拉富内容); board 卡片 sig 未变 → spread 合并是 no-op, 安全。
         #   (c) 兜底: 都无差异 (仅 mtime 变内容未变) → 推 {type:"data"} 全订阅软刷。
         # spec 变 (.skein/spec/*.md) → 推 {type:"spec-changed", path:""}; path 暂空 (spec 页全订阅, 不细粒度)。
-        # ponytail: diff 范围限 status/关键字段 (不深比), O(n) n=task 数, 250ms 周期可接受 (n≤百级)。
+        # ponytail: diff 范围限 status/关键字段 (不深比), O(n) n=task 数, 仅事件触发时跑。
         # 兼容: 保留字符串 "reload"/"data" (T2 live.js dispatch 兜底); 新 JSON 为主, 旧字符串作 fallback。
-        POLL_MS = 0.25
-        last_a = board._asset_rev()
-        last_d = board._data_rev()
-        last_s = board._spec_rev()
+        import watchfiles
+
+        watch_dirs = [Path(str(board.tasks))]
+        spec_root = Path(str(board.dir)) / "spec"
+        if spec_root.exists():
+            watch_dirs.append(spec_root)
+
         try:
             last_cards = _cards_signature(_view_board_data(board._snapshot()))
         except Exception:
             last_cards = {}
-        last_task_mtimes: dict[str, str] = {}
         try:
             last_task_mtimes = board._task_mtimes()
         except Exception:
-            pass
+            last_task_mtimes = {}
 
-        while True:
-            await asyncio.sleep(POLL_MS)
-            try:
-                cur_a, cur_d, cur_s = board._asset_rev(), board._data_rev(), board._spec_rev()
-            except Exception:
-                continue
+        async def _diff_and_push() -> None:
+            """文件变更后: 算 card sig diff + per-task mtime diff → 推 WS。"""
+            nonlocal last_cards, last_task_mtimes
             msgs: list[str] = []
-            if cur_a != last_a:
-                msgs.append(json.dumps({"type": "reload"}))
-            elif cur_d != last_d:
-                # 数据变: 先算 card sig diff (board 卡片 + detail 页 subtask);
-                # 再用 per-task mtime 补抓 card sig 看不到的文档编辑 → 也推 task-changed (detail 页 load() 拉新文档)。
-                try:
-                    board_data = _view_board_data(board._snapshot())
-                    new_cards = _cards_signature(board_data)
-                    card_by_id = {c["id"]: c for c in board_data.get("cards", [])}
-                except Exception:
-                    new_cards = {}
-                    card_by_id = {}
-                changed = [tid for tid, sig in new_cards.items() if last_cards.get(tid) != sig]
-                # 兼容删除的 task: 旧有新无也算 changed (软刷列表移除, card 置 None 告知前端摘除)
-                removed = [tid for tid in last_cards if tid not in new_cards]
-                # per-task mtime: card sig 没变但 task 文件 mtime 变了 = 文档编辑 (prd/design/findings/research)。
-                # 这些不会进 card sig (只看 status/计数/字段), 但 detail 页需要 load() 拉新富内容。
-                try:
-                    cur_task_mtimes = board._task_mtimes()
-                except Exception:
-                    cur_task_mtimes = {}
-                doc_changed = [tid for tid, mt in cur_task_mtimes.items()
-                               if last_task_mtimes.get(tid) != mt and tid not in changed and tid not in removed]
-                for tid in changed:
-                    msgs.append(json.dumps({"type": "task-changed", "id": tid, "card": card_by_id.get(tid)}))
-                for tid in removed:
-                    msgs.append(json.dumps({"type": "task-changed", "id": tid, "card": None}))
-                for tid in doc_changed:
-                    # card sig 没变 → 用当前卡片 (board spread 合并 no-op); 主要目的是触发 detail 页 load()。
-                    # 若该 task 已不在 cards (刚归档但在 cur_task_mtimes 仍命中) → card=None 触发 detail 404。
-                    msgs.append(json.dumps({"type": "task-changed", "id": tid,
-                                           "card": card_by_id.get(tid) if tid in new_cards else None}))
-                if not msgs:
-                    msgs.append("data")  # 旧字符串协议兜底 (无差异但 rev 变, 全订阅软刷)
-                last_cards = new_cards
-                last_task_mtimes = cur_task_mtimes
-            elif cur_s != last_s:
-                # spec 文件变 → 推送 spec-changed 通知 (无需重建缓存, 由 spec/index.py 维护)
-                msgs.append(json.dumps({"type": "spec-changed", "path": ""}))
-            if msgs:
-                last_a, last_d, last_s = cur_a, cur_d, cur_s
+            try:
+                board_data = _view_board_data(board._snapshot())
+                new_cards = _cards_signature(board_data)
+                card_by_id = {c["id"]: c for c in board_data.get("cards", [])}
+            except Exception:
+                new_cards = {}
+                card_by_id = {}
+            changed = [tid for tid, sig in new_cards.items() if last_cards.get(tid) != sig]
+            removed = [tid for tid in last_cards if tid not in new_cards]
+            try:
+                cur_task_mtimes = board._task_mtimes()
+            except Exception:
+                cur_task_mtimes = {}
+            doc_changed = [tid for tid, mt in cur_task_mtimes.items()
+                           if last_task_mtimes.get(tid) != mt and tid not in changed and tid not in removed]
+            for tid in changed:
+                msgs.append(json.dumps({"type": "task-changed", "id": tid, "card": card_by_id.get(tid)}))
+            for tid in removed:
+                msgs.append(json.dumps({"type": "task-changed", "id": tid, "card": None}))
+            for tid in doc_changed:
+                msgs.append(json.dumps({"type": "task-changed", "id": tid,
+                                       "card": card_by_id.get(tid) if tid in new_cards else None}))
+            if not msgs:
+                msgs.append("data")  # 兜底: 无差异但文件确实变, 全订阅软刷
+            last_cards = new_cards
+            last_task_mtimes = cur_task_mtimes
+            if msgs and clients:
                 if debug_enabled(None):
                     ts = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
                     sys.stderr.write(f"{ts} [ws] push {len(clients)} clients: {msgs[:3]}\n")
@@ -173,7 +158,29 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
                             await c.send_text(msg)
                         except Exception:
                             clients.discard(c)
-                            break
+
+        async def _spec_changed() -> None:
+            """spec 文件变更 → 推 spec-changed (无需重建缓存, 由 spec/index.py 维护)。"""
+            msg = json.dumps({"type": "spec-changed", "path": ""})
+            if not clients:
+                return
+            if debug_enabled(None):
+                ts = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
+                sys.stderr.write(f"{ts} [ws] push {len(clients)} clients: {msg}\n")
+            for c in list(clients):
+                try:
+                    await c.send_text(msg)
+                except Exception:
+                    clients.discard(c)
+
+        async for changes in watchfiles.awatch(*watch_dirs):
+            # changes 是 set[(change_type, path)]; 判定来源目录 → 分别路由
+            any_task = any(Path(p).is_relative_to(board.tasks) for _, p in changes)
+            any_spec = any(Path(p).is_relative_to(spec_root) for _, p in changes)
+            if any_task:
+                await _diff_and_push()
+            if any_spec:
+                await _spec_changed()
 
     @asynccontextmanager
     async def lifespan(_app: Any) -> AsyncIterator[None]:
