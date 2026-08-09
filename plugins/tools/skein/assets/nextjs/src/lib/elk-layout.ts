@@ -22,7 +22,7 @@ export interface DensityOpts { w: number; h: number; gapX: number; gapY: number 
 
 export const DAG_DENSITY: Record<string, DensityOpts> = {
   large:   { w: 260, h: 76, gapX: 54, gapY: 39 },
-  compact: { w: 190, h: 52, gapX: 42, gapY: 33 },
+  compact: { w: 220, h: 64, gapX: 42, gapY: 33 },
   mini:    { w: 120, h: 32, gapX: 42, gapY: 33 },
 };
 

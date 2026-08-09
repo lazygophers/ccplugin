@@ -201,13 +201,13 @@ export function DagFlow({
         nodesConnectable={false}
         elementsSelectable={true}
         proOptions={{ hideAttribution: true }}
-        fitView
-        fitViewOptions={{ maxZoom: 1, minZoom: 0.3 }}
-        minZoom={0.2}
+        fitView={false}
+        minZoom={1}
         maxZoom={1}
         panOnDrag={true}
-        zoomOnScroll={true}
+        zoomOnScroll={false}
         zoomOnDoubleClick={false}
+        zoomOnPinch={false}
         selectNodesOnDrag={false}
       >
         {showBackground && <Background color="var(--border)" gap={20} size={1} />}
