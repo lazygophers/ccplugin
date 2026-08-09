@@ -1,75 +1,76 @@
 ---
 name: skein-performance
-description: 淀查 skein 插件的性能问题并优化建议
-argument-hint: "[claude code session-id]"
+description: 按 session 记录审计 skein 插件的行为偏差、Bug 与 token 浪费, 出可落地修复清单
+argument-hint: "[claude code session-id] [--research]"
 arguments: "[session-id]"
 ---
 
-# 任务：skein 插件深度审计与优化调研
+# skein 插件审计
 
-## 核心目标
+对 session `$session-id` 审计 `plugins/tools/skein/`，产出**可复现的缺陷 + 对应修法**。
 
-针对执行记录 ID：`$session-id`，全面审计 `@plugins/tools/skein/` 插件的全链路运行表现，定位不符合预期行为、功能 Bug 与性能损耗点；结合行业主流方案与最佳实践，输出可落地的改进意见与优化方案。
+## 阶段 1 · 抽证据（先跑完这段，再决定读什么）
 
-## 检查维度（按优先级执行）
+transcript 在 `~/.claude/projects/*/<session-id>.jsonl`，几十 MB。**禁止 Read 它，禁止 grep 全文**——下面几条 jq 就够撑起全部结论：
 
-1.  **插件行为与工具调用审计**
-    - 复盘该记录中 skein 插件的完整执行流程、工具调用时序与返回结果
-    - 排查是否存在逻辑偏差、异常报错、功能失效、边界场景处理缺失等问题
-    - 校验插件输出结果的准确性、完整性与预期设计的一致性
+```bash
+f=$(ls ~/.claude/projects/*/<session-id>.jsonl)
 
-2.  **Skills 与 Agent 合理性校验**
-    - 检查关联 skills 的触发逻辑、职责边界是否合理，是否存在错用、冗余或能力缺失
-    - 校验 Agent 决策链路正确性：是否存在无效跳转、重复推理、任务拆解失误
-    - 评估插件与 Agent 的协作流程，识别流程卡点、逻辑漏洞与协作冗余
+# 工具分布: Edit/Write 全在 main = executor 没被派 (本命指标)
+jq -r 'select(.type=="assistant")|.message.content[]?|select(.type=="tool_use")|.name' $f | sort | uniq -c | sort -rn
 
-3.  **性能冗余专项排查**
-    - 重点统计 CLI 参数的重复性读取行为，标注重复读取的次数、触发场景与根因
-    - 识别所有不必要的重复 IO、重复工具调用、重复上下文加载操作
-    - 评估参数缓存、上下文复用的可行性与优化空间
+# 子代理派发数 + 各自 prompt 长度 (派发失败常因 prompt 过长)
+grep -c subagent_type $f
 
-4.  **内存占用与性能优化**
-    - 分析插件在执行过程中占用的内存大小、CPU 占用率、磁盘 I/O 等资源指标
-    - 识别是否存在内存泄漏、资源占用过高等问题
-    - 评估插件在不同场景下的性能表现，是否符合预期
+# skein 子命令频次: flow run / claim 的占比说明主循环有没有真的在跑
+jq -r 'select(.type=="assistant")|.message.content[]?|select(.type=="tool_use" and .name=="Bash")|.input.command' $f \
+  | grep -oE "skein [a-z]+ ?[a-z]*" | sort | uniq -c | sort -rn
 
-5.  **Tokens 消耗优化**
-    - 分析插件在执行过程中消耗的 Tokens 数量，是否超过预期
-    - 识别是否存在重复计算、冗余操作、无效请求等问题
-    - 评估插件在不同场景下的 Tokens 消耗表现，是否符合预期
+# 串接违规 (flow-loop 禁 && 长链)
+jq -r 'select(.type=="assistant")|.message.content[]?|select(.type=="tool_use" and .name=="Bash")|.input.command' $f \
+  | grep skein | grep -cE "&&|\|\||;"
 
-## 深度调研要求
+# 全部工具返回落盘, 后续只 grep 这个文件, 不再碰 jsonl
+jq -r 'select(.type=="user")|.message.content[]?|select(.type=="tool_result")
+       | if (.content|type)=="array" then ([.content[]|.text//""]|join("")) else (.content|tostring) end' $f > /tmp/tr.txt
+grep -nE "Usage:|Error|无匹配|hook error|Unknown skill|exit code [1-9]" /tmp/tr.txt | head -40
 
-启用深度检索能力完成行业方案调研，检索范围覆盖：
+# main 直接读写 .skein 的尝试 (hook 该拦而没拦 / 拦错了)
+jq -r 'select(.type=="assistant")|.message.content[]?|select(.type=="tool_use")
+       |select(.name|IN("Read","Write","Edit"))|.input.file_path' $f | grep '\.skein' | sort | uniq -c
+```
 
-- GitHub：同类 CLI 插件、Agent 工具链的主流开源实现
-- 技术社区：小红书、Twitter/X 等平台的工程实践与踩坑分享
-- 官方规范：Claude Code 插件开发、Agent 编排的官方最佳实践
+## 阶段 2 · 交叉验证（判「是不是真 bug」，别靠读代码猜）
 
-调研聚焦方向：
+1. **先跑基线**：`cd plugins/tools/skein/scripts && uv run pytest -q --tb=line` + `uv run python -m mypy --strict --disable-error-code=untyped-decorator .`。红的先分类：stale test（引用已重构掉的路径/默认值翻转）vs 真缺陷。这一步找 bug 比读代码快一个量级。
+2. **排除已修**：session 跑的多半是 `~/.claude/plugins/cache/ccplugin-market/skein/<sha>` 的旧副本。每条报错先在当前 master 复跑一遍，已修的不进清单（本轮实测：一半的 CLI 报错都已修）。
+3. **落盘枚举对照**：hook/脚本里凡是拿状态串做判断的，核对 `task/model.py` 的 `TaskStatus`/`SubtaskStatus`——落盘是英文枚举，看板展示名是中文，写错就是永假的死分支（实测踩过两次）。
+4. **可复现**：每条 bug 给一条能跑的最小复现（`/tmp` 建临时仓 + `skein.py` 直调），复现不出来的降级成「推测:」。
 
-1.  同类工具链插件的业界最优实现架构
-2.  Agent Skills 编排的标准范式与避坑指南
-3.  CLI 参数复用、内存缓存的成熟解决方案
-4.  插件性能优化的通用手段与评估指标
+## 阶段 3 · 只答有证据的问题
 
-建议工具：
+**可答**：行为偏差（该派 agent 没派、该走 flow 走了 inline）、CLI 契约错配（参数猜错、报错文案不自足）、hook 该拦没拦、重复的 `--help` / 重复 IO、stale test、类型错误、文档与代码漂移。
 
-- Skills('agent-reach')
-- MCP('octocode')
+**不可答，别列进输出**：内存占用、CPU 占用率、磁盘 IO、token 绝对数——transcript 里没有这些数据，写出来只能是编的。要测性能另开专项，用 `/usr/bin/time` 实跑，不从 session 记录里推。
 
-## 输出规范
+## 调研
 
-按以下结构输出结论，要求结论明确、可落地，避免泛泛而谈：
+**默认不做**。只有带 `--research` 才派 agent-reach / octocode 查外部方案，且必须先写死检索关键词、限 15 分钟、无结论就直接说无结论。本轮实测：无约束的深度调研跑一小时零产出。
 
-1.  **问题清单**：按严重程度从高到低排序，列出所有不符合预期的行为与逻辑缺陷
-2.  **Bug 定位**：明确可复现的功能 Bug，附带触发场景与根因分析
-3.  **改进建议**：对应每个问题给出具体优化方案，附带核心实现思路
-4.  **行业参考**：提炼调研得到的最佳实践，给出可直接借鉴的落地方向
-5.  **迭代优先级**：按「高优修复 / 中优优化 / 低优迭代」给出落地 roadmap
+## 输出
 
-## 执行约束
+一张表打头，然后两段。全文控制在 100 行内。
 
-- 优先复用当前上下文已加载的代码与日志，禁止无意义重复读取文件与 CLI 参数
-- 调研前先明确检索关键词，再执行深度检索，避免无效泛搜
-- 所有结论必须对应执行记录中的具体行为，不得凭空推断
+| # | 位置 `file:line` | 现象 | 判定 | 修法 |
+|---|---|---|---|---|
+
+- 判定只三种：`Bug`（有复现）/ `偏差`（与文档契约不符）/ `推测`（无复现，需人核）
+- 「修法」一句话说清改哪、改成什么，不贴大段代码
+- 表后接：**① 优先级**（高/中/低，各一行理由）**② 明确没做什么 + 为什么**
+
+## 硬约束
+
+- 先跑阶段 1 全部命令再动别的；不重复读同一文件，不重复 `--help`
+- agent md / SKILL.md 按需读单个文件，禁 `cat agents/*.md` 一次性灌
+- 每条结论挂 `file:line` 或工具输出；挂不上的前缀 `推测:`
+- 报告只列本轮新发现；已在 master 修掉的写进「已闭环」一行带过，不展开
