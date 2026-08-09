@@ -57,12 +57,13 @@ export async function layoutBoardDAG(
   for (const t of tasks) {
     if (childIdSet.has(t.id)) continue; // child 跳过, 放到 compound 内
     if (groupIdSet.has(t.id)) {
-      // supertask → compound 节点
+      // supertask → compound 节点, 尺寸由 ELK 根据 children + padding 自动计算
       const children = childrenOf.get(t.id)!;
       elkTopNodes.push({
         id: toElkId(t.id),
-        width: d.w + 28,
-        height: d.h * Math.max(1, children.length) + 42,
+        // 不设固定 width/height — ELK INCLUDE_CHILDREN 会根据 child 尺寸+padding 自动展开
+        width: 10, // 最小占位, ELK 会展开
+        height: 10,
         layoutOptions: {
           "elk.padding": "[top=28,left=14,bottom=14,right=14]",
         },
@@ -115,10 +116,10 @@ export async function layoutBoardDAG(
   for (const t of tasks) elkIdToTaskId.set(toElkId(t.id), t.id);
 
   function walk(elkNode: any, parentElkId: string | null, absX: number, absY: number) {
+    const x = (elkNode.x || 0) + absX;
+    const y = (elkNode.y || 0) + absY;
     if (elkNode.children && elkNode.children.length > 0) {
-      // compound 节点 → group node (绝对坐标, 相对于 root)
-      const x = (elkNode.x || 0) + absX;
-      const y = (elkNode.y || 0) + absY;
+      // compound 节点 → group node (绝对坐标)
       const taskId = elkIdToTaskId.get(elkNode.id);
       const task = taskId ? byId.get(taskId) : null;
       if (task) {
@@ -130,12 +131,10 @@ export async function layoutBoardDAG(
           style: { width: elkNode.width, height: elkNode.height },
         });
       }
-      // child 用 ELK 的相对坐标 (不加 absX/absY), 设 parentId 让 RF 正确裁剪边
-      for (const child of elkNode.children) walk(child, elkNode.id, 0, 0);
+      // child 也用绝对坐标 (叠加 compound 位置), 不设 parentId
+      // 不用 RF 父子机制: 避免 extent:'parent' 导致坐标裁剪和边线路径问题
+      for (const child of elkNode.children) walk(child, elkNode.id, x, y);
     } else {
-      // 叶子节点: 若有 parent 则坐标相对于 parent, 否则绝对坐标
-      const x = (elkNode.x || 0) + absX;
-      const y = (elkNode.y || 0) + absY;
       const taskId = elkIdToTaskId.get(elkNode.id);
       const task = taskId ? byId.get(taskId) : null;
       if (task) {
@@ -145,7 +144,6 @@ export async function layoutBoardDAG(
           type: "taskCard",
           data: { task, rawId: taskId, groupId: parentElkId },
           style: { width: elkNode.width, height: elkNode.height },
-          ...(parentElkId ? { parentId: parentElkId, extent: "parent" as const } : {}),
         });
       }
     }
