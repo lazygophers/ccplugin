@@ -345,7 +345,7 @@
   stroke-dasharray: 0;
 }
 .react-flow__edge.dag-edge-stuck .react-flow__edge-path {
-  stroke-dasharray: 7 5;
+  stroke-dasharray: none;
 }
 /* arrow marker 颜色 */
 .react-flow__edge.dag-edge-ready .react-flow__arrowhead {

@@ -151,7 +151,7 @@ export function DagFlow({
         ...e,
         className: EDGE_KIND_CLASS[kind],
         style: { strokeOpacity: opacity },
-        animated: kind === "blocked",
+        animated: false,
       };
     });
   }, [edges, nodeMap, chain, dimStatusSet, nodeStatusOf]);
