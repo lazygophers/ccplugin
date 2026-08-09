@@ -128,7 +128,7 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
     clients: set[Any] = set()  # 活跃热重载 WS 连接
 
     async def _watch_loop() -> None:
-        # watchfiles (Rust 后端 notify) 事件驱动 — 监听 task 目录 + spec 目录, 文件变即触发。
+        # watchfiles (Rust 后端 notify) 事件驱动 — 监听 task 目录 + spec 目录 + 前端源码, 文件变即触发。
         # 数据变 (task.json + 文档) → 两路:
         #   (a) _cards_signature diff 命中 (status/计数/字段) → 逐 task id 推 {type:"task-changed", id, card}
         #       (card 含看板卡片全字段 + subtable, board 页 + detail 页据此增量刷新)。
@@ -136,14 +136,22 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
         #       card 用当前快照 (让 detail 页 load() 重拉富内容); board 卡片 sig 未变 → spread 合并是 no-op, 安全。
         #   (c) 兜底: 都无差异 (仅 mtime 变内容未变) → 推 {type:"data"} 全订阅软刷。
         # spec 变 (.skein/spec/*.md) → 推 {type:"spec-changed", path:""}; path 暂空 (spec 页全订阅, 不细粒度)。
+        # 前端源码变 (assets/nextjs/src/**) → 自动 build → 推 {type:"reload"} 整页刷。
         # ponytail: diff 范围限 status/关键字段 (不深比), O(n) n=task 数, 仅事件触发时跑。
         # 兼容: 保留字符串 "reload"/"data" (T2 live.js dispatch 兜底); 新 JSON 为主, 旧字符串作 fallback。
         import watchfiles
 
-        watch_dirs = [Path(str(board.tasks))]
+        watch_dirs: list[Path] = [Path(str(board.tasks))]
         spec_root = Path(str(board.dir)) / "spec"
         if spec_root.exists():
             watch_dirs.append(spec_root)
+        nextjs_src = PLUGIN_ROOT / "assets" / "nextjs" / "src"
+        nextjs_root = PLUGIN_ROOT / "assets" / "nextjs"
+        if nextjs_src.is_dir():
+            watch_dirs.append(nextjs_src)
+
+        # 前端重编译状态: build 进行中时置 True, 跳过期间的新事件 (防抖)。
+        front_building = False
 
         try:
             last_cards = _cards_signature(_view_board_data(board._snapshot()))
@@ -153,6 +161,41 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
             last_task_mtimes = board._task_mtimes()
         except Exception:
             last_task_mtimes = {}
+
+        async def _push_reload() -> None:
+            """前端重编译完成 → 推 reload, 浏览器整页刷拉新 dist 产物。"""
+            msg = json.dumps({"type": "reload"})
+            if not clients:
+                return
+            if debug_enabled(None):
+                ts = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
+                sys.stderr.write(f"{ts} [ws] push {len(clients)} clients: reload (前端重编译)\n")
+            for c in list(clients):
+                try:
+                    await c.send_text(msg)
+                except Exception:
+                    clients.discard(c)
+
+        async def _rebuild_frontend() -> None:
+            """线程池跑 next build → 成功后推 reload。"""
+            nonlocal front_building
+            front_building = True
+            loop = asyncio.get_event_loop()
+            try:
+                def _do_build() -> bool:
+                    import shutil as _sh
+                    pkg = "pnpm" if _sh.which("pnpm") else "npm"
+                    r = subprocess.run([pkg, "run", "build"], cwd=str(nextjs_root),
+                                       capture_output=True, text=True, timeout=180)
+                    if r.returncode != 0:
+                        sys.stderr.write(f"前端自动重编译失败: {r.stderr[:500]}\n")
+                    return r.returncode == 0
+
+                ok = await loop.run_in_executor(None, _do_build)
+                if ok:
+                    await _push_reload()
+            finally:
+                front_building = False
 
         async def _diff_and_push() -> None:
             """文件变更后: 算 card sig diff + per-task mtime diff → 推 WS。"""
@@ -212,11 +255,14 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
         async for changes in watchfiles.awatch(*watch_dirs):
             # changes 是 set[(change_type, path)]; 判定来源目录 → 分别路由
             any_task = any(Path(p).is_relative_to(board.tasks) for _, p in changes)
-            any_spec = any(Path(p).is_relative_to(spec_root) for _, p in changes)
+            any_spec = spec_root.exists() and any(Path(p).is_relative_to(spec_root) for _, p in changes)
+            any_front = nextjs_src.is_dir() and any(Path(p).is_relative_to(nextjs_src) for _, p in changes)
             if any_task:
                 await _diff_and_push()
             if any_spec:
                 await _spec_changed()
+            if any_front and not front_building:
+                await _rebuild_frontend()
 
     @asynccontextmanager
     async def lifespan(_app: Any) -> AsyncIterator[None]:
