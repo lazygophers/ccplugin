@@ -151,7 +151,7 @@ export function DagFlow({
         ...e,
         className: EDGE_KIND_CLASS[kind],
         style: { strokeOpacity: opacity },
-        animated: false,
+        animated: kind === "blocked",
       };
     });
   }, [edges, nodeMap, chain, dimStatusSet, nodeStatusOf]);
@@ -202,7 +202,7 @@ export function DagFlow({
         elementsSelectable={true}
         proOptions={{ hideAttribution: true }}
         fitView
-        fitViewOptions={{ maxZoom: 1 }}
+        fitViewOptions={{ maxZoom: 1, minZoom: 0.8 }}
         minZoom={0.1}
         maxZoom={2}
         panOnDrag={true}
