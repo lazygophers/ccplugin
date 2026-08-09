@@ -1,8 +1,9 @@
 "use client";
 
 // 看板 DAG 节点类型: taskCard (普通 task) 和 taskGroup (supertask 容器)
+// SubtaskCardNode (子任务 mini), DepTaskNode (依赖图)
 
-import { memo } from "react";
+import { memo, useState } from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { PriorityBadge } from "@/components/priority";
 import { ST_META } from "@/components/status";
@@ -12,6 +13,7 @@ import type { NormTask, NormSubtask } from "@/lib/model";
 // ── 普通任务卡片 ──
 export const TaskCardNode = memo(function TaskCardNode({ data, selected }: NodeProps) {
   const task = data.task as NormTask;
+  const [hovered, setHovered] = useState(false);
   if (!task) return null;
 
   const st = task.status || "planning";
@@ -22,10 +24,10 @@ export const TaskCardNode = memo(function TaskCardNode({ data, selected }: NodeP
   return (
     <div
       className="dag-node-wrap relative"
-      data-node-id={task.id}
-      data-raw-id={task.id}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
-      <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
+      <Handle type="target" position={Position.Top} style={{ opacity: 0, top: 0 }} />
       <div
         className={cn(
           "flex cursor-pointer items-center gap-2 overflow-hidden rounded-md border transition-all hover:shadow-md",
@@ -51,7 +53,36 @@ export const TaskCardNode = memo(function TaskCardNode({ data, selected }: NodeP
           </div>
         </div>
       </div>
-      <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
+      <Handle type="source" position={Position.Bottom} style={{ opacity: 0, bottom: 0 }} />
+
+      {/* Hover 悬浮卡片 */}
+      {hovered && (
+        <div className="pointer-events-none absolute left-0 top-full z-50 mt-2 w-80 rounded-lg border border-border/40 bg-card/95 p-4 shadow-xl backdrop-blur-md">
+          <div className="mb-1.5 flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: `var(${meta.colorVar})` }} />
+            <span className="text-xs font-semibold text-foreground">{task.title || task.name || task.id}</span>
+            <span className="ml-auto rounded px-1.5 py-0.5 text-[9px] font-medium text-white" style={{ backgroundColor: `var(${meta.colorVar})` }}>{meta.label}</span>
+          </div>
+          <div className="mb-1.5 font-mono text-[10px] text-muted-foreground">#{task.id}</div>
+          {(task.desc || task.description) && (
+            <div className="mb-2 line-clamp-3 text-xs leading-relaxed text-muted-foreground">{task.desc || task.description}</div>
+          )}
+          {subs.length > 0 && (
+            <div className="mb-1.5">
+              <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                <span>子任务进度</span>
+                <span>{subDone}/{subs.length}</span>
+              </div>
+              <div className="mt-0.5 h-1 overflow-hidden rounded-full bg-muted">
+                <div className="h-full rounded-full transition-all" style={{ width: `${subs.length ? Math.round(subDone / subs.length * 100) : 0}%`, backgroundColor: `var(${meta.colorVar})` }} />
+              </div>
+            </div>
+          )}
+          {(task.deps && task.deps.length > 0) && (
+            <div className="text-[10px] text-muted-foreground">依赖: {task.deps.join(", ")}</div>
+          )}
+        </div>
+      )}
     </div>
   );
 });
@@ -79,10 +110,8 @@ export const TaskGroupNode = memo(function TaskGroupNode({ data, selected }: Nod
         width: "100%",
         height: "100%",
       }}
-      data-node-id={task.id}
-      data-raw-id={task.id}
     >
-      <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
+      <Handle type="target" position={Position.Top} style={{ opacity: 0, top: 0 }} />
       <div
         className="dag-group-header flex cursor-pointer items-center gap-2 overflow-hidden rounded-t-md border-b px-2"
         style={{
@@ -102,7 +131,7 @@ export const TaskGroupNode = memo(function TaskGroupNode({ data, selected }: Nod
         </div>
       </div>
       <div className="flex-1" />
-      <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
+      <Handle type="source" position={Position.Bottom} style={{ opacity: 0, bottom: 0 }} />
     </div>
   );
 });
@@ -115,8 +144,8 @@ export const SubtaskCardNode = memo(function SubtaskCardNode({ data }: NodeProps
   const sm = ST_META[sub.status] || ST_META.planning;
 
   return (
-    <div data-node-id={sub.id} data-raw-id={sub.id}>
-      <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
+    <div>
+      <Handle type="target" position={Position.Top} style={{ opacity: 0, top: 0 }} />
       <div
         className="flex cursor-pointer items-center gap-2 overflow-hidden rounded-md border transition-all hover:shadow-md"
         style={{
@@ -132,21 +161,21 @@ export const SubtaskCardNode = memo(function SubtaskCardNode({ data }: NodeProps
           <div className="truncate text-[10px] leading-tight text-muted-foreground">{sm.label}</div>
         </div>
       </div>
-      <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
+      <Handle type="source" position={Position.Bottom} style={{ opacity: 0, bottom: 0 }} />
     </div>
   );
 });
 
 // ── 依赖图节点 (task detail 页上下游图) ──
-export const DepTaskNode = memo(function DepTaskNode({ data, selected }: NodeProps) {
+export const DepTaskNode = memo(function DepTaskNode({ data }: NodeProps) {
   const task = data.task as NormTask;
   if (!task) return null;
   const meta = ST_META[task.status] || ST_META.planning;
   const isCenter = data.isCenter as boolean;
 
   return (
-    <div data-node-id={task.id} data-raw-id={task.id}>
-      <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
+    <div>
+      <Handle type="target" position={Position.Top} style={{ opacity: 0, top: 0 }} />
       <div
         className={cn(
           "flex items-center gap-2 rounded-md border px-2 py-1 transition-all hover:shadow-md",
@@ -162,7 +191,7 @@ export const DepTaskNode = memo(function DepTaskNode({ data, selected }: NodePro
         <span className="flex-1 truncate text-xs font-medium text-foreground">{task.title || task.name || task.id}</span>
         {isCenter && <span className="text-xs text-primary">★</span>}
       </div>
-      <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
+      <Handle type="source" position={Position.Bottom} style={{ opacity: 0, bottom: 0 }} />
     </div>
   );
 });

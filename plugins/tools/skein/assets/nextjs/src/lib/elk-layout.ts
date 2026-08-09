@@ -126,7 +126,7 @@ export async function layoutBoardDAG(
           id: elkNode.id,
           type: "taskGroup",
           position: { x, y },
-          data: { task, width: elkNode.width, height: elkNode.height },
+          data: { task, rawId: taskId, width: elkNode.width, height: elkNode.height },
           style: { width: elkNode.width, height: elkNode.height },
         });
       }
@@ -140,7 +140,7 @@ export async function layoutBoardDAG(
           id: elkNode.id,
           position: { x, y },
           type: "taskCard",
-          data: { task, groupId: parentElkId },
+          data: { task, rawId: taskId, groupId: parentElkId },
           style: { width: elkNode.width, height: elkNode.height },
         });
       }
@@ -191,13 +191,16 @@ export async function layoutSubtaskDAG(
   const elkIdToSubId = new Map<string, string>();
   for (const s of subs) elkIdToSubId.set(toElkId(s.id), s.id);
 
-  const rfNodes: Node[] = (result.children || []).map((n: any) => ({
-    id: n.id,
-    position: { x: n.x, y: n.y },
-    type: "subtaskCard",
-    data: { sub: byId.get(elkIdToSubId.get(n.id) || n.id)! },
-    style: { width: n.width, height: n.height },
-  }));
+  const rfNodes: Node[] = (result.children || []).map((n: any) => {
+    const subId = elkIdToSubId.get(n.id) || n.id;
+    return {
+      id: n.id,
+      position: { x: n.x, y: n.y },
+      type: "subtaskCard",
+      data: { sub: byId.get(subId)!, rawId: subId },
+      style: { width: n.width, height: n.height },
+    };
+  });
 
   const rfEdges: Edge[] = elkEdges.map(e => ({
     id: e.id, source: e.sources[0], target: e.targets[0], type: "smoothstep",
@@ -275,13 +278,16 @@ export async function layoutDepDAG(
   const elkIdToTaskId = new Map<string, string>();
   for (const t of inTasks) elkIdToTaskId.set(toElkId(t.id), t.id);
 
-  const rfNodes: Node[] = (result.children || []).map((n: any) => ({
-    id: n.id,
-    position: { x: n.x, y: n.y },
-    type: "depTaskCard",
-    data: { task: byId.get(elkIdToTaskId.get(n.id) || n.id)!, isCenter: elkIdToTaskId.get(n.id) === taskId },
-    style: { width: n.width, height: n.height },
-  }));
+  const rfNodes: Node[] = (result.children || []).map((n: any) => {
+    const tid = elkIdToTaskId.get(n.id) || n.id;
+    return {
+      id: n.id,
+      position: { x: n.x, y: n.y },
+      type: "depTaskCard",
+      data: { task: byId.get(tid)!, rawId: tid, isCenter: tid === taskId },
+      style: { width: n.width, height: n.height },
+    };
+  });
 
   const rfEdges: Edge[] = elkEdges.map(e => ({
     id: e.id, source: e.sources[0], target: e.targets[0], type: "smoothstep",
