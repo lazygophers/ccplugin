@@ -7,7 +7,7 @@ arguments: "[session-id]"
 
 # skein 插件审计
 
-对 session `$session-id` 审计 `plugins/tools/skein/`，产出**可复现的缺陷 + 对应修法**。
+对 session `$session-id` 审计 @@plugins/tools/skein/ 创建，产出**可复现的缺陷 + 对应修法**。
 
 ## 阶段 1 · 抽证据（先跑完这段，再决定读什么）
 
@@ -61,8 +61,8 @@ jq -r 'select(.type=="assistant")|.message.content[]?|select(.type=="tool_use")
 
 一张表打头，然后两段。全文控制在 100 行内。
 
-| # | 位置 `file:line` | 现象 | 判定 | 修法 |
-|---|---|---|---|---|
+| #   | 位置 `file:line` | 现象 | 判定 | 修法 |
+| --- | ---------------- | ---- | ---- | ---- |
 
 - 判定只三种：`Bug`（有复现）/ `偏差`（与文档契约不符）/ `推测`（无复现，需人核）
 - 「修法」一句话说清改哪、改成什么，不贴大段代码
