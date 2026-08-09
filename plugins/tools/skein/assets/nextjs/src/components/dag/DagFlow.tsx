@@ -165,10 +165,17 @@ export function DagFlow({
       }
       const isDim = chain ? !chain.has(n.id) : false;
       const opacity = dimmed ? 0.4 : isDim ? 0.15 : 1;
-      const zIndex = hoverId === n.id ? 1000 : ((n.style as CSSProperties)?.zIndex ?? 0);
+      const isGroup = n.type === "taskGroup";
+      const zIndex = isGroup ? -1 : (hoverId === n.id ? 1000 : ((n.style as CSSProperties)?.zIndex ?? 0));
       return {
         ...n,
-        style: { ...(n.style as CSSProperties), opacity, zIndex },
+        // group 节点整个设 pointerEvents:none, 让 RF __node 容器也不拦截点击
+        style: {
+          ...(n.style as CSSProperties),
+          opacity,
+          zIndex,
+          ...(isGroup ? { pointerEvents: "none" as const } : {}),
+        },
       };
     });
   }, [nodes, chain, dimStatusSet, nodeStatusOf, hoverId]);

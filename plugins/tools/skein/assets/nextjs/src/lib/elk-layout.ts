@@ -129,7 +129,6 @@ export async function layoutBoardDAG(
       style: { width: maxX - minX, height: maxY - minY },
       draggable: false,
       selectable: true,
-      zIndex: -1,
     });
   }
 
