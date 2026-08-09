@@ -30,21 +30,21 @@ export const TaskCardNode = memo(function TaskCardNode({ data, selected }: NodeP
           st === "active" && "dag-node-active",
         )}
         style={{
-          width: "220px",
-          height: "64px",
+          width: "240px",
+          height: "72px",
           borderColor: `var(${meta.colorVar})`,
           backgroundColor: `color-mix(in srgb, var(${meta.colorVar}) 20%, var(--card))`,
         }}
       >
-        <span className="h-2 w-2 flex-shrink-0 rounded-full ml-2" style={{ backgroundColor: `var(${meta.colorVar})` }} />
-        <div className="min-w-0 flex-1 pr-2">
+        <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full ml-2.5" style={{ backgroundColor: `var(${meta.colorVar})` }} />
+        <div className="min-w-0 flex-1 pr-2.5">
           <div className="flex items-center gap-1.5">
-            <div className="min-w-0 flex-1 truncate text-xs font-semibold leading-tight text-foreground">
+            <div className="min-w-0 flex-1 truncate text-sm font-semibold leading-tight text-foreground">
               {task.title || task.name || "(未命名)"}
             </div>
             <PriorityBadge priority={task.priority} />
           </div>
-          <div className="flex items-center text-[10px] leading-tight text-muted-foreground">
+          <div className="flex items-center text-xs leading-tight text-muted-foreground">
             <span className="truncate font-mono">#{task.id}</span>
             {subs.length > 0 && <span className="flex-shrink-0 ml-1">{subDone}/{subs.length}</span>}
           </div>
@@ -143,18 +143,18 @@ export const SubtaskCardNode = memo(function SubtaskCardNode({ data }: NodeProps
       <div
         className="flex cursor-pointer items-center gap-2 overflow-hidden rounded-md border transition-all hover:shadow-md"
         style={{
-          width: "200px",
-          height: "56px",
+          width: "220px",
+          height: "64px",
           opacity: sub.status === "done" ? 0.5 : 1,
           borderColor: `var(${sm.colorVar})`,
           backgroundColor: `color-mix(in srgb, var(${sm.colorVar}) 20%, var(--card))`,
         }}
         title={sub.title || sub.name || sub.id}
       >
-        <span className="ml-2 h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: `var(${sm.colorVar})` }} />
-        <div className="min-w-0 flex-1 pr-2">
-          <div className="truncate text-xs font-semibold leading-tight text-foreground">{sub.title || sub.name || sub.id}</div>
-          <div className="truncate text-[10px] leading-tight text-muted-foreground">{sm.label}</div>
+        <span className="ml-2.5 h-2.5 w-2.5 flex-shrink-0 rounded-full" style={{ backgroundColor: `var(${sm.colorVar})` }} />
+        <div className="min-w-0 flex-1 pr-2.5">
+          <div className="truncate text-sm font-semibold leading-tight text-foreground">{sub.title || sub.name || sub.id}</div>
+          <div className="truncate text-xs leading-tight text-muted-foreground">{sm.label}</div>
         </div>
       </div>
       <Handle type="source" position={Position.Bottom} style={{ opacity: 0, bottom: 0 }} />
