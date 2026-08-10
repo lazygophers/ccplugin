@@ -574,7 +574,7 @@ function SubtaskDagCard({ subs }: { subs: NormSubtask[] }) {
             nodeTypes={SUBTASK_NODE_TYPES}
             minHeight={200}
             enableHoverChain={false}
-            showControls={false}
+            showControls={true}
           />
         </DagFlowProvider>
       </div>
@@ -609,7 +609,7 @@ function DepDagView({ taskId, allTasks }: { taskId: string; allTasks: NormTask[]
           nodeTypes={DEP_NODE_TYPES}
           minHeight={200}
           enableHoverChain={true}
-          showControls={false}
+          showControls={true}
         />
       </DagFlowProvider>
     </div>

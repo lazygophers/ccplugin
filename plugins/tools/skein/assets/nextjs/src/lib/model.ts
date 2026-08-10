@@ -3,7 +3,9 @@
 const STATUS_MAP: Record<string, string> = {
   '待处理': 'planning', '规划中': 'planning', 'pending': 'planning', 'plan': 'planning',
   '调研中': 'research', 'research': 'research',
-  '进行中': 'active', '运行中': 'active', '执行中': 'active', 'active': 'active', 'exec': 'active',
+  // `running` 是 subtask 落盘枚举 (SubtaskStatus.RUNNING), 早先只收了中文展示名「运行中」,
+  // 真实数据一直走不到这条 → 落到 ST_META fallback 显示成计划中, 运行中的 subtask 在前端看不出来
+  '进行中': 'active', '运行中': 'active', '执行中': 'active', 'active': 'active', 'exec': 'active', 'running': 'active',
   '检查中': 'check', '验收中': 'check', '待验收': 'check', 'check': 'check',
   '收尾中': 'finishing', 'finishing': 'finishing',
   '已完成': 'done', '完成': 'done', 'done': 'done',

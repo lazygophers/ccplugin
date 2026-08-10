@@ -156,7 +156,11 @@ export const SubtaskCardNode = memo(function SubtaskCardNode({ data }: NodeProps
     <div className="group relative">
       {HANDLES}
       <div
-        className="flex cursor-pointer items-center gap-2 overflow-hidden rounded-md border transition-all hover:shadow-md"
+        className={cn(
+          "flex cursor-pointer items-center gap-2 overflow-hidden rounded-md border transition-all hover:shadow-md",
+          // running subtask 归一化后就是 active, 和 task 卡共用同一套脉冲动效
+          sub.status === "active" && "dag-node-active",
+        )}
         style={{
           width: "260px",
           minHeight: "72px",
@@ -201,6 +205,7 @@ export const DepTaskNode = memo(function DepTaskNode({ data }: NodeProps) {
         className={cn(
           "flex items-center gap-2 rounded-md border px-2 py-1 transition-all hover:shadow-md",
           isCenter && "ring-2 ring-primary",
+          task.status === "active" && "dag-node-active",
         )}
         style={{
           width: "200px",

@@ -386,7 +386,10 @@
   overflow: hidden !important;
 }
 .dag-flow-container .react-flow__pane {
-  cursor: default;
+  cursor: grab;
+}
+.dag-flow-container .react-flow__pane.dragging {
+  cursor: grabbing;
 }
 .dag-flow-container .react-flow__edges svg {
   overflow: visible;

@@ -1,7 +1,7 @@
 "use client";
 
 // 通用 React Flow DAG 包装器
-// 禁止缩放/超宽, 允许上下滚动, 自动定位 active task, 手绘贝塞尔曲线边
+// 可缩放 / 可拖拽画布 / 可拖节点, 初始 fitView 居中后自动定位到 active card, 手绘曲线边
 
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import {
@@ -110,101 +110,39 @@ function DagFlowInner({
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [hoverId, setHoverId] = useState<string | null>(null);
-  const { setViewport } = useReactFlow();
+  const { fitView, setCenter, getZoom, getInternalNode } = useReactFlow();
 
   useEffect(() => { setNodes(initialNodes); }, [initialNodes]);
   useEffect(() => { setEdges(initialEdges); }, [initialEdges]);
 
   // ── 居中 + 自动定位 active task ──
+  // 依赖 initialNodes 而非 nodes: 拖动会改 nodes, 挂 nodes 上会在拖完 300ms 后把视口拽回去。
+  // 先 fitView 保证整图居中且看得全, 再把有 active/running 的那张卡挪到视野中心。
+  // 位置一律走 getInternalNode 的 positionAbsolute —— 分组框里的子节点 position 是相对父框的,
+  // 直接拿 node.position 算居中会偏掉一个父框的偏移量。
   useEffect(() => {
-    if (!nodes.length) return;
+    if (!initialNodes.length) return;
     const timer = setTimeout(() => {
-      const container = document.querySelector(".dag-flow-container") as HTMLElement;
-      if (!container) return;
-      const cw = container.clientWidth;
-      const ch = container.clientHeight;
-
-      const realNodes = nodes.filter(n => n.type !== "taskGroup");
-      if (!realNodes.length) return;
-
-      const W = 280;
-      const nodeWidth = (n: Node) => ((n.style as CSSProperties)?.width as number) || W;
-      const nodeHeight = (n: Node) => ((n.style as CSSProperties)?.height as number) || 80;
-
-      const minX = Math.min(...realNodes.map(n => n.position.x));
-      const maxX = Math.max(...realNodes.map(n => n.position.x + nodeWidth(n)));
-      const minY = Math.min(...realNodes.map(n => n.position.y));
-      const dagCenterX = (minX + maxX) / 2;
-
-      // 水平居中到容器
-      const vpX = cw / 2 - dagCenterX;
-
-      // 垂直: 定位到 active task
-      const activeNode = realNodes.find(n => {
-        const task = n.data?.task as Record<string, unknown> | undefined;
-        return task?.status === "active";
+      fitView({ padding: 0.15, maxZoom: 1, duration: 300 });
+      const focus = initialNodes.find(n => {
+        const st = ((n.data?.task ?? n.data?.sub) as Record<string, unknown> | undefined)?.status;
+        return st === "active";
       });
-
-      let vpY: number;
-      if (activeNode) {
-        vpY = ch / 3 - activeNode.position.y - nodeHeight(activeNode) / 2;
-      } else {
-        vpY = 20 - minY;
-      }
-
-      setViewport({ x: vpX, y: vpY, zoom: 1 });
+      if (!focus) return;
+      const internal = getInternalNode(focus.id);
+      const pos = internal?.internals.positionAbsolute ?? focus.position;
+      const w = ((focus.style as CSSProperties)?.width as number) || 280;
+      const h = ((focus.style as CSSProperties)?.height as number) || 80;
+      setCenter(pos.x + w / 2, pos.y + h / 2, { zoom: getZoom(), duration: 400 });
     }, 300);
     return () => clearTimeout(timer);
-  }, [nodes, setViewport]);
+  }, [initialNodes, fitView, setCenter, getInternalNode, getZoom]);
 
   const nodeMap = useMemo(() => new Map(nodes.map(n => [n.id, n])), [nodes]);
   const chain = useMemo(
     () => enableHoverChain ? computeChain(hoverId, edges) : null,
     [hoverId, edges, enableHoverChain],
   );
-
-  // ── 边分散: 同源多边给不同 arcIndex, 同目标多边给不同 arcIndex ──
-  const edgeArcInfo = useMemo(() => {
-    // 按 source 分组
-    const bySource = new Map<string, Edge[]>();
-    const byTarget = new Map<string, Edge[]>();
-    for (const e of edges) {
-      if (!bySource.has(e.source)) bySource.set(e.source, []);
-      bySource.get(e.source)!.push(e);
-      if (!byTarget.has(e.target)) byTarget.set(e.target, []);
-      byTarget.get(e.target)!.push(e);
-    }
-    const info = new Map<string, { sourceIdx: number; sourceTotal: number; targetIdx: number; targetTotal: number }>();
-    for (const [src, list] of bySource) {
-      list.forEach((e, i) => {
-        const existing = info.get(e.id) || { sourceIdx: 0, sourceTotal: 1, targetIdx: 0, targetTotal: 1 };
-        existing.sourceIdx = i;
-        existing.sourceTotal = list.length;
-        info.set(e.id, existing);
-      });
-    }
-    for (const [tgt, list] of byTarget) {
-      list.forEach((e, i) => {
-        const existing = info.get(e.id) || { sourceIdx: 0, sourceTotal: 1, targetIdx: 0, targetTotal: 1 };
-        existing.targetIdx = i;
-        existing.targetTotal = list.length;
-        info.set(e.id, existing);
-      });
-    }
-    return info;
-  }, [edges]);
-
-  // ── 注册 card 位置给 edge 做避障 (保留给可能的未来需要) ──
-  const cardPositions = useMemo(() => {
-    const positions = new Map<string, { x: number; y: number; w: number; h: number }>();
-    for (const n of nodes) {
-      if (n.type === "taskGroup") continue;
-      const w = ((n.style as CSSProperties)?.width as number) || 280;
-      const h = ((n.style as CSSProperties)?.height as number) || 80;
-      positions.set(n.id, { x: n.position.x, y: n.position.y, w, h });
-    }
-    return positions;
-  }, [nodes]);
 
   const styledEdges = useMemo(() => {
     return edges.map(e => {
@@ -216,17 +154,15 @@ function DagFlowInner({
         if (fn && tn) dimmed = !dimStatusSet.has(nodeStatusOf(fn)) || !dimStatusSet.has(nodeStatusOf(tn));
       }
       const opacity = chain ? (inChain ? 0.95 : 0.1) : dimmed ? 0.12 : 0.7;
-      const arc = edgeArcInfo.get(e.id);
       return {
         ...e,
         className: EDGE_KIND_CLASS[kind],
         style: { strokeOpacity: opacity, strokeWidth: 2.5 },
         animated: true,
         markerEnd: { type: MarkerType.ArrowClosed, width: 5, height: 5, color: EDGE_KIND_COLOR[kind] },
-        data: { ...e.data, sourceIdx: arc?.sourceIdx || 0, sourceTotal: arc?.sourceTotal || 1, targetIdx: arc?.targetIdx || 0, targetTotal: arc?.targetTotal || 1 },
       };
     });
-  }, [edges, nodeMap, chain, dimStatusSet, nodeStatusOf, edgeArcInfo]);
+  }, [edges, nodeMap, chain, dimStatusSet, nodeStatusOf]);
 
   const styledNodes = useMemo(() => {
     return nodes.map(n => {
@@ -248,6 +184,16 @@ function DagFlowInner({
     });
   }, [nodes, chain, dimStatusSet, nodeStatusOf, hoverId]);
 
+  // 拖动开始就把这条边的 ELK 预算路径作废: 路径是按原坐标算的, card 一走边还钉在原地。
+  // 清空后 ElkPathEdge 回落到实时 source/target 坐标画曲线, 边跟着 card 走。
+  // 重新布局时上面那个 setEdges(initialEdges) 会把路径带回来。
+  const handleNodeDragStart = useCallback((_: unknown, node: Node) => {
+    setEdges(es => es.map(e => (
+      (e.source === node.id || e.target === node.id) && ((e.data?.points as unknown[])?.length)
+        ? { ...e, data: { ...e.data, points: [] } } : e
+    )));
+  }, [setEdges]);
+
   const handleNodeClick: NodeMouseHandler = useCallback((_, node) => {
     const rawId = (node.data as Record<string, unknown>)?.rawId as string || node.id;
     onSelect?.(rawId);
@@ -263,20 +209,20 @@ function DagFlowInner({
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onNodeClick={handleNodeClick}
+        onNodeDragStart={handleNodeDragStart}
         onNodeMouseEnter={(_, node) => setHoverId(node.id)}
         onNodeMouseLeave={() => setHoverId(null)}
-        nodesDraggable={false}
+        nodesDraggable={true}
         nodesConnectable={false}
         elementsSelectable={true}
         proOptions={{ hideAttribution: true }}
-        minZoom={1}
-        maxZoom={1}
-        panOnDrag={false}
-        zoomOnScroll={false}
-        zoomOnDoubleClick={false}
-        zoomOnPinch={false}
-        panOnScroll={true}
-        panOnScrollMode={"vertical" as any}
+        minZoom={0.2}
+        maxZoom={2}
+        panOnDrag={true}
+        zoomOnScroll={true}
+        zoomOnDoubleClick={true}
+        zoomOnPinch={true}
+        panOnScroll={false}
         selectNodesOnDrag={false}
         preventScrolling={true}
       >
