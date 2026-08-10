@@ -164,6 +164,13 @@ _READY_TS_ALLOW_LINES: dict[Path, set[str]] = {
         'ready:   { color: "st-done",   label: "依赖已完成" },',
         'if (stOf(e.from.id) === "done") return "ready";',
     },
+    # edge kind 同名不同义: 描述「上游已完成、这条边畅通」, 与 task 状态无关
+    NEXTJS_SRC / "components" / "dag" / "DagFlow.tsx": {
+        'export type EdgeKind = "ready" | "blocked" | "stuck";',
+        'if (fromStatus === "done") return "ready";',
+        'ready: "dag-edge-ready",',
+        'ready: "var(--st-done)",',
+    },
     NEXTJS_SRC / "app" / "help" / "page.tsx": {
         'desc: "subtask 按 DAG 依赖并行调度。ready subtask 竞争 pools.work 槽, done 即释放槽派下一个。",',
         '["skein claim exec", "认领 ready subtask → running, 竞争 pools.work 槽 (不改 task 状态)"],',
