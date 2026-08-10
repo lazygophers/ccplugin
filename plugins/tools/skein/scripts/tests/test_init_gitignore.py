@@ -120,11 +120,10 @@ def test_e2e_fresh_workspace_stays_clean_after_derivative_producing_commands(
     - trash/: 建一个普通 task 后 `del` 软删。
     - spec/.pending-fix: 造一条过期 (stale) 规则后跑 `hooks.py stop-check`。
     - spec/.archive/ + spec/.audit-log: 同一条 stale 规则再跑 `spec maintain --apply` 归档。
-    - .edit-tally/.edit-tally.warned: 无 active task 时跨 2 个源码文件写, 触发 `hooks.py flow-gate`。
+
+    `.edit-tally*` / `.dispatch.warned` 不在覆盖内: 产出它们的 flow-gate / 派发提醒已撤,
+    登记处只保留忽略项给存量工作区, 已无代码路径能产出。
     """
-    # flow-gate 对文件路径里含 `/test_`/`/tests/` 的写入直接放行不计数 (flow_gate.py cmd_flow_gate:
-    # 跳过测试文件自身的改动) —— pytest 默认 tmp_path 目录名形如 `test_e2e_..0`, 恰好撞上这条豁免,
-    # 会让本测试的 .edit-tally 断言假红。搬到不含该子串的临时目录, 测的是真实行为而非 pytest 巧合。
     safe_root = Path(tempfile.mkdtemp(prefix="skein-gi-e2e-")) / "ws"
     shutil.copytree(ws, safe_root)
     root = safe_root
@@ -168,17 +167,6 @@ def test_e2e_fresh_workspace_stays_clean_after_derivative_producing_commands(
         "maintain --apply 未归档 stale 规则 (前置条件不成立)"
     assert (root / ".skein" / "spec" / ".audit-log").exists(), "maintain --apply 未写 .audit-log (前置条件不成立)"
 
-    # .edit-tally/.edit-tally.warned: 无 active task, 跨 2 个源码文件写
-    probes = [root / "flowgate_probe_a.py", root / "flowgate_probe_b.py"]
-    for p in probes:
-        p.write_text("# probe\n", encoding="utf-8")
-        _run_hook_stdin(root, "flow-gate",
-                       {"tool_input": {"file_path": str(p)}, "cwd": str(root)})
-    assert (root / ".skein" / ".edit-tally").exists(), "flow-gate 未写 .edit-tally (前置条件不成立)"
-    assert (root / ".skein" / ".edit-tally.warned").exists(), "flow-gate 未写 .edit-tally.warned (前置条件不成立)"
-    for p in probes:  # 探针文件本身不是待测对象, 用完即清 (它们是真实源码, 不该忽略也不该入版本库)
-        p.unlink()
-
     try:
         # 「版本库状态干净」不能直接读 `git status --porcelain == ""`: 刚 init 的仓库里 task.json/
         # config.yaml 这类真值本就是从未提交过的新文件, 天然会以 `??` 出现——那是正确行为, 不是脏。
@@ -196,8 +184,6 @@ def test_e2e_fresh_workspace_stays_clean_after_derivative_producing_commands(
             "spec/index.md": root / ".skein" / "spec" / "index.md",
             "spec/*/index.md": root / ".skein" / "spec" / "recall" / "index.md",
             "spec/*/backlinks.md": root / ".skein" / "spec" / "recall" / "backlinks.md",
-            ".edit-tally": root / ".skein" / ".edit-tally",
-            ".edit-tally.warned": root / ".skein" / ".edit-tally.warned",
         }
         missing = {label: str(p) for label, p in produced.items() if not p.exists()}
         assert not missing, f"battery 未能真实产出以下衍生物 (前置条件不成立, 断言无意义): {missing}"
@@ -224,46 +210,23 @@ def test_truth_files_never_git_ignored(ws: Path, skein_cli: SkeinCli) -> None:
         assert not _is_ignored(root, rel), f"真值文件被误忽略: {label} ({rel})"
 
 
-def test_flow_gate_self_heals_stale_gitignore(ws: Path, skein_cli: SkeinCli) -> None:
-    """非 init 路径也会补 `.skein/.gitignore` —— 老工作区 (init 于登记处新增 .edit-tally 之前)
-    跑 flow-gate 时应自愈, 免得 .edit-tally 漏网进版本库。
+def test_init_self_heals_stale_gitignore(ws: Path, skein_cli: SkeinCli) -> None:
+    """`skein init` 幂等补 `.skein/.gitignore` —— 老工作区的 .gitignore 是更早版本写的、缺新条目,
+    重跑 init 应把登记处全部条目补齐, 且不破坏用户手写条目。
 
-    场景: 手造一份**缺 .edit-tally/.edit-tally.warned** 的旧版 .gitignore, 跑 flow-gate
-    (跨 2 个源码文件), 断言两条已被自动补入。
+    场景: 手造一份只有早期条目的旧版 .gitignore, 重跑 init, 断言登记处条目全部到位。
     """
-    # flow-gate 对路径含 `/test_`/`/tests/` 的写入直接放行不计数 (cmd_flow_gate 的豁免) ——
-    # pytest 的 tmp_path 目录名含本函数名 `test_flow_gate_self_heals`, 撞上该豁免会让 hook
-    # 早返, 断言假红。搬到不含该子串的临时目录 (沿用 test_e2e 的先例)。
-    safe_root = Path(tempfile.mkdtemp(prefix="skein-gi-heal-")) / "ws"
-    shutil.copytree(ws, safe_root)
-    root = safe_root
-    skein_cli(root, "init")  # 幂等保状态 (ws fixture 已 init, 拷贝后路径变, 重 init 一次更稳)
-    # 伪造老版本 .gitignore: 只留早期条目, 删掉 .edit-tally*
+    from skeinlib.utils.derivatives import gi_entries
+    root = ws
     gi = root / ".skein" / ".gitignore"
     gi.write_text(
         "# skein 自动渲染/衍生, 不入库\n"
         "task.md\nvision.md\n*.lock\ntrash/\n",
         encoding="utf-8",
     )
-    # flow-gate 探针: 两个源码文件, 触发计数写入 .edit-tally
-    probes = [root / "gi_probe_a.py", root / "gi_probe_b.py"]
-    for p in probes:
-        p.write_text("# probe\n", encoding="utf-8")
-        _run_hook_stdin(root, "flow-gate",
-                        {"tool_input": {"file_path": str(p)}, "cwd": str(root)})
-    try:
-        # 自愈断言: .edit-tally/.edit-tally.warned 已被补入 .gitignore
-        lines = gi.read_text(encoding="utf-8").splitlines()
-        assert ".edit-tally" in lines, "flow-gate 未自愈: .edit-tally 仍缺于 .gitignore"
-        assert ".edit-tally.warned" in lines, "flow-gate 未自愈: .edit-tally.warned 仍缺于 .gitignore"
-        # 用户手写条目保留 (不破坏)
-        assert "task.md" in lines and "vision.md" in lines, "自愈破坏了既有手写条目"
-        # 真实产出物确实被 git 忽略 (查 git 行为, 不读文本)
-        for rel in (".skein/.edit-tally", ".skein/.edit-tally.warned"):
-            r = subprocess.run(["git", "check-ignore", "-q", rel], cwd=root, capture_output=True)
-            assert r.returncode == 0, f"自愈后 {rel} 仍被 git 视为未忽略"
-    finally:
-        shutil.rmtree(safe_root.parent, ignore_errors=True)
-        for p in probes:
-            if p.exists():
-                p.unlink()
+    skein_cli(root, "init")  # 幂等
+    lines = gi.read_text(encoding="utf-8").splitlines()
+    missing = [e for e in gi_entries() if e not in lines]
+    assert not missing, f"init 未自愈, 登记处条目仍缺: {missing}"
+    # 用户手写条目保留 (不破坏)
+    assert "task.md" in lines and "vision.md" in lines, "自愈破坏了既有手写条目"

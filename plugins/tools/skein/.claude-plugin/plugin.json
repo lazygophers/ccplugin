@@ -140,20 +140,6 @@
                     {
                         "type": "command",
                         "command": "${CLAUDE_PLUGIN_ROOT}/bin/skein-hooks spec-meta"
-                    },
-                    {
-                        "type": "command",
-                        "command": "${CLAUDE_PLUGIN_ROOT}/bin/skein-hooks flow-gate"
-                    }
-                ]
-            }
-        ],
-        "PostToolBatch": [
-            {
-                "hooks": [
-                    {
-                        "type": "command",
-                        "command": "${CLAUDE_PLUGIN_ROOT}/bin/skein-hooks batch"
                     }
                 ]
             }

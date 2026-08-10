@@ -77,10 +77,10 @@ confirm 后 **stop** — 不续 exec。续执行归 skein-flow。
 | --- | --- |
 | `skein task create <tid> --name <str> --desc <str> [--priority urgent\|high\|normal\|low] [--estimate <小时>]` | `--priority` 只收四个英文值；`--estimate` 单位是小时 |
 | `skein subtask add <tid> <sid> --name <str> --desc <str> --estimate <小时> [--deps sid1,sid2] [--skills] [--check] [--phase exec\|research]` | `<sid>` 是位置参数不是 `--id`；四必填缺一即拒 |
-| `skein prd write <tid> --type <段名> --list <条目>` | `--type` 单数，段名 `goal\|scope\|stories\|acceptance\|verification\|testing` |
+| `skein prd write <tid> --type <段名> --list <条目>` | 段名 `goal\|scope\|stories\|acceptance\|verification\|testing`；`--type`/`--list` 可成对重复，一回合写多章 |
 | `skein contract <id> --add "契约文本"` | 不变量逐条落盘 |
 
-**禁把多条 skein 写成 `&&` 长链** — 分开发，每条看回显。PreToolUse 已硬阻单条 Bash 串 ≥2 个状态写命令。
+多条 skein 可以串接，但**串写命令看回显**：中途失败时后续命令照跑，回显里哪条挂了就重跑哪条（落盘状态即真值，不必预先拆）。
 
 ## 周期 / 无人值守场景
 

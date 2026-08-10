@@ -7,11 +7,10 @@
 子命令:
   permission  PermissionRequest/PermissionDenied: .skein/ 自有内容操作默认同意, 免逐次授权。
   guard       PreToolUse: 硬阻 AI 直接读写 .skein/ 脚本管理文件 + trellis 未初始化迁移门。
-  batch       PostToolBatch: 拦并行的 ≥2 个 .skein 状态写命令 (竞态防护)。
+              (曾有的 && 串接硬阻 / flow-gate / 派发提醒已撤 —— 落盘状态即真值, 预防式拦截只逼出重试)
   report      PostToolUseFailure: 本插件脚本报错时注入上下文 + 引导手动报 issue。
   fmt         PostToolUse: 写 .skein/task/<id>/prd.md 后自动 skein fmt <id> 规范化。
   spec-meta   PostToolUse: 写 .skein/spec/**/*.md 后检查 frontmatter 必填字段 + layer 合法 (非阻塞 warning)。
-  flow-gate   PostToolUse: 写源码后若无 active task 且已跨 ≥2 文件 → 提示补 create (非阻塞, 一次)。
   stop-check  Stop: 扫 spec 问题写 .pending-fix 标记 (只读不修, 供 main 下回合派 specer bg 修复)。
   user-prompt UserPromptSubmit: 已初始化按 prompt 信号注入判据 + 证据; 未初始化注入 setup 提示。
   agent-start / agent-stop  agent 生命周期钩子 (参数走 --flag argv, 不读 stdin)。

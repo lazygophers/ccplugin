@@ -7,7 +7,7 @@ from conftest import SCRIPTS
 
 conftest
 
-HOOK_MODULES = ("permission_denied", "permission_request", "post_tool_batch", "post_tool_use",
+HOOK_MODULES = ("permission_denied", "permission_request", "post_tool_use",
                 "post_tool_use_failure", "pre_tool_use", "stop", "user_prompt_submit", "agent", "cli", "runner",
                 "util")
 

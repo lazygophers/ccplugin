@@ -57,6 +57,40 @@ if len(inspect.signature(typer.core.TyperArgument.make_metavar).parameters) == 1
     typer.core.TyperArgument.make_metavar = _compatible_argument_make_metavar  # type: ignore[method-assign,assignment]
 
 
+# 报错文案自足化: click 默认只吐 `Error: ...` + `Try --help`, agent 拿不到正确写法, 只能再跑一次
+# `--help` (审计实测: 12 个回合废在这上面)。这里在原文案后补该子命令的 usage 行与可用选项,
+# 一次报错就够改对。挂在 UsageError.show 而非各命令内, 是因为参数级报错由 click 统一抛出。
+_orig_usage_show = _click.exceptions.UsageError.show
+
+
+def _usage_show(self: Any, file: Any = None) -> None:
+    _orig_usage_show(self, file)
+    ctx = getattr(self, "ctx", None)
+    if ctx is None:
+        return
+    out = file or sys.stderr
+    try:
+        # usage 行 click 自己已打, 这里只补它不给的「这条命令到底收哪些选项」
+        opts = sorted({o for p in ctx.command.get_params(ctx)
+                       for o in getattr(p, "opts", []) if o.startswith("--")})
+        if opts:
+            _click.echo("可用选项: " + " ".join(opts), file=out)
+    except Exception:  # 纯提示增强, 任何异常都不该盖掉原始报错
+        pass
+
+
+_click.exceptions.UsageError.show = _usage_show  # type: ignore[method-assign]
+
+
+def _set_value(set_: Optional[str], value: Optional[str]) -> Optional[str]:
+    """`--set X` 与位置写法 `<id> X` 等价。
+
+    agent 高频写成位置参数 (`task estimate t1 15`), 原本只报 `Got unexpected extra argument(s)`,
+    既不说该用 `--set` 也没别的线索。两种写法都收, 同时给 `--set` 优先。
+    """
+    return set_ if set_ is not None else value
+
+
 class AliasTyperGroup(TyperGroup):
     aliases = {"delete": "del", "rm": "del", "remove": "del"}
 
@@ -201,36 +235,45 @@ def create(
          estimate=estimate, priority=priority, like=like)
 
 
+# 下面五条同构: `<id>` 后省略值 = 查, 给值 = 改。值可走 `--set` 也可直接跟在 id 后 (见 _set_value)。
+_SET_ARG = typer.Argument(metavar="[VALUE]", help="等价 --set; 省略则为只读查询")
+
+
 @task_app.command("priority")
-def priority(id: str, set_: Annotated[Optional[str], typer.Option(
-        "--set", help=f"仅允许: {', '.join(PRIORITIES)}")] = None) -> None:
+def priority(id: str, value: Annotated[Optional[str], _SET_ARG] = None,
+             set_: Annotated[Optional[str], typer.Option(
+                 "--set", help=f"仅允许: {', '.join(PRIORITIES)}")] = None) -> None:
     """查/改 task 优先级。"""
-    _run("priority", id=id, set=set_)
+    _run("priority", id=id, set=_set_value(set_, value))
 
 
 @task_app.command("estimate")
-def estimate(id: str, set_: Annotated[Optional[str], typer.Option(
-        "--set", help=ESTIMATE_HINT)] = None) -> None:
+def estimate(id: str, value: Annotated[Optional[str], _SET_ARG] = None,
+             set_: Annotated[Optional[str], typer.Option(
+                 "--set", help=ESTIMATE_HINT)] = None) -> None:
     """查/填 task 预计工时。"""
-    _run("estimate", id=id, set=set_)
+    _run("estimate", id=id, set=_set_value(set_, value))
 
 
 @task_app.command("repos")
-def repos(id: str, set_: Annotated[Optional[str], typer.Option("--set")] = None) -> None:
+def repos(id: str, value: Annotated[Optional[str], _SET_ARG] = None,
+          set_: Annotated[Optional[str], typer.Option("--set")] = None) -> None:
     """查/声明 task 目标子 git。"""
-    _run("repos", id=id, set=set_)
+    _run("repos", id=id, set=_set_value(set_, value))
 
 
 @task_app.command("deps")
-def deps(id: str, set_: Annotated[Optional[str], typer.Option("--set")] = None) -> None:
+def deps(id: str, value: Annotated[Optional[str], _SET_ARG] = None,
+         set_: Annotated[Optional[str], typer.Option("--set")] = None) -> None:
     """查/补 task 级前置 DAG。"""
-    _run("deps", id=id, set=set_)
+    _run("deps", id=id, set=_set_value(set_, value))
 
 
 @task_app.command("parent")
-def parent(id: str, set_: Annotated[Optional[str], typer.Option("--set")] = None) -> None:
+def parent(id: str, value: Annotated[Optional[str], _SET_ARG] = None,
+           set_: Annotated[Optional[str], typer.Option("--set")] = None) -> None:
     """查/改既有 task 的 parent 挂载。"""
-    _run("parent", id=id, set=set_)
+    _run("parent", id=id, set=_set_value(set_, value))
 
 
 @task_app.command("research")
@@ -430,7 +473,15 @@ def subtask(
     if action not in ("add", "claim", "ready", "start", "check", "show", "rename", "done", "fail", "list"):
         raise typer.BadParameter("action 仅允许 add/claim/ready/start/check/show/rename/done/fail/list")
     if action in ("add", "start", "check", "show", "rename", "done", "fail") and not sid:
-        raise typer.BadParameter(f"subtask {action} 需要 sid")
+        # 报错带上该 action 的完整用法 —— 只说「需要 sid」的话, agent 还得再跑一次 --help 才知道
+        # sid 该摆在 tid 后面 (实测撞过两次)
+        usage = {"add": "subtask add <tid> <sid> --name <str> --desc <str> --estimate <num> [--deps] [--skills] [--repo]",
+                 "check": "subtask check <tid> <sid> [--check <验收项>]",
+                 "rename": "subtask rename <tid> <sid> [--id <新sid>] [--name <新名>]",
+                 "done": "subtask done <tid> <sid> [--passed <验收项>]",
+                 "fail": "subtask fail <tid> <sid> --note <原因>",
+                 }.get(action, f"subtask {action} <tid> <sid>")
+        raise typer.BadParameter(f"subtask {action} 需要 sid — 用法: {usage}")
     if action == "rename":
         _run("rename", tid=tid, sid=sid, id=id, name=name)
         return
@@ -505,24 +556,41 @@ def _prd_action(action: str, id: str, type_: str, list_: Optional[str]) -> None:
     _run("prd", action=action, id=id, type=type_, list=list_)
 
 
+def _prd_pairs(action: str, id: str, types: list[str], lists: list[str]) -> None:
+    """`--type`/`--list` 成对重复 = 一回合写多章。
+
+    PRD 七段原本要七次调用 (审计: 35 个 task 摊了 200 次 prd 写)。成对重复后一次写完,
+    循环内逐段落盘 + 逐段回显, 语义与分七次调用完全一致。
+    """
+    if len(types) != len(lists):
+        raise typer.BadParameter(
+            f"--type 与 --list 必须成对: 收到 {len(types)} 个 --type, {len(lists)} 个 --list")
+    for type_, list_ in zip(types, lists):
+        _prd_action(action, id, type_, list_)
+
+
 @prd_app.command("read")
-def prd_read(id: str, type_: Annotated[str, typer.Option("--type", help=_PRD_TYPE_HELP)]) -> None:
-    """读章节正文。"""
+def prd_read(id: str, type_: Annotated[Optional[str], typer.Option(
+        "--type", help=f"{_PRD_TYPE_HELP}; 省略 = 全文")] = None) -> None:
+    """读章节正文 (省略 --type 读全文)。"""
+    if type_ is None:
+        _run("prd", action="read", id=id, type=None, list=None)
+        return
     _prd_action("read", id, type_, None)
 
 
 @prd_app.command("write")
-def prd_write(id: str, type_: Annotated[str, typer.Option("--type", help=_PRD_TYPE_HELP)],
-              list_: Annotated[str, typer.Option("--list")]) -> None:
-    """整章清重建。"""
-    _prd_action("write", id, type_, list_)
+def prd_write(id: str, type_: Annotated[list[str], typer.Option("--type", help=_PRD_TYPE_HELP)],
+              list_: Annotated[list[str], typer.Option("--list")]) -> None:
+    """整章清重建 (--type/--list 可成对重复, 一回合写多章)。"""
+    _prd_pairs("write", id, type_, list_)
 
 
 @prd_app.command("add")
-def prd_add(id: str, type_: Annotated[str, typer.Option("--type", help=_PRD_TYPE_HELP)],
-            list_: Annotated[str, typer.Option("--list")]) -> None:
-    """追加条目。"""
-    _prd_action("add", id, type_, list_)
+def prd_add(id: str, type_: Annotated[list[str], typer.Option("--type", help=_PRD_TYPE_HELP)],
+            list_: Annotated[list[str], typer.Option("--list")]) -> None:
+    """追加条目 (--type/--list 可成对重复, 一回合写多章)。"""
+    _prd_pairs("add", id, type_, list_)
 
 
 @prd_app.command("check")

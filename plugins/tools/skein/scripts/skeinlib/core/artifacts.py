@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 from skeinlib.utils.errors import SkeinError
 from skeinlib.task.model import PRD_SECTIONS_V6, PRD_TODO_SECTIONS, PRD_TYPE_ALIAS
-from skeinlib.task.prd import (section_add, section_check, section_read, section_write,
+from skeinlib.task.prd import (prd_path, section_add, section_check, section_read, section_write,
                                seam_read, seam_write)
 
 import re
@@ -80,6 +80,11 @@ class Artifacts:
         tid = a.id.strip()
         self.ws.store.load(tid)  # task 存在性校验 (不存在 raise SkeinError)
         raw_type = a.type
+        if raw_type is None and a.action == "read":
+            # `prd read <id>` 免 --type = 读全文。原先 --type 必填, 想看全文只能逐段读七次,
+            # 或者先撞一次 `Missing option '--type'` 再补参数。
+            return {"id": tid, "section": "全文",
+                    "body": prd_path(self.ws.tasks, tid).read_text(encoding="utf-8")}
         if raw_type not in PRD_TYPE_ALIAS:
             raise SkeinError(f"非法 --type: {raw_type!r} — 合法值: {list(PRD_TYPE_ALIAS.keys())}")
         section = PRD_TYPE_ALIAS[raw_type]

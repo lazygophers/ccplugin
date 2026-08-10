@@ -82,32 +82,9 @@ def filematch_context(file_path: str, workspace_root: str) -> str:
     return "\n\n".join(sections)
 
 
-_CHAIN_SPLIT = re.compile(r"&&|\|\||;")
-
-
-def chained_writes(command: str) -> list[str]:
-    """单条 Bash 里被 && / || / ; 串起来的多个 .skein 状态写命令。
-
-    flow-loop 早就写了「禁把多条 skein 写成 && 长链」(中途失败留半成品 task, 重跑撞 id 已占用),
-    但只写在文档里 —— 实测一场会话违反 37 次。这里做物理兜底。
-    """
-    from skeinlib.hooks.post_tool_batch import is_write_command
-    parts = [p.strip() for p in _CHAIN_SPLIT.split(command) if p.strip()]
-    return [p for p in parts if is_write_command(p)]
-
-
 def cmd_guard(payload: dict[str, Any]) -> int:
-    if payload.get("tool_name") == "Bash":
-        writes = chained_writes(payload.get("tool_input", {}).get("command", "") or "")
-        if len(writes) > 1:
-            print(
-                f"单条 Bash 串了 {len(writes)} 个 skein 状态写命令 "
-                f"({'; '.join(w[:50] for w in writes)}) — 禁止。中途失败会留半成品 task "
-                "(create 成了但 prd write 挂了 → 重跑撞「id 已占用」, 只能换 id 留孤儿)。"
-                "拆成一条一个回合, 每条看回显; 批量认领用 `skein claim` / `skein subtask claim <tid>`。",
-                file=sys.stderr,
-            )
-            return 2
+    # 曾在此拦「单条 Bash 串 ≥2 个 skein 状态写命令」。已撤: 串接中途失败本就由各命令自身报错,
+    # 落盘状态是真值, 重跑照着回显改即可 —— 预防式硬阻反而逼出重试与等待, 净耗 token。
     file_path = payload.get("tool_input", {}).get("file_path", "")
     path_parts = file_path.replace("\\", "/").split("/") if file_path else []
     tool_name = payload.get("tool_name", "")
@@ -147,5 +124,5 @@ def cmd_guard(payload: dict[str, Any]) -> int:
             pass
     return 0
 
-__all__ = ["cmd_guard", "chained_writes", "file_matches_globs", "filematch_context", "find_filematch_specs",
+__all__ = ["cmd_guard", "file_matches_globs", "filematch_context", "find_filematch_specs",
            "parse_frontmatter", "strip_frontmatter", "GATED"]

@@ -313,3 +313,53 @@ def test_multi_repo_requires_repo_and_maps_dispatch_workdirs(
     by_sid = {item["subtask"]: item for item in result["exec"]["ready"]}
     assert by_sid["st1"]["workdir"] == str(ws / "child-a" / ".worktrees" / "skein-demo")
     assert by_sid["st2"]["workdir"] == str(ws / "child-b" / ".worktrees" / "skein-demo")
+
+
+# ---------- 12. 报错自足 / 常见写法直接收 (session 9facb9db: 12 个回合废在猜参数上) ----------
+def test_positional_value_equals_set(skein_cli: SkeinCli, ws: Path) -> None:
+    """`--set X` 与位置写法 `<id> X` 等价 —— 五条同构命令 (priority/estimate/repos/deps/parent)
+    抽 estimate/deps 各验一条。原先位置写法只报 `Got unexpected extra argument(s)`。"""
+    _mk(skein_cli, ws, "demo")
+    _mk(skein_cli, ws, "dep-a")
+    skein_cli(ws, "task", "estimate", "demo", "15")
+    assert json.loads(skein_cli(ws, "task", "estimate", "demo").stdout)["estimate"] == 15.0
+    skein_cli(ws, "task", "deps", "demo", "dep-a")
+    assert "dep-a" in skein_cli(ws, "task", "deps", "demo").stdout
+
+
+def test_unknown_option_error_lists_available_options(skein_cli: SkeinCli, ws: Path) -> None:
+    """选项名猜错时报错里直接列出这条命令收哪些选项, 不必再跑一次 `--help`。"""
+    _mk(skein_cli, ws)
+    r = skein_cli(ws, "task", "deps", "demo", "--add", "dep-a", check=False)
+    assert r.returncode != 0
+    assert "--set" in r.stdout + r.stderr, f"须列出可用选项: {r.stdout}{r.stderr}"
+
+
+def test_prd_read_without_type_returns_whole_doc(skein_cli: SkeinCli, ws: Path) -> None:
+    """`prd read <id>` 省略 --type = 读全文, 不再报 `Missing option '--type'`。"""
+    _mk(skein_cli, ws)
+    body = json.loads(skein_cli(ws, "prd", "read", "demo").stdout)["body"]
+    assert "## 目标" in body and "## 验收标准" in body, body
+
+
+def test_prd_write_accepts_paired_type_list(skein_cli: SkeinCli, ws: Path) -> None:
+    """`--type`/`--list` 成对重复 = 一回合写多章 (PRD 七段原本七次调用)。"""
+    _mk(skein_cli, ws)
+    skein_cli(ws, "prd", "write", "demo",
+              "--type", "goal", "--list", "目标一",
+              "--type", "scope", "--list", "边界一")
+    body = json.loads(skein_cli(ws, "prd", "read", "demo").stdout)["body"]
+    assert "目标一" in body and "边界一" in body, body
+    bad = skein_cli(ws, "prd", "write", "demo", "--type", "goal", "--list", "a",
+                    "--type", "scope", check=False)
+    assert bad.returncode != 0
+    assert "成对" in bad.stdout + bad.stderr, f"不成对须说清收到几个: {bad.stdout}{bad.stderr}"
+
+
+def test_subtask_missing_sid_error_carries_usage(skein_cli: SkeinCli, ws: Path) -> None:
+    """漏 sid 的报错带完整用法行 —— 只说「需要 sid」不说 sid 摆哪, 换来的是再跑一次 --help。"""
+    _mk(skein_cli, ws)
+    r = skein_cli(ws, "subtask", "add", "demo", "--name", "x", "--desc", "y",
+                  "--estimate", "1", check=False)
+    assert r.returncode != 0
+    assert "subtask add <tid> <sid>" in r.stdout + r.stderr, f"须带用法行: {r.stdout}{r.stderr}"
