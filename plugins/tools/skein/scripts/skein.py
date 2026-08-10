@@ -44,6 +44,11 @@ _HERE = os.path.dirname(os.path.realpath(__file__))
 if _HERE not in sys.path:
     sys.path.insert(0, _HERE)
 
+# 依赖自检: typer/pydantic/pyyaml 缺失则自动 pip install —r requirements.txt。
+# hooks.py 纯 stdlib 不调此函数 (热路径); 详见 _bootstrap.py。
+import _bootstrap  # noqa: E402
+_bootstrap.ensure_core_deps()
+
 
 def _run_main() -> None:
     from skeinlib.cli import main

@@ -49,6 +49,11 @@ _HERE = os.path.dirname(os.path.realpath(__file__))
 if _HERE not in sys.path:
     sys.path.insert(0, _HERE)
 
+# 依赖自检: pydantic/pyyaml 缺失则自动 pip install —r requirements.txt。
+# spec.py 的 import 链 (spec/cli → spec/facade → spec/analyze) 顶层 import pydantic; 详见 _bootstrap.py。
+import _bootstrap  # noqa: E402
+_bootstrap.ensure_core_deps()
+
 from skeinlib.utils.errors import SkeinError  # noqa: E402
 from skeinlib.spec.cli import main  # noqa: E402
 from skeinlib.spec.facade import Spec  # noqa: E402  对外符号: hooks.py 按名取用
