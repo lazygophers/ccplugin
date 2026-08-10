@@ -26,6 +26,8 @@
 
 **串接 skein 写命令时看回显**——中途失败（如 `create` 成了但 `prd write` 挂了）不会静默：每条命令各自打自己的结果，照着回显重跑失败的那条即可。落盘状态是真值，别为「防半成品」预先把命令拆成一条一回合。
 
+**`subtask done`/`fail` 属于 executor/researcher agent 自跑收尾**——main 串接 Bash 命令时不要把 `subtask done`/`fail` 串进去。executor 完成工作后自行执行 done/fail；main 串接这两条 = 替 agent 补收尾，破坏 agent 自治契约。main 只核对 agent 回传与实际状态是否一致。
+
 ## 任务流程框架
 
 ```
@@ -92,7 +94,7 @@ print('任务完成')
 
 ## 主循环骨架
 
-`skein flow run` 是一次 scheduler tick：自动认领 ready exec/check，并把 Agent 派发信息放进返回的 `next[]`。只消费 hint 的 `agent`、`tid`、`sid`、`workdir` / `workdirs`、`prompt`；不要从 `skein list` 重建 dispatch，也不要从 `task.worktree` 自行拼接 cwd。
+`skein flow run` 是一次 scheduler tick：自动认领 ready exec/check，并把 Agent 派发信息放进返回的 `next[]`。只消费 hint 的 `agent`、`tid`、`sid`、`workdir` / `workdirs`、`prompt`、`isolation`、`prompt`；不要从 `skein list` 重建 dispatch，也不要从 `task.worktree` 自行拼接 cwd。`isolation` 取值：worktree 禁用时 hint.isolation=`"none"`，Agent dispatch 不设 isolation 或设 `none`（原地在仓库根跑）；worktree 启用时 hint.isolation=`"worktree"`。
 
 **`prompt` 是 scheduler 生成的成品串，原样传给 Agent，别自己重写加料** —— 自撰 prompt 有两个实测下场：写太长被 Agent 工具拒，或干脆不派、main 自己把活干了（一场会话 479 次 Edit 全在 main，executor 一次没派）。running subtask 的活归 executor；main 亲做会被 PostToolUse 提醒。
 

@@ -211,7 +211,7 @@ def test_task_json_schema_fields(skein_cli: SkeinCli, ws: Path) -> None:
 
 # ---------- 10. confirm 级联: super 确认 → 就绪 child 一起进行中 ----------
 def test_confirm_supertask_cascades_to_children(skein_cli: SkeinCli, ws: Path) -> None:
-    """确认父节点时, planning 就绪且前置已完成的 child 一并转 active; 没就绪的原样报出原因。
+    """确认父节点时, planning 就绪的 child 一并转 active; 没就绪的原样报出原因。
 
     级联前 supertask 自身没有 subtask —— 它的活儿在 child 里, 这条同时守住「有 child 就
     不再要求 super 挂 subtask」那道放宽。

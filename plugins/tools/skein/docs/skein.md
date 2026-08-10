@@ -80,7 +80,7 @@
 | (无) → 待处理 | plan 完成 | 产出 prd/design/findings + subtask DAG + contracts |
 | 待处理 → 调研中 | `skein task research` | 需已登记 ≥1 `--phase research` subtask |
 | 调研中 → 待处理 | `skein task plan` | 需调研 subtask 全 done, 收敛回规划 |
-| 待处理 → 进行中 | `skein task confirm` | 用户确认门 (**吸收 start**): 验 prd + ≥1 subtask + doctor 体检 + deps 校验, 一步建 worktree 直接开工, 无就绪中间态 |
+| 待处理 → 进行中 | `skein task confirm` | 用户确认门 (**吸收 start**): 验 prd + ≥1 subtask + doctor 体检, 一步建 worktree 直接开工, 无就绪中间态 (不校验前置 task 进度 — 依赖门在 claim 取活时判) |
 | 进行中 → 检查中 | `skein task check` | 全部 subtask 完成后手工/编排触发 |
 | 检查中 → 收尾中 | `skein task finishing` | 占 gate 池槽位 (上限 `pools.gate`) |
 | 收尾中 → 已完成 | `skein task finish` | merge → 销wt → 标记完成 + 异步 spec sediment |

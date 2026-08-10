@@ -90,8 +90,9 @@ subtask.ready = 所有 depends_on 均 done
 | 操作                           | 是否被 deps 阻塞 | 说明                           |
 | ------------------------------ | ---------------- | ------------------------------ |
 | `skein task create` / `subtask add` | 否               | planning 可提前做。            |
-| `skein task confirm`                | 是               | task 前置未 done 时拒。        |
-| `skein claim exec`             | 是               | subtask 前置未 done 不 ready。 |
+| `skein task confirm`                | 否               | confirm 只审 planning 产物 + 人审，不看前置进度（前置没跑完也能先批）。 |
+| `skein claim exec` / `flow run`     | 是               | 前置 task 未 done 的 task 不出活；subtask 自身 depends_on 未 done 也不 ready。 |
+| `skein subtask claim` / `subtask start` | 是           | 同上，单 task 路径同一道门。   |
 
 ready 数超过空闲槽时按四键稳定排序截取：
 

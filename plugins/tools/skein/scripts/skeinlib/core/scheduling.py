@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from skeinlib.core.workspace import Workspace
 
-from skeinlib.infra.worktree import workdir_for
+from skeinlib.infra.worktree import workdir_for, worktrees_of
 from skeinlib.task.dag import _crit_weight, _split, _split_semi, _sub_estimate_sum, _sub_pct
 from skeinlib.utils.errors import SkeinError
 from skeinlib.task.model import (SubtaskStatus, SubtaskPhase, TaskStatus, PRIORITY_RANK, PRIORITY_DEFAULT,
@@ -79,6 +79,7 @@ def _dispatch_hints(claimed: list[dict[str, Any]] | None = None,
                                 "why": "执行该 subtask"}
         if tasks:
             t = tasks[c["tid"]]
+            hint["isolation"] = "worktree" if (worktrees_of(t) or t.get("worktree")) else "none"
             repo = c.get("repo")
             if repo is None and len(t.get("worktrees") or []) > 1:
                 hint["mismatch"] = "multi_repo_subtask_missing_repo"
@@ -95,6 +96,7 @@ def _dispatch_hints(claimed: list[dict[str, Any]] | None = None,
         hint = {"agent": "skein:skein-checker", "tid": tid, "why": "验收该 task"}
         if tasks:
             t = tasks[tid]
+            hint["isolation"] = "worktree" if (worktrees_of(t) or t.get("worktree")) else "none"
             wts = t.get("worktrees") or []
             if len(wts) > 1:
                 workdirs: list[str] = []
@@ -119,6 +121,7 @@ def _dispatch_hints(claimed: list[dict[str, Any]] | None = None,
     for tid in finishing or []:
         hint = {"agent": "skein:skein-finisher", "tid": tid, "why": "收尾合并该 task"}
         if tasks:
+            hint["isolation"] = "none"
             hint["workdir"] = str(root or ".")
         hints.append(hint)
     for h in hints:
@@ -164,6 +167,8 @@ class Scheduler:
         """就绪批: pending + 依赖全 done, 按打分降序排序后截到空闲槽位 (见 _score:
         关键路径优先 = 最长下游链先派, 最小化 makespan; 并行只看 depends_on DAG, 无写文件冲突自算;
         同分按登记序稳定)。"""
+        if self._deps_blocked(t):
+            return []  # 前置 task 未完成 → 整个 task 不出活 (依赖门在取活时判, 不在 confirm 判)
         subs = t.get("subtasks", [])
         done = {s["sid"] for s in subs if s["status"] == SubtaskStatus.DONE}
         running = [s for s in subs if s["status"] == SubtaskStatus.RUNNING]
@@ -172,10 +177,12 @@ class Scheduler:
             return []  # 并发满 → 阻塞
         crit = _crit_weight(subs)
         cand = [(i, s) for i, s in enumerate(subs)
-                if s["status"] == SubtaskStatus.PENDING
+                if s["status"] in (SubtaskStatus.PENDING, SubtaskStatus.FAILED)
                 and all(d in done for d in s.get("depends_on", []))]
-        # 打分降序, 同分按登记序稳定 (i 升序)
-        cand.sort(key=lambda p: (-_score(p[1], crit.get(p[1]["sid"], 0)), p[0]))
+        # 打分降序, PENDING 优先于 FAILED (重试不抢新活的槽), 同分按登记序稳定 (i 升序)
+        cand.sort(key=lambda p: (-_score(p[1], crit.get(p[1]["sid"], 0)),
+                                 0 if p[1]["status"] == SubtaskStatus.PENDING else 1,
+                                 p[0]))
         return [s for _, s in cand[:slots]]
 
     def _deps_blocked(self, t: dict[str, Any]) -> list[str]:
@@ -190,7 +197,7 @@ class Scheduler:
         前置依赖门在这一层判: confirm 只管审批, 「能不能开干」归取活时判 —— 否则前置未完成的
         task 一旦被确认就会真派 executor 去干活。
         """
-        return self.ws.store.active()
+        return [t for t in self.ws.store.active() if not self._deps_blocked(t)]
 
     def _global_ready(self) -> list[tuple[dict[str, Any], dict[str, Any]]]:
         """全局跨 task 就绪批: 所有**可调度** task (进行中 + 调研中 + 收尾中) 的 ready subtask
@@ -215,14 +222,16 @@ class Scheduler:
             crit = _crit_weight(subs)
             prio = PRIORITY_RANK.get(t.get("priority") or PRIORITY_DEFAULT, PRIORITY_RANK[PRIORITY_DEFAULT])
             for i, s in enumerate(subs):
-                if s["status"] != SubtaskStatus.PENDING:
+                if s["status"] not in (SubtaskStatus.PENDING, SubtaskStatus.FAILED):
                     continue
                 if not all(d in done for d in s.get("depends_on", [])):
                     continue  # 依赖未全 done 不入池 (依赖硬优先, 优先级不越过)
                 cand.append((t, s, ti, i, _score(s, crit.get(s["sid"], 0)), prio))
-        # 优先级降序 → 打分降序 → task 登记序 → subtask 登记序 (active task 也按优先级排,
-        # 不再"同级不分"; 全同分时首项相等, 退化为改动前的顺序 → 零回归)
-        cand.sort(key=lambda x: (-x[5], -x[4], x[2], x[3]))
+        # 优先级降序 → 打分降序 → PENDING 优先于 FAILED → task 登记序 → subtask 登记序
+        # (PENDING 先于 FAILED: 重试不抢新活的槽; 全同分时退化为改动前的顺序 → 零回归)
+        cand.sort(key=lambda x: (-x[5], -x[4],
+                                 0 if x[1]["status"] == SubtaskStatus.PENDING else 1,
+                                 x[2], x[3]))
         return [(c[0], c[1]) for c in cand[:slots]]
 
     def claim(self, a: argparse.Namespace) -> dict[str, Any]:
@@ -257,14 +266,47 @@ class Scheduler:
         tasks = self.ws.store.active()
         grun = sum(1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SubtaskStatus.RUNNING)
         gpend = sum(1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SubtaskStatus.PENDING)
+        gfailed = sum(1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SubtaskStatus.FAILED)
         mp = self.ws.config()["pools"]["work"]
-        info: dict[str, Any] = {"running": grun, "capacity": mp, "pending": gpend}
+        info: dict[str, Any] = {"running": grun, "capacity": mp, "pending": gpend, "failed": gfailed}
         if grun >= mp:
             info.update({"reason": "work_pool_full", "message": "work 池已满 — 先等一个 subtask done 释放槽"})
         elif gpend == 0:
             info.update({"reason": "no_pending_subtask", "message": "无待处理 subtask"})
         else:
-            info.update({"reason": "dependencies_blocked", "message": "待处理 subtask 的依赖未全部完成"})
+            # 区分阻塞成因: dep_failed > task_dep_blocked > subtask_dep_blocked
+            dep_failed_sids: list[str] = []
+            task_blocked = False
+            subtask_blocked = False
+            for t in tasks:
+                if not any(s["status"] == SubtaskStatus.PENDING for s in t.get("subtasks", [])):
+                    continue
+                # task 级前置依赖阻塞
+                if self._deps_blocked(t):
+                    task_blocked = True
+                    continue
+                # subtask 级 depends_on 阻塞
+                subs = t.get("subtasks", [])
+                status_by_sid = {s["sid"]: s["status"] for s in subs}
+                for s in subs:
+                    if s["status"] != SubtaskStatus.PENDING:
+                        continue
+                    for d in s.get("depends_on", []):
+                        dst = status_by_sid.get(d)
+                        if dst == SubtaskStatus.FAILED:
+                            dep_failed_sids.append(d)
+                        elif dst != SubtaskStatus.DONE:
+                            subtask_blocked = True
+            if dep_failed_sids:
+                failed_unique = sorted(set(dep_failed_sids))
+                info.update({"reason": "dep_failed", "failed_deps": failed_unique,
+                             "message": f"subtask 依赖链中有 FAILED subtask ({', '.join(failed_unique)}) — 需要 reset 或 replan"})
+            elif task_blocked:
+                info.update({"reason": "task_dep_blocked",
+                             "message": "前置 task 未完成, 当前 task 的 subtask 无法开工"})
+            else:
+                info.update({"reason": "subtask_dep_blocked",
+                             "message": "待处理 subtask 的依赖 (depends_on) 未全部完成"})
         return info
 
     def _empty_batch_msg(self) -> str:
@@ -273,8 +315,15 @@ class Scheduler:
             return f"work 池已满 (running {info['running']}/{info['capacity']}) — 先等一个 subtask done 释放槽"
         if info["reason"] == "no_pending_subtask":
             return f"无待处理 subtask (work 池 running {info['running']}/{info['capacity']})"
+        if info["reason"] == "dep_failed":
+            deps = ", ".join(info.get("failed_deps", []))
+            return (f"subtask 依赖链中有 FAILED subtask ({deps}) — 需要 reset 或 replan "
+                    f"(work 池 running {info['running']}/{info['capacity']}, pending: {info['pending']}, failed: {info['failed']})")
+        if info["reason"] == "task_dep_blocked":
+            return (f"前置 task 未完成 (work 池 running {info['running']}/{info['capacity']}, "
+                    f"pending: {info['pending']}, failed: {info['failed']})")
         return (f"待处理 subtask 的依赖未全部完成 (work 池 running {info['running']}/{info['capacity']}, "
-                f"pending: {info['pending']})")
+                f"pending: {info['pending']}, failed: {info['failed']})")
 
     def _claim_exec_preview(self, a: argparse.Namespace) -> dict[str, Any]:
         batch = self._global_ready()
@@ -553,6 +602,9 @@ class Scheduler:
                     f"先 `skein task confirm {a.tid}` 过人审门进「进行中」"
                     f"(调研类 subtask 走 `skein task research {a.tid}`)")
             # 同理: 前置 task 未完成时这条单点路径也得拦, 否则就绕过了调度侧的依赖门。
+            if blocked := self._deps_blocked(t):
+                raise SkeinError(
+                    f"{a.tid} 前置 task 未完成: {', '.join(blocked)} — 先 finish 它们再开工")
             if t["status"] == TaskStatus.RESEARCH and s.get("phase") != SubtaskPhase.RESEARCH:
                 raise SkeinError(
                     f"{a.tid} 调研中, 只能 start phase=research 的 subtask — "
