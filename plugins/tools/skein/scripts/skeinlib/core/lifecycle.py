@@ -353,9 +353,13 @@ class Lifecycle:
 
     def confirm(self, a: argparse.Namespace) -> dict[str, Any]:
         """用户确认门 (待处理→进行中), **吸收原 `start` 的全部职责**: planning 完成 (prd 填齐 +
-        ≥1 subtask + 预计工时) 且用户评审通过后, doctor 体检 + 前置 deps 校验 + 建 worktree,
+        ≥1 subtask + 预计工时) 且用户评审通过后, doctor 体检 + 建 worktree,
         一步直接把 task 推进「进行中」——「就绪」中间态已删 (人审通过的下一秒就该开工, 没人真
         停在那儿, 见 design.md §1)。
+
+        **不校验前置 task 是否完成**: confirm 只确认「PRD 这批审批做完了」, 是否可执行由调度侧
+        取 subtask 时判 (`_schedulable` / `_ready` / `subtask start`)。把依赖门放这里会让一整
+        批下游 task 在前置跑完前连审批都进行不了, 人审被迫串行化。
         """
         t = self.ws.store.load(a.id)
         if t["status"] == TaskStatus.RESEARCH:
@@ -373,12 +377,9 @@ class Lifecycle:
             return {"summary": review_summary(self.ws.tasks, a.id, t)}
         channel = self._require_user_review(a.id, bool(getattr(a, "approved", False)),
                                             bool(getattr(a, "unattended", False)))
-        # 吸收原 start 的前置校验: doctor 体检 + deps + prd double-check (confirm 后被改空的兜底)
+        # 吸收原 start 的前置校验: doctor 体检 + prd double-check (confirm 后被改空的兜底)
         self._doctor(a)
         self.ws._stage_hooks("confirm", "before", self.ws._hook_ctx(a.id, t=t))
-        undone = [d for d in t["deps"] if self.ws._dep_unfinished(d)]
-        if undone:
-            raise SkeinError(f"前置未完成: {', '.join(undone)} — 先 finish 它们")
         validate_prd(self.ws.tasks, a.id)
         result = self._activate(t, channel)
         # supertask 级联: 父确认了, 底下已就绪的 child task 一起开工。
@@ -391,10 +392,11 @@ class Lifecycle:
         return result
 
     def _activate_children(self, tid: str, channel: str) -> tuple[list[str], dict[str, str]]:
-        """把 supertask 下所有「planning 就绪 + 前置已完成」的 pending child 一并推进 active。
+        """把 supertask 下所有「planning 就绪」的 pending child 一并推进 active。
 
-        没就绪的不硬推 (planning 没填完 / 前置没完成的 task 开了工也是空转), 原因回传给调用方
-        原样展示 —— 用户点一次确认, 得知道哪些没跟着动、为什么。
+        planning 没填完的不硬推, 原因回传给调用方原样展示 —— 用户点一次确认, 得知道哪些没跟着
+        动、为什么。前置未完成的 child 照样推进 active: 与 confirm 同一套语义 (审批不看依赖),
+        它的 subtask 到调度侧才会被拦住, 不会提前占槽。
         """
         started: list[str] = []
         held: dict[str, str] = {}
@@ -407,9 +409,6 @@ class Lifecycle:
             child = self.ws.store.load(cid)
             if gaps := self._planning_gaps(cid, child):
                 held[cid] = f"planning 未就绪: {'; '.join(gaps)}"
-                continue
-            if undone := [d for d in child["deps"] if self.ws._dep_unfinished(d)]:
-                held[cid] = f"前置未完成: {', '.join(undone)}"
                 continue
             self.ws._stage_hooks("confirm", "before", self.ws._hook_ctx(cid, t=child))
             self._activate(child, channel)

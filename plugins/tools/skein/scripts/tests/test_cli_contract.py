@@ -363,3 +363,36 @@ def test_subtask_missing_sid_error_carries_usage(skein_cli: SkeinCli, ws: Path) 
                   "--estimate", "1", check=False)
     assert r.returncode != 0
     assert "subtask add <tid> <sid>" in r.stdout + r.stderr, f"须带用法行: {r.stdout}{r.stderr}"
+
+
+# ---------- 13. prd write 的覆盖必须可见 + `--list a b c` 收多条 ----------
+def test_prd_write_reports_cleared_items(skein_cli: SkeinCli, ws: Path) -> None:
+    """write 是整章清重建, 回显须报清掉几条/写进几条 —— 否则逐条 write 会静默丢数据。
+    占位 `- [ ] TODO:` 是模板初始态, 不计入 cleared。"""
+    _mk(skein_cli, ws)
+    first = json.loads(skein_cli(ws, "prd", "write", "demo", "--type", "acceptance",
+                                 "--list", "验收一\\n验收二\\n验收三").stdout)
+    assert first["written"] == 3, first
+    assert first["cleared"] == 0, f"清的是 TODO 占位, 不该报警: {first}"
+    second = json.loads(skein_cli(ws, "prd", "write", "demo", "--type", "acceptance",
+                                  "--list", "验收四").stdout)
+    assert (second["cleared"], second["written"]) == (3, 1), f"须报清掉 3 条只写 1 条: {second}"
+
+
+def test_prd_write_accepts_bare_positional_items(skein_cli: SkeinCli, ws: Path) -> None:
+    """`--list "a" "b" "c"` 不再报 unexpected extra argument, 三条并入同一段一次写完。
+    与 --type/--list 成对重复共存: 位置参数只并入最后一个 --list。"""
+    _mk(skein_cli, ws)
+    out = json.loads(skein_cli(ws, "prd", "write", "demo", "--type", "acceptance",
+                               "--list", "验收一", "验收二", "验收三").stdout)
+    assert out["written"] == 3, out
+    body = json.loads(skein_cli(ws, "prd", "read", "demo", "--type", "acceptance").stdout)["body"]
+    assert all(x in body for x in ("验收一", "验收二", "验收三")), body
+
+    skein_cli(ws, "prd", "write", "demo",
+              "--type", "goal", "--list", "目标一",
+              "--type", "scope", "--list", "边界一", "边界二")
+    goal = json.loads(skein_cli(ws, "prd", "read", "demo", "--type", "goal").stdout)["body"]
+    scope = json.loads(skein_cli(ws, "prd", "read", "demo", "--type", "scope").stdout)["body"]
+    assert "目标一" in goal and "边界二" not in goal, goal
+    assert "边界一" in scope and "边界二" in scope, scope

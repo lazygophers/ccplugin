@@ -178,11 +178,17 @@ class Scheduler:
         cand.sort(key=lambda p: (-_score(p[1], crit.get(p[1]["sid"], 0)), p[0]))
         return [s for _, s in cand[:slots]]
 
+    def _deps_blocked(self, t: dict[str, Any]) -> list[str]:
+        """该 task 尚未完成的前置 task id 列表 (空 = 可派活)。"""
+        return [d for d in t.get("deps") or [] if self.ws._dep_unfinished(d)]
+
     def _schedulable(self) -> list[dict[str, Any]]:
-        """可被调度的 task: 全部 active 态 (进行中/调研中/收尾中), 按登记序。
+        """可被调度的 task: active 态 (进行中/调研中/收尾中) 且前置 task 全完成, 按登记序。
 
         `confirm` 吸收原 `start` 后, task 一过人审门就直接进「进行中」并建好 worktree ——
         不再有「就绪但未启动」的中间态需要在这里补一次自动启动。
+        前置依赖门在这一层判: confirm 只管审批, 「能不能开干」归取活时判 —— 否则前置未完成的
+        task 一旦被确认就会真派 executor 去干活。
         """
         return self.ws.store.active()
 
@@ -195,8 +201,10 @@ class Scheduler:
         远大于其余两项, 同优先级档内退化为「关键路径优先, 全同分按登记序」, 与打分引入前零回归。
         返回 [(task_obj, subtask_obj), ...]。"""
         tasks = self._schedulable()
+        # 占槽按全部 active task 算 (含前置阻塞的): 它们的 running subtask 也在真跑, 漏算会超发。
         global_running = sum(
-            1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SubtaskStatus.RUNNING)
+            1 for t in self.ws.store.active() for s in t.get("subtasks", [])
+            if s["status"] == SubtaskStatus.RUNNING)
         slots = self.ws.config()["pools"]["work"] - global_running
         if slots <= 0:
             return []
@@ -241,8 +249,12 @@ class Scheduler:
         return results
 
     def _empty_batch_info(self) -> dict[str, Any]:
-        """work 池空批原因 —— 满槽/无待处理/依赖未完成三种成因分开报。"""
-        tasks = self._schedulable()
+        """work 池空批原因 —— 满槽/无待处理/依赖未完成三种成因分开报。
+
+        统计口径用全部 active task (不用 `_schedulable`): 被前置 task 卡住的 task 若被过滤掉,
+        它那些 pending subtask 就数不到, 空批原因会误报成「无待处理 subtask」。
+        """
+        tasks = self.ws.store.active()
         grun = sum(1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SubtaskStatus.RUNNING)
         gpend = sum(1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SubtaskStatus.PENDING)
         mp = self.ws.config()["pools"]["work"]
@@ -540,6 +552,7 @@ class Scheduler:
                     f"{a.tid} 状态 {t['status']}, 不能 start subtask — "
                     f"先 `skein task confirm {a.tid}` 过人审门进「进行中」"
                     f"(调研类 subtask 走 `skein task research {a.tid}`)")
+            # 同理: 前置 task 未完成时这条单点路径也得拦, 否则就绕过了调度侧的依赖门。
             if t["status"] == TaskStatus.RESEARCH and s.get("phase") != SubtaskPhase.RESEARCH:
                 raise SkeinError(
                     f"{a.tid} 调研中, 只能 start phase=research 的 subtask — "

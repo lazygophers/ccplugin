@@ -117,15 +117,33 @@ def section_add(tasks_dir: Path, tid: str, section: str, text: str) -> list[str]
     return lines[s:e]
 
 
-def section_write(tasks_dir: Path, tid: str, section: str, text: str) -> list[str]:
-    """整章清重建 (仅保留 ## 标题行, 描述提示行 + 旧条目全清, 替换为 text 条目)。返回写后的章节正文行。"""
+def _count_items(body: list[str]) -> int:
+    """数章节里的实条目 —— `- [ ] TODO: 填X` 是模板初始态, 清它是正常填写, 不算覆盖既有内容。"""
+    n = 0
+    for ln in body:
+        s = ln.strip()
+        if not re.match(r"^(-\s+|\d+[.)]\s+)", s):
+            continue
+        if re.match(r"^-\s+\[[ xX]\]\s+TODO\b", s):
+            continue
+        n += 1
+    return n
+
+
+def section_write(tasks_dir: Path, tid: str, section: str, text: str) -> tuple[list[str], int]:
+    """整章清重建 (仅保留 ## 标题行, 描述提示行 + 旧条目全清, 替换为 text 条目)。
+
+    返回 (写后的章节正文行, 被清掉的既有条目数)。第二个返回值是给回显用的:
+    逐条调用 write 会把前面写的条目静默清光, 回显不报数就看不出刚丢了几条。
+    """
     prd = prd_path(tasks_dir, tid)
     lines = prd.read_text(encoding="utf-8").split("\n")
     s, e = _section_bounds(lines, section)
+    cleared = _count_items(lines[s:e])
     new_items = _normalize(text, section)
     lines[s:e] = new_items
     prd.write_text("\n".join(lines), encoding="utf-8")
-    return new_items
+    return new_items, cleared
 
 
 def section_check(tasks_dir: Path, tid: str, section: str, match: str, flag: bool) -> int:

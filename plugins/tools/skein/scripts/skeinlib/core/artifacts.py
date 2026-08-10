@@ -99,8 +99,10 @@ class Artifacts:
             return {"id": tid, "section": section, "action": "add",
                     "lines": len(a.list.split(chr(10)))}
         elif act == "write":
-            section_write(self.ws.tasks, tid, section, a.list)
-            return {"id": tid, "section": section, "action": "write"}
+            written, cleared = section_write(self.ws.tasks, tid, section, a.list)
+            # cleared > 0 = 刚覆盖掉了既有条目 (逐条 write 会静默丢数据), 回显必须让调用方看见
+            return {"id": tid, "section": section, "action": "write",
+                    "written": len(written), "cleared": cleared}
         elif act == "check":
             n = section_check(self.ws.tasks, tid, section, a.list, flag=True)
             return {"id": tid, "section": section, "action": "check", "matched": n}

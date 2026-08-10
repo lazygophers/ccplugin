@@ -150,7 +150,8 @@ def main() -> None:
         assert not any(x["id"] == "task-1" for x in top["tasks"]), "归档 task 仍留在顶层索引"
         assert any(x["id"] == "task-2" for x in top["tasks"]), "task-2 应仍在顶层索引"
 
-        # deps: task-3 依赖 task-2, task-2 未 finish 前 confirm task-3 应被 deps 门拒
+        # deps: task-3 依赖 task-2 (前置未完成不再挡 confirm, 见 test_dep_gate.py;
+        # 这里只把 task-3 的 planning 备齐, 留到下面 task-2 归档后走完整流程)
         (d / ".skein/task/task-3/task.json").write_text(
             json.dumps({**json.loads((d / ".skein/task/task-3/task.json").read_text()),
                         "deps": ["task-2"]}, ensure_ascii=False))
@@ -161,8 +162,6 @@ def main() -> None:
         design3.write_text(re.sub(
             r"- \[ \] TODO: 填测试接缝", "- [x] 复用 `test_x.py::test_y` 现有单测", design3.read_text()))
         sk(d, "estimate", "task-3", "--set", "4")
-        r = sk(d, "confirm", "task-3", check=False)
-        assert r.returncode != 0 and "前置未完成" in r.stderr, "deps 门未生效"
 
         # board 渲染无 focus 标记, 列出 active task 行
         board = (d / ".skein/task.md").read_text()

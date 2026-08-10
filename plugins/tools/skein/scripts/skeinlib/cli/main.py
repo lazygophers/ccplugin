@@ -25,12 +25,19 @@ try:
     except ImportError:
         import click as _click  # type: ignore[no-redef]  # typer <0.12 (顶层 click 即 typer 的 click)
 except ImportError:
-    # typer 整体缺失或内部结构异常 → 改用 uv run 的隔离环境重跑 (那里有锁定的可用版本)。
+    # typer 整体缺失或内部结构异常 → 改用 uv 的隔离环境重跑 (那里按 requirements.txt 装齐)。
     # 注意异常类用 ImportError (ModuleNotFoundError 是其子类, 但反向不成立 —— 旧版 typer 缺
     # `_click` 抛的是 ImportError 而非 ModuleNotFoundError, 原代码只接后者导致 bootstrap 漏触发)。
+    #
+    # 命令行必须由 _bootstrap.uv_rerun_cmd 构造: 光 `uv run python3` 不带任何依赖声明, 子进程
+    # 照样没有 typer, 只会原样再打一遍同一份 traceback, 看起来就像这条兜底根本没跑。
     if os.environ.get("SKEIN_TYPER_BOOTSTRAPPED") != "1":
-        env = dict(os.environ, SKEIN_TYPER_BOOTSTRAPPED="1")
-        raise SystemExit(subprocess.run(["uv", "run", "python3", *sys.argv], env=env).returncode)
+        try:
+            import _bootstrap  # scripts/ 由入口 (skein.py / spec.py) 置于 sys.path[0]
+            env = dict(os.environ, SKEIN_TYPER_BOOTSTRAPPED="1")
+            raise SystemExit(subprocess.run(_bootstrap.uv_rerun_cmd(sys.argv), env=env).returncode)
+        except (OSError, ImportError):
+            pass  # 没装 uv / 拿不到 _bootstrap — 落回原始 ImportError, 比「uv 找不到」好懂
     raise
 
 from skeinlib.hooks.runner import DBG, debug_enabled
@@ -556,6 +563,19 @@ def _prd_action(action: str, id: str, type_: str, list_: Optional[str]) -> None:
     _run("prd", action=action, id=id, type=type_, list=list_)
 
 
+def _merge_extra(lists: list[str], extra: Optional[list[str]]) -> list[str]:
+    """`--list "a" "b" "c"` 里的裸位置参数并入最后一个 `--list` 那一段。
+
+    click 的 `--list` 只吃一个值, 余下的落成位置参数直接报 unexpected extra argument, 逼调用方
+    拆成一条一次 —— 而 write 是整章清重建, 拆开写等于一条条把前面的清掉。
+    """
+    if not extra:
+        return lists
+    if not lists:
+        raise typer.BadParameter(f"多出的位置参数 {extra} 无 --list 可并入 — 先写 --list")
+    return [*lists[:-1], "\n".join([lists[-1], *extra])]
+
+
 def _prd_pairs(action: str, id: str, types: list[str], lists: list[str]) -> None:
     """`--type`/`--list` 成对重复 = 一回合写多章。
 
@@ -581,16 +601,20 @@ def prd_read(id: str, type_: Annotated[Optional[str], typer.Option(
 
 @prd_app.command("write")
 def prd_write(id: str, type_: Annotated[list[str], typer.Option("--type", help=_PRD_TYPE_HELP)],
-              list_: Annotated[list[str], typer.Option("--list")]) -> None:
+              list_: Annotated[list[str], typer.Option("--list")],
+              extra: Annotated[Optional[list[str]], typer.Argument(
+                  help="`--list` 后多写的条目, 并入最后一个 --list 那一段")] = None) -> None:
     """整章清重建 (--type/--list 可成对重复, 一回合写多章)。"""
-    _prd_pairs("write", id, type_, list_)
+    _prd_pairs("write", id, type_, _merge_extra(list_, extra))
 
 
 @prd_app.command("add")
 def prd_add(id: str, type_: Annotated[list[str], typer.Option("--type", help=_PRD_TYPE_HELP)],
-            list_: Annotated[list[str], typer.Option("--list")]) -> None:
+            list_: Annotated[list[str], typer.Option("--list")],
+            extra: Annotated[Optional[list[str]], typer.Argument(
+                help="`--list` 后多写的条目, 并入最后一个 --list 那一段")] = None) -> None:
     """追加条目 (--type/--list 可成对重复, 一回合写多章)。"""
-    _prd_pairs("add", id, type_, list_)
+    _prd_pairs("add", id, type_, _merge_extra(list_, extra))
 
 
 @prd_app.command("check")
