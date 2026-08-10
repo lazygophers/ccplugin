@@ -297,8 +297,13 @@ class Lifecycle:
         """跑齐全部 planning 硬门, 返回未就绪项文案 (空 = 全过)。"""
         gaps: list[str] = []
         if not (t.get("subtasks") or []):
-            gaps.append(f"无 subtask 登记 — `skein subtask add {tid} <sid> --name <标题> "
-                        f"--desc <描述> --estimate <小时>`")
+            # supertask 的活儿在 child task 里, 它自己有 child 就算拆过了 —— 再要它挂 subtask
+            # 等于逼用户在聚合层造一批假 subtask 才能 confirm。
+            has_children = (t.get("kind") == "supertask"
+                            and any(c.get("parent") == tid for c in self.ws.store.all_tasks()))
+            if not has_children:
+                gaps.append(f"无 subtask 登记 — `skein subtask add {tid} <sid> --name <标题> "
+                            f"--desc <描述> --estimate <小时>`")
         gates: tuple[Callable[[], None], ...] = (
             lambda: validate_prd(self.ws.tasks, tid),
             lambda: validate_seam(self.ws.tasks, tid),
@@ -375,6 +380,46 @@ class Lifecycle:
         if undone:
             raise SkeinError(f"前置未完成: {', '.join(undone)} — 先 finish 它们")
         validate_prd(self.ws.tasks, a.id)
+        result = self._activate(t, channel)
+        # supertask 级联: 父确认了, 底下已就绪的 child task 一起开工。
+        # 不级联的话用户点一次「确认规划」只推动了那个空壳聚合层, 还得逐个 child 再点一遍 ——
+        # 而 child 的 planning 是跟着 super 一起评审的, 再要一次人审是重复门。
+        if t.get("kind") == "supertask":
+            started, held = self._activate_children(a.id, channel)
+            result["children_started"] = started
+            result["children_held"] = held
+        return result
+
+    def _activate_children(self, tid: str, channel: str) -> tuple[list[str], dict[str, str]]:
+        """把 supertask 下所有「planning 就绪 + 前置已完成」的 pending child 一并推进 active。
+
+        没就绪的不硬推 (planning 没填完 / 前置没完成的 task 开了工也是空转), 原因回传给调用方
+        原样展示 —— 用户点一次确认, 得知道哪些没跟着动、为什么。
+        """
+        started: list[str] = []
+        held: dict[str, str] = {}
+        for c in self.ws.store.all_tasks():
+            if c.get("parent") != tid:
+                continue
+            cid = c["id"]
+            if c["status"] != TaskStatus.PENDING:
+                continue  # 已在跑/已完成的不动
+            child = self.ws.store.load(cid)
+            if gaps := self._planning_gaps(cid, child):
+                held[cid] = f"planning 未就绪: {'; '.join(gaps)}"
+                continue
+            if undone := [d for d in child["deps"] if self.ws._dep_unfinished(d)]:
+                held[cid] = f"前置未完成: {', '.join(undone)}"
+                continue
+            self.ws._stage_hooks("confirm", "before", self.ws._hook_ctx(cid, t=child))
+            self._activate(child, channel)
+            self.ws._stage_hooks("confirm", "after", self.ws._hook_ctx(cid, t=child))
+            started.append(cid)
+        return started, held
+
+    def _activate(self, t: dict[str, Any], channel: str) -> dict[str, Any]:
+        """待处理 → 进行中 的落盘动作: 置态 + 建 worktree + 落时间线。前置校验归调用方。"""
+        a_id = t["id"]
         t["status"] = TaskStatus.ACTIVE
         t["confirmed"] = now()
         t["confirmed_by"] = channel  # 审核渠道留痕: ask (AskUserQuestion) / user-tty (终端交互)
@@ -386,13 +431,13 @@ class Lifecycle:
         # 故只在 config 显式禁用时挡, 不吃 self.ws.git (支持非 git 父 + 多 git 子的微服务布局)。
         if repos and not wt_cfg:
             raise SkeinError(
-                f"{a.id} 声明了 --repos 但 config worktree.enabled=false — 多子 git 隔离需启用 worktree")
+                f"{a_id} 声明了 --repos 但 config worktree.enabled=false — 多子 git 隔离需启用 worktree")
         if repos:
             # 多子 git: planning 声明的每个子 git 各开 worktree+branch (并列 repo / submodule 同理)
             t["worktrees"] = [make_worktree(t, r, cfg, self.ws.root) for r in repos]
             t["worktree"] = ", ".join(w["wt"] for w in t["worktrees"])  # 显示汇总
         elif wt_on:
-            rel = f"{cfg['worktree']['root']}/skein-{a.id}"  # 相对 project root 存盘, 免机器绝对路径入库
+            rel = f"{cfg['worktree']['root']}/skein-{a_id}"  # 相对 project root 存盘, 免机器绝对路径入库
             git("worktree", "add", "-b", t["branch"], str(self.ws.root / rel), "HEAD", cwd=self.ws.root)
             t["worktree"] = rel
             t["worktrees"] = [{"repo": ".", "wt": rel, "branch": t["branch"], "merged": False}]
@@ -404,8 +449,8 @@ class Lifecycle:
         _timeline.append(t, "task", TaskStatus.ACTIVE)
         self.ws.store.save(t)
         self.ws.store.sync()
-        self.ws._stage_hooks("confirm", "after", self.ws._hook_ctx(a.id, t=t))
-        return {"id": a.id, "status": TaskStatus.ACTIVE, "confirmed": True,
+        self.ws._stage_hooks("confirm", "after", self.ws._hook_ctx(a_id, t=t))
+        return {"id": a_id, "status": TaskStatus.ACTIVE, "confirmed": True,
                 "worktrees": t["worktrees"], "worktree": t["worktree"]}
 
     # ---- 人审门 (待处理→进行中 的最后一道) ----

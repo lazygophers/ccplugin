@@ -207,3 +207,32 @@ def test_task_json_schema_fields(skein_cli: SkeinCli, ws: Path) -> None:
     assert t["parent"] is None, f"parent 应落 None: {t}"
     assert t["kind"] == "task", f"kind 应落 task: {t}"
     assert t["status"] == TaskStatus.PENDING, f"status 应落英文 enum: {t}"
+
+
+# ---------- 10. confirm 级联: super 确认 → 就绪 child 一起进行中 ----------
+def test_confirm_supertask_cascades_to_children(skein_cli: SkeinCli, ws: Path) -> None:
+    """确认父节点时, planning 就绪且前置已完成的 child 一并转 active; 没就绪的原样报出原因。
+
+    级联前 supertask 自身没有 subtask —— 它的活儿在 child 里, 这条同时守住「有 child 就
+    不再要求 super 挂 subtask」那道放宽。
+    """
+    skein_cli(ws, "create", "epic-cascade", "--name", "大需求", "--desc", "聚合", "--kind", "supertask")
+    _fill_prd(ws, "epic-cascade")
+    skein_cli(ws, "estimate", "epic-cascade", "--set", "8")
+
+    for cid in ("child-ready", "child-unplanned"):
+        skein_cli(ws, "create", cid, "--name", cid, "--desc", "d", "--parent", "epic-cascade")
+    _fill_prd(ws, "child-ready")
+    skein_cli(ws, "subtask", "add", "child-ready", "s1", "--name", "干活", "--desc", "d", "--estimate", "2")
+    skein_cli(ws, "estimate", "child-ready", "--set", "3")
+    # child-unplanned 刻意不填 prd / 不加 subtask → 该被拦下
+
+    r = skein_cli(ws, "confirm", "epic-cascade")
+    out = json.loads(r.stdout.strip().splitlines()[-1])  # confirm 先打 doctor 的「✅ 无违规」再打 JSON
+    assert out["status"] == TaskStatus.ACTIVE
+    assert out["children_started"] == ["child-ready"], out
+    assert "child-unplanned" in out["children_held"], out
+
+    assert _task(ws, "epic-cascade")["status"] == TaskStatus.ACTIVE
+    assert _task(ws, "child-ready")["status"] == TaskStatus.ACTIVE
+    assert _task(ws, "child-unplanned")["status"] == TaskStatus.PENDING
