@@ -124,18 +124,22 @@ export async function layoutBoardDAG(
     });
   }
 
-  const elkEdges: any[] = [];
+  // supertask 也参与连边: 它在图上的身份是那个分组框节点 (ELK 支持复合节点当边端点)。
+  // 早先这里把「自己是 supertask」和「依赖指向 supertask」两种边都 continue 掉了, 结果
+  // supertask 的上下游关系在看板上整个看不见。
+  const nodeIdOf = (id: string) => groupIdSet.has(id) ? `group_${toElkId(id)}` : toElkId(id);
+  const edgePairs: { dep: string; to: string }[] = [];
   for (const t of tasks) {
-    if (groupIdSet.has(t.id)) continue;
     for (const dep of t.deps || []) {
-      if (!byId.has(dep) || groupIdSet.has(dep)) continue;
-      elkEdges.push({
-        id: `e_${toElkId(dep)}_${toElkId(t.id)}`,
-        sources: [toElkId(dep)],
-        targets: [toElkId(t.id)],
-      });
+      if (!byId.has(dep)) continue;
+      edgePairs.push({ dep, to: t.id });
     }
   }
+  const elkEdges: any[] = edgePairs.map(({ dep, to }) => ({
+    id: `e_${nodeIdOf(dep)}_${nodeIdOf(to)}`,
+    sources: [nodeIdOf(dep)],
+    targets: [nodeIdOf(to)],
+  }));
 
   const result = await elk.layout({
     id: "root",
@@ -185,21 +189,13 @@ export async function layoutBoardDAG(
     });
   }
 
-  const rfEdges: Edge[] = [];
-  for (const t of tasks) {
-    if (groupIdSet.has(t.id)) continue;
-    for (const dep of t.deps || []) {
-      if (!byId.has(dep) || groupIdSet.has(dep)) continue;
-      const elkEdgeId = `e_${toElkId(dep)}_${toElkId(t.id)}`;
-      rfEdges.push({
-        id: `edge-${dep}-${t.id}`,
-        source: toElkId(dep),
-        target: toElkId(t.id),
-        type: "elkpath",
-        data: { points: edgePoints.get(elkEdgeId) || [] },
-      });
-    }
-  }
+  const rfEdges: Edge[] = edgePairs.map(({ dep, to }) => ({
+    id: `edge-${dep}-${to}`,
+    source: nodeIdOf(dep),
+    target: nodeIdOf(to),
+    type: "elkpath",
+    data: { points: edgePoints.get(`e_${nodeIdOf(dep)}_${nodeIdOf(to)}`) || [] },
+  }));
 
   return { nodes: rfNodes, edges: rfEdges };
 }
