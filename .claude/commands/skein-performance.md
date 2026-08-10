@@ -9,7 +9,10 @@ arguments: "[session-id]"
 
 对 session `$session-id` 审计 @@plugins/tools/skein/ 创建，产出**可复现的缺陷 + 对应修法**。
 
-注意：优化是整体优化而非对插件打补丁
+注意：
+
+- 优化是整体优化而非对插件打补丁
+- 你可以使用 Skills('improve-codebase-architecture')、Skills('agent-reach') 等技能来优化插件性能
 
 ## 阶段 1 · 抽证据（先跑完这段，再决定读什么）
 
@@ -70,7 +73,11 @@ jq -r 'select(.type=="assistant")|.message.content[]?|select(.type=="tool_use")
 - 「修法」一句话说清改哪、改成什么，不贴大段代码
 - 表后接：**① 优先级**（高/中/低，各一行理由）**② 明确没做什么 + 为什么**
 
-## 硬约束
+## 后续优化
+
+如果用户接受了优化建议，使用 Agent 异步执行优化，但是不要使用 skein 来处理优化
+
+#### 硬约束
 
 - 先跑阶段 1 全部命令再动别的；不重复读同一文件，不重复 `--help`
 - agent md / SKILL.md 按需读单个文件，禁 `cat agents/*.md` 一次性灌
