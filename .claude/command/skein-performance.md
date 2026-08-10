@@ -9,6 +9,8 @@ arguments: "[session-id]"
 
 对 session `$session-id` 审计 @@plugins/tools/skein/ 创建，产出**可复现的缺陷 + 对应修法**。
 
+注意：优化是整体优化而非对插件打补丁
+
 ## 阶段 1 · 抽证据（先跑完这段，再决定读什么）
 
 transcript 在 `~/.claude/projects/*/<session-id>.jsonl`，几十 MB。**禁止 Read 它，禁止 grep 全文**——下面几条 jq 就够撑起全部结论：
