@@ -55,39 +55,37 @@ def dist_dir() -> Path:
 
 
 def ensure_dist_built(quiet: bool = False) -> None:
-    """dist/ 不存在时自动编译 Next.js 前端。
-
-    源码在 assets/nextjs/, 输出到 assets/dist/ (next.config.ts output='export')。
-    需要 Node.js + pnpm; 编译失败不阻塞 serve (dist_dir 仍返回路径, 后续 404 可接受)。
-    """
+    """dist/ 不存在时自动编译 Next.js 前端。"""
     dd = dist_dir()
     if (dd / "index.html").is_file():
-        return  # 已编译
+        return
     nextjs_dir = PLUGIN_ROOT / "assets" / "nextjs"
     if not nextjs_dir.is_dir():
-        if not quiet:
-            print("SKEIN 前端源码缺失 (assets/nextjs/), 无法自动编译", file=sys.stderr, flush=True)
-        return
+        raise RuntimeError("SKEIN 前端源码缺失 (assets/nextjs/), 无法自动编译")
     import shutil as _sh
-    npm = _sh.which("npm") or _sh.which("pnpm") or _sh.which("yarn")
-    if not npm:
-        if not quiet:
-            print("SKEIN 自动编译需要 Node.js (npm/pnpm/yarn), 未找到", file=sys.stderr, flush=True)
-        return
+    pkg_mgr = "npm"
+    if _sh.which("pnpm"):
+        try:
+            subprocess.run(["pnpm", "--version"], capture_output=True, check=True, timeout=5)
+            pkg_mgr = "pnpm"
+        except (OSError, subprocess.SubprocessError):
+            pass
+    if not _sh.which(pkg_mgr):
+        raise RuntimeError("SKEIN 自动编译需要 Node.js (npm/pnpm), 未找到")
     if not quiet:
         print("SKEIN 前端首次编译中 (assets/nextjs → assets/dist) …", flush=True)
     try:
-        # 先装依赖再 build; pnpm 优先 (项目有 pnpm-lock.yaml)
-        pkg_mgr = "pnpm" if _sh.which("pnpm") else "npm"
         subprocess.run([pkg_mgr, "install"], cwd=str(nextjs_dir),
                        capture_output=True, text=True, check=True, timeout=120)
         subprocess.run([pkg_mgr, "run", "build"], cwd=str(nextjs_dir),
                        capture_output=True, text=True, check=True, timeout=180)
-        if not quiet:
-            print("SKEIN 前端编译完成", flush=True)
-    except Exception as e:
-        if not quiet:
-            print(f"SKEIN 前端编译失败: {e}", file=sys.stderr, flush=True)
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
+        detail = (e.stderr or e.stdout or str(e)).strip() if isinstance(e, subprocess.CalledProcessError) else str(e)
+        raise RuntimeError(f"SKEIN 前端编译失败: {detail}") from e
+    if not (dd / "index.html").is_file():
+        raise RuntimeError(f"SKEIN 前端编译未生成 {dd / 'index.html'}")
+    if not quiet:
+        print("SKEIN 前端编译完成", flush=True)
 
 
 def probe_same_project(port: int, proj_id: str, lock_id_path: str) -> bool:
