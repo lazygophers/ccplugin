@@ -422,3 +422,30 @@ def test_claim_returns_phase_not_agent(skein_cli: SkeinCli, ws: Path) -> None:
     ready = out.get("exec", out)["ready"]
     assert [r["phase"] for r in ready] == ["research"]
     assert "agent" not in json.dumps(out)
+
+
+def test_failed_never_preempts_pending_slot() -> None:
+    """等得再久的 FAILED 也不许抢 PENDING 的槽。
+
+    _score 含「等待小时数」, 而 FAILED 多半是登记最早的那个 (先跑先失败) → 分天然最高。
+    状态若排在打分之后, 这条规则就永远不生效; 慢机器上跑全套件时表现为
+    test_slot_releases_on_done_and_fail 偶发红 (fail 掉的 a 抢走了 c 的槽)。
+    """
+    from skeinlib.core.scheduling import Scheduler
+    from skeinlib.task.model import SubtaskStatus
+
+    class _WS:  # _ready 只碰这两个成员
+        def config(self) -> dict[str, object]:
+            return {"pools": {"work": 1}}
+
+        def _dep_unfinished(self, d: str) -> bool:
+            return False
+
+    old = 1_700_000_000.0  # 早登记的 FAILED, 等待时长远超后来者
+    task = {"subtasks": [
+        {"sid": "a", "status": SubtaskStatus.FAILED, "created": old},
+        {"sid": "c", "status": SubtaskStatus.PENDING, "created": old + 36000},
+    ]}
+    sched = Scheduler.__new__(Scheduler)
+    sched.ws = _WS()  # type: ignore[assignment]
+    assert [s["sid"] for s in sched._ready(task)] == ["c"]

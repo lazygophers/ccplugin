@@ -54,24 +54,58 @@ def dist_dir() -> Path:
     return (PLUGIN_ROOT / "assets" / "dist").resolve()
 
 
-def ensure_dist_built(quiet: bool = False) -> None:
-    """dist/ 不存在时自动编译 Next.js 前端。"""
+def pkg_manager() -> Optional[str]:
+    """挑一个**真能跑**的包管理器 (pnpm 优先, 回落 npm); 都不可用返回 None。
+
+    只看 `which` 不够: 实测过一台机器上 `which pnpm` 命中, 但那个 wrapper 指向已被删掉的
+    `@pnpm/exe/pnpm`, 一跑就 exit 127。自动重编译那条路原先只探 `which`, 于是每次都选中坏的
+    pnpm、每次都失败, 表现就是「改了前端没反应」——而失败信息只进了 serve 进程的 stderr。
+    """
+    import shutil as _sh
+    for mgr in ("pnpm", "npm"):
+        if not _sh.which(mgr):
+            continue
+        try:
+            subprocess.run([mgr, "--version"], capture_output=True, check=True, timeout=5)
+            return mgr
+        except (OSError, subprocess.SubprocessError):
+            continue  # 装了但跑不起来 (坏 wrapper / 缺 node) —— 当没有, 试下一个
+    return None
+
+
+def _src_newer_than_dist() -> bool:
+    """前端源码是否比 dist 产物新 —— serve 没跑的时候改的源码, 靠这个在启动时补上重建。"""
     dd = dist_dir()
-    if (dd / "index.html").is_file():
+    index = dd / "index.html"
+    if not index.is_file():
+        return True
+    src = PLUGIN_ROOT / "assets" / "nextjs" / "src"
+    if not src.is_dir():
+        return False
+    built = index.stat().st_mtime
+    return any(p.stat().st_mtime > built for p in src.rglob("*") if p.is_file())
+
+
+def ensure_dist_built(quiet: bool = False) -> None:
+    """dist/ 缺失**或已过期**时编译 Next.js 前端。
+
+    早先只判 index.html 存在与否, 于是 dist 一旦生成就永远沿用 —— 改了 `assets/nextjs/src/`
+    重启 serve 也看不到, 这正是「改了前端不生效」最常见的成因 (dist/ 还被 .gitignore 忽略,
+    拉新代码也不会更新它)。
+    """
+    dd = dist_dir()
+    if not _src_newer_than_dist():
+        return
+    if os.environ.get("SKEIN_NO_AUTOBUILD") == "1":
+        # 测试用: 套件里起 serve 只验路由, 不该被一次 40s 的前端构建拖到超时。
+        # 生产路径不设这个变量, 该重建照重建。
         return
     nextjs_dir = PLUGIN_ROOT / "assets" / "nextjs"
     if not nextjs_dir.is_dir():
         raise RuntimeError("SKEIN 前端源码缺失 (assets/nextjs/), 无法自动编译")
-    import shutil as _sh
-    pkg_mgr = "npm"
-    if _sh.which("pnpm"):
-        try:
-            subprocess.run(["pnpm", "--version"], capture_output=True, check=True, timeout=5)
-            pkg_mgr = "pnpm"
-        except (OSError, subprocess.SubprocessError):
-            pass
-    if not _sh.which(pkg_mgr):
-        raise RuntimeError("SKEIN 自动编译需要 Node.js (npm/pnpm), 未找到")
+    pkg_mgr = pkg_manager()
+    if pkg_mgr is None:
+        raise RuntimeError("SKEIN 自动编译需要 Node.js (npm/pnpm), 未找到可用的")
     if not quiet:
         print("SKEIN 前端首次编译中 (assets/nextjs → assets/dist) …", flush=True)
     try:
@@ -182,8 +216,10 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
             loop = asyncio.get_event_loop()
             try:
                 def _do_build() -> bool:
-                    import shutil as _sh
-                    pkg = "pnpm" if _sh.which("pnpm") else "npm"
+                    pkg = pkg_manager()  # 健康探测过的, 别再用裸 which (会选中坏 wrapper)
+                    if pkg is None:
+                        sys.stderr.write("前端自动重编译跳过: 没有可用的 npm/pnpm\n")
+                        return False
                     r = subprocess.run([pkg, "run", "build"], cwd=str(nextjs_root),
                                        capture_output=True, text=True, timeout=180)
                     if r.returncode != 0:

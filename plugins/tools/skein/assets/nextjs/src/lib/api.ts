@@ -33,6 +33,20 @@ function postJSON<T>(path: string, body?: unknown): Promise<T> {
   return req<T>(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) });
 }
 
+export interface CliResult { ok: boolean; exit?: number; stdout?: string; stderr?: string }
+
+// CLI 转发端点 (/exec /finish) 在子进程非零退出时仍回 HTTP 200 (body.ok=false + stderr),
+// 不在这里抛的话调用方的 await 正常返回 → UI 弹「成功」而后端什么都没做。
+// confirm 撞硬门 (planning 未就绪 / estimate 未填 / prd 缺章) 就是这个形态: 用户点了没反应。
+// 统一在此抛 ApiError, 让所有调用方现成的 catch 拿到 CLI 的真实报错。
+async function cliPost<T extends CliResult>(path: string, body: unknown): Promise<T> {
+  const r = await postJSON<T>(path, body);
+  if (r?.ok === false) {
+    throw new ApiError(200, (r.stderr || r.stdout || "").trim() || `命令失败 (exit ${r.exit})`);
+  }
+  return r;
+}
+
 // ── Types ──
 export interface Subtask {
   sid: string;
@@ -131,6 +145,6 @@ export const api = {
   search: (q: string) => getJSON<{ results: Task[] }>(`${BASE}/search?q=${encodeURIComponent(q)}`),
   getConfig: () => getJSON<Record<string, unknown>>(`${BASE}/config`),
   setConfig: (cfg: Record<string, unknown>) => postJSON(`${BASE}/config`, cfg),
-  exec: (cmd: string, args?: Record<string, unknown>) => postJSON(`${BASE}/exec`, { cmd, ...args }),
-  finish: (id: string) => postJSON<{ ok: boolean; id: string; exit: number; stdout: string; stderr: string }>(`${BASE}/finish`, { id }),
+  exec: (cmd: string, args?: Record<string, unknown>) => cliPost<CliResult>(`${BASE}/exec`, { cmd, ...args }),
+  finish: (id: string) => cliPost<CliResult & { id: string }>(`${BASE}/finish`, { id }),
 };

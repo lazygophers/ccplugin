@@ -1,0 +1,89 @@
+"""serve 的前端构建链回归 —— 「改了前端不生效」那条 bug 的两个成因各钉一条。
+
+不跑真的 `next build` (太慢, 且 CI 未必有 node): 只测**决策**部分 —— 选哪个包管理器、
+判不判得出 dist 过期。真构建由 `ensure_dist_built` 在这两个判断之后调用。
+
+成因一: `_do_build` 原先用裸 `shutil.which("pnpm")` 挑包管理器。实测一台机器上 `which pnpm`
+命中, 但 wrapper 指向已删掉的 `@pnpm/exe/pnpm`, 一跑 exit 127 —— 于是每次自动重编译都选中
+坏的那个、每次都失败, 失败信息只进了 serve 的 stderr, 用户看到的就是「改了没反应」。
+成因二: `ensure_dist_built` 原先只判 `index.html` 存不存在, dist 一旦生成就永远沿用,
+改了源码重启 serve 也看不到 (dist/ 还被 .gitignore 忽略, 拉新代码同样不更新它)。
+"""
+from __future__ import annotations
+
+import subprocess
+from pathlib import Path
+from typing import Any
+
+import pytest
+
+from skeinlib.web import serve
+
+
+def test_pkg_manager_skips_installed_but_broken(monkeypatch: pytest.MonkeyPatch) -> None:
+    """pnpm 在 PATH 里但一跑就非零 → 必须跳过它选 npm, 而不是硬用坏的那个。"""
+    monkeypatch.setattr("skeinlib.web.serve.shutil.which", lambda name: f"/fake/bin/{name}")
+
+    def fake_run(cmd: list[str], **kw: Any) -> Any:
+        if cmd[0] == "pnpm":
+            raise subprocess.CalledProcessError(127, cmd)
+        return subprocess.CompletedProcess(cmd, 0, "11.0.0", "")
+
+    monkeypatch.setattr("skeinlib.web.serve.subprocess.run", fake_run)
+    assert serve.pkg_manager() == "npm"
+
+
+def test_pkg_manager_none_when_nothing_usable(monkeypatch: pytest.MonkeyPatch) -> None:
+    """两个都不可用时返回 None —— 调用方据此报「没有可用的 npm/pnpm」而不是拿 None 去 exec。"""
+    monkeypatch.setattr("skeinlib.web.serve.shutil.which", lambda name: None)
+    assert serve.pkg_manager() is None
+
+
+def test_pkg_manager_prefers_pnpm_when_healthy(monkeypatch: pytest.MonkeyPatch) -> None:
+    """pnpm 健康时仍优先 pnpm (本仓前端用 pnpm lockfile)。"""
+    monkeypatch.setattr("skeinlib.web.serve.shutil.which", lambda name: f"/fake/bin/{name}")
+    monkeypatch.setattr("skeinlib.web.serve.subprocess.run",
+                        lambda cmd, **kw: subprocess.CompletedProcess(cmd, 0, "9.0.0", ""))
+    assert serve.pkg_manager() == "pnpm"
+
+
+def _fake_tree(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[Path, Path]:
+    """造一份 <root>/assets/{nextjs/src,dist} 的最小骨架, 并把 serve 的路径指过来。"""
+    root = tmp_path / "plugin"
+    src = root / "assets" / "nextjs" / "src"
+    dist = root / "assets" / "dist"
+    src.mkdir(parents=True)
+    dist.mkdir(parents=True)
+    monkeypatch.setattr(serve, "PLUGIN_ROOT", root)
+    monkeypatch.setattr(serve, "dist_dir", lambda: dist)
+    return src, dist
+
+
+def test_dist_stale_when_index_missing(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """没产物 = 过期 (原行为, 不能回退)。"""
+    _fake_tree(tmp_path, monkeypatch)
+    assert serve._src_newer_than_dist() is True
+
+
+def test_dist_stale_when_src_newer(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """产物在, 但源码后改过 → 判过期 (这条是本次修的核心)。"""
+    src, dist = _fake_tree(tmp_path, monkeypatch)
+    (dist / "index.html").write_text("<html></html>", encoding="utf-8")
+    page = src / "page.tsx"
+    page.write_text("export default function P() { return null }\n", encoding="utf-8")
+    import os
+    built = (dist / "index.html").stat().st_mtime
+    os.utime(page, (built + 10, built + 10))  # 显式拨时间: 同秒写入在低精度 fs 上会判等
+    assert serve._src_newer_than_dist() is True
+
+
+def test_dist_fresh_when_build_newer(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """产物比源码新 → 不重建 (否则每次启动都白跑一次 build)。"""
+    src, dist = _fake_tree(tmp_path, monkeypatch)
+    page = src / "page.tsx"
+    page.write_text("export default function P() { return null }\n", encoding="utf-8")
+    (dist / "index.html").write_text("<html></html>", encoding="utf-8")
+    import os
+    changed = page.stat().st_mtime
+    os.utime(dist / "index.html", (changed + 10, changed + 10))
+    assert serve._src_newer_than_dist() is False

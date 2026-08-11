@@ -179,9 +179,11 @@ class Scheduler:
         cand = [(i, s) for i, s in enumerate(subs)
                 if s["status"] in (SubtaskStatus.PENDING, SubtaskStatus.FAILED)
                 and all(d in done for d in s.get("depends_on", []))]
-        # 打分降序, PENDING 优先于 FAILED (重试不抢新活的槽), 同分按登记序稳定 (i 升序)
-        cand.sort(key=lambda p: (-_score(p[1], crit.get(p[1]["sid"], 0)),
-                                 0 if p[1]["status"] == SubtaskStatus.PENDING else 1,
+        # PENDING 一律先于 FAILED (重试不抢新活的槽), 组内再按打分降序, 同分按登记序稳定 (i 升序)。
+        # 状态必须是第一键: 打分含「等待小时数」, 早登记的 FAILED 等得久、分自然高, 放在打分之后
+        # 就永远被打分压过 —— 慢机器上跑全量套件时表现为「fail 掉的 a 抢走了 c 的槽」的偶发红。
+        cand.sort(key=lambda p: (0 if p[1]["status"] == SubtaskStatus.PENDING else 1,
+                                 -_score(p[1], crit.get(p[1]["sid"], 0)),
                                  p[0]))
         return [s for _, s in cand[:slots]]
 

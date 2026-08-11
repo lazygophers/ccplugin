@@ -230,7 +230,7 @@ function TaskDetailContent() {
               </div>
               <div className="flex items-center gap-2">
                 {st === "planning" && (
-                  <button onClick={async () => { try { await api.exec("confirm", { id: task.id }); toast("已确认规划", "success"); setTimeout(load, 500); } catch { toast("确认失败", "error"); } }} data-tip="确认规划 → 激活执行" className="icon-btn flex items-center justify-center rounded-md border border-primary/40 p-2 text-primary hover:bg-primary/10">
+                  <button onClick={async () => { try { await api.exec("confirm", { id: task.id }); toast("已确认规划", "success"); setTimeout(load, 500); } catch (e) { toast(e instanceof ApiError ? e.message : "确认失败", "error"); } }} data-tip="确认规划 → 激活执行" className="icon-btn flex items-center justify-center rounded-md border border-primary/40 p-2 text-primary hover:bg-primary/10">
                     <IconApprove size={18} />
                   </button>
                 )}
@@ -385,7 +385,7 @@ function TaskDetailContent() {
               <Card title="操作" icon={Cog}>
                 <div className="flex flex-wrap gap-2">
                   {st === "planning" && (
-                    <button onClick={async () => { try { await api.exec("confirm", { id: task.id }); toast("已确认规划", "success"); setTimeout(load, 500); } catch { toast("确认失败", "error"); } }} className="w-full rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90">
+                    <button onClick={async () => { try { await api.exec("confirm", { id: task.id }); toast("已确认规划", "success"); setTimeout(load, 500); } catch (e) { toast(e instanceof ApiError ? e.message : "确认失败", "error"); } }} className="w-full rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90">
                       <Check className="mr-1.5 inline h-3.5 w-3.5" />确认规划 → 执行
                     </button>
                   )}
@@ -488,7 +488,7 @@ function TaskDetailContent() {
           try {
             if (type === "delete") { await api.exec("del", { id: task.id }); toast("已删除", "success"); setTimeout(() => { window.location.href = "/board/"; }, 800); }
             else if (type === "finish") { await api.finish(task.id); toast("已完成", "success"); setTimeout(load, 500); }
-          } catch { toast("操作失败", "error"); }
+          } catch (e) { toast(e instanceof ApiError ? e.message : "操作失败", "error"); }
         }}
       />
     </div>

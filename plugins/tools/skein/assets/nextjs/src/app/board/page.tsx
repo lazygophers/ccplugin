@@ -206,7 +206,7 @@ export default function BoardPage() {
             {/* Right: Detail panel */}
             {selectedTask && (
               <DetailPanel task={selectedTask} allTasks={allTasks} onClose={() => setSelectedId(null)}
-                onConfirm={async (id) => { try { await api.exec("confirm", { id }); toast("已确认规划", "success"); } catch { toast("确认失败", "error"); } }}
+                onConfirm={async (id) => { try { await api.exec("confirm", { id }); toast("已确认规划", "success"); } catch (e) { toast(e instanceof ApiError ? e.message : "确认失败", "error"); } }}
                 onFinish={(id, name) => setConfirmAction({ type: "finish", id, name })}
                 onDelete={(id, name) => setConfirmAction({ type: "delete", id, name })}
                 onPriorityChange={handlePriorityChange}
@@ -250,7 +250,7 @@ export default function BoardPage() {
                 if (type === "delete") { await api.exec("del", { id }); setSelectedId(null); toast("已删除", "success"); }
                 else if (type === "finish") { await api.exec("finish", { id }); toast("已完成", "success"); }
                 else { await api.exec("clean", { days: 0 }); toast("已归档", "success"); setTimeout(() => window.location.reload(), 500); }
-              } catch { toast("操作失败", "error"); }
+              } catch (e) { toast(e instanceof ApiError ? e.message : "操作失败", "error"); }
             }}
           />
         </main>

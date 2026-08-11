@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -20,6 +21,10 @@ if str(SCRIPTS) not in sys.path:
     # (scripts/tests/) 塞进 sys.path, 而实现层在上一级 scripts/ 下。放 conftest 里做, 因为它
     # 必然先于任何测试模块被 import —— 测试文件自己写 sys.path 接线就又是一份重复。
     sys.path.insert(0, str(SCRIPTS))
+
+# 起 serve 的用例只验路由/接口, 不该被一次 40s 的 next build 拖到超时。工作树里 dist 是否
+# 比前端源码旧取决于开发者刚改了什么, 不设这个变量的话同一套测试会时绿时红。
+os.environ.setdefault("SKEIN_NO_AUTOBUILD", "1")
 
 SKEIN: Path = SCRIPTS / "skein.py"
 MEM: Path = SCRIPTS / "spec.py"
