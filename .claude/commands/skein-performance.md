@@ -11,7 +11,7 @@ arguments: "[session-id]"
 
 注意：
 
-- 优化是整体优化而非对插件打补丁
+- 优化是整体优化而非对插件打补丁，不要存在就内容的说明，禁止出现变更日志类型、注释类型的东西在 Skill/Agent 中
 - 提高插件效果、减少 token 浪费、避免重复计算 都是十分重要的目标
 - 你可以使用 Skills('improve-codebase-architecture')、Skills('agent-reach') 等技能来优化插件性能
 

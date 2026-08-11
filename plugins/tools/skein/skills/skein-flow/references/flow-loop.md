@@ -96,7 +96,7 @@ print('任务完成')
 
 `skein flow run` 是一次 scheduler tick：自动认领 ready exec/check，并把 Agent 派发信息放进返回的 `next[]`。只消费 hint 的 `agent`、`tid`、`sid`、`workdir` / `workdirs`、`prompt`、`isolation`、`prompt`；不要从 `skein list` 重建 dispatch，也不要从 `task.worktree` 自行拼接 cwd。`isolation` 取值：worktree 禁用时 hint.isolation=`"none"`，Agent dispatch 不设 isolation 或设 `none`（原地在仓库根跑）；worktree 启用时 hint.isolation=`"worktree"`。
 
-**`prompt` 是 scheduler 生成的成品串，原样传给 Agent，别自己重写加料** —— 自撰 prompt 有两个实测下场：写太长被 Agent 工具拒，或干脆不派、main 自己把活干了（一场会话 479 次 Edit 全在 main，executor 一次没派）。running subtask 的活归 executor；main 亲做会被 PostToolUse 提醒。
+**`prompt` 是 scheduler 生成的成品串，原样传给 Agent，别自己重写加料** —— 自撰 prompt 有两个实测下场：写太长被 Agent 工具拒，或干脆不派、main 自己把活干了（一场会话 479 次 Edit 全在 main，executor 一次没派）。running subtask 的活归 executor；main 亲做没有 hook 会拦（提醒层已撤），只会让该 subtask 的落盘状态和实际改动对不上。
 
 researcher/executor 完成工作后自行执行 `skein subtask done <tid> <sid>`，失败执行 `skein subtask fail <tid> <sid> --note "<原因>"`。main 只核对回传、报告和实际状态；报告已存在但 research subtask 仍 pending/running 时报告 mismatch。checker 只验证，scheduler 已推进 task 到 `check` 时安全幂等重跑。finisher 只在绝对仓库根执行 `skein task finish <tid>`，不在将被销毁的 task worktree 内执行。多 repo checker 使用 `workdirs[]`。
 
