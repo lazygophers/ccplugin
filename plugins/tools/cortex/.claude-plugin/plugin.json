@@ -1,0 +1,102 @@
+{
+  "name": "cortex",
+  "description": "cortex — 知识库 + 记忆管理: 双层 vault (用户级全模块 + 项目级 memory+领域), 5 级记忆 L0-L4 (遗忘曲线). 8 skill: schema(目录契约权威)/ingest(GitHub/GitLab/Website/local 构建)/lint(7规则+autofix)/extract(L4-inbox 路由)/history-digest(扫 ~/.claude 历史)/context-digest(整理上下文)/evolve(金字塔升降级)/recall(搜索+兜底+回填)",
+  "author": {
+    "name": "lazygophers",
+    "email": "admin@lazygophers.dev",
+    "url": "https://github.com/lazygophers"
+  },
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/cortex",
+  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/cortex",
+  "license": "AGPL-3.0-or-later",
+  "agents": [
+    "./agents/cortex.md",
+    "./agents/cortex-lint-worker.md",
+    "./agents/cortex-history-worker.md",
+    "./agents/cortex-evolve-worker.md",
+    "./agents/cortex-extract-worker.md",
+    "./agents/cortex-ingest-worker.md"
+  ],
+  "skills": [
+    "./skills/cortex-schema",
+    "./skills/cortex-ingest",
+    "./skills/cortex-lint",
+    "./skills/cortex-extract",
+    "./skills/cortex-recall",
+    "./skills/cortex-history-digest",
+    "./skills/cortex-context-digest",
+    "./skills/cortex-evolve"
+  ],
+  "commands": [],
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/session-start.sh",
+            "async": true,
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/user-prompt-submit.sh",
+            "async": true,
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/stop.sh",
+            "async": true,
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  },
+  "keywords": [
+    "cortex",
+    "knowledge-base",
+    "memory",
+    "vault",
+    "obsidian",
+    "wiki",
+    "lint",
+    "extract",
+    "promote",
+    "ingest",
+    "github",
+    "gitlab",
+    "website",
+    "history-digest",
+    "context-digest",
+    "sediment",
+    "transcript",
+    "evolve",
+    "demote",
+    "pyramid",
+    "rebalance",
+    "L0",
+    "L1",
+    "L2",
+    "L3",
+    "L4",
+    "forgetting-curve",
+    "ebbinghaus",
+    "recall",
+    "search",
+    "query"
+  ]
+}

@@ -1,0 +1,193 @@
+{
+  "id": "skein-dist-version",
+  "name": "SKEIN 前端 dist 版本戳 + 过期检测加固",
+  "desc": "FileNotFoundError: dist/task/detail/index.html 在 marketplace 装的副本上报，根因是 serve.py 的过期检测(_src_newer_than_dist)只靠 mtime 比对，marketplace clone/pull 会把源码和 dist 文件 mtime 一并刷新导致误判「未过期」，且 /task/detail 等嵌套路由直接裸读文件、无 ensure_dist_built 兜底。方案: 编译时写 git SHA/内容 hash 版本戳文件到 dist/，过期检测优先比对版本戳(mtime 兜底)；嵌套路由读取产物加存在性判断，缺失时触发按需重建或返回友好占位而非裸异常。",
+  "status": "done",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "stamp",
+      "name": "版本戳: 编译写入 + 过期检测比对",
+      "desc": "ensure_dist_built() 编译成功后, 在 dist_dir() 写入源码内容 hash 版本戳文件; _src_newer_than_dist() 优先比对该戳(不一致即过期), 戳缺失/异常时回落现有 mtime 逻辑",
+      "estimate": 1.5,
+      "depends_on": [],
+      "acceptance": [
+        "戳文件在编译成功后生成, 内容随 assets/nextjs/src 变化而变化",
+        "_src_newer_than_dist 在戳不匹配时返回 True 即使 dist mtime 更新",
+        "戳缺失时行为与改动前一致(不引入新失败模式)"
+      ],
+      "acceptance_done": [
+        1,
+        2,
+        3
+      ],
+      "status": "done",
+      "phase": "exec",
+      "repo": null,
+      "skills": [
+        "skein-executor"
+      ],
+      "created": 1786586942,
+      "started": 1786587252,
+      "finished": 1786588924
+    },
+    {
+      "sid": "nested-fallback",
+      "name": "嵌套路由缺失兜底",
+      "desc": "抽 helper 读取 dist_dir() 下任意子路径 index.html, 文件不存在时返回与 ensure_dist_serveable 一致风格的友好占位 HTML, 不再抛未捕获 FileNotFoundError; / 与 /task/detail 两个路由改用该 helper",
+      "estimate": 1.0,
+      "depends_on": [
+        "stamp"
+      ],
+      "acceptance": [
+        "/task/detail 对应文件缺失时返回占位 HTML 而非 500",
+        "/ 路由行为不回归(仍走 ensure_dist_serveable 保证的产物)"
+      ],
+      "acceptance_done": [
+        1,
+        2
+      ],
+      "status": "done",
+      "phase": "exec",
+      "repo": null,
+      "skills": [
+        "skein-executor"
+      ],
+      "created": 1786586942,
+      "started": 1786589331,
+      "finished": 1786590449
+    },
+    {
+      "sid": "tests",
+      "name": "回归测试覆盖",
+      "desc": "test_serve_frontend_build.py 新增: 版本戳写入被 ensure_dist_built 调用后存在、hash 不一致触发重建判定、嵌套路由 helper 缺失文件时的兜底行为",
+      "estimate": 0.5,
+      "depends_on": [
+        "stamp",
+        "nested-fallback"
+      ],
+      "acceptance": [
+        "uv run pytest plugins/tools/skein/scripts/tests/test_serve_frontend_build.py -q 全绿"
+      ],
+      "acceptance_done": [
+        1
+      ],
+      "status": "done",
+      "phase": "exec",
+      "repo": null,
+      "skills": [
+        "skein-executor"
+      ],
+      "created": 1786586942,
+      "started": 1786590484,
+      "finished": 1786591097
+    }
+  ],
+  "priority": "high",
+  "estimate": 3.0,
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/skein-dist-version",
+  "parent": null,
+  "kind": "task",
+  "created": 1786586613,
+  "started": 1786587172,
+  "confirmed": 1786587172,
+  "checked": 1786591121,
+  "checked_end": 1786591129,
+  "finished": 1786591923,
+  "updated": 1786591923,
+  "timeline": [
+    {
+      "kind": "task",
+      "status": "pending",
+      "at": 1786586613,
+      "sid": null,
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "task",
+      "status": "active",
+      "at": 1786587172,
+      "sid": null,
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "running",
+      "at": 1786587252,
+      "sid": "stamp",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "done",
+      "at": 1786588924,
+      "sid": "stamp",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "running",
+      "at": 1786589331,
+      "sid": "nested-fallback",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "done",
+      "at": 1786590449,
+      "sid": "nested-fallback",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "running",
+      "at": 1786590484,
+      "sid": "tests",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "done",
+      "at": 1786591097,
+      "sid": "tests",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "task",
+      "status": "check",
+      "at": 1786591121,
+      "sid": null,
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "task",
+      "status": "finishing",
+      "at": 1786591129,
+      "sid": null,
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "task",
+      "status": "done",
+      "at": 1786591923,
+      "sid": null,
+      "note": "",
+      "rollback": false
+    }
+  ],
+  "confirmed_by": "user"
+}

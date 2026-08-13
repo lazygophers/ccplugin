@@ -1,0 +1,8 @@
+#!/usr/bin/env python3
+"""skein — py wrapper."""
+import os, sys, runpy
+
+_root = os.environ.get("CLAUDE_PLUGIN_ROOT") or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_target = os.path.join(_root, "scripts", "skein.py")
+sys.argv[0] = _target
+runpy.run_path(_target, run_name="__main__")

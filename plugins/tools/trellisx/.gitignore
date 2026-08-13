@@ -1,0 +1,6 @@
+# darwin-skill 优化产物 (测试 prompt / 评分日志) 不入插件发布
+**/test-prompts.json
+.darwin-results.tsv
+
+# trellis 本地计划草稿
+.claude/plans/

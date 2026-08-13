@@ -1,0 +1,18 @@
+{
+  "name": "SKEIN Morandi",
+  "base": "dark",
+  "overrides": {
+    "claude": "#8e9aaf",
+    "success": "#9caf88",
+    "error": "#bb8588",
+    "warning": "#c9b18b",
+    "red": "#e06c75",
+    "blue": "#61afef",
+    "green": "#98c379",
+    "yellow": "#e5c07b",
+    "purple": "#c678dd",
+    "orange": "#d19a66",
+    "pink": "#e06c9a",
+    "cyan": "#56b6c2"
+  }
+}

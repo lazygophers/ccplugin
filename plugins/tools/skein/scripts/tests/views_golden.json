@@ -1,0 +1,1261 @@
+{
+  "archive_list": [
+    {
+      "archivedAt": "01-01",
+      "desc": "旧归档",
+      "finished": 1999900000,
+      "id": "old1",
+      "name": "Old 任务",
+      "status": "done",
+      "subs": 1
+    }
+  ],
+  "board_data": {
+    "cards": [
+      {
+        "assignee": "t",
+        "checked": null,
+        "confirmed": null,
+        "created": 1999990000,
+        "depNames": [],
+        "deps": [],
+        "desc": "活跃任务",
+        "elapsed": 133,
+        "estimate": null,
+        "finished": null,
+        "id": "alpha",
+        "name": "Alpha 任务",
+        "nextUp": false,
+        "priority": "normal",
+        "sdone": 1,
+        "spct": 38,
+        "stage": "exec",
+        "started": 1999992000,
+        "status": "active",
+        "stotal": 4,
+        "subNodes": [
+          [
+            "s1",
+            "子-s1",
+            "done",
+            [],
+            100,
+            "desc-s1"
+          ],
+          [
+            "s2",
+            "子-s2",
+            "running",
+            [],
+            50,
+            "desc-s2"
+          ],
+          [
+            "s3",
+            "子-s3",
+            "pending",
+            [
+              "s1"
+            ],
+            2,
+            "desc-s3"
+          ],
+          [
+            "s4",
+            "子-s4",
+            "pending",
+            [
+              "s2"
+            ],
+            2,
+            "desc-s4"
+          ]
+        ],
+        "subtable": [
+          {
+            "acc": [],
+            "created": 1999991000,
+            "depNames": [],
+            "dependsOn": [],
+            "estimate": null,
+            "finished": 1999994000,
+            "name": "子-s1",
+            "pct": 100,
+            "sid": "s1",
+            "skills": [],
+            "started": 1999993000,
+            "status": "done"
+          },
+          {
+            "acc": [],
+            "created": 1999991000,
+            "depNames": [],
+            "dependsOn": [],
+            "estimate": null,
+            "finished": null,
+            "name": "子-s2",
+            "pct": 50,
+            "sid": "s2",
+            "skills": [],
+            "started": 1999997000,
+            "status": "running"
+          },
+          {
+            "acc": [],
+            "created": 1999991000,
+            "depNames": [
+              "子-s1"
+            ],
+            "dependsOn": [
+              "s1"
+            ],
+            "estimate": null,
+            "finished": null,
+            "name": "子-s3",
+            "pct": 2,
+            "sid": "s3",
+            "skills": [],
+            "started": null,
+            "status": "pending"
+          },
+          {
+            "acc": [],
+            "created": 1999991000,
+            "depNames": [
+              "子-s2"
+            ],
+            "dependsOn": [
+              "s2"
+            ],
+            "estimate": null,
+            "finished": null,
+            "name": "子-s4",
+            "pct": 2,
+            "sid": "s4",
+            "skills": [],
+            "started": null,
+            "status": "pending"
+          }
+        ],
+        "worktree": null
+      },
+      {
+        "assignee": "t",
+        "checked": 1999999000,
+        "confirmed": null,
+        "created": 1999990000,
+        "depNames": [],
+        "deps": [],
+        "desc": "待验收",
+        "elapsed": 117,
+        "estimate": null,
+        "finished": null,
+        "id": "beta",
+        "name": "Beta 任务",
+        "nextUp": false,
+        "priority": "normal",
+        "sdone": 1,
+        "spct": 95,
+        "stage": "check",
+        "started": 1999993000,
+        "status": "check",
+        "stotal": 1,
+        "subNodes": [
+          [
+            "b1",
+            "子-b1",
+            "done",
+            [],
+            100,
+            "desc-b1"
+          ]
+        ],
+        "subtable": [
+          {
+            "acc": [],
+            "created": 1999991000,
+            "depNames": [],
+            "dependsOn": [],
+            "estimate": null,
+            "finished": 1999994000,
+            "name": "子-b1",
+            "pct": 100,
+            "sid": "b1",
+            "skills": [],
+            "started": 1999993500,
+            "status": "done"
+          }
+        ],
+        "worktree": null
+      },
+      {
+        "assignee": "t",
+        "checked": null,
+        "confirmed": null,
+        "created": 1999990000,
+        "depNames": [],
+        "deps": [],
+        "desc": "规划中",
+        "elapsed": 0,
+        "estimate": null,
+        "finished": null,
+        "id": "delta",
+        "name": "Delta 任务",
+        "nextUp": false,
+        "priority": "normal",
+        "sdone": 0,
+        "spct": 0,
+        "stage": "plan",
+        "started": null,
+        "status": "pending",
+        "stotal": 1,
+        "subNodes": [
+          [
+            "d1",
+            "子-d1",
+            "pending",
+            [],
+            2,
+            "desc-d1"
+          ]
+        ],
+        "subtable": [
+          {
+            "acc": [],
+            "created": 1999991000,
+            "depNames": [],
+            "dependsOn": [],
+            "estimate": null,
+            "finished": null,
+            "name": "子-d1",
+            "pct": 2,
+            "sid": "d1",
+            "skills": [],
+            "started": null,
+            "status": "pending"
+          }
+        ],
+        "worktree": null
+      },
+      {
+        "assignee": "t",
+        "checked": null,
+        "confirmed": null,
+        "created": 1999990000,
+        "depNames": [],
+        "deps": [],
+        "desc": "待启动",
+        "elapsed": 0,
+        "estimate": null,
+        "finished": null,
+        "id": "gamma",
+        "name": "Gamma 任务",
+        "nextUp": false,
+        "priority": "normal",
+        "sdone": 0,
+        "spct": 0,
+        "stage": "plan",
+        "started": null,
+        "status": "pending",
+        "stotal": 1,
+        "subNodes": [
+          [
+            "g1",
+            "子-g1",
+            "pending",
+            [],
+            2,
+            "desc-g1"
+          ]
+        ],
+        "subtable": [
+          {
+            "acc": [],
+            "created": 1999991000,
+            "depNames": [],
+            "dependsOn": [],
+            "estimate": null,
+            "finished": null,
+            "name": "子-g1",
+            "pct": 2,
+            "sid": "g1",
+            "skills": [],
+            "started": null,
+            "status": "pending"
+          }
+        ],
+        "worktree": null
+      },
+      {
+        "assignee": "t",
+        "checked": null,
+        "confirmed": null,
+        "created": null,
+        "depNames": [],
+        "deps": [],
+        "desc": "",
+        "elapsed": 0,
+        "estimate": null,
+        "finished": null,
+        "id": "ghost1",
+        "name": "ghost1",
+        "nextUp": false,
+        "priority": "normal",
+        "sdone": 0,
+        "spct": 2,
+        "stage": "plan",
+        "started": null,
+        "status": "pending",
+        "stotal": 0,
+        "subNodes": [],
+        "subtable": [],
+        "worktree": null
+      },
+      {
+        "assignee": "t",
+        "checked": null,
+        "confirmed": null,
+        "created": 1999990000,
+        "depNames": [
+          "Alpha 任务"
+        ],
+        "deps": [
+          "alpha"
+        ],
+        "desc": "被阻塞",
+        "elapsed": 0,
+        "estimate": null,
+        "finished": null,
+        "id": "zeta",
+        "name": "Zeta 任务",
+        "nextUp": false,
+        "priority": "normal",
+        "sdone": 0,
+        "spct": 0,
+        "stage": "plan",
+        "started": null,
+        "status": "pending",
+        "stotal": 1,
+        "subNodes": [
+          [
+            "z1",
+            "子-z1",
+            "pending",
+            [],
+            2,
+            "desc-z1"
+          ]
+        ],
+        "subtable": [
+          {
+            "acc": [],
+            "created": 1999991000,
+            "depNames": [],
+            "dependsOn": [],
+            "estimate": null,
+            "finished": null,
+            "name": "子-z1",
+            "pct": 2,
+            "sid": "z1",
+            "skills": [],
+            "started": null,
+            "status": "pending"
+          }
+        ],
+        "worktree": null
+      },
+      {
+        "assignee": "t",
+        "checked": null,
+        "confirmed": null,
+        "created": 1999990000,
+        "depNames": [],
+        "deps": [],
+        "desc": "完成态",
+        "elapsed": 147,
+        "estimate": null,
+        "finished": 1999999800,
+        "id": "epsilon",
+        "name": "Epsilon 任务",
+        "nextUp": false,
+        "priority": "normal",
+        "sdone": 1,
+        "spct": 100,
+        "stage": "done",
+        "started": 1999991000,
+        "status": "done",
+        "stotal": 1,
+        "subNodes": [
+          [
+            "e1",
+            "子-e1",
+            "done",
+            [],
+            100,
+            "desc-e1"
+          ]
+        ],
+        "subtable": [
+          {
+            "acc": [],
+            "created": 1999991000,
+            "depNames": [],
+            "dependsOn": [],
+            "estimate": null,
+            "finished": 1999993000,
+            "name": "子-e1",
+            "pct": 100,
+            "sid": "e1",
+            "skills": [],
+            "started": 1999992000,
+            "status": "done"
+          }
+        ],
+        "worktree": null
+      }
+    ],
+    "overview": {
+      "combinedPct": 36,
+      "estMeta": "已耗 6h37m",
+      "hasSub": true,
+      "maxActive": 2,
+      "pools": {
+        "gate": {
+          "limit": 3,
+          "running": 1
+        },
+        "work": {
+          "limit": 2,
+          "running": 1
+        }
+      },
+      "stats": {
+        "active": 1,
+        "check": 1,
+        "done": 1,
+        "finishing": 0,
+        "pending": 4,
+        "research": 0
+      },
+      "taskCount": 7
+    },
+    "proj": "TESTPROJ"
+  },
+  "dashboard": {
+    "activeCount": 2,
+    "activeTasks": [
+      {
+        "elapsed": 133,
+        "id": "alpha",
+        "name": "Alpha 任务",
+        "pct": 38,
+        "sdone": 1,
+        "status": "active",
+        "stotal": 4
+      }
+    ],
+    "checkTasks": [
+      {
+        "elapsed": 117,
+        "id": "beta",
+        "name": "Beta 任务",
+        "pct": 95,
+        "sdone": 1,
+        "status": "check",
+        "stotal": 1
+      }
+    ],
+    "combinedPct": 36,
+    "doneRate": 14,
+    "estMeta": "已耗 6h37m",
+    "etaCards": [
+      {
+        "deps": [],
+        "estimate": null,
+        "id": "alpha",
+        "spct": 38,
+        "status": "active",
+        "subtable": [
+          {
+            "dependsOn": [],
+            "estimate": null,
+            "finished": 1999994000,
+            "pct": 100,
+            "sid": "s1",
+            "started": 1999993000,
+            "status": "done"
+          },
+          {
+            "dependsOn": [],
+            "estimate": null,
+            "finished": null,
+            "pct": 50,
+            "sid": "s2",
+            "started": 1999997000,
+            "status": "running"
+          },
+          {
+            "dependsOn": [
+              "s1"
+            ],
+            "estimate": null,
+            "finished": null,
+            "pct": 2,
+            "sid": "s3",
+            "started": null,
+            "status": "pending"
+          },
+          {
+            "dependsOn": [
+              "s2"
+            ],
+            "estimate": null,
+            "finished": null,
+            "pct": 2,
+            "sid": "s4",
+            "started": null,
+            "status": "pending"
+          }
+        ]
+      },
+      {
+        "deps": [],
+        "estimate": null,
+        "id": "beta",
+        "spct": 95,
+        "status": "check",
+        "subtable": [
+          {
+            "dependsOn": [],
+            "estimate": null,
+            "finished": 1999994000,
+            "pct": 100,
+            "sid": "b1",
+            "started": 1999993500,
+            "status": "done"
+          }
+        ]
+      },
+      {
+        "deps": [],
+        "estimate": null,
+        "id": "delta",
+        "spct": 0,
+        "status": "pending",
+        "subtable": [
+          {
+            "dependsOn": [],
+            "estimate": null,
+            "finished": null,
+            "pct": 2,
+            "sid": "d1",
+            "started": null,
+            "status": "pending"
+          }
+        ]
+      },
+      {
+        "deps": [],
+        "estimate": null,
+        "id": "gamma",
+        "spct": 0,
+        "status": "pending",
+        "subtable": [
+          {
+            "dependsOn": [],
+            "estimate": null,
+            "finished": null,
+            "pct": 2,
+            "sid": "g1",
+            "started": null,
+            "status": "pending"
+          }
+        ]
+      },
+      {
+        "deps": [],
+        "estimate": null,
+        "id": "ghost1",
+        "spct": 2,
+        "status": "pending",
+        "subtable": []
+      },
+      {
+        "deps": [
+          "alpha"
+        ],
+        "estimate": null,
+        "id": "zeta",
+        "spct": 0,
+        "status": "pending",
+        "subtable": [
+          {
+            "dependsOn": [],
+            "estimate": null,
+            "finished": null,
+            "pct": 2,
+            "sid": "z1",
+            "started": null,
+            "status": "pending"
+          }
+        ]
+      },
+      {
+        "deps": [],
+        "estimate": null,
+        "id": "epsilon",
+        "spct": 100,
+        "status": "done",
+        "subtable": [
+          {
+            "dependsOn": [],
+            "estimate": null,
+            "finished": 1999993000,
+            "pct": 100,
+            "sid": "e1",
+            "started": 1999992000,
+            "status": "done"
+          }
+        ]
+      }
+    ],
+    "maxActive": 2,
+    "proj": "TESTPROJ",
+    "readySubs": [
+      {
+        "depends_on": [
+          "s1"
+        ],
+        "name": "子-s3",
+        "sid": "s3",
+        "tid": "alpha"
+      }
+    ],
+    "readyTasks": [],
+    "recentActive": [
+      {
+        "created": 1999990000,
+        "desc": "待验收",
+        "finished": null,
+        "id": "beta",
+        "name": "Beta 任务",
+        "started": 1999993000,
+        "status": "check"
+      },
+      {
+        "created": 1999990000,
+        "desc": "活跃任务",
+        "finished": null,
+        "id": "alpha",
+        "name": "Alpha 任务",
+        "started": 1999992000,
+        "status": "active"
+      },
+      {
+        "created": 1999990000,
+        "desc": "规划中",
+        "finished": null,
+        "id": "delta",
+        "name": "Delta 任务",
+        "started": null,
+        "status": "pending"
+      },
+      {
+        "created": 1999990000,
+        "desc": "待启动",
+        "finished": null,
+        "id": "gamma",
+        "name": "Gamma 任务",
+        "started": null,
+        "status": "pending"
+      },
+      {
+        "created": 1999990000,
+        "desc": "被阻塞",
+        "finished": null,
+        "id": "zeta",
+        "name": "Zeta 任务",
+        "started": null,
+        "status": "pending"
+      },
+      {
+        "created": null,
+        "desc": "",
+        "finished": null,
+        "id": "ghost1",
+        "name": "ghost1",
+        "started": null,
+        "status": "pending"
+      }
+    ],
+    "recentDone": [
+      {
+        "created": 1999990000,
+        "desc": "完成态",
+        "finished": 1999999800,
+        "id": "epsilon",
+        "name": "Epsilon 任务",
+        "started": 1999991000,
+        "status": "done"
+      }
+    ],
+    "runningSubs": [
+      {
+        "elapsed": 50,
+        "name": "子-s2",
+        "sid": "s2",
+        "tid": "alpha"
+      }
+    ],
+    "statusDist": {
+      "active": 1,
+      "check": 1,
+      "done": 1,
+      "finishing": 0,
+      "pending": 4,
+      "research": 0
+    },
+    "subStatusDist": {
+      "done": 3,
+      "pending": 5,
+      "running": 1
+    },
+    "taskCount": 7,
+    "toPlanTasks": [
+      {
+        "desc": "规划中",
+        "id": "delta",
+        "name": "Delta 任务",
+        "subCount": 1
+      },
+      {
+        "desc": "待启动",
+        "id": "gamma",
+        "name": "Gamma 任务",
+        "subCount": 1
+      },
+      {
+        "desc": "被阻塞",
+        "id": "zeta",
+        "name": "Zeta 任务",
+        "subCount": 1
+      }
+    ]
+  },
+  "queue": {
+    "activeTasks": [
+      {
+        "elapsed": 133,
+        "id": "alpha",
+        "name": "Alpha 任务",
+        "pct": 38,
+        "sdone": 1,
+        "status": "active",
+        "stotal": 4
+      },
+      {
+        "elapsed": 117,
+        "id": "beta",
+        "name": "Beta 任务",
+        "pct": 95,
+        "sdone": 1,
+        "status": "check",
+        "stotal": 1
+      }
+    ],
+    "pendingQueue": [
+      {
+        "crit": 1,
+        "depends_on": [
+          "s1"
+        ],
+        "desc": "desc-s3",
+        "i": 2,
+        "name": "子-s3",
+        "ready": true,
+        "sid": "s3",
+        "status": "pending",
+        "ti": 0,
+        "tid": "alpha",
+        "trank": 0
+      },
+      {
+        "crit": 1,
+        "depends_on": [
+          "s2"
+        ],
+        "desc": "desc-s4",
+        "i": 3,
+        "name": "子-s4",
+        "ready": false,
+        "sid": "s4",
+        "status": "pending",
+        "ti": 0,
+        "tid": "alpha",
+        "trank": 0
+      },
+      {
+        "crit": 1,
+        "depends_on": [],
+        "desc": "desc-d1",
+        "i": 0,
+        "name": "子-d1",
+        "ready": false,
+        "sid": "d1",
+        "status": "pending",
+        "ti": 2,
+        "tid": "delta",
+        "trank": 1
+      },
+      {
+        "crit": 1,
+        "depends_on": [],
+        "desc": "desc-g1",
+        "i": 0,
+        "name": "子-g1",
+        "ready": false,
+        "sid": "g1",
+        "status": "pending",
+        "ti": 3,
+        "tid": "gamma",
+        "trank": 1
+      },
+      {
+        "crit": 1,
+        "depends_on": [],
+        "desc": "desc-z1",
+        "i": 0,
+        "name": "子-z1",
+        "ready": false,
+        "sid": "z1",
+        "status": "pending",
+        "ti": 5,
+        "tid": "zeta",
+        "trank": 2
+      }
+    ],
+    "queueTasks": [
+      {
+        "created": 1999990000,
+        "desc": "活跃任务",
+        "id": "alpha",
+        "name": "Alpha 任务",
+        "priority": null,
+        "spct": 38,
+        "started": 1999992000,
+        "status": "active"
+      },
+      {
+        "created": 1999990000,
+        "desc": "待验收",
+        "id": "beta",
+        "name": "Beta 任务",
+        "priority": null,
+        "spct": 95,
+        "started": 1999993000,
+        "status": "check"
+      },
+      {
+        "created": 1999990000,
+        "desc": "规划中",
+        "id": "delta",
+        "name": "Delta 任务",
+        "priority": null,
+        "spct": 0,
+        "started": null,
+        "status": "pending"
+      },
+      {
+        "created": 1999990000,
+        "desc": "待启动",
+        "id": "gamma",
+        "name": "Gamma 任务",
+        "priority": null,
+        "spct": 0,
+        "started": null,
+        "status": "pending"
+      },
+      {
+        "created": null,
+        "desc": "",
+        "id": "ghost1",
+        "name": "ghost1",
+        "priority": "normal",
+        "spct": 2,
+        "started": null,
+        "status": "pending"
+      },
+      {
+        "created": 1999990000,
+        "desc": "被阻塞",
+        "id": "zeta",
+        "name": "Zeta 任务",
+        "priority": null,
+        "spct": 0,
+        "started": null,
+        "status": "pending"
+      }
+    ],
+    "readySubtasks": [
+      {
+        "depends_on": [
+          "s1"
+        ],
+        "desc": "desc-s3",
+        "name": "子-s3",
+        "sid": "s3",
+        "status": "pending",
+        "tid": "alpha"
+      }
+    ],
+    "readyTasks": [],
+    "runningSubs": [
+      {
+        "elapsed": 50,
+        "name": "子-s2",
+        "sid": "s2",
+        "tid": "alpha"
+      }
+    ]
+  },
+  "search_alpha": {
+    "hits": [
+      {
+        "id": "alpha",
+        "kind": "task",
+        "name": "Alpha 任务",
+        "snippet": "活跃任务"
+      },
+      {
+        "id": "alpha",
+        "kind": "prd",
+        "name": "Alpha 任务 · PRD",
+        "snippet": ""
+      },
+      {
+        "id": "core/arch/zero-dep.md",
+        "kind": "spec",
+        "name": "core/arch/zero-dep.md",
+        "snippet": ""
+      }
+    ],
+    "query": "alpha"
+  },
+  "search_empty": {
+    "hits": [],
+    "query": ""
+  },
+  "search_snapshot": {
+    "hits": [
+      {
+        "id": "alpha",
+        "kind": "prd",
+        "name": "Alpha 任务 · PRD",
+        "snippet": ""
+      }
+    ],
+    "query": "视图"
+  },
+  "task_detail_alpha": {
+    "archived": false,
+    "depTasks": [],
+    "dependents": [
+      {
+        "desc": "被阻塞",
+        "id": "zeta",
+        "name": "Zeta 任务",
+        "status": "pending"
+      }
+    ],
+    "docs": {
+      "design": null,
+      "findings": null,
+      "prd": "# alpha — PRD\n\n## 目标\n交付纯视图模块。\n- [x] 拆出 Snapshot\n- [ ] 六视图纯函数化\n- [ ] TODO: 占位跳过\n\n## 边界\n- [ ] 不动调度\n\n## 验收标准\n输出字节级不变。\n- [x] golden 通过\n- [ ] TestClient 覆盖\n"
+    },
+    "maxActive": 2,
+    "prd": [
+      {
+        "badge": [
+          1,
+          2
+        ],
+        "items": [
+          {
+            "done": false,
+            "kind": "prose",
+            "proseCls": "",
+            "text": "交付纯视图模块。"
+          },
+          {
+            "done": true,
+            "kind": "check",
+            "proseCls": "",
+            "text": "拆出 Snapshot"
+          },
+          {
+            "done": false,
+            "kind": "check",
+            "proseCls": "",
+            "text": "六视图纯函数化"
+          }
+        ],
+        "name": "目标"
+      },
+      {
+        "badge": [
+          0,
+          1
+        ],
+        "items": [
+          {
+            "done": false,
+            "kind": "check",
+            "proseCls": "",
+            "text": "不动调度"
+          }
+        ],
+        "name": "边界"
+      },
+      {
+        "badge": [
+          1,
+          2
+        ],
+        "items": [
+          {
+            "done": false,
+            "kind": "prose",
+            "proseCls": "",
+            "text": "输出字节级不变。"
+          },
+          {
+            "done": true,
+            "kind": "check",
+            "proseCls": "",
+            "text": "golden 通过"
+          },
+          {
+            "done": false,
+            "kind": "check",
+            "proseCls": "",
+            "text": "TestClient 覆盖"
+          }
+        ],
+        "name": "验收标准"
+      }
+    ],
+    "progress": 38,
+    "research": {},
+    "stage": "exec",
+    "subtasks": [
+      {
+        "created": 1999991000,
+        "depends_on": [],
+        "desc": "desc-s1",
+        "finished": 1999994000,
+        "name": "子-s1",
+        "sid": "s1",
+        "skills": [],
+        "started": 1999993000,
+        "status": "done",
+        "验收": []
+      },
+      {
+        "created": 1999991000,
+        "depends_on": [],
+        "desc": "desc-s2",
+        "name": "子-s2",
+        "sid": "s2",
+        "skills": [],
+        "started": 1999997000,
+        "status": "running",
+        "验收": []
+      },
+      {
+        "created": 1999991000,
+        "depends_on": [
+          "s1"
+        ],
+        "desc": "desc-s3",
+        "name": "子-s3",
+        "sid": "s3",
+        "skills": [],
+        "status": "pending",
+        "验收": []
+      },
+      {
+        "created": 1999991000,
+        "depends_on": [
+          "s2"
+        ],
+        "desc": "desc-s4",
+        "name": "子-s4",
+        "sid": "s4",
+        "skills": [],
+        "status": "pending",
+        "验收": []
+      }
+    ],
+    "task": {
+      "created": 1999990000,
+      "deps": [],
+      "desc": "活跃任务",
+      "id": "alpha",
+      "name": "Alpha 任务",
+      "started": 1999992000,
+      "status": "active",
+      "subtasks": [
+        {
+          "created": 1999991000,
+          "depends_on": [],
+          "desc": "desc-s1",
+          "finished": 1999994000,
+          "name": "子-s1",
+          "sid": "s1",
+          "skills": [],
+          "started": 1999993000,
+          "status": "done",
+          "验收": []
+        },
+        {
+          "created": 1999991000,
+          "depends_on": [],
+          "desc": "desc-s2",
+          "name": "子-s2",
+          "sid": "s2",
+          "skills": [],
+          "started": 1999997000,
+          "status": "running",
+          "验收": []
+        },
+        {
+          "created": 1999991000,
+          "depends_on": [
+            "s1"
+          ],
+          "desc": "desc-s3",
+          "name": "子-s3",
+          "sid": "s3",
+          "skills": [],
+          "status": "pending",
+          "验收": []
+        },
+        {
+          "created": 1999991000,
+          "depends_on": [
+            "s2"
+          ],
+          "desc": "desc-s4",
+          "name": "子-s4",
+          "sid": "s4",
+          "skills": [],
+          "status": "pending",
+          "验收": []
+        }
+      ],
+      "updated": 1999995000,
+      "worktree": "wt/alpha"
+    },
+    "timeline": []
+  },
+  "task_detail_delta": {
+    "archived": false,
+    "depTasks": [],
+    "dependents": [],
+    "docs": {
+      "design": null,
+      "findings": null,
+      "prd": null
+    },
+    "maxActive": 2,
+    "prd": [],
+    "progress": 0,
+    "research": {},
+    "stage": "plan",
+    "subtasks": [
+      {
+        "created": 1999991000,
+        "depends_on": [],
+        "desc": "desc-d1",
+        "name": "子-d1",
+        "sid": "d1",
+        "skills": [],
+        "status": "pending",
+        "验收": []
+      }
+    ],
+    "task": {
+      "created": 1999990000,
+      "deps": [],
+      "desc": "规划中",
+      "id": "delta",
+      "name": "Delta 任务",
+      "status": "pending",
+      "subtasks": [
+        {
+          "created": 1999991000,
+          "depends_on": [],
+          "desc": "desc-d1",
+          "name": "子-d1",
+          "sid": "d1",
+          "skills": [],
+          "status": "pending",
+          "验收": []
+        }
+      ],
+      "updated": 1999995000
+    },
+    "timeline": []
+  },
+  "task_detail_ghost1": null,
+  "task_detail_old1": {
+    "archived": true,
+    "depTasks": [],
+    "dependents": [],
+    "docs": {
+      "design": null,
+      "findings": null,
+      "prd": null
+    },
+    "maxActive": 2,
+    "prd": [],
+    "progress": 100,
+    "research": {},
+    "stage": "done",
+    "subtasks": [
+      {
+        "created": 1999991000,
+        "depends_on": [],
+        "desc": "desc-o1",
+        "name": "子-o1",
+        "sid": "o1",
+        "skills": [],
+        "status": "done",
+        "验收": []
+      }
+    ],
+    "task": {
+      "created": 1999990000,
+      "deps": [],
+      "desc": "旧归档",
+      "finished": 1999900000,
+      "id": "old1",
+      "name": "Old 任务",
+      "status": "done",
+      "subtasks": [
+        {
+          "created": 1999991000,
+          "depends_on": [],
+          "desc": "desc-o1",
+          "name": "子-o1",
+          "sid": "o1",
+          "skills": [],
+          "status": "done",
+          "验收": []
+        }
+      ],
+      "updated": 1999995000
+    },
+    "timeline": []
+  }
+}

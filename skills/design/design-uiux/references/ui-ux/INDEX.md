@@ -1,0 +1,35 @@
+# UI/UX · 二级索引（无关平台）
+
+跨平台 / 跨媒介通用的 UI/UX 设计方法论。无论 HTML / App / CLI / TUI 都适用。本文件是选择指导——先定问题归属，再查对应文件。
+
+## 选择指导
+
+| 你要解决 | 看哪个文件 |
+|---------|-----------|
+| 设计原则（层级 / 对比 / 对齐 / 接近 / 一致 / 反馈 / 容错） | [principles.md](principles.md) |
+| 信息架构 / 导航 / 内容优先级 / 用户心智模型 | [information-architecture.md](information-architecture.md) |
+| 交互模式 / 状态 / 反馈 / 微交互 / 防错 | [interaction-design.md](interaction-design.md) |
+| 可用性启发式（Nielsen 10）/ 无障碍（WCAG / 键盘 / 对比） | [usability-a11y.md](usability-a11y.md) |
+| **主流场景设计建议**（电商/SaaS/BI/落地页/认证/onboarding/搜索/设置/社交/教育/表单/协作/通知 14 场景） | [scenarios.md](scenarios.md) |
+| **行业推理规则**（100 行业 × 11 大类：科技/金融/医疗/电商/创意...） | [industry-rules.md](industry-rules.md) |
+| **UX 规则全清单**（10 类 ~170 条：无障碍/触控/性能/风格/布局/排版色彩/动画/表单/导航/图表） | [rules.md](rules.md) |
+| **图表选型决策**（25 图表类型 × 8 分组：趋势/对比/分布/地理/KPI/层级/金融/多变量） | [charts.md](charts.md) |
+| **排版字体配对**（74 配对 × 6 类：通用SaaS/奢侈编辑/科技数据/创意风格/专业多语言/CJK-RTL） | [typography.md](typography.md) |
+
+## 定位
+
+本目录管「跨平台通用的 UI/UX 纪律」。各媒介专属实现（布局结构、组件库、平台习惯）在对应 medium 目录：
+
+- HTML 实现 → [../html/](../html/INDEX.md)
+- App 实现 → [../app/](../app/INDEX.md)
+- CLI 实现 → [../cli/](../cli/INDEX.md)
+- TUI 实现 → [../tui/](../tui/INDEX.md)
+- 配色理论与调色板 → 姊妹 skill `design-color`（本 skill 只管 UI/UX）
+
+## 怎么用
+
+设计任务先来本目录定原则与架构，再去 medium 目录定具体实现。例：设计一个设置页——先在 IA 文件定信息架构（分组、层级、搜索），再去 app/components 定具体控件。
+
+## 跨媒介共享
+
+三方向硬门、事实验证见顶层 [../../SKILL.md](../../SKILL.md)。

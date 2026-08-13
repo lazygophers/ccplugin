@@ -1,0 +1,52 @@
+# version - Scripts
+
+> version 插件的 Python 脚本实现
+
+## 概述
+
+本目录包含 version 插件的核心逻辑实现。
+
+## 主要模块
+
+- `hooks.py` - Hook 事件处理
+- `version.py` - Version 模块
+- `__init__.py` -   Init   模块
+- `mcp.py` - MCP 服务器实现
+- `main.py` - CLI 入口点
+
+## API 参考
+
+### hooks.py
+
+- `handle_hook()` - 处理 hook 模式：从 stdin 读取 JSON 并记录。
+
+### version.py
+
+- `init_version()`
+- `auto_update()`
+- `inc_major()` - 更新主版本号（第一级），其余级别重置为 0
+- `inc_minor()` - 更新次版本号（第二级），patch和build重置为 0
+- `inc_patch()` - 更新补丁版本号（第三级），build重置为 0
+
+### main.py
+
+- `with_debug(func)` - 装饰器：为所有命令添加 --debug 参数支持
+- `main(ctx)` - Version management plugin.
+- `info()` - Show version information
+- `hooks_cmd()` - Hook 模式：从 stdin 读取 JSON
+- `mcp()` - MCP 服务器模式：启动版本管理 MCP 服务器
+
+### mcp.py
+
+- `VersionMCPServer` - 版本管理 MCP 服务器
+
+## 依赖
+
+- `lib.logging` - 日志系统
+- `lib.hooks` - Hook 系统
+- `lib.utils` - 工具函数
+
+## 相关文档
+
+- [插件文档](../README.md) - 插件完整文档
+- [插件配置](../.claude-plugin/plugin.json) - 插件元数据

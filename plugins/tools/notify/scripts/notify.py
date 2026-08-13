@@ -1,0 +1,1230 @@
+"""
+通知和 TTS 功能模块
+
+提供两个主要功能：
+1. play_text_tts() - 通过 TTS 播放文本内容
+2. show_system_notification() - 显示系统通知
+"""
+
+import base64
+import hashlib
+import os
+import platform
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+from typing import Optional
+
+from .icons import PREDEFINED_ICONS
+from ._env import get_plugins_path, get_project_plugins_dir, get_user_plugins_dir, get_app_name, get_project_dir
+
+
+def _command_exists(cmd: str) -> bool:
+	return shutil.which(cmd) is not None
+
+
+_EMOJI_RE = re.compile(
+	"("
+	"[\U0001F1E6-\U0001F1FF]"  # flags
+	"|[\U0001F300-\U0001F5FF]"  # symbols & pictographs
+	"|[\U0001F600-\U0001F64F]"  # emoticons
+	"|[\U0001F680-\U0001F6FF]"  # transport & map
+	"|[\U0001F700-\U0001F77F]"  # alchemical
+	"|[\U0001F780-\U0001F7FF]"  # geometric extended
+	"|[\U0001F800-\U0001F8FF]"  # arrows-c
+	"|[\U0001F900-\U0001F9FF]"  # supplemental symbols
+	"|[\U0001FA00-\U0001FA6F]"  # chess etc.
+	"|[\U0001FA70-\U0001FAFF]"  # symbols ext-a
+	"|[\u2600-\u26FF]"  # misc symbols
+	"|[\u2700-\u27BF]"  # dingbats
+	")"
+)
+
+_MAX_TTS_HANZI = 300
+
+
+def _is_hanzi(ch: str) -> bool:
+	if not ch:
+		return False
+	cp = ord(ch)
+	# CJK Unified Ideographs + Extensions (common ranges)
+	return (
+		0x3400 <= cp <= 0x4DBF  # Ext A
+		or 0x4E00 <= cp <= 0x9FFF  # Unified
+		or 0xF900 <= cp <= 0xFAFF  # Compatibility
+		or 0x20000 <= cp <= 0x2A6DF  # Ext B
+		or 0x2A700 <= cp <= 0x2B73F  # Ext C
+		or 0x2B740 <= cp <= 0x2B81F  # Ext D
+		or 0x2B820 <= cp <= 0x2CEAF  # Ext E
+		or 0x2CEB0 <= cp <= 0x2EBEF  # Ext F
+		or 0x30000 <= cp <= 0x3134F  # Ext G (subset)
+	)
+
+
+def _strip_markdown(text: str) -> str:
+	"""移除常见 Markdown 标记，保留可读的纯文本（用于通知与 TTS）。
+
+	特殊处理：保护 Jinja2 模板语法（{{ variable }}）不被破坏。
+	"""
+	if not text:
+		return text
+
+	# 1. 先保护 Jinja2 模板语法（避免下划线被当作 Markdown 斜体标记移除）
+	# 使用 \x00 作为分隔符，这是一个不会出现在普通文本中的字符
+	jinja_placeholders = {}
+	def _protect_jinja(m: re.Match) -> str:
+		placeholder = f"\x00JINJA{len(jinja_placeholders)}\x00"
+		jinja_placeholders[placeholder] = m.group(0)
+		return placeholder
+
+	# 保护 {{ ... }} 和 {% ... %}
+	text = re.sub(r"\{\{[^}]+\}\}", _protect_jinja, text)
+	text = re.sub(r"\{%[^}]+%\}", _protect_jinja, text)
+
+	# 2. 处理 Markdown 标记
+	# Code fences: keep inner code, drop fences/language.
+	def _fence_repl(m: re.Match) -> str:
+		block = m.group(0)
+		lines = block.splitlines()
+		if len(lines) >= 2 and lines[0].lstrip().startswith("```") and lines[-1].lstrip().startswith("```"):
+			return "\n".join(lines[1:-1])
+		return ""
+
+	text = re.sub(r"```[\s\S]*?```", _fence_repl, text)
+
+	# Inline code
+	text = re.sub(r"`([^`]*)`", r"\1", text)
+
+	# Images/links
+	text = re.sub(r"!\[([^\]]*)\]\([^)]+\)", r"\1", text)
+	text = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
+	text = re.sub(r"\[([^\]]+)\]\[[^\]]*\]", r"\1", text)  # reference-style links
+
+	# Autolinks
+	text = re.sub(r"<(https?://[^>]+)>", r"\1", text)
+
+	# Headings / blockquotes / list markers
+	text = re.sub(r"(?m)^\s{0,3}#{1,6}\s+", "", text)
+	text = re.sub(r"(?m)^\s{0,3}>\s?", "", text)
+	text = re.sub(r"(?m)^\s*(?:[-*+]|(?:\d+\.))\s+", "", text)
+
+	# Horizontal rules / setext heading underline
+	text = re.sub(r"(?m)^\s*([-=_])\1{2,}\s*$", "", text)
+
+	# Emphasis / strikethrough (best-effort, avoid over-aggressive stripping)
+	text = re.sub(r"\*\*([^*]+)\*\*", r"\1", text)
+	text = re.sub(r"__([^_]+)__", r"\1", text)
+	text = re.sub(r"\*([^*]+)\*", r"\1", text)
+	text = re.sub(r"_([^_]+)_", r"\1", text)
+	text = re.sub(r"~~([^~]+)~~", r"\1", text)
+
+	# Simple HTML tags
+	text = re.sub(r"</?[^>]+>", "", text)
+
+	# Collapse extra spaces but preserve newlines.
+	text = re.sub(r"[ \t]{2,}", " ", text)
+
+	# 3. 恢复 Jinja2 模板语法
+	for placeholder, original in jinja_placeholders.items():
+		text = text.replace(placeholder, original)
+
+	return text.strip()
+
+
+def _truncate_tts_text(text: str, max_hanzi: int = _MAX_TTS_HANZI) -> str:
+	"""TTS 只输出前 max_hanzi 个汉字；超过则直接截断到第 max_hanzi 个汉字的位置。"""
+	if not text:
+		return text
+	if max_hanzi <= 0:
+		return ""
+
+	hanzi_count = 0
+	for i, ch in enumerate(text):
+		if _is_hanzi(ch):
+			hanzi_count += 1
+			if hanzi_count > max_hanzi:
+				return text[:i]
+	return text
+
+
+def _sanitize_tts_text(text: str) -> str:
+	"""过滤 emoji：用空格替换 emoji 本体，移除连接/变体符号。"""
+	if not text:
+		return text
+
+	# Remove joiners/selectors/modifiers that are not useful for TTS output.
+	text = text.replace("\u200d", "")  # ZWJ
+	text = text.replace("\ufe0f", "").replace("\ufe0e", "")  # VS16/VS15
+	text = text.replace("\u20e3", "")  # keycap enclosing
+	text = re.sub(r"[\U0001F3FB-\U0001F3FF]", "", text)  # skin tone modifiers
+
+	# Replace emoji with a space to keep word boundaries readable.
+	text = _EMOJI_RE.sub(" ", text)
+
+	# Collapse excessive spaces but preserve newlines.
+	text = re.sub(r"[ \t]{2,}", " ", text)
+	return text
+
+
+def _file_md5(path: str) -> Optional[str]:
+	try:
+		h = hashlib.md5()
+		with open(path, "rb") as f:
+			for chunk in iter(lambda: f.read(1024 * 1024), b""):
+				h.update(chunk)
+		return h.hexdigest()
+	except OSError as e:
+		return None
+
+
+def _get_user_cache_dir(*parts: str) -> str:
+	base_dir = os.path.join(get_user_plugins_dir(), get_app_name(), "cache")
+	return os.path.join(base_dir, *parts)
+
+
+def _svg_to_png_cached(svg_path: str, size: int = 256) -> Optional[str]:
+	"""Convert an SVG to a PNG with caching.
+
+	Conversion backends (in order):
+	- rsvg-convert
+	- cairosvg
+	- inkscape
+	- ImageMagick (magick/convert)
+	- macOS qlmanage (fallback; may produce opaque thumbnails)
+	"""
+	try:
+		os.stat(svg_path)
+	except OSError as e:
+		return None
+
+	cache_dir = _get_user_cache_dir("icons")
+	os.makedirs(cache_dir, exist_ok=True)
+
+	source_md5 = _file_md5(svg_path)
+	if not source_md5:
+		return None
+
+	# 按“文件内容 md5”去重：同内容同尺寸只生成一次缓存文件，不重复覆盖/生成
+	cached_png = os.path.join(cache_dir, f"svg_{source_md5}_{int(size)}.png")
+	if os.path.exists(cached_png):
+		return cached_png
+
+	tmpdir = tempfile.mkdtemp(prefix="notify-icon-")
+	try:
+		out_path = os.path.join(tmpdir, "out.png")
+
+		if _command_exists("rsvg-convert"):
+			subprocess.run(
+				["rsvg-convert", "-w", str(size), "-h", str(size), "-o", out_path, svg_path],
+				check=True,
+				capture_output=True,
+			)
+			generated = out_path
+		elif _command_exists("cairosvg"):
+			subprocess.run(
+				["cairosvg", "-o", out_path, "-W", str(size), "-H", str(size), svg_path],
+				check=True,
+				capture_output=True,
+			)
+			generated = out_path
+		elif _command_exists("inkscape"):
+			# Compatible with Inkscape 1.x
+			subprocess.run(
+				["inkscape", svg_path, "-o", out_path, "-w", str(size), "-h", str(size)],
+				check=True,
+				capture_output=True,
+			)
+			generated = out_path
+		elif _command_exists("magick"):
+			subprocess.run(
+				["magick", svg_path, "-background", "none", "-alpha", "on", "-resize", f"{size}x{size}", out_path],
+				check=True,
+				capture_output=True,
+			)
+			generated = out_path
+		elif _command_exists("convert"):
+			subprocess.run(
+				["convert", svg_path, "-background", "none", "-alpha", "on", "-resize", f"{size}x{size}", out_path],
+				check=True,
+				capture_output=True,
+			)
+			generated = out_path
+		elif platform.system() == "Darwin" and _command_exists("qlmanage"):
+			subprocess.run(
+				["qlmanage", "-t", "-s", str(size), "-o", tmpdir, svg_path],
+				check=True,
+				capture_output=True,
+			)
+			generated = os.path.join(tmpdir, os.path.basename(svg_path) + ".png")
+		else:
+			return None
+
+		if not os.path.exists(generated):
+			return None
+
+		# 若目标已存在（并发/重复触发），不覆盖，直接复用
+		if os.path.exists(cached_png):
+			return cached_png
+
+		shutil.move(generated, cached_png)
+		return cached_png
+	except subprocess.CalledProcessError as e:
+		return None
+	finally:
+		shutil.rmtree(tmpdir, ignore_errors=True)
+
+
+def _icon_for_overlay(icon_path: Optional[str]) -> Optional[str]:
+	"""为 overlay 选择可用的 icon 文件路径（强制要求：必须能展示 logo）。"""
+	if isinstance(icon_path, str) and icon_path and os.path.exists(icon_path):
+		if icon_path.lower().endswith(".svg"):
+			# 如果同名 PNG 已存在，优先使用（无需外部转换工具，也避免重复生成缓存）
+			png_candidate = os.path.splitext(icon_path)[0] + ".png"
+			if os.path.exists(png_candidate):
+				return png_candidate
+			converted = _svg_to_png_cached(icon_path)
+			if converted:
+				return converted
+			return None
+		return icon_path
+
+	return None
+
+
+_TK_OVERLAY_SCRIPT = r'''
+import sys
+import os
+import time
+
+def _truncate_preview(text: str, max_chars: int = 180) -> str:
+	if not text:
+		return ""
+	t = str(text).strip()
+	if len(t) <= max_chars:
+		return t
+	return t[:max_chars].rstrip() + "…"
+
+
+def main() -> int:
+	if len(sys.argv) < 5:
+		return 2
+
+	title = sys.argv[1]
+	message = sys.argv[2]
+	duration_seconds = max(1, int(float(sys.argv[3])))
+	icon_path = sys.argv[4]
+
+	import tkinter as tk
+
+	root = tk.Tk()
+	root.overrideredirect(True)
+	root.attributes("-topmost", True)
+	try:
+		root.wm_attributes("-type", "notification")
+	except Exception:
+		pass
+
+	# Try to avoid focus stealing on Windows
+	if sys.platform.startswith("win"):
+		try:
+			import ctypes
+			from ctypes import wintypes
+
+			GWL_EXSTYLE = -20
+			WS_EX_TOOLWINDOW = 0x00000080
+			WS_EX_NOACTIVATE = 0x08000000
+
+			hwnd = root.winfo_id()
+			user32 = ctypes.windll.user32
+			user32.GetWindowLongW.restype = wintypes.LONG
+			exstyle = user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
+			user32.SetWindowLongW(hwnd, GWL_EXSTYLE, exstyle | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE)
+			# SW_SHOWNOACTIVATE = 4
+			user32.ShowWindow(hwnd, 4)
+		except Exception:
+			pass
+
+	root.configure(bg="#000000")
+	frame = tk.Frame(root, bg="#1e1e1e", bd=0, highlightthickness=0)
+	frame.pack(fill="both", expand=True)
+
+	# Layout constants
+	padding = 12
+	gap = 10
+	width = 420
+	margin = 16
+
+	# Icon
+	icon = None
+	if icon_path and os.path.exists(icon_path):
+		try:
+			icon = tk.PhotoImage(file=icon_path)
+			# downscale if too large
+			while icon.width() > 64 and icon.height() > 64:
+				icon = icon.subsample(2, 2)
+		except Exception:
+			icon = None
+
+	if icon is not None:
+		icon_label = tk.Label(frame, image=icon, bg="#1e1e1e")
+		icon_label.image = icon
+		icon_label.grid(row=0, column=0, rowspan=2, padx=(padding, 0), pady=padding, sticky="n")
+		text_col = 1
+	else:
+		text_col = 0
+
+	close_col = text_col + 1
+	close_btn = tk.Button(
+		frame,
+		text="×",
+		command=root.destroy,
+		bg="#1e1e1e",
+		fg="#aaaaaa",
+		activebackground="#1e1e1e",
+		activeforeground="#ffffff",
+		bd=0,
+		highlightthickness=0,
+		cursor="hand2",
+		font=("Segoe UI", 12, "bold") if sys.platform.startswith("win") else ("Sans", 12, "bold"),
+	)
+	close_btn.grid(row=0, column=close_col, padx=(0, padding), pady=(padding, 0), sticky="ne")
+
+	title_label = tk.Label(
+		frame,
+		text=title,
+		bg="#1e1e1e",
+		fg="#ffffff",
+		font=("Segoe UI", 11, "bold") if sys.platform.startswith("win") else ("Sans", 11, "bold"),
+		anchor="w",
+	)
+	title_label.grid(
+		row=0,
+		column=text_col,
+		padx=(padding if text_col == 0 else gap, 6),
+		pady=(padding, 0),
+		sticky="we",
+	)
+
+	collapsed_preview = _truncate_preview(message, 180)
+	message_label = tk.Label(
+		frame,
+		text=collapsed_preview,
+		bg="#1e1e1e",
+		fg="#dddddd",
+		font=("Segoe UI", 10) if sys.platform.startswith("win") else ("Sans", 10),
+		justify="left",
+		anchor="nw",
+		wraplength=width - padding * 2 - (64 + gap if text_col == 1 else 0) - 20,
+	)
+	message_label.grid(row=1, column=text_col, columnspan=2, padx=(padding if text_col == 0 else gap, padding), pady=(6, padding), sticky="we")
+
+	# Expanded view (hover): scrollable full text
+	text_frame = tk.Frame(frame, bg="#1e1e1e", bd=0, highlightthickness=0)
+	scrollbar = tk.Scrollbar(text_frame, orient="vertical")
+	text_widget = tk.Text(
+		text_frame,
+		bg="#1e1e1e",
+		fg="#dddddd",
+		bd=0,
+		highlightthickness=0,
+		wrap="word",
+		yscrollcommand=scrollbar.set,
+		font=("Segoe UI", 10) if sys.platform.startswith("win") else ("Sans", 10),
+	)
+	scrollbar.config(command=text_widget.yview)
+	text_widget.insert("1.0", message)
+	text_widget.config(state="disabled")
+	text_widget.pack(side="left", fill="both", expand=True)
+	scrollbar.pack(side="right", fill="y")
+
+	frame.grid_columnconfigure(text_col, weight=1)
+
+	expanded = False
+	_pending_collapse = None
+
+	def _place_bottom_right():
+		root.update_idletasks()
+		win_w = max(width, frame.winfo_reqwidth())
+		win_h = frame.winfo_reqheight()
+		screen_w = root.winfo_screenwidth()
+		screen_h = root.winfo_screenheight()
+		x = screen_w - win_w - margin
+		y = screen_h - win_h - margin
+		root.geometry(f"{win_w}x{win_h}+{x}+{y}")
+
+	def _expand():
+		nonlocal expanded
+		if expanded:
+			return
+		expanded = True
+		message_label.grid_remove()
+		text_frame.grid(row=1, column=text_col, columnspan=2, padx=(padding if text_col == 0 else gap, padding), pady=(6, padding), sticky="nsew")
+		_place_bottom_right()
+
+	def _collapse():
+		nonlocal expanded
+		if not expanded:
+			return
+		expanded = False
+		text_frame.grid_remove()
+		message_label.grid()
+		_place_bottom_right()
+
+	def _inside_window() -> bool:
+		try:
+			px = root.winfo_pointerx() - root.winfo_rootx()
+			py = root.winfo_pointery() - root.winfo_rooty()
+			return 0 <= px < root.winfo_width() and 0 <= py < root.winfo_height()
+		except Exception:
+			return False
+
+	def _schedule_collapse():
+		nonlocal _pending_collapse
+		if _pending_collapse is not None:
+			try:
+				root.after_cancel(_pending_collapse)
+			except Exception:
+				pass
+		def _check():
+			if not _inside_window():
+				_collapse()
+		_pending_collapse = root.after(80, _check)
+
+	def _on_enter(_evt=None):
+		nonlocal _pending_collapse
+		if _pending_collapse is not None:
+			try:
+				root.after_cancel(_pending_collapse)
+			except Exception:
+				pass
+			_pending_collapse = None
+		_expand()
+
+	def _on_leave(_evt=None):
+		_schedule_collapse()
+
+	for w in (root, frame, title_label, message_label, close_btn, text_frame, text_widget, scrollbar):
+		try:
+			w.bind("<Enter>", _on_enter)
+			w.bind("<Leave>", _on_leave)
+		except Exception:
+			pass
+
+	_place_bottom_right()
+
+	tts_pid = 0
+	if len(sys.argv) >= 6:
+		try:
+			tts_pid = int(float(sys.argv[5]))
+		except Exception:
+			tts_pid = 0
+
+	def _stop_tts():
+		if not tts_pid or tts_pid <= 0:
+			return
+		try:
+			if sys.platform.startswith("win"):
+				import subprocess as _sp
+				_sp.run(
+					["taskkill", "/PID", str(tts_pid), "/T", "/F"],
+					stdout=_sp.DEVNULL,
+					stderr=_sp.DEVNULL,
+				)
+			else:
+				import signal
+				try:
+					os.kill(tts_pid, signal.SIGTERM)
+				except ProcessLookupError:
+					return
+				except PermissionError:
+					return
+				def _kill_hard():
+					try:
+						os.kill(tts_pid, signal.SIGKILL)
+					except Exception:
+						pass
+				root.after(400, _kill_hard)
+		except Exception:
+			pass
+
+	def _close():
+		_stop_tts()
+		root.destroy()
+
+	# wire close button
+	close_btn.configure(command=_close)
+
+	# auto close
+	root.after(int(duration_seconds * 1000), _close)
+	root.mainloop()
+	return 0
+
+if __name__ == "__main__":
+	raise SystemExit(main())
+'''
+
+
+def _ensure_tk_overlay_script() -> Optional[str]:
+	cache_dir = _get_user_cache_dir("bin")
+	os.makedirs(cache_dir, exist_ok=True)
+	source_md5 = hashlib.md5(_TK_OVERLAY_SCRIPT.encode("utf-8")).hexdigest()[:16]
+	script_path = os.path.join(cache_dir, f"notify_overlay_tk_{source_md5}.py")
+
+	try:
+		# 文件名已包含源码 md5：同内容不重复写入/覆盖
+		if not os.path.exists(script_path):
+			with open(script_path, "w", encoding="utf-8") as f:
+				f.write(_TK_OVERLAY_SCRIPT)
+
+		return script_path
+	except Exception as e:
+		return None
+
+
+def _tkinter_available() -> bool:
+	"""不使用 try-import：用子进程检测 tkinter 是否可用。"""
+	try:
+		python_exe = sys.executable
+		if not python_exe:
+			python_exe = shutil.which("python3") or shutil.which("python") or "python"
+		result = subprocess.run(
+			[python_exe, "-c", "import tkinter"],
+			capture_output=True,
+			text=True,
+		)
+		return result.returncode == 0
+	except Exception:
+		return False
+
+
+def _show_tk_overlay_notification(
+	message: str,
+	title: str,
+	duration_seconds: int,
+	icon_path: Optional[str],
+	tts_pid: Optional[int] = None,
+) -> bool:
+	if not _tkinter_available():
+		return False
+
+	script_path = _ensure_tk_overlay_script()
+	if not script_path:
+		return False
+
+	icon_for_overlay = _icon_for_overlay(icon_path)
+	if not icon_for_overlay:
+		return False
+
+	timeout_seconds = max(1, int(duration_seconds))
+	try:
+		args = [sys.executable, script_path, title, message, str(timeout_seconds), str(icon_for_overlay)]
+		if isinstance(tts_pid, int) and tts_pid > 0:
+			args.append(str(tts_pid))
+		subprocess.Popen(
+			args,
+			stdout=subprocess.DEVNULL,
+			stderr=subprocess.DEVNULL,
+		)
+		return True
+	except Exception as e:
+		return False
+
+
+def _resolve_icon_path(icon: str) -> Optional[str]:
+	"""解析图标参数为完整路径。
+
+	支持：
+	1. 预定义名称 - 如 'claude'，映射到 assets/icons/claude.png
+	2. 绝对路径 - 直接使用
+	3. 相对路径 - 按照优先级顺序搜索：
+	   - assets/icons/ (用于预定义的项目资源)
+	   - assets/ (用于自定义资源)
+	   - 脚本目录 (向后兼容)
+
+	Args:
+		icon: 图标参数（路径或预定义名称）
+
+	Returns:
+		图标文件的完整路径字符串，或 None 如果找不到
+	"""
+	# 检查是否是预定义名称
+	if icon in PREDEFINED_ICONS:
+		icon = os.path.join(get_plugins_path(), "assets", "icons", PREDEFINED_ICONS[icon])
+
+	# 如果是绝对路径，直接验证
+	if os.path.isabs(icon):
+		if os.path.exists(icon) and os.path.isfile(icon):
+			return icon
+		return None
+
+	# 相对路径：按优先级搜索
+	search_paths = [
+		os.path.join(get_project_plugins_dir(), get_app_name(), 'icons', icon),
+		os.path.join(get_project_dir(), 'assets', "icons", "svg", icon),
+		os.path.join(get_project_dir(), 'assets', "icons", icon),
+		os.path.join(get_project_dir(), 'icons', icon),
+		os.path.join(get_project_dir(), icon),
+	]
+
+	for path in search_paths:
+		if os.path.exists(path) and os.path.isfile(path):
+			return path
+
+	# 如果找不到文件，记录错误但不中断执行
+	return None
+
+
+def _show_macos_notification_terminal_notifier(
+	message: str,
+	title: str,
+	duration_seconds: int,
+	icon_path: Optional[str],
+) -> bool:
+	# 保留函数名用于兼容旧调用路径，但实现改为“可控时长的无焦点浮层提醒”。
+	# 原因：macOS 通知横幅停留时长无法被系统通知 API 可靠控制，无法满足“强制 duration 秒”的要求。
+	return _show_macos_overlay_notification(message=message, title=title, duration_seconds=duration_seconds,
+	                                        icon_path=icon_path)
+
+
+_MACOS_OVERLAY_SWIFT_SOURCE = r'''
+import AppKit
+import Foundation
+import Darwin
+
+final class NonActivatingPanel: NSPanel {
+	override var canBecomeKey: Bool { false }
+	override var canBecomeMain: Bool { false }
+}
+
+final class TrackingVisualEffectView: NSVisualEffectView {
+	var onEnter: (() -> Void)?
+	var onExit: (() -> Void)?
+	private var trackingAreaRef: NSTrackingArea?
+
+	override func updateTrackingAreas() {
+		super.updateTrackingAreas()
+		if let ta = trackingAreaRef {
+			self.removeTrackingArea(ta)
+		}
+		let options: NSTrackingArea.Options = [.mouseEnteredAndExited, .activeAlways, .inVisibleRect]
+		let ta = NSTrackingArea(rect: self.bounds, options: options, owner: self, userInfo: nil)
+		self.addTrackingArea(ta)
+		trackingAreaRef = ta
+	}
+
+	override func mouseEntered(with event: NSEvent) {
+		onEnter?()
+	}
+
+	override func mouseExited(with event: NSEvent) {
+		onExit?()
+	}
+}
+
+final class CloseTarget: NSObject {
+	var onClose: (() -> Void)?
+	@objc func close(_ sender: Any?) {
+		onClose?()
+	}
+}
+
+func measureHeight(text: String, font: NSFont, width: CGFloat) -> CGFloat {
+	let attributes: [NSAttributedString.Key: Any] = [.font: font]
+	let rect = (text as NSString).boundingRect(
+		with: NSSize(width: width, height: 10_000),
+		options: [.usesLineFragmentOrigin, .usesFontLeading],
+		attributes: attributes
+	)
+	return ceil(rect.height)
+}
+
+func main() -> Int32 {
+	// argv: title message duration_seconds icon_b64_or_path [tts_pid]
+	guard CommandLine.arguments.count >= 5 else { return 2 }
+
+	let title = CommandLine.arguments[1]
+	let message = CommandLine.arguments[2]
+	let durationSeconds = max(1, Int(CommandLine.arguments[3]) ?? 60)
+	let iconArg = CommandLine.arguments[4]
+	let ttsPid: Int32 = (CommandLine.arguments.count >= 6) ? (Int32(CommandLine.arguments[5]) ?? 0) : 0
+
+	func stopTts() {
+		guard ttsPid > 0 else { return }
+		_ = kill(ttsPid, SIGTERM)
+		DispatchQueue.global().asyncAfter(deadline: .now() + .milliseconds(400)) {
+			_ = kill(ttsPid, SIGKILL)
+		}
+	}
+
+	NSApplication.shared.setActivationPolicy(.accessory)
+
+	guard let screen = NSScreen.main ?? NSScreen.screens.first else { return 3 }
+	let visible = screen.visibleFrame
+
+	let margin: CGFloat = 16
+	let padding: CGFloat = 14
+	let gap: CGFloat = 10
+	let iconSize: CGFloat = 44
+	let width: CGFloat = 420
+
+	let titleFont = NSFont.boldSystemFont(ofSize: 14)
+	let messageFont = NSFont.systemFont(ofSize: 13)
+	let textWidth = width - padding * 2 - iconSize - gap
+	let titleHeight = max(18, measureHeight(text: title, font: titleFont, width: textWidth))
+	let fullMessageHeight = max(18, measureHeight(text: message, font: messageFont, width: textWidth))
+
+	let collapsedMessageMax: CGFloat = 86
+	let expandedMessageMax: CGFloat = min(420, max(180, visible.height * 0.6))
+
+	func windowHeight(forMessageHeight mh: CGFloat) -> CGFloat {
+		let right = titleHeight + 6 + mh
+		let content = max(iconSize, right)
+		return padding * 2 + content
+	}
+
+	let collapsedMessageHeight = min(collapsedMessageMax, fullMessageHeight)
+	let collapsedHeight: CGFloat = windowHeight(forMessageHeight: collapsedMessageHeight)
+
+	let x = visible.maxX - width - margin
+	let y = visible.minY + margin
+	let rect = NSRect(x: x, y: y, width: width, height: collapsedHeight)
+
+	let panel = NonActivatingPanel(
+		contentRect: rect,
+		styleMask: [.nonactivatingPanel, .borderless],
+		backing: .buffered,
+		defer: false
+	)
+	panel.isFloatingPanel = true
+	panel.level = .statusBar
+	panel.collectionBehavior = [.canJoinAllSpaces, .transient, .fullScreenAuxiliary]
+	panel.backgroundColor = .clear
+	panel.isOpaque = false
+	panel.hasShadow = true
+	panel.ignoresMouseEvents = false
+
+	let background = TrackingVisualEffectView(frame: NSRect(x: 0, y: 0, width: width, height: collapsedHeight))
+	background.material = .popover
+	background.state = .active
+	background.wantsLayer = true
+	background.layer?.cornerRadius = 12
+	background.layer?.masksToBounds = true
+
+	var iconImage: NSImage? = nil
+	if iconArg.hasPrefix("b64:") {
+		let b64 = String(iconArg.dropFirst(4))
+		if let data = Data(base64Encoded: b64, options: [.ignoreUnknownCharacters]) {
+			iconImage = NSImage(data: data)
+		}
+	} else {
+		iconImage = NSImage(contentsOfFile: iconArg)
+		if iconImage == nil {
+			let url = URL(fileURLWithPath: iconArg)
+			if let data = try? Data(contentsOf: url) {
+				iconImage = NSImage(data: data)
+			}
+		}
+	}
+	if let img = iconImage { img.isTemplate = false }
+
+	let iconView = NSImageView(frame: .zero)
+	iconView.imageScaling = .scaleProportionallyUpOrDown
+	iconView.contentTintColor = nil
+	iconView.image = iconImage
+
+	let titleField = NSTextField(labelWithString: title)
+	titleField.font = titleFont
+	titleField.textColor = .labelColor
+	titleField.lineBreakMode = .byTruncatingTail
+	titleField.maximumNumberOfLines = 1
+
+	let textView = NSTextView(frame: .zero)
+	textView.isEditable = false
+	textView.isSelectable = true
+	textView.drawsBackground = false
+	textView.font = messageFont
+	textView.textColor = .secondaryLabelColor
+	textView.string = message
+	textView.textContainerInset = .zero
+	textView.textContainer?.lineFragmentPadding = 0
+
+	let scrollView = NSScrollView(frame: .zero)
+	scrollView.drawsBackground = false
+	scrollView.borderType = .noBorder
+	scrollView.documentView = textView
+	scrollView.hasVerticalScroller = false
+	scrollView.hasHorizontalScroller = false
+	scrollView.autohidesScrollers = true
+
+	let closeTarget = CloseTarget()
+	closeTarget.onClose = {
+		stopTts()
+		NSApp.terminate(nil)
+	}
+	let closeButton = NSButton(title: "×", target: closeTarget, action: #selector(CloseTarget.close(_:)))
+	closeButton.isBordered = false
+	closeButton.font = NSFont.boldSystemFont(ofSize: 13)
+	closeButton.contentTintColor = .secondaryLabelColor
+
+	func layoutWindow(messageHeight mh: CGFloat, expanded: Bool) {
+		let h = windowHeight(forMessageHeight: mh)
+		panel.setFrame(NSRect(x: x, y: y, width: width, height: h), display: true)
+		background.frame = NSRect(x: 0, y: 0, width: width, height: h)
+
+		iconView.frame = NSRect(x: padding, y: h - padding - iconSize, width: iconSize, height: iconSize)
+		closeButton.frame = NSRect(x: width - padding - 18, y: h - padding - 18, width: 18, height: 18)
+
+		titleField.frame = NSRect(
+			x: padding + iconSize + gap,
+			y: h - padding - titleHeight,
+			width: textWidth - 20,
+			height: titleHeight
+		)
+		scrollView.frame = NSRect(
+			x: padding + iconSize + gap,
+			y: padding,
+			width: textWidth,
+			height: h - padding * 2 - titleHeight - 6
+		)
+
+		scrollView.hasVerticalScroller = expanded && fullMessageHeight > mh
+		textView.scrollRangeToVisible(NSRange(location: 0, length: 0))
+	}
+
+	background.addSubview(iconView)
+	background.addSubview(titleField)
+	background.addSubview(scrollView)
+	background.addSubview(closeButton)
+	panel.contentView = background
+
+	layoutWindow(messageHeight: collapsedMessageHeight, expanded: false)
+	panel.orderFrontRegardless()
+
+	var isExpanded = false
+	background.onEnter = {
+		if isExpanded { return }
+		isExpanded = true
+		let mh = min(expandedMessageMax, fullMessageHeight)
+		NSAnimationContext.runAnimationGroup { ctx in
+			ctx.duration = 0.12
+			layoutWindow(messageHeight: mh, expanded: true)
+		}
+	}
+	background.onExit = {
+		if !isExpanded { return }
+		isExpanded = false
+		NSAnimationContext.runAnimationGroup { ctx in
+			ctx.duration = 0.12
+			layoutWindow(messageHeight: collapsedMessageHeight, expanded: false)
+		}
+	}
+
+	DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(durationSeconds)) {
+		stopTts()
+		NSAnimationContext.runAnimationGroup({ ctx in
+			ctx.duration = 0.18
+			panel.animator().alphaValue = 0
+		}, completionHandler: {
+			NSApp.terminate(nil)
+		})
+	}
+
+	NSApp.run()
+	return 0
+}
+
+exit(main())
+'''
+
+
+def _ensure_macos_overlay_binary() -> Optional[str]:
+	"""编译并缓存 macOS 浮层提醒二进制（用于强制 duration 秒）。"""
+	cache_dir = _get_user_cache_dir("bin")
+	os.makedirs(cache_dir, exist_ok=True)
+
+	# 使用源码内容的 md5：只有源码变更才会生成新文件，尽可能减少重复生成
+	source_md5_full = hashlib.md5(_MACOS_OVERLAY_SWIFT_SOURCE.encode("utf-8")).hexdigest()
+	source_md5 = source_md5_full[:16]
+	src_path = os.path.join(cache_dir, f"notify_overlay_{source_md5}.swift")
+	ref_path = os.path.join(cache_dir, f"notify_overlay_{source_md5}.ref")
+
+	try:
+		# 如果已有源码->bin 的映射，直接复用，避免重复编译
+		if os.path.exists(ref_path):
+			try:
+				with open(ref_path, "r", encoding="utf-8") as f:
+					bin_name = f.read().strip()
+				if bin_name:
+					candidate = os.path.join(cache_dir, bin_name)
+					if os.path.exists(candidate):
+						return candidate
+			except OSError:
+				pass
+
+		# 文件名已包含源码 hash：同二进制不重复生成/覆盖
+		if not os.path.exists(src_path):
+			with open(src_path, "w", encoding="utf-8") as f:
+				f.write(_MACOS_OVERLAY_SWIFT_SOURCE)
+
+		if not _command_exists("xcrun"):
+			return None
+
+		tmp_bin = os.path.join(cache_dir, f".notify_overlay_tmp_{os.getpid()}_{source_md5}")
+		result = subprocess.run(
+			["xcrun", "swiftc", "-O", src_path, "-o", tmp_bin],
+			capture_output=True,
+			text=True,
+		)
+		if result.returncode != 0:
+			return None
+
+		bin_md5_full = _file_md5(tmp_bin)
+		if not bin_md5_full:
+			try:
+				os.remove(tmp_bin)
+			except OSError:
+				pass
+			return None
+
+		bin_name = f"notify_overlay_bin_{bin_md5_full[:16]}"
+		bin_path = os.path.join(cache_dir, bin_name)
+
+		if os.path.exists(bin_path):
+			# 已有完全相同的二进制，删除临时文件即可
+			try:
+				os.remove(tmp_bin)
+			except OSError:
+				pass
+		else:
+			shutil.move(tmp_bin, bin_path)
+			try:
+				os.chmod(bin_path, 0o755)
+			except OSError:
+				pass
+
+		# 写入映射：同源码后续不再编译（ref 存在但失效时也需要刷新，避免重复编译）
+		try:
+			existing_ref = ""
+			if os.path.exists(ref_path):
+				with open(ref_path, "r", encoding="utf-8") as f:
+					existing_ref = (f.read() or "").strip()
+			if existing_ref != bin_name:
+				with open(ref_path, "w", encoding="utf-8") as f:
+					f.write(bin_name)
+		except OSError:
+			pass
+
+		return bin_path
+	except Exception as e:
+		return None
+
+
+def _show_macos_overlay_notification(
+	message: str,
+	title: str,
+	duration_seconds: int,
+	icon_path: Optional[str],
+	tts_pid: Optional[int] = None,
+) -> bool:
+	"""macOS：不抢焦点的右下角浮层提醒，强制展示 duration_seconds 秒。"""
+	icon_for_overlay = _icon_for_overlay(icon_path)
+	if not icon_for_overlay:
+		return False
+	bin_path = _ensure_macos_overlay_binary()
+	if not bin_path:
+		return False
+
+	timeout_seconds = max(1, int(duration_seconds))
+	try:
+		with open(icon_for_overlay, "rb") as f:
+			icon_b64 = base64.b64encode(f.read()).decode("ascii")
+
+		args = [bin_path, title, message, str(timeout_seconds), f"b64:{icon_b64}"]
+		if isinstance(tts_pid, int) and tts_pid > 0:
+			args.append(str(tts_pid))
+		subprocess.Popen(
+			args,
+			stdout=subprocess.DEVNULL,
+			stderr=subprocess.DEVNULL,
+		)
+		return True
+	except Exception as e:
+		return False
+
+
+def play_text_tts(text: str, rate: int = 200) -> bool:
+	"""通过 TTS 播放文本内容
+
+	使用系统默认的 TTS 引擎（macOS 使用 say，Linux 使用 espeak）。
+	强制要求：TTS 以“独立子进程”方式启动，不阻塞当前 Python 进程，且不依赖当前 Python 进程存活。
+
+	Args:
+		text: 要播放的文本内容
+		rate: 播放速率（字/分钟），仅对 macOS 有效，默认 200
+
+	Returns:
+		bool: 成功启动 TTS 子进程返回 True，失败返回 False
+
+	示例:
+		play_text_tts("Hello, World!")
+		play_text_tts("操作已完成", rate=150)
+	"""
+	if not text or not isinstance(text, str):
+		return False
+
+	text = _strip_markdown(text)
+	text = _sanitize_tts_text(text)
+	text = _truncate_tts_text(text, _MAX_TTS_HANZI)
+
+	return start_text_tts(text=text, rate=rate) is not None
+
+
+def start_text_tts(text: str, rate: int = 200) -> Optional[int]:
+	"""启动 TTS 子进程并返回 PID（用于通知关闭时停止播报）。"""
+	if not text or not isinstance(text, str):
+		return None
+
+	text = _strip_markdown(text)
+	text = _sanitize_tts_text(text)
+	text = _truncate_tts_text(text, _MAX_TTS_HANZI)
+
+	try:
+		system = platform.system()
+
+		if system == "Darwin":  # macOS
+			cmd = ["say", "-r", str(rate), text]
+		elif system == "Linux":
+			cmd = ["espeak", text]
+		elif system == "Windows":
+			ps_cmd = f"""
+            Add-Type -AssemblyName System.Speech
+            $speak = New-Object System.Speech.Synthesis.SpeechSynthesizer
+            $speak.Speak('{text}')
+            """
+			cmd = ["powershell", "-NoProfile", "-NonInteractive", "-Command", ps_cmd]
+		else:
+			return None
+
+		popen_kwargs = {
+			"stdin": subprocess.DEVNULL,
+			"stdout": subprocess.DEVNULL,
+			"stderr": subprocess.DEVNULL,
+			"close_fds": True,
+		}
+
+		# 确保子进程不依赖当前 Python 进程存活（尽可能脱离会话/控制台）
+		if system == "Windows":
+			popen_kwargs["creationflags"] = 0x00000008 | 0x00000200  # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP
+		else:
+			popen_kwargs["start_new_session"] = True
+
+		proc = subprocess.Popen(cmd, **popen_kwargs)
+		return proc.pid
+
+	except FileNotFoundError as e:
+		return None
+	except Exception as e:
+		return None
+
+
+def show_system_notification(
+	message: str,
+	title: str = "Claude Code",
+	duration: int = 60,
+	icon: str = 'claude',
+	tts_pid: Optional[int] = None,
+	event: Optional[str] = None,
+) -> bool:
+	"""显示系统通知
+
+	根据操作系统调用相应的通知方式（统一为"无焦点浮层 toast"）：
+	- macOS: Swift/AppKit 浮层（强制 duration 秒 + 自定义 logo/title/message）
+	- Linux: Tk 浮层（强制 duration 秒 + 自定义 logo/title/message）
+	- Windows: Tk 浮层（强制 duration 秒 + 自定义 logo/title/message）
+
+	Args:
+		message: 通知消息内容（必填）
+		title: 通知标题，默认为 "Claude Code"
+		duration: 通知显示时长（秒），默认 60
+		icon: 通知图标，可以是预定义名称（'claude'）或文件路径，默认为 'claude'
+		event: 事件名称，会在标题后添加 [event] 后缀，例如 "Claude Code[Stop]"
+		tts_pid: TTS 进程 ID，用于在关闭通知时停止 TTS 播放
+
+	Returns:
+		bool: 通知显示成功返回 True，失败返回 False
+
+	示例:
+		show_system_notification("操作已完成")
+		show_system_notification("权限请求", title="Claude Code - Permission", duration=10)
+		show_system_notification("已完成", icon='claude')
+		show_system_notification("已完成", icon='/path/to/icon.png')
+		show_system_notification("已停止", event="Stop")
+	"""
+	if not message or not isinstance(message, str):
+		return False
+
+	message = _strip_markdown(message)
+	if not message:
+		return False
+
+	if not title or not isinstance(title, str):
+		title = "Claude Code"
+	title = _strip_markdown(title) or "Claude Code"
+
+	# 如果有事件名称，在标题后添加事件后缀
+	if event and isinstance(event, str):
+		title = f"{title}[{event}]"
+
+	# 解析图标路径
+	icon_path = _resolve_icon_path(icon)
+	if not icon_path:
+		return False
+
+	try:
+		system = platform.system()
+
+		if system == "Darwin":  # macOS
+			# 强制要求：duration、logo、title、message
+			return _show_macos_overlay_notification(
+				message=message,
+				title=title,
+				duration_seconds=duration,
+				icon_path=icon_path,
+				tts_pid=tts_pid,
+			)
+
+		elif system == "Linux":
+			# 强制要求：duration、logo、title、message
+			return _show_tk_overlay_notification(
+				message=message,
+				title=title,
+				duration_seconds=duration,
+				icon_path=icon_path,
+				tts_pid=tts_pid,
+			)
+
+		elif system == "Windows":
+			# 强制要求：duration、logo、title、message
+			return _show_tk_overlay_notification(
+				message=message,
+				title=title,
+				duration_seconds=duration,
+				icon_path=icon_path,
+				tts_pid=tts_pid,
+			)
+
+		else:
+			return False
+
+	except subprocess.CalledProcessError as e:
+		return False
+	except FileNotFoundError as e:
+		return False
+	except Exception as e:
+		return False
+
+
+if __name__ == '__main__':
+	show_system_notification("操作已完成", icon='claude')

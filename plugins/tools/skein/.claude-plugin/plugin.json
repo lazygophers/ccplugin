@@ -1,0 +1,173 @@
+{
+    "name": "skein",
+    "description": "SKEIN — 独立任务管理插件 (零 trellis 依赖, 自带 .skein/ 工作区): 强制 task 闭环 (plan→exec→check→finish) + 动态 DAG 编排调度 (冲突自算边 + depends_on, 并发上限 2, task 级 + subtask 级双层) + worktree 隔离 + task.md 看板; 差异化核心是 namespace×inclusion 规则记忆 (基于 .skein/spec): namespace = 内容类型目录 (rules/product/map/external, 自由可扩展) 内按类目 (git/test/arch/build...) 分子目录, inclusion = frontmatter 级加载策略 (always 常驻注入 / auto 按需语义召回 / fileMatch 按 globs 命中 / manual 纯手动检索), 两维正交, task finish 后经 sediment 判定门沉淀学习。含 8 skill (setup 初始化+结构维护 (trellis 迁移为其一场景) / flow 四阶段闭环单一真值源 (plan/--plan 路由到 skein-plan / redo 断点续跑路由到 skein-redo / exec 执行编排调度双层 DAG 完成即派并发2 / check 双 checker 并行 (skein-checker 验收+一致性 + skein-code-reviewer 双轴 diff 审查) / finish 收尾编排门+勘察+finish-candidates+sediment/amend+清理+archive; 参数路由 flow|plan|exec|check|finish|redo, 缺省 = flow 全闭环) / plan planning 独立入口 (归一判定+research 分流+PRD/design/DAG/estimate 工件写法+grill 硬门+confirm 人审门) / redo 断点续跑 (session 意外结束后复位孤儿 subtask) / spec namespace×inclusion 记忆+空仓播种 (绑定 skein-specer/skein-recaller) / grill 对抗审查+relentless interview 决策树) + 11 agent (skein-executor 默认执行器兜底执行任意 subtask (绑定 skill skein-exec 承载执行方法论) / skein-setup 初始化迁移含旧结构检出转 migrate / skein-checker 验收+调 skein-spec analyze 一致性核查 / skein-code-reviewer 双轴 diff 审查 (Standards+Fowler smell / Spec 对齐) / skein-researcher 调研含本地代码环境/API 文档、第三方平台与 bootstrap 六维 (五维约定+product overview), 按需加载用户已有 research skills (绑定 skill skein-research 承载调研方法论) / skein-finisher 收尾勘察+finish-candidates 三路降级 / skein-specer 记忆写盘员五类写路径 (sediment/amend/reconstruct·maintain/prune/auto-fix) / skein-recaller 只读同步召回员 (inclusion:auto 全 namespace + --src 分源) / skein-plan-auditor 只读审计 plan 产物并产 JSON 弱点报告 / skein-dedup 查重+DAG 编排 (异步后台, 判据弱时可选 --src product 辅助) / skein-clean 主动清理器 (仅用户显式调用, 保护 spec 迁移快照), 均无 Agent/Task 工具做递归护栏); exec subtask 由 main 为每个 subtask 选合适 agent (无则 skein-executor) 执行, 经 dispatch prompt 强制递归护栏+读后写硬门; SessionStart hook 注入 always 页规则索引 + SubagentStart hook 给执行 agent 注入 always 页全文+spec 纪律 + PreToolUse hook 硬阻 AI 直接读写 .skein/ 的 task.json / task.md (顶层 + per-task, 全由脚本维护, subtask DAG 状态经脚本命令取)",
+    "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev",
+        "url": "https://github.com/lazygophers"
+    },
+    "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/skein",
+    "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/skein",
+    "license": "AGPL-3.0-or-later",
+    "skills": [
+        "./skills/skein-setup",
+        "./skills/skein-flow",
+        "./skills/skein-plan",
+        "./skills/skein-redo",
+        "./skills/skein-spec",
+        "./skills/skein-grill",
+        "./skills/skein-exec",
+        "./skills/skein-research"
+    ],
+    "agents": [
+        "./agents/skein-setup.md",
+        "./agents/skein-checker.md",
+        "./agents/skein-code-reviewer.md",
+        "./agents/skein-researcher.md",
+        "./agents/skein-executor.md",
+        "./agents/skein-finisher.md",
+        "./agents/skein-specer.md",
+        "./agents/skein-recaller.md",
+        "./agents/skein-plan-auditor.md",
+        "./agents/skein-dedup.md",
+        "./agents/skein-clean.md"
+    ],
+    "commands": [
+        "./commands/skein-doctor.md",
+        "./commands/skein-clean.md",
+        "./commands/skein-dedup.md"
+    ],
+    "keywords": [
+        "task-management",
+        "task-orchestration",
+        "dag",
+        "scheduling",
+        "worktree",
+        "sub-agent",
+        "rules-memory",
+        "kanban",
+        "standalone"
+    ],
+    "experimental": {
+        "monitors": [
+            {
+                "name": "skein-board-server",
+                "description": "SKEIN 看板持久 web 服务 (随机 port); config.yaml web_serve=false 则自动 no-op 退出",
+                "command": "${CLAUDE_PLUGIN_ROOT}/bin/skein serve --auto",
+                "when": "always"
+            }
+        ],
+        "themes": "./themes/"
+    },
+    "hooks": {
+        "SessionStart": [
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "${CLAUDE_PLUGIN_ROOT}/bin/skein-spec session-start"
+                    },
+                    {
+                        "type": "command",
+                        "command": "${CLAUDE_PLUGIN_ROOT}/bin/skein-hooks session-start"
+                    },
+                    {
+                        "type": "command",
+                        "command": "command -v python3 >/dev/null 2>&1 || exit 0; python3 -c 'import typer,pydantic,yaml,fastapi,uvicorn' 2>/dev/null || pip3 install -q --user -r \"${CLAUDE_PLUGIN_ROOT}/requirements.txt\" >/dev/null 2>&1; exit 0",
+                        "async": true
+                    }
+                ]
+            }
+        ],
+        "UserPromptSubmit": [
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "${CLAUDE_PLUGIN_ROOT}/bin/skein-hooks user-prompt"
+                    }
+                ]
+            }
+        ],
+        "SubagentStart": [
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "${CLAUDE_PLUGIN_ROOT}/bin/skein-spec subagent-start"
+                    }
+                ]
+            }
+        ],
+        "PreToolUse": [
+            {
+                "matcher": "Edit|Write|MultiEdit|Read",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "${CLAUDE_PLUGIN_ROOT}/bin/skein-hooks guard",
+                        "timeout": 5
+                    }
+                ]
+            }
+        ],
+        "PermissionRequest": [
+            {
+                "matcher": "Bash|Edit|Write|Read",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "${CLAUDE_PLUGIN_ROOT}/bin/skein-hooks permission"
+                    }
+                ]
+            }
+        ],
+        "PermissionDenied": [
+            {
+                "matcher": "Bash|Edit|Write|Read",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "${CLAUDE_PLUGIN_ROOT}/bin/skein-hooks permission"
+                    }
+                ]
+            }
+        ],
+        "PostToolUse": [
+            {
+                "matcher": "Edit|Write|MultiEdit",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "${CLAUDE_PLUGIN_ROOT}/bin/skein-hooks fmt"
+                    },
+                    {
+                        "type": "command",
+                        "command": "${CLAUDE_PLUGIN_ROOT}/bin/skein-hooks spec-meta"
+                    }
+                ]
+            }
+        ],
+        "PostToolUseFailure": [
+            {
+                "matcher": "Bash",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "${CLAUDE_PLUGIN_ROOT}/bin/skein-hooks report"
+                    }
+                ]
+            }
+        ],
+        "Stop": [
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "${CLAUDE_PLUGIN_ROOT}/bin/skein-hooks stop-check"
+                    }
+                ]
+            }
+        ]
+    }
+}

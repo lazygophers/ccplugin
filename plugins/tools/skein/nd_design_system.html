@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ocean & Sand 设计系统 — 大海与沙滩主题 UI/UX</title>
+<style>
+/* ============================================
+   OCEAN & SAND DESIGN SYSTEM
+   大海与沙滩主题设计系统
+   ============================================ */
+
+/* ---- 核心色彩变量（Light Mode） ---- */
+:root {
+  /* 海洋色系 Ocean */
+  --oc-ocean-50: #E8F6FA; --oc-ocean-100: #C5EBF4; --oc-ocean-200: #9EDCEA; --oc-ocean-300: #73CBE0;
+  --oc-ocean-400: #4BB9D5; --oc-ocean-500: #26A6C8; --oc-ocean-600: #1E8BA8; --oc-ocean-700: #166F88;
+  --oc-ocean-800: #0F5368; --oc-ocean-900: #073848; --oc-ocean-950: #032230;
+
+  /* 沙滩色系 Sand */
+  --oc-sand-50: #FDF9F3; --oc-sand-100: #F9F0E3; --oc-sand-200: #F5E7D3; --oc-sand-300: #F1DEC3;
+  --oc-sand-400: #EDD5B3; --oc-sand-500: #E8CCA3; --oc-sand-600: #D4B88F; --oc-sand-700: #C0A47B;
+  --oc-sand-800: #AC9067; --oc-sand-900: #987C53; --oc-sand-950: #7A6340;
+
+  /* 珊瑚色系 Coral */
+  --oc-coral-50: #FFF0ED; --oc-coral-100: #FFD9D1; --oc-coral-200: #FFC2B5; --oc-coral-300: #FFAB99;
+  --oc-coral-400: #FF947D; --oc-coral-500: #FF7D61; --oc-coral-600: #E66A50; --oc-coral-700: #CC573F;
+  --oc-coral-800: #B3442E; --oc-coral-900: #99311D; --oc-coral-950: #7A2312;
+
+  /* 海草绿系 Seaweed */
+  --oc-seaweed-50: #E8F5E9; --oc-seaweed-100: #C8E6C9; --oc-seaweed-200: #A5D6A7; --oc-seaweed-300: #81C784;
+  --oc-seaweed-400: #66BB6A; --oc-seaweed-500: #4CAF50; --oc-seaweed-600: #43A047; --oc-seaweed-700: #388E3C;
+  --oc-seaweed-800: #2E7D32; --oc-seaweed-900: #1B5E20; --oc-seaweed-950: #0D3B10;
+
+  /* 贝壳白系 Shell */
+  --oc-shell-50: #FFFBF7; --oc-shell-100: #FFF5ED; --oc-shell-200: #FFEDD8; --oc-shell-300: #FFE0C2;
+  --oc-shell-400: #FFD0A8; --oc-shell-500: #FFBF8F; --oc-shell-600: #E6A87A; --oc-shell-700: #CC9166;
+  --oc-shell-800: #B37A53; --oc-shell-900: #996340; --oc-shell-950: #7A4D2E;
+
+  /* 日落金系 Sunset */
+  --oc-sunset-50: #FFF8E8; --oc-sunset-100: #FFEFC5; --oc-sunset-200: #FFE49E; --oc-sunset-300: #FFD673;
+  --oc-sunset-400: #FFC84A; --oc-sunset-500: #FFB627; --oc-sunset-600: #E6A020; --oc-sunset-700: #CC8B1A;
+  --oc-sunset-800: #B37614; --oc-sunset-900: #99610E; --oc-sunset-950: #7A4D08;
+
+  /* 深海紫系 DeepSea */
+  --oc-deepsea-50: #F0F4F8; --oc-deepsea-100: #D9E2EC; --oc-deepsea-200: #BCCCDC; --oc-deepsea-300: #9FB3C8;
+  --oc-deepsea-400: #829AB1; --oc-deepsea-500: #627D98; --oc-deepsea-600: #486581; --oc-deepsea-700: #334E68;
+  --oc-deepsea-800: #243B53; --oc-deepsea-900: #102A43; --oc-deepsea-950: #061B2D;
+
+  /* 泡沫白系 Foam */
+  --oc-foam-50: #F7FCFE; --oc-foam-100: #E8F6FA; --oc-foam-200: #D5EDF5; --oc-foam-300: #B8E0ED;
+  --oc-foam-400: #96D0E3; --oc-foam-500: #6EBDD7; --oc-foam-600: #5BA8C2; --oc-foam-700: #4893AD;
+  --oc-foam-800: #357E98; --oc-foam-900: #226983; --oc-foam-950: #13546E;
+
+  /* 礁石灰系 Reef */
+  --oc-reef-50: #F5F7FA; --oc-reef-100: #E1E7ED; --oc-reef-200: #C8D1DB; --oc-reef-300: #A8B8C8;
+  --oc-reef-400: #8A9DB0; --oc-reef-500: #6B8298; --oc-reef-600: #556B7D; --oc-reef-700: #405462;
+  --oc-reef-800: #2B3D48; --oc-reef-900: #16262E; --oc-reef-950: #0A161C;
+
+  /* 中性色系 Neutral */
+  --oc-neutral-50: #FAFAF9; --oc-neutral-100: #F5F5F4; --oc-neutral-200: #E7E5E4; --oc-neutral-300: #D6D3D1;
+  --oc-neutral-400: #A8A29E; --oc-neutral-500: #78716C; --oc-neutral-600: #57534E; --oc-neutral-700: #44403C;
+  --oc-neutral-800: #292524; --oc-neutral-900: #1C1917; --oc-neutral-950: #0F0D0B;
+
+  /* 语义色彩 — 主题化 */
+  --oc-success: var(--oc-seaweed-600);
+  --oc-warning: var(--oc-sunset-600);
+  --oc-error: var(--oc-coral-600);
+  --oc-info: var(--oc-ocean-600);
+
+  /* 背景层级 — 沙滩海浪感 */
+  --oc-bg-primary: #FAFAF9;
+  --oc-bg-secondary: #F5F0EB;
+  --oc-bg-tertiary: #E8E0D8;
+  --oc-bg-elevated: #FFFFFF;
+
+  /* 文字色彩 */
+  --oc-text-primary: #1C1917;
+  --oc-text-secondary: #57534E;
+  --oc-text-tertiary: #A8A29E;
+  --oc-text-inverse: #FAFAF9;
+
+  /* 阴影 */
+  --oc-shadow-sm: 0 1px 2px 0 rgba(28,25,23,0.05);
+  --oc-shadow-md: 0 4px 6px -1px rgba(28,25,23,0.1), 0 2px 4px -2px rgba(28,25,23,0.1);
+  --oc-shadow-lg: 0 10px 15px -3px rgba(28,25,23,0.1), 0 4px 6px -4px rgba(28,25,23,0.1);
+  --oc-shadow-xl: 0 20px 25px -5px rgba(28,25,23,0.1), 0 8px 10px -6px rgba(28,25,23,0.1);
+
+  /* 圆角 */
+  --oc-radius-none: 0px; --oc-radius-sm: 4px; --oc-radius-base: 8px; --oc-radius-md: 12px;
+  --oc-radius-lg: 16px; --oc-radius-xl: 24px; --oc-radius-full: 9999px;
+
+  /* 间距 */
+  --oc-space-0: 0px; --oc-space-1: 4px; --oc-space-2: 8px; --oc-space-3: 12px; --oc-space-4: 16px;
+  --oc-space-5: 20px; --oc-space-6: 24px; --oc-space-8: 32px; --oc-space-10: 40px; --oc-space-12: 48px;
+  --oc-space-16: 64px; --oc-space-20: 80px; --oc-space-24: 96px; --oc-space-32: 128px;
+
+  /* 字体 */
+  --oc-font-display: "Maple Mono", "Maple Mono NF", "Maple Mono SC", monospace;
+  --oc-font-body: "Maple Mono", "Maple Mono NF", "Maple Mono SC", monospace;
+  --oc-font-mono: "Maple Mono", "Maple Mono NF", "Maple Mono SC", monospace;
+
+  /* 动效 */
+  --oc-duration-fast: 150ms; --oc-duration-normal: 250ms; --oc-duration-slow: 350ms; --oc-duration-slower: 500ms;
+  --oc-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --oc-ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --oc-ease-in-out: cubic-bezier(0.87, 0, 0.13, 1);
+  --oc-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ---- Dark Mode ---- */
+[data-theme="dark"] {
+  --oc-ocean-50: #0A2A3A; --oc-ocean-100: #0F3D52; --oc-ocean-200: #14506B; --oc-ocean-300: #196384;
+  --oc-ocean-400: #1E769D; --oc-ocean-500: #2389B6; --oc-ocean-600: #4BA3C8; --oc-ocean-700: #73BDDA;
+  --oc-ocean-800: #9BD7EC; --oc-ocean-900: #C3F1FE; --oc-ocean-950: #E0F8FF;
+
+  --oc-sand-50: #2A2318; --oc-sand-100: #3D3324; --oc-sand-200: #504330; --oc-sand-300: #63533C;
+  --oc-sand-400: #766348; --oc-sand-500: #897354; --oc-sand-600: #A08F6F; --oc-sand-700: #B7AB8A;
+  --oc-sand-800: #CEC7A5; --oc-sand-900: #E5E3C0; --oc-sand-950: #F5F2D0;
+
+  --oc-coral-50: #3A1812; --oc-coral-100: #52241A; --oc-coral-200: #6B3022; --oc-coral-300: #843C2A;
+  --oc-coral-400: #9D4832; --oc-coral-500: #B6543A; --oc-coral-600: #C87862; --oc-coral-700: #DA9C8A;
+  --oc-coral-800: #ECC0B2; --oc-coral-900: #FEE4DA; --oc-coral-950: #FFF0EA;
+
+  --oc-seaweed-50: #0D3B10; --oc-seaweed-100: #1B5E20; --oc-seaweed-200: #2E7D32; --oc-seaweed-300: #388E3C;
+  --oc-seaweed-400: #43A047; --oc-seaweed-500: #4CAF50; --oc-seaweed-600: #66BB6A; --oc-seaweed-700: #81C784;
+  --oc-seaweed-800: #A5D6A7; --oc-seaweed-900: #C8E6C9; --oc-seaweed-950: #E8F5E9;
+
+  --oc-shell-50: #7A4D2E; --oc-shell-100: #996340; --oc-shell-200: #B37A53; --oc-shell-300: #CC9166;
+  --oc-shell-400: #E6A87A; --oc-shell-500: #FFBF8F; --oc-shell-600: #FFD0A8; --oc-shell-700: #FFE0C2;
+  --oc-shell-800: #FFEDD8; --oc-shell-900: #FFF5ED; --oc-shell-950: #FFFBF7;
+
+  --oc-sunset-50: #7A4D08; --oc-sunset-100: #99610E; --oc-sunset-200: #B37614; --oc-sunset-300: #CC8B1A;
+  --oc-sunset-400: #E6A020; --oc-sunset-500: #FFB627; --oc-sunset-600: #FFC84A; --oc-sunset-700: #FFD673;
+  --oc-sunset-800: #FFE49E; --oc-sunset-900: #FFEFC5; --oc-sunset-950: #FFF8E8;
+
+  --oc-deepsea-50: #061B2D; --oc-deepsea-100: #102A43; --oc-deepsea-200: #243B53; --oc-deepsea-300: #334E68;
+  --oc-deepsea-400: #486581; --oc-deepsea-500: #627D98; --oc-deepsea-600: #829AB1; --oc-deepsea-700: #9FB3C8;
+  --oc-deepsea-800: #BCCCDC; --oc-deepsea-900: #D9E2EC; --oc-deepsea-950: #F0F4F8;
+
+  --oc-foam-50: #13546E; --oc-foam-100: #226983; --oc-foam-200: #357E98; --oc-foam-300: #4893AD;
+  --oc-foam-400: #5BA8C2; --oc-foam-500: #6EBDD7; --oc-foam-600: #96D0E3; --oc-foam-700: #B8E0ED;
+  --oc-foam-800: #D5EDF5; --oc-foam-900: #E8F6FA; --oc-foam-950: #F7FCFE;
+
+  --oc-reef-50: #0A161C; --oc-reef-100: #16262E; --oc-reef-200: #2B3D48; --oc-reef-300: #405462;
+  --oc-reef-400: #556B7D; --oc-reef-500: #6B8298; --oc-reef-600: #8A9DB0; --oc-reef-700: #A8B8C8;
+  --oc-reef-800: #C8D1DB; --oc-reef-900: #E1E7ED; --oc-reef-950: #F5F7FA;
+
+  --oc-neutral-50: #1C1917; --oc-neutral-100: #292524; --oc-neutral-200: #44403C; --oc-neutral-300: #57534E;
+  --oc-neutral-400: #78716C; --oc-neutral-500: #A8A29E; --oc-neutral-600: #D6D3D1; --oc-neutral-700: #E7E5E4;
+  --oc-neutral-800: #F5F5F4; --oc-neutral-900: #FAFAF9; --oc-neutral-950: #FFFFFF;
+
+  --oc-success: var(--oc-seaweed-500);
+  --oc-warning: var(--oc-sunset-500);
+  --oc-error: var(--oc-coral-500);
+  --oc-info: var(--oc-ocean-500);
+
+  --oc-bg-primary: #0C1520;
+  --oc-bg-secondary: #0F1B2A;
+  --oc-bg-tertiary: #162536;
+  --oc-bg-elevated: #1A2E42;
+
+  --oc-text-primary: #F0EDE8;
+  --oc-text-secondary: #C8C4BE;
+  --oc-text-tertiary: #8A8680;
+  --oc-text-inverse: #0C1520;
+
+  --oc-shadow-sm: 0 1px 2px 0 rgba(0,0,0,0.4);
+  --oc-shadow-md: 0 4px 6px -1px rgba(0,0,0,0.5), 0 2px 4px -2px rgba(0,0,0,0.5);
+  --oc-shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.6), 0 4px 6px -4px rgba(0,0,0,0.6);
+  --oc-shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.7), 0 8px 10px -6px rgba(0,0,0,0.7);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; font-size: 16px; }
+body {
+  font-family: var(--oc-font-body);
+  color: var(--oc-text-primary);
+  background: var(--oc-bg-primary);
+  line-height: 1.6;
+  transition: background var(--oc-duration-normal) var(--oc-ease-out), color var(--oc-duration-normal) var(--oc-ease-out);
+  min-height: 100vh; overflow-x: hidden;
+}
+
+/* 背景装饰 */
+.ocean-bg {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none; z-index: 0; overflow: hidden;
+}
+.ocean-bg::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 45%;
+  background: linear-gradient(180deg, var(--oc-foam-100) 0%, var(--oc-ocean-100) 40%, var(--oc-ocean-200) 70%, transparent 100%);
+  opacity: 0.35; transition: opacity var(--oc-duration-normal);
+}
+.ocean-bg::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 35%;
+  background: linear-gradient(0deg, var(--oc-sand-200) 0%, var(--oc-sand-100) 30%, var(--oc-shell-100) 60%, transparent 100%);
+  opacity: 0.25; transition: opacity var(--oc-duration-normal);
+}
+[data-theme="dark"] .ocean-bg::before {
+  background: linear-gradient(180deg, var(--oc-deepsea-900) 0%, var(--oc-ocean-900) 40%, var(--oc-ocean-800) 70%, transparent 100%);
+  opacity: 0.2;
+}
+[data-theme="dark"] .ocean-bg::after {
+  background: linear-gradient(0deg, var(--oc-sand-900) 0%, var(--oc-sand-800) 25%, var(--oc-deepsea-800) 55%, transparent 100%);
+  opacity: 0.15;
+}
+
+.wave-svg {
+  position: fixed; bottom: 0; left: 0; width: 100%;
+  pointer-events: none; z-index: 0; opacity: 0.4; transition: opacity var(--oc-duration-normal);
+}
+[data-theme="dark"] .wave-svg { opacity: 0.15; }
+
+.bubble {
+  position: fixed; border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.4), rgba(255,255,255,0.05));
+  pointer-events: none; z-index: 0;
+  animation: floatBubble 8s ease-in-out infinite;
+}
+@keyframes floatBubble {
+  0%, 100% { transform: translateY(0) translateX(0); opacity: 0.3; }
+  25% { transform: translateY(-20px) translateX(10px); opacity: 0.5; }
+  50% { transform: translateY(-40px) translateX(-5px); opacity: 0.4; }
+  75% { transform: translateY(-15px) translateX(15px); opacity: 0.6; }
+}
+
+.container { max-width: 1100px; margin: 0 auto; padding: 0 var(--oc-space-6); position: relative; z-index: 1; }
+
+.header {
+  padding: var(--oc-space-10) 0 var(--oc-space-8); text-align: center; position: relative;
+}
+.header-icon {
+  width: 64px; height: 64px; margin: 0 auto var(--oc-space-4); border-radius: var(--oc-radius-lg);
+  background: linear-gradient(135deg, var(--oc-ocean-500), var(--oc-sand-500));
+  display: flex; align-items: center; justify-content: center; font-size: 28px;
+  box-shadow: var(--oc-shadow-md);
+  animation: gentlePulse 3s ease-in-out infinite;
+}
+@keyframes gentlePulse {
+  0%, 100% { transform: scale(1); box-shadow: var(--oc-shadow-md); }
+  50% { transform: scale(1.05); box-shadow: var(--oc-shadow-lg); }
+}
+.header h1 {
+  font-family: var(--oc-font-display); font-size: 42px; font-weight: 700;
+  color: var(--oc-text-primary); margin-bottom: var(--oc-space-2); letter-spacing: 0.02em;
+}
+.header-subtitle { font-size: 18px; color: var(--oc-text-secondary); margin-bottom: var(--oc-space-6); font-weight: 400; }
+.header-desc { font-size: 15px; color: var(--oc-text-tertiary); max-width: 560px; margin: 0 auto; line-height: 1.7; }
+
+.theme-toggle {
+  display: inline-flex; align-items: center; gap: var(--oc-space-2);
+  background: var(--oc-bg-secondary); border: 1px solid var(--oc-neutral-200);
+  border-radius: var(--oc-radius-full); padding: var(--oc-space-1); margin-top: var(--oc-space-6); box-shadow: var(--oc-shadow-sm);
+}
+.theme-btn {
+  border: none; background: transparent; padding: var(--oc-space-2) var(--oc-space-5);
+  border-radius: var(--oc-radius-full); font-size: 14px; font-weight: 500; cursor: pointer;
+  color: var(--oc-text-secondary); transition: all var(--oc-duration-fast) var(--oc-ease-out);
+  font-family: inherit; display: flex; align-items: center; gap: var(--oc-space-2);
+}
+.theme-btn:hover { color: var(--oc-text-primary); }
+.theme-btn.active { background: var(--oc-ocean-500); color: white; box-shadow: var(--oc-shadow-sm); }
+
+.nav-tabs {
+  display: flex; gap: var(--oc-space-1); background: var(--oc-bg-secondary);
+  border: 1px solid var(--oc-neutral-200); border-radius: var(--oc-radius-md);
+  padding: var(--oc-space-1); margin-bottom: var(--oc-space-8); overflow-x: auto;
+  position: sticky; top: 12px; z-index: 10;
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+}
+.nav-tab {
+  border: none; background: transparent; padding: var(--oc-space-2) var(--oc-space-4);
+  border-radius: var(--oc-radius-base); font-size: 14px; font-weight: 500; cursor: pointer;
+  color: var(--oc-text-secondary); transition: all var(--oc-duration-fast) var(--oc-ease-out);
+  white-space: nowrap; font-family: inherit; flex-shrink: 0;
+}
+.nav-tab:hover { color: var(--oc-text-primary); background: var(--oc-bg-tertiary); }
+.nav-tab.active { background: var(--oc-bg-elevated); color: var(--oc-text-primary); box-shadow: var(--oc-shadow-sm); }
+
+.tab-panel { display: none; animation: panelFadeIn 0.4s var(--oc-ease-out); }
+.tab-panel.active { display: block; }
+@keyframes panelFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+.section { margin-bottom: var(--oc-space-10); }
+.section-title {
+  font-size: 13px; font-weight: 600; color: var(--oc-text-tertiary);
+  text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: var(--oc-space-4);
+  display: flex; align-items: center; gap: var(--oc-space-2);
+}
+.section-title::before { content: ''; width: 4px; height: 16px; border-radius: 2px; background: var(--oc-ocean-500); }
+
+.palette-group { margin-bottom: var(--oc-space-6); }
+.palette-header { display: flex; align-items: center; gap: var(--oc-space-2); margin-bottom: var(--oc-space-3); }
+.palette-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.palette-name { font-size: 14px; font-weight: 600; color: var(--oc-text-secondary); }
+.palette-desc { font-size: 12px; color: var(--oc-text-tertiary); margin-left: auto; }
+.palette-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: var(--oc-space-2); }
+
+.swatch {
+  aspect-ratio: 1 / 0.75; border-radius: var(--oc-radius-base); cursor: pointer; position: relative;
+  transition: transform var(--oc-duration-fast) var(--oc-ease-spring), box-shadow var(--oc-duration-fast) var(--oc-ease-out);
+  border: 1px solid var(--oc-neutral-200); display: flex; align-items: flex-end; justify-content: center;
+  padding-bottom: var(--oc-space-1); overflow: hidden;
+}
+.swatch:hover { transform: translateY(-3px) scale(1.03); box-shadow: var(--oc-shadow-md); z-index: 2; }
+.swatch-label {
+  font-size: 10px; font-family: var(--oc-font-mono); color: rgba(255,255,255,0.9);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.4); opacity: 0; transition: opacity var(--oc-duration-fast); pointer-events: none;
+}
+.swatch:hover .swatch-label { opacity: 1; }
+.swatch-light .swatch-label { color: rgba(0,0,0,0.75); text-shadow: none; }
+
+.semantic-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--oc-space-4); }
+.semantic-card {
+  background: var(--oc-bg-elevated); border: 1px solid var(--oc-neutral-200); border-radius: var(--oc-radius-lg);
+  padding: var(--oc-space-5); display: flex; align-items: center; gap: var(--oc-space-4);
+  transition: box-shadow var(--oc-duration-fast);
+}
+.semantic-card:hover { box-shadow: var(--oc-shadow-md); }
+.semantic-icon { width: 44px; height: 44px; border-radius: var(--oc-radius-md); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+.semantic-info { flex: 1; }
+.semantic-name { font-size: 14px; font-weight: 600; color: var(--oc-text-primary); margin-bottom: 2px; }
+.semantic-value { font-size: 12px; font-family: var(--oc-font-mono); color: var(--oc-text-tertiary); }
+
+.bg-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--oc-space-4); }
+.bg-card { border-radius: var(--oc-radius-lg); padding: var(--oc-space-5); border: 1px solid var(--oc-neutral-200); min-height: 100px; display: flex; flex-direction: column; justify-content: space-between; }
+.bg-card-label { font-size: 13px; font-weight: 600; color: var(--oc-text-secondary); }
+.bg-card-token { font-size: 11px; font-family: var(--oc-font-mono); color: var(--oc-text-tertiary); margin-top: var(--oc-space-2); }
+
+.typo-card { background: var(--oc-bg-secondary); border-radius: var(--oc-radius-lg); padding: var(--oc-space-5); margin-bottom: var(--oc-space-4); }
+.typo-row { display: flex; align-items: baseline; justify-content: space-between; padding: var(--oc-space-2) 0; border-bottom: 1px solid var(--oc-neutral-200); }
+.typo-row:last-child { border-bottom: none; }
+.typo-token { font-size: 12px; font-family: var(--oc-font-mono); color: var(--oc-text-tertiary); min-width: 80px; }
+.typo-sample { color: var(--oc-text-primary); text-align: right; }
+
+.spacing-item { display: flex; align-items: center; gap: var(--oc-space-4); margin-bottom: var(--oc-space-2); }
+.spacing-bar { background: linear-gradient(90deg, var(--oc-ocean-400), var(--oc-sand-400)); border-radius: var(--oc-radius-sm); height: 20px; transition: width var(--oc-duration-slow) var(--oc-ease-out); }
+.spacing-label { font-size: 13px; font-family: var(--oc-font-mono); color: var(--oc-text-secondary); min-width: 64px; }
+
+.shape-grid { display: flex; gap: var(--oc-space-4); flex-wrap: wrap; align-items: flex-start; }
+.shape-box { width: 60px; height: 60px; background: linear-gradient(135deg, var(--oc-ocean-500), var(--oc-sand-500)); display: flex; align-items: center; justify-content: center; font-size: 11px; color: white; font-weight: 600; }
+.shadow-grid { display: flex; gap: var(--oc-space-5); flex-wrap: wrap; }
+.shadow-box { width: 100px; height: 70px; background: var(--oc-bg-elevated); border: 1px solid var(--oc-neutral-200); border-radius: var(--oc-radius-md); display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--oc-text-secondary); }
+
+.component-section { margin-bottom: var(--oc-space-8); }
+.component-title { font-size: 14px; font-weight: 600; color: var(--oc-text-secondary); margin-bottom: var(--oc-space-4); }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--oc-space-2);
+  padding: 0 var(--oc-space-4); height: 40px; border-radius: var(--oc-radius-md); font-size: 14px;
+  font-weight: 500; border: none; cursor: pointer; transition: all var(--oc-duration-fast) var(--oc-ease-out); font-family: inherit;
+}
+.btn:hover { transform: translateY(-1px); }
+.btn-primary { background: var(--oc-ocean-500); color: white; }
+.btn-primary:hover { background: var(--oc-ocean-600); box-shadow: var(--oc-shadow-md); }
+.btn-secondary { background: var(--oc-sand-500); color: var(--oc-text-inverse); }
+.btn-secondary:hover { background: var(--oc-sand-600); box-shadow: var(--oc-shadow-md); }
+.btn-coral { background: var(--oc-coral-500); color: white; }
+.btn-coral:hover { background: var(--oc-coral-600); box-shadow: var(--oc-shadow-md); }
+.btn-seaweed { background: var(--oc-seaweed-500); color: white; }
+.btn-seaweed:hover { background: var(--oc-seaweed-600); box-shadow: var(--oc-shadow-md); }
+.btn-sunset { background: var(--oc-sunset-500); color: var(--oc-text-inverse); }
+.btn-sunset:hover { background: var(--oc-sunset-600); box-shadow: var(--oc-shadow-md); }
+.btn-ghost { background: transparent; color: var(--oc-ocean-500); border: 1px solid var(--oc-ocean-300); }
+.btn-ghost:hover { background: var(--oc-ocean-50); }
+
+.input {
+  width: 100%; max-width: 320px; height: 44px; padding: 0 var(--oc-space-4); border-radius: var(--oc-radius-md);
+  border: 1px solid var(--oc-neutral-300); background: var(--oc-bg-elevated); color: var(--oc-text-primary);
+  font-size: 14px; font-family: inherit; outline: none;
+  transition: border-color var(--oc-duration-fast), box-shadow var(--oc-duration-fast);
+}
+.input:focus { border-color: var(--oc-ocean-400); box-shadow: 0 0 0 3px rgba(38, 166, 200, 0.15); }
+.input::placeholder { color: var(--oc-text-tertiary); }
+
+.tag {
+  display: inline-flex; align-items: center; padding: var(--oc-space-1) var(--oc-space-3);
+  border-radius: var(--oc-radius-full); font-size: 12px; font-weight: 500;
+  margin-right: var(--oc-space-2); margin-bottom: var(--oc-space-2);
+}
+.tag-ocean { background: rgba(38, 166, 200, 0.12); color: var(--oc-ocean-700); }
+.tag-sand { background: rgba(232, 204, 163, 0.2); color: var(--oc-sand-700); }
+.tag-coral { background: rgba(255, 125, 97, 0.12); color: var(--oc-coral-700); }
+.tag-seaweed { background: rgba(76, 175, 80, 0.12); color: var(--oc-seaweed-700); }
+.tag-sunset { background: rgba(255, 182, 39, 0.15); color: var(--oc-sunset-700); }
+.tag-shell { background: rgba(255, 191, 143, 0.15); color: var(--oc-shell-700); }
+
+.card {
+  background: var(--oc-bg-elevated); border: 1px solid var(--oc-neutral-200); border-radius: var(--oc-radius-lg);
+  padding: var(--oc-space-6); box-shadow: var(--oc-shadow-sm); transition: box-shadow var(--oc-duration-fast);
+}
+.card:hover { box-shadow: var(--oc-shadow-md); }
+.card-img { width: 100%; height: 120px; border-radius: var(--oc-radius-md); background: linear-gradient(135deg, var(--oc-ocean-300), var(--oc-sand-300)); margin-bottom: var(--oc-space-4); display: flex; align-items: center; justify-content: center; font-size: 36px; }
+.card-title { font-size: 16px; font-weight: 600; margin-bottom: var(--oc-space-1); color: var(--oc-text-primary); }
+.card-desc { font-size: 14px; color: var(--oc-text-secondary); line-height: 1.6; }
+.components-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--oc-space-5); }
+
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+  background: var(--oc-neutral-800); color: var(--oc-text-inverse); padding: 12px 24px;
+  border-radius: var(--oc-radius-full); font-size: 14px; font-weight: 500; opacity: 0;
+  transition: all 0.4s var(--oc-ease-spring); pointer-events: none; z-index: 100; box-shadow: var(--oc-shadow-lg);
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+.principle-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--oc-space-5); }
+.principle-card { background: var(--oc-bg-secondary); border: 1px solid var(--oc-neutral-200); border-radius: var(--oc-radius-lg); padding: var(--oc-space-6); }
+.principle-num { width: 32px; height: 32px; border-radius: var(--oc-radius-md); background: var(--oc-ocean-500); color: white; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; margin-bottom: var(--oc-space-3); }
+.principle-title { font-size: 16px; font-weight: 600; color: var(--oc-text-primary); margin-bottom: var(--oc-space-2); }
+.principle-desc { font-size: 14px; color: var(--oc-text-secondary); line-height: 1.6; }
+
+.footer { text-align: center; padding: var(--oc-space-12) 0 var(--oc-space-8); color: var(--oc-text-tertiary); font-size: 13px; }
+.footer-wave { font-size: 20px; margin-bottom: var(--oc-space-3); opacity: 0.5; }
+
+@media (max-width: 640px) {
+  .header h1 { font-size: 28px; }
+  .header-subtitle { font-size: 15px; }
+  .palette-row { grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); }
+  .nav-tabs { padding: var(--oc-space-1); }
+  .nav-tab { padding: var(--oc-space-2) var(--oc-space-3); font-size: 13px; }
+  .container { padding: 0 var(--oc-space-4); }
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--oc-bg-secondary); }
+::-webkit-scrollbar-thumb { background: var(--oc-neutral-300); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--oc-neutral-400); }
+</style>
+</head>
+<body>
+
+<div class="ocean-bg"></div>
+<svg class="wave-svg" viewBox="0 0 1440 120" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+  <path fill="var(--oc-ocean-200)" fill-opacity="0.3" d="M0,60 C240,100 480,20 720,60 C960,100 1200,20 1440,60 L1440,120 L0,120 Z"/>
+  <path fill="var(--oc-ocean-300)" fill-opacity="0.2" d="M0,80 C360,40 720,100 1080,60 C1260,40 1380,70 1440,80 L1440,120 L0,120 Z"/>
+</svg>
+<div class="bubble" style="width:60px;height:60px;top:15%;left:8%;animation-delay:0s"></div>
+<div class="bubble" style="width:40px;height:40px;top:25%;right:12%;animation-delay:2s"></div>
+<div class="bubble" style="width:80px;height:80px;top:60%;left:5%;animation-delay:4s"></div>
+<div class="bubble" style="width:30px;height:30px;top:70%;right:8%;animation-delay:1s"></div>
+<div class="bubble" style="width:50px;height:50px;top:40%;right:20%;animation-delay:3s"></div>
+
+<div class="container">
+
+<header class="header">
+  <div class="header-icon">&#127754;</div>
+  <h1>Ocean & Sand</h1>
+  <p class="header-subtitle">大海与沙滩主题设计系统</p>
+  <p class="header-desc">
+    以潮汐、沙滩、珊瑚、海草为灵感，构建一套温暖而深邃的自然系 UI/UX 设计语言。<br>
+    支持白昼与夜幕双模式，让界面如海岸般随光线自然呼吸。
+  </p>
+  <div class="theme-toggle">
+    <button class="theme-btn active" onclick="setTheme('light')" id="btnLight"><span>&#9728;</span> 白昼</button>
+    <button class="theme-btn" onclick="setTheme('dark')" id="btnDark"><span>&#9790;</span> 夜幕</button>
+  </div>
+</header>
+
+<nav class="nav-tabs">
+  <button class="nav-tab active" onclick="switchTab('colors')">&#127912; 色彩系统</button>
+  <button class="nav-tab" onclick="switchTab('typo')">&#128221; 字体排版</button>
+  <button class="nav-tab" onclick="switchTab('space')">&#128207; 间距与形状</button>
+  <button class="nav-tab" onclick="switchTab('components')">&#128230; 组件示例</button>
+  <button class="nav-tab" onclick="switchTab('principles')">&#128161; 设计原则</button>
+</nav>
+
+<!-- ========== 色彩系统 ========== -->
+<div class="tab-panel active" id="tab-colors">
+
+<div class="section">
+  <div class="section-title">主题色系</div>
+
+  <div class="palette-group">
+    <div class="palette-header">
+      <span class="palette-dot" style="background:var(--oc-ocean-500)"></span>
+      <span class="palette-name">海洋 Ocean</span>
+      <span class="palette-desc">潮汐、浪花、深海</span>
+    </div>
+    <div class="palette-row" id="oceanRow"></div>
+  </div>
+
+  <div class="palette-group">
+    <div class="palette-header">
+      <span class="palette-dot" style="background:var(--oc-sand-500)"></span>
+      <span class="palette-name">沙滩 Sand</span>
+      <span class="palette-desc">暖阳、细沙、贝壳</span>
+    </div>
+    <div class="palette-row" id="sandRow"></div>
+  </div>
+
+  <div class="palette-group">
+    <div class="palette-header">
+      <span class="palette-dot" style="background:var(--oc-coral-500)"></span>
+      <span class="palette-name">珊瑚 Coral</span>
+      <span class="palette-desc">礁岩、珊瑚、日落</span>
+    </div>
+    <div class="palette-row" id="coralRow"></div>
+  </div>
+
+  <div class="palette-group">
+    <div class="palette-header">
+      <span class="palette-dot" style="background:var(--oc-seaweed-500)"></span>
+      <span class="palette-name">海草 Seaweed</span>
+      <span class="palette-desc">海藻、生机、自然</span>
+    </div>
+    <div class="palette-row" id="seaweedRow"></div>
+  </div>
+
+  <div class="palette-group">
+    <div class="palette-header">
+      <span class="palette-dot" style="background:var(--oc-shell-500)"></span>
+      <span class="palette-name">贝壳 Shell</span>
+      <span class="palette-desc">珍珠、贝壳、温润</span>
+    </div>
+    <div class="palette-row" id="shellRow"></div>
+  </div>
+
+  <div class="palette-group">
+    <div class="palette-header">
+      <span class="palette-dot" style="background:var(--oc-sunset-500)"></span>
+      <span class="palette-name">日落 Sunset</span>
+      <span class="palette-desc">黄昏、暖光、余晖</span>
+    </div>
+    <div class="palette-row" id="sunsetRow"></div>
+  </div>
+
+  <div class="palette-group">
+    <div class="palette-header">
+      <span class="palette-dot" style="background:var(--oc-deepsea-500)"></span>
+      <span class="palette-name">深海 DeepSea</span>
+      <span class="palette-desc">深渊、静谧、神秘</span>
+    </div>
+    <div class="palette-row" id="deepseaRow"></div>
+  </div>
+
+  <div class="palette-group">
+    <div class="palette-header">
+      <span class="palette-dot" style="background:var(--oc-foam-500)"></span>
+      <span class="palette-name">泡沫 Foam</span>
+      <span class="palette-desc">浪花、泡沫、清新</span>
+    </div>
+    <div class="palette-row" id="foamRow"></div>
+  </div>
+
+  <div class="palette-group">
+    <div class="palette-header">
+      <span class="palette-dot" style="background:var(--oc-reef-500)"></span>
+      <span class="palette-name">礁石 Reef</span>
+      <span class="palette-desc">岩石、沉稳、结构</span>
+    </div>
+    <div class="palette-row" id="reefRow"></div>
+  </div>
+
+  <div class="palette-group">
+    <div class="palette-header">
+      <span class="palette-dot" style="background:var(--oc-neutral-500)"></span>
+      <span class="palette-name">中性 Neutral</span>
+      <span class="palette-desc">灰阶、层级、辅助</span>
+    </div>
+    <div class="palette-row" id="neutralRow"></div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">语义色彩 — 主题化</div>
+  <div class="semantic-grid">
+    <div class="semantic-card">
+      <div class="semantic-icon" style="background:rgba(76,175,80,0.15)">&#127807;</div>
+      <div class="semantic-info">
+        <div class="semantic-name">成功 Success</div>
+        <div class="semantic-value">seaweed-600 / seaweed-500</div>
+      </div>
+    </div>
+    <div class="semantic-card">
+      <div class="semantic-icon" style="background:rgba(255,182,39,0.15)">&#127774;</div>
+      <div class="semantic-info">
+        <div class="semantic-name">警告 Warning</div>
+        <div class="semantic-value">sunset-600 / sunset-500</div>
+      </div>
+    </div>
+    <div class="semantic-card">
+      <div class="semantic-icon" style="background:rgba(255,125,97,0.15)">&#128293;</div>
+      <div class="semantic-info">
+        <div class="semantic-name">错误 Error</div>
+        <div class="semantic-value">coral-600 / coral-500</div>
+      </div>
+    </div>
+    <div class="semantic-card">
+      <div class="semantic-icon" style="background:rgba(38,166,200,0.15)">&#128172;</div>
+      <div class="semantic-info">
+        <div class="semantic-name">信息 Info</div>
+        <div class="semantic-value">ocean-600 / ocean-500</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">背景层级</div>
+  <div class="bg-grid">
+    <div class="bg-card" style="background:var(--oc-bg-primary)">
+      <span class="bg-card-label">Primary</span>
+      <span class="bg-card-token">bg-primary</span>
+    </div>
+    <div class="bg-card" style="background:var(--oc-bg-secondary)">
+      <span class="bg-card-label">Secondary</span>
+      <span class="bg-card-token">bg-secondary</span>
+    </div>
+    <div class="bg-card" style="background:var(--oc-bg-tertiary)">
+      <span class="bg-card-label">Tertiary</span>
+      <span class="bg-card-token">bg-tertiary</span>
+    </div>
+    <div class="bg-card" style="background:var(--oc-bg-elevated);border:1px solid var(--oc-neutral-200)">
+      <span class="bg-card-label">Elevated</span>
+      <span class="bg-card-token">bg-elevated</span>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">文字色彩</div>
+  <div class="bg-grid">
+    <div class="bg-card" style="background:var(--oc-bg-secondary)">
+      <span class="bg-card-label" style="color:var(--oc-text-primary);font-size:16px">Primary</span>
+      <span class="bg-card-token">text-primary</span>
+    </div>
+    <div class="bg-card" style="background:var(--oc-bg-secondary)">
+      <span class="bg-card-label" style="color:var(--oc-text-secondary);font-size:16px">Secondary</span>
+      <span class="bg-card-token">text-secondary</span>
+    </div>
+    <div class="bg-card" style="background:var(--oc-bg-secondary)">
+      <span class="bg-card-label" style="color:var(--oc-text-tertiary);font-size:16px">Tertiary</span>
+      <span class="bg-card-token">text-tertiary</span>
+    </div>
+    <div class="bg-card" style="background:var(--oc-ocean-500)">
+      <span class="bg-card-label" style="color:var(--oc-text-inverse);font-size:16px">Inverse</span>
+      <span class="bg-card-token" style="color:rgba(255,255,255,0.7)">text-inverse</span>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ========== 字体排版 ========== -->
+<div class="tab-panel" id="tab-typo">
+<div class="section">
+  <div class="section-title">字体家族</div>
+  <div class="typo-card">
+    <div class="typo-row"><span class="typo-token">--font-display</span><span class="typo-sample" style="font-family:var(--oc-font-display);font-size:18px">Maple Mono</span></div>
+    <div class="typo-row"><span class="typo-token">--font-body</span><span class="typo-sample" style="font-size:18px">Maple Mono</span></div>
+    <div class="typo-row"><span class="typo-token">--font-mono</span><span class="typo-sample" style="font-family:var(--oc-font-mono);font-size:18px">Maple Mono</span></div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">字号层级</div>
+  <div class="typo-card">
+    <div class="typo-row"><span class="typo-token">text-6xl</span><span class="typo-sample" style="font-size:60px;font-weight:700;line-height:1">海天一色</span></div>
+    <div class="typo-row"><span class="typo-token">text-5xl</span><span class="typo-sample" style="font-size:48px;font-weight:700;line-height:1.05">潮起潮落</span></div>
+    <div class="typo-row"><span class="typo-token">text-4xl</span><span class="typo-sample" style="font-size:36px;font-weight:600;line-height:1.1">浪花飞溅</span></div>
+    <div class="typo-row"><span class="typo-token">text-3xl</span><span class="typo-sample" style="font-size:30px;font-weight:600">海风轻拂</span></div>
+    <div class="typo-row"><span class="typo-token">text-2xl</span><span class="typo-sample" style="font-size:24px;font-weight:600">沙滩漫步</span></div>
+    <div class="typo-row"><span class="typo-token">text-xl</span><span class="typo-sample" style="font-size:20px;font-weight:500">贝壳收藏</span></div>
+    <div class="typo-row"><span class="typo-token">text-lg</span><span class="typo-sample" style="font-size:18px">落日余晖</span></div>
+    <div class="typo-row"><span class="typo-token">text-base</span><span class="typo-sample" style="font-size:16px">这是正文文本，用于段落和常规内容展示。</span></div>
+    <div class="typo-row"><span class="typo-token">text-sm</span><span class="typo-sample" style="font-size:14px">辅助说明文字，用于标签和次要信息。</span></div>
+    <div class="typo-row"><span class="typo-token">text-xs</span><span class="typo-sample" style="font-size:12px">元数据、时间戳、极小标签。</span></div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">字重</div>
+  <div class="typo-card">
+    <div class="typo-row"><span class="typo-token">font-light</span><span class="typo-sample" style="font-weight:300;font-size:20px">light 300</span></div>
+    <div class="typo-row"><span class="typo-token">font-regular</span><span class="typo-sample" style="font-weight:400;font-size:20px">regular 400</span></div>
+    <div class="typo-row"><span class="typo-token">font-medium</span><span class="typo-sample" style="font-weight:500;font-size:20px">medium 500</span></div>
+    <div class="typo-row"><span class="typo-token">font-semibold</span><span class="typo-sample" style="font-weight:600;font-size:20px">semibold 600</span></div>
+    <div class="typo-row"><span class="typo-token">font-bold</span><span class="typo-sample" style="font-weight:700;font-size:20px">bold 700</span></div>
+  </div>
+</div>
+</div>
+
+<!-- ========== 间距与形状 ========== -->
+<div class="tab-panel" id="tab-space">
+<div class="section">
+  <div class="section-title">间距系统（4px 基准）</div>
+  <div id="spacingContainer"></div>
+</div>
+
+<div class="section">
+  <div class="section-title">圆角</div>
+  <div class="shape-grid">
+    <div class="shape-box" style="border-radius:0">0px</div>
+    <div class="shape-box" style="border-radius:4px">sm</div>
+    <div class="shape-box" style="border-radius:8px">base</div>
+    <div class="shape-box" style="border-radius:12px">md</div>
+    <div class="shape-box" style="border-radius:16px">lg</div>
+    <div class="shape-box" style="border-radius:24px">xl</div>
+    <div class="shape-box" style="border-radius:999px">full</div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">阴影</div>
+  <div class="shadow-grid">
+    <div class="shadow-box" style="box-shadow:var(--oc-shadow-sm)">sm</div>
+    <div class="shadow-box" style="box-shadow:var(--oc-shadow-md)">md</div>
+    <div class="shadow-box" style="box-shadow:var(--oc-shadow-lg)">lg</div>
+    <div class="shadow-box" style="box-shadow:var(--oc-shadow-xl)">xl</div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">动效参数</div>
+  <div class="typo-card">
+    <div class="typo-row"><span class="typo-token">duration-fast</span><span class="typo-sample">150ms — 悬停、微交互</span></div>
+    <div class="typo-row"><span class="typo-token">duration-normal</span><span class="typo-sample">250ms — 状态切换、展开</span></div>
+    <div class="typo-row"><span class="typo-token">duration-slow</span><span class="typo-sample">350ms — 页面过渡、模态框</span></div>
+    <div class="typo-row"><span class="typo-token">duration-slower</span><span class="typo-sample">500ms — 大型动画、加载</span></div>
+  </div>
+  <div style="margin-top:12px;font-size:13px;color:var(--oc-text-secondary)">
+    缓动曲线：easeOut cubic-bezier(0.16,1,0.3,1) · easeIn cubic-bezier(0.7,0,0.84,0) · easeInOut cubic-bezier(0.87,0,0.13,1) · spring cubic-bezier(0.34,1.56,0.64,1)
+  </div>
+</div>
+</div>
+
+<!-- ========== 组件示例 ========== -->
+<div class="tab-panel" id="tab-components">
+<div class="component-section">
+  <div class="component-title">按钮 Button</div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+    <button class="btn btn-primary">&#127754; 海洋按钮</button>
+    <button class="btn btn-secondary">&#127958; 沙滩按钮</button>
+    <button class="btn btn-coral">&#x1F980; 珊瑚按钮</button>
+    <button class="btn btn-seaweed">&#127807; 海草按钮</button>
+    <button class="btn btn-sunset">&#127774; 日落按钮</button>
+    <button class="btn btn-ghost">幽灵按钮</button>
+  </div>
+</div>
+
+<div class="component-section">
+  <div class="component-title">输入框 Input</div>
+  <input class="input" type="text" placeholder="输入你的海边记忆..." style="margin-bottom:8px"><br>
+  <input class="input" type="text" value="已填写的内容" style="margin-bottom:8px">
+</div>
+
+<div class="component-section">
+  <div class="component-title">标签 Tag</div>
+  <div>
+    <span class="tag tag-ocean">&#127754; 海洋</span>
+    <span class="tag tag-sand">&#127958; 沙滩</span>
+    <span class="tag tag-coral">&#x1F980; 珊瑚</span>
+    <span class="tag tag-seaweed">&#127807; 海草</span>
+    <span class="tag tag-sunset">&#127774; 日落</span>
+    <span class="tag tag-shell">&#129425; 贝壳</span>
+  </div>
+</div>
+
+<div class="component-section">
+  <div class="component-title">卡片 Card</div>
+  <div class="components-grid">
+    <div class="card">
+      <div class="card-img">&#127754;</div>
+      <div class="card-title">蔚蓝海岸</div>
+      <div class="card-desc">感受海浪拍打沙滩的声音，让心灵在潮汐中找到宁静。</div>
+    </div>
+    <div class="card">
+      <div class="card-img" style="background:linear-gradient(135deg,var(--oc-sand-300),var(--oc-coral-300))">&#127958;</div>
+      <div class="card-title">金色沙滩</div>
+      <div class="card-desc">阳光洒落在细软的沙粒上，每一颗都在闪烁着温暖的光芒。</div>
+    </div>
+  </div>
+</div>
+
+<div class="component-section">
+  <div class="component-title">统计卡片</div>
+  <div class="components-grid">
+    <div class="card">
+      <div style="font-size:13px;color:var(--oc-text-tertiary);margin-bottom:8px">今日海浪</div>
+      <div style="font-size:32px;font-weight:600;color:var(--oc-ocean-500)">2,847</div>
+      <div style="font-size:13px;color:var(--oc-text-secondary);margin-top:4px">次潮汐涌动</div>
+    </div>
+    <div class="card">
+      <div style="font-size:13px;color:var(--oc-text-tertiary);margin-bottom:8px">沙滩温度</div>
+      <div style="font-size:32px;font-weight:600;color:var(--oc-sand-600)">28.5°C</div>
+      <div style="font-size:13px;color:var(--oc-text-secondary);margin-top:4px">适宜赤脚漫步</div>
+    </div>
+    <div class="card">
+      <div style="font-size:13px;color:var(--oc-text-tertiary);margin-bottom:8px">探索进度</div>
+      <div style="height:8px;background:var(--oc-bg-tertiary);border-radius:999px;overflow:hidden;margin-top:8px">
+        <div style="width:68%;height:100%;background:var(--oc-sand-500);border-radius:999px"></div>
+      </div>
+      <div style="font-size:13px;color:var(--oc-text-secondary);margin-top:8px">沙滩探索 68%</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ========== 设计原则 ========== -->
+<div class="tab-panel" id="tab-principles">
+<div class="section">
+  <div class="section-title">设计原则</div>
+  <div class="principle-grid">
+    <div class="principle-card">
+      <div class="principle-num">1</div>
+      <div class="principle-title">自然隐喻</div>
+      <div class="principle-desc">色彩从真实的大海、沙滩、珊瑚中提取，避免人工感过强的荧光色。每一种颜色都能在海岸线上找到对应的自然原型。</div>
+    </div>
+    <div class="principle-card">
+      <div class="principle-num">2</div>
+      <div class="principle-title">潮汐对比</div>
+      <div class="principle-desc">Light Mode 以沙滩暖色为底、海洋蓝为点缀；Dark Mode 以深海为底、月光沙滩为点缀。双模式不是简单反色，而是独立调色。</div>
+    </div>
+    <div class="principle-card">
+      <div class="principle-num">3</div>
+      <div class="principle-title">层级清晰</div>
+      <div class="principle-desc">通过背景层级（primary → secondary → tertiary → elevated）和文字层级建立信息层次，让用户在海岸般柔和的视觉中依然能快速定位。</div>
+    </div>
+    <div class="principle-card">
+      <div class="principle-num">4</div>
+      <div class="principle-title">温暖中性</div>
+      <div class="principle-desc">中性色带有微妙的暖棕调，与沙滩色系呼应，避免冷灰的生硬感。即使在深色模式下，灰阶也保持温暖的底色。</div>
+    </div>
+    <div class="principle-card">
+      <div class="principle-num">5</div>
+      <div class="principle-title">语义主题化</div>
+      <div class="principle-desc">成功用海草绿、警告用日落金、错误用珊瑚红、信息用海洋蓝——让功能反馈也融入自然叙事，而非生硬的系统默认色。</div>
+    </div>
+    <div class="principle-card">
+      <div class="principle-num">6</div>
+      <div class="principle-title">呼吸感动效</div>
+      <div class="principle-desc">动画时长和缓动曲线模拟海浪的节奏：快速如浪花飞溅，缓慢如潮汐涨落。弹簧曲线用于反馈，ease-out 用于退出。</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<footer class="footer">
+  <div class="footer-wave">&#127754; &#127958; &#x1F980; &#127807; &#127774;</div>
+  <p>Ocean & Sand Design System</p>
+  <p style="margin-top:4px">大海与沙滩主题 UI/UX 设计系统 · 支持 Dark / Light 双模式</p>
+</footer>
+
+</div>
+
+<div class="toast" id="toast">已复制到剪贴板</div>
+
+<script>
+const palettes = {
+  ocean: ['50','100','200','300','400','500','600','700','800','900','950'],
+  sand: ['50','100','200','300','400','500','600','700','800','900','950'],
+  coral: ['50','100','200','300','400','500','600','700','800','900','950'],
+  seaweed: ['50','100','200','300','400','500','600','700','800','900','950'],
+  shell: ['50','100','200','300','400','500','600','700','800','900','950'],
+  sunset: ['50','100','200','300','400','500','600','700','800','900','950'],
+  deepsea: ['50','100','200','300','400','500','600','700','800','900','950'],
+  foam: ['50','100','200','300','400','500','600','700','800','900','950'],
+  reef: ['50','100','200','300','400','500','600','700','800','900','950'],
+  neutral: ['50','100','200','300','400','500','600','700','800','900','950']
+};
+
+function renderSwatches() {
+  const isDark = document.body.getAttribute('data-theme') === 'dark';
+  Object.keys(palettes).forEach(name => {
+    const row = document.getElementById(name + 'Row');
+    if (!row) return;
+    row.innerHTML = '';
+    palettes[name].forEach(key => {
+      const swatch = document.createElement('div');
+      swatch.className = 'swatch';
+      const varName = '--oc-' + name + '-' + key;
+      swatch.style.background = 'var(' + varName + ')';
+      const isLightKey = parseInt(key) <= (name === 'neutral' ? 300 : 400);
+      const isDarkTheme = isDark && name !== 'neutral';
+      const isLightSwatch = (isDarkTheme && !isLightKey) || (!isDarkTheme && isLightKey);
+      swatch.innerHTML = '<span class="swatch-label ' + (isLightSwatch ? 'swatch-light' : '') + '">' + key + '</span>';
+      swatch.onclick = function() { copyColor(varName); };
+      row.appendChild(swatch);
+    });
+  });
+}
+
+function renderSpacing() {
+  const container = document.getElementById('spacingContainer');
+  if (!container) return;
+  const sizes = [4,8,12,16,20,24,32,40,48,64,80,96,128];
+  container.innerHTML = '';
+  sizes.forEach(function(px) {
+    const bar = document.createElement('div');
+    bar.className = 'spacing-item';
+    const visual = document.createElement('div');
+    visual.className = 'spacing-bar';
+    visual.style.width = px + 'px';
+    visual.style.height = '20px';
+    const label = document.createElement('span');
+    label.className = 'spacing-label';
+    label.textContent = px + 'px';
+    bar.appendChild(visual);
+    bar.appendChild(label);
+    container.appendChild(bar);
+  });
+}
+
+function setTheme(theme) {
+  document.body.setAttribute('data-theme', theme);
+  document.getElementById('btnLight').classList.toggle('active', theme === 'light');
+  document.getElementById('btnDark').classList.toggle('active', theme === 'dark');
+  renderSwatches();
+}
+
+function switchTab(tab) {
+  var tabs = document.querySelectorAll('.nav-tab');
+  var panels = document.querySelectorAll('.tab-panel');
+  for (var i = 0; i < tabs.length; i++) tabs[i].classList.remove('active');
+  for (var i = 0; i < panels.length; i++) panels[i].classList.remove('active');
+  event.target.classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+}
+
+function copyColor(varName) {
+  var el = document.createElement('div');
+  el.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
+  document.body.appendChild(el);
+  el.style.color = 'var(' + varName + ')';
+  var rgb = window.getComputedStyle(el).color;
+  document.body.removeChild(el);
+  var match = rgb.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+  if (match) {
+    var hex = '#' + [match[1], match[2], match[3]].map(function(x) {
+      var h = parseInt(x).toString(16);
+      return h.length === 1 ? '0' + h : h;
+    }).join('').toUpperCase();
+    navigator.clipboard.writeText(hex).then(function() { showToast(hex); });
+  }
+}
+
+function showToast(text) {
+  var toast = document.getElementById('toast');
+  toast.textContent = '已复制 ' + text;
+  toast.classList.add('show');
+  setTimeout(function() { toast.classList.remove('show'); }, 2000);
+}
+
+renderSwatches();
+renderSpacing();
+</script>
+</body>
+</html>

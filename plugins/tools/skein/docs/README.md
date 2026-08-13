@@ -1,0 +1,83 @@
+# SKEIN 文档
+
+独立任务管理插件 — 零 trellis/trellisx 依赖, 自带 `.skein/` 工作区。
+名取「线团」: 任务如纱线, 编织、调度、收束。
+
+## 一句话上手
+
+```
+走 skein-flow 闭环: 给用户模块加上手机号登录, 含短信验证码下发与校验
+```
+
+复杂请求自动触发 `skein-flow` 闭环, 无需显式命令。
+
+## 前置条件 & 初始化
+
+| 条件 | 说明 |
+| --- | --- |
+| git ≥ 2.5 | 需要 `git worktree` |
+| Python ≥ 3.9 | — |
+
+```
+skein init    # 或由 skein-setup skill 自动触发
+```
+
+**.skein/ 目录**:
+
+| 路径 | 用途 | 维护者 |
+| --- | --- | --- |
+| `config.yaml` | 用户配置 | 用户 |
+| `task.json` | 状态汇总 | 脚本 (AI 禁读写) |
+| `task.md` / `task.html` | 看板 | 脚本渲染 |
+| `task/<id>/` | task 记录 | 脚本 + AI |
+| `spec/rules/` | 硬规/契约 | skein-spec |
+| `spec/product/` | 业务领域知识 | skein-spec |
+| `spec/map/` | 项目结构映像 | skein-spec |
+| `spec/external/` | 外部引用 | skein-spec |
+
+## 首个 task
+
+```
+走 skein-flow 闭环: 加一个用户列表页, 含分页和搜索
+```
+
+| 阶段 | 行为 |
+| --- | --- |
+| plan | brainstorm + grill + PRD + subtask DAG |
+| exec | DAG 调度, worktree 隔离, subtask done/fail |
+| check | lint / type / test |
+| finish | merge → 销wt → 标记完成 → 异步 sediment |
+
+```
+skein list --status unfinished  # 活跃 task
+skein board      # 文本看板
+skein serve --open  # 可视化 HTML 看板
+```
+
+## 核心概念
+
+| 概念 | 说明 |
+| --- | --- |
+| task | 闭环工作记录, 存 `.skein/task/<id>/` |
+| 闭环 | plan→exec→check→finish, 不可跳步 |
+| worktree 隔离 | 每 task 一个 git worktree, 主工作区零改动 |
+| 双层 DAG | task + subtask 同构 DAG, 完成即派 |
+| 规则记忆库 | namespace (内容类型目录) × inclusion (加载策略: always 常驻 / auto 召回 / fileMatch / manual) |
+| sediment 判定门 | finish 时判 learning → namespace×inclusion / drop |
+
+## 请求路由
+
+| 信号 | 条件 | 行为 |
+| --- | --- | --- |
+| flow | 跨文件 / 多步 / 破坏式 | 自动建 task |
+| inline | 单文件小改 | 直接改 |
+| grey | 模糊 | AskUserQuestion |
+
+明确说“走 skein-flow 闭环” = 强制 flow 信号。
+
+## 文档
+
+- [skein.md](skein.md) — 架构 / 生命周期 / 调度 / 规则记忆
+- [reference.md](reference.md) — CLI / skill / agent / config / 场景 / 术语
+- [hooks.md](hooks.md) — `config.yaml` 自定义 hooks (阶段钩子 + agent 钩子): schema / env 变量 / 阻断语义 / 信任模型
+- [examples/](examples) — 完整样例 .skein/
