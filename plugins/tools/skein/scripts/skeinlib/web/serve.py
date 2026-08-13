@@ -87,9 +87,9 @@ def _dist_placeholder(path: Path) -> str:
     )
 
 
-def _read_dist_page(*_parts: str) -> str:
-    """SPA 模式: 所有路由共用根 index.html, Next.js 客户端路由处理页面切换。"""
-    path = dist_dir() / "index.html"
+def _read_dist_page(*parts: str) -> str:
+    """static export: 按路由路径查 index.html。"""
+    path = dist_dir().joinpath(*parts, "index.html")
     try:
         return path.read_text(encoding="utf-8")
     except FileNotFoundError:
@@ -97,17 +97,14 @@ def _read_dist_page(*_parts: str) -> str:
 
 
 def _slim_dist(dd: Path) -> None:
-    """build 后瘦身: 只留 index.html + _next/, 删掉每路由预渲染 HTML 和调试 txt。
+    """build 后瘦身: 删 SVG/ico/favicon, 保留 index.html + RSC txt + _next/。
 
-    SPA 模式不需要每路由独立 index.html (Next.js 客户端路由处理), __next.*.txt 是 Turbopack 调试数据。
-    瘦身从 ~6MB 降到 ~5MB (主要是 _next/static/chunks/)。
+    static export 模式需要每路由 index.html (含嵌入 RSC payload), 不能删。
     """
-    for item in dd.iterdir():
-        if item.name in ("_next", "index.html", _PLACEHOLDER):
-            continue
+    for item in dd.rglob("*"):
         if item.is_dir():
-            shutil.rmtree(item, ignore_errors=True)
-        else:
+            continue
+        if item.suffix in (".svg", ".ico"):
             item.unlink(missing_ok=True)
 
 
@@ -710,26 +707,20 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
                 count += 1
         return JSONResponse({"ok": True, "purged_count": count})
 
-    # SPA 模式: 所有路由共用根 index.html, _next/ 是 JS/CSS chunks。
-    ensure_dist_serveable()  # 产物缺失时补占位, 免得每个请求都抛 StaticFiles directory 不存在
-    next_static = _NoCacheStatic(directory=str(dist_dir() / "_next"), check_dir=False)
-    app.mount("/_next", next_static, name="next-static")
+    # static export: 每路由有 index.html, mount dist/ 为根 + html=true。
+    ensure_dist_serveable()
+    app.mount("/_next", _NoCacheStatic(directory=str(dist_dir() / "_next"), check_dir=False), name="next-static")
 
-    # task/detail SPA 页面: 必须在 /task mount 之前, 否则被 task 数据 StaticFiles 拦截 -> 404。
     @app.get("/task/detail", response_class=HTMLResponse)
     @app.get("/task/detail/", response_class=HTMLResponse)
     async def _spa_task_detail() -> str:
-        return _read_dist_page()
+        return _read_dist_page("task", "detail")
 
     # 规划文档 (prd/design/findings.md) 直出: doc.js fetch /task/<id>/<f>.md
     app.mount("/task", StaticFiles(directory=str(board.tasks), check_dir=False), name="task")
-    # SPA catch-all: 所有非 API / 非 _next / 非 task 的 GET 返回 index.html。
-    # FastAPI 路由优先于 mount, 必须在此显式排除 _next 否则 JS/CSS 被 HTML 拦截。
-    @app.get("/{path:path}")
-    async def _spa_catchall(request: Request, path: str) -> Any:
-        if path.startswith("_next/"):
-            return await next_static.get_response(path, request.scope)
-        return HTMLResponse(_read_dist_page())
+    # static export: dist/ 每路由 index.html, mount 为根 + html=true。
+    # /dashboard/ → dashboard/index.html; /dashboard → 302 → /dashboard/ → 命中。
+    app.mount("/", _NoCacheStatic(directory=str(dist_dir()), html=True, check_dir=False), name="spa-root")
     return app
 
 
