@@ -1,0 +1,66 @@
+{
+  "id": "order-pay",
+  "name": "订单支付",
+  "desc": "POST /orders/:id/pay, 已 plan 出 subtask",
+  "status": "待处理",
+  "deps": [
+    "order-create-api"
+  ],
+  "contracts": [
+    "支付回调必须幂等, 重复回调不重复入账"
+  ],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "支付单创建",
+      "depends_on": [],
+      "验收": [
+        "生成支付单 + 状态机"
+      ],
+      "agent": "skein-executor",
+      "skills": [],
+      "status": "待处理",
+      "estimate": 20,
+      "验收done": []
+    },
+    {
+      "sid": "s2",
+      "name": "支付网关调用",
+      "depends_on": [
+        "s1"
+      ],
+      "验收": [
+        "调 payment-gateway 发起支付"
+      ],
+      "agent": "skein-executor",
+      "skills": [
+        "payment-api"
+      ],
+      "status": "待处理",
+      "estimate": 20,
+      "验收done": []
+    },
+    {
+      "sid": "s3",
+      "name": "支付回调处理",
+      "depends_on": [
+        "s1"
+      ],
+      "验收": [
+        "异步回调 + 幂等入账"
+      ],
+      "agent": "skein-executor",
+      "skills": [
+        "idempotency"
+      ],
+      "status": "待处理",
+      "estimate": 20,
+      "验收done": []
+    }
+  ],
+  "worktree": null,
+  "branch": "skein/order-pay",
+  "created": 1783754713,
+  "updated": 1783754713,
+  "estimate": 60
+}

@@ -1,0 +1,11 @@
+# 插件目录
+# 忽略用户本地插件
+user-*/
+local-*/
+# 例外：允许 local-code-analysis 技能
+!local-code-analysis/
+
+# 忽略插件构建产物
+*/dist/
+*/build/
+*/node_modules/

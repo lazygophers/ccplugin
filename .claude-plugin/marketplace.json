@@ -1,0 +1,186 @@
+{
+  "name": "ccplugin-market",
+  "owner": {
+    "name": "lazygophers",
+    "email": "admin@lazygophers.dev"
+  },
+  "metadata": {
+    "description": "Claude Code 插件市场 - 提供常用插件和开发模板",
+    "pluginRoot": "./plugins"
+  },
+  "plugins": [
+    {
+      "name": "ccplugin-skills",
+      "source": "./",
+      "description": "Claude Code skill 集合 plugin——设计(主题配色/UI-UX)、Git、代码质量、项目工程、skill 开发，13 个 skill 一键装齐。",
+      "category": "skills",
+      "keywords": [
+        "design",
+        "ui-ux",
+        "color",
+        "git",
+        "code-quality",
+        "skills"
+      ]
+    },
+    {
+      "name": "deepresearch",
+      "source": "./plugins/tools/deepresearch",
+      "description": "深度研究插件 - 基于图思维框架的多智能体深度研究系统。支持多领域深度调查、引用验证、知识合成和专业报告生成",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/deepresearch",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/deepresearch",
+      "license": "AGPL-3.0-or-later",
+      "keywords": [
+        "deep",
+        "research",
+        "investigation",
+        "analysis",
+        "citation",
+        "multi-agent",
+        "got",
+        "graph-of-thoughts",
+        "synthesis",
+        "validation"
+      ]
+    },
+    {
+      "name": "version",
+      "source": "./plugins/tools/version",
+      "description": "版本号管理插件 - 提供 SemVer 版本管理，支持自动版本更新和手动版本设置。通过 Claude Code Hooks 自动检测任务完成并更新构建版本号",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/version",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/version",
+      "license": "AGPL-3.0-or-later",
+      "keywords": [
+        "version",
+        "semver",
+        "versioning",
+        "release",
+        "management",
+        "automation",
+        "hooks"
+      ]
+    },
+    {
+      "name": "notify",
+      "source": "./plugins/tools/notify",
+      "description": "系统通知插件 - 通过系统通知向用户实时提示会话状态变更、权限请求等重要事件。跨平台支持 macOS、Linux、Windows",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/notify",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/notify",
+      "license": "AGPL-3.0-or-later",
+      "keywords": [
+        "notification",
+        "system-notification",
+        "hook",
+        "event",
+        "macos",
+        "linux",
+        "windows"
+      ]
+    },
+    {
+      "name": "trellisx",
+      "source": "./plugins/tools/trellisx",
+      "description": "Trellisx — Trellis 增强改造工具: 跑一次 trellisx-apply 把 强推task / subtask拆分 / worktree隔离 / plan→exec→check→finish闭环 / task.md看板 五维度注入 .trellis (workflow + config.yaml 生命周期 hook + scripts); 含 trellisx-flow 强制task闭环 / orchestrate 编排 / workspace 看板 / spec 破坏式重构",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/trellisx",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/trellisx",
+      "license": "AGPL-3.0-or-later",
+      "keywords": [
+        "trellis",
+        "task-orchestration",
+        "subtask",
+        "agent-team",
+        "worktree",
+        "sub-agent",
+        "spec",
+        "workflow",
+        "prompt-injection",
+        "planning",
+        "mermaid"
+      ]
+    },
+    {
+      "name": "cortex",
+      "source": "./plugins/tools/cortex",
+      "description": "知识库 + 记忆管理插件 - 双层 vault, 5 级记忆 (遗忘曲线), 8 skill: schema/ingest/lint/extract/history-digest/context-digest/evolve/recall",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/cortex",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/cortex",
+      "license": "AGPL-3.0-or-later",
+      "keywords": [
+        "knowledge-base",
+        "memory",
+        "vault",
+        "forgetting-curve",
+        "recall",
+        "ingest",
+        "lint",
+        "knowledge-management"
+      ]
+    },
+    {
+      "name": "novelist",
+      "source": "./plugins/tools/novelist",
+      "description": "小说写作全流程插件 - 从爆款题材选择/世界观/人物/大纲设定到章节编写、一致性检查、校对、去AIGC、重写、批量流水线的端到端工作流。13 skill: init/design/character/worldview/outline/write/check/rewrite/proofread/craft/trending/humanize/pipeline; 7 agent: continuity-auditor(双模式)/chapter-writer/proofreader/humanizer/outliner/worldbuilder/indexer。编写前四要素确认, 生成后收尾链(检查→校对→去AIGC→定稿)+评分门控; pipeline 用 Workflow 逐章串行批量写多章(各阶段派专用 agent); craft 三流派叙事镜片, trending 选题方法论, humanize 去AI味",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/novelist",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/novelist",
+      "license": "AGPL-3.0-or-later",
+      "keywords": [
+        "novel",
+        "writing",
+        "fiction",
+        "worldbuilding",
+        "character",
+        "outline",
+        "continuity-check",
+        "rewrite",
+        "proofread",
+        "creative-writing"
+      ]
+    },
+    {
+      "name": "skein",
+      "source": "./plugins/tools/skein",
+      "description": "SKEIN — 独立任务管理插件 (零 trellis 依赖, 自带 .skein/ 工作区): 强制 task 闭环 (plan→exec→check→finish) + 动态 DAG 编排调度 (冲突自算边 + depends_on, 并发上限 2, task 级 + subtask 级双层) + worktree 隔离 + task.md 看板; 差异化核心是两层×类目规则记忆 (基于 .claude/rules): core 常驻注入硬规 + recall 按需语义召回, 层内按类目 (git/test/arch/build...) 分子目录, task finish 后经 sediment 判定门沉淀。9 skill: flow/orchestrate/workspace/planning/memory/grill/spec/check/clean + 3 agent: implementer/checker/researcher (无 Agent/Task 递归护栏)",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/skein",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/skein",
+      "license": "AGPL-3.0-or-later",
+      "keywords": [
+        "task-management",
+        "task-orchestration",
+        "dag-scheduling",
+        "worktree",
+        "sub-agent",
+        "rules-memory",
+        "kanban",
+        "standalone"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,151 @@
+# trellisx 核心概念
+
+## 1. task
+
+trellis 原生任务单元。一个 task = `.trellis/tasks/<task-dir>/` 目录, 含 `task.json` (状态) + `prd.md` (+ 复杂 task 的 `design.md` / `implement.md` / `subtask/*.md`)。
+
+生命周期: `planning` → `in_progress` (task.py start) → `completed` (task.py finish) → archive。
+
+trellisx 不改 task 定义, 只在其上叠加 worktree 隔离 / subtask 编排 / 闭环 / 看板。
+
+## 2. parent/child (任务级, 动态调度) ≠ subtask (任务内, 动态调度, 共享 worktree)
+
+**这是最容易混淆的一对, 必须分清。**
+
+### parent/child — 任务级, 动态调度
+
+- 触发: 一个请求含 **≥ 2 个独立可验收交付** → 拆 parent + 多 child (`task.py create --parent`)。
+- 每个 child 是**独立 task**, 完整生命周期 (plan/impl/check/archive), **各自独立 worktree**。
+- child **动态调度**: 独立 child (无依赖) **可并行** (各 child 各 worktree, 并发上限 2); 有依赖 (child B 依赖 child A 产出) 才串行; 完成即派下一个。
+- **parent 是 child 级调度器**: 持 child DAG (依赖图), 动态派发 child; parent 持 child map + 跨 child 验收 + 集成 review, 通常不直接做实施。
+
+### subtask 拆分 — 任务内 exec, 动态调度
+
+- 触发: **任一 task** (含每个 child) 的 exec 含**多独立无影响单元** → `implement.md` 拆 subtask。
+- **main 是调度器**: 算冲突 (写盘 glob 相交 + 执行作用域相交 + 显式依赖) → 建 DAG → 动态派 `trellis-implement` 各执行 1 subtask (并发上限 2, 完成即派下一个)。
+- **trellis-implement 不调度不递归** (工具集无 Agent/Task, Recursion Guard); 每 subtask 文件声明 `write-files` + `exec-scope` 供冲突判定。
+- subtask 是**任务内执行单元**, 不是独立 task。
+
+### 对比
+
+| | parent/child | subtask |
+| --- | --- | --- |
+| 层级 | 任务级 | 任务内 exec |
+| 各自是 task? | 是 (独立生命周期) | 否 (执行单元) |
+| 调度器 | parent (持 child DAG) | main (持 subtask DAG) |
+| 隔离单位 | 各 child 各 worktree | 共享 task worktree |
+| 执行方式 | 动态调度 (独立可并行, 并发上限 2; 有依赖串行) | 动态调度 (无依赖并发, 上限 2) |
+| 拆分信号 | 多独立可验收交付 | 单 task 内多独立无影响单元 |
+| 工具 | `task.py create --parent` / `add-subtask` | `implement.md` + subtask 文件 |
+
+> child ≠ subtask。child 自身的 exec 也可再 subtask 拆分。
+
+## 3. worktree 隔离单位 = task (非 subtask)
+
+### 模型
+
+- **隔离单位是 task, 不是 subagent**: `task.py start` 时 after_start hook 自动建**本 task 的** worktree。
+- **默认 1 task 1 worktree**: 该 task 全部执行 (main / sub-agent / agent-team) 都在此 worktree 内。
+- **subtask 共享 task worktree**: 并行 subagent 在同一 task worktree 内改**不相交文件集**即可, 不传 `isolation:worktree`, subtask 与 worktree**无绑定**。
+- **多 worktree 属 opt-in**: 用户显式同意一个 task 多 worktree 才开 (如大型并行隔离), 非自动, 非由 subtask 冲突触发; finish 合并各分支。
+
+### 为何 task 级
+
+worktree 防**并发多 task** 互相冲突。同 task 内并行 subagent 共享 worktree 改不相交文件集即可 (PRD 调度图保证文件集不相交, 共享文件走串行)。
+
+### 豁免 / 关闭 worktree
+
+三条路径 (由窄到宽), 关闭后 exec **仍派 subagent** (main 默认禁写源码这条永不豁免), 只是改主工作区、finish 跳过合并/销 worktree 直接 archive:
+
+- **per-run `--no-worktree`** (flow 入参): 仅本次调用禁 worktree。
+- **config `use_worktree: false`** (`.trellis/config.yaml`, 默认 `true`): **持久默认开关** —— 即便在 git 仓也强制全部 task 原地执行, 无需每次带 flag。与 `--no-worktree` 互补 (flag 覆盖单次, config 定默认); 读取单一真值 `trellisx_wt.use_worktree()`, start hook 据此跳过建 worktree。对齐 skein `use_worktree` 经验。
+- **非 git 仓自动降级** (无配置): cwd/子仓非 git 时 `resolve_repo` 定位不到 git 根 → 自动原地执行, 无 worktree/分支。
+
+> **diagnose 一致豁免**: 关闭 worktree 时本就无 worktree, `trellisx-guard` 的清理闸只对「映射到 completed/archived task 或游离」的 worktree 生效、in_progress task 的 worktree 视为在用跳过, 故不会误报「active task 缺 worktree」—— 与 skein doctor 仅对执行中 task 校验 worktree、禁用/非 git 豁免同构。
+
+## 4. 执行载体 3 层
+
+design / implement 标注每块工作的执行层。planning 定层, dispatch 直接读不重判。
+
+| 层 | 协调者 | 上下文 | 并发上限 | 适用 |
+| --- | --- | --- | --- | --- |
+| main 直做 | — | 主对话 | 1 | **默认禁** (优先派 subagent); 仅特别情况例外 (≤3 文件微改 / subagent 难处理的上下文密集决策 / 用户显式要求), 必在 task worktree 内写 |
+| sub-agent | main 逐轮决策 | 隔离 context window | 16 (机器上限) | 高量输出隔离 / 并行调研 / 强约束工具 |
+| agent-team | leader 协调 + 共享任务列表 | 每 teammate 独立 | 3-5 推荐 | 多假设辩论 / 跨层协调 / 多视角审查 |
+
+**默认载体 = subagent 编排** (绝大多数 task 够用)。
+
+> sub-agent / agent-team 都在**本 task worktree 内**执行 (共享), 禁在主工作区写盘。唯一例外: 纯只读 sub-agent (探索/调研/审查)。
+
+> **调度权归 main**: subtask 的动态调度 (算冲突 / 建 DAG / 派发 / 收态 / 转 check) 由 **main** 负责, 非 trellis-implement。trellis-implement 工具集仅 Read/Write/Edit/Bash, **无 Agent/Task** (Recursion Guard), 物理上不能调度/派 subagent/递归 —— 它只执行被派的 1 个 subtask。每个 subtask 文件声明 `write-files` (写盘 glob) + `exec-scope` (执行作用域 `none`/`package:<pkg>`/`project`) 供 main 做冲突判定。详见 orchestrate skill `scheduling.md`。
+
+## 5. plan → exec → check → finish 闭环
+
+强制四阶段串成环, 每阶段衔接无断点:
+
+| 阶段 | 动作 | 产物 |
+| --- | --- | --- |
+| plan | trellisx-orchestrate 编排 | prd.md (+ design.md + implement.md + subtask/*.md) |
+| exec | main 调度派 trellis-implement 各执行 1 subtask (动态 DAG, 共享 task worktree) | 源码改动 (落 worktree) |
+| check | trellis-check | check 报告 |
+| finish | AI 层 (TaskStop 清悬挂) + git 层 (finish.py: commit→merge→销→archive) | archived task |
+
+**闭环硬规**: 未 archive 禁宣告 Done (软约束, AI 有裁量; guard 在 Claude Code 额外 block)。
+
+### finish 收尾两层 (顺序: 先 AI 层后 git 层)
+
+- ⓪ **AI 层** (脚本做不到): finish 前 `TaskList` 查本 task 名下悬挂后台 agent, 逐个 `TaskStop` 关。
+- ① **git 层** (确定性脚本 `trellisx-finish.py`): commit→merge --no-ff (子先主后)→销 worktree→archive。
+
+`finish.py` 只销 worktree (git), 关闭后台 Task/agent 是 AI 层职责。
+
+### 动态调度 (exec 阶段, main 调度器)
+
+exec 阶段 subtask 调度由 **main** 动态驱动 (非 trellis-implement):
+
+- **资源声明**: 每 subtask 文件 frontmatter 填 `write-files` (写盘 glob) + `exec-scope` (`none` / `package:<pkg>` / `project`)。
+- **冲突判定** (planning 末 main 静态算): 两 subtask 有依赖边 ⟺ ①写盘 glob 相交 ②执行作用域相交 (同包 or 任一 project) ③显式 depends-on。无依赖边 = 可并行。
+- **5 态**: `ready` / `blocked` / `running` / `done` / `failed` (原 planned 并入 blocked)。
+- **调度循环** (并发上限 2): 查 ready → 派 min(|ready|, 2-|running|) 个 trellis-implement 各执行 1 subtask → 任一返回 (notification) 即更新态、查新 ready、立即派下一个 (不空等全部) → failed 走 failure-recovery → 全 done 转 trellis-check。
+- **trellis-implement 纯执行**: 工具集无 Agent/Task (Recursion Guard), 不调度不递归; 每 subtask 各派 1 个, 共享 task worktree 改不相交文件集。
+
+详见 orchestrate skill `scheduling.md`。
+
+## 6. task.md 看板
+
+trellis 原生有每任务 `task.json`, 但无跨任务总览。trellisx 维护 `.trellis/task.md` 作为人类可读看板 —— **一个表格, 一行一个 task**。5 列: ID / 名称 / 描述 / 状态 / worktree。
+
+**状态列承载生命周期阶段** (合并原"状态"+"阶段"两列, 删除"进度"列):
+- 规划中 / 实施中 / 检查中 / 收尾 / 已完成 / 已归档
+- hook sync 写基础态 (规划中 / 实施中 / 已完成 / 已归档); AI update 细化阶段 (检查中 / 收尾 / 实施中)。
+- **冲突规则**: 若 AI 已写细分 (实施中 / 检查中 / 收尾), hook sync 不覆 AI 细分。
+
+**维护者按列分工**:
+- trellis 生命周期 hook (`trellisx-taskmd.py`): 自动维护确定性列 (ID/名称/描述/状态基础态) + 7 天清理。
+- AI (trellisx-workspace skill): 细化状态 (阶段: 实施中→检查中→收尾) + worktree 路径。
+- 同行不同列互不覆盖。
+
+**唯一入口**: 一律经 `.trellis/scripts/trellisx-taskmd.py`, 禁直接编辑 task.md。task.md 落后于 task.json = 看板失效, 视为流程缺陷。
+
+## 7. spec 破坏式优化 (主动化: 任务开始自动加载 + 收尾自动 sediment)
+
+trellisx-spec 把 `.trellis/spec/` 描述性条款改为**可机器验证的命令式契约** (MUST / 禁 / 严禁)。允许破坏式变更 (丢弃旧版本/合并/拆分/推翻原结构), 但**必须走 AskUserQuestion 审批门** (所以 main 直接执行, 非 fork subagent)。
+
+**spec 主动化 (软约束, AI 判定 "如需")**:
+- **任务开始 (planning) 自动加载**: planning 开始时主动 grep `.trellis/spec/` 按主题找相关 guide, 命中则注入 PRD 上下文 (约束 / 契约 / 验收基准) 指导编排; 无相关 spec 则跳过。
+- **任务收尾 (finish 前) 自动 sediment 判定**: finish 前主动判本 task 有无 spec 增量需求 (非平凡契约 / 踩坑 / 反复犯错规则), 有则走 sediment 模式 (提案→审批→写盘), 无则跳过。sediment ≠ cortex (spec 自身增量沉淀 vs 知识库归档, 各管各的)。
+
+> grill 可贯穿 plan 前/中/后全程 (确认/审查/拆解需求), 非仅 start 前前置审查。
+
+## 8. 概念速查
+
+| 问 | 答 |
+| --- | --- |
+| 一个 task 默认几个 worktree? | 1 个 |
+| 并行 subtask 各开 worktree? | 否, 共享 task worktree |
+| child 之间并行? | 独立 child 可并行 (各 worktree, 并发上限 2), 有依赖才串行 |
+| 子任务并行? | 动态调度 (无依赖并发, 上限 2) |
+| 何时多 worktree? | opt-in, 用户显式同意 |
+| 未 archive 能宣告 Done? | 否 |
+| finish 谁关后台 Task/agent? | AI 层 (TaskStop), 脚本只销 worktree |
+| 看板怎么改? | 只能经 trellisx-taskmd.py |

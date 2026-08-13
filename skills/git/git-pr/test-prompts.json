@@ -1,0 +1,4 @@
+[
+  {"id": 1, "prompt": "帮我把当前分支开个 PR 到 main", "expected": "自动识别 GitHub(gh)/GitLab(glab),先推分支到远端,用三点 range 生成 PR 内容,gh pr create 提交,返回 PR URL,检查 CI + 冲突,有问题用 AskUserQuestion 给方案"},
+  {"id": 2, "prompt": "创建 PR,目标分支是 develop", "expected": "接受 --base develop 参数,平台自动识别,生成内容并提交,回显最终 PR/MR URL 与 CI/冲突状态"}
+]

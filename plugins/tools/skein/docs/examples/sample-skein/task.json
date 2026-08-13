@@ -1,0 +1,55 @@
+{
+  "tasks": [
+    {
+      "id": "order-create-api",
+      "status": "进行中",
+      "deps": [],
+      "worktree": ".worktrees/skein-order-create-api"
+    },
+    {
+      "id": "payment-gateway",
+      "status": "检查中",
+      "deps": [],
+      "worktree": ".worktrees/skein-payment-gateway"
+    },
+    {
+      "id": "inventory-service",
+      "status": "进行中",
+      "deps": [],
+      "worktree": ".worktrees/skein-inventory-service"
+    },
+    {
+      "id": "order-pay",
+      "status": "待处理",
+      "deps": [
+        "order-create-api"
+      ],
+      "worktree": null
+    },
+    {
+      "id": "refund-flow",
+      "status": "待处理",
+      "deps": [
+        "order-pay",
+        "payment-gateway"
+      ],
+      "worktree": null
+    },
+    {
+      "id": "order-report",
+      "status": "待处理",
+      "deps": [
+        "order-create-api"
+      ],
+      "worktree": null
+    },
+    {
+      "id": "notification-service",
+      "status": "待处理",
+      "deps": [
+        "payment-gateway"
+      ],
+      "worktree": null
+    }
+  ]
+}

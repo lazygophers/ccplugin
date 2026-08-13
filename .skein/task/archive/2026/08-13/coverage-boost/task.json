@@ -1,0 +1,188 @@
+{
+  "id": "coverage-boost",
+  "name": "测试覆盖率提升到95%",
+  "desc": "plugins/tools/skein/scripts/ 当前 73% 覆盖率 (1689 miss / 6235 stmts)，需提升到 95% (≤312 miss)。路径归一已修复，子进程 coverage 已正确收集。重点补测模块按 miss 排序: serve.py(304), views.py(208), boardsource.py(131), scheduling.py(107), doctor.py(83), maintain.py(74), pre_tool_use(67), exec_policy(65), write.py(65), post_tool_use(57)",
+  "status": "done",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "cov-web",
+      "name": "补 web 模块测试 (serve/views/boardsource)",
+      "desc": "补 skeinlib/web/ 三个文件的覆盖率。serve.py 304 miss, views.py 208 miss, boardsource.py 131 miss。已有 test_cov_web_serve.py 和 test_serve_routes.py。补充未覆盖路由/视图/boardsource 方法。进程内测试用 TestClient + _FakeBoard。",
+      "estimate": 2.0,
+      "depends_on": [],
+      "acceptance": [],
+      "acceptance_done": [],
+      "status": "done",
+      "phase": "exec",
+      "repo": null,
+      "skills": [
+        "skein-executor"
+      ],
+      "created": 1786444642,
+      "started": 1786444772,
+      "finished": 1786445197
+    },
+    {
+      "sid": "cov-core",
+      "name": "补 core 模块测试 (scheduling/doctor/lifecycle)",
+      "desc": "补 core/ 模块: scheduling.py 107 miss, doctor.py 83 miss, lifecycle.py 52 miss, admin 9, artifacts 18, workspace 24, query 12。已有 test_cov_core_sched.py 和 test_cov_doctor.py。",
+      "estimate": 2.0,
+      "depends_on": [],
+      "acceptance": [],
+      "acceptance_done": [],
+      "status": "done",
+      "phase": "exec",
+      "repo": null,
+      "skills": [
+        "skein-executor"
+      ],
+      "created": 1786444648,
+      "started": 1786444772,
+      "finished": 1786445039
+    },
+    {
+      "sid": "cov-spec",
+      "name": "补 spec 模块测试 (maintain/write)",
+      "desc": "补 spec/ 模块: maintain.py 74 miss, write.py 65 miss, analyze 17, map 15, index 15, model 13, text 7, inject 7, core 4。已有 test_cov_spec.py 和 test_spec.py。",
+      "estimate": 1.5,
+      "depends_on": [],
+      "acceptance": [],
+      "acceptance_done": [],
+      "status": "done",
+      "phase": "exec",
+      "repo": null,
+      "skills": [
+        "skein-executor"
+      ],
+      "created": 1786444648,
+      "started": null,
+      "finished": 1786446857
+    },
+    {
+      "sid": "cov-misc",
+      "name": "补 hooks/utils/task/cli 模块测试",
+      "desc": "补剩余: hooks/pre_tool_use 67, utils/exec_policy 65, hooks/post_tool_use 57, debug 35, priority 30, dag 22, worktree 22, fs 21, user_prompt_submit 21, prd 20, store 16, migrate 15, cli/main 32, readystate 41, timefmt 5, permission_request 7, permission_denied 3, hooks/cli 14, hooks/__init__ 10。",
+      "estimate": 2.0,
+      "depends_on": [],
+      "acceptance": [],
+      "acceptance_done": [],
+      "status": "done",
+      "phase": "exec",
+      "repo": null,
+      "skills": [
+        "skein-executor"
+      ],
+      "created": 1786444648,
+      "started": null,
+      "finished": 1786446857
+    }
+  ],
+  "priority": "high",
+  "estimate": 8.0,
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/coverage-boost",
+  "parent": null,
+  "kind": "task",
+  "created": 1786444637,
+  "started": 1786444759,
+  "confirmed": 1786444759,
+  "checked": 1786454055,
+  "checked_end": 1786454055,
+  "finished": 1786454058,
+  "updated": 1786454058,
+  "timeline": [
+    {
+      "kind": "task",
+      "status": "pending",
+      "at": 1786444637,
+      "sid": null,
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "task",
+      "status": "active",
+      "at": 1786444759,
+      "sid": null,
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "running",
+      "at": 1786444772,
+      "sid": "cov-web",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "running",
+      "at": 1786444772,
+      "sid": "cov-core",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "done",
+      "at": 1786445039,
+      "sid": "cov-core",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "done",
+      "at": 1786445197,
+      "sid": "cov-web",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "done",
+      "at": 1786446857,
+      "sid": "cov-spec",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "subtask",
+      "status": "done",
+      "at": 1786446857,
+      "sid": "cov-misc",
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "task",
+      "status": "check",
+      "at": 1786454055,
+      "sid": null,
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "task",
+      "status": "finishing",
+      "at": 1786454055,
+      "sid": null,
+      "note": "",
+      "rollback": false
+    },
+    {
+      "kind": "task",
+      "status": "done",
+      "at": 1786454058,
+      "sid": null,
+      "note": "",
+      "rollback": false
+    }
+  ],
+  "confirmed_by": "user"
+}

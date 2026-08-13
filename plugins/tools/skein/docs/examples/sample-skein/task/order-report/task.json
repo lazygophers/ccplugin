@@ -1,0 +1,62 @@
+{
+  "id": "order-report",
+  "name": "订单报表导出",
+  "desc": "按日/商户导出订单 CSV, 异步任务",
+  "status": "待处理",
+  "deps": [
+    "order-create-api"
+  ],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "报表聚合查询",
+      "depends_on": [],
+      "验收": [
+        "按日/商户聚合订单"
+      ],
+      "agent": "skein-executor",
+      "skills": [],
+      "status": "待处理",
+      "estimate": 20,
+      "验收done": []
+    },
+    {
+      "sid": "s2",
+      "name": "CSV 流式导出",
+      "depends_on": [
+        "s1"
+      ],
+      "验收": [
+        "大结果集流式生成 CSV, 避免 OOM"
+      ],
+      "agent": "skein-executor",
+      "skills": [],
+      "status": "待处理",
+      "estimate": 15,
+      "验收done": []
+    },
+    {
+      "sid": "s3",
+      "name": "异步任务调度",
+      "depends_on": [
+        "s1"
+      ],
+      "验收": [
+        "异步跑 + 进度查询"
+      ],
+      "agent": "skein-executor",
+      "skills": [
+        "cron"
+      ],
+      "status": "待处理",
+      "estimate": 15,
+      "验收done": []
+    }
+  ],
+  "worktree": null,
+  "branch": "skein/order-report",
+  "created": 1783754745,
+  "updated": 1783754745,
+  "estimate": 50
+}

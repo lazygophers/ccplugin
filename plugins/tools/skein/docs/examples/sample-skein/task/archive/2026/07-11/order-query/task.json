@@ -1,0 +1,14 @@
+{
+  "id": "order-query",
+  "name": "订单查询接口",
+  "desc": "GET /orders/:id, 走完 plan→exec→check→finish",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [],
+  "worktree": null,
+  "branch": "skein/order-query",
+  "created": 1783754711,
+  "updated": 1783754712,
+  "estimate": 40
+}

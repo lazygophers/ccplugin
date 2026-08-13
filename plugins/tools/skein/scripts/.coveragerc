@@ -1,0 +1,15 @@
+# 子进程 (真跑 CLI 的用例) 也要统计, 见 sitecustomize.py
+[run]
+source = skeinlib
+parallel = true
+sigterm = true
+omit = tests/*
+       */copy/scripts/skeinlib/*
+# 绝对路径由 conftest 注入: 子进程 cwd 是 tmp 里的临时仓, 相对路径会让 .coverage.* 掉进被测仓库
+# —— 既统计不到, 又让「不许写盘」类断言直接红。
+data_file = ${SKEIN_COVERAGE_DATA_FILE}
+
+[paths]
+# 同一份源码经不同 sys.path 前缀进来时归一, 避免拆成两份统计
+source = skeinlib/
+         */skeinlib/

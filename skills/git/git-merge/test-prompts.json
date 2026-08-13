@@ -1,0 +1,4 @@
+[
+  {"id": 1, "prompt": "把 feature 分支 merge 进来", "expected": "git fetch 取 origin/feature 最新,merge origin/feature,冲突半自动(当前改过→--ours、仅源改过→--theirs,方向与 rebase 相反),拿不准 STOP+AskUserQuestion,不自动 push"},
+  {"id": 2, "prompt": "merge origin/release,冲突的地方都以我当前分支为准", "expected": "澄清'以当前为准'在 merge 语境=--ours;单边改动可批量 -X ours,但两边都实质改的语义冲突仍须 STOP 问;警告 -s ours 会丢弃源分支全部改动(剧毒)"}
+]

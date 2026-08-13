@@ -1,0 +1,25 @@
+# nextjs 源码项目
+/nextjs/node_modules/
+/nextjs/.next/
+/nextjs/dist/
+/nextjs/.pnp/
+/nextjs/.pnp.*
+/nextjs/.yarn/*
+!/nextjs/.yarn/patches
+!/nextjs/.yarn/plugins
+!/nextjs/.yarn/releases
+!/nextjs/.yarn/versions
+/nextjs/coverage/
+/nextjs/.DS_Store
+/nextjs/*.pem
+/nextjs/npm-debug.log*
+/nextjs/yarn-debug.log*
+/nextjs/yarn-error.log*
+/nextjs/.pnpm-debug.log*
+/nextjs/.env*
+/nextjs/.vercel
+/nextjs/*.tsbuildinfo
+/nextjs/next-env.d.ts
+
+# dist/ 提交到 git — 不忽略
+# (旧 webapp/ 已移除)

@@ -1,0 +1,108 @@
+.idea/
+.vscode/
+.trae/
+.venv/
+.DS_Store
+
+# 构建产物
+build/
+dist/
+!.skein/spec/**/build/
+!.skein/spec/**/dist/
+*.egg-info/
+__pycache__/
+*.pyc
+*.pyo
+.ruff_cache/
+.pytest_cache/
+.coverage
+
+# 项目特定
+plugins/**/.venv/
+plugins/**/__pycache__/
+
+# 运行时数据
+.lazygophers/
+# 允许 .lazygophers/.gitignore 被提交
+!.lazygophers/.gitignore
+
+# Python 缓存
+**/__pycache__/
+**/*.py[cod]
+**/*.pyd
+**/.ruff_cache/
+
+.logs/
+
+# 日志文件
+*.log
+
+# 系统/IDE 文件
+# .DS_Store（已在顶部）
+
+.claude/plans
+.claude/tasks
+.claude/research
+.claude/settings.local.json
+**/.claude/settings.json
+.remember
+
+# Claude 工作目录
+.claude/scripts/.ruff_cache/
+
+
+# Desktop 构建产物
+desktop/node_modules/
+desktop/src-tauri/gen/
+
+# Python 构建产物
+lib/build/
+dist/
+
+# skein 前端构建产物入库, 减少用户首次 build
+!plugins/tools/skein/assets/dist/
+!plugins/tools/skein/assets/dist/**
+
+# webapp 预构建前端资产入库 (serve 运行时零构建零下载)
+!plugins/tools/skein/assets/webapp/dist/
+!plugins/tools/skein/assets/webapp/dist/app.css
+!plugins/tools/skein/assets/webapp/vendor/
+!plugins/tools/skein/assets/webapp/vendor/petite-vue.js
+
+# Python 空 __init__.py（框架自动生成）
+plugins/tools/task/scripts/__init__.py
+
+# 运行时数据库
+*.db
+
+# 版本文件（构建产物）
+
+# 测试基准数据
+.benchmarks/
+
+# uv 锁文件（每个插件独立管理）
+**/uv.lock
+
+# 覆盖率报告
+coverage.json
+
+# Graphify 输出
+graphify-out/.worktrees/
+
+# trellisx worktree 隔离目录 (任务源码改动落此, 不入库)
+.worktrees/
+
+# darwin-skill 测试基准产物 (本地保留, 不入库; 任何插件目录内的同名文件均视为泄漏)
+**/.darwin-results.tsv
+
+# 忽略所有 tsv (darwin/优化日志等本地产物)
+*.tsv
+
+# skein-spec archive 归档数据 (可逆归档, 不应入库)
+**/.archive/
+
+# 原型/一次性产物 (prototype 用完即弃, 结论落 ADR)
+.scratch/
+
+.claude/skein/
+.claude/agents/skein/

@@ -1,0 +1,12 @@
+# docs
+
+> CCPlugin Market 文档集合：插件结构与开发指南。
+
+## 索引
+
+- [插件开发指南](plugin-development.md)：从创建到发布的完整流程
+- [Onboarding 指南](ONBOARDING.md)：项目上手与目录导航
+
+## 相关
+
+- [仓库开发约定](../CLAUDE.md)

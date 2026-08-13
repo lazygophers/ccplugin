@@ -1,0 +1,72 @@
+{
+  "id": "inventory-service",
+  "name": "库存服务",
+  "desc": "商品库存的预占/扣减/回滚",
+  "status": "进行中",
+  "deps": [],
+  "contracts": [
+    "预占超时未支付自动回滚",
+    "扣减不允许出现负库存"
+  ],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "库存模型与迁移",
+      "depends_on": [],
+      "验收": [
+        "stock/reserved 双字段"
+      ],
+      "agent": "skein-executor",
+      "skills": [
+        "db-migration"
+      ],
+      "status": "已完成",
+      "estimate": 25,
+      "验收done": [
+        1
+      ]
+    },
+    {
+      "sid": "s2",
+      "name": "预占与回滚",
+      "depends_on": [
+        "s1"
+      ],
+      "验收": [
+        "Lua 脚本保证原子, 契约1",
+        "并发预占压测无超卖"
+      ],
+      "agent": "skein-executor",
+      "skills": [
+        "concurrency"
+      ],
+      "status": "运行中",
+      "estimate": 40,
+      "验收done": [
+        1
+      ]
+    },
+    {
+      "sid": "s3",
+      "name": "超时回滚定时任务",
+      "depends_on": [
+        "s2"
+      ],
+      "验收": [
+        "扫描过期预占并释放"
+      ],
+      "agent": "skein-executor",
+      "skills": [
+        "cron"
+      ],
+      "status": "待处理",
+      "estimate": 35,
+      "验收done": []
+    }
+  ],
+  "worktree": ".worktrees/skein-inventory-service",
+  "branch": "skein/inventory-service",
+  "created": 1783754730,
+  "updated": 1783758330,
+  "estimate": 100
+}

@@ -1,0 +1,33 @@
+{
+  "name": "deepresearch",
+  "description": "深度研究插件（2026架构）- Task-Centric任务驱动型研究系统。DGoT动态优化降低50%成本，Agentic RAG精度99%，支持8种输出格式",
+  "author": {
+    "name": "lazygophers",
+    "email": "admin@lazygophers.dev",
+    "url": "https://github.com/lazygophers"
+  },
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/deepresearch",
+  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/deepresearch",
+  "license": "AGPL-3.0-or-later",
+  "keywords": [
+    "deep-research",
+    "dgot",
+    "agentic-rag",
+    "graphrag",
+    "task-centric",
+    "multi-agent",
+    "fot-framework",
+    "a2a-protocol",
+    "2026",
+    "research",
+    "analysis",
+    "synthesis"
+  ],
+  "agents": [
+    "./agents/code-analyst.md",
+    "./agents/research-strategist.md",
+    "./agents/project-assessor.md",
+    "./agents/architecture-advisor.md"
+  ],
+  "skills": "./skills"
+}

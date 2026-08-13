@@ -1,0 +1,99 @@
+"""core 正文组装 + SessionStart / SubagentStart 两个 hook 的注入产出。
+
+**这是每次会话/每次派 agent 都要付的 token**, 所以两处都过 `budget_guard` 硬预算:
+SessionStart 只注索引 (400 token), SubagentStart 按 agent 类目注全文 (2000 token)。
+超预算不是软警告 —— 直接截断, 免 model 忽视警告后上下文无限膨胀。
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+from typing import TYPE_CHECKING
+
+from skeinlib.hooks.runner import budget_guard
+from skeinlib.spec.model import (AGENT_CATEGORIES, INJECTION_BUDGETS, STALE_DAYS,
+                                 _read_hook_stdin, always_budget_tokens, now)
+from skeinlib.spec.text import _sections, _strip_frontmatter
+
+
+class InjectMixin:
+    # 仅供 mypy 用的属性声明: root/_always_files/_mtimes/_age_days 由兄弟类 SpecBase
+    # 提供 (组装成 Spec 时混入)。TYPE_CHECKING 块运行时永不执行, 零行为改动, 只消除单看
+    # 本 mixin 时的 attr-defined 噪声。
+    if TYPE_CHECKING:
+        root: Path
+        def _always_files(self) -> list[Path]: ...
+        def _mtimes(self, use_git: bool = True) -> dict[Path, int]: ...
+        def _age_days(self, f: Path, mtimes: dict[Path, int], now_ts: int) -> int: ...
+
+    # ---- core 正文 (供 inject-core / session-start 复用) ----
+    def _core_text_raw(self) -> str:
+        parts = [_strip_frontmatter(f.read_text()).strip() for f in self._always_files()]
+        return "\n\n".join(p for p in parts if p)
+    def _core_text(self) -> str:
+        text = self._core_text_raw()
+        budget = always_budget_tokens()
+        if len(text) > 0:  # 这里比较字符数与 token 预算，需要换算
+            # 估算当前文本的 token 数
+            from skeinlib.utils.token_conversion import estimate_tokens_from_chars
+            estimated_tokens = estimate_tokens_from_chars(len(text))
+            if estimated_tokens > budget:
+                sys.stderr.write(
+                    f"core 规则约 {estimated_tokens} token > 预算 {budget} — "
+                    "常驻注入过重, 考虑降级部分到 recall\n")
+        return text
+    # ---- inject-core (按需拉全文正文) ----
+    def inject_core(self, _: argparse.Namespace) -> None:
+        text = self._core_text()
+        budget = always_budget_tokens()
+        sys.stdout.write(budget_guard(text, budget, "spec:inject-core"))
+    # ---- core 极简索引 (章节粒度, 每条规则 1 行: [类目] 主题 · title) ----
+    def _core_index(self) -> str:
+        rules = [(f, t, b) for f in self._always_files() for t, b in _sections(f.read_text())]
+        return "\n".join(f"- [{f.parent.name}/{f.stem}] {title}"
+                         for f, title, _ in rules if title)
+    # ---- session-start (SessionStart hook: 只注入极简索引, 全文按需 inject-core) ----
+    def session_start(self, _: argparse.Namespace) -> None:
+        idx = self._core_index().strip()
+        if not idx:
+            return
+        ctx = budget_guard(
+            "# SKEIN core 规则索引 (仅标题; 需全文跑 `skein-spec inject-core`)\n\n" + idx,
+            INJECTION_BUDGETS["session_index"], "spec:session-start")
+        # maintain 提示: core 超预算 或 最老规则 > 180 天 → 1 行提醒 (不挤 session_index 预算)
+        core_text = self._core_text_raw()
+        now_ts = now()
+        # hook 热路径: 不跑 git log (use_git=False), 文件系统 mtime 够判"该体检了"
+        mt = self._mtimes(use_git=False)
+        oldest = max((self._age_days(f, mt, now_ts) for f in self._always_files()), default=0)
+        from skeinlib.utils.token_conversion import estimate_tokens_from_chars
+        if estimate_tokens_from_chars(len(core_text)) > always_budget_tokens() or oldest > STALE_DAYS:
+            ctx += f"\n⚠️ core 超 budget / 有 > {STALE_DAYS}天老规则, 跑 `skein-spec maintain` 体检"
+        print(json.dumps({"hookSpecificOutput": {
+            "hookEventName": "SessionStart", "additionalContext": ctx}}))
+    # ---- core 按类目过滤全文 (命中类目注全文, 其余仅进索引) ----
+    def _core_text_by_cat(self, cats: list[str]) -> str:
+        parts = [_strip_frontmatter(f.read_text()).strip()
+                 for f in self._always_files() if f.parent.name in cats]
+        return "\n\n".join(p for p in parts if p)
+    # ---- subagent-start (SubagentStart hook: 读 stdin.agent_type 决定注入范围) ----
+    def subagent_start(self, _: argparse.Namespace) -> None:
+        # matcher 已放开到全 subagent — 非 SKEIN 项目 (无 .skein/spec) 静默不注入, 免污染其他插件的 agent
+        if not self.root.exists():
+            return
+        idx = self._core_index().strip()
+        if not idx:
+            return
+        head = ("# SKEIN spec 纪律\n- 动手前跑 `skein-spec recall <关键词>`\n- core 规则即硬约束\n- 可复用约定标 `SPEC:` 供 sediment 落盘\n")
+        recall_tail = "\n## 需要全文? 跑 `skein-spec recall <关键词>`\n"
+        cats = AGENT_CATEGORIES.get(_read_hook_stdin() or "", [])
+        if cats:
+            body = self._core_text_by_cat(cats).strip()
+            ctx = head + f"\n## core 规则 (命中类目 {cats})\n\n{body}\n\n## 全量 core 索引\n\n{idx}{recall_tail}"
+        else:  # 空映射/非 skein agent/stdin 失败 → 只注摘要+索引 (对齐 budget，原全文注入超预算)
+            ctx = head + f"\n## 全量 core 索引\n\n{idx}{recall_tail}"
+        ctx = budget_guard(ctx, INJECTION_BUDGETS["subagent_core"], "spec:subagent-start")
+        print(json.dumps({"hookSpecificOutput": {
+            "hookEventName": "SubagentStart", "additionalContext": ctx}}))

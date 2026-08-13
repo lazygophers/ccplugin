@@ -1,0 +1,69 @@
+{
+  "id": "payment-gateway",
+  "name": "支付网关对接",
+  "desc": "对接第三方支付, 统一 charge/refund 接口",
+  "status": "检查中",
+  "deps": [],
+  "contracts": [
+    "charge 幂等 (out_trade_no 唯一)",
+    "回调验签失败一律拒绝"
+  ],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "网关 SDK 封装",
+      "depends_on": [],
+      "验收": [
+        "统一 charge/refund 签名"
+      ],
+      "agent": "skein-executor",
+      "skills": [],
+      "status": "已完成",
+      "estimate": 30,
+      "验收done": [
+        1
+      ]
+    },
+    {
+      "sid": "s2",
+      "name": "回调验签",
+      "depends_on": [],
+      "验收": [
+        "验签 + 去重, 契约2"
+      ],
+      "agent": "skein-executor",
+      "skills": [
+        "signature-verify"
+      ],
+      "status": "已完成",
+      "estimate": 30,
+      "验收done": [
+        1
+      ]
+    },
+    {
+      "sid": "s3",
+      "name": "对账拉单",
+      "depends_on": [
+        "s1"
+      ],
+      "验收": [
+        "日终对账补偿漏单"
+      ],
+      "agent": "skein-executor",
+      "skills": [
+        "reconciliation"
+      ],
+      "status": "已完成",
+      "estimate": 30,
+      "验收done": [
+        1
+      ]
+    }
+  ],
+  "worktree": ".worktrees/skein-payment-gateway",
+  "branch": "skein/payment-gateway",
+  "created": 1783754720,
+  "updated": 1783759580,
+  "estimate": 90
+}

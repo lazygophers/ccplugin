@@ -1,0 +1,78 @@
+---
+name: skein-grill
+description: 对抗式审查 (红队, 非审批)。planning 产物 (prd 主入口/design 详细设计/findings 调研 + task.json 子任务) start 前硬门、或用户显式 "grill/盘方案/审设计/红队" 时使用 — 多轴逼问挖漏洞/隐藏假设/未定边界, 逐问给推荐答案+codebase 先查, 弱点表交用户裁才放行。main 亲做 (交互式)。
+user-invocable: false
+argument-hint: "[审查对象路径: 缺省=当前任务 planning 产物]"
+arguments: "[审查对象路径: 缺省=当前任务 planning 产物]"
+model: opus
+effort: high
+---
+
+# skein-grill — 对抗式审查硬门
+
+> 🔒 全局流程规则（状态机/调度/优先级等）以 skein-flow/references/ 为单一真值源。
+
+审查对象 = planning 产物 (`prd.md` 主入口 / `design.md` 详细设计 / `findings.md` 调研收敛 + task.json 子任务/调度) 或用户点名要盘的方案。目的: **start/exec 前把需求与方案的漏洞、隐藏假设、未定边界逼出来**, 不是复述内容。
+
+**载体**: main 亲做, 交互式 (逐条与用户确认), **禁派 subagent** (它不能 `AskUserQuestion`)。
+
+## 立场 (红队, 不是盖章)
+
+- **对抗非审批** — grill 是挑刺不是审批。**找不到盲点 ≠ 通过, 是 grill 失败** (没问够)。默认「一定有没定的边界 / 没验的假设」, 挖到为止。
+- **结构合规 ≠ 实质有效** — PRD 格式齐全不代表需求对。专挖「写得像模像样但实际会翻车」的盲点。
+
+## 提问法 (relentless interview + 决策树 frontier)
+
+- **优先用 /grill-me 引擎** — 若环境装有 `/grill-me` (或 `/grilling`) skill, main 直接用它做访谈引擎跑 relentless interview; skein-grill 只补 skein 专属层 (审查轴 / planning 硬门 / 弱点表 / task.json 契约锁定)。未装则用下列内置 relentless interview 兜底。
+
+### 核心模型：设计树 + frontier 轮次
+
+把审查对象映射为**设计树**：每个决策分支成子决策。**frontier** = 所有前置已解决的决策点 — 当前能问的问题。
+
+按**轮次**推进：
+1. 一轮问整个 frontier（所有当前可问的决策点）
+2. 每问给推荐答案（格式：`❓ Q1 - <标题>: <body> → ➡️ <推荐答案>`）
+3. 等用户全部答复后再算下一轮 — 用户答复重塑设计树，已定决策推开 frontier，解锁下游问题
+4. frontier 清空 = 所有分支走完 = 共识达成 = 放行
+
+### 规则
+- **事实自查，决策交用户** — 能由 Read/Grep/subagent 查到的**事实**自己查（frontier 问题需要事实时派 subagent，不阻塞同轮其他问题），不问用户；**决策**逐条交用户等答复。
+- **有依赖的决策：先答前置再定后续** — 不在同一轮问。A 依赖 B 的答案 → B 先出，A 下一轮。
+- **互不依赖的同源决策：可合并一轮** — 一次 `AskUserQuestion` 批量提效。
+- **默认一次一问, 仅同源可批** — 仅**互不依赖的同源决策点**才一次批量。
+- **每问必带推荐答案** — 不空问，带上你的判断让用户裁（补 / 接受风险 / 砍需求）。
+- **共识才放行** — 未与用户达成共识 (弱点表全裁决) 前禁动手推进 exec。
+
+## 触发
+
+- 🛑 **planning 硬门 (强制 · STOP)**: skein-flow plan 阶段产出 planning 产物后、`skein task confirm` (吸收原 start) **前 MUST 跑一轮**。**未跑 grill 禁 confirm** — 弱点表未补齐或有未裁决弱点, 停在本步, 禁推进 exec。
+- **用户显式**: "盘一下这个方案 / 审下设计 / 红队"。
+
+**不触发 (跳过)**: 纯查询 / 问答 (无 planning 产物) · inline 豁免任务 (无 task) · 同一产物未变更且已 grill 过一轮 (无新增改动)。
+
+## 失败模式 (if-then 三段式: 触发 → 一线修复 → 仍失败兜底)
+
+| 触发 | 一线修复 | 仍失败兜底 |
+|---|---|---|
+| 某轴挖不出弱点 (太顺) | 换角度深挖: 极端输入 / 并发 / 依赖失效 / 反向问 | 仍无 → 显式记「该轴已过, 无阻断项」, 禁把「没想到」当「没问题」 |
+| 用户答不出某问 (需求没想清) | 给 2-3 推荐选项让用户选, 非开放式问 | 仍答不出 → 标「需求未定」, 停手退回 skein-flow plan 阶段 brainstorm 补 |
+| 循环 >3 轮弱点未收敛 | 归并同源弱点, 一次批量 `AskUserQuestion` 裁完 | 仍发散 → 停手, 提示 scope 过大, 建议拆多 task (planning heavy 档) |
+
+## ✅ 正向配方 (命中反面=流程错误)
+
+> 🔒 铁律: grill 是挑刺不是审批 — 找不到盲点 ≠ 通过, 是 grill 失败。
+
+| 场景 | 正确做法 (❌ 反面) |
+|---|---|
+| 某轴太顺 / 挖不出弱点 | 默认一定有未定边界 / 未验假设, 挖到为止; 挖不出则显式记「该轴已过, 无阻断项」 (❌ 找不到盲点就放行 / 自欺「盘过了, 没发现问题」— 没问够 ≠ 通过) |
+| 审查 PRD 内容 | 挑刺找盲点 (❌ 复述 PRD 内容当审查 — grill 不是摘要) |
+| PRD 结构齐全 | 专挖「写得像模像样但会翻车」的盲点, 格式对 ≠ 需求对 (❌ 结构齐全就盖章 / 自欺「PRD 写得挺全, 应该没问题」) |
+| 每次提问 | 带推荐答案让用户裁 (补 / 接受风险 / 砍需求) (❌ 空问不给推荐答案) |
+| 遇事实类问题 | Read/Grep 自查, 只问文件答不了的决策点 (❌ 能自查的去问用户 — codebase 优先) |
+| 选 grill 载体 | main 亲做 (它能 `AskUserQuestion`) (❌ 派 subagent 做 grill — 它不能 `AskUserQuestion`) |
+| 弱点表未裁决完 / 想 start | 全部裁决补齐才放行, 否则停在本步、禁推进 exec (❌ 有未裁决项就放行 start) |
+| 环境装有 /grill-me 引擎 | 复用其访谈法, skein-grill 只叠 skein 专属层 (❌ 装了却弃用另起炉灶) |
+
+## 明细 (审查轴 / 失败模式 / 输出弱点表)
+
+跑 grill 时详见 `references/review-axes-and-output.md` — 7 条审查轴逐条逼问、失败模式 if-then 三段式、弱点表输出格式。

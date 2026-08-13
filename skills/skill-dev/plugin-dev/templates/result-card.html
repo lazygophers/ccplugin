@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plugin Dev — 优化成果卡片</title>
+<!--
+  用法（流程 B · Phase 5）：
+  1. 复制此文件为工作副本。
+  2. 替换 data-field 占位（plugin-name / score-before / score-after / score-delta / date / improvement-*）。
+  3. 8 维用 .dim 行：把 data-before / data-after（0-10 分）填成实际分；条宽 = 分/10*100%；权重读 data-weight。
+  4. 体检硬伤填 #health 的 <li>；爬山轮次填 #rounds 的 <li>（round / 维度 / Δ / keep|revert）。
+  5. 选风格：URL 加 #swiss | #terminal | #newspaper（默认 swiss），或改 <body class>。
+  6. 浏览器打开即用；要 PNG 就用系统截图 / 浏览器打印存 PDF。无外部脚本、无依赖。
+-->
+<style>
+  :root {
+    --bg: #faf7f2; --card: #ffffff; --ink: #2b2622; --muted: #8a8177;
+    --accent: #c8663b; --accent-soft: #f0d9cd; --line: #e6ded4;
+    --up: #3d8a5f; --down: #c0473b; --font: 'Inter', system-ui, -apple-system, 'PingFang SC', sans-serif;
+    --mono: 'SF Mono', 'JetBrains Mono', ui-monospace, monospace;
+  }
+  body.theme-terminal {
+    --bg: #0c0f0d; --card: #121815; --ink: #d6f5d6; --muted: #5f7a63;
+    --accent: #39ff14; --accent-soft: #16301a; --line: #1f2f22;
+    --up: #39ff14; --down: #ff5555; --font: var(--mono);
+  }
+  body.theme-newspaper {
+    --bg: #f5efe4; --card: #fbf8f1; --ink: #211c17; --muted: #7a6f60;
+    --accent: #8a1f1f; --accent-soft: #e8d6d0; --line: #d8cbb6;
+    --up: #2f6f43; --down: #8a1f1f;
+    --font: Georgia, 'Songti SC', 'Noto Serif SC', serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--ink); font-family: var(--font);
+    display: flex; justify-content: center; padding: 40px 16px; }
+  .card { width: 760px; background: var(--card); border: 1px solid var(--line);
+    border-radius: 14px; padding: 40px 44px; box-shadow: 0 8px 40px rgba(0,0,0,.08); }
+  body.theme-terminal .card { box-shadow: 0 0 0 1px var(--accent-soft), 0 8px 40px rgba(0,0,0,.5);
+    background-image: repeating-linear-gradient(0deg, rgba(57,255,20,.03) 0 1px, transparent 1px 3px); }
+  .brand { display: flex; justify-content: space-between; align-items: baseline;
+    border-bottom: 2px solid var(--accent); padding-bottom: 12px; margin-bottom: 24px; }
+  .brand h1 { font-size: 18px; letter-spacing: .5px; }
+  .brand .date { color: var(--muted); font-size: 13px; }
+  .plugin { font-size: 13px; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px; }
+  .plugin b { color: var(--accent); text-transform: none; font-size: 16px; }
+  .scores { display: flex; align-items: center; gap: 20px; margin: 20px 0 24px; }
+  .score-box { text-align: center; flex: 1; padding: 16px; border: 1px solid var(--line); border-radius: 10px; }
+  .score-box .label { font-size: 11px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+  .score-box .num { font-size: 40px; font-weight: 700; line-height: 1.1; }
+  .score-box .num .den { font-size: 18px; color: var(--muted); font-weight: 400; }
+  .score-box.after .num { color: var(--accent); }
+  .arrow { font-size: 28px; color: var(--muted); }
+  .delta { font-size: 15px; font-weight: 700; padding: 4px 10px; border-radius: 20px;
+    background: var(--accent-soft); color: var(--up); white-space: nowrap; }
+  .delta.neg { color: var(--down); }
+  .section-title { font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--muted); margin: 22px 0 12px; }
+  .health { font-family: var(--mono); font-size: 12px; margin-bottom: 6px; }
+  .health li { padding: 4px 0; border-bottom: 1px dashed var(--line); list-style: none; }
+  .health .p0 { color: var(--down); font-weight: 700; }
+  .health .ok { color: var(--up); }
+  .dim { display: grid; grid-template-columns: 150px 1fr 40px 56px; align-items: center; gap: 10px; margin-bottom: 9px; }
+  .dim .name { font-size: 12px; }
+  .dim .name .w { color: var(--muted); font-family: var(--mono); font-size: 11px; }
+  .dim .bars { position: relative; height: 16px; }
+  .dim .bar { position: absolute; top: 0; height: 7px; border-radius: 4px; }
+  .dim .bar.before { top: 0; background: var(--line); }
+  .dim .bar.after { top: 9px; background: var(--accent); }
+  .dim .val { font-size: 12px; font-family: var(--mono); text-align: right; }
+  .dim .val .up { color: var(--up); } .dim .val .dn { color: var(--down); }
+  .dim .wcol { font-size: 11px; font-family: var(--mono); color: var(--muted); text-align: right; }
+  ul.rounds { list-style: none; font-family: var(--mono); font-size: 12px; }
+  ul.rounds li { display: flex; gap: 10px; padding: 5px 0; border-bottom: 1px dashed var(--line); }
+  ul.rounds .tag { min-width: 56px; }
+  ul.rounds .keep { color: var(--up); } ul.rounds .revert { color: var(--down); }
+  ol.improve { margin-left: 18px; font-size: 13px; line-height: 1.7; }
+  .foot { margin-top: 28px; padding-top: 14px; border-top: 1px solid var(--line);
+    display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
+</style>
+</head>
+<body class="theme-swiss">
+  <div class="card">
+    <div class="brand">
+      <h1>Plugin Dev · 优化成果</h1>
+      <span class="date" data-field="date">2026-07-20</span>
+    </div>
+
+    <div class="plugin">优化对象 · <b data-field="plugin-name">example-plugin</b></div>
+
+    <div class="scores">
+      <div class="score-box before"><div class="label">Before</div><div class="num"><span data-field="score-before">68</span><span class="den">/100</span></div></div>
+      <span class="arrow">&rarr;</span>
+      <div class="score-box after"><div class="label">After</div><div class="num"><span data-field="score-after">84</span><span class="den">/100</span></div></div>
+      <span class="delta" data-field="score-delta">+16</span>
+    </div>
+
+    <div class="section-title">体检硬伤 (P0 先修 · 维度 1/2/3)</div>
+    <ul class="health" id="health">
+      <li class="p0">manifest: description 缺差异化 → 已补</li>
+      <li class="p0">接线: skills/ 悬挂 2 项 → 已删或补文件</li>
+      <li class="ok">体检 9 项全绿 ✓</li>
+    </ul>
+
+    <div class="section-title">8 维加权评分 (before ▸ after · 0-10 原始分)</div>
+    <!-- data-weight = 权重；data-before/data-after = 0-10 原始分；JS 算加权 + 条宽 -->
+    <div class="dim" data-weight="16" data-before="6" data-after="9"><span class="name">1 Manifest 合规 <span class="w">×16</span></span><div class="bars"></div><span class="val"></span><span class="wcol"></span></div>
+    <div class="dim" data-weight="20" data-before="5" data-after="9"><span class="name">2 组件接线 <span class="w">×20</span></span><div class="bars"></div><span class="val"></span><span class="wcol"></span></div>
+    <div class="dim" data-weight="12" data-before="7" data-after="8"><span class="name">3 结构规范 <span class="w">×12</span></span><div class="bars"></div><span class="val"></span><span class="wcol"></span></div>
+    <div class="dim" data-weight="14" data-before="4" data-after="8"><span class="name">4 Hook 健壮 <span class="w">×14</span></span><div class="bars"></div><span class="val"></span><span class="wcol"></span></div>
+    <div class="dim" data-weight="14" data-before="6" data-after="7"><span class="name">5 组件质量 <span class="w">×14</span></span><div class="bars"></div><span class="val"></span><span class="wcol"></span></div>
+    <div class="dim" data-weight="12" data-before="7" data-after="9"><span class="name">6 Marketplace <span class="w">×12</span></span><div class="bars"></div><span class="val"></span><span class="wcol"></span></div>
+    <div class="dim" data-weight="6" data-before="5" data-after="8"><span class="name">7 文档完整 <span class="w">×6</span></span><div class="bars"></div><span class="val"></span><span class="wcol"></span></div>
+    <div class="dim" data-weight="6" data-before="8" data-after="8"><span class="name">8 命名元数据 <span class="w">×6</span></span><div class="bars"></div><span class="val"></span><span class="wcol"></span></div>
+
+    <div class="section-title">爬山轮次 (validation-gated · 单变量轮)</div>
+    <ul class="rounds" id="rounds">
+      <li><span class="tag">R1</span><span>维度2 接线 → 删悬挂 + 补漏挂</span><span class="keep">keep Δ+6</span></li>
+      <li><span class="tag">R2</span><span>维度4 Hook → 加 timeout + ${CLAUDE_PLUGIN_ROOT}</span><span class="keep">keep Δ+5</span></li>
+      <li><span class="tag">R3</span><span>维度1 Manifest → description 补差异化</span><span class="keep">keep Δ+3</span></li>
+      <li><span class="tag">R4</span><span>维度5 组件正文重写</span><span class="revert">revert 人审否决</span></li>
+      <li><span class="tag">R5</span><span>连续 2 轮 Δ&lt;2 → 触顶 break</span><span>stop</span></li>
+    </ul>
+
+    <div class="section-title">主要改进</div>
+    <ol class="improve">
+      <li data-field="improvement-1">体检 P0 清零：manifest description 补差异化 + 接线悬挂/漏挂归零</li>
+      <li data-field="improvement-2">Hook 全量加 timeout + ${CLAUDE_PLUGIN_ROOT}，维度4 +4</li>
+      <li data-field="improvement-3">Marketplace 条目逐字段对齐 plugin.json，维度6 +2</li>
+    </ol>
+
+    <div class="foot">
+      <span>8 维加权 rubric · validation-gate · 独立子 agent 评分</span>
+      <span data-field="judge-note">独立验证 ✓ · 膨胀 ≤1.5 ✓</span>
+    </div>
+  </div>
+
+<script>
+  // 主题：URL hash 切换 swiss | terminal | newspaper
+  function applyTheme() {
+    var t = (location.hash || '#swiss').slice(1);
+    if (!['swiss','terminal','newspaper'].includes(t)) t = 'swiss';
+    document.body.className = 'theme-' + t;
+  }
+  applyTheme();
+  window.addEventListener('hashchange', applyTheme);
+
+  // 8 维条宽 + Δ + 加权分渲染
+  document.querySelectorAll('.dim').forEach(function (d) {
+    var b = +d.dataset.before, a = +d.dataset.after, w = +d.dataset.weight;
+    d.querySelector('.bars').innerHTML =
+      '<span class="bar before" style="width:' + (b*10) + '%"></span>' +
+      '<span class="bar after" style="width:' + (a*10) + '%"></span>';
+    var delta = a - b, cls = delta > 0 ? 'up' : delta < 0 ? 'dn' : '';
+    var sign = delta > 0 ? '+' : '';
+    d.querySelector('.val').innerHTML = b + '▸' + a +
+      (delta ? ' <span class="' + cls + '">' + sign + delta + '</span>' : '');
+    d.querySelector('.wcol').innerHTML = (b*w/10) + '|' + (a*w/10);
+  });
+</script>
+</body>
+</html>
