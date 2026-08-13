@@ -23,9 +23,9 @@ _EXPLICIT = {
 }
 _SLASH_COMMAND_RE = re.compile(r"^/[A-Za-z][\w:-]*(?=\s|$)")
 # skein 自家 skill: 各自有完整闭环, 判定层放行让 skill 自判, 不锁 inline 也不额外注入。
-_SKEIN_SKILLS = {"skein-flow", "skein-plan", "skein-plan-audit", "skein-spec", "skein-grill", "skein-setup"}
+_SKEIN_SKILLS = {"skein-flow", "skein-plan", "skein-redo", "skein-spec", "skein-grill", "skein-setup"}
 _SKEIN_SKILL_RE = re.compile(
-    # 长名在前: skein-plan 是 skein-plan-audit 的前缀, 短的先匹上就会被尾界卡掉
+    # 长名在前: 避免短前缀先匹上长名被尾界卡掉
     rf"(?<![\w:-])(?:skein:)?(?:{'|'.join(re.escape(s) for s in sorted(_SKEIN_SKILLS, key=len, reverse=True))})(?=$|\s)"
 )
 _WRAPPER_RE = re.compile(r"<(ide_[a-z_]+|system-reminder)\b[^>]*>.*?</\1>\s*", re.DOTALL)

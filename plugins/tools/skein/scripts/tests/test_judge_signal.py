@@ -350,7 +350,7 @@ def test_skein_flow_in_body_still_goes_flow() -> None:
 def test_skein_own_skills_are_not_downgraded_to_inline() -> None:
     """显式调用 skein 自家 skill 时判定层放行, 不锁 inline —— 用户已选好执行路径。"""
     for cmd in ("/skein:skein-plan 规划支付重构", "/skein-plan 规划支付重构",
-                "/skein-plan-audit 审计当前计划", "/skein:skein-plan-audit 审计当前计划",
+                "/skein-redo 断点续跑", "/skein:skein-redo 续跑 task-1",
                 "/skein-spec recall 支付", "/skein-grill 审我的方案", "/skein-setup"):
         assert _run_prompt(cmd) == "", cmd
 

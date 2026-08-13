@@ -57,15 +57,14 @@ loop plan:
       Bash(skein subtask add <tid> <sid> --name <标题> --desc <描述> --estimate <小时> --phase research [...])
     Bash(skein task research <tid>)
 
-    # 等待 research 全部完成: 循环 flow run 直到无 next 且 research subtask 全 done
-    loop research_wait:
+    # 派发 research agent, 不 sleep 等待 — 每轮 flow tick 检查是否全 done
+    loop research_tick:
       out = Bash("skein flow run")
       for hint in out.result.exec.next + out.result.check.next:
-        Agent(subagent_type=hint.agent, prompt=hint.prompt)  # 异步派发
-      # 等待本轮派出的 agent 全部结束, 核对回传与 subtask 实际状态
-      # mismatch / FAIL: 报告或重派, 不伪造状态
+        Agent(subagent_type=hint.agent, prompt=hint.prompt)  # 异步派发, 不等待
+      # 派完后直接查状态, 不 sleep
       if 还有 running/pending 的 research subtask:
-        continue research_wait
+        continue research_tick  # agent 还在跑, 下轮 tick 检查
       # 全 done → 收敛回 pending
     Bash(skein task plan <tid>)
     continue plan          # 收敛后带着调研结果重新规划
@@ -94,62 +93,53 @@ if 模式 == 'plan':
   exit 0                   # 显式 plan 模式到此为止
 
 # ============================================================
-# EXEC 阶段 — 消费 flow run 派发 executor, 等 subtask 全 done
+# EXEC 阶段 — 消费 flow run 派发 executor
 # ============================================================
-loop exec_wait:
+loop exec_tick:
   out = Bash("skein flow run")
   for hint in out.result.exec.next + out.result.check.next:
-    Agent(subagent_type=hint.agent, prompt=hint.prompt)  # 异步派发
-  # 等待本轮 agent 全部结束, 核对回传与 subtask 状态
+    Agent(subagent_type=hint.agent, prompt=hint.prompt)  # 异步派发, 不等待返回
   # Agent 派发受阻: 重派一次, 仍失败 → subtask fail + report_and_stop
-  # mismatch / FAIL: 报告或重派, 不伪造状态
+  # 派完后不 sleep / 不轮询 — 直接看 task 状态是否已推进到 check
 
-  # 查 task 状态: scheduler 在全 subtask done 后自动推 task 到 check
   status = Bash(skein task status <tid> --json)
   if task.status == "check":
-    break exec_wait
-  if 仍有 running/pending subtask:
-    continue exec_wait
+    break exec_tick            # scheduler 在全 subtask done 后自动推 task 到 check
+  if 仍有 running/pending subtask 且本轮无新 hint:
+    # agent 还在跑, 没有 sleep — 继续下一轮 flow tick 检查是否有新 ready 的 subtask
+    continue exec_tick
   # 全 done 但 task 还没到 check (scheduler tick 延迟), 再 tick 一次
 
 # ============================================================
 # CHECK 阶段 — 派 checker 验证, 聚合结果
 # ============================================================
-loop check_loop:
+loop check_tick:
   out = Bash("skein flow run")   # check.next[] 带 checker hint
   for hint in out.result.check.next:
-    Agent(subagent_type=hint.agent, prompt=hint.prompt)  # 并行派 skein-checker + skein-code-reviewer
-  # 等待 checker 全部结束, 收集 JSON verdict
+    Agent(subagent_type=hint.agent, prompt=hint.prompt)  # 异步派发, 不等待
+  # 派完后看 task 状态是否已推进 (checker 自跑 done 后 scheduler 推 finishing)
 
-  # 聚合判定
-  if 任一 checker 返回 FAIL:
-    # 补修复 subtask, task 回流 exec
-    # checker 报告的缺陷 → 新增修复 subtask 或修复现有 subtask
-    Bash(skein subtask add <tid> <fix-sid> --name <修复标题> --desc <缺陷描述> --estimate <小时>)
-    # task 从 check 回退到 plan (重新规划修复方案)
-    Bash(skein task revert <tid>)
-    # 重新 confirm 并执行修复
+  status = Bash(skein task status <tid> --json)
+  if task.status == "finishing" or task.status == "done":
+    break check_tick           # checker 全 PASS, scheduler 推进到 finishing
+  if task.status == "pending":
+    # checker FAIL → 已有修复 subtask 被 revert 回 plan, 需重新 confirm + exec
     Bash(skein task confirm <tid> --approved)
-    goto exec_wait          # 回流 exec 执行修复
-
-  if 全 PASS:
-    break check_loop
+    goto exec_tick
+  # checker 还在跑, 继续 tick
 
 # ============================================================
 # FINISH 阶段 — 派 finisher 完成
 # ============================================================
-# 确认本 task 派出的所有后台 agent 均已结束
 out = Bash("skein flow run")   # 可能带 finishing/finisher hint
-if out.result 有 finishing hint:
+for hint in (out.result.exec.next + out.result.check.next):
   Agent(subagent_type=hint.agent, prompt=hint.prompt)  # skein-finisher
-  # finisher 在仓库根执行 skein task finish <tid>, 合并 worktree
 
 # 确认 task 已 done
 status = Bash(skein task status <tid> --json)
 if status.done:
   print('任务完成')
 else:
-  # finish 失败 (合并冲突等), report_and_stop
   report_and_stop("finish 未完成, 需人工介入")
 ```
 
@@ -194,7 +184,8 @@ for hint in out.result.exec.next + out.result.check.next:
 
 ## 调度原则
 
-- 尽可能的确保使用 Agent 异步化调度，避免阻塞主循环
+- 🛑 **禁 sleep 轮询** — main 禁 `Bash("sleep N")` / `Bash("sleep N && skein ...")` 或定时轮询来等 agent 完成。Agent 工具本身是异步的：派出去后 main 继续下一轮 `skein flow run` 或处理其他 task；agent 完成后自跑 done/fail + 异步回传通知 main，下一轮 flow tick 自然看到状态变化。
+- **异步通知驱动** — "等待 agent"= 派发后继续做别的，靠 Agent 回传通知推进后续逻辑，而非阻塞 sleep。所有 ready subtask 在一轮 flow run 里全部派出去，不等单个完成。
 - 需要和 User 交互的必须在 main 中执行
 - 调度需要考虑最终耗时最小化，避免等待过长
 

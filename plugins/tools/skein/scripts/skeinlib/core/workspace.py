@@ -97,7 +97,7 @@ class Workspace:
         r = git("rev-parse", "--show-toplevel", check=False)
         self.git: bool = r.returncode == 0
         top = Path(r.stdout.strip()) if self.git else Path.cwd()
-        # worktree 的 toplevel 是 worktree 路径, 不是主仓 — 下面没有 .skein/。
+        # skein CLI 只在主仓执行: worktree 内跑会读到缺 .skein/ 的目录树。
         # 向上找第一个含 .skein/ 的目录作为 workspace 根 (主仓)。
         # 找不到时回落 toplevel (让后续 config() 报 "未初始化" 而非静默用错目录)。
         self.root: Path = self._find_skein_root(top)
@@ -113,19 +113,36 @@ class Workspace:
                                self.config, self._wt_shown)
 
     @staticmethod
-    def _find_skein_root(start: Path) -> Path:
+    def _find_skein_root(top: Path) -> Path:
         """从 start 向上找第一个含 .skein/ 的目录; 找不到回落 start。
 
-        worktree 的 git toplevel 是 worktree 自身路径, 下面没有 .skein/。
-        主仓在 worktree 的某个上级目录 — 向上走直到找到 .skein/。
+        worktree 的 git toplevel 是 worktree 自身路径。.skein/ 若被 git tracked,
+        worktree 里会有一份过期副本 — 不能只判存在, 还要确认不是在 worktree 内。
+        检测方式: worktree 的 .git 是文件 (内容指向主仓), 主仓的 .git 是目录。
         """
-        p = start.resolve()
+        # worktree 内: .git 是文件 → 取主仓根
+        git_link = top / ".git"
+        if git_link.is_file():
+            try:
+                content = git_link.read_text(encoding="utf-8").strip()
+                # .git 文件内容: "gitdir: /path/to/main/.git/worktrees/<name>"
+                if content.startswith("gitdir:"):
+                    gitdir = Path(content.split(":", 1)[1].strip())
+                    # worktrees/<name> 的上级 .git 目录就在主仓根下
+                    main_git = gitdir.parent.parent  # .../worktrees/name → .../.git
+                    main_root = main_git.parent       # .../.git → 主仓根
+                    if (main_root / ".skein").is_dir():
+                        return main_root
+            except (OSError, IndexError):
+                pass
+        # 非 worktree 或解析失败: 从 top 向上找
+        p = top.resolve()
         if (p / ".skein").is_dir():
             return p
         for parent in p.parents:
             if (parent / ".skein").is_dir():
                 return parent
-        return start  # 没找到 → 让 config() 报 "未初始化" 而非用错目录
+        return top  # 没找到 → 让 config() 报 "未初始化" 而非用错目录
 
     def config(self) -> dict[str, Any]:
         """返回生效配置, 结构固定同 ConfigData。"""

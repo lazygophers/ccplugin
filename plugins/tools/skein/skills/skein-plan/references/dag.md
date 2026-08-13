@@ -139,4 +139,4 @@ layer(source) = 0; layer(node) = max(layer(dep)) + 1                            
 
 任一 claim 加 `--dry-run` = 只读预览，不改状态。
 
-exec 统一派 `skein:skein-executor`，dispatch 只给 tid、sid、工作目录，executor 自读 `skein subtask show <tid> <sid>`。完成即派、失败重试、断点续跑见 [skein-flow/references/flow-loop.md#主循环骨架](../../skein-flow/references/flow-loop.md#主循环骨架) 与 [redo.md](../../skein-flow/references/redo.md)。
+exec 统一派 `skein:skein-executor`，dispatch 只给 tid、sid、工作目录，executor 自读 `skein subtask show <tid> <sid>`。完成即派、失败重试、断点续跑见 [skein-flow/references/flow-loop.md#主循环骨架](../../skein-flow/references/flow-loop.md#主循环骨架) 与 [skein-redo/references/redo.md](../../skein-redo/references/redo.md)。
