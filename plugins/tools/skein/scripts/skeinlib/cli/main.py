@@ -198,9 +198,13 @@ def _dispatch(a: SimpleNamespace) -> None:
     else:
         result = dispatch[a.cmd](a)  # type: ignore[arg-type]
     DBG.log(f"✓ {a.cmd} 完成", style="bold green")
-    # 业务方法返回 dict → 统一 JSON 输出; 返回 None → 静默 (已自行输出或无输出)
+    # 业务方法返回 dict → 统一 JSON 输出; 返回 None → 静默 (已自行输出或无输出)。
+    # -p/--pretty: dict 改走 rich 面板渲染 (人读); 非 dict 返回值不受影响。
     if isinstance(result, dict):
-        print(json.dumps(result, ensure_ascii=False))
+        if getattr(a, "pretty", False):
+            _pretty_print(a.cmd, result)
+        else:
+            print(json.dumps(result, ensure_ascii=False))
     elif result is not None:
         # 非 dict 返回值 (如 str) → 包装
         print(json.dumps({"data": result}, ensure_ascii=False))
@@ -652,10 +656,50 @@ def prd_uncheck(id: str, type_: Annotated[str, typer.Option("--type", help=_PRD_
     _prd_action("uncheck", id, type_, list_)
 
 
-def _strip_global_flags(argv: list[str]) -> tuple[list[str], bool, bool]:
+def _strip_global_flags(argv: list[str]) -> tuple[list[str], bool, bool, bool]:
     cli_debug = any(arg in ("-d", "--debug") for arg in argv)
     cli_json = any(arg in ("-j", "--json") for arg in argv)
-    return [arg for arg in argv if arg not in ("-d", "--debug", "-j", "--json")], cli_debug, cli_json
+    cli_pretty = any(arg in ("-p", "--pretty") for arg in argv)
+    return ([arg for arg in argv if arg not in ("-d", "--debug", "-j", "--json", "-p", "--pretty")],
+            cli_debug, cli_json, cli_pretty)
+
+
+def _pretty_value(v: Any, indent: str = "  ") -> str:
+    """任意 CLI 结果值 → rich markup 字符串 (dict 多行缩进 / list 分块 / 标量直出)。"""
+    if v is None:
+        return "[dim]-[/dim]"
+    if isinstance(v, bool):
+        return "[green]✓[/green]" if v else "[dim]✗[/dim]"
+    if isinstance(v, str):
+        return v if v else "[dim](空)[/dim]"
+    if isinstance(v, dict):
+        if not v:
+            return "[dim](空)[/dim]"
+        sep = "\n" + indent
+        return sep.join(f"[cyan]{k}[/cyan]: {_pretty_value(x, indent + '  ')}"
+                        for k, x in v.items())
+    if isinstance(v, list):
+        if not v:
+            return "[dim](空)[/dim]"
+        if all(not isinstance(x, (dict, list)) for x in v):
+            return ", ".join(_pretty_value(x, indent) for x in v)
+        sep = "\n" + indent[:-2] + "[dim]────────[/dim]\n" + indent[:-2]
+        return sep.join(_pretty_value(x, indent) for x in v)
+    return str(v)
+
+
+def _pretty_print(cmd: str, data: dict) -> None:
+    """dict 结果 → rich 面板渲染 (全局 -p/--pretty 时替代 JSON print)。"""
+    from rich.console import Console
+    from rich.panel import Panel
+    from rich.table import Table
+
+    table = Table(show_header=False, box=None, padding=(0, 2))
+    table.add_column("key", style="cyan", no_wrap=True)
+    table.add_column("value")
+    for k, v in data.items():
+        table.add_row(str(k), _pretty_value(v))
+    Console().print(Panel.fit(table, title=f"skein {cmd}", border_style="blue"))
 
 
 def _run_hidden_command(argv: list[str]) -> bool:
@@ -684,16 +728,18 @@ def _rewrite_legacy_task_args(argv: list[str]) -> list[str]:
 def main() -> None:
     from skeinlib.gitignore.preflight import run_preflight
     run_preflight()
-    argv, cli_debug, cli_json = _strip_global_flags(sys.argv[1:])
+    argv, cli_debug, cli_json, cli_pretty = _strip_global_flags(sys.argv[1:])
     DBG.enable(cli_debug or debug_enabled(None))
     original_namespace = _namespace
 
-    def namespace_with_json(cmd: str, **kwargs: object) -> SimpleNamespace:
+    def namespace_with_flags(cmd: str, **kwargs: object) -> SimpleNamespace:
         a = original_namespace(cmd, **kwargs)
         a.json = bool(getattr(a, "json", False) or cli_json)
+        # 全局 -p/--pretty: 各命令的 pretty flag (如 status) 局部值为先, 全局补真
+        a.pretty = bool(getattr(a, "pretty", False) or cli_pretty)
         return a
 
-    globals()["_namespace"] = namespace_with_json
+    globals()["_namespace"] = namespace_with_flags
     try:
         if not _run_hidden_command(argv):
             argv = _rewrite_legacy_task_args(argv)

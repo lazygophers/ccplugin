@@ -412,3 +412,36 @@ def test_prd_write_accepts_bare_positional_items(skein_cli: SkeinCli, ws: Path) 
     scope = json.loads(skein_cli(ws, "prd", "read", "demo", "--type", "scope").stdout)["body"]
     assert "目标一" in goal and "边界二" not in goal, goal
     assert "边界一" in scope and "边界二" in scope, scope
+
+
+# ── 全局 --pretty 渲染 ──────────────────────────────────────────────────────
+def test_strip_global_flags_pretty() -> None:
+    """-p/--pretty 是全局 flag: strip 出四元组, argv 中移除。"""
+    from skeinlib.cli.main import _strip_global_flags
+    argv, dbg, js, pretty = _strip_global_flags(["list", "--pretty", "-j"])
+    assert argv == ["list"] and dbg is False and js is True and pretty is True
+    argv, _, _, pretty = _strip_global_flags(["task", "show", "demo"])
+    assert argv == ["task", "show", "demo"] and pretty is False
+
+
+def test_pretty_value_renders_nested() -> None:
+    """_pretty_value: dict 多行 / list 分块 / None-dash / bool 勾叉。"""
+    from skeinlib.cli.main import _pretty_value
+    assert _pretty_value(None) == "[dim]-[/dim]"
+    assert _pretty_value(True) == "[green]✓[/green]"
+    assert _pretty_value(False) == "[dim]✗[/dim]"
+    assert _pretty_value("x") == "x"
+    assert _pretty_value([]) == "[dim](空)[/dim]"
+    d = _pretty_value({"a": 1, "b": {"c": 2}})
+    assert "a" in d and "b" in d and "c" in d and "\n" in d  # 嵌套换行
+    lst = _pretty_value([{"id": "t1"}, {"id": "t2"}])
+    assert "t1" in lst and "t2" in lst and "─" in lst  # 条目分隔线
+    assert _pretty_value([1, 2, "a"]) == "1, 2, a"  # 标量列表直连
+
+
+def test_pretty_print_smoke(capsys: pytest.CaptureFixture[str]) -> None:
+    """_pretty_print 面板渲染冒烟: 不炸 + 标题 + key 可见。"""
+    from skeinlib.cli.main import _pretty_print
+    _pretty_print("list", {"tasks": [{"id": "demo"}], "count": 1})
+    out = capsys.readouterr().out
+    assert "skein list" in out and "tasks" in out and "demo" in out
