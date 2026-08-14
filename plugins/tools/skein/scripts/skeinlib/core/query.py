@@ -13,7 +13,8 @@ if TYPE_CHECKING:
 
 from skeinlib.task.dag import _sub_pct, _task_pct
 from skeinlib.utils.errors import SkeinError
-from skeinlib.task.model import (PRIORITY_DEFAULT, SubtaskStatus, TaskStatus, _STATUS_ALIAS)
+from skeinlib.task.model import (PRIORITY_DEFAULT, STATUS_ACTIVE, SubtaskPhase, SubtaskStatus,
+                                 TaskStatus, _STATUS_ALIAS, now)
 
 from skeinlib.infra.worktree import worktrees_of
 
@@ -35,6 +36,108 @@ class Query:
                 **({"worktree": t.get("worktree") or None} if wt_col else {}),
             } for t in active],
         }
+
+    def status_overview(self, a: argparse.Namespace) -> dict[str, Any] | None:
+        """全局运行态概览: 两池占用 + 执行中 subtask + 各状态 task 统计。
+
+        默认返回结构化 dict (走 cli 统一 JSON 输出); `--pretty` rich 渲染自打印, 返回 None。
+        """
+        tasks = self.ws.store.all_tasks()
+        cfg = self.ws.config()
+        work_cap = cfg["pools"]["work"]
+        gate_cap = cfg["pools"]["gate"]
+        tnow = now()
+
+        # 执行中 subtask: 全部 active task (进行中/调研中/收尾中) 内 status=running
+        running_subs: list[dict[str, Any]] = []
+        ready_cnt = 0
+        for t in tasks:
+            if t["status"] not in STATUS_ACTIVE:
+                continue
+            subs = t.get("subtasks", [])
+            done = {s["sid"] for s in subs if s["status"] == SubtaskStatus.DONE}
+            for s in subs:
+                if s["status"] == SubtaskStatus.RUNNING:
+                    started = s.get("started")
+                    running_subs.append({
+                        "tid": t["id"], "sid": s["sid"], "name": s.get("name", s["sid"]),
+                        "phase": s.get("phase", SubtaskPhase.EXEC),
+                        "started": started,
+                        "elapsed_min": round((tnow - started) / 60, 1) if started else None,
+                        "pct": _sub_pct(s),
+                    })
+                elif (s["status"] == SubtaskStatus.PENDING
+                      and all(d in done for d in s.get("depends_on", []))):
+                    ready_cnt += 1  # 就绪待派 (依赖全 done, 不受槽限的展示口径)
+
+        by_status: dict[str, int] = {}
+        for t in tasks:
+            by_status[t["status"]] = by_status.get(t["status"], 0) + 1
+        gate_tasks = [{"id": t["id"], "name": t.get("name", t["id"]), "status": t["status"]}
+                      for t in tasks if t["status"] in (TaskStatus.CHECK, TaskStatus.FINISHING)]
+        active_tasks = [{"id": t["id"], "name": t.get("name", t["id"]), "status": t["status"],
+                         "pct": _task_pct(t),
+                         "sdone": sum(1 for s in t.get("subtasks", []) if s["status"] == SubtaskStatus.DONE),
+                         "stotal": len(t.get("subtasks", []))}
+                        for t in tasks if t["status"] in STATUS_ACTIVE]
+
+        data = {
+            "pool": {"work": {"running": len(running_subs), "capacity": work_cap},
+                     "gate": {"running": len(gate_tasks), "capacity": gate_cap}},
+            "tasks": {"total": len(tasks), "by_status": by_status},
+            "running_subtasks": running_subs,
+            "ready_pending": ready_cnt,
+            "gate_tasks": gate_tasks,
+            "active_tasks": active_tasks,
+            "next": ("skein flow run" if ready_cnt and len(running_subs) < work_cap
+                     else "等 subtask done 释放槽" if len(running_subs) >= work_cap
+                     else "skein list --status plan"),
+        }
+
+        if not getattr(a, "pretty", False):
+            return data
+        self._render_status(data)
+        return None
+
+    def _render_status(self, d: dict[str, Any]) -> None:
+        # rich 人读渲染 (doctor/board 同款自打印模式)。cli 返回 None → 不再打 JSON。
+        from rich.console import Console
+        from rich.panel import Panel
+        from rich.table import Table
+
+        console = Console()
+        p = d["pool"]
+        console.print(Panel.fit(
+            f"work 池 [cyan]{p['work']['running']}/{p['work']['capacity']}[/cyan] · "
+            f"gate 池 [cyan]{p['gate']['running']}/{p['gate']['capacity']}[/cyan]",
+            title="SKEIN 运行态", border_style="blue"))
+        st = d["tasks"]["by_status"]
+        order = [TaskStatus.ACTIVE, TaskStatus.RESEARCH, TaskStatus.CHECK,
+                 TaskStatus.FINISHING, TaskStatus.PENDING, TaskStatus.DONE]
+        disp = {"active": "进行中", "research": "调研中", "check": "检查中",
+                "finishing": "收尾中", "pending": "待处理", "done": "已完成"}
+        parts = [f"{disp.get(k, k)} {v}" for k in order if (v := st.get(k))]
+        console.print("  " + " · ".join(parts) if parts else "  无 task")
+
+        if d["running_subtasks"]:
+            console.print("\n[bold]执行中 subtask:[/bold]")
+            table = Table(show_header=True, box=None, padding=(0, 2))
+            for col, style in (("tid", "cyan"), ("sid", "cyan"), ("名称", None),
+                               ("阶段", "yellow"), ("进度", "green"), ("已跑", "dim")):
+                table.add_column(col, style=style)
+            for s in d["running_subtasks"]:
+                elapsed = f"{s['elapsed_min']}m" if s["elapsed_min"] is not None else "-"
+                table.add_row(s["tid"], s["sid"], s["name"], s["phase"],
+                              f"{s['pct']}%", elapsed)
+            console.print(table)
+        else:
+            console.print("\n[dim]无执行中 subtask[/dim]")
+
+        if d["gate_tasks"]:
+            gt = " · ".join(f"{t['id']}({t['status']})" for t in d["gate_tasks"])
+            console.print(f"\n[bold]检查/收尾中:[/bold] {gt}")
+        console.print(f"\n[dim]就绪待派: {d['ready_pending']} → {d['next']}[/dim]")
+
 
     def ready(self, a: argparse.Namespace) -> dict[str, Any]:
         picked = [t for t in self.ws.store.all_tasks()

@@ -184,6 +184,7 @@ def _dispatch(a: SimpleNamespace) -> None:
         "del": sk.lifecycle.del_,
         "claim": sk.scheduler.claim, "flow": sk.scheduler.flow, "subtask": sk.scheduler.subtask,
         "ready": sk.query.ready,
+        "status-overview": sk.query.status_overview,
         "status": sk.query.status, "list": sk.query.list_,
         "fmt": sk.artifacts.fmt, "prd": sk.artifacts.prd, "design": sk.artifacts.design,
         "contract": sk.artifacts.contract,
@@ -368,6 +369,16 @@ def clean(days: Annotated[Optional[int], typer.Option("--days")] = None) -> None
 def ready() -> None:
     """脚本算可启动 task 批。"""
     _run("ready")
+
+
+@app.command("status")
+def status_overview(pretty: Annotated[bool, typer.Option(
+        "--pretty", help="rich 渲染人读输出 (默认 JSON)")] = False) -> None:
+    """全局运行态概览: 两池占用 + 执行中 subtask + 状态统计。
+
+    单 task 详情走 `skein task status <tid>`。
+    """
+    _run("status-overview", pretty=pretty)
 
 
 @app.command()
@@ -662,7 +673,11 @@ def _rewrite_legacy_task_args(argv: list[str]) -> list[str]:
     if argv[:1] == ["status"] and len(argv) >= 3:
         return ["subtask", "show", *argv[1:]]
     if argv and argv[0] in TASK_COMMANDS:
-        return ["task", *argv]
+        # `skein status` / `skein status --pretty` (仅跟 flag 无位置参数) = 顶层全局运行态概览,
+        # 不转发; 带位置参数 `skein status <tid>` 仍转 task status (legacy)
+        if not (argv[0] == "status"
+                and all(x.startswith("-") for x in argv[1:])):
+            return ["task", *argv]
     return argv
 
 

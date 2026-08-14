@@ -418,3 +418,33 @@ def test_del_task_with_missing_worktree_file(ws: Path, monkeypatch: pytest.Monke
     # 删除 task 应该能处理缺失的 worktree
     out = sk.lifecycle.del_(_ns(task_id="feat-x", subtask_sid=None, dry_run=False))
     assert out["deleted"] is True
+
+
+def test_status_overview_json_and_rich(ws: Path, monkeypatch: pytest.MonkeyPatch,
+                                       capsys: pytest.CaptureFixture[str]) -> None:
+    """顶层 skein status: JSON 形态 (池/执行中/统计) + rich 自打印返回 None。"""
+    sk = _skein(ws, monkeypatch)
+    _create(sk, "feat-x")
+    _add_sub(sk, "feat-x", "sub-a")
+    _add_sub(sk, "feat-x", "sub-b", deps="sub-a")
+    import skeinlib.core.workspace as ws_module
+    t = _load(ws, "feat-x")
+    t["status"] = TaskStatus.ACTIVE
+    t["subtasks"][0]["status"] = SubtaskStatus.RUNNING
+    t["subtasks"][0]["started"] = 1_700_000_000
+    ws_module.Workspace().store.save(t)
+
+    out = sk.query.status_overview(_ns(pretty=False))
+    assert out["pool"]["work"] == {"running": 1, "capacity": 2}
+    assert out["pool"]["gate"]["running"] == 0
+    assert out["tasks"]["by_status"] == {TaskStatus.ACTIVE: 1}
+    assert [r["sid"] for r in out["running_subtasks"]] == ["sub-a"]
+    assert out["running_subtasks"][0]["tid"] == "feat-x"
+    assert out["ready_pending"] == 0  # sub-b 依赖 sub-a 未 done → 不算就绪
+    assert out["active_tasks"][0]["id"] == "feat-x"
+
+    # --pretty: 自打印 + 返回 None (cli 不再打 JSON)
+    capsys.readouterr()
+    assert sk.query.status_overview(_ns(pretty=True)) is None
+    rich_out = capsys.readouterr().out
+    assert "SKEIN 运行态" in rich_out and "sub-a" in rich_out
