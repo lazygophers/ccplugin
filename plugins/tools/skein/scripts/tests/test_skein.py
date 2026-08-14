@@ -9,6 +9,7 @@ import importlib.util
 import json
 import re
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 from types import ModuleType
@@ -116,17 +117,19 @@ def main() -> None:
         row1 = next(x for x in top["tasks"] if x["id"] == "task-1")
         assert row1["status"] == "进行中" and row1["worktree"] == t["worktree"], row1
 
-        # session-context: 有 active task → JSON envelope 含 task id
-        r = sk(d, "session-context")
-        assert r.returncode == 0 and "task-1" in r.stdout, "session-context 未含 active task"
+        # session-start hook (hooks.py): 注入配置+前缀, 不列 active task
+        from conftest import HOOKS as HOOKS_CLI
+        r = subprocess.run([sys.executable, str(HOOKS_CLI), "session-start"], cwd=d,
+                           input=json.dumps({"cwd": str(d)}), capture_output=True, text=True, check=True)
         payload = json.loads(r.stdout)
         assert payload["hookSpecificOutput"]["hookEventName"] == "SessionStart", "注入格式错"
-        # git 仓无 .skein/ → 注入 setup 建议 (无 .skein 即 nudge)
+        assert "task-1" not in payload["hookSpecificOutput"]["additionalContext"], "不该列 active task"
+        # git 仓无 .skein/ → 静默 (可选工具, 不劝进)
         with tempfile.TemporaryDirectory() as bare:
             git(Path(bare), "init", "-q")
-            r2 = sk(Path(bare), "session-context")
-            assert r2.returncode == 0 and "setup" in r2.stdout, f"无 .skein 应 nudge setup: {r2.stdout!r}"
-            assert json.loads(r2.stdout)["hookSpecificOutput"]["hookEventName"] == "SessionStart"
+            r2 = subprocess.run([sys.executable, str(HOOKS_CLI), "session-start"], cwd=Path(bare),
+                                input="{}", capture_output=True, text=True, check=True)
+            assert r2.stdout.strip() == "", f"未初始化应静默: {r2.stdout!r}"
 
         # task 级并发上限已取消 (design item #6): 多 task 可同时 confirm→进行中, 无需腾位
         sk(d, "create", "task-2", "--name", "第二个", "--desc", "描述")

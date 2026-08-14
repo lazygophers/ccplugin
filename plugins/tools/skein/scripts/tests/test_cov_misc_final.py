@@ -72,19 +72,6 @@ def test_file_matches_globs_value_error(tmp_path: Path, monkeypatch: pytest.Monk
 
 # ---- user_prompt_submit.py: 剩余分支 ----
 
-def test_judge_signal_short_query() -> None:
-    """judge_signal 对短查询返回正确信号。"""
-    from skeinlib.hooks.user_prompt_submit import judge_signal
-    result = judge_signal("ok")
-    assert isinstance(result, list)
-
-
-def test_judge_signal_empty() -> None:
-    from skeinlib.hooks.user_prompt_submit import judge_signal
-    result = judge_signal("")
-    assert isinstance(result, list)
-
-
 # ---- hooks/agent.py: yaml error / no agents ----
 
 def test_agent_hook_bad_yaml(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

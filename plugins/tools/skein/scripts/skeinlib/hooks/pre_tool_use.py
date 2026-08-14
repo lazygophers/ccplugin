@@ -100,11 +100,9 @@ def cmd_guard(payload: dict[str, Any]) -> int:
     if (file_path and ".skein" in path_parts and os.path.basename(file_path) in {"task.json", "task.md", "prd.md"}
             and not (os.path.basename(file_path) == "prd.md" and tool_name == "Read")):
         print(
-            "禁直接读写 .skein/ 的 task.json / task.md / prd.md — 均由 skein CLI 维护。"
-            "取态: `skein list --status unfinished` / `list` / `subtask list <id>` / `subtask ready <id>` / "
-            "`skein prd read <id> --type <章节>`; "
-            "改态: create/confirm/finishing/finish/del/subtask / "
-            "`skein prd write|add|check|uncheck <id> --type <章节> --list <内容>`。",
+            """禁直接读写 .skein/ 的 task.json / task.md / prd.md — 均由 skein CLI 维护。
+取态: `skein list --status unfinished` / `list` / `subtask list <id>` / `subtask ready <id>` / `skein prd read <id> --type <章节>`;
+改态: create/confirm/finishing/finish/del/subtask / `skein prd write|add|check|uncheck <id> --type <章节> --list <内容>`。""",
             file=sys.stderr,
         )
         return 2

@@ -41,7 +41,7 @@ except ImportError:
     raise
 
 from skeinlib.hooks.runner import DBG, debug_enabled
-from skeinlib.core.commands import Skein, _persist_bash_cwd_env, _workspace_lock
+from skeinlib.core.commands import Skein, _workspace_lock
 from skeinlib.task.model import PRD_SECTIONS, PRD_TYPE_ALIAS, PRIORITIES, PRIORITY_DEFAULT, ESTIMATE_HINT
 
 
@@ -167,10 +167,6 @@ def _namespace(cmd: str, **kwargs: object) -> SimpleNamespace:
 
 
 def _dispatch(a: SimpleNamespace) -> None:
-    if getattr(a, "cmd", None) == "session-context":
-        _persist_bash_cwd_env()
-        Skein().session_context()
-        return
     sk = Skein()
     dispatch = {
         "init": sk.admin.init, "setup": sk.admin.setup, "config": sk.admin.config_cmd,
@@ -702,13 +698,6 @@ def _pretty_print(cmd: str, data: dict) -> None:
     Console().print(Panel.fit(table, title=f"skein {cmd}", border_style="blue"))
 
 
-def _run_hidden_command(argv: list[str]) -> bool:
-    if argv == ["session-context"]:
-        _run("session-context")
-        return True
-    return False
-
-
 def _rewrite_legacy_task_args(argv: list[str]) -> list[str]:
     if argv[:1] == ["state"]:
         return ["task", *argv[1:]]
@@ -741,8 +730,7 @@ def main() -> None:
 
     globals()["_namespace"] = namespace_with_flags
     try:
-        if not _run_hidden_command(argv):
-            argv = _rewrite_legacy_task_args(argv)
-            app(args=argv, prog_name="skein")
+        argv = _rewrite_legacy_task_args(argv)
+        app(args=argv, prog_name="skein")
     finally:
         globals()["_namespace"] = original_namespace

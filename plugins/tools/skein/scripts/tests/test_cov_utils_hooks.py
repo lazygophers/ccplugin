@@ -476,11 +476,3 @@ def test_hooks_cli_stdin_dispatch_and_bad_payload(monkeypatch: pytest.MonkeyPatc
     monkeypatch.setattr("sys.stdin", io.StringIO("nope"))
     assert C.main() == 0
     assert seen == [{"tool_name": "Read"}]
-
-
-def test_hooks_cli_self_check_passes(capsys: pytest.CaptureFixture[str]) -> None:
-    """self_check 跑 judge_signal 的样例集, 全过返回 0。"""
-    from skeinlib.hooks.cli import self_check
-
-    assert self_check() == 0
-    assert "FAIL count: 0" in capsys.readouterr().out

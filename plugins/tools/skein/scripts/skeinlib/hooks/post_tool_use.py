@@ -84,7 +84,9 @@ def cmd_spec_meta(payload: dict[str, Any]) -> int:
         warnings.append(f"缺失: namespace={namespace} 时需配置 anchors")
     if warnings:
         short_path = normalized_path.split(".skein/spec/")[-1] if ".skein/spec/" in normalized_path else normalized_path
-        context = f"⚠️ spec metadata 检查 ({short_path}):\n  - " + "\n  - ".join(warnings)
+        items = "\n  - ".join(warnings)
+        context = f"""⚠️ spec metadata 检查 ({short_path}):
+  - {items}"""
         print(json.dumps({"hookSpecificOutput": {
             "hookEventName": "PostToolUse", "additionalContext": context}}))
     return 0

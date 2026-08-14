@@ -143,27 +143,4 @@ def test_find_tool_interpreter_skips_duplicate_and_failures(
     assert calls.count("python3") == 1
 
 
-def test_session_context_silent_when_uninitialized(ws: Path, monkeypatch: pytest.MonkeyPatch,
-                                                   capsys: pytest.CaptureFixture[str]) -> None:
-    """未初始化时 SessionStart 零注入 —— skein 可选, 不劝进; 有 .trellis 也一样。"""
-    sk = _skein(ws, monkeypatch)
-    (ws / ".skein" / "config.yaml").unlink(missing_ok=True)
-    sk.session_context()
-    assert capsys.readouterr().out == ""
-    (ws / ".trellis").mkdir(exist_ok=True)
-    sk.session_context()
-    assert capsys.readouterr().out == ""
 
-
-def test_pending_fix_hint_groups_problem_types(ws: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """pending-fix 文案按问题类型计数，空或坏 JSON 静默跳过。"""
-    sk = _skein(ws, monkeypatch)
-    marker = ws / ".skein" / "spec" / ".pending-fix"
-    marker.parent.mkdir()
-    marker.write_text(json.dumps({"problems": [
-        {"type": "stale"}, {"type": "stale"}, {"type": "broken"},
-    ]}), encoding="utf-8")
-    hint = sk._pending_fix_hint()
-    assert "命中 3 项" in hint and "stale(2)" in hint and "broken(1)" in hint
-    marker.write_text("not json", encoding="utf-8")
-    assert sk._pending_fix_hint() == ""

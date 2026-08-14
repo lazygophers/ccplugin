@@ -23,6 +23,7 @@ DISPATCH: dict[str, str] = {
     "spec-meta": "post_tool_use:cmd_spec_meta",
     "stop-check": "stop:cmd_stop_check",
     "user-prompt": "user_prompt_submit:cmd_user_prompt",
+    "session-start": "session_start:cmd_session_start",
     "agent-start": "agent:cmd_agent_hook",
     "agent-stop": "agent:cmd_agent_hook",
 }

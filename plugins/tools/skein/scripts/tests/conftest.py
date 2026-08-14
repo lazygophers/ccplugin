@@ -74,12 +74,12 @@ def run_spec(cwd: Path, *args: str, inp: Optional[str] = None,
                           capture_output=True, text=True, check=check, input=inp)
 
 
-def run_hooks(cwd: Path, *args: str, check: bool = False) -> subprocess.CompletedProcess[str]:
-    """hooks.py CLI → CompletedProcess。stdin 显式喂空串 — agent-start/agent-stop 走 dispatch
+def run_hooks(cwd: Path, *args: str, check: bool = False, inp: str = "") -> subprocess.CompletedProcess[str]:
+    """hooks.py CLI → CompletedProcess。stdin 默认喂空串 — agent-start/agent-stop 走 dispatch
     参数(不读 stdin), 其余 harness 风格子命令读 stdin JSON, 不喂会阻塞等待终端输入(而非直接
-    报错), 统一空串最安全。"""
+    报错), 统一空串最安全; 需传 payload 的子命令 (如 session-start) 用 inp。"""
     return subprocess.run([sys.executable, str(HOOKS), *args], cwd=cwd,
-                          capture_output=True, text=True, check=check, input="")
+                          capture_output=True, text=True, check=check, input=inp)
 
 
 def make_git_repo(d: Path) -> Path:

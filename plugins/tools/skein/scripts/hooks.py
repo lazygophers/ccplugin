@@ -42,11 +42,9 @@ _HERE = os.path.dirname(os.path.realpath(__file__))
 if _HERE not in sys.path:
     sys.path.insert(0, _HERE)
 
-from skeinlib.hooks.cli import DISPATCH, _ARGV_DISPATCH, main, self_check  # noqa: E402
+from skeinlib.hooks.cli import DISPATCH, _ARGV_DISPATCH, main  # noqa: E402
 
-__all__ = ["DISPATCH", "_ARGV_DISPATCH", "main", "self_check"]
+__all__ = ["DISPATCH", "_ARGV_DISPATCH", "main"]
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] == "--self-check":
-        sys.exit(self_check())
     sys.exit(main())

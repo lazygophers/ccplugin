@@ -1,4 +1,4 @@
-"""回复前缀强制注入测试 — 注入点: SessionStart (skein.py session-context)。
+"""回复前缀强制注入测试 — 注入点: SessionStart (hooks.py session-start)。
 
 「回复前缀」属常驻规则, SessionStart 注入一次即可; UserPromptSubmit 不再重复 (避免每轮冗余)。
 UserPromptSubmit 仍保留 phase_hints (按 prompt 给出 active task 阶段提示, 非常驻)。
@@ -7,8 +7,8 @@ UserPromptSubmit 仍保留 phase_hints (按 prompt 给出 active task 阶段提�
 覆盖 (5 用例):
   1. user-prompt 普通 prompt → 不再含「回复前缀」常驻段 (常驻归 SessionStart)。
   2. user-prompt (create+start 一个进行中 task) → 含 task id 且标注 `(exec)` (phase_hints 仍保留)。
-  3. session-context 无 active → 恒注入前缀规则 + `[skein]`。
-  4. session-context (create+start) → 含 `当前 active task:` + `id(exec)`。
+  3. session-start 恒注入前缀规则 + `[skein]`。
+  4. session-start 不列 active task (plan/research 归 user-prompt)。
   5. phase 映射 进行中→exec (并入 2/4)。
 """
 from __future__ import annotations
@@ -33,11 +33,13 @@ def _user_prompt(cwd: Path, prompt: str) -> str:
 
 
 def _session_ctx(cwd: Path) -> str:
-    """跑 skein.py session-context, 返 additionalContext。"""
+    """跑 hooks.py session-start, 返 additionalContext。"""
     r = subprocess.run(
-        [sys.executable, str(SKEIN), "session-context"], cwd=cwd,
+        [sys.executable, str(HOOKS), "session-start"], cwd=cwd,
+        input=json.dumps({"cwd": str(cwd)}),
         capture_output=True, text=True, check=True)
-    return str(json.loads(r.stdout)["hookSpecificOutput"]["additionalContext"])
+    out = r.stdout.strip()
+    return str(json.loads(out)["hookSpecificOutput"]["additionalContext"]) if out else ""
 
 
 def _fill_prd(ws: Path, tid: str) -> None:
@@ -67,15 +69,15 @@ def test_user_prompt_does_not_inject_resident_prefix(ws: Path) -> None:
 
 
 # ---------- 2. user-prompt 列 active task 阶段 ----------
-def test_user_prompt_lists_active_task_phase(skein_cli: SkeinCli, ws: Path) -> None:
-    """create+start task (进行中) → additionalContext 含 id 且标注 (exec)。"""
-    _start_task(skein_cli, ws, "task-a")
+def test_user_prompt_lists_plan_research_tasks(skein_cli: SkeinCli, ws: Path) -> None:
+    """plan/research 阶段 task → additionalContext 列 id | 阶段 | name。"""
+    skein_cli(ws, "create", "task-a", "--name", "支付重构", "--desc", "d")
     # prompt 不能用 _EXPLICIT 里的词 (go/exec/do/plan/继续/continue): 那些早退不注入
     ctx = _user_prompt(ws, "接着往下做")
-    assert "task-a(exec)" in ctx, f"未列 active task 阶段 (进行中→exec): {ctx!r}"
+    assert "- task-a | plan | 支付重构" in ctx, f"未列 plan task: {ctx!r}"
 
 
-# ---------- 3. session-context 恒注入前缀规则 ----------
+# ---------- 3. session-start 恒注入前缀规则 ----------
 def test_session_context_injects_prefix_rule(ws: Path) -> None:
     """无 active task 也注入前缀规则 + `[skein]`。"""
     ctx = _session_ctx(ws)
@@ -83,20 +85,17 @@ def test_session_context_injects_prefix_rule(ws: Path) -> None:
     assert "回复前缀" in ctx, f"缺前缀规则关键字: {ctx!r}"
 
 
-# ---------- 4. session-context 列 active 阶段 (含 phase 映射) ----------
-def test_session_context_lists_active_phase(skein_cli: SkeinCli, ws: Path) -> None:
-    """create+start task → 含 `当前 active task:` + id(exec) (进行中→exec)。"""
+# ---------- 4. session-start 不列 active task ----------
+def test_session_start_does_not_list_active_task(skein_cli: SkeinCli, ws: Path) -> None:
+    """session-start 只注配置+前缀; active task 由 user-prompt 的 plan/research 列表覆盖。"""
     _start_task(skein_cli, ws, "task-a")
     ctx = _session_ctx(ws)
-    assert "当前 active task:" in ctx, f"缺 active task 行: {ctx!r}"
-    assert "task-a(exec)" in ctx, f"phase 映射 进行中→exec 未生效: {ctx!r}"
+    assert "task-a" not in ctx, f"session-start 不该列 active task: {ctx!r}"
 
 
-# ---------- 5. phase 映射 进行中→exec 两注入点一致 ----------
-def test_phase_mapping_active_to_exec(skein_cli: SkeinCli, ws: Path) -> None:
-    """进行中 status 在 user-prompt (hooks._PHASE) 与 session (PHASE_OF) 均映射 exec。"""
+# ---------- 5. user-prompt 只列 plan/research, 不列 active ----------
+def test_user_prompt_omits_active_task(skein_cli: SkeinCli, ws: Path) -> None:
+    """user-prompt 只列 plan/research 阶段 task, active 不出现。"""
     _start_task(skein_cli, ws, "task-m")
     # prompt 不能用 _EXPLICIT 里的词 (go/exec/do/plan/继续/continue) 或 skein-*: 那些早退不注入
-    # (显式走 flow 无需路由提示)。「继续」曾用在这里, 2026-08-01 被划进 _EXPLICIT 后换掉。
-    assert "task-m(exec)" in _user_prompt(ws, "接着往下做"), "hooks _PHASE 映射 进行中→exec 失效"
-    assert "task-m(exec)" in _session_ctx(ws), "skein PHASE_OF 映射 进行中→exec 失效"
+    assert "task-m" not in _user_prompt(ws, "接着往下做"), "user-prompt 只列 plan/research, active 不该出现"

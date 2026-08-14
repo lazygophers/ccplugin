@@ -53,7 +53,7 @@ def _persist_bash_cwd_env() -> None:
             with p.open("a") as f:
                 f.write("\n".join(missing) + "\n")
     except OSError:
-        pass  # env 持久化尽力而为, 失败不阻断 session-context 主流程
+        pass  # env 持久化尽力而为, 失败不阻断主流程
 
 
 @contextlib.contextmanager

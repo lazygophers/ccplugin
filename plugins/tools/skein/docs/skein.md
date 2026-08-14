@@ -3,7 +3,7 @@
 ## 系统架构
 
 ```
-用户请求 → Hook 系统(user-prompt→session-context)
+用户请求 → Hook 系统(user-prompt→session-start)
         → Skill 编排层(skein-flow→plan→exec→check→finish)
         → Agent 执行层(executor/checker/researcher/finisher/specer/recaller/dedup)
         → CLI 引擎(skein / skein-spec / skein-hooks)
@@ -41,7 +41,7 @@
 | Hook | 触发 | 用途 |
 | --- | --- | --- |
 | session-start | SessionStart | spec 索引注入 (`skein-spec`) |
-| session-context | SessionStart | 注入活跃 task + core 规则 |
+| session-start | SessionStart | 注入 spec 待修告警 + 运行配置 + 回复前缀 |
 | user-prompt | UserPromptSubmit | 信号路由 (flow/inline/grey) |
 | subagent-start | SubagentStart | 注入 core 规则到 subagent |
 | guard | PreToolUse (Edit/Write/MultiEdit/Read) | 阻止 AI 直接读写脚本管理文件 |

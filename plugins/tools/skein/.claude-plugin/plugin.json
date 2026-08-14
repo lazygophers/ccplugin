@@ -69,7 +69,7 @@
                     },
                     {
                         "type": "command",
-                        "command": "${CLAUDE_PLUGIN_ROOT}/bin/skein session-context"
+                        "command": "${CLAUDE_PLUGIN_ROOT}/bin/skein-hooks session-start"
                     },
                     {
                         "type": "command",

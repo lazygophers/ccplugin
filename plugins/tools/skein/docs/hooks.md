@@ -170,7 +170,7 @@ hooks, 不阻断主命令)。YAML 语法的全支持面由 PyYAML 提供 (锚点
 要不要真的跑。
 
 **这两步不写进 `agents/*.md`**: 默认配置下 `hooks.agent` 为空, 两条命令是纯 no-op, 写死在 md 里等于
-每个 agent 每次运行白烧两次 Bash 往返。改由 SessionStart 的 session-context 在**检测到 config 真声明了
+每个 agent 每次运行白烧两次 Bash 往返。改由 SessionStart 的 session-start 在**检测到 config 真声明了
 `hooks.agent.<name>`** 时才提示 main 把这两步写进 dispatch prompt。代价: agent 崩溃时 `agent-stop` 不会被调用, stop 钩子不跑 —— 接受此代价, 用
 `.audit-log` + `skein doctor` 兜底探测 (见下节)。
 

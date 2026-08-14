@@ -24,17 +24,15 @@ from typing import TYPE_CHECKING, Any, Optional
 
 import yaml  # type: ignore[import-untyped]
 
-from skeinlib.hooks.runner import budget_guard
 from skeinlib.utils.errors import SkeinError
 from skeinlib.task.dag import detect_cycle
-from skeinlib.task.model import (PHASE_OF, PRIORITY_RANK, SLUG_RE, SubtaskStatus, STATUS_INFLIGHT, TaskStatus)
+from skeinlib.task.model import (PRIORITY_RANK, SLUG_RE, SubtaskStatus, STATUS_INFLIGHT, TaskStatus)
 from skeinlib.infra.worktree import worktrees_of
 from skeinlib.utils.paths import SCRIPTS_DIR
 
 if TYPE_CHECKING:
     from skeinlib.task.store import TaskStore
 
-SESSION_CTX_BUDGET_TOKENS = 400  # session-context 注入 token 硬预算 (active task ≤2, 正常远低于)
 
 
 class DoctorMixin:
@@ -294,75 +292,3 @@ class DoctorMixin:
         if failed:
             raise SkeinError(f"质量门未通过: {', '.join(failed)} (明细见 stdout)")
         print("✅ 质量门通过")
-    def _pending_fix_hint(self) -> str:
-        # SessionStart: 读 Stop hook 写的 .skein/spec/.pending-fix (有问题则停机写) → 提示 main 派 specer bg。
-        # ponytail: 直读 JSON 不复用 Spec 类 — session-context 是冷启动路径, 免为读一个文件实例化 Spec + spec.py import
-        marker = self.dir / "spec" / ".pending-fix"
-        try:
-            payload = json.loads(marker.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
-            return ""
-        problems = payload.get("problems") or []
-        if not problems:
-            return ""
-        by_type: dict[str, int] = {}
-        for p in problems:
-            by_type[p.get("type", "?")] = by_type.get(p.get("type", "?"), 0) + 1
-        summary = ", ".join(f"{t}({n})" for t, n in sorted(by_type.items()))
-        return ("\n\n# ⚠️ 检测到 spec 问题待修 (.pending-fix)\n"
-                f"命中 {len(problems)} 项: {summary}。\n"
-                "**建议异步 bg 派 `skein-specer` agent 跑 `skein-spec maintain --apply`** "
-                "(fire-and-forget, 派出即结束回合; 自动修超预算/stale/keywords重复/废弃, 断链只报告)。")
-    def session_context(self) -> None:
-        # SessionStart hook: 只在用户已经建了 .skein 工作区时接管; 未初始化一律静默, 不劝进不 nag。
-        if not (self.dir / "config.yaml").exists():
-            return
-        hint = self._pending_fix_hint()  # .pending-fix 标记独立于 active task, 无 active 也提示
-        active = self.store.active()
-        wt_shown = self._wt_shown()
-        cfg = self.config()
-        lines = []
-        # agent 钩子默认空 = agent-start/agent-stop 是纯 no-op。只在用户真声明了钩子时才让 agent 跑这两条,
-        # 否则每个 agent 白花两次 Bash 往返换零副作用 (故 agent md 里不再写死这两步)。
-        hooked = sorted(k for k, v in (cfg.get("hooks") or {}).get("agent", {}).items()
-                        if isinstance(v, dict) and (v.get("start") or v.get("stop")))
-        if hooked:
-            lines += ["# agent 钩子 (已声明: " + ", ".join(hooked) + ")",
-                      "派这些 agent 时在 dispatch prompt 里要求它首尾各跑一次 (失败不阻断):",
-                      "`skein-hooks agent-start|agent-stop --agent <name> [--tid <tid>] [--sid <sid>]`", ""]
-        if active:
-            lines += ["# SKEIN 活跃任务 (compaction 上下文恢复)", ""]
-            for t in active:
-                wt = f" — worktree: {t.get('worktree') or '-'}" if wt_shown else ""
-                lines.append(f"- `{t['id']}` [{t['status']}] {t['name']}{wt}")
-                prd = self.tasks / t["id"] / "prd.md"
-                if prd.exists():  # 轻量指针: 只给主入口路径, 不含正文 (需要时 AI 自读)
-                    lines.append(f"  - 主入口 PRD: `{prd}`")
-            lines += ["", "恢复提示: 用 `skein list --status unfinished` 查未完成 task; 未 finish 闭环(标记完成) = 未完成。"]
-        if hint:
-            lines.append(hint)
-        wt_on = cfg["worktree"]["enabled"]
-        wt_txt = "启用 (task 各开 worktree 隔离)" if wt_on else "禁用 (原地执行, 无 worktree)"
-        # worktree 模式下 finish 必 commit (不提交则 merge 丢改动), auto_commit 配置只对原地模式生效
-        ac_txt = ("强制 (worktree 模式必自动 commit, 本配置不生效)" if wt_on
-                  else ("启用 (finish 时自动 commit)" if cfg["auto_commit"]
-                        else "禁用 (改动需手动 commit)"))
-        lines += ["", "# SKEIN 运行配置", f"- worktree: {wt_txt}", f"- 最大并行 subtask: {cfg['pools']['work']}", f"- auto_commit: {ac_txt}"]
-        lines += ["", "# 任务判定规则 (每轮 UserPromptSubmit 触发)",
-                  "每轮回复第一行写判定行: `[skein] 判定: <flow/plan/inline/补充> (原因: <具体判据>)`",
-                  "- **plan**: 纯规划 / 需求未定 / 要先出 PRD 或 design → Skill(skill='skein:skein-plan', args=<用户输入>)",
-                  "- **flow**: 跨≥2文件 / 多步骤 / 改动类动词 / 新建类 / 复杂调研 → Skill(skill='skein:skein-flow', args=<用户输入>)",
-                  "- **补充**: 与在途 task 同目标/同模块/共享改动面/互为前置 → Skill(skill='skein:skein-flow', args=<用户输入>)",
-                  "- **inline**: 纯查询/问答/单文件单处≤20行 → main 中直接执行",
-                  "- **其他**: 使用 AskUserQuestion 询问用户",
-                  "注意: 原因写具体判据不写结论复述; 新输入≠新任务(旧任务补充继续); 新输入禁打断在跑工作。"]
-        prefix_tasks = ", ".join(f"{t['id']}({PHASE_OF.get(t['status'], '')})" for t in active)
-        lines += ["", "# 回复前缀 (强制)",
-                  "- 每条回复以 `[skein]` 开头",
-                  "- 处理某 task 时用 `[skein|<tid，必须是已经注册的>|<阶段>]`",
-                  "- 阶段取值: plan / research / exec / check / finishing"]
-        if prefix_tasks:
-            lines.append(f"当前 active task: {prefix_tasks}")
-        ctx = budget_guard("\n".join(lines), SESSION_CTX_BUDGET_TOKENS, "skein:session-context")
-        print(json.dumps({"hookSpecificOutput": {
-            "hookEventName": "SessionStart", "additionalContext": ctx}}))

@@ -19,16 +19,16 @@ def cmd_report(payload: dict[str, Any]) -> int:
         return 0
     output: dict[str, Any] = {}
     if TRACEBACK_MARK in error:
-        output["hookSpecificOutput"] = {"hookEventName": "PostToolUseFailure", "additionalContext": (
-            f"SKEIN 脚本崩溃 (未捕获异常):\n命令: {command[:200]}\n错误: {error}\n"
-            "这不是参数问题 — 引擎的门拒绝只出一行人话, 出 traceback 说明有异常没接住。")}
-        output["systemMessage"] = (
-            f"⚠️ SKEIN 脚本崩溃 (traceback), 疑似插件 bug 请手动开 issue: {ISSUE_URL} "
-            "(附命令+错误+复现步骤)")
+        output["hookSpecificOutput"] = {"hookEventName": "PostToolUseFailure", "additionalContext": f"""SKEIN 脚本崩溃 (未捕获异常):
+命令: {command[:200]}
+错误: {error}
+这不是参数问题 — 引擎的门拒绝只出一行人话, 出 traceback 说明有异常没接住。"""}
+        output["systemMessage"] = f"⚠️ SKEIN 脚本崩溃 (traceback), 疑似插件 bug 请手动开 issue: {ISSUE_URL} (附命令+错误+复现步骤)"
     else:
-        output["hookSpecificOutput"] = {"hookEventName": "PostToolUseFailure", "additionalContext": (
-            f"SKEIN 命令被拒 (非崩溃, 属正常校验):\n命令: {command[:200]}\n错误: {error}\n"
-            "照错误提示改参数/补前置状态即可 — 这是引擎的门在起作用, 不是 bug。")}
+        output["hookSpecificOutput"] = {"hookEventName": "PostToolUseFailure", "additionalContext": f"""SKEIN 命令被拒 (非崩溃, 属正常校验):
+命令: {command[:200]}
+错误: {error}
+照错误提示改参数/补前置状态即可 — 这是引擎的门在起作用, 不是 bug。"""}
     print(json.dumps(output))
     return 0
 

@@ -11,7 +11,7 @@ import pytest
 
 from skeinlib.hooks import cli as hooks_cli
 from skeinlib.hooks import _run_hooks, _prefix_lines, DISPATCH, _ARGV_DISPATCH
-from skeinlib.hooks.cli import _resolve, main, self_check
+from skeinlib.hooks.cli import _resolve, main
 
 
 # ---- hooks/cli.py ----
@@ -67,12 +67,6 @@ def test_main_stdin_bad_json(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("sys.stdin", io.StringIO("not json"))
     # bad json → load_stdin returns None → main returns 0
     assert main() == 0
-
-
-def test_self_check() -> None:
-    """self_check 跑 judge_signal 测试用例，返回 0 或 1。"""
-    result = self_check()
-    assert result in (0, 1)
 
 
 # ---- hooks/__init__.py ----
