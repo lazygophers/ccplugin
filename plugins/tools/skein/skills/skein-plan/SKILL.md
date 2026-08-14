@@ -19,14 +19,21 @@ effort: medium
 ## 流程
 
 ```
-1. 归一判定 → 并入现有 task 还是新建
+0. 需求收敛 → 含糊/多读法先 AskUserQuestion 逼用户拍板
+1. 归一判定 → 并入现有 task 还是新建，调用 `skein task create <tid> --name <str> --desc <str>`
 2. research 分流 → 需调研则建 --phase research subtask + skein task research
-3. 工件写法 → 见 references/plan.md (PRD 七段 / design.md / contracts / estimate)
+3. 工件写法 → 见 references/plan.md (PRD 三段 / design.md / contracts / estimate)
 4. DAG 拆分 → 见 references/dag.md (tracer-bullet 垂直切片 / depends_on / CPM)
 5. 独立审计 → Agent(skein:skein-plan-auditor)，JSON 弱点报告作为 grill 输入
 6. grill 硬门 → Skill(skein-grill)，弱点表逐条裁决补回
 7. confirm 人审门 → skein task confirm --summary → AskUserQuestion → --approved
 ```
+
+**会话纪律**：第 0 步到第 7 步一个不破窗完成（中途禁 `/clear` / `/compact`）；research 全量结论走 `findings.md` 落盘，主对话只引摘要，不引全文。
+
+### 0. 需求收敛
+
+动笔前先判需求含糊度。目标 / 边界 / 验收标准存在多个等价读法或互相冲突时，先 `AskUserQuestion` 逐项逼用户拍板 —— 每问附推荐答案，决策归用户、事实归 AI 自查（查得到的不问）。含糊清了才进归一判定；骨架已清晰（目标唯一、边界无歧义）→ 直接跳到第 1 步。
 
 ### 1. 归一判定
 
@@ -37,6 +44,8 @@ effort: medium
 ### 2. research 分流
 
 需要调研时，先登记 `--phase research` subtask，再 `skein task research <id>`；`skein-researcher` 只读调研，结论落 `.skein/task/<id>/research/` 与 `findings.md`，全 done 后 `skein task plan <id>` 收敛回 pending。
+
+**可行性探针**：设计问题纸面定不了（状态模型手感 / 契约是否成立 / UI 形态）→ 先跑最小 throwaway 探针验证，探针代码即弃、不进正式 DAG、不并入交付物；结论回写 design.md 的取舍或可能性分支（标「已探针验证」），再继续拆分。
 
 ### 3. 工件写法
 
@@ -53,6 +62,8 @@ effort: medium
 ### 4. DAG 拆分
 
 tracer-bullet 垂直切片，每个 subtask 切穿所有层（schema→API→UI→tests），声明 `--deps` 阻塞边。协议先行后并行：共享契约抽成前置 subtask。
+
+**subtask 自包含**：desc 必须锚定 design.md 接缝或 contract 编号（如「按 design.md 测试接缝节的 seam」），保证 executor 自读 `skein subtask show` 即可独立执行，不回读全局猜上下文。
 
 **完整拆分模型 / ready 判定 / 排序 / 双池模型见 [references/dag.md](references/dag.md)。**
 
@@ -83,7 +94,7 @@ confirm 后 **stop** — 不续 exec。续执行归 skein-flow。
 
 | 命令 | 易错点 |
 | --- | --- |
-| `skein task create <tid> --name <str> --desc <str> [--priority urgent\|high\|normal\|low] [--estimate <小时>]` | `--priority` 只收四个英文值；`--estimate` 单位是小时 |
+| `skein task create <tid> --name <str> --desc <str> [--deps tid1,tid2] [--repos repo1,repo2] [--priority urgent\|high\|normal\|low] [--estimate <小时>] [--like <模板tid>]` | `<tid>` 是位置参数；`--name`/`--desc` 必填；`--priority` 只收四个英文值；`--estimate` 单位是小时；`--deps` 声明前置 task；`--like` 克隆既有 task（含已完成）的 prd/design/subtask 骨架，状态全重置 |
 | `skein subtask add <tid> <sid> --name <str> --desc <str> --estimate <小时> [--deps sid1,sid2] [--skills] [--check] [--phase exec\|research]` | `<sid>` 是位置参数不是 `--id`；四必填缺一即拒 |
 | `skein prd write <tid> --type <段名> --list <条目>` | 段名 `goal\|scope\|stories\|acceptance\|verification\|testing`；`--type`/`--list` 可成对重复，一回合写多章 |
 | `skein contract <id> --add "契约文本"` | 不变量逐条落盘 |

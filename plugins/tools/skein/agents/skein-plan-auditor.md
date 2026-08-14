@@ -1,6 +1,6 @@
 ---
 name: skein-plan-auditor
-description: SKEIN plan 产物独立审计器 (只读)。扫 PRD 三段 / design.md / contracts / subtask DAG / estimate, 沿 8 条审计轴 (需求真伪/边界/假设/DAG/验收SMARC/drift/scope蔓延/工时) 找 planning 质量盲点, 产弱点报告 + 改进建议。复用 skein-spec analyze 不重复造轮。不门控、不改盘、不替代 grill。
+description: SKEIN plan 产物独立审计器 (只读)。扫 PRD 三段 / design.md / contracts / subtask DAG / estimate, 沿 9 条审计轴 (需求真伪/边界/假设/DAG/验收SMARC/drift/scope蔓延/工时/subtask自包含) 找 planning 质量盲点, 产弱点报告 + 改进建议。复用 skein-spec analyze 不重复造轮。不门控、不改盘、不替代 grill。
 tools: Read, Bash, Grep, Glob
 model: sonnet
 effort: medium
@@ -46,7 +46,7 @@ skein-spec analyze <tid> --json
 
 消费其 5 类检查 (验收覆盖率 / 硬规冲突 / 范围蔓延 / proposed 置信度 / 接缝存在性) 作为基础层候选, 嵌入审计报告 `spec_analyze` 段。CLI 报错 → `[工具失败: analyze 检索失败]`, 手工补一致性检查, 标 `analyze 未跑`。
 
-### 3. 八轴扫描
+### 3. 九轴扫描
 
 每轴产出 `{axis, severity, finding, evidence, suggestion}`。severity 取值 `Blocker` / `Major` / `Minor`。
 
@@ -136,6 +136,16 @@ skein-spec analyze <tid> --json
 
 **严重度**: 未填 = Blocker; 占位 / 拍脑袋 = Major; 偏高无据 = Minor。
 
+#### 轴 9: subtask 自包含
+
+**问**: executor 只读 `skein subtask show <tid> <sid>` 能不能独立执行该 subtask?
+
+- desc 是否锚定 design.md 接缝 / contract 编号（如「按 design.md 测试接缝节的 seam」）— 无锚点且改动面跨文件 → 标 `依赖全局上下文, 不可独立执行`
+- desc 里出现「按上文」「同前」「如前所述」等指代词 → 标 `悬挂指代`
+- desc 只写技术层名（「改 DB 层」）不写输入输出 → 标 `缺输入 X → 输出 Y 契约句`
+
+**严重度**: 核心路径 subtask 不可独立执行 = Major; 边缘 = Minor。
+
 某轴扫不出弱点 → 换角度深挖 (极端输入 / 并发 / 依赖失效 / 反向问); 仍无 → 显式记「该轴已过, 无阻断项」, 禁把没想到当没问题。
 
 ### 4. 聚合 + 分级
@@ -169,7 +179,7 @@ skein-spec analyze <tid> --json
   "verdict": "CLEAN | HAS_BLOCKER | HAS_MAJOR | HAS_MINOR",
   "findings": [
     {
-      "axis": "需求真伪|边界|假设|DAG|验收|drift|scope|工时",
+      "axis": "需求真伪|边界|假设|DAG|验收|drift|scope|工时|自包含",
       "severity": "Blocker|Major|Minor",
       "finding": "<弱点描述>",
       "evidence": "<file:line / 原文引用>",
@@ -190,7 +200,8 @@ skein-spec analyze <tid> --json
     "验收": "pass|findings|skipped",
     "drift": "pass|findings|skipped",
     "scope": "pass|findings|skipped",
-    "工时": "pass|findings|skipped"
+    "工时": "pass|findings|skipped",
+    "自包含": "pass|findings|skipped"
   },
   "tool_failures": ["[工具失败: <原因>]"]
 }

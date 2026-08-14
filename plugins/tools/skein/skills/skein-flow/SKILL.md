@@ -20,4 +20,5 @@ case flow/exec/check/finish/default:
     use [references/flow-loop.md](references/flow-loop.md)
 ```
 
-参数含 `--plan` 时同 `case plan` — 路由到 skein-plan。
+- 参数含 `--plan` 时同 `case plan` — 路由到 Skills(name='skein:skein-plan)
+- 如果路由到 flow，先执行 Skill(name='skein:skein-redo)，再继续执行 flow-loop.md 中的流程
