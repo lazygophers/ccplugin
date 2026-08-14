@@ -1,10 +1,13 @@
 ---
 name: skein-exec
 description: "SKEIN exec 执行方法论 — skein-executor agent 绑定 skill。单个 running subtask 的完整执行纪律: workdir 硬门 + worktree 改动范围判定 + 自读 subtask 详情 (不靠转述) + spec 约定佐证 + 读后写硬门 + done 前可运行验证 + JSON 回传格式。只做范围内事, 收尾仅 subtask done/fail。"
+argument-hint: "[tid] [sid] [任务描述]"
+arguments: ["tid", "sid", "任务描述"]
 user-invocable: false
 model: sonnet
 effort: medium
 context: fork
+agent: skein-executor
 ---
 
 # skein-exec — exec 执行方法论

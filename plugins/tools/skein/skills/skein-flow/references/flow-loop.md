@@ -61,7 +61,7 @@ loop plan:
     loop research_tick:
       out = Bash("skein flow run")
       for hint in out.result.exec.next + out.result.check.next:
-        Agent(subagent_type=hint.agent, prompt=hint.prompt)  # 异步派发, 不等待
+        Agent(subagent_type='skein-researcher', prompt=hint.prompt)  # 异步派发, 不等待
       # 派完后直接查状态, 不 sleep
       if 还有 running/pending 的 research subtask:
         continue research_tick  # agent 还在跑, 下轮 tick 检查
@@ -99,7 +99,7 @@ if 模式 == 'plan':
 loop exec_tick:
   out = Bash("skein flow run")
   for hint in out.result.exec.next + out.result.check.next:
-    Agent(subagent_type=hint.agent, prompt=hint.prompt)  # 异步派发, 不等待返回
+    Skills(name='skein-exec', subagent_type='skein-executor', prompt=hint.prompt)  # 异步派发, 不等待返回
   # Agent 派发受阻: 重派一次, 仍失败 → subtask fail + report_and_stop
   # 派完后不 sleep / 不轮询 — 直接看 task 状态是否已推进到 check
 
@@ -117,7 +117,7 @@ loop exec_tick:
 loop check_tick:
   out = Bash("skein flow run")   # check.next[] 带 checker hint
   for hint in out.result.check.next:
-    Agent(subagent_type=hint.agent, prompt=hint.prompt)  # 异步派发, 不等待
+    Agent(subagent_type='skein-checker', prompt=hint.prompt)  # 异步派发, 不等待
   # 派完后看 task 状态是否已推进 (checker 自跑 done 后 scheduler 推 finishing)
 
   status = Bash(skein task status <tid> --json)
@@ -134,7 +134,7 @@ loop check_tick:
 # ============================================================
 out = Bash("skein flow run")   # 可能带 finishing/finisher hint
 for hint in (out.result.exec.next + out.result.check.next):
-  Agent(subagent_type=hint.agent, prompt=hint.prompt)  # skein-finisher
+  Agent(subagent_type='skein-finisher', prompt=hint.prompt)  # skein-finisher
 
 # 确认 task 已 done
 status = Bash(skein task status <tid> --json)
@@ -166,9 +166,8 @@ out = Bash("skein flow run")
 for hint in out.result.exec.next + out.result.check.next:
   # 只按 hint.agent 派发；使用 hint.workdir 或 hint.workdirs
   # 带 mismatch 的 hint 没有 prompt，跳过并报告，不自撰 prompt 顶上
-  # 不从 task.worktree 或 task.status 自行推导执行目录和 Agent
-  # Agent 只传 subagent_type + prompt，不传 isolation
-  call = Agent(subagent_type=hint.agent, prompt=hint.prompt)
+  # 不 或 task.status 自 或 task.status 自行推导执行目录和 Agent
+  # Agent 只传 subagent_type + prompt  call = Skills(name='skein-exec', subagent_type='skein-executor', prompt=hint.prompt)  # 异步派发, 不等待返回
   try:
     async call
   except AgentDispatchBlocked as error:
