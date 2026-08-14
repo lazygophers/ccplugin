@@ -14,7 +14,7 @@
 
 | Skill | 职责 | 入口 |
 | --- | --- | --- |
-| skein-flow | 主线编排: plan→exec→check→finish 四阶段单一真值源, 参数路由 (flow/plan/exec/check/finish, 缺省 = flow 全闭环)。plan=brainstorm+research+grill+DAG / exec=claim exec+dispatch / check=lint+type+test+contract / finish=merge+sediment+archive | 自动 (flow 信号) |
+| skein-flow | 主线编排: plan→exec→check→finish 四阶段单一真值源, 参数路由 (flow/plan/exec/check/finish, 缺省 = flow 全闭环)。plan=brainstorm+research+grill+DAG / exec=claim exec+dispatch / check=lint+type+test / finish=merge+sediment+archive | 自动 (flow 信号) |
 | skein-spec | 规则记忆: recall/sediment/bootstrap/prune | 按需 |
 | skein-grill | 对抗审查: red team (plan 后硬门) | flow 调用 |
 | skein-clean | 清理: 孤儿 worktree / 悬挂分支 | 手动 |
@@ -25,7 +25,7 @@
 | Agent | 读写限制 | 用途 |
 | --- | --- | --- |
 | skein-executor (绑定 skill skein:skein-executor) | 全读写 | 默认执行, 写代码/配置; 执行方法论在 skill |
-| skein-checker | 只读 | lint/type/test/contract 验证 |
+| skein-checker | 只读 | lint/type/test 验证 |
 | skein-researcher (绑定 skill skein:skein-research) | 只读 | 本地代码/环境/API 文档 + 第三方平台调研, 按需加载用户已有 research skills |
 | skein-finisher | 只读 | 完成度检查 |
 | skein-specer | 只写 spec/ | sediment/reconstruct/prune |
@@ -77,7 +77,7 @@
 
 | from → to | 触发 | 动作 |
 | --- | --- | --- |
-| (无) → 待处理 | plan 完成 | 产出 prd/design/findings + subtask DAG + contracts |
+| (无) → 待处理 | plan 完成 | 产出 prd/design/findings + subtask DAG |
 | 待处理 → 调研中 | `skein task research` | 需已登记 ≥1 `--phase research` subtask |
 | 调研中 → 待处理 | `skein task plan` | 需调研 subtask 全 done, 收敛回规划 |
 | 待处理 → 进行中 | `skein task confirm` | 用户确认门 (**吸收 start**): 验 prd + ≥1 subtask + doctor 体检, 一步建 worktree 直接开工, 无就绪中间态 (不校验前置 task 进度 — 依赖门在 claim 取活时判) |
@@ -96,7 +96,6 @@
 | Research | skein-researcher | `research/<topic>.md` |
 | Grill | skein-grill (hard gate) | 对抗审查通过 |
 | Subtask DAG | skein-flow plan 阶段 | subtask + depends_on + skills |
-| Contract | skein-flow plan 阶段 | contracts[] 不变量 |
 
 ### Phase 2: Exec
 
@@ -121,7 +120,6 @@
 | lint | checker | 修复重跑 |
 | typecheck | checker | 修复重跑 |
 | test | checker | 修复重跑 |
-| contract | checker | 评估是否回退 |
 | 一致性 | checker | 评估是否回退 |
 
 **Root Cause Protocol** (≥2 轮仍不过 → 第 3 轮 5 维复盘):

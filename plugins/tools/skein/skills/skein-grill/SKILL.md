@@ -23,7 +23,7 @@ effort: high
 
 ## 提问法 (relentless interview + 决策树 frontier)
 
-- **优先用 /grill-me 引擎** — 若环境装有 `/grill-me` (或 `/grilling`) skill, main 直接用它做访谈引擎跑 relentless interview; skein-grill 只补 skein 专属层 (审查轴 / planning 硬门 / 弱点表 / task.json 契约锁定)。未装则用下列内置 relentless interview 兜底。
+- **优先用 /grill-me 引擎** — 若环境装有 `/grill-me` (或 `/grilling`) skill, main 直接用它做访谈引擎跑 relentless interview; skein-grill 只补 skein 专属层 (审查轴 / planning 硬门 / 弱点表 / 不变量落盘)。未装则用下列内置 relentless interview 兜底。
 
 ### 核心模型：设计树 + frontier 轮次
 

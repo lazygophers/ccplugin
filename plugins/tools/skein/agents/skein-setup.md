@@ -48,11 +48,10 @@ skein-spec sediment --namespace=<ns> [--inclusion=always|auto] --category=<类�
 
 ```
 skein task create <id> --name "标题" --desc "一句话"                    # 逐个重建
-skein contract <id> --add "契约文本"                                # 迁契约 (每条一次)
 skein subtask add <id> <sid> --name "X" --desc "Y" --estimate <小时数> [--deps a,b] [--check "c1;c2"]   # 迁 subtask
 ```
 
-- 按 `.trellis/` 原语义逐 task 重建, 契约/subtask 逐条迁入。
+- 按 `.trellis/` 原语义逐 task 重建, subtask 逐条迁入。
 
 ### 4. 剔残留 + 验证
 
@@ -70,7 +69,7 @@ JSON 编辑剔除残留 trellis hook 接线 → 复核 `.skein/` 结构完整 �
 ## 返回数据格式 (JSON)
 
 ```json
-{"mode": "fresh | trellis-migration", "spec": {"rules": 0, "product": 0, "map": 0, "external": 0}, "legacy_structure": "<'检出 spec/core, 待 migrate' | 无>", "tasks_migrated": [{"id": "<id>", "contracts": 0, "subtasks": 0}], "cleaned": ["<剔除的残留 trellis hook/文件>"], "needs_main": ["<需 main 介入项>"], "tool_failures": ["[工具失败: <原因>]"]}
+{"mode": "fresh | trellis-migration", "spec": {"rules": 0, "product": 0, "map": 0, "external": 0}, "legacy_structure": "<'检出 spec/core, 待 migrate' | 无>", "tasks_migrated": [{"id": "<id>", "subtasks": 0}], "cleaned": ["<剔除的残留 trellis hook/文件>"], "needs_main": ["<需 main 介入项>"], "tool_failures": ["[工具失败: <原因>]"]}
 ```
 
 ## 失败模式 (if-then 三段式)

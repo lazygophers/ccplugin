@@ -143,7 +143,7 @@ _PRD_MATCH_HELP = "要勾的条目原文子串 (先 `prd read` 看原文取一�
 
 app = typer.Typer(
     cls=AliasTyperGroup,
-    help="SKEIN 任务管理引擎 — task 生命周期 + 看板 + 契约\n\ntask 编辑: task create → (research ⇄ plan) → confirm → check → revert/finishing → finish; task rename/parent/deps/repos/estimate/priority/status",
+    help="SKEIN 任务管理引擎 — task 生命周期 + 看板\n\ntask 编辑: task create → (research ⇄ plan) → confirm → check → revert/finishing → finish; task rename/parent/deps/repos/estimate/priority/status",
     no_args_is_help=True,
     add_completion=False,
     rich_markup_mode=None,  # docstring 里 [sid] 会被 rich 当样式标签吃掉, 关掉 markup 保留原文
@@ -155,7 +155,7 @@ design_app = typer.Typer(help="读/写 design.md 测试接缝段 (confirm 硬门
 
 MUTATING = {"init", "setup", "create", "confirm", "research", "plan", "check", "revert", "finishing",
             "finish", "fmt", "clean",
-            "contract", "repos", "deps", "estimate", "priority", "subtask", "claim",
+            "repos", "deps", "estimate", "priority", "subtask", "claim",
             "prd", "design", "flow", "del",
             "rename", "config"}
 
@@ -183,7 +183,7 @@ def _dispatch(a: SimpleNamespace) -> None:
         "status-overview": sk.query.status_overview,
         "status": sk.query.status, "list": sk.query.list_,
         "fmt": sk.artifacts.fmt, "prd": sk.artifacts.prd, "design": sk.artifacts.design,
-        "contract": sk.artifacts.contract,
+        "repos": sk.workspace.repos, "deps": sk.workspace.deps,
         "serve": sk.serve, "doctor": sk.doctor,
     }
     DBG.rule(f"skein {a.cmd}")
@@ -436,12 +436,6 @@ def serve(auto: Annotated[bool, typer.Option("--auto")] = False,
           open_: Annotated[bool, typer.Option("--open")] = False) -> None:
     """持久看板 http 服务。"""
     _run("serve", auto=auto, open_browser=open_)
-
-
-@app.command()
-def contract(id: str, add: Annotated[Optional[str], typer.Option("--add")] = None) -> None:
-    """查/加 task 契约。"""
-    _run("contract", id=id, add=add)
 
 
 @task_app.command("status")

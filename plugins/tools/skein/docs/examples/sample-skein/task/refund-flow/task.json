@@ -7,9 +7,6 @@
     "order-pay",
     "payment-gateway"
   ],
-  "contracts": [
-    "退款金额不得超过实付金额"
-  ],
   "subtasks": [
     {
       "sid": "s1",

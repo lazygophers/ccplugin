@@ -112,7 +112,7 @@ class Admin:
             "trellis_present": trellis.exists(),
             "spec_copied": spec_copied,
             "spec_needs_reorg": spec_copied,  # 拷自 trellis → agent 重组为 namespace×类目 (在 .skein/spec 原地改, 安全)
-            "trellis_tasks": tasks,  # 已物理迁入 .skein/task/; agent 只补语义 (subtask/contract)
+            "trellis_tasks": tasks,  # 已物理迁入 .skein/task/; agent 只补语义 (subtask)
             "wiring_removed": removed,  # 已删的 trellis 接线 + (full 时) .trellis/
             "trellisx_disabled": trellisx_disabled,  # 已在 .claude/settings.local.json 禁用的 trellisx 插件 key
             "trellis_removed": trellis_removed,

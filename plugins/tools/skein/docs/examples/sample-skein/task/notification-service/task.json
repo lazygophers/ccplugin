@@ -6,7 +6,6 @@
   "deps": [
     "payment-gateway"
   ],
-  "contracts": [],
   "subtasks": [
     {
       "sid": "s1",

@@ -135,8 +135,7 @@ class TaskStore:
                     continue
                 out.append(t)
                 DBG.log(f"读 {f}  → id={t.get('id')} status={t.get('status')} "
-                        f"subtasks={len(t.get('subtasks', []))} deps={t.get('deps') or '-'} "
-                        f"contracts={len(t.get('contracts', []))}", style="dim")
+                        f"subtasks={len(t.get('subtasks', []))} deps={t.get('deps') or '-'}", style="dim")
         # 状态优先排序 (进行中>检查中>待处理>已完成), 同状态内按优先级降序 (紧急>高>中>低), 同优先级按 id 序
         out.sort(key=lambda t: (STATUS_ORDER.get(t.get("status", ""), 9),
                                 -PRIORITY_RANK.get(t.get("priority", ""), PRIORITY_RANK[PRIORITY_DEFAULT]),

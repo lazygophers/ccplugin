@@ -71,7 +71,6 @@ export interface Task {
   subs?: [number, number, number, number]; // [done, run, pend, fail]
   ready?: boolean;
   subtasks?: Subtask[];
-  contracts?: { id: string; desc?: string }[];
   kind?: string;
   parent?: string | null;
   priority?: string;

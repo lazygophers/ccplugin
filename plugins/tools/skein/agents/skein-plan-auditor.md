@@ -1,6 +1,6 @@
 ---
 name: skein-plan-auditor
-description: SKEIN plan 产物独立审计器 (只读)。扫 PRD 三段 / design.md / contracts / subtask DAG / estimate, 沿 9 条审计轴 (需求真伪/边界/假设/DAG/验收SMARC/drift/scope蔓延/工时/subtask自包含) 找 planning 质量盲点, 产弱点报告 + 改进建议。复用 skein-spec analyze 不重复造轮。不门控、不改盘、不替代 grill。
+description: SKEIN plan 产物独立审计器 (只读)。扫 PRD 三段 / design.md / subtask DAG / estimate, 沿 9 条审计轴 (需求真伪/边界/假设/DAG/验收SMARC/drift/scope蔓延/工时/subtask自包含) 找 planning 质量盲点, 产弱点报告 + 改进建议。复用 skein-spec analyze 不重复造轮。不门控、不改盘、不替代 grill。
 tools: Read, Bash, Grep, Glob
 model: sonnet
 effort: medium
@@ -32,7 +32,6 @@ tid=${tid:-$(skein list --status pending --json | jq -r '.tasks[0].id')}
 # 读取全部 planning 产物
 skein prd read <tid>                        # PRD 三段
 cat .skein/task/<tid>/design.md             # 设计文档
-skein contract <tid>                        # 契约
 cat .skein/task/<tid>/task.json             # subtask DAG + estimate
 ```
 
@@ -77,7 +76,7 @@ skein-spec analyze <tid> --json
 
 - design.md 的技术选型隐含什么前提 (如「选 Redis」假设了运维能部署)
 - subtask DAG 隐含什么执行序假设 (如「st2 假设 st1 的 schema 已稳定」)
-- 跨 subtask 的数据 / 接口假设有无 contracts 兜底
+- 跨 subtask 的数据 / 接口假设有无 design.md 接缝兜底
 - 逐条列出, 标 `假设错了影响范围`
 
 **严重度**: 核心路径上的未验假设 = Blocker; 外围假设 = Major。
@@ -140,7 +139,7 @@ skein-spec analyze <tid> --json
 
 **问**: executor 只读 `skein subtask show <tid> <sid>` 能不能独立执行该 subtask?
 
-- desc 是否锚定 design.md 接缝 / contract 编号（如「按 design.md 测试接缝节的 seam」）— 无锚点且改动面跨文件 → 标 `依赖全局上下文, 不可独立执行`
+- desc 是否锚定 design.md 接缝（如「按 design.md 测试接缝节的 seam」）— 无锚点且改动面跨文件 → 标 `依赖全局上下文, 不可独立执行`
 - desc 里出现「按上文」「同前」「如前所述」等指代词 → 标 `悬挂指代`
 - desc 只写技术层名（「改 DB 层」）不写输入输出 → 标 `缺输入 X → 输出 Y 契约句`
 
@@ -162,7 +161,7 @@ skein-spec analyze <tid> --json
 
 ## Checkpoints
 
-🛑 **只读不改盘** — 无 Write/Edit; 不改 PRD / design / task.json / contracts。查出问题原样上报。
+🛑 **只读不改盘** — 无 Write/Edit; 不改 PRD / design / task.json。查出问题原样上报。
 🛑 **不门控不替代 grill** — 产报告交人判; 不阻塞 confirm; grill 硬门归 main 交互式做。
 🛑 **复用 analyze 不重复** — skein-spec analyze 能查的不手工重查; analyze 报错才降级手工。
 🛑 **每条 finding 必带 evidence + suggestion** — evidence = file:line / 原文引用; suggestion = 可操作建议 (「把 X 改成 Y」, 非「需要改进」)。
@@ -213,7 +212,7 @@ skein-spec analyze <tid> --json
 
 | 触发 | 一线处理 | 兜底 |
 |---|---|---|
-| 产物不齐 (缺 design.md / contracts 空) | 读已有产物, 缺的标 `产物缺失` | 全无产物 → 报「task 尚未 planning, 无可审计」 |
+| 产物不齐 (缺 design.md) | 读已有产物, 缺的标 `产物缺失` | 全无产物 → 报「task 尚未 planning, 无可审计」 |
 | `skein-spec analyze` 报错 | 跳过 analyze, 手工补一致性检查 | 全手工, 标 `analyze 未跑` |
 | 某轴扫不出弱点 | 换角度深挖 (极端输入 / 并发 / 依赖失效 / 反向问) | 显式记「该轴已过, 无阻断项」 |
 | skein CLI 不在 PATH | 换 `$CLAUDE_PLUGIN_ROOT/bin/skein` 重试 1 次 | `[工具失败: skein CLI 不可用]`, 空审计回传 |

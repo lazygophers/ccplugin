@@ -4,7 +4,6 @@
   "desc": "GET /orders/:id, 走完 plan→exec→check→finish",
   "status": "已完成",
   "deps": [],
-  "contracts": [],
   "subtasks": [],
   "worktree": null,
   "branch": "skein/order-query",

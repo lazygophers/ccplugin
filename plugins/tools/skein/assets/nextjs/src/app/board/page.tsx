@@ -112,7 +112,7 @@ export default function BoardPage() {
     setDetailLoading(true);
     api.task(selectedId).then((raw) => {
       const r = raw as unknown as Record<string, unknown>;
-      // 详情接口返回 {task: {...}, subtasks, contracts, timeline, prd, ...} — 合并到一层再 normalize
+      // 详情接口返回 {task: {...}, subtasks, timeline, prd, ...} — 合并到一层再 normalize
       const taskData = (r.task || {}) as Record<string, unknown>;
       const merged = { ...taskData, ...r } as Record<string, unknown>;
       delete merged.task;  // 去掉嵌套 task key
@@ -443,20 +443,6 @@ function DetailPanel({ task, allTasks, onClose, onConfirm, onRevert, onFinish, o
             </DetailCard>
           ));
         })()}
-
-        {/* Contracts */}
-        {task.contracts?.length > 0 && (
-          <DetailCard title="契约">
-            <div className="space-y-2">
-              {task.contracts.map((c, i) => (
-                <div key={i} className="rounded border border-border/40 bg-muted/20 p-2">
-                  <div className="text-sm font-medium text-foreground">{c.id}</div>
-                  {c.desc && <div className="mt-1 text-xs text-muted-foreground">{c.desc}</div>}
-                </div>
-              ))}
-            </div>
-          </DetailCard>
-        )}
 
         {/* Parent/Child relationship */}
         {(() => {

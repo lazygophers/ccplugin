@@ -19,7 +19,7 @@ function assert(cond: boolean, msg: string) {
 function mkTask(id: string, extra: Partial<NormTask> = {}): NormTask {
   return {
     id, name: id, title: id, description: "", desc: "",
-    status: "planning", stage: "", deps: [], subtasks: [], contracts: [],
+    status: "planning", stage: "", deps: [], subtasks: [],
     kind: "task", parent: null,
     createdAt: null, confirmedAt: null, startedAt: null, finishedAt: null, checkedAt: null,
     ...extra,

@@ -45,7 +45,7 @@ skein init    # 或由 skein-setup skill 自动触发
 | --- | --- |
 | plan | brainstorm + grill + PRD + subtask DAG |
 | exec | DAG 调度, worktree 隔离, subtask done/fail |
-| check | lint / type / test / contract |
+| check | lint / type / test |
 | finish | merge → 销wt → 标记完成 → 异步 sediment |
 
 ```
@@ -64,7 +64,6 @@ skein serve --open  # 可视化 HTML 看板
 | 双层 DAG | task + subtask 同构 DAG, 完成即派 |
 | 规则记忆库 | namespace (内容类型目录) × inclusion (加载策略: always 常驻 / auto 召回 / fileMatch / manual) |
 | sediment 判定门 | finish 时判 learning → namespace×inclusion / drop |
-| contract | planning 锁不变量, check 逐条验证 |
 
 ## 请求路由
 

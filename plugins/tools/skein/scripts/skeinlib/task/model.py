@@ -194,7 +194,7 @@ class TaskTiming(BaseModel):
 class TaskExecution(BaseModel):
     """task 执行结构。"""
     deps: list[str] = Field(default_factory=list, description="前置 task id")
-    contracts: list[str] = Field(default_factory=list, description="契约列表")
+
     subtasks: list[SubtaskData] = Field(default_factory=list, description="subtask 列表")
     repos: list[str] = Field(default_factory=list, description="涉及仓库")
     worktree: str | None = Field(default=None, description="task worktree 展示汇总")

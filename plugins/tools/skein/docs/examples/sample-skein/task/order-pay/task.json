@@ -6,9 +6,6 @@
   "deps": [
     "order-create-api"
   ],
-  "contracts": [
-    "支付回调必须幂等, 重复回调不重复入账"
-  ],
   "subtasks": [
     {
       "sid": "s1",

@@ -6,7 +6,6 @@
   "deps": [
     "order-create-api"
   ],
-  "contracts": [],
   "subtasks": [
     {
       "sid": "s1",

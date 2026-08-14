@@ -50,12 +50,6 @@ def test_status_with_id_and_sid() -> None:
     assert exec_argv({"cmd": "status", "id": "t1", "sid": "s1"}) == BASE + ["status", "t1", "s1", "--json"]
 
 
-def test_contract_no_id_returns_none() -> None:
-    assert exec_argv({"cmd": "contract"}) is None
-
-
-def test_contract_with_id() -> None:
-    assert exec_argv({"cmd": "contract", "id": "t1"}) == BASE + ["contract", "t1"]
 
 
 def test_subtask_list_no_id_returns_none() -> None:

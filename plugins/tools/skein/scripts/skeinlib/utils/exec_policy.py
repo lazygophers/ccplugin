@@ -35,8 +35,6 @@ def exec_argv(body: dict[str, Any]) -> Optional[list[str]]:
             return None
         argv = ["status", g("id")] + ([g("sid")] if s("sid") else []) + ["--json"]
         return base + argv
-    if cmd == "contract":
-        return base + ["contract", g("id")] if s("id") else None
     if cmd == "subtask-list":
         return base + ["subtask", "list", g("id")] if s("id") else None
     if cmd == "create":

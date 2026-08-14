@@ -120,7 +120,7 @@ def test_workspace_sub_raises_on_unknown_sid(ws: Path, monkeypatch: pytest.Monke
         sk._sub(t, "ghost-sid")
 
 
-# ── artifacts: prd / design / contract ───────────────────────────────────────────
+# ── artifacts: prd / design ───────────────────────────────────────────
 def test_artifacts_prd_read_without_type_reads_full(ws: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """prd read 不带 --type 时读取全文。"""
     sk = _skein(ws, monkeypatch)
@@ -165,23 +165,6 @@ def test_artifacts_design_seam_write(ws: Path, monkeypatch: pytest.MonkeyPatch) 
     out = sk.artifacts.design(_ns(id="feat-x", action="seam",
                                      list="- [ ] API 层\n- [ ] UI 层"))
     assert out["items"] == 2
-
-
-def test_artifacts_contract_add(ws: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """contract add 添加契约条目。"""
-    sk = _skein(ws, monkeypatch)
-    _create(sk, "feat-x")
-    out = sk.artifacts.contract(_ns(id="feat-x", add="契约1"))
-    assert out["total"] == 1
-
-
-def test_artifacts_contract_list(ws: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """contract 不带 add 时列出契约。"""
-    sk = _skein(ws, monkeypatch)
-    _create(sk, "feat-x")
-    sk.artifacts.contract(_ns(id="feat-x", add="契约1"))
-    out = sk.artifacts.contract(_ns(id="feat-x", add=None))
-    assert out["contracts"] == ["契约1"]
 
 
 def test_artifacts_fmt_no_changes(ws: Path, monkeypatch: pytest.MonkeyPatch) -> None:

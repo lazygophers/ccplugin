@@ -1,6 +1,6 @@
 ---
 name: skein-plan
-description: "SKEIN planning 独立入口。归一判定 (并入 vs 新建 task)、research 分流、PRD/design/contracts/subtask DAG/estimate 工件写法、grill 硬门、confirm 人审门。工件写法见 references/plan.md，拆分调度模型见 references/dag.md。skein-flow 在 $1=plan 或含 --plan 时路由到本 skill。"
+description: "SKEIN planning 独立入口。归一判定 (并入 vs 新建 task)、research 分流、PRD/design/subtask DAG/estimate 工件写法、grill 硬门、confirm 人审门。工件写法见 references/plan.md，拆分调度模型见 references/dag.md。skein-flow 在 $1=plan 或含 --plan 时路由到本 skill。"
 user-invocable: true
 argument-hint: "[任务描述/ID] [--plan]"
 arguments: "[任务描述/ID]"
@@ -22,7 +22,7 @@ effort: medium
 0. 需求收敛 → 含糊/多读法先 AskUserQuestion 逼用户拍板
 1. 归一判定 → 并入现有 task 还是新建，调用 `skein task create <tid> --name <str> --desc <str>`
 2. research 分流 → 需调研则建 --phase research subtask + skein task research
-3. 工件写法 → 见 references/plan.md (PRD 三段 / design.md / contracts / estimate)
+3. 工件写法 → 见 references/plan.md (PRD 三段 / design.md / estimate)
 4. DAG 拆分 → 见 references/dag.md (tracer-bullet 垂直切片 / depends_on / CPM)
 5. 独立审计 → Agent(skein:skein-plan-auditor)，JSON 弱点报告作为 grill 输入
 6. grill 硬门 → Skill(skein-grill)，弱点表逐条裁决补回
@@ -53,8 +53,6 @@ effort: medium
 
 **design.md**：架构、数据流、取舍、技术选型、测试接缝（必填实）、可能性分支（标触发条件）。
 
-**contracts**：brainstorm / grill 得到的不变量逐条落盘。
-
 **estimate**：先拆 subtask 再逐个估，task 工时 ≥ Σ subtask。🔒 纯 AI 估，禁问用户。
 
 **完整工件写法规范见 [references/plan.md](references/plan.md)。**
@@ -63,7 +61,7 @@ effort: medium
 
 tracer-bullet 垂直切片，每个 subtask 切穿所有层（schema→API→UI→tests），声明 `--deps` 阻塞边。协议先行后并行：共享契约抽成前置 subtask。
 
-**subtask 自包含**：desc 必须锚定 design.md 接缝或 contract 编号（如「按 design.md 测试接缝节的 seam」），保证 executor 自读 `skein subtask show` 即可独立执行，不回读全局猜上下文。
+**subtask 自包含**：desc 必须锚定 design.md 接缝（如「按 design.md 测试接缝节的 seam」），保证 executor 自读 `skein subtask show` 即可独立执行，不回读全局猜上下文。
 
 **完整拆分模型 / ready 判定 / 排序 / 双池模型见 [references/dag.md](references/dag.md)。**
 
@@ -97,7 +95,6 @@ confirm 后 **stop** — 不续 exec。续执行归 skein-flow。
 | `skein task create <tid> --name <str> --desc <str> [--deps tid1,tid2] [--repos repo1,repo2] [--priority urgent\|high\|normal\|low] [--estimate <小时>] [--like <模板tid>]` | `<tid>` 是位置参数；`--name`/`--desc` 必填；`--priority` 只收四个英文值；`--estimate` 单位是小时；`--deps` 声明前置 task；`--like` 克隆既有 task（含已完成）的 prd/design/subtask 骨架，状态全重置 |
 | `skein subtask add <tid> <sid> --name <str> --desc <str> --estimate <小时> [--deps sid1,sid2] [--skills] [--check] [--phase exec\|research]` | `<sid>` 是位置参数不是 `--id`；四必填缺一即拒 |
 | `skein prd write <tid> --type <段名> --list <条目>` | 段名 `goal\|scope\|stories\|acceptance\|verification\|testing`；`--type`/`--list` 可成对重复，一回合写多章 |
-| `skein contract <id> --add "契约文本"` | 不变量逐条落盘 |
 
 多条 skein 可以串接，但**串写命令看回显**：中途失败时后续命令照跑，回显里哪条挂了就重跑哪条（落盘状态即真值，不必预先拆）。
 

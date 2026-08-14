@@ -10,7 +10,7 @@ import { normalizeTask, normalizeTasks, type NormTask, type NormSubtask } from "
 import { PrioritySelect } from "@/components/priority";
 import { subscribe } from "@/lib/live";
 import { fmtRelative, fmtTime } from "@/lib/format";
-import { AlertTriangle, Flag, Check, XCircle, CheckSquare, Square, History, Share2, Network, Link2, Settings as Cog, Target, FileText, Handshake, FlaskConical, type LucideIcon } from "lucide-react";
+import { AlertTriangle, Flag, Check, XCircle, CheckSquare, Square, History, Share2, Network, Link2, Settings as Cog, Target, FileText, FlaskConical, type LucideIcon } from "lucide-react";
 import { renderMd } from "@/lib/md";
 import { etaOf, etaText, fmtHours, actualOf, deltaText, type EtaResult } from "@/lib/eta";
 import { layoutSubtaskDAG, layoutDepDAG } from "@/lib/elk-layout";
@@ -431,20 +431,6 @@ function TaskDetailContent() {
               {PRD_FIXED.map((sec) => (
                 <PrdSectionCard key={sec.name} taskId={task.id} sec={sec} data={prd.find(p => p.name === sec.name)} onSaved={load} />
               ))}
-
-              {/* Contracts */}
-              {task.contracts && task.contracts.length > 0 && (
-                <Card title="契约" icon={Handshake}>
-                  <div className="space-y-3">
-                    {task.contracts.map((c, i) => (
-                      <div key={i} className="rounded-lg border border-border/40 bg-muted/20 p-3">
-                        <div className="text-sm font-semibold text-foreground">{c.id}</div>
-                        {c.desc && <div className="mt-1 text-xs text-muted-foreground">{c.desc}</div>}
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-              )}
 
               {/* Subtask DAG */}
               {subs.length >= 2 && <SubtaskDagCard subs={subs} />}

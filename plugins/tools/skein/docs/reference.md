@@ -25,7 +25,6 @@
 | `skein task deps <id> [--set <id1,id2>]`                                          | 无 `--set` 只查; 带则设前置 (仅 pending 且无既有 deps 可写, 脚本查自引用/不存在/成环)                                                                                                                                                      |
 | `skein subtask add/claim/ready/start/check/show/done/fail/list <task-id\|all> [sid]` | subtask 管理 (add 登记, `--name <str> --desc <str> --estimate <小时>` 必填 / `--phase exec\|research` 默认 exec / claim 整批认领就绪 / ready 只读预览 / start 单个占槽 / check 勾验收 / show 查全字段 / done 完成 / fail 失败 / list 列态; list 收 `--status pending\|running\|done\|failed` 过滤, tid=`all` 跨全部 task 合并 (查全局 running: `skein subtask list all --status running`)) |
 | `skein claim exec\|check`                                                         | 全局跨 task 认领批; phase 必填: `exec`=认领 ready subtask → running / `check`=认领 全done 的 进行中 task → 检查中 + 检查通过的 → 收尾中 (占 gate 槽, 待 finisher 跑 finish)                                                                |
-| `skein contract <task-id>`                                                        | 契约管理 (无 `--add` 只查, 带 `--add <str>` 则追加)                                                                                                                                                                                        |
 | `skein prd read/write/add/check/uncheck <task-id>`                                | PRD 章节管理 (`--type <str>` 全部必填; `read` 无需 `--list`, 其余 `write/add/check/uncheck` 都要 `--list <str>`)                                                                                                                           |
 
 ### skein-spec
@@ -81,7 +80,7 @@
 
 | #   | 场景         | 例              | 要点                              |
 | --- | ------------ | --------------- | --------------------------------- | ------------------ |
-| 1   | 单功能开发   | 加手机号登录    | brainstorm 选型, grill, contract  |
+| 1   | 单功能开发   | 加手机号登录    | brainstorm 选型, grill  |
 | 2   | 破坏式重构   | User→UserDTO    | 全站 grep 一次改, worktree 可丢弃 |
 | 3   | 调研选型     | 选队列方案      | researcher 只读, 结论→sediment    |
 | 4   | 多 task 并行 | 导出+样式       | `--deps` 声明, pools.work=2       |
@@ -98,7 +97,6 @@
 | ------ | -------------- | --------------- | ---------------- |
 | exec   | subtask 报错   | 重派 ≤2 轮      | 停手回传         |
 | check  | lint/type/test | 修复重跑        | 第 3 轮根因复盘  |
-| check  | contract       | 评估回退        | —                |
 | finish | 合并冲突       | auto abort→手动 | 禁强解           |
 | 任意   | 方案跑歪       | —               | `skein del` 软删 |
 
@@ -115,7 +113,6 @@
 | 闭环       | plan→exec→check→finish, 不可跳步                                     |
 | worktree   | git worktree, 1 task 1 物理隔离                                      |
 | board      | task.md + task.html, 从 task.json 渲染                               |
-| contract   | planning 锁不变量, check 逐条验证                                    |
 | spec       | 规则记忆库 (namespace × inclusion)                                   |
 | core       | 违反即错, 每 session 自动注入                                        |
 | recall     | 值得参考, 按关键词召回                                               |

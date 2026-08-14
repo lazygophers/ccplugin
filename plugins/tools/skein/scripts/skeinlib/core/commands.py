@@ -11,7 +11,7 @@ Workspace          路径 / 生效配置 / TaskStore / 阶段钩子     ← 共�
 ├─ Lifecycle       create → confirm → start → check → finish  (单个 task 的状态机)
 ├─ Scheduler       claim exec / check / subtask                            (subtask DAG 调度)
 ├─ Query           ready / status / list                      (只读投影, 无写盘)
-└─ Artifacts       prd / fmt / contract                       (task 工件读写)
+└─ Artifacts       prd / fmt                                   (task 工件读写)
 ```
 依赖一律走**构造入参**: `Scheduler(ws, lifecycle)` 这一行就是它的完整依赖清单, 不必读实现。
 唯二的横向依赖也在签名里写着 —— `Lifecycle` 要一个 doctor 可调用 (start 前置体检),

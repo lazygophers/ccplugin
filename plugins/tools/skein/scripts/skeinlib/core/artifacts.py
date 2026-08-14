@@ -1,4 +1,4 @@
-"""`Artifacts` — task 工件读写: prd.md 章节、prd 规范化、契约清单。
+"""`Artifacts` — task 工件读写: prd.md 章节、prd 规范化。
 
 ## 为什么不让 AI 直接 Edit prd.md
 prd 有固定三段结构 (`PRD_SECTIONS_V6`), 而 `confirm` 的硬门按章节校验。裸 Edit 很容易把结构
@@ -24,7 +24,7 @@ import re
 
 
 class Artifacts:
-    """prd.md / 契约等 task 工件的读写。"""
+    """prd.md 等 task 工件的读写。"""
 
     def __init__(self, ws: "Workspace") -> None:
         self.ws = ws
@@ -128,11 +128,3 @@ class Artifacts:
         items = seam_write(self.ws.tasks, tid, a.list)
         return {"id": tid, "section": "测试接缝", "action": "write", "items": len(items)}
 
-    def contract(self, a: argparse.Namespace) -> dict[str, Any]:
-        t = self.ws.store.load(a.id)
-        t.setdefault("contracts", [])
-        if a.add:
-            t["contracts"].append(a.add)
-            self.ws.store.save(t)
-            return {"id": a.id, "action": "add", "total": len(t["contracts"])}
-        return {"id": a.id, "contracts": t["contracts"]}

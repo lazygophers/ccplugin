@@ -49,7 +49,6 @@ export interface NormTask {
   stage: string;
   deps: string[];
   subtasks: NormSubtask[];
-  contracts: { id: string; desc?: string }[];
   kind: string;
   parent: string | null;
   priority: string;
@@ -102,7 +101,6 @@ export function normalizeTask(t: Record<string, unknown>): NormTask {
     stage: (t.stage || (status === 'planning' ? 'plan' : status === 'active' ? 'exec' : status === 'check' ? 'check' : 'done')) as string,
     deps: (t.deps || []) as string[],
     subtasks: ((t.subtasks || t.subtable || []) as Record<string, unknown>[]).map(normalizeSubtask),
-    contracts: (t.contracts || []) as { id: string; desc?: string }[],
     // 真实值优先, 仅缺字段/非四档合法值 (如未迁移的存量数字) 时落中档兜底, 防选择器渲染出不存在的档位
     priority: PRIORITIES.includes(t.priority as typeof PRIORITIES[number]) ? (t.priority as string) : 'normal',
     kind: (t.kind || 'task') as string,

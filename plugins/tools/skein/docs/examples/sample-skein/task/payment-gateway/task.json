@@ -4,10 +4,6 @@
   "desc": "对接第三方支付, 统一 charge/refund 接口",
   "status": "检查中",
   "deps": [],
-  "contracts": [
-    "charge 幂等 (out_trade_no 唯一)",
-    "回调验签失败一律拒绝"
-  ],
   "subtasks": [
     {
       "sid": "s1",

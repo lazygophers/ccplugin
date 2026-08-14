@@ -72,7 +72,7 @@ class Lifecycle:
             raise SkeinError(f"预计工时非法: {raw_est!r} — {ESTIMATE_HINT}")
         t = {
             "id": tid, "name": a.name, "desc": a.desc,
-            "status": TaskStatus.PENDING, "deps": deps, "contracts": [], "subtasks": [],
+            "status": TaskStatus.PENDING, "deps": deps, "subtasks": [],
             "priority": validate_priority(getattr(a, "priority", None)),  # 四档枚举, 未指定落中档
             "estimate": est,  # 预计工时(小时), plan 阶段必填, confirm 硬门校验
             "repos": repos,          # planning 声明的目标子 git (rel 路径; 空=单根/原地模式)

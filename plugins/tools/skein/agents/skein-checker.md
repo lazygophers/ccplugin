@@ -94,17 +94,7 @@ skein prd read <id> --type=验收标准       # PRD 定的验收标准 (中英�
 
 每条命令/核查记: 命令 + exit code + 结果摘要 + 失败原文 (file:line)。
 
-### 5. 契约逐条核对
-
-```
-skein contract <id>
-```
-
-- planning 锁进 task.json 的全部契约 **逐条**核对, 每条 pass/fail + 依据 (file:line)。
-- 任一 fail → 必须上报 (main 派修复), 逐条不漏。
-- CLI 报错 → `[工具失败: 契约读取失败]`。
-
-### 6. 一致性核查 (调 skein-spec analyze)
+### 5. 一致性核查 (调 skein-spec analyze)
 
 ```
 skein-spec analyze <id> --json
@@ -122,7 +112,7 @@ main 只在 flow-loop 允许的状态门后派真实 `Agent(subagent_type="skein
 
 ## Checkpoints
 
-🛑 **硬门全跑完才回传** — 状态切换 / checkpoint 核对 (task+subtask 验收) / **验收标准验证执行 (PRD 驱动逐条执行)** / 场景内置 check (fallback, 按项目自适应命中类: 编程/小说/数据ETL/文档知识/配置基建/设计前端) / 契约 / 一致性 缺一回传 = 漏检, main 会据不全报告误放行。
+🛑 **硬门全跑完才回传** — 状态切换 / checkpoint 核对 (task+subtask 验收) / **验收标准验证执行 (PRD 驱动逐条执行)** / 场景内置 check (fallback, 按项目自适应命中类: 编程/小说/数据ETL/文档知识/配置基建/设计前端) / 一致性 缺一回传 = 漏检, main 会据不全报告误放行。
 🛑 **工具失败必标 `[工具失败: <原因>]`** — Bash 超时/Read 不存在/CLI 报错时, 只标 `[工具失败: <原因>]`, 不当成功结果返回 (原始错误输出不是有效结果, main 消费错误摘要当数据会静默降级)。
 🛑 **只验证不修复, 修复循环归 main** — 无 Write/Edit (能力边界), 全部写盘经 `skein prd check` CLI 完成 (仅限勾选验收项, 内容保持原样); 查出代码/文本问题原样上报——就地改归后续 executor、补 subtask 归 main、重派 executor 归 main。FAIL/冲突 → needs_main 写清方向供 main 走 grill/AskUserQuestion 定夺。
 🛑 **无法机验标 MANUAL** — 验收项如「体验流畅」只标 MANUAL 交人审, 机判 pass 无依据。
@@ -133,7 +123,7 @@ main 只在 flow-loop 允许的状态门后派真实 `Agent(subagent_type="skein
 ## 返回数据格式 (JSON)
 
 ```json
-{"task_id": "<id>", "verdict": "PASS | FAIL | 冲突", "verification_methods": [{"method": "<验收标准条目原文>", "result": "PASS | FAIL | MANUAL", "evidence": "<file:line / URL / exit code / 原因>", "cmd": "<执行的命令或步骤>"}], "hard_gates": [{"cmd": "<命令>", "exit": 0, "summary": "<结果摘要>", "failures": [{"file": "<path>:<line>", "snippet": "<原文>"}]}], "acceptance": [{"item": "<未勾验收项文本>", "result": "PASS | FAIL | MANUAL", "note": "<依据 file:line 或原因>"}], "contracts": [{"contract": "<契约条>", "result": "pass | fail", "evidence": "<file:line>"}], "consistency": {"analyze_candidates": [{"category": "验收覆盖率|硬规冲突|范围蔓延|proposed置信度|接缝存在性", "note": "<候选说明, file:line>"}], "clean": false}, "needs_main": ["<需 main 介入项>"], "tool_failures": ["[工具失败: <原因>]"]}
+{"task_id": "<id>", "verdict": "PASS | FAIL | 冲突", "verification_methods": [{"method": "<验收标准条目原文>", "result": "PASS | FAIL | MANUAL", "evidence": "<file:line / URL / exit code / 原因>", "cmd": "<执行的命令或步骤>"}], "hard_gates": [{"cmd": "<命令>", "exit": 0, "summary": "<结果摘要>", "failures": [{"file": "<path>:<line>", "snippet": "<原文>"}]}], "acceptance": [{"item": "<未勾验收项文本>", "result": "PASS | FAIL | MANUAL", "note": "<依据 file:line 或原因>"}], "consistency": {"analyze_candidates": [{"category": "验收覆盖率|硬规冲突|范围蔓延|proposed置信度|接缝存在性", "note": "<候选说明, file:line>"}], "clean": false}, "needs_main": ["<需 main 介入项>"], "tool_failures": ["[工具失败: <原因>]"]}
 ```
 
 ## 失败模式 (if-then 三段式)
@@ -141,7 +131,6 @@ main 只在 flow-loop 允许的状态门后派真实 `Agent(subagent_type="skein
 | 触发                   | 一线处理                    | 兜底                                                 |
 | ---------------------- | --------------------------- | ---------------------------------------------------- |
 | 命令超时               | 重试 1 次                   | `[工具失败: 超时]` 入 tool_failures                  |
-| 契约 CLI 报错          | 直接读 task.json 兜底取契约 | `[工具失败: 契约读取]` + 已取条数入 contracts        |
 | 验收项无法机验         | 标 MANUAL 需人审            | 只判 MANUAL, 机判 pass 无依据                        |
 | 验收标准读取失败       | 记 note 但不阻断            | `[工具失败: PRD 无验收标准章节]`, fallback 到场景推测 |
 | 验收标准执行失败       | 逐条报 FAIL                 | needs_main 标「验收标准未通过」让 main 走回 planning  |

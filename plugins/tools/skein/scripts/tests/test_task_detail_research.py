@@ -22,7 +22,7 @@ def _new_task(root: Path, tid: str) -> Path:
     tdir = root / ".skein" / "task" / tid
     tdir.mkdir(parents=True, exist_ok=True)
     (tdir / "task.json").write_text(
-        '{"id": "%s", "name": "t", "subtasks": [], "contracts": []}' % tid,
+        '{"id": "%s", "name": "t", "subtasks": []}' % tid,
         encoding="utf-8",
     )
     return tdir

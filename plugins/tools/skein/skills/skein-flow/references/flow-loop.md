@@ -211,13 +211,13 @@ for hint in out.result.exec.next + out.result.check.next:
 
 #### plan
 
-> **Planning 工件写法 (PRD/design/contracts/estimate) 见 [skein-plan/references/plan.md](../../skein-plan/references/plan.md)，DAG 拆分调度模型见 [skein-plan/references/dag.md](../../skein-plan/references/dag.md)。本段只保留状态推进与出口规则。**
+> **Planning 工件写法 (PRD/design/estimate) 见 [skein-plan/references/plan.md](../../skein-plan/references/plan.md)，DAG 拆分调度模型见 [skein-plan/references/dag.md](../../skein-plan/references/dag.md)。本段只保留状态推进与出口规则。**
 
 - 先查未完成 task，判新诉求是并入现有 task 还是新建；同目标 / 同模块 / 共享改动面 / 互为前置默认并入，只有目标独立且无共享改动面才新建。
 - 判 direct-fix / standard / heavy：direct-fix 仅限单文件单处 ≤20 行且位置已知；跨 ≥2 文件、多步、外部调研、文档交付一律建 task。
 - 需要调研时，先登记 `--phase research` subtask，再 `skein task research <id>`；`skein-researcher` 只读调研，结论落 `.skein/task/<id>/research/` 与 `findings.md`，全 done 后 `skein task plan <id>` 收敛回 pending。
 - brainstorm / 关键取舍用 `AskUserQuestion`；事实先自查，决策才问用户，禁止把可查事实甩给用户。
-- 跑 grill 硬门：按弱点表逐项裁决并补回 PRD/design/contracts/subtask；有未裁决弱点不得 confirm。
+- 跑 grill 硬门：按弱点表逐项裁决并补回 PRD/design/subtask；有未裁决弱点不得 confirm。
 - `skein task confirm --summary` 只给用户审、不改状态；用户明确批准后才 `skein task confirm --approved`，裸 `skein task confirm` 不作为自动过门手段。
 - flow 默认焦点 task 通过 confirm 后直接续 exec；显式 `plan` / `--plan` 路由到 skein-plan skill，confirm 后停，不续 exec。
 
@@ -233,7 +233,7 @@ check 阶段可派两个 checker **并行**（各自独立 context，互不污�
 
 | checker | 职责 | 返回 |
 |---------|------|------|
-| **skein-checker**（现有） | 验收标准 / 契约 / 一致性 (skein-spec analyze) | JSON verdict |
+| **skein-checker**（现有） | 验收标准 / 一致性 (skein-spec analyze) | JSON verdict |
 | **skein-code-reviewer**（双轴 diff 审查） | Standards (repo 规范 + Fowler smell baseline) + Spec (diff 对齐 originating spec) | JSON verdict |
 
 两个 checker 并行跑，各自回传 JSON。main 聚合：

@@ -268,7 +268,7 @@ def _view_board_data(snap: Snapshot) -> dict[str, Any]:
         "cards": cards,
     }
 def _view_task_detail(snap: Snapshot, tid: str) -> Optional[dict[str, Any]]:
-    # task.json 全文 + prd/design/findings 原文 + subtask + 契约; 未归档缺失则回落归档目录
+    # task.json 全文 + prd/design/findings 原文 + subtask; 未归档缺失则回落归档目录
     tdir = snap.task_path(tid)
     archived = False
     if not (tdir / "task.json").exists():
@@ -304,7 +304,7 @@ def _view_task_detail(snap: Snapshot, tid: str) -> Optional[dict[str, Any]]:
         if tid in t.get("deps", []):
             dependents.append(brief)
     return {"task": data, "docs": docs, "research": research, "archived": archived,
-            "subtasks": data.get("subtasks", []), "contracts": data.get("contracts", []),
+            "subtasks": data.get("subtasks", []),
             "timeline": data.get("timeline", []),  # 原样带出, 不聚合; 老 task 缺字段回落空列表
             "maxActive": snap.pool_work,  # 前端 ETA 折算并行墙钟用
             "prd": _prd_parse(docs.get("prd")), "progress": _task_pct(data),

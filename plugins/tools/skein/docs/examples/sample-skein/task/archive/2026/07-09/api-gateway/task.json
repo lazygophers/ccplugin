@@ -4,7 +4,6 @@
   "desc": "gin 路由 + 中间件链 + 统一错误响应",
   "status": "已完成",
   "deps": [],
-  "contracts": [],
   "subtasks": [],
   "worktree": null,
   "branch": "skein/api-gateway",

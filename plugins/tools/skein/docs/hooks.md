@@ -117,7 +117,7 @@ hooks:
 
 | 想干什么 | 怎么写 |
 |---|---|
-| 查状态 | ✅ 只读命令可以: `skein list` / `subtask list` / `current` / `contract` (不取写锁) |
+| 查状态 | ✅ 只读命令可以: `skein list` / `subtask list` / `current` (不取写锁) |
 | 改 task 状态 | ❌ 别在阶段钩子里做。改用 `subtask.done` 之类**更靠后的阶段钩子**, 或让钩子只落个标记文件, 由后续流程消费 |
 | agent 钩子 | ✅ 不受此限 —— `agent-start` / `agent-stop` 不取工作区写锁 |
 

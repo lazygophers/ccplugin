@@ -52,7 +52,7 @@ def _load() -> ModuleType:
 
 def _task_json(**kw: Any) -> dict[str, Any]:
     base: dict[str, Any] = {
-        "deps": [], "subtasks": [], "contracts": [],
+        "deps": [], "subtasks": [],
         "created": TNOW - 10000, "updated": TNOW - 5000,
     }
     base.update(kw)
@@ -106,7 +106,6 @@ def _seed(d: Path) -> None:
             _sub("s3", SubtaskStatus.PENDING, depends_on=["s1"]),
             _sub("s4", SubtaskStatus.PENDING, depends_on=["s2"]),  # 依赖未 done → 阻塞
         ],
-        contracts=["契约A", "契约B"],
     ), prd=PRD_ALPHA)
     # 检查中 (subtask 全 done)
     _write_task(tdir, _task_json(

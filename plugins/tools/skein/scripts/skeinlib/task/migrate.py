@@ -26,7 +26,7 @@ _TRELLIS_HOOK_SCRIPTS = ("session-start.py", "inject-subagent-context.py",
 
 def migrate_trellis_tasks(trellis: Path, tasks_dir: Path, store: Any) -> list[dict[str, Any]]:
     # 物理迁移 trellis 非归档 task → .skein/task/<id>/: 翻译 task.json 为 skein schema + 拷贝 planning 工件。
-    # 已归档 (archive/) 不迁; 已存在的同名 skein task 不覆盖 (幂等)。subtask/contract 语义搬运由 agent 补。
+    # 已归档 (archive/) 不迁; 已存在的同名 skein task 不覆盖 (幂等)。subtask 语义搬运由 agent 补。
     out: list[dict[str, Any]] = []
     tdir = trellis / "task"
     if not tdir.is_dir():
@@ -54,7 +54,7 @@ def migrate_trellis_tasks(trellis: Path, tasks_dir: Path, store: Any) -> list[di
         t = {
             "id": tid, "name": raw.get("title") or raw.get("name") or tid,
             "desc": raw.get("description") or raw.get("desc") or "",
-            "status": TaskStatus.PENDING, "deps": deps, "contracts": [], "subtasks": [],
+            "status": TaskStatus.PENDING, "deps": deps, "subtasks": [],
             "worktree": None, "branch": f"skein/{tid}",
             "created": now(), "started": None, "finished": None, "updated": now(),
         }

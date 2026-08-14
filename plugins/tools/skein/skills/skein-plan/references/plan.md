@@ -1,6 +1,6 @@
 # plan — planning 工件写法
 
-plan 的状态推进、research 分流、confirm、人审门、plan-ahead、出口规则见 [skein-flow/references/flow-loop.md](../../skein-flow/references/flow-loop.md#plan)。本文件只写四件工件各自怎么落。
+plan 的状态推进、research 分流、confirm、人审门、plan-ahead、出口规则见 [skein-flow/references/flow-loop.md](../../skein-flow/references/flow-loop.md#plan)。本文件只写三件工件各自怎么落。
 
 ## prd.md
 
@@ -18,15 +18,6 @@ plan 的状态推进、research 分流、confirm、人审门、plan-ahead、出�
 - 可能性分支必须标触发条件，且不生成 subtask。
 - 难逆决策写进取舍或可能性分支。
 - `## 测试接缝 (seam)` 必须填实（confirm 校验）。
-
-## contracts
-
-brainstorm / grill 得到的不变量逐条落盘：
-
-```bash
-skein contract <id> --add "契约文本"
-skein contract <id>
-```
 
 ## subtask DAG 与 estimate
 
