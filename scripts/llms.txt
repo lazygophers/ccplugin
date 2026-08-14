@@ -1,0 +1,38 @@
+# Scripts - 工具脚本
+
+> CCPlugin 项目的工具脚本集合，提供项目管理和维护功能
+
+## 概述
+
+本目录包含用于 CCPlugin 项目管理和维护的实用工具脚本，涵盖版本管理、插件清理、市场信息查询等功能。
+
+## 主要脚本
+
+- `clean.py` - 清理旧版本插件缓存，从 `~/.claude/plugins/cache/` 删除过期的插件版本
+- `info.py` - 显示已注册市场和插件信息，查看可用插件列表
+- `update.py` - 从市场更新已启用的插件到最新版本
+- `update_version.py` - 更新项目版本号，同步更新所有插件的版本信息
+
+## 使用方法
+
+所有脚本都使用 `uv run` 执行：
+
+```bash
+# 清理旧版本插件
+uv run scripts/clean.py
+
+# 查看市场信息
+uv run scripts/info.py
+
+# 更新插件
+uv run scripts/update.py
+
+# 更新版本号
+uv run scripts/update_version.py
+```
+
+## 相关文档
+
+- [项目文档](../README.md) - CCPlugin 项目文档
+- [开发指南](../CLAUDE.md) - 开发指南
+- [版本管理](../CHANGELOG.md) - 版本变更历史
