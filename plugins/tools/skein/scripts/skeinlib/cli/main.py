@@ -460,6 +460,8 @@ def subtask(
     note: Annotated[Optional[str], typer.Option("--note")] = None,
     passed: Annotated[Optional[str], typer.Option("--passed")] = None,
     skills: Annotated[Optional[str], typer.Option("--skills")] = None,
+    status_filter: Annotated[Optional[str], typer.Option(
+        "--status", help="list 过滤: pending/running/done/failed (仅 list 动作收)")] = None,
 ) -> None:
     """单 task 内 subtask DAG 调度。
 
@@ -475,7 +477,7 @@ def subtask(
     rename <tid> <sid> [--id] [--name]                                                   重命名 subtask
     ready <tid>                                                                         只读预览
     show  <tid> <sid>                                                                   单条详情
-    list  <tid>                                                                         全表
+    list  <tid> [--status]                                                              全表; tid=all 跨 task 合并, --status 过滤状态
     """
     args = list(ctx.args)
     if len(args) < 2 or len(args) > 3:
@@ -503,8 +505,11 @@ def subtask(
             raise typer.BadParameter(f"subtask add 必填: {', '.join(missing)} (sid/name/desc/estimate 缺一不可)")
     if phase not in (None, "exec", "research"):
         raise typer.BadParameter("phase 仅允许 exec/research")
+    if status_filter not in (None, "pending", "running", "done", "failed"):
+        raise typer.BadParameter("--status 仅允许 pending/running/done/failed")
     _run("subtask", action=action, tid=tid, sid=sid, name=name, desc=desc, estimate=estimate,
-         deps=deps, check=check, phase=phase, repo=repo, note=note, passed=passed, skills=skills)
+         deps=deps, check=check, phase=phase, repo=repo, note=note, passed=passed, skills=skills,
+         status_filter=status_filter)
 
 
 app.add_typer(task_app, name="task")

@@ -606,6 +606,27 @@ def test_subtask_list_and_show(ws: Path, monkeypatch: pytest.MonkeyPatch) -> Non
     assert shown["acceptance"] == ["第一条", "第二条"]
 
 
+def test_subtask_list_all_and_status_filter(ws: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """tid=all 跨 task 合并 + --status 过滤: 查全局 running 的入口。"""
+    sk = _skein(ws, monkeypatch)
+    _create(sk, "feat-x")
+    _create(sk, "feat-y")
+    _add_sub(sk, "feat-x", "sub-a")
+    _add_sub(sk, "feat-y", "sub-b")
+    t = _load(ws, "feat-y")
+    t["subtasks"][0]["status"] = SubtaskStatus.RUNNING
+    _write(ws, t)
+    # tid=all --status running: 只剩 feat-y/sub-b, 行带 tid 标注
+    out = _sub_act(sk, "list", "all", status_filter="running")
+    assert out["tid"] == "all" and out["count"] == 1
+    assert out["subtasks"] == [{"tid": "feat-y", "sid": "sub-b", "status": SubtaskStatus.RUNNING,
+                                "name": "sub-b", "pct": 50, "estimate": 1, "repo": None,
+                                "depends_on": [], "acceptance": [], "skills": [], "started": None}]
+    # 单 task 过滤: feat-x --status running 为空, 不传则全量
+    assert _sub_act(sk, "list", "feat-x", status_filter="running")["subtasks"] == []
+    assert len(_sub_act(sk, "list", "feat-x")["subtasks"]) == 1
+
+
 def test_subtask_claim_reports_invalid_workdir(ws: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """单 task claim 路径同样要把 workdir 解析失败标成 mismatch, 而不是整条命令炸掉。"""
     sk = _skein(ws, monkeypatch)

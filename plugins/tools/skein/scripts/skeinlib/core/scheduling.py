@@ -77,6 +77,14 @@ def _hint_prompt(hint: dict[str, Any]) -> str:
     return json.dumps(payload, ensure_ascii=False)
 
 
+def _sub_row(tid: str, s: dict[str, Any]) -> dict[str, Any]:
+    """subtask list 的单行投影 (单 task / 全局 all 视图共用, 字段同构)。"""
+    return {"tid": tid, "sid": s["sid"], "status": s["status"], "name": s["name"],
+            "pct": _sub_pct(s), "estimate": s.get("estimate"), "repo": s.get("repo"),
+            "depends_on": s.get("depends_on", []), "acceptance": s.get("acceptance", []),
+            "skills": s.get("skills", []), "started": s.get("started")}
+
+
 def _dispatch_hints(claimed: list[dict[str, Any]] | None = None,
                     checked: list[str] | None = None,
                     finishing: list[str] | None = None,
@@ -546,15 +554,21 @@ class Scheduler:
             return {"tid": a.tid, "sid": a.sid, "estimate": est,
                     "total": len(subs), "subtask_sum": _sub_estimate_sum(t)}
         if a.action == "list":
+            st = getattr(a, "status_filter", None)
+            if a.tid == "all":
+                # 全局视图: 全部 task 的 subtask 合并 (跨 task 查 running 用, tid 逐条标注)
+                rows = []
+                for t in self.ws.store.all_tasks():
+                    for s in t.get("subtasks", []):
+                        if st and s["status"] != st:
+                            continue
+                        rows.append(_sub_row(t["id"], s))
+                return {"tid": "all", "count": len(rows), "subtasks": rows}
             t = self.ws.store.load(a.tid)
             subs = t.get("subtasks", [])
-            return {"tid": a.tid, "subtasks": [{"sid": s["sid"], "status": s["status"],
-                    "name": s["name"], "pct": _sub_pct(s),
-                    "estimate": s.get("estimate"),
-                    "repo": s.get("repo"),
-                    "depends_on": s.get("depends_on", []),
-                    "acceptance": s.get("acceptance", []),
-                    "skills": s.get("skills", [])} for s in subs]}
+            if st:
+                subs = [s for s in subs if s["status"] == st]
+            return {"tid": a.tid, "subtasks": [_sub_row(a.tid, s) for s in subs]}
         if a.action == "show":
             t = self.ws.store.load(a.tid)
             s = self.ws._sub(t, a.sid)

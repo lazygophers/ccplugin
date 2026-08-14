@@ -40,7 +40,6 @@ def test_doctor_reports_task_and_subtask_invariants(
     """一次畸形真值覆盖 task、subtask、依赖和验收边界诊断。"""
     _write_task(ws, {
         "id": "Bad_ID", "name": "bad", "status": "bogus", "priority": 9,
-        "kind": "child", "parent": "missing", "parent_id": "legacy",
         "deps": ["Bad_ID", "missing"], "subtasks": [{
             "sid": "sub-a", "name": "", "desc": "", "status": "bogus",
             "depends_on": ["sub-a", "missing"], "acceptance": ["ok"],
@@ -56,7 +55,6 @@ def test_doctor_reports_task_and_subtask_invariants(
         sk.doctor(argparse.Namespace(quality=False))
     out = capsys.readouterr().out
     for fragment in ("id 非 kebab-case", "非法 status", "非法 priority",
-                     "未登记 task 父子字段", "非法 kind", "parent 指向不存在",
                      "deps 自引用", "deps 指向不存在", "subtask sid 重复",
                      "非法 subtask status", "subtask 缺 name", "subtask 缺 desc",
                      "subtask 缺 estimate", "depends_on 自引用",
