@@ -14,4 +14,6 @@ session 意外结束 (崩溃 / 手动中断 / context 满) 后恢复。不是回
 	`! skein subtask list all --status running | jq '.subtasks'`
 2. TaskList、AgentList 等方式查询正在运行的 Task、Agent 的状态
 3. 重新使用 Agent 调度正在进行中的但是没有实际 Task、Agent 的 subtask
-4. 继续 main 为完成的 task plan 的工作
+4. 查看当前有哪些 plan task
+	`! skein task list --status plan | jq '.tasks'`
+5. 对每一个 plan task 依次完成完整的 Skill('skein:skein-plan')
