@@ -97,9 +97,6 @@ class Query:
             "gate_tasks": gate_tasks,
             "active_tasks": active_tasks,
             "plan_tasks": plan_tasks,
-            "next": ("skein flow run" if ready_cnt and len(running_subs) < work_cap
-                     else "等 subtask done 释放槽" if len(running_subs) >= work_cap
-                     else "skein list --status plan"),
         }
 
         if not getattr(a, "pretty", False):
@@ -164,7 +161,7 @@ class Query:
                 blocked = ", ".join(t["blocked_by"]) if t["blocked_by"] else "-"
                 table.add_row(t["id"], t["name"], str(stotal), est, blocked)
             console.print(table)
-        console.print(f"\n[dim]就绪待派: {d['ready_pending']} → {d['next']}[/dim]")
+        console.print(f"\n[dim]就绪待派: {d['ready_pending']}[/dim]")
 
 
     def ready(self, a: argparse.Namespace) -> dict[str, Any]:
