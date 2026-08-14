@@ -24,7 +24,7 @@
 
 | Agent | 读写限制 | 用途 |
 | --- | --- | --- |
-| skein-executor | 全读写 | 默认执行, 写代码/配置 |
+| skein-executor (绑定 skill skein:skein-executor) | 全读写 | 默认执行, 写代码/配置; 执行方法论在 skill |
 | skein-checker | 只读 | lint/type/test/contract 验证 |
 | skein-researcher | 只读 | 本地代码/环境/API 文档 + 第三方平台调研, 按需加载用户已有 research skills |
 | skein-finisher | 只读 | 完成度检查 |
