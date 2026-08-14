@@ -442,9 +442,19 @@ def test_status_overview_json_and_rich(ws: Path, monkeypatch: pytest.MonkeyPatch
     assert out["running_subtasks"][0]["tid"] == "feat-x"
     assert out["ready_pending"] == 0  # sub-b 依赖 sub-a 未 done → 不算就绪
     assert out["active_tasks"][0]["id"] == "feat-x"
+    # feat-x 已 active → 不在 plan_tasks; 建一个带依赖阻塞的 pending task 验证
+    _create(sk, "feat-next", deps="feat-x")
+    assert [t["id"] for t in out["plan_tasks"]] == []  # 快照在 feat-next 建立前
+    out2 = sk.query.status_overview(_ns(pretty=False))
+    # JSON 形态精简: task 只留 id/name/status
+    assert out2["plan_tasks"] == [{"id": "feat-next", "name": "feat-next",
+                                   "status": TaskStatus.PENDING}]
+    assert set(out2["running_subtasks"][0]) == {"tid", "sid", "name", "status"}
+    assert set(out2["active_tasks"][0]) == {"id", "name", "status"}
 
     # --pretty: 自打印 + 返回 None (cli 不再打 JSON)
     capsys.readouterr()
     assert sk.query.status_overview(_ns(pretty=True)) is None
     rich_out = capsys.readouterr().out
     assert "SKEIN 运行态" in rich_out and "sub-a" in rich_out
+    assert "plan 中" in rich_out and "feat-next" in rich_out

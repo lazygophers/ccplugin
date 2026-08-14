@@ -80,6 +80,13 @@ class Query:
                          "sdone": sum(1 for s in t.get("subtasks", []) if s["status"] == SubtaskStatus.DONE),
                          "stotal": len(t.get("subtasks", []))}
                         for t in tasks if t["status"] in STATUS_ACTIVE]
+        # plan 阶段 (待处理) task: stotal=0 即 plan 未收敛; 依赖未清则不可 confirm 开工
+        plan_tasks = [{"id": t["id"], "name": t.get("name", t["id"]), "status": t["status"],
+                       "stotal": len(t.get("subtasks", [])),
+                       "estimate": t.get("estimate"),
+                       "blocked_by": [d for d in t.get("deps", [])
+                                      if self.ws._dep_unfinished(d)]}
+                      for t in tasks if t["status"] == TaskStatus.PENDING]
 
         data = {
             "pool": {"work": {"running": len(running_subs), "capacity": work_cap},
@@ -89,13 +96,22 @@ class Query:
             "ready_pending": ready_cnt,
             "gate_tasks": gate_tasks,
             "active_tasks": active_tasks,
+            "plan_tasks": plan_tasks,
             "next": ("skein flow run" if ready_cnt and len(running_subs) < work_cap
                      else "等 subtask done 释放槽" if len(running_subs) >= work_cap
                      else "skein list --status plan"),
         }
 
         if not getattr(a, "pretty", False):
-            return data
+            # JSON 形态精简: subtask 只留 status/tid/sid/name, task 只留 status/id/name
+            # (调度细节是 rich/--pretty 的事; JSON 消费方要细节走 flow run --dry-run)
+            brief_task = lambda ts: [{"id": t["id"], "name": t["name"], "status": t["status"]} for t in ts]
+            return {**data,
+                    "running_subtasks": [{"tid": s["tid"], "sid": s["sid"], "name": s["name"],
+                                          "status": "running"} for s in running_subs],
+                    "active_tasks": brief_task(active_tasks),
+                    "plan_tasks": brief_task(plan_tasks),
+                    "gate_tasks": brief_task(gate_tasks)}
         self._render_status(data)
         return None
 
@@ -136,6 +152,18 @@ class Query:
         if d["gate_tasks"]:
             gt = " · ".join(f"{t['id']}({t['status']})" for t in d["gate_tasks"])
             console.print(f"\n[bold]检查/收尾中:[/bold] {gt}")
+        if d["plan_tasks"]:
+            console.print("\n[bold]plan 中 (待处理):[/bold]")
+            table = Table(show_header=True, box=None, padding=(0, 2))
+            for col, style in (("tid", "cyan"), ("名称", None), ("subtask", "yellow"),
+                               ("工时", "dim"), ("依赖阻塞", "red")):
+                table.add_column(col, style=style)
+            for t in d["plan_tasks"]:
+                stotal = t["stotal"] if t["stotal"] else "未规划"
+                est = f"{t['estimate']}h" if t["estimate"] else "-"
+                blocked = ", ".join(t["blocked_by"]) if t["blocked_by"] else "-"
+                table.add_row(t["id"], t["name"], str(stotal), est, blocked)
+            console.print(table)
         console.print(f"\n[dim]就绪待派: {d['ready_pending']} → {d['next']}[/dim]")
 
 
