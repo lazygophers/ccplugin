@@ -1,7 +1,7 @@
 """`Artifacts` — task 工件读写: prd.md 章节、prd 规范化、契约清单。
 
 ## 为什么不让 AI 直接 Edit prd.md
-prd 有固定七章结构 (`PRD_SECTIONS_V6`), 而 `confirm` 的硬门按章节校验。裸 Edit 很容易把结构
+prd 有固定三段结构 (`PRD_SECTIONS_V6`), 而 `confirm` 的硬门按章节校验。裸 Edit 很容易把结构
 改坏, 于是 confirm 报一个和实际操作对不上的错。走 `prd read/write/add/check` 这组命令, 章节
 边界由 `skeinlib.task.prd` 统一维护, 结构永远合法。
 
@@ -50,8 +50,7 @@ class Artifacts:
                 f"实际 {sections} — {prd}")
         # 规范化 (行首非缩进; 缩进子 list / 已勾选态不动):
         #   (a) 所有章节: `- ` 且非 checkbox → 补 `- [ ] `
-        #   (b) 仅 PRD_TODO_SECTIONS (目标/验收标准/Testing Decisions) 章节: 有序列表 `N. ` → `- [ ] ` (逐条可勾选)
-        #       User Stories 不在此列 —— 其 `1. As a ...` 编号格式是 to-spec 固定格式, 不折成 checkbox
+        #   (b) 仅 PRD_TODO_SECTIONS (目标/验收标准) 章节: 有序列表 `N. ` → `- [ ] ` (逐条可勾选)
         todo_sections = PRD_TODO_SECTIONS
         out: list[str] = []
         changed, cur = 0, None

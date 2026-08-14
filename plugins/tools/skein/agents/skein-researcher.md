@@ -6,6 +6,7 @@ model: opus
 effort: high
 color: cyan
 permissionMode: bypassPermissions
+background: true
 ---
 
 ## 入参格式 (JSON)

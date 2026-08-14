@@ -61,14 +61,13 @@ def _sub_act(sk: Skein, action: str, tid: str, sid: str = "", **over: Any) -> di
 
 
 def _fill_prd(ws: Path, tid: str) -> None:
-    """写齐 prd 六章 + design 接缝 (无 TODO 占位), 过 confirm 的 planning 硬门。"""
+    """写齐 prd 三段 + design 接缝 (无 TODO 占位), 过 confirm 的 planning 硬门。"""
     d = ws / ".skein" / "task" / tid
     (d / "prd.md").write_text(
         f"# {tid} — PRD\n\n"
         "## 目标\n- 解决 X\n\n## 边界\n- 范围内: a\n\n"
-        "## User Stories\n1. As a user, I want X, so that Y\n\n"
-        "## 验收标准\n- 用例通过\n\n## 验证方式\n- 跑 pytest, 全绿即 pass\n\n"
-        "## Testing Decisions\n- 只测外部行为\n\n## 索引\n- design.md\n", encoding="utf-8")
+        "## 验收标准\n- 用例通过"
+, encoding="utf-8")
     (d / "design.md").write_text(
         f"# {tid} — 详细设计\n\n## 测试接缝 (seam)\n- [x] API 层\n", encoding="utf-8")
 

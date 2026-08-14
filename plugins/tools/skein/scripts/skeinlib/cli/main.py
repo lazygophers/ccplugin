@@ -150,7 +150,7 @@ app = typer.Typer(
 )
 task_app = typer.Typer(cls=TaskTyperGroup, help="task 查看、编辑、状态变更", no_args_is_help=True)
 config_app = typer.Typer(help="读写 .skein/config.yaml 配置", invoke_without_command=True)
-prd_app = typer.Typer(help="读/写/追加/勾选 prd 章节 (目标/边界/User Stories/验收标准/验证方式/Testing Decisions)")
+prd_app = typer.Typer(help="读/写/追加/勾选 prd 章节 (目标/边界/验收标准)")
 design_app = typer.Typer(help="读/写 design.md 测试接缝段 (confirm 硬门校验的那段)")
 
 MUTATING = {"init", "setup", "create", "confirm", "research", "plan", "check", "revert", "finishing",
@@ -604,7 +604,7 @@ def _merge_extra(lists: list[str], extra: Optional[list[str]]) -> list[str]:
 def _prd_pairs(action: str, id: str, types: list[str], lists: list[str]) -> None:
     """`--type`/`--list` 成对重复 = 一回合写多章。
 
-    PRD 七段原本要七次调用 (审计: 35 个 task 摊了 200 次 prd 写)。成对重复后一次写完,
+    PRD 各段原本要逐段调用 (审计: 35 个 task 摊了 200 次 prd 写)。成对重复后一次写完,
     循环内逐段落盘 + 逐段回显, 语义与分七次调用完全一致。
     """
     if len(types) != len(lists):

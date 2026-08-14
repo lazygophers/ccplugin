@@ -61,8 +61,7 @@ def main() -> None:
             """填实 prd + confirm (吸收 start: 待处理→进行中, 直接建 worktree)。"""
             (d / ".skein/task" / tid / "prd.md").write_text(
                 f"# {tid} — PRD\n\n## 目标\n- 解决 X\n\n## 边界\n- 范围内: a\n\n"
-                "## User Stories\n1. As a user, I want X\n\n"
-                "## 验收标准\n- 用例通过\n\n## 验证方式\n- 跑 pytest, 全绿即 pass\n\n## Testing Decisions\n- 复用现有单测\n\n## 索引\n- design.md\n")
+                "## 验收标准\n- 用例通过")
             # 填实测试接缝段 (confirm 硬门): scaffold 落的是占位, 不填会被 _validate_seam 挡在工时门之前
             design = d / ".skein/task" / tid / "design.md"
             design.write_text(re.sub(
@@ -157,7 +156,7 @@ def main() -> None:
                         "deps": ["task-2"]}, ensure_ascii=False))
         (d / ".skein/task/task-3/prd.md").write_text(
             "# task-3 — PRD\n\n## 目标\n- 解决 X\n\n## 边界\n- 范围内: a\n\n"
-            "## 验收标准\n- 用例通过\n\n## 索引\n- design.md\n")
+            "## 验收标准\n- 用例通过\n")
         design3 = d / ".skein/task/task-3/design.md"
         design3.write_text(re.sub(
             r"- \[ \] TODO: 填测试接缝", "- [x] 复用 `test_x.py::test_y` 现有单测", design3.read_text()))
@@ -379,8 +378,7 @@ def test_multirepo() -> None:
            "--repo", "repoA")
         (d / ".skein/task/feat/prd.md").write_text(
             "# feat — PRD\n\n## 目标\n- 改两仓\n\n## 边界\n- 范围内: a\n\n"
-            "## User Stories\n1. As a user, I want cross-repo changes\n\n"
-            "## 验收标准\n- 用例通过\n\n## 验证方式\n- 跑 pytest, 全绿即 pass\n\n## Testing Decisions\n- 复用现有单测\n\n## 索引\n- design.md\n")
+            "## 验收标准\n- 用例通过")
         design = d / ".skein/task/feat/design.md"
         design.write_text(re.sub(
             r"- \[ \] TODO: 填测试接缝", "- [x] 复用 `test_x.py::test_y` 现有单测", design.read_text()))
@@ -415,8 +413,7 @@ def test_seam_gate() -> None:
         def _prd(tid: str) -> None:
             (d / ".skein/task" / tid / "prd.md").write_text(
                 f"# {tid} — PRD\n\n## 目标\n- 解决 X\n\n## 边界\n- 范围内: a\n\n"
-                "## User Stories\n1. As a user, I want X\n\n"
-                "## 验收标准\n- 用例通过\n\n## 验证方式\n- 跑 pytest, 全绿即 pass\n\n## Testing Decisions\n- 复用现有单测\n\n## 索引\n- design.md\n")
+                "## 验收标准\n- 用例通过")
 
         def _ready(tid: str) -> None:
             sk(d, "create", tid, "--name", tid, "--desc", "d")
@@ -445,8 +442,8 @@ def test_seam_gate() -> None:
 
 
 def test_prd_section_gate() -> None:
-    """confirm 的 prd 章节门 (`validate_prd`): 六段齐备顺序对 → 放行;
-    四段/残缺/顺序错 → 硬拒 (非零退出 + 报错含标准章节清单)。
+    """confirm 的 prd 章节门 (`validate_prd`): 三段齐备顺序对 → 放行;
+    多出旧段/残缺 → 硬拒 (非零退出 + 报错含标准章节清单)。
     """
     with tempfile.TemporaryDirectory() as td:
         d: Path = Path(td)
@@ -465,33 +462,33 @@ def test_prd_section_gate() -> None:
             _seam_fill(tid)
             sk(d, "estimate", tid, "--set", "4")
 
-        # 场景 1: 标准六段齐备顺序对 → 放行, 无「旧四段」告警
-        _ready("v6-task",
-               "# v6-task — PRD\n\n## 目标\n- 解决 X\n\n## 边界\n- 范围内: a\n\n"
-               "## User Stories\n1. As a user, I want X\n\n"
-               "## 验收标准\n- 用例通过\n\n## 验证方式\n- 跑 pytest, 全绿即 pass\n\n## Testing Decisions\n- 复用现有单测\n\n"
-               "## 索引\n- design.md\n")
-        r = sk(d, "confirm", "v6-task", check=False)
-        assert r.returncode == 0, f"标准六段不该被拒: {r.stderr}"
-        assert "旧四段" not in r.stderr, f"六段不该报旧四段告警: {r.stderr}"
+        # 场景 1: 标准三段齐备顺序对 → 放行
+        _ready("std-task",
+               "# std-task — PRD\n\n## 目标\n- 解决 X\n\n## 边界\n- 范围内: a\n\n"
+               "## 验收标准\n- 用例通过\n")
+        r = sk(d, "confirm", "std-task", check=False)
+        assert r.returncode == 0, f"标准三段不该被拒: {r.stderr}"
 
-        # 场景 2: 四段 PRD 已退役 → 硬拒
-        _ready("v4-task",
-               "# v4-task — PRD\n\n## 目标\n- 解决 X\n\n## 边界\n- 范围内: a\n\n"
-               "## 验收标准\n- 用例通过\n\n## 索引\n- design.md\n")
-        r = sk(d, "confirm", "v4-task", check=False)
-        assert r.returncode != 0, "四段 PRD 不该放行"
-        assert "二级章节须为" in r.stderr, f"四段 PRD 未报标准清单: {r.stderr}"
+        # 场景 2: 旧七段 PRD 已退役 → 硬拒 (多出 User Stories/验证方式/Testing Decisions)
+        _ready("legacy-task",
+               "# legacy-task — PRD\n\n## 目标\n- 解决 X\n\n## 边界\n- 范围内: a\n\n"
+               "## User Stories\n1. As a u, I want x\n\n"
+               "## 验收标准\n- 用例通过\n\n"
+               "## 验证方式\n- 跑 pytest"
+               "## 索引\n- design.md\n")
+        r = sk(d, "confirm", "legacy-task", check=False)
+        assert r.returncode != 0, "旧七段 PRD 不该放行"
+        assert "二级章节须为" in r.stderr, f"旧七段 PRD 未报标准清单: {r.stderr}"
 
         # 场景 3: 章节残缺 (缺「边界」) → 硬拒
         sk(d, "create", "bad-task", "--name", "bad-task", "--desc", "d")
         sk(d, "subtask", "add", "bad-task", "s1", "--name", "n", "--desc", "d", "--estimate", "1")
         (d / ".skein/task/bad-task/prd.md").write_text(
-            "# bad-task — PRD\n\n## 目标\n- 解决 X\n\n## 验收标准\n- 用例通过\n\n## 索引\n- design.md\n")
+            "# bad-task — PRD\n\n## 目标\n- 解决 X\n\n## 验收标准\n- 用例通过\n")
         _seam_fill("bad-task")
         sk(d, "estimate", "bad-task", "--set", "4")
         r = sk(d, "confirm", "bad-task", check=False)
-        assert r.returncode != 0, "章节残缺 (既非 V4 又非 V6) 不该放行"
+        assert r.returncode != 0, "章节残缺不该放行"
         assert "二级章节须为" in r.stderr, f"残缺章节未报标准清单: {r.stderr}"
 
 

@@ -34,11 +34,9 @@ def _mk(cli: SkeinCli, ws: Path, tid: str = "demo", **kw: str) -> None:
 
 
 def _fill_planning(cli: SkeinCli, ws: Path, tid: str) -> None:
-    """把 tid 填到 confirm 全绿 (prd 六段 + seam + subtask + estimate)。"""
+    """把 tid 填到 confirm 全绿 (prd 三段 + seam + subtask + estimate)。"""
     for type_, text in (("goal", "目标一"), ("scope", "边界一"),
-                        ("stories", "As a dev, I want X, so that Y"),
-                        ("acceptance", "验收一"), ("verification", "跑命令"),
-                        ("testing", "只测外部行为")):
+                        ("acceptance", "验收一")):
         cli(ws, "prd", "write", tid, "--type", type_, "--list", text)
     cli(ws, "design", "seam", tid, "--list", "走 CLI 边界")
     cli(ws, "subtask", "add", tid, "st1", "--name", "干活", "--desc", "描述", "--estimate", "1")
@@ -302,9 +300,7 @@ def test_multi_repo_requires_repo_and_maps_dispatch_workdirs(
         skein_cli(ws, "subtask", "add", "demo", sid, "--name", "干活", "--desc", "描述",
                   "--estimate", "1", "--repo", repo)
     for type_, text in (("goal", "目标一"), ("scope", "边界一"),
-                        ("stories", "As a dev, I want X, so that Y"),
-                        ("acceptance", "验收一"), ("verification", "跑命令"),
-                        ("testing", "只测外部行为")):
+                        ("acceptance", "验收一")):
         skein_cli(ws, "prd", "write", "demo", "--type", type_, "--list", text)
     skein_cli(ws, "design", "seam", "demo", "--list", "走 CLI 边界")
     skein_cli(ws, "task", "estimate", "demo", "--set", "2")
@@ -343,7 +339,7 @@ def test_prd_read_without_type_returns_whole_doc(skein_cli: SkeinCli, ws: Path) 
 
 
 def test_prd_write_accepts_paired_type_list(skein_cli: SkeinCli, ws: Path) -> None:
-    """`--type`/`--list` 成对重复 = 一回合写多章 (PRD 七段原本七次调用)。"""
+    """`--type`/`--list` 成对重复 = 一回合写多章 (PRD 各段原本逐段调用)。"""
     _mk(skein_cli, ws)
     skein_cli(ws, "prd", "write", "demo",
               "--type", "goal", "--list", "目标一",

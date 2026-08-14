@@ -6,6 +6,7 @@ argument-hint: "[任务描述/ID] [--plan]"
 arguments: "[任务描述/ID]"
 model: sonnet
 effort: medium
+context: fork
 ---
 
 # skein-plan — planning 独立入口
@@ -40,7 +41,7 @@ effort: medium
 
 ### 3. 工件写法
 
-**PRD 七段**（`skein task confirm` 硬校验）：`目标` / `边界` / `User Stories` / `验收标准` / `验证方式` / `Testing Decisions` / `索引`。占位 `- [ ] TODO` 留一条即被拒。
+**PRD 三段**（`skein task confirm` 硬校验）：`目标` / `边界` / `验收标准`。占位 `- [ ] TODO` 留一条即被拒。
 
 **design.md**：架构、数据流、取舍、技术选型、测试接缝（必填实）、可能性分支（标触发条件）。
 

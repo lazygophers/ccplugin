@@ -4,7 +4,7 @@ plan 的状态推进、research 分流、confirm、人审门、plan-ahead、出�
 
 ## prd.md
 
-标准七段（顺序固定，`skein task confirm` 硬校验）：`目标` / `边界` / `User Stories` / `验收标准` / `验证方式` / `Testing Decisions` / `索引`。
+标准三段（顺序固定，`skein task confirm` 硬校验）：`目标` / `边界` / `验收标准`。
 
 - 占位 `- [ ] TODO: 填X` 必须整行替换为真实内容，留一条即被 confirm 拒。
 - planning 期 `目标` / `验收标准` 条目保持 `- [ ]`，勾选归 check。
@@ -58,7 +58,7 @@ task 与 subtask 各有 `estimate` 字段（小时，浮点，未填为 `null`�
 
 #### 在 confirm 硬门中的位置
 
-`skein task confirm` 依次校验：① subtask ≥1 → ② prd 七段齐备无 TODO 占位 → ③ 工时已填实且 ≥ Σ subtask。任一不满足即报错阻断。
+`skein task confirm` 依次校验：① subtask ≥1 → ② prd 三段齐备无 TODO 占位 → ③ 工时已填实且 ≥ Σ subtask。任一不满足即报错阻断。
 
 subtask 工时在 `subtask add` 时已必填，走到 confirm 时 Σ 一定齐 —— ③ 只查 task 自身有没有漏算 plan/check 开销。
 

@@ -32,16 +32,12 @@ def _mk(skein_cli: SkeinCli, ws: Path, tid: str = "feat-wt", *, sub: bool = True
 
 
 def _fill_prd(ws: Path, tid: str) -> None:
-    """写一份规范 prd.md + design.md (全 7 章齐 + 无 TODO 占位), 过 confirm 的 _validate_prd + _validate_seam 门。"""
+    """写一份规范 prd.md + design.md (三段齐 + 无 TODO 占位), 过 confirm 的 _validate_prd + _validate_seam 门。"""
     (ws / ".skein" / "task" / tid / "prd.md").write_text(
         f"# {tid} — PRD\n\n"
         "## 目标\n- 解决 X 问题\n\n"
         "## 边界\n- 范围内: a\n\n"
-        "## User Stories\n1. As a user, I want X, so that Y\n\n"
-        "## 验收标准\n- 用例通过\n\n"
-        "## 验证方式\n- 跑 pytest, 全绿即 pass\n\n"
-        "## Testing Decisions\n- 只测外部行为\n\n"
-        "## 索引\n- design.md\n")
+        "## 验收标准\n- 用例通过\n\n")
     (ws / ".skein" / "task" / tid / "design.md").write_text(
         f"# {tid} — 详细设计\n\n"
         "## 测试接缝 (seam)\n- [x] API 层\n")

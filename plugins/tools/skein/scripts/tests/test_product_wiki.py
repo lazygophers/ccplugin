@@ -217,9 +217,6 @@ def test_finish_candidates_three_paths(mem_ws: Path, mem_cli: MemCli) -> None:
 ## 验收标准
 - [ ] 真实功能正常运行
 - [ ] 性能提升达到预期
-
-## 索引
-- design.md
 """
     (tdir / "prd.md").write_text(prd)
 

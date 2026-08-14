@@ -39,16 +39,12 @@ def _mk(skein_cli: SkeinCli, ws: Path, tid: str = "feat-x", *,
 
 
 def _fill_prd(ws: Path, tid: str) -> None:
-    """写一份规范 prd.md + design.md (全 7 章齐 + 无 TODO 占位), 过 confirm 的 _validate_prd + _validate_seam 门。"""
+    """写一份规范 prd.md + design.md (三段齐 + 无 TODO 占位), 过 confirm 的 _validate_prd + _validate_seam 门。"""
     (ws / ".skein" / "task" / tid / "prd.md").write_text(
         f"# {tid} — PRD\n\n"
         "## 目标\n- 解决 X 问题\n\n"
         "## 边界\n- 范围内: a\n\n"
-        "## User Stories\n1. As a user, I want X, so that Y\n\n"
-        "## 验收标准\n- 用例通过\n\n"
-        "## 验证方式\n- 跑 pytest, 全绿即 pass\n\n"
-        "## Testing Decisions\n- 只测外部行为\n\n"
-        "## 索引\n- design.md\n")
+        "## 验收标准\n- 用例通过\n\n")
     (ws / ".skein" / "task" / tid / "design.md").write_text(
         f"# {tid} — 详细设计\n\n"
         "## 测试接缝 (seam)\n- [x] API 层\n")
@@ -334,9 +330,8 @@ def test_confirm_prd_placeholder_rejected(skein_cli: SkeinCli, ws: Path) -> None
     skein_cli(ws, "estimate", tid, "--set", "1")
     (ws / ".skein" / "task" / tid / "prd.md").write_text(
         f"# {tid} — PRD\n\n## 目标\n- [ ] TODO: 填目标\n\n"
-        "## 边界\n- 边界内容\n\n## User Stories\n1. As a u, I want x\n\n"
-        "## 验收标准\n- 用例通过\n\n## 验证方式\n- 跑 pytest\n\n"
-        "## Testing Decisions\n- 测外部行为\n\n## 索引\n- design.md\n")
+        "## 边界\n- 边界内容\n\n"
+        "## 验收标准\n- 用例通过\n\n")
     r = skein_cli(ws, "confirm", tid, "--approved", check=False)
     assert r.returncode == 1
     assert "prd 未就绪" in r.stdout + r.stderr
@@ -350,9 +345,8 @@ def test_confirm_prd_checked_placeholder_rejected(skein_cli: SkeinCli, ws: Path)
     skein_cli(ws, "estimate", tid, "--set", "1")
     (ws / ".skein" / "task" / tid / "prd.md").write_text(
         f"# {tid} — PRD\n\n## 目标\n- [x] TODO: 填目标\n\n"
-        "## 边界\n- 边界内容\n\n## User Stories\n1. As a u, I want x\n\n"
-        "## 验收标准\n- [X] TODO: 填验收标准\n\n## 验证方式\n- 跑 pytest\n\n"
-        "## Testing Decisions\n- 测外部行为\n\n## 索引\n- design.md\n")
+        "## 边界\n- 边界内容\n\n"
+        "## 验收标准\n- [X] TODO: 填验收标准\n\n")
     r = skein_cli(ws, "confirm", tid, "--approved", check=False)
     assert r.returncode == 1
     out = r.stdout + r.stderr

@@ -25,34 +25,19 @@ PRD = """# {tid} — PRD
 ## 边界
 - 不动别的
 
-## User Stories
-1. As a user, I want timeline correct
-
 ## 验收标准
 - [ ] 追加不改写
 
-## 验证方式
-- 跑 pytest
-
-## Testing Decisions
-- 只测外部行为
-
-## 索引
-- design.md
 """
-
 
 def _task(ws: Path, tid: str) -> dict[str, Any]:
     return cast(dict[str, Any], json.loads((ws / ".skein" / "task" / tid / "task.json").read_text()))
 
-
 def _write_task(ws: Path, tid: str, t: dict[str, Any]) -> None:
     (ws / ".skein" / "task" / tid / "task.json").write_text(json.dumps(t))
 
-
 def _timeline(t: dict[str, Any]) -> list[dict[str, Any]]:
     return cast(list[dict[str, Any]], t.get("timeline", []))
-
 
 def _ready_task(ws: Path, skein_cli: SkeinCli, tid: str = "feat-tl") -> str:
     """结构上够格 confirm 的 task (复用 test_confirm_gate 的配方)。"""
@@ -63,7 +48,6 @@ def _ready_task(ws: Path, skein_cli: SkeinCli, tid: str = "feat-tl") -> str:
         f"# {tid} — 详细设计\n\n## 测试接缝 (seam)\n- [x] 复用 tests/test_statemachine.py\n")
     skein_cli(ws, "estimate", tid, "--set", "4")
     return tid
-
 
 # ---------- 1. 追加语义: 只增不改 ----------
 def test_timeline_append_only_grows(skein_cli: SkeinCli, ws: Path) -> None:
@@ -88,7 +72,6 @@ def test_timeline_append_only_grows(skein_cli: SkeinCli, ws: Path) -> None:
     assert tl3[:2] == tl2, "前两条不该因新动作被改动"
     assert tl3[2]["status"] == "check" and tl3[2]["rollback"] is False
 
-
 # ---------- 2. rollback: task 级 (research → plan 回退) ----------
 def test_timeline_rollback_task_level(skein_cli: SkeinCli, ws: Path) -> None:
     tid = "feat-research"
@@ -103,7 +86,6 @@ def test_timeline_rollback_task_level(skein_cli: SkeinCli, ws: Path) -> None:
     assert [(e["status"], e["rollback"]) for e in task_events] == [
         ("pending", False), ("research", False), ("pending", True),
     ], task_events
-
 
 # ---------- 3. rollback: subtask 级 (fail 后重 start 视为回滚) ----------
 def test_timeline_rollback_subtask_level(skein_cli: SkeinCli, ws: Path) -> None:
@@ -125,7 +107,6 @@ def test_timeline_rollback_subtask_level(skein_cli: SkeinCli, ws: Path) -> None:
         ("done", False),
     ], sub_events
 
-
 # ---------- 4. 多轮 check: 已在检查中态时幂等, 不重复 append ----------
 def test_timeline_multi_round_check_is_idempotent(skein_cli: SkeinCli, ws: Path) -> None:
     tid = _ready_task(ws, skein_cli, "feat-check")
@@ -146,7 +127,6 @@ def test_timeline_multi_round_check_is_idempotent(skein_cli: SkeinCli, ws: Path)
     check_events_2 = [e for e in _timeline(t_after_second) if e.get("status") == "check"]
     assert len(check_events_2) == 1, f"幂等调用不该再追加一条: {check_events_2}"
     assert _timeline(t_after_second) == _timeline(t_after_first), "幂等调用不该改动 timeline"
-
 
 # ---------- 5. 老数据容错: task.json 缺 "timeline" 字段不崩 ----------
 def test_timeline_legacy_data_missing_field_tolerated(skein_cli: SkeinCli, ws: Path) -> None:
@@ -174,7 +154,6 @@ def test_timeline_legacy_data_missing_field_tolerated(skein_cli: SkeinCli, ws: P
     tl2 = _timeline(t2)
     assert len(tl2) == 1, f"老数据自愈后应正常追加新事件: {tl2}"
     assert tl2[0]["kind"] == "subtask" and tl2[0]["status"] == "running" and tl2[0]["sid"] == "s2"
-
 
 if __name__ == "__main__":
     import tempfile

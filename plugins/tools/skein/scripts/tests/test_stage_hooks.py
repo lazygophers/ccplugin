@@ -44,11 +44,7 @@ def _fill_prd(ws: Path, tid: str) -> None:
         f"# {tid} — PRD\n\n"
         "## 目标\n- 解决 X 问题\n\n"
         "## 边界\n- 范围内: a\n\n"
-        "## User Stories\n1. As a user, I want X\n\n"
-        "## 验收标准\n- 用例通过\n\n"
-        "## 验证方式\n- 跑 pytest\n\n"
-        "## Testing Decisions\n- 只测外部行为\n\n"
-        "## 索引\n- design.md\n")
+        "## 验收标准\n- 用例通过\n\n")
     (ws / ".skein" / "task" / tid / "design.md").write_text(
         f"# {tid} — 详细设计\n\n## 测试接缝 (seam)\n- [x] API 层\n")
 

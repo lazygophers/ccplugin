@@ -430,8 +430,7 @@ def test_analyze_no_conflicts_and_readonly(mem_ws: Path, mem_cli: MemCli) -> Non
                    "depends_on": [], "acceptance": ["日志文件权限只读"]}],
         prd=("# clean-task — PRD\n\n## 目标\n交付安全的日志写入模块。\n\n"
              "## 边界\n仅涉及日志写入。\n\n"
-             "## 验收标准\n- [ ] 日志文件权限设为只读\n\n"
-             "## 索引\n- design.md\n"),
+             "## 验收标准\n- [ ] 日志文件权限设为只读\n\n"),
         design=("# clean-task — 详细设计\n\n按接口规范写入日志, 不直接碰全局配置。\n\n"
                 "## 测试接缝 (seam)\n- `seed.txt` (repo 根真实存在路径)\n"),
     )
@@ -474,8 +473,7 @@ def test_analyze_five_kinds_hit(mem_ws: Path, mem_cli: MemCli) -> None:
         ],
         prd=("# dirty-task — PRD\n\n## 目标\n交付一个安全的日志模块。\n\n"
              "## 边界\n仅涉及日志写入。\n\n"
-             "## 验收标准\n- [ ] 日志文件权限设为只读\n- [ ] 支持异步刷新缓冲区\n\n"
-             "## 索引\n- design.md\n"),
+             "## 验收标准\n- [ ] 日志文件权限设为只读\n- [ ] 支持异步刷新缓冲区\n\n"),
         design=("# dirty-task — 详细设计\n\n"
                 "为了性能, 我们直接写全局配置缓存, 而非走标准接口。\n\n"
                 "参考规则「异步刷新策略」设计缓冲区刷新时机。\n\n"

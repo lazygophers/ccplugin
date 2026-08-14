@@ -6,6 +6,7 @@ model: sonnet
 effort: medium
 color: blue
 permissionMode: bypassPermissions
+background: true
 ---
 
 ## 入参格式 (JSON)

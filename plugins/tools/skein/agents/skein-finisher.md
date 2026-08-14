@@ -6,6 +6,7 @@ model: haiku
 effort: low
 color: green
 permissionMode: bypassPermissions
+background: true
 ---
 
 ## 入参格式 (JSON)

@@ -95,23 +95,18 @@ class SubtaskPhase(StrEnum):
 SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 # 拒短字母+数字编号 (t01/t2/ab12): 不可读, 强制描述性 slug. subtask sid 不受此限.
 CODE_ID_RE = re.compile(r"^[a-z]{1,4}\d+$")
-# prd 标准段 (对齐 `/to-spec`: 目标/边界 承接 Problem+Solution, User Stories/Testing Decisions 新增, 索引脚本维护)
-# 「验证方式」由 235b7ca84 加进 scaffold 模板但漏了这里 —— 不补则每个新建 task 的模板都过不了 confirm 门
-PRD_SECTIONS_V6: list[str] = ["目标", "边界", "User Stories", "验收标准", "验证方式", "Testing Decisions", "索引"]
+# prd 标准段: 三段 (目标/边界/验收标准), confirm 硬校验就绪态
+PRD_SECTIONS_V6: list[str] = ["目标", "边界", "验收标准"]
 # prd 章节 CLI: --type 中英 alias → 标准中文章节名 (内部统一存中文, 对齐 fmt/_validate_prd 的章节判定)
 PRD_TYPE_ALIAS: dict[str, str] = {
     "目标": "目标", "goal": "目标",
     "边界": "边界", "scope": "边界",
-    "User Stories": "User Stories", "user stories": "User Stories", "stories": "User Stories",
     "验收标准": "验收标准", "acceptance": "验收标准", "accept": "验收标准",
-    "验证方式": "验证方式", "verification": "验证方式", "verify": "验证方式",
-    "Testing Decisions": "Testing Decisions", "testing decisions": "Testing Decisions", "testing": "Testing Decisions",
 }
-# 可经 prd 命令操作的章节 = V6 全量去掉「索引」(模板固定链接区, 脚本维护, 禁用户改)
-PRD_SECTIONS: tuple[str, ...] = tuple(s for s in PRD_SECTIONS_V6 if s != "索引")
-# 写入时补 `- [ ]` checkbox 的章节 (条目都该可勾); 边界/验证方式只补 `- ` list marker 不补 checkbox;
-# User Stories 走独立的固定编号格式, 不进此集合 (见 task/prd.py `_normalize` 的第三分支)
-PRD_TODO_SECTIONS: set[str] = {"目标", "验收标准", "Testing Decisions"}
+# 可经 prd 命令操作的章节
+PRD_SECTIONS: tuple[str, ...] = tuple(PRD_SECTIONS_V6)
+# 写入时补 `- [ ]` checkbox 的章节 (条目都该可勾); 边界只补 `- ` list marker 不补 checkbox
+PRD_TODO_SECTIONS: set[str] = {"目标", "验收标准"}
 # task 优先级: 四档枚举, 落盘存机读值 (urgent/high/normal/low)
 class TaskPriority(StrEnum):
     URGENT = "urgent"

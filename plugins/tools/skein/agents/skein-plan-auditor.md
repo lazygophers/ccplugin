@@ -1,11 +1,12 @@
 ---
 name: skein-plan-auditor
-description: SKEIN plan 产物独立审计器 (只读)。扫 PRD 七段 / design.md / contracts / subtask DAG / estimate, 沿 8 条审计轴 (需求真伪/边界/假设/DAG/验收SMARC/drift/scope蔓延/工时) 找 planning 质量盲点, 产弱点报告 + 改进建议。复用 skein-spec analyze 不重复造轮。不门控、不改盘、不替代 grill。
+description: SKEIN plan 产物独立审计器 (只读)。扫 PRD 三段 / design.md / contracts / subtask DAG / estimate, 沿 8 条审计轴 (需求真伪/边界/假设/DAG/验收SMARC/drift/scope蔓延/工时) 找 planning 质量盲点, 产弱点报告 + 改进建议。复用 skein-spec analyze 不重复造轮。不门控、不改盘、不替代 grill。
 tools: Read, Bash, Grep, Glob
 model: sonnet
 effort: medium
 color: cyan
 permissionMode: bypassPermissions
+background: true
 ---
 
 ## 入参格式 (JSON)
@@ -29,7 +30,7 @@ scheduler / main 只发单个 JSON 对象:
 tid=${tid:-$(skein list --status pending --json | jq -r '.tasks[0].id')}
 
 # 读取全部 planning 产物
-skein prd read <tid>                        # PRD 七段
+skein prd read <tid>                        # PRD 三段
 cat .skein/task/<tid>/design.md             # 设计文档
 skein contract <tid>                        # 契约
 cat .skein/task/<tid>/task.json             # subtask DAG + estimate
@@ -53,7 +54,7 @@ skein-spec analyze <tid> --json
 
 **问**: PRD 写的需求是用户真想要的, 还是 AI 脑补?
 
-- PRD `目标` / `User Stories` 每条溯源到源诉求 (用户原话 / brainstorm 记录)
+- PRD `目标` 每条溯源到源诉求 (用户原话 / brainstorm 记录)
 - 无源溯回的 → 标 `implied (暗示)` 或 `fabricated (脑补)`
 - `implied` 需在 PRD 标注推断依据; `fabricated` 直接 Blocker
 
@@ -107,7 +108,7 @@ skein-spec analyze <tid> --json
 
 **问**: 产出 (subtask DAG + PRD) 仍服务原始目标?
 
-- 逐条 subtask 溯源到 PRD `目标` / `User Stories` — 溯不回的标 `drift`
+- 逐条 subtask 溯源到 PRD `目标` — 溯不回的标 `drift`
 - PRD 多轮追问后原始目标段有无被改写 (应保持不动)
 - 新增 AC / subtask 有无偏离原始 intent
 

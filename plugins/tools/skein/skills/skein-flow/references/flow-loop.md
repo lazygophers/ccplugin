@@ -226,7 +226,7 @@ check 阶段可派两个 checker **并行**（各自独立 context，互不污�
 
 | checker | 职责 | 返回 |
 |---------|------|------|
-| **skein-checker**（现有） | 验收标准 / 验证方式 / 契约 / 一致性 (skein-spec analyze) | JSON verdict |
+| **skein-checker**（现有） | 验收标准 / 契约 / 一致性 (skein-spec analyze) | JSON verdict |
 | **skein-code-reviewer**（双轴 diff 审查） | Standards (repo 规范 + Fowler smell baseline) + Spec (diff 对齐 originating spec) | JSON verdict |
 
 两个 checker 并行跑，各自回传 JSON。main 聚合：

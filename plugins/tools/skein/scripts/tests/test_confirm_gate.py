@@ -38,22 +38,10 @@ PRD = """# {tid} — PRD
 ## 边界
 - 不动 start
 
-## User Stories
-1. As a user, I want confirm gated
-
 ## 验收标准
 - [ ] 无 --approved 被拒
 
-## 验证方式
-- 跑 pytest
-
-## Testing Decisions
-- 只测外部行为
-
-## 索引
-- design.md
 """
-
 
 def _ready_task(ws: Path, tid: str = "feat-x") -> str:
     """造一个「结构上完全够格、只差人审」的 task。"""
@@ -65,16 +53,13 @@ def _ready_task(ws: Path, tid: str = "feat-x") -> str:
     run_skein(ws, "estimate", tid, "--set", "4")
     return tid
 
-
 def _raw(ws: Path, *args: str, timeout: float = 20) -> subprocess.CompletedProcess[str]:
     """直跑 CLI, 不经 conftest 的 confirm 特判。**不喂 stdin** —— CLI 不该读它。"""
     return subprocess.run([sys.executable, str(SKEIN), *args], cwd=ws, env=dict(os.environ),
                           capture_output=True, text=True, timeout=timeout)
 
-
 def _task(ws: Path, tid: str) -> dict[str, Any]:
     return dict(json.loads((ws / ".skein/task" / tid / "task.json").read_text()))
-
 
 def test_bare_confirm_is_refused_and_names_both_channels(ws: Path) -> None:
     """无 `--approved` → 拒, 并把两条合法来源都说清楚。
@@ -90,7 +75,6 @@ def test_bare_confirm_is_refused_and_names_both_channels(ws: Path) -> None:
         f"未提对话通道: {r.stderr}"
     assert _task(ws, tid)["status"] == "pending", "被拒后状态不该变"
 
-
 def test_cli_never_blocks_on_stdin(ws: Path) -> None:
     """🛑 CLI 是被 skill/agent 调用的 —— **任何** stdin 交互都会把调用方挂死。
 
@@ -104,7 +88,6 @@ def test_cli_never_blocks_on_stdin(ws: Path) -> None:
                            stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=20)
         assert r.returncode in (0, 1), f"{args} 退出码异常 {r.returncode}: {r.stderr}"
 
-
 def test_summary_prints_and_does_not_change_state(ws: Path) -> None:
     """`--summary` 只出摘要 (给 main 塞进 AskUserQuestion / 看板对话框), 不动状态。"""
     tid = _ready_task(ws)
@@ -115,7 +98,6 @@ def test_summary_prints_and_does_not_change_state(ws: Path) -> None:
     assert "## 目标" in summary and "## subtask" in summary, f"摘要不完整: {summary}"
     assert _task(ws, tid)["status"] == "pending", "--summary 不该改状态"
 
-
 def test_summary_shows_what_user_needs_to_judge(ws: Path) -> None:
     """摘要要够用户判断该不该放行: 目标 / 边界 / 验收 / subtask 拆解 / 工时。"""
     tid = _ready_task(ws)
@@ -124,7 +106,6 @@ def test_summary_shows_what_user_needs_to_judge(ws: Path) -> None:
     for must in ("目标", "边界", "验收标准", "subtask", "预计工时",
                  "让 confirm 真的需要人看", "[s1]"):
         assert must in out, f"摘要缺 {must!r}:\n{out}"
-
 
 def test_approved_passes_and_records_channel(ws: Path) -> None:
     """`--approved` → 放行, 记 confirmed_by + 时间戳。"""
@@ -136,7 +117,6 @@ def test_approved_passes_and_records_channel(ws: Path) -> None:
     assert t.get("confirmed_by") == "user", f"审核渠道记错: {t.get('confirmed_by')}"
     assert t.get("confirmed"), "未记录审核时间"
 
-
 def test_structural_gates_still_run_before_review(ws: Path) -> None:
     """人审门在结构门**之后** —— 缺 subtask 时该报缺 subtask, 不该先要人审一个残缺的 PRD。"""
     run_skein(ws, "create", "bare", "--name", "空", "--desc", "d")
@@ -144,13 +124,11 @@ def test_structural_gates_still_run_before_review(ws: Path) -> None:
     assert "无 subtask 登记" in r.stderr, r.stderr
     assert "需用户审核" not in r.stderr, "结构不全就不该惊动用户"
 
-
 def test_summary_also_gated_by_structure(ws: Path) -> None:
     """`--summary` 同样走结构门 —— 免得把一份残缺 PRD 端到用户面前让人批。"""
     run_skein(ws, "create", "bare-two", "--name", "空", "--desc", "d")
     r = _raw(ws, "task", "confirm", "bare-two", "--summary")
     assert r.returncode != 0 and "无 subtask 登记" in r.stderr, r.stderr
-
 
 # ── 看板通道: exec 白名单 (前端「确认规划」按钮走这条) ─────────────────────────
 def test_board_whitelist_maps_confirm_to_fixed_argv() -> None:
@@ -171,14 +149,12 @@ def test_board_whitelist_maps_confirm_to_fixed_argv() -> None:
     assert exec_argv({"cmd": "confirm"}) is None, "缺 id 应拒"
     assert exec_argv({"cmd": "confirm", "id": "  "}) is None, "空白 id 应拒"
 
-
 def test_board_confirm_does_not_shell_out(ws: Path) -> None:
     """id 里的 shell 元字符只是普通字符串 — argv 固定构造, 从不拼 shell。"""
     from skeinlib.utils.exec_policy import exec_argv
     argv = exec_argv({"cmd": "confirm", "id": "x; rm -rf /"})
     assert argv is not None and argv[-2] == "x; rm -rf /", argv
     assert not any(";" in a for a in argv[:-2]), "元字符逃到了别的 argv 位"
-
 
 if __name__ == "__main__":
     import tempfile
