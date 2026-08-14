@@ -6,7 +6,6 @@ argument-hint: "[模式: recall/召回, sediment/沉淀, amend/改写, map/结�
 arguments: "['recall(召回)|sediment(沉淀)|amend(改写)|map(结构现算)|analyze(一致性核查)|bootstrap(播种)|reconstruct(重构)|maintain(维护)', '--deep=recall/low/full/deep/max/high']"
 model: inherit
 effort: medium
-context: fork
 ---
 
 # skein-spec — 规则记忆库 (namespace × inclusion)

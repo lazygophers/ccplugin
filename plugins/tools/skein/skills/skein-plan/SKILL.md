@@ -6,7 +6,6 @@ argument-hint: "[任务描述/ID] [--plan]"
 arguments: "[任务描述/ID]"
 model: sonnet
 effort: medium
-context: fork
 ---
 
 # skein-plan — planning 独立入口

@@ -6,7 +6,6 @@ argument-hint: "[flow|plan|exec|check|finish|redo] [任务描述/ID] [--plan] (�
 arguments: ["exec|check|finish", "任务描述/ID"]
 model: sonnet
 effort: medium
-context: fork
 ---
 
 args: $1
