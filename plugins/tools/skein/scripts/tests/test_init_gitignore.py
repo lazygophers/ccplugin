@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from conftest import HOOKS
-from skeinlib.utils.derivatives import DERIVATIVES
+from skeinlib.gitignore.derivatives import DERIVATIVES
 
 SkeinCli = Callable[..., object]
 MemCli = Callable[..., object]
@@ -214,7 +214,7 @@ def test_init_self_heals_stale_gitignore(ws: Path, skein_cli: SkeinCli) -> None:
 
     场景: 手造一份只有早期条目的旧版 .gitignore, 重跑 init, 断言登记处条目全部到位。
     """
-    from skeinlib.utils.derivatives import gi_entries
+    from skeinlib.gitignore.derivatives import gi_entries
     root = ws
     gi = root / ".skein" / ".gitignore"
     gi.write_text(

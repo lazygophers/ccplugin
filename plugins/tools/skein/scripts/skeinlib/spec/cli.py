@@ -15,6 +15,8 @@ from skeinlib.spec.facade import Spec
 from skeinlib.spec.model import INCLUSIONS
 
 def main() -> None:
+    from skeinlib.gitignore.preflight import run_preflight
+    run_preflight()
     p = argparse.ArgumentParser(
         prog="skein-spec",
         description="SKEIN 三层规则记忆 (.skein/spec) — core 常驻 + recall/external 按需召回",

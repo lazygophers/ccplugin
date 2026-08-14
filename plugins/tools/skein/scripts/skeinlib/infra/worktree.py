@@ -70,21 +70,9 @@ def commit_all(cwd: Path, msg: str) -> None:
         raise SkeinError(f"git commit 失败 (cwd={cwd})")
 
 
-def ignore_worktree_dir(repo_dir: Path, cfg: dict[str, Any]) -> None:
-    # 把 worktree.root 写进该 git 仓 .gitignore (缺则补), 免 worktree 目录污染该仓 status。
-    # 子仓是独立 git/submodule, root .gitignore 管不到, 故各子仓自补。
-    wt = cfg["worktree"]["root"].rstrip("/") + "/"
-    gi = repo_dir / ".gitignore"
-    existing = gi.read_text() if gi.exists() else ""
-    if wt in existing:
-        return
-    sep = "\n" if existing and not existing.endswith("\n") else ""
-    with gi.open("a") as f:
-        f.write(f"{sep}# skein worktree 隔离 (任务源码改动落此, 不入库)\n{wt}\n")
-
-
 def make_worktree(t: dict[str, Any], repo: str, cfg: dict[str, Any], root: Path) -> dict[str, Any]:
     # 在指定子 git (repo='.'=根仓) 建 worktree+branch; 校验 sub 确是 git 顶层 (根/submodule/嵌套独立 git)
+    from skeinlib.gitignore.worktree_ignore import ignore_worktree_dir
     sub = root if repo == "." else root / repo
     if not sub.exists():
         raise SkeinError(f"repos 声明的路径不存在: {repo}")

@@ -41,7 +41,7 @@ import re
 from pathlib import Path
 
 import conftest  # noqa: F401  模块体把 scripts/ 塞进 sys.path
-from skeinlib.utils.derivatives import DERIVATIVES  # noqa: E402
+from skeinlib.gitignore.derivatives import DERIVATIVES  # noqa: E402
 
 SKEINLIB_DIR = Path(__file__).resolve().parent.parent / "skeinlib"
 

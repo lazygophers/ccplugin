@@ -662,6 +662,8 @@ def _rewrite_legacy_task_args(argv: list[str]) -> list[str]:
 
 
 def main() -> None:
+    from skeinlib.gitignore.preflight import run_preflight
+    run_preflight()
     argv, cli_debug, cli_json = _strip_global_flags(sys.argv[1:])
     DBG.enable(cli_debug or debug_enabled(None))
     original_namespace = _namespace

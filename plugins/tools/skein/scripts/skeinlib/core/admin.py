@@ -14,13 +14,13 @@ if TYPE_CHECKING:
 
 import yaml  # type: ignore[import-untyped]
 from skeinlib.config import Config, ConfigData
-from skeinlib.utils.derivatives import ensure_gitignore
+from skeinlib.gitignore.derivatives import ensure_gitignore
 from skeinlib.utils.errors import SkeinError
 from skeinlib.task.model import TaskStatus, normalize_task_status
 from skeinlib.task.migrate import (disable_trellisx_plugin, migrate_trellis_tasks,
                               purge_trellis_hooks, purge_wiring, settings_trellis_notes)
 from skeinlib.utils.paths import SPEC_ENTRY
-from skeinlib.infra.worktree import ignore_worktree_dir
+from skeinlib.gitignore.worktree_ignore import ignore_worktree_dir
 
 import contextlib
 import json

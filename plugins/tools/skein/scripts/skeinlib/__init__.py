@@ -42,7 +42,7 @@ core/         业务核心 — 工作区 + 门面 + 协作对象
   scheduling    claim exec / subtask (DAG 调度)                         → workspace, lifecycle, task/dag, task/timeline
   query         ready / status / list (只读投影)                        → workspace, task/dag, task/model, infra/worktree
   artifacts     prd / fmt / contract (task 工件)                        → workspace, task/prd, task/model
-  admin         init / setup / config / clean / board                   → workspace, task/migrate, utils/derivatives, config, infra/worktree
+  admin         init / setup / config / clean / board                   → workspace, task/migrate, gitignore/derivatives, config, gitignore/worktree_ignore
   doctor        DoctorMixin: 体检 + 质量门 + session 上下文注入          → 全部
 
 web/          HTTP/API 层 — 路由 + 数据源 + 视图
