@@ -509,12 +509,17 @@ class Lifecycle:
                 m = git("merge", "--no-ff", w["branch"], "-m",
                         f"skein: merge {tid} {t['name']}", cwd=sub, check=False)
                 if m.returncode != 0:
+                    # 冲突自动解决: 重试 -X theirs (recursive strategy option)。
+                    # -X theirs 只在冲突 hunk 上用 worktree 分支版本, 非冲突部分自动三方合并 —
+                    # 即 task 产出 (theirs) 覆盖冲突区, main 改动保留在无冲突区。
                     aborted = git("merge", "--abort", cwd=sub, check=False)
-                    detail = m.stdout + m.stderr
-                    if aborted.returncode != 0:
-                        detail += "\nmerge --abort 失败: " + aborted.stdout + aborted.stderr
-                    conflicts.append((w["repo"], detail))
-                    continue
+                    m2 = git("merge", "--no-ff", "-X", "theirs", w["branch"], "-m",
+                             f"skein: merge {tid} {t['name']} (auto theirs)", cwd=sub, check=False)
+                    if m2.returncode != 0:
+                        detail = m.stdout + m.stderr
+                        git("merge", "--abort", cwd=sub, check=False)
+                        conflicts.append((w["repo"], detail))
+                        continue
                 w["merged"] = True
                 self.ws.store.save(t)
                 self.ws.store.sync()
@@ -538,10 +543,11 @@ class Lifecycle:
             t["worktrees"] = wts
             self.ws.store.save(t)
             self.ws.store.sync()
-            detail = "\n".join(f"  子 git {r}: 冲突已 abort" for r, _ in conflicts)
+            detail = "\n".join(f"  子 git {r}: 自动 theirs 合并仍失败" for r, _ in conflicts)
             raise SkeinError(
-                f"{tid} 部分子 git 合并冲突, 已合并的保留、task 仍 finishing。"
-                f"解冲突后重跑 finish (幂等跳过已合并):\n{detail}")
+                f"{tid} 部分子 git 合并冲突 (已尝试自动 theirs 仍失败), "
+                f"已合并的保留、task 仍 finishing。"
+                f"手动解冲突后重跑 finish (幂等跳过已合并):\n{detail}")
 
         # 先完成 worktree 合并和 finish.after；失败时 task 保持 finishing，可重试。
         self.ws._stage_hooks("finish", "after", self.ws._hook_ctx(tid, t=t))

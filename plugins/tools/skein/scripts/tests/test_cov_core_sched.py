@@ -981,9 +981,9 @@ def run_git_out(cwd: Path, *args: str) -> str:
                           check=True).stdout
 
 
-def test_finish_reports_merge_conflict_and_keeps_finishing(
+def test_finish_auto_resolves_merge_conflict_with_theirs(
         ws: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """合并冲突 → abort 并保持 finishing 态, 提示解冲突后重跑 (幂等)。"""
+    """合并冲突 → 自动 -X theirs 解决 (worktree 分支版本胜出), task 正常完成。"""
     _enable_wt(ws)
     sk = _skein(ws, monkeypatch)
     _active_task(sk, ws, "feat-x")
@@ -992,9 +992,10 @@ def test_finish_reports_merge_conflict_and_keeps_finishing(
     run_git(ws, "add", "-A")
     run_git(ws, "commit", "-qm", "main side")
     _to_finishing(sk, ws, "feat-x", "sub-a")
-    with pytest.raises(SkeinError, match="冲突"):
-        sk.lifecycle.finish(_ns(id="feat-x"))
-    assert _load(ws, "feat-x")["status"] == TaskStatus.FINISHING
+    out = sk.lifecycle.finish(_ns(id="feat-x"))
+    assert out["status"] == TaskStatus.DONE
+    # theirs 策略: 冲突文件用 worktree 分支版本
+    assert (ws / "clash.txt").read_text() == "from-worktree\n"
 
 
 def test_finish_requires_finishing_status(ws: Path, monkeypatch: pytest.MonkeyPatch) -> None:
