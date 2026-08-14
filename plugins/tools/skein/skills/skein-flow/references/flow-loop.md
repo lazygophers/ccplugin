@@ -61,7 +61,7 @@ loop plan:
     loop research_tick:
       out = Bash("skein flow run")
       for hint in out.result.exec.next + out.result.check.next:
-        Agent(subagent_type='skein-researcher', prompt=hint.prompt)  # 异步派发, 不等待
+        Skills(name='skein-research', subagent_type='skein-researcher', prompt=hint.prompt)  # 异步派发, 不等待
       # 派完后直接查状态, 不 sleep
       if 还有 running/pending 的 research subtask:
         continue research_tick  # agent 还在跑, 下轮 tick 检查

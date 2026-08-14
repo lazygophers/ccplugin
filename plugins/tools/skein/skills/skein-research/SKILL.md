@@ -5,6 +5,7 @@ user-invocable: false
 model: opus
 effort: high
 context: fork
+agent: skein-researcher
 ---
 
 # skein-research — planning 调研方法论
