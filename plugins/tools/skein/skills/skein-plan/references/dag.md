@@ -60,7 +60,7 @@ skein subtask add <tid> st3 --name "加测试"     --desc "覆盖新旧字段两
 
 | 信号                                                    | 判据                                    | 动作                                                                                   |
 | ------------------------------------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------- |
-| 复合嗅味（"X and Y and Z"）/ 多独立能力 / subtask 会 >8 | capability 按**用户行为**拆（非技术层） | 拆多 task：`skein task create <super-id> --kind supertask` + 各 child `--parent <super-id>` |
+| 复合嗅味（"X and Y and Z"）/ 多独立能力 / subtask 会 >8 | capability 按**用户行为**拆（非技术层） | 拆多 task：`skein task create <id>` 逐个建, 用 `--deps` 声明执行序 |
 
 - **capability ≠ 技术模块** — capability 是用户行为（「下单」「退款」），非技术层（「DB 层」「API 层」）。按技术层拆 = 跨层耦合依旧的假拆。
 - **walking skeleton 优先** — 第一个 task 强制端到端最薄能跑通（验证数据流 / 契约 / 部署链路假设），非铺平所有能力域。假设证伪早返工，比铺平再发现省。

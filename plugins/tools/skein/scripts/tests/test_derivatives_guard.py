@@ -173,12 +173,12 @@ def test_probe_catches_a_planted_unregistered_write(tmp_path: Path) -> None:
 
 
 def test_registered_derivative_write_is_not_flagged(tmp_path: Path) -> None:
-    """误报回归: 已登记衍生物 (如 vision.md) 的写盘点不能被误判为漏登记。"""
+    """误报回归: 已登记衍生物 (如 task.md) 的写盘点不能被误判为漏登记。"""
     (tmp_path / "planted_ok.py").write_text(
         "from pathlib import Path\n\n"
         "class Foo:\n"
         "    def render(self, d: Path) -> None:\n"
-        "        p = d / 'vision.md'\n"
+        "        p = d / 'task.md'\n"
         "        p.write_text('x')\n",
         encoding="utf-8")
     assert _scan_unregistered_writes(tmp_path) == []

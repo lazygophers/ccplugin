@@ -19,7 +19,6 @@ class Derivative(NamedTuple):
 
 DERIVATIVES: list[Derivative] = [
     Derivative("task.md", "store.py _write_board (由 task.json 重渲染)"),
-    Derivative("vision.md", "store.py _write_vision"),
     Derivative("*.lock", "workspace.py 加锁产物"),
     Derivative("spec/.archive/", "spec/maintain.py 完全重构可逆归档转储"),
     Derivative("spec/.pending-fix", "hooks/stopcheck.py 标记"),

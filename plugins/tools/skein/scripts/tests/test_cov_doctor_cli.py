@@ -28,19 +28,7 @@ def _write_task(ws: Path, task: dict[str, Any]) -> None:
     (task_dir / "task.json").write_text(json.dumps(task), encoding="utf-8")
 
 
-# ---- doctor 边界: supertask parent / worktree / done without finished ----
-
-def test_doctor_supertask_with_parent(ws: Path, monkeypatch: pytest.MonkeyPatch,
-                                       capsys: pytest.CaptureFixture[str]) -> None:
-    """supertask 有 parent → 错误。"""
-    _write_task(ws, {"id": "super1", "status": "active", "kind": "supertask",
-                     "parent": "other", "deps": [], "subtasks": []})
-    sk = _skein(ws, monkeypatch)
-    with pytest.raises(SkeinError):
-        sk.doctor(argparse.Namespace(quality=False))
-    out = capsys.readouterr().out
-    assert "supertask 不可再有 parent" in out
-
+# ---- doctor 边界: worktree / done without finished ----
 
 def test_doctor_active_no_worktree_when_wt_on(ws: Path, monkeypatch: pytest.MonkeyPatch,
                                                capsys: pytest.CaptureFixture[str]) -> None:

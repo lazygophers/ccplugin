@@ -183,8 +183,6 @@ class TaskMetadata(BaseModel):
     id: str = Field(description="task id")
     name: str = Field(description="task 名称")
     desc: str = Field(default="", description="task 说明")
-    parent: str | None = Field(default=None, description="父 task id")
-    kind: str = Field(default="task", description="task 类型")
 
 
 class TaskTiming(BaseModel):

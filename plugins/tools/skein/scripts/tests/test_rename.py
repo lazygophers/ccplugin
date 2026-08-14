@@ -80,17 +80,7 @@ def test_task_rename_id_sync_deps(skein_cli: SkeinCli, ws: Path) -> None:
     assert "task-a2" in deps and "task-a" not in deps, f"deps 未同步: {deps}"
 
 
-# ---------- 4. task --id 同步 child parent ----------
-def test_task_rename_id_sync_parent(skein_cli: SkeinCli, ws: Path) -> None:
-    """C parent P → rename P --id P2: C 的 parent==P2。"""
-    skein_cli(ws, "create", "epic-p", "--name", "p", "--desc", "d", "--kind", "supertask")
-    skein_cli(ws, "create", "child-c", "--name", "c", "--desc", "d", "--parent", "epic-p")
-    skein_cli(ws, "task", "rename", "epic-p", "--id", "epic-p2")
-    assert _task(ws, "child-c")["parent"] == "epic-p2", \
-        f"child parent 未同步: {_task(ws, 'child-c')['parent']!r}"
-
-
-# ---------- 5. 非 pending 改 --id 拒 ----------
+# ---------- 4. 非 pending 改 --id 拒 ----------
 def test_task_rename_id_non_pending_rejected(skein_cli: SkeinCli, ws: Path) -> None:
     """active task 改 --id → 拒 (returncode!=0, stderr 提示仅限 confirm 前 待处理/调研中)。"""
     skein_cli(ws, "create", "task-a", "--name", "a", "--desc", "d")

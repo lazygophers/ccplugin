@@ -5,7 +5,7 @@
 
 手法: 手工造固定时间戳 fixture (.skein/task/<id>/task.json 直写, 非走 CLI) + 冻结 now() → 输出全确定, 与 golden JSON 逐字段比对。
   - golden 缺失时首跑自举写盘并 skip (bootstrap); 存在则严格比对。
-  - 覆盖状态机全量态 (待处理/调研中/进行中/检查中/收尾中/已完成) + 待处理但依赖阻塞 + supertask/child
+  - 覆盖状态机全量态 (待处理/调研中/进行中/检查中/收尾中/已完成) + 待处理但依赖阻塞
     + 幽灵骨架 (仅顶层索引) + 归档 task + spec 文件。「就绪」态已随 confirm 吸收 start 删除
     (design.md §1), gamma/zeta 两个 fixture 相应改落 待处理 (s3 收口, 见 design.md 末节)。
 
@@ -124,10 +124,10 @@ def _seed(d: Path) -> None:
         id="zeta", name="Zeta 任务", status=TaskStatus.PENDING, desc="被阻塞", deps=["alpha"],
         subtasks=[_sub("z1", SubtaskStatus.PENDING)],
     ))
-    # 待处理 (plan 未收敛) — 且为 supertask 的 child
+    # 待处理 (plan 未收敛)
     _write_task(tdir, _task_json(
         id="delta", name="Delta 任务", status=TaskStatus.PENDING, desc="规划中",
-        parent="super1", subtasks=[_sub("d1", SubtaskStatus.PENDING)],
+        subtasks=[_sub("d1", SubtaskStatus.PENDING)],
     ))
     # 已完成
     _write_task(tdir, _task_json(
@@ -135,22 +135,17 @@ def _seed(d: Path) -> None:
         started=TNOW - 9000, finished=TNOW - 200,
         subtasks=[_sub("e1", SubtaskStatus.DONE, started=TNOW - 8000, finished=TNOW - 7000)],
     ))
-    # supertask (含 child delta)
-    _write_task(tdir, _task_json(
-        id="super1", name="Super 任务", status=TaskStatus.ACTIVE, desc="聚合", kind="supertask",
-        worktree="wt/super1", started=TNOW - 8500,
-    ))
+    # delta: standalone pending task
 
     # 顶层索引 (_render_tasks mirror 源): 含全部 per-task + 一个幽灵骨架 ghost1
     index = {"tasks": [
-        {"id": "alpha", "status": TaskStatus.ACTIVE, "deps": [], "worktree": "wt/alpha", "parent": None, "kind": "task"},
-        {"id": "beta", "status": TaskStatus.CHECK, "deps": [], "worktree": "wt/beta", "parent": None, "kind": "task"},
-        {"id": "gamma", "status": TaskStatus.PENDING, "deps": [], "worktree": None, "parent": None, "kind": "task"},
-        {"id": "zeta", "status": TaskStatus.PENDING, "deps": ["alpha"], "worktree": None, "parent": None, "kind": "task"},
-        {"id": "delta", "status": TaskStatus.PENDING, "deps": [], "worktree": None, "parent": "super1", "kind": "task"},
-        {"id": "epsilon", "status": TaskStatus.DONE, "deps": [], "worktree": None, "parent": None, "kind": "task"},
-        {"id": "super1", "status": TaskStatus.ACTIVE, "deps": [], "worktree": "wt/super1", "parent": None, "kind": "supertask"},
-        {"id": "ghost1", "status": TaskStatus.PENDING, "deps": [], "worktree": None, "parent": None, "kind": "task"},
+        {"id": "alpha", "status": TaskStatus.ACTIVE, "deps": [], "worktree": "wt/alpha"},
+        {"id": "beta", "status": TaskStatus.CHECK, "deps": [], "worktree": "wt/beta"},
+        {"id": "gamma", "status": TaskStatus.PENDING, "deps": [], "worktree": None},
+        {"id": "zeta", "status": TaskStatus.PENDING, "deps": ["alpha"], "worktree": None},
+        {"id": "delta", "status": TaskStatus.PENDING, "deps": [], "worktree": None},
+        {"id": "epsilon", "status": TaskStatus.DONE, "deps": [], "worktree": None},
+        {"id": "ghost1", "status": TaskStatus.PENDING, "deps": [], "worktree": None},
     ]}
     (d / ".skein" / "task.json").write_text(json.dumps(index, ensure_ascii=False, indent=2), encoding="utf-8")
 
@@ -191,8 +186,7 @@ def _capture(m: ModuleType, d: Path) -> dict[str, Any]:
             "task_detail_alpha": _view_task_detail(sk._snapshot(), "alpha"),
             "task_detail_old1": _view_task_detail(sk._snapshot(), "old1"),  # 走归档回落
             "task_detail_ghost1": _view_task_detail(sk._snapshot(), "ghost1"),  # 幽灵骨架 → None
-            "task_detail_super1": _view_task_detail(sk._snapshot(), "super1"),  # supertask → childTasks 含真实 progress
-            "task_detail_delta": _view_task_detail(sk._snapshot(), "delta"),  # child → parentTask
+            "task_detail_delta": _view_task_detail(sk._snapshot(), "delta"),
             "search_alpha": _view_search(sk._snapshot(), "alpha"),
             "search_snapshot": _view_search(sk._snapshot(), "视图"),
             "search_empty": _view_search(sk._snapshot(), ""),

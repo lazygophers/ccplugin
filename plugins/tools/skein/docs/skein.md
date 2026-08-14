@@ -142,8 +142,6 @@
 | 占 gate 槽 | `skein task finishing` | 检查中 → 收尾中, gate 池有空槽才能进 |
 | 合并+销wt | skein task finish | 收尾中 task 各子 worktree → 主分支, 合并后即销 wt/branch |
 | 标记完成 | skein task finish | status=已完成, 记 finished 时刻 |
-
-**Supertask 收束门**: `kind=supertask` 的 task finish 前, 所有 `parent` 指向它的 child task 必须**全部已完成** (status=已完成), 否则 `skein task finish` 硬拒并列出未完成 child。子 task 各自独立走完整 plan→exec→check→finish 闭环, supertask 自身不占 worktree、只在末尾做聚合收束。详见「[Supertask](#supertask)」。
 | Sediment | skein-specer | 异步 fire-and-forget: learning → core / recall / drop |
 | 归档 | _autoclean | retain_days 到期目录迁移 `task/archive/<年>/<月-日>/<id>/` (wt 已销) |
 
@@ -201,34 +199,6 @@ subtasks:
 | --- | --- | --- |
 | pools.work | 2 | 全局 exec+research running subtask 数 |
 | pools.gate | 3 | 全局检查中+收尾中 task 数 |
-| 深度 | 2 层 | supertask→task→subtask, child 不再生 child |
-
-### Supertask
-
-`kind` 字段区分两种 task: 默认 `task` (独立, 自成一个 plan→exec→check→finish 闭环) vs `supertask` (顶层父聚合层, 自身不写代码, 只聚合一组 child task)。二者怎么选:
-
-| 场景 | 用 |
-| --- | --- |
-| 单 task 可覆盖的中小需求 | `task` (默认, 不建 supertask) |
-| 需求过大, 拆成多个**各自完整闭环**的独立小需求 | `supertask` 作聚合层, 各小需求各建一个 `task` 挂它 |
-| 单 task 内部需要拆步骤但仍是一次闭环 | 不建新 task, 用 `subtask` (task 内最小执行单元, DAG 调度) |
-
-`parent`/`kind` 是唯一受控父子字段 (`doctor` 只放行这两个, 未登记字段名如 `parent_id`/`children`/`subtask_of` 一律拒), 与 `deps` (前置依赖 DAG) 正交 — parent 管**归属** (谁聚合谁), deps 管**执行顺序**, 挂 parent 不影响也不替代 deps。
-
-```bash
-# 建 supertask + child (建时声明)
-skein task create <super-id> --kind supertask --name "<名>"
-skein task create <child-id> --parent <super-id>
-
-# 存量 task 改挂 (无需删档重建)
-skein task parent <id>                    # 查当前 parent (无父打印 "(无父)")
-skein task parent <id> --set <parent-id>  # 挂到 supertask/task 下
-skein task parent <id> --set ""           # 摘除 (parent 置空)
-```
-
-`--parent`/`skein task parent --set` 落盘前硬拒: 自引用、`parent` 指向不存在 task、深度超 2 层 (父自身已是 child, 即父的 parent 非空)、以及 `skein task parent --set` 特有的一条 —— 若目标 task 自己已是别的 task 的 parent (已有 child 挂它), 再给它挂父会让那些 child 变 3 层, 直接拒绝 (先摘除那些 child 或改挂别处)。
-
-**收束约束**: supertask finish 前, 全部 child (parent 指向它的 task) 须已完成, 否则 `skein task finish` 硬拒并列出未完成 child — 见「Phase 4: Finish」。
 
 ### Worktree 模型
 

@@ -58,23 +58,6 @@ class Lifecycle:
                 "(如 order-create-api / user-auth), 勿用 t01 这类代号")
         if tid in self.ws.store.used_ids():
             raise SkeinError(f"id 已占用: {tid} — 换一个 (含已归档的也不可复用)")
-        # task 级父子层校验 (限 2 层: supertask→task→subtask)
-        parent_id = (a.parent or "").strip() or None
-        kind = a.kind or "task"
-        if kind == "supertask" and parent_id:
-            raise SkeinError(f"supertask 不可有 parent (supertask 是顶层父聚合层) — 去掉 --parent {parent_id}")
-        if parent_id:
-            p = self.ws.store.load(parent_id)  # _load 不存在 → SkeinError「task 不存在」(parent 引用完整性)
-            if p.get("parent"):
-                # 被引用的 parent 自身是 child (其 parent != None) → 拒, 禁 child 作父, 深度超 2 层
-                raise SkeinError(
-                    f"深度超限: parent {parent_id} 本身是 child (其 parent={p.get('parent')!r}) — "
-                    f"supertask 不可再嵌套 supertask (限 2 层: supertask→task→subtask)")
-            # 父是 supertask, 或是独立 task (kind=task 且 parent=None, 允许升格作聚合父 — 但更
-            # 规范的做法是显式 supertask): 都放行。深度已由上面那道 parent 链检查兜住。
-            # ponytail: 不强制要求父必须 supertask, 只要 parent 链不超 2 层 (parent 的 parent=None 即可)
-            if p.get("kind") not in ("supertask", None, "task"):
-                raise SkeinError(f"parent {parent_id} kind={p.get('kind')!r} 非法 — 仅允许 task|supertask")
         repos = parse_repos(getattr(a, "repos", None))
         if repos and not self.ws.config()["worktree"]["enabled"]:
             raise SkeinError(f"{tid} 声明 --repos 但 config worktree.enabled=false — 多子 git 隔离需启用 worktree")
@@ -94,8 +77,6 @@ class Lifecycle:
             "estimate": est,  # 预计工时(小时), plan 阶段必填, confirm 硬门校验
             "repos": repos,          # planning 声明的目标子 git (rel 路径; 空=单根/原地模式)
             "worktree": None, "worktrees": [], "branch": f"skein/{tid}",
-            "parent": parent_id,     # 父 supertask id; None=独立 task (create 默认; --parent 指向 supertask)
-            "kind": kind,            # "task"(普通/独立, 默认) | "supertask"(父聚合层)
             "created": now(),        # 创建时刻
             "started": None,         # exec 时刻 (start 时置)
             "confirmed": None,       # confirm (吸收 start) 时刻
@@ -252,35 +233,6 @@ class Lifecycle:
         self.ws.store.sync()
         return {"id": a.id, "deps": new}
 
-    def parent(self, a: argparse.Namespace) -> dict[str, Any]:
-        t = self.ws.store.load(a.id)
-        if a.set is None:
-            return {"id": a.id, "parent": t.get("parent")}
-        new_parent = a.set.strip() or None
-        if new_parent is None:
-            t["parent"] = None
-            self.ws.store.save(t)
-            self.ws.store.sync()
-            return {"id": a.id, "parent": None}
-        if new_parent == a.id:
-            raise SkeinError(f"{a.id} parent 自引用")
-        p = self.ws.store.load(new_parent)  # 不存在 → SkeinError「task 不存在」(parent 引用完整性)
-        if p.get("parent"):
-            raise SkeinError(
-                f"深度超限: parent {new_parent} 本身是 child (其 parent={p.get('parent')!r}) — "
-                f"不可再嵌套 (限 2 层: supertask→task→subtask)")
-        if p.get("kind") not in ("supertask", None, "task"):
-            raise SkeinError(f"parent {new_parent} kind={p.get('kind')!r} 非法 — 仅允许 task|supertask")
-        children = [c["id"] for c in self.ws.store.all_tasks() if c.get("parent") == a.id]
-        if children:
-            raise SkeinError(
-                f"{a.id} 已是 {len(children)} 个 task 的父 ({','.join(children)}) — "
-                f"挂父会使这些 child 超 2 层 (先摘除这些 child 的 parent 或改挂别处)")
-        t["parent"] = new_parent
-        self.ws.store.save(t)
-        self.ws.store.sync()
-        return {"id": a.id, "parent": new_parent}
-
     def _validate_estimate(self, tid: str, t: dict[str, Any]) -> None:
         # confirm 硬门: 预计工时(小时)必须已填且为正数, 缺失/默认空 → 拒绝开工。
         # 且须自下而上累加: task 工时 ≥ Σ subtask 工时 (差额 = plan/check 等 task 自身开销),
@@ -301,13 +253,8 @@ class Lifecycle:
         """跑齐全部 planning 硬门, 返回未就绪项文案 (空 = 全过)。"""
         gaps: list[str] = []
         if not (t.get("subtasks") or []):
-            # supertask 的活儿在 child task 里, 它自己有 child 就算拆过了 —— 再要它挂 subtask
-            # 等于逼用户在聚合层造一批假 subtask 才能 confirm。
-            has_children = (t.get("kind") == "supertask"
-                            and any(c.get("parent") == tid for c in self.ws.store.all_tasks()))
-            if not has_children:
-                gaps.append(f"无 subtask 登记 — `skein subtask add {tid} <sid> --name <标题> "
-                            f"--desc <描述> --estimate <小时>`")
+            gaps.append(f"无 subtask 登记 — `skein subtask add {tid} <sid> --name <标题> "
+                        f"--desc <描述> --estimate <小时>`")
         gates: tuple[Callable[[], None], ...] = (
             lambda: validate_prd(self.ws.tasks, tid),
             lambda: validate_seam(self.ws.tasks, tid),
@@ -397,39 +344,7 @@ class Lifecycle:
         if not force:
             validate_prd(self.ws.tasks, a.id)
         result = self._activate(t, channel, note=_FORCE_NOTE if force else "")
-        # supertask 级联: 父确认了, 底下已就绪的 child task 一起开工。
-        # 不级联的话用户点一次「确认规划」只推动了那个空壳聚合层, 还得逐个 child 再点一遍 ——
-        # 而 child 的 planning 是跟着 super 一起评审的, 再要一次人审是重复门。
-        if t.get("kind") == "supertask":
-            started, held = self._activate_children(a.id, channel)
-            result["children_started"] = started
-            result["children_held"] = held
         return result
-
-    def _activate_children(self, tid: str, channel: str) -> tuple[list[str], dict[str, str]]:
-        """把 supertask 下所有「planning 就绪」的 pending child 一并推进 active。
-
-        planning 没填完的不硬推, 原因回传给调用方原样展示 —— 用户点一次确认, 得知道哪些没跟着
-        动、为什么。前置未完成的 child 照样推进 active: 与 confirm 同一套语义 (审批不看依赖),
-        它的 subtask 到调度侧才会被拦住, 不会提前占槽。
-        """
-        started: list[str] = []
-        held: dict[str, str] = {}
-        for c in self.ws.store.all_tasks():
-            if c.get("parent") != tid:
-                continue
-            cid = c["id"]
-            if c["status"] != TaskStatus.PENDING:
-                continue  # 已在跑/已完成的不动
-            child = self.ws.store.load(cid)
-            if gaps := self._planning_gaps(cid, child):
-                held[cid] = f"planning 未就绪: {'; '.join(gaps)}"
-                continue
-            self.ws._stage_hooks("confirm", "before", self.ws._hook_ctx(cid, t=child))
-            self._activate(child, channel)
-            self.ws._stage_hooks("confirm", "after", self.ws._hook_ctx(cid, t=child))
-            started.append(cid)
-        return started, held
 
     def _activate(self, t: dict[str, Any], channel: str, note: str = "") -> dict[str, Any]:
         """待处理 → 进行中 的落盘动作: 置态 + 建 worktree + 落时间线。前置校验归调用方。"""
@@ -578,14 +493,6 @@ class Lifecycle:
         if t["status"] != TaskStatus.FINISHING and not force:
             raise SkeinError(f"{tid} 状态 {t['status']}, 只能 finish 收尾中 task — "
                              f"先 skein task check 再 skein task finishing 占 gate 槽")
-        # supertask 聚合归档: finish 前所有 child task(parent 指向它)须全 done
-        # ponytail: 遍历 tasks 过滤 parent==tid 找 child (不维护 child_ids 数组, 真值源单一)
-        if t.get("kind") == "supertask" and not force:
-            pending = [c["id"] for c in self.ws.store.all_tasks() if c.get("parent") == tid and c["status"] != TaskStatus.DONE]
-            if pending:
-                raise SkeinError(
-                    f"{tid} 是 supertask, 仍有未完成 child task: {', '.join(pending)} — "
-                    f"先 finish 全部 child 再 finish super (聚合归档要求 child 全 done)")
         cfg = self.ws.config()
         wts = worktrees_of(t)
         self.ws._stage_hooks("finish", "before", self.ws._hook_ctx(tid, t=t))
@@ -758,15 +665,12 @@ class Lifecycle:
         # ponytail: prd.md 脚手架内的 `subtask list <old-id>` 提示行不重写 (planning 后 prd 已被 AI 大改, 属 AI 内容, 非脚本真值)
         shutil.move(str(self.ws.tasks / old_id), str(self.ws.tasks / new_id))
         self.ws.store.save(t)
-        for other in self.ws.store.all_tasks():  # 同步别 task 的 deps + child 的 parent 引用
+        for other in self.ws.store.all_tasks():  # 同步别 task 的 deps 引用
             if other["id"] == new_id:
                 continue
             changed = False
             if old_id in (other.get("deps") or []):
                 other["deps"] = [new_id if d == old_id else d for d in other["deps"]]
-                changed = True
-            if other.get("parent") == old_id:
-                other["parent"] = new_id
                 changed = True
             if changed:
                 self.ws.store.save(other)

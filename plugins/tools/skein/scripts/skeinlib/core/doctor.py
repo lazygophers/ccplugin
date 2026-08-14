@@ -73,18 +73,7 @@ class DoctorMixin:
             prio = t.get("priority")
             if prio is not None and prio not in PRIORITY_RANK:
                 errs.append(f"{tid}: 非法 priority {prio!r} — 仅允许 {sorted(PRIORITY_RANK)}")
-            # task 级父子层 (受控字段 parent/kind): 允许 supertask↔task 父子聚合 (parent 指回 supertask id,
-            # kind 区分父聚合层 vs 普通独立 task)。仅禁未登记的父子字段名 (parent_id/children/subtask_of)。
-            for k in ("parent_id", "children", "subtask_of"):
-                if k in t:
-                    errs.append(f"{tid}: 含未登记 task 父子字段 {k!r} — 仅允许 parent/kind (受控父子层)")
-            if t.get("kind") is not None and t.get("kind") not in ("task", "supertask"):
-                errs.append(f"{tid}: 非法 kind {t.get('kind')!r} — 仅允许 'task' | 'supertask'")
-            if t.get("parent"):
-                if t.get("kind") == "supertask":
-                    errs.append(f"{tid}: supertask 不可再有 parent (supertask 是顶层父聚合层)")
-                elif t["parent"] not in used:
-                    errs.append(f"{tid}: parent 指向不存在 task {t['parent']!r}")
+            # subtask 层
             for d in t.get("deps", []):
                 if d == tid:
                     errs.append(f"{tid}: deps 自引用")

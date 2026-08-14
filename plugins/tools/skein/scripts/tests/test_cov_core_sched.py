@@ -38,7 +38,7 @@ def _ns(**kw: Any) -> argparse.Namespace:
 
 
 def _create(sk: Skein, tid: str, **over: Any) -> dict[str, Any]:
-    a = _ns(id=tid, name=tid, desc="d", deps="", parent=None, kind="task",
+    a = _ns(id=tid, name=tid, desc="d", deps="",
             repos=None, estimate=None, priority=None, like=None)
     for k, v in over.items():
         setattr(a, k, v)
@@ -545,25 +545,6 @@ def test_claim_check_reports_finishing_error_when_gate_full(
     assert {e["action"] for e in out["errors"]} == {"finishing"}
 
 
-def test_check_candidates_supertask_waits_for_children(ws: Path,
-                                                       monkeypatch: pytest.MonkeyPatch) -> None:
-    """supertask 无自身 subtask, 就绪门换成「child 全 done」。"""
-    sk = _skein(ws, monkeypatch)
-    _create(sk, "epic-x", kind="supertask")
-    _create(sk, "child-a", parent="epic-x")
-    _add_sub(sk, "child-a", "sub-a")
-    _fill_prd(ws, "epic-x")
-    sk.lifecycle.estimate(_ns(id="epic-x", set="8"))
-    sk.lifecycle.confirm(_ns(id="epic-x", approved=True, unattended=False, summary=False))
-    to_check, _ = sk.scheduler._check_candidates()
-    assert [t["id"] for t in to_check] == [], "child 未 done 时 supertask 不进 check"
-    t = _load(ws, "child-a")
-    t["status"] = TaskStatus.DONE
-    _write(ws, t)
-    to_check, _ = sk.scheduler._check_candidates()
-    assert [t["id"] for t in to_check] == ["epic-x"]
-
-
 def test_check_candidates_skips_task_without_subtask(ws: Path,
                                                      monkeypatch: pytest.MonkeyPatch) -> None:
     """普通 task 没有 subtask 时不进 check 候选 (空 task 不算全 done)。"""
@@ -765,22 +746,6 @@ def test_create_rejects_non_slug_and_code_id(ws: Path, monkeypatch: pytest.Monke
         _create(sk, "t01")
 
 
-def test_create_parent_rules(ws: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """supertask 不可有 parent; parent 自身是 child → 深度超限; parent kind 非法 → 拒。"""
-    sk = _skein(ws, monkeypatch)
-    _create(sk, "epic-x", kind="supertask")
-    with pytest.raises(SkeinError, match="supertask 不可有 parent"):
-        _create(sk, "epic-y", kind="supertask", parent="epic-x")
-    _create(sk, "child-a", parent="epic-x")
-    with pytest.raises(SkeinError, match="深度超限"):
-        _create(sk, "grand-a", parent="child-a")
-    t = _load(ws, "epic-x")
-    t["kind"] = "weird"
-    _write(ws, t)
-    with pytest.raises(SkeinError, match="非法"):
-        _create(sk, "child-b", parent="epic-x")
-
-
 def test_create_repos_requires_worktree_enabled(ws: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     sk = _skein(ws, monkeypatch)
     with pytest.raises(SkeinError, match="worktree.enabled=false"):
@@ -883,36 +848,6 @@ def test_deps_rejected_after_confirm(ws: Path, monkeypatch: pytest.MonkeyPatch) 
         sk.lifecycle.deps(_ns(id="feat-x", set="whatever"))
 
 
-def test_parent_get_set_clear_and_gates(ws: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """parent: 查询 / 挂载 / 摘除 / 自引用 / 深度超限 / 自己已是父时拒挂。"""
-    sk = _skein(ws, monkeypatch)
-    _create(sk, "epic-x", kind="supertask")
-    _create(sk, "feat-x")
-    assert sk.lifecycle.parent(_ns(id="feat-x", set=None))["parent"] is None
-    assert sk.lifecycle.parent(_ns(id="feat-x", set="epic-x"))["parent"] == "epic-x"
-    assert sk.lifecycle.parent(_ns(id="feat-x", set=""))["parent"] is None
-    with pytest.raises(SkeinError, match="自引用"):
-        sk.lifecycle.parent(_ns(id="feat-x", set="feat-x"))
-    _create(sk, "child-a", parent="epic-x")
-    with pytest.raises(SkeinError, match="深度超限"):
-        sk.lifecycle.parent(_ns(id="feat-x", set="child-a"))
-    _create(sk, "grand-a")
-    sk.lifecycle.parent(_ns(id="grand-a", set="feat-x"))  # feat-x 成了父
-    with pytest.raises(SkeinError, match="已是 1 个 task 的父"):
-        sk.lifecycle.parent(_ns(id="feat-x", set="epic-x"))
-
-
-def test_parent_rejects_illegal_kind(ws: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    sk = _skein(ws, monkeypatch)
-    _create(sk, "epic-x", kind="supertask")
-    _create(sk, "feat-x")
-    t = _load(ws, "epic-x")
-    t["kind"] = "weird"
-    _write(ws, t)
-    with pytest.raises(SkeinError, match="非法"):
-        sk.lifecycle.parent(_ns(id="feat-x", set="epic-x"))
-
-
 # ── lifecycle: 状态机 ───────────────────────────────────────────────────────
 def test_research_and_plan_reject_wrong_status(ws: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """research 只收待处理; plan 只收调研中。"""
@@ -959,38 +894,6 @@ def test_confirm_without_review_is_rejected(ws: Path, monkeypatch: pytest.Monkey
     sk.lifecycle.estimate(_ns(id="feat-x", set="8"))
     with pytest.raises(SkeinError, match="需用户审核 PRD"):
         sk.lifecycle.confirm(_ns(id="feat-x", approved=False, unattended=False, summary=False))
-
-
-def test_confirm_supertask_cascades_children(ws: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """确认 supertask 时把 planning 就绪的 child 一并开工, 没填完的进 held 并说明原因。"""
-    sk = _skein(ws, monkeypatch)
-    _create(sk, "epic-x", kind="supertask")
-    _create(sk, "child-ok", parent="epic-x")
-    _add_sub(sk, "child-ok", "sub-a")
-    _fill_prd(ws, "child-ok")
-    sk.lifecycle.estimate(_ns(id="child-ok", set="4"))
-    _create(sk, "child-bad", parent="epic-x")  # 无 subtask/prd → 该被 hold
-    _fill_prd(ws, "epic-x")
-    sk.lifecycle.estimate(_ns(id="epic-x", set="8"))
-    out = sk.lifecycle.confirm(_ns(id="epic-x", approved=True, unattended=False, summary=False))
-    assert out["children_started"] == ["child-ok"]
-    assert "planning 未就绪" in out["children_held"]["child-bad"]
-    assert _load(ws, "child-ok")["status"] == TaskStatus.ACTIVE
-
-
-def test_confirm_supertask_skips_nonpending_child(ws: Path,
-                                                  monkeypatch: pytest.MonkeyPatch) -> None:
-    """已在跑的 child 不被级联重推 (状态不回退)。"""
-    sk = _skein(ws, monkeypatch)
-    _create(sk, "epic-x", kind="supertask")
-    _create(sk, "child-a", parent="epic-x")
-    _add_sub(sk, "child-a", "sub-a")
-    _confirm(sk, ws, "child-a")
-    _fill_prd(ws, "epic-x")
-    sk.lifecycle.estimate(_ns(id="epic-x", set="8"))
-    out = sk.lifecycle.confirm(_ns(id="epic-x", approved=True, unattended=False, summary=False))
-    assert out["children_started"] == [] and out["children_held"] == {}
-    assert _load(ws, "child-a")["status"] == TaskStatus.ACTIVE
 
 
 def test_activate_rejects_repos_when_worktree_disabled_later(
@@ -1047,22 +950,6 @@ def test_finishing_rejected_when_gate_full(ws: Path, monkeypatch: pytest.MonkeyP
         sk.lifecycle.check(_ns(id=tid))
     with pytest.raises(SkeinError, match="gate 池已满"):
         sk.lifecycle.finishing(_ns(id="feat-y"))
-
-
-def test_finish_supertask_requires_children_done(ws: Path,
-                                                 monkeypatch: pytest.MonkeyPatch) -> None:
-    """supertask 聚合归档门: child 没全 done 不许 finish。"""
-    sk = _skein(ws, monkeypatch)
-    _create(sk, "epic-x", kind="supertask")
-    _create(sk, "child-a", parent="epic-x")
-    _fill_prd(ws, "epic-x")
-    sk.lifecycle.estimate(_ns(id="epic-x", set="8"))
-    sk.lifecycle.confirm(_ns(id="epic-x", approved=True, unattended=False, summary=False))
-    t = _load(ws, "epic-x")
-    t["status"] = TaskStatus.FINISHING
-    _write(ws, t)
-    with pytest.raises(SkeinError, match="仍有未完成 child task"):
-        sk.lifecycle.finish(_ns(id="epic-x"))
 
 
 def _to_finishing(sk: Skein, ws: Path, tid: str, sid: str) -> None:
@@ -1248,19 +1135,17 @@ def test_rename_task_id_gates(ws: Path, monkeypatch: pytest.MonkeyPatch) -> None
 
 
 def test_rename_task_id_syncs_refs(ws: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """改 id: 目录改名 + branch 更新 + 别 task 的 deps 与 child 的 parent 引用同步。"""
+    """改 id: 目录改名 + branch 更新 + 别 task 的 deps 引用同步。"""
     sk = _skein(ws, monkeypatch)
-    _create(sk, "base-api", kind="supertask")
+    _create(sk, "base-api")
     _create(sk, "feat-x")
     sk.lifecycle.deps(_ns(id="feat-x", set="base-api"))
-    _create(sk, "child-a", parent="base-api")
     out = _rename(sk, "base-api", id="core-api")
     assert out == {"old_id": "base-api", "new_id": "core-api"}
     assert (ws / ".skein" / "task" / "core-api").is_dir()
     assert not (ws / ".skein" / "task" / "base-api").exists()
     assert _load(ws, "core-api")["branch"] == "skein/core-api"
     assert _load(ws, "feat-x")["deps"] == ["core-api"]
-    assert _load(ws, "child-a")["parent"] == "core-api"
 
 
 # ── 补充测试：覆盖缺失的分支 ───────────────────────────────────────────────────

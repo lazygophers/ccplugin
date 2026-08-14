@@ -21,7 +21,7 @@ def _task(ws: Path, tid: str) -> dict[str, Any]:
 
 
 def _fill_prd(ws: Path, tid: str) -> None:
-    """写满 confirm 的 prd + design 接缝门 (与 test_supertask 同一套模板)。"""
+    """写满 confirm 的 prd + design 接缝门。"""
     (ws / ".skein" / "task" / tid / "prd.md").write_text(
         f"# {tid} — PRD\n\n## 目标\n- 解决 X\n\n"
         "## 边界\n- a\n\n## User Stories\n1. As a user, I want X\n\n"

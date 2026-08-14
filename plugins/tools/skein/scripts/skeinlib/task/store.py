@@ -27,7 +27,7 @@ from pathlib import Path
 from typing import Any, Callable, Optional, cast
 
 from skeinlib.hooks.runner import DBG
-from skeinlib.infra.board import render_board, render_task_board, render_vision
+from skeinlib.infra.board import render_board, render_task_board
 from skeinlib.utils.errors import SkeinError
 from skeinlib.task.model import PRIORITY_DEFAULT, PRIORITY_RANK, STATUS_ACTIVE, STATUS_ORDER, TaskStatus, TS_CHECKED_END, normalize_task_status, now
 
@@ -62,11 +62,11 @@ class TaskStore:
 
     @staticmethod
     def _unfinished_related(tasks: list[dict[str, Any]]) -> set[str]:
-        # 关联 = deps 双向 + parent/child 双向。任一连通分量内有非已完成 task, 该分量整体禁归档
+        # 关联 = deps 双向。任一连通分量内有非已完成 task, 该分量整体禁归档
         # (归档走了会切断上下文链: 未完成的兄弟/后继再回头查前置产物时目录已迁走)。
         adj: dict[str, set[str]] = {t["id"]: set() for t in tasks}
         for t in tasks:
-            for other in list(t.get("deps") or []) + ([t["parent"]] if t.get("parent") else []):
+            for other in list(t.get("deps") or []):
                 if other in adj:
                     adj[t["id"]].add(other)
                     adj[other].add(t["id"])
@@ -95,7 +95,6 @@ class TaskStore:
         tasks = [{"id": t["id"], "status": t["status"], "deps": t["deps"],
                   "priority": t.get("priority") or PRIORITY_DEFAULT,
                   "worktree": t.get("worktree"),
-                  "parent": t.get("parent"), "kind": t.get("kind", "task"),
                   "created": t.get("created"),
                   "confirmed": t.get("confirmed"),
                   "started": t.get("started"),
@@ -105,8 +104,6 @@ class TaskStore:
         self.write_if_changed(self.dir / "task.json",
             json.dumps({"tasks": tasks}, ensure_ascii=False, indent=2))
         self._write_board()  # 变更即刷 task.md (看板 http 实时渲染, 不落盘)
-        for st in [t for t in self.all_tasks() if t.get("kind") == "supertask"]:
-            self._write_vision(st)  # 每个 supertask 刷聚合看板 vision.md (有变更才写)
 
     def load(self, tid: str) -> dict[str, Any]:
         f = self.tasks / tid / "task.json"
@@ -170,8 +167,7 @@ class TaskStore:
                     continue
                 tasks.append({"id": r["id"], "name": r.get("name", r["id"]), "status": r["status"],
                               "priority": r.get("priority") or PRIORITY_DEFAULT,
-                              "deps": r.get("deps", []), "worktree": r.get("worktree"),
-                              "parent": r.get("parent"), "kind": r.get("kind", "task")})
+                              "deps": r.get("deps", []), "worktree": r.get("worktree")})
                 mirrored += 1
                 DBG.warn(f"  + 镜像补齐幽灵骨架 {r['id']} (per-task 目录缺失, 仅顶层索引可用)")
         else:
@@ -246,7 +242,3 @@ class TaskStore:
         pools = self._cfg()["pools"]
         self.write_if_changed(self.tasks / t["id"] / "task.md",
                               render_task_board(t, pools["work"], pools["gate"]))
-
-    def _write_vision(self, st: dict[str, Any]) -> None:
-        children = [c for c in self.render_tasks() if c.get("parent") == st["id"]]
-        self.write_if_changed(self.tasks / st["id"] / "vision.md", render_vision(st, children))

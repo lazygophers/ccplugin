@@ -156,7 +156,7 @@ def test_task_commands_are_grouped() -> None:
     assert isinstance(task, TyperGroup)
     task_ctx = _click.Context(task)
     for command in ("create", "research", "plan", "confirm", "check", "finishing", "finish",
-                    "rename", "parent", "deps", "repos", "estimate", "priority", "status", "show"):
+                    "rename", "deps", "repos", "estimate", "priority", "status", "show"):
         assert command not in group.commands
         assert task.get_command(task_ctx, command) is not None
     assert "state" not in group.commands

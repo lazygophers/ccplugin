@@ -431,18 +431,11 @@ class Scheduler:
         for t in all_tasks:
             if t["status"] not in (TaskStatus.ACTIVE, TaskStatus.CHECK):
                 continue
-            if t.get("kind") == "supertask":
-                # supertask 聚合层无自身 subtask, 就绪门换成「全部 child task done」(与 finish
-                # 聚合归档门 lifecycle.py:452 同一套 parent==tid 判定, 只是提前到 check 这关)。
-                children = [c for c in all_tasks if c.get("parent") == t["id"]]
-                if not children or not all(c["status"] == TaskStatus.DONE for c in children):
-                    continue
-            else:
-                subs = t.get("subtasks", [])
-                if not subs:
-                    continue
-                if not all(s["status"] == SubtaskStatus.DONE for s in subs):
-                    continue
+            subs = t.get("subtasks", [])
+            if not subs:
+                continue
+            if not all(s["status"] == SubtaskStatus.DONE for s in subs):
+                continue
             if t["status"] == TaskStatus.ACTIVE:
                 to_check.append(t)
             elif t["status"] == TaskStatus.CHECK:

@@ -1,6 +1,6 @@
 """skein init `.skein/.gitignore` 生成 + 幂等补缺测试 + 端到端「衍生物挡在版本库外/真值不被误挡」测试。
 
-init 首次: 写入 8 条忽略 (task.md/vision.md/lock/archive + 4 衍生 .pending-fix/.audit-log/.recall.db/trash/)。
+init 首次: 写入 7 条忽略 (task.md/lock/archive + 4 衍生 .pending-fix/.audit-log/.recall.db/trash/)。
 init 再跑: 幂等补缺已存文件 (只补缺行, 不破坏用户手写条目, 不重复已有)。
 
 端到端部分 (design.md「测试接缝」): 全新工作区初始化 → 跑一遍会产生衍生物的命令 → 版本库状态干净;
@@ -33,7 +33,7 @@ def _run_hook_stdin(cwd: Path, cmd: str, payload: dict[str, Any]) -> None:
                    capture_output=True, text=True, timeout=30, check=False)
 
 GI_EXPECTED = [
-    "task.md", "vision.md", "*.lock", "spec/.archive/",
+    "task.md", "*.lock", "spec/.archive/",
     "spec/.pending-fix", "spec/.audit-log", "spec/.recall.db", "trash/",
 ]
 
@@ -116,7 +116,6 @@ def test_e2e_fresh_workspace_stays_clean_after_derivative_producing_commands(
     覆盖来源 (逐条对应 derivatives.DERIVATIVES):
     - task.md/*.lock/spec/index.md/spec/*/index.md/spec/*/backlinks.md/spec/.recall.db:
       `skein init` + `spec init` 本身即产出。
-    - vision.md: 建 supertask (store.sync 每次刷聚合看板)。
     - trash/: 建一个普通 task 后 `del` 软删。
     - spec/.pending-fix: 造一条过期 (stale) 规则后跑 `hooks.py stop-check`。
     - spec/.archive/ + spec/.audit-log: 同一条 stale 规则再跑 `spec maintain --apply` 归档。
@@ -131,8 +130,8 @@ def test_e2e_fresh_workspace_stays_clean_after_derivative_producing_commands(
     # spec/ 相关衍生物: spec init 本身产出 index.md/*/index.md/*/backlinks.md/.recall.db
     mem_cli(root, "init")
 
-    # vision.md: supertask 的 store.sync 聚合看板 (同时落真值: task.json/prd.md/design.md)
-    skein_cli(root, "create", "epic-1", "--name", "大需求", "--desc", "d", "--kind", "supertask")
+    # task 真值 (task.json/prd.md/design.md)
+    skein_cli(root, "create", "epic-1", "--name", "大需求", "--desc", "d")
 
     # 到此为止的真值 (task.json/prd.md/design.md/config.yaml/.gitignore) 先提交: 版本库该干净
     # 是相对「真值已入库」而言, 不是相对「什么都没提交」—— 提交动作本身不是本测试的断言对象。
@@ -174,7 +173,6 @@ def test_e2e_fresh_workspace_stays_clean_after_derivative_producing_commands(
         # `git check-ignore` 核实 (查真实 git 行为, 不读 .gitignore 文本)。
         produced = {
             "task.md": root / ".skein" / "task.md",
-            "vision.md": root / ".skein" / "task" / "epic-1" / "vision.md",
             "*.lock": root / ".skein" / ".lock",
             "spec/.archive/": root / ".skein" / "spec" / ".archive",
             "spec/.pending-fix": root / ".skein" / "spec" / ".pending-fix",
@@ -197,7 +195,7 @@ def test_e2e_fresh_workspace_stays_clean_after_derivative_producing_commands(
 
 def test_truth_files_never_git_ignored(ws: Path, skein_cli: SkeinCli) -> None:
     """真值类文件逐条钉死绝不被 `.gitignore` 误挡 —— 判错方向是用户数据不进版本库。"""
-    skein_cli(root := ws, "create", "epic-1", "--name", "e", "--desc", "d", "--kind", "supertask")
+    skein_cli(root := ws, "create", "epic-1", "--name", "e", "--desc", "d")
     truth_files = {
         "顶层 task 索引": ".skein/task.json",
         "task 级真值": ".skein/task/epic-1/task.json",
@@ -221,7 +219,7 @@ def test_init_self_heals_stale_gitignore(ws: Path, skein_cli: SkeinCli) -> None:
     gi = root / ".skein" / ".gitignore"
     gi.write_text(
         "# skein 自动渲染/衍生, 不入库\n"
-        "task.md\nvision.md\n*.lock\ntrash/\n",
+        "task.md\n*.lock\ntrash/\n",
         encoding="utf-8",
     )
     skein_cli(root, "init")  # 幂等
@@ -229,4 +227,4 @@ def test_init_self_heals_stale_gitignore(ws: Path, skein_cli: SkeinCli) -> None:
     missing = [e for e in gi_entries() if e not in lines]
     assert not missing, f"init 未自愈, 登记处条目仍缺: {missing}"
     # 用户手写条目保留 (不破坏)
-    assert "task.md" in lines and "vision.md" in lines, "自愈破坏了既有手写条目"
+    assert "task.md" in lines, "自愈破坏了既有手写条目"

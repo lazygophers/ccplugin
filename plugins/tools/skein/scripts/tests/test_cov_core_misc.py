@@ -24,7 +24,7 @@ def _ns(**kw: Any) -> argparse.Namespace:
 
 
 def _create(sk: Skein, tid: str, **over: Any) -> dict[str, Any]:
-    a = _ns(id=tid, name=tid, desc="d", deps="", parent=None, kind="task",
+    a = _ns(id=tid, name=tid, desc="d", deps="",
             repos=None, estimate=None, priority=None, like=None)
     for k, v in over.items():
         setattr(a, k, v)
@@ -409,15 +409,3 @@ def test_del_task_with_missing_worktree_file(ws: Path, monkeypatch: pytest.Monke
     # 删除 task 应该能处理缺失的 worktree
     out = sk.lifecycle.del_(_ns(task_id="feat-x", subtask_sid=None, dry_run=False))
     assert out["deleted"] is True
-
-
-def test_planning_gaps_with_supertask_has_children(ws: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """_planning_gaps 对有 children 的 supertask 不报无 subtask 错。"""
-    sk = _skein(ws, monkeypatch)
-    _create(sk, "epic-x", kind="supertask")
-    _create(sk, "child-a", parent="epic-x")
-    _fill_prd(ws, "epic-x")
-    sk.lifecycle.estimate(_ns(id="epic-x", set="8"))
-    # 有 children，不应报"无 subtask 登记"
-    gaps = sk.lifecycle._planning_gaps("epic-x", _load(ws, "epic-x"))
-    assert not any("无 subtask 登记" in g for g in gaps)

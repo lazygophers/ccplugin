@@ -2,7 +2,7 @@
 """boardsource / views / infra.board 三模块的行覆盖补齐 — 纯进程内单测。
 
 分三段:
-  1. `skeinlib.infra.board` — markdown 渲染纯函数 (状态标签回落 / supertask 分组 / 空表)。
+  1. `skeinlib.infra.board` — markdown 渲染纯函数 (状态标签回落 / 空表)。
   2. `skeinlib.web.views` — Snapshot 边界 + 各 `_view_*` 的少见分支 (归档/坏 JSON/搜索命中)。
   3. `skeinlib.web.boardsource` — BoardSourceMixin 各成员, 用最小假宿主 (`_Host`) 满足依赖契约,
      `serve` / `_run_server` 的外部副作用 (uvicorn/浏览器/依赖安装) 全部 monkeypatch 掉。
@@ -23,7 +23,7 @@ from typing import Any, Callable, Optional, cast
 import pytest
 
 from skeinlib.infra.board import (_subtask_status_label, _task_status_label, render_board,
-                                  render_task_board, render_vision)
+                                  render_task_board)
 from skeinlib.task.model import SubtaskStatus, TaskStatus
 from skeinlib.utils.paths import SCRIPTS_DIR
 from skeinlib.web.boardsource import BoardSourceMixin
@@ -65,30 +65,6 @@ def test_render_board_empty_and_worktree_column() -> None:
     assert "| t2 | 名-t2 | 待处理 | - | - |" in out
 
 
-def test_render_board_groups_children_under_supertask() -> None:
-    # supertask 作分组头, 其 child 以 "↳ " 缩进紧随其后; 未挂在任何 supertask 下的 task 平铺在末尾
-    tasks = [
-        _t("sup", TaskStatus.ACTIVE, kind="supertask"),
-        _t("c1", TaskStatus.DONE, parent="sup", deps=["c0"]),
-        _t("solo"),
-        _t("orphan", parent="不存在的父"),  # 孤儿 child: parent 不在 tasks 里 → 落平铺区
-    ]
-    out = render_board(tasks, wt_shown=False)
-    lines = [ln for ln in out.splitlines() if ln.startswith("| ")]
-    body = [ln for ln in lines if not ln.startswith("| id ")]
-    assert body[0].startswith("| sup |")
-    assert body[1] == "| ↳ c1 | 名-c1 | 已完成 | c0 |"
-    # 平铺区保序 (原 tasks 顺序), 且孤儿不被吞掉
-    assert [ln.split(" | ")[0] for ln in body[2:]] == ["| solo", "| orphan"]
-
-
-def test_render_board_supertask_with_worktree_column() -> None:
-    # child 行在 wt_shown 下补第 5 列 (crow += 分支)
-    out = render_board([_t("sup", kind="supertask", worktree="/wt/sup"),
-                        _t("c1", parent="sup")], wt_shown=True)
-    assert "| ↳ c1 | 名-c1 | 待处理 | - | - |" in out
-
-
 def test_render_task_board_rows_and_empty() -> None:
     # 无 subtask → 7 列占位行; 有 subtask → 依赖/技能/验收标准逐列渲染, 空列表回落 "-"
     empty = render_task_board(_t("t1"), work_active=2, gate_active=3)
@@ -102,28 +78,6 @@ def test_render_task_board_rows_and_empty() -> None:
     out = render_task_board(t, work_active=1, gate_active=1)
     assert "| s1 | 子一 | 已完成 | 100% | py | s0 | 能跑; 有测 |" in out
     assert "| s2 | 子二 | 待处理 | 2% | - | - | - |" in out
-
-
-def test_render_vision_aggregates_children() -> None:
-    # 无 child → 占位行 + 整体 0%; 有 child → 完成率取 _task_pct 均值 (整除): (100+2)//2 = 51
-    st = _t("sup", kind="supertask")
-    assert "| - | - | - | - | - |" in render_vision(st, [])
-    assert "**整体进度**: 0% · **child**: 0/0 已完成" in render_vision(st, [])
-    kids = [
-        _t("c1", TaskStatus.DONE, subtasks=[{"sid": "s1", "status": SubtaskStatus.DONE},
-                                            {"sid": "s2", "status": SubtaskStatus.PENDING}]),
-        _t("c2", TaskStatus.PENDING),  # 无 subtask → 比例列 "-"
-    ]
-    out = render_vision(st, kids)
-    assert "| c1 | 名-c1 | 已完成 | 1/2 | 100% |" in out
-    assert "| c2 | 名-c2 | 待处理 | - | 2% |" in out
-    assert "**整体进度**: 51% · **child**: 1/2 已完成" in out
-
-
-def test_render_vision_name_falls_back_to_id() -> None:
-    # supertask 无 name (或空串) → 标题回落 id
-    out = render_vision({"id": "sup", "name": ""}, [])
-    assert out.startswith("# SKEIN supertask 聚合看板 — sup sup\n")
 
 
 # ══════════════════════════════════════════════════════════════════════════════

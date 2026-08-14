@@ -128,12 +128,12 @@ class TaskTyperGroup(TyperGroup):
                 "confirm (待处理→进行中) / research+plan (待处理⇄调研中) / "
                 "check (进行中→检查中) / revert (检查中→待处理) / "
                 "finishing (检查中→收尾中) / finish (收尾中→已完成); "
-                "改字段用 task rename / priority / estimate / deps / parent / repos")
+                "改字段用 task rename / priority / estimate / deps / repos")
         return cmd
 
 
 TASK_COMMANDS = {"create", "research", "plan", "confirm", "check", "revert", "finishing", "finish",
-                 "priority", "estimate", "repos", "deps", "parent", "rename", "status", "show"}
+                 "priority", "estimate", "repos", "deps", "rename", "status", "show"}
 
 # prd --type 的合法值提示 — 中英 alias 都收, help 里只列英文短名 (够 agent 用且不撑爆一行)
 _PRD_TYPE_HELP = "章节: goal|scope|stories|acceptance|verification|testing (中文段名亦可); write/add 可重复传并一次写多段"
@@ -155,7 +155,7 @@ design_app = typer.Typer(help="读/写 design.md 测试接缝段 (confirm 硬门
 
 MUTATING = {"init", "setup", "create", "confirm", "research", "plan", "check", "revert", "finishing",
             "finish", "fmt", "clean",
-            "contract", "repos", "deps", "parent", "estimate", "priority", "subtask", "claim",
+            "contract", "repos", "deps", "estimate", "priority", "subtask", "claim",
             "prd", "design", "flow", "del",
             "rename", "config"}
 
@@ -180,7 +180,6 @@ def _dispatch(a: SimpleNamespace) -> None:
         "check": sk.lifecycle.check, "revert": sk.lifecycle.revert, "finishing": sk.lifecycle.finishing,
         "finish": sk.lifecycle.finish,
         "repos": sk.lifecycle.repos, "deps": sk.lifecycle.deps,
-        "parent": sk.lifecycle.parent,
         "estimate": sk.lifecycle.estimate, "priority": sk.lifecycle.priority, "rename": sk.lifecycle.rename,
         "del": sk.lifecycle.del_,
         "claim": sk.scheduler.claim, "flow": sk.scheduler.flow, "subtask": sk.scheduler.subtask,
@@ -234,8 +233,6 @@ def create(
     desc: Annotated[str, typer.Option("--desc", help="一句话描述")],
     deps: Annotated[Optional[str], typer.Option("--deps")] = None,
     repos: Annotated[Optional[str], typer.Option("--repos")] = None,
-    kind: Annotated[str, typer.Option("--kind")] = "task",
-    parent: Annotated[Optional[str], typer.Option("--parent")] = None,
     estimate: Annotated[Optional[str], typer.Option("--estimate", help=ESTIMATE_HINT)] = None,
     priority: Annotated[Optional[str], typer.Option(
         "--priority", help=f"仅允许: {', '.join(PRIORITIES)} (默认 {PRIORITY_DEFAULT})")] = None,
@@ -243,7 +240,7 @@ def create(
         "--like", help="拿既有 task (含已完成的) 当模板: 克隆 prd/design/subtask 骨架, 状态全重置")] = None,
 ) -> None:
     """登记新 task。"""
-    _run("create", id=id, name=name, desc=desc, deps=deps, repos=repos, kind=kind, parent=parent,
+    _run("create", id=id, name=name, desc=desc, deps=deps, repos=repos,
          estimate=estimate, priority=priority, like=like)
 
 
@@ -279,13 +276,6 @@ def deps(id: str, value: Annotated[Optional[str], _SET_ARG] = None,
          set_: Annotated[Optional[str], typer.Option("--set")] = None) -> None:
     """查/补 task 级前置 DAG。"""
     _run("deps", id=id, set=_set_value(set_, value))
-
-
-@task_app.command("parent")
-def parent(id: str, value: Annotated[Optional[str], _SET_ARG] = None,
-           set_: Annotated[Optional[str], typer.Option("--set")] = None) -> None:
-    """查/改既有 task 的 parent 挂载。"""
-    _run("parent", id=id, set=_set_value(set_, value))
 
 
 @task_app.command("research")

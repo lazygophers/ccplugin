@@ -1,4 +1,4 @@
-"""归档护栏 — 关联链 (deps + parent/child) 上有未完成 task 时, 整条链禁归档。"""
+"""归档护栏 — 关联链 (deps) 上有未完成 task 时, 整条链禁归档。"""
 from __future__ import annotations
 
 from typing import Any
@@ -12,9 +12,8 @@ ACTIVE = TaskStatus.ACTIVE
 PENDING = TaskStatus.PENDING
 
 
-def _t(tid: str, status: str, deps: list[str] | None = None,
-       parent: str | None = None) -> dict[str, Any]:
-    return {"id": tid, "status": status, "deps": deps or [], "parent": parent}
+def _t(tid: str, status: str, deps: list[str] | None = None) -> dict[str, Any]:
+    return {"id": tid, "status": status, "deps": deps or []}
 
 
 def test_isolated_done_task_archivable() -> None:
@@ -37,11 +36,6 @@ def test_transitive_chain_blocks_whole_component() -> None:
     blocked = BLOCKED([_t("a", DONE), _t("b", DONE, deps=["a"]),
                        _t("c", PENDING, deps=["b"])])
     assert blocked == {"a", "b", "c"}
-
-
-def test_parent_child_relation_blocks() -> None:
-    blocked = BLOCKED([_t("sup", ACTIVE), _t("kid", DONE, parent="sup")])
-    assert blocked == {"sup", "kid"}
 
 
 def test_separate_components_independent() -> None:
