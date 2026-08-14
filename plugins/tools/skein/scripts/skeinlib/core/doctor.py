@@ -338,7 +338,7 @@ class DoctorMixin:
                 prd = self.tasks / t["id"] / "prd.md"
                 if prd.exists():  # 轻量指针: 只给主入口路径, 不含正文 (需要时 AI 自读)
                     lines.append(f"  - 主入口 PRD: `{prd}`")
-            lines += ["", "恢复提示: 用 `skein list --status open` 查 active task; 未 finish 闭环(标记完成) = 未完成。"]
+            lines += ["", "恢复提示: 用 `skein list --status unfinished` 查未完成 task; 未 finish 闭环(标记完成) = 未完成。"]
         if hint:
             lines.append(hint)
         wt_on = cfg["worktree"]["enabled"]

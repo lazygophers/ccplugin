@@ -49,7 +49,7 @@ skein init    # 或由 skein-setup skill 自动触发
 | finish | merge → 销wt → 标记完成 → 异步 sediment |
 
 ```
-skein list --status open  # 活跃 task
+skein list --status unfinished  # 活跃 task
 skein board      # 文本看板
 skein serve --open  # 可视化 HTML 看板
 ```

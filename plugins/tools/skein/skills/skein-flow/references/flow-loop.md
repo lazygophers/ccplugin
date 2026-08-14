@@ -1,10 +1,10 @@
 # flow 模式
 
-**进入本文件后第一动作：先跑 `skein list --status open --json` 取现状。拿到 CLI 回显中的已注册 tid 前，禁止任何 Edit/Write；回复前缀中的 tid 必须来自该回显，禁止自造。**
+**进入本文件后第一动作：先跑 `skein list --status unfinished --json` 取现状。拿到 CLI 回显中的已注册 tid 前，禁止任何 Edit/Write；回复前缀中的 tid 必须来自该回显，禁止自造。**
 
 | `$1`                     | 阶段            | 行为                                                                                                                     |
 | ------------------------ | --------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| 全空                     | flow · 清空模式 | 不新建 task，取 `skein list --status open --json`，按可推进顺序清空全部未完成 task。无 open task 则报「无待执行 task」。 |
+| 全空                     | flow · 清空模式 | 不新建 task，取 `skein list --status unfinished --json`，按可推进顺序清空全部未完成 task。无未完成 task 则报「无待执行 task」。 |
 | `flow` / 缺省 / 任务描述 | flow 默认闭环   | 有任务描述先走 plan 建/并入 task；之后自动续 exec→check→finish。                                                         |
 | `plan`                   | 仅规划          | 推到规划完成态，完成 `skein task confirm --approved` 后停，不续 exec。                                                        |
 | `exec`                   | 续执行          | 驱动待处理/在途 task 继续闭环到 finish。                                                                                 |
@@ -20,9 +20,9 @@
 | `skein task create <tid> --name <str> --desc <str> [--priority urgent\|high\|normal\|low] [--estimate <小时>]` | `--priority` 只收这四个英文值，**没有中文档位**；`--estimate` 单位是**小时**（`0.5`=30 分钟，也收 `30m`/`1.5h`） |
 | `skein subtask add <tid> <sid> --name <str> --desc <str> --estimate <小时> [--deps sid1,sid2] [--skills] [--check "a;b"] [--phase exec\|research]` | `<sid>` 是**位置参数**不是 `--id`；`sid`/`--name`/`--desc`/`--estimate` 四者缺一即拒；`--check` 分号分隔多条，也可重复传（各段累加） |
 | `skein prd write <tid> --type <段名> --list <条目> [--type <段名> --list <条目> ...]` | `--type`/`--list` 成对重复，一回合可写多段；段名 `goal\|scope\|stories\|acceptance\|verification\|testing` |
-| `skein list --status <open\|all\|pending\|...>` | 顶层命令；`skein task list` 是转发别名，两者等价 |
+| `skein list --status <plan\|exec\|all\|unfinished\|pending\|...>` | 顶层命令；`skein task list` 是转发别名，两者等价；`open`/`plan`=待处理阶段，`unfinished`=全部未完成 |
 | `skein prd check <tid> --type <段名> --list <条目原文子串\|序号>` | `check/uncheck` 的 `--list` 是**匹配串**，`write/add` 的 `--list` 是**内容** —— 同名反义。纯数字按章节内第 N 条解（1-based），其余按子串匹配，拿不准先 `prd read` |
-| 状态变更 | **没有 `task update --status`**。逐阶段命令：`confirm`（待处理→进行中）/ `research`+`plan`（待处理⇄调研中）/ `check` / `revert`（检查中→待处理）/ `finishing` / `finish`。改字段才用 `task rename\|priority\|estimate\|deps\|parent\|repos` |
+| 状态变更 | **没有 `task update --status`**。逐阶段命令：`confirm`（待处理→进行中）/ `research`+`plan`（待处理⇄调研中）/ `check` / `revert`（检查中→待处理）/ `finishing` / `finish`。改字段才用 `task rename\|priority\|estimate\|deps\|repos` |
 
 **`subtask start` 不是开工的入口，`task confirm` 才是**。task 没过 confirm 门（还在待处理），它的 subtask 一律 start 不了 —— 别指望先干活后补审。
 
@@ -35,10 +35,10 @@
 无论模式，流程首步固定为：
 
 ```text
-Bash("skein list --status open --json")  # 任何 Edit/Write 或 task 操作之前
+Bash("skein list --status unfinished --json")  # 任何 Edit/Write 或 task 操作之前
 ```
 
-拿到 open task 与已注册 tid 后，才进入对应模式：
+拿到未完成 task 与已注册 tid 后，才进入对应模式：
 
 ```text
 Bash(skein task create <tid> --name <任务标题> --desc <任务描述> [--priority ...] [--parent ...] [--deps ...] [--estimate ...])

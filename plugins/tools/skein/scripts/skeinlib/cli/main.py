@@ -396,8 +396,8 @@ def flow(
 
 @app.command("list")
 def list_(status: Annotated[Optional[str], typer.Option(
-              "--status", help="pending/research/active/check/finishing/done (中文名亦可), "
-                               "open=全部未完成, all=不筛; 逗号分隔可多选")] = None,
+              "--status", help="plan/research/exec/check/finishing/finish/done (中文名亦可), "
+                               "open/plan=待处理阶段, unfinished=全部未完成, all=不筛; 逗号分隔可多选")] = None,
           json_: Annotated[bool, typer.Option("--json")] = False) -> None:
     """列所有 task。"""
     _run("list", status=status, json=json_)

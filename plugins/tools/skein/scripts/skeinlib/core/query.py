@@ -78,18 +78,26 @@ class Query:
     def list_(self, a: argparse.Namespace) -> dict[str, Any]:
         tasks = self.ws.store.all_tasks()
         st = (getattr(a, "status", None) or "").strip()
+        # --status 的阶段名别名 (与回复前缀 PHASE_OF 同一套语义): plan→待处理, exec→进行中, finish→收尾中
+        phase_alias = {"plan": TaskStatus.PENDING, "exec": TaskStatus.ACTIVE,
+                       "finish": TaskStatus.FINISHING}
         if st:
             if st in ("all", "全部", "*"):
                 pass  # 不筛; `all` 是自然猜测, 不收就只会换来一次重试
-            elif st in ("open", "unfinished", "未完成"):
+            elif st in ("open", "plan", "待处理"):
+                # open = plan 阶段 (还没开工的 task); 「全部未完成」走 unfinished
+                tasks = [t for t in tasks if t["status"] == TaskStatus.PENDING]
+            elif st in ("unfinished", "未完成"):
                 tasks = [t for t in tasks if t["status"] != TaskStatus.DONE]
             else:
-                wanted = {_STATUS_ALIAS.get(x.strip(), x.strip()) for x in st.split(",")}
+                wanted = {phase_alias.get(x.strip(), None) or _STATUS_ALIAS.get(x.strip(), x.strip())
+                          for x in st.split(",")}
                 bad = wanted - {TaskStatus.PENDING, TaskStatus.RESEARCH, TaskStatus.ACTIVE, TaskStatus.CHECK, TaskStatus.FINISHING, TaskStatus.DONE}
                 if bad:
                     raise SkeinError(
                         f"未知 status: {', '.join(sorted(bad))} — 可选 "
                         f"待处理/调研中/进行中/检查中/收尾中/已完成 "
-                        f"(或 pending/research/active/check/finishing/done), open=全部未完成, all=不筛")
+                        f"(或 plan/research/exec/check/finishing/finish/done), "
+                        f"open=plan 阶段, unfinished=全部未完成, all=不筛")
                 tasks = [t for t in tasks if t["status"] in wanted]
         return {"tasks": [self._brief(t) for t in tasks]}

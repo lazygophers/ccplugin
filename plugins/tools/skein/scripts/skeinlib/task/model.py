@@ -58,7 +58,7 @@ def normalize_task_status(s: str) -> TaskStatus:
 # STATUS_INFLIGHT = 已建 worktree 需在 finish/del 时销毁的态 (调研中未建 worktree, 不在此列)
 STATUS_ACTIVE = {TaskStatus.ACTIVE, TaskStatus.RESEARCH, TaskStatus.FINISHING}
 STATUS_INFLIGHT = {TaskStatus.ACTIVE, TaskStatus.CHECK, TaskStatus.FINISHING}
-# list --status 过滤别名 (英文简写 → 中文态); open/未完成 特判非 done
+# list --status 过滤别名 (英文简写 → 中文态); open=plan 阶段, unfinished=全部未完成 特判在 query.list_
 _STATUS_ALIAS = {"pending": TaskStatus.PENDING, "research": TaskStatus.RESEARCH,
                   "active": TaskStatus.ACTIVE, "check": TaskStatus.CHECK,
                   "finishing": TaskStatus.FINISHING, "done": TaskStatus.DONE}

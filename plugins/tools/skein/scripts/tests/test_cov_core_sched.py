@@ -170,13 +170,14 @@ def test_query_status_brief_counts_and_ready(ws: Path, monkeypatch: pytest.Monke
 
 
 def test_query_list_status_filters(ws: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """list --status: all 不筛 / open 排除已完成 / 具体态精确筛 / 非法态报错。"""
+    """list --status: all 不筛 / open=待处理 / unfinished=未完成 / 具体态精确筛 / 非法态报错。"""
     sk = _skein(ws, monkeypatch)
     _active_task(sk, ws, "feat-x")
     _create(sk, "feat-idle")
     all_ids = {t["id"] for t in sk.query.list_(_ns(status="all"))["tasks"]}
     assert all_ids == {"feat-x", "feat-idle"}
-    assert {t["id"] for t in sk.query.list_(_ns(status="open"))["tasks"]} == all_ids
+    assert {t["id"] for t in sk.query.list_(_ns(status="unfinished"))["tasks"]} == all_ids
+    assert {t["id"] for t in sk.query.list_(_ns(status="open"))["tasks"]} == {"feat-idle"}
     only = sk.query.list_(_ns(status=TaskStatus.ACTIVE))["tasks"]
     assert [t["id"] for t in only] == ["feat-x"]
     with pytest.raises(SkeinError, match="未知 status"):

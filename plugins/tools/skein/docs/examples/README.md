@@ -63,7 +63,7 @@
 ```bash
 cp -r <plugin>/docs/examples/sample-skein /path/to/repo/.skein
 cd /path/to/repo
-skein list --status open
+skein list --status unfinished
 skein subtask list order-create-api
 skein-spec recall 幂等
 ```

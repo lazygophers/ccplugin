@@ -16,7 +16,7 @@ agent: skein-dedup
 
 ## 入参: task-id
 
-- **省略** → 扫全部未完成 task (`--status open`), 查重 + 补执行序。
+- **省略** → 扫全部未完成 task (`--status unfinished`), 查重 + 补执行序。
 - **`<task-id>`** → 只以该 task 为中心比对: 它与谁重复、它该依赖谁 / 谁该依赖它。其余 task 之间不动。
 
 ## 派发

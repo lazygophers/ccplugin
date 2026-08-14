@@ -246,16 +246,25 @@ def test_query_ready_filters_by_deps(ws: Path, monkeypatch: pytest.MonkeyPatch) 
 
 
 def test_query_list_with_open_status(ws: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """list --status=open 排除已完成的 task。"""
+    """list --status=open = plan 阶段 (仅待处理); unfinished = 全部未完成。"""
+    import skeinlib.core.workspace as ws_module
     sk = _skein(ws, monkeypatch)
     _create(sk, "feat-x")
     _create(sk, "feat-done")
+    _create(sk, "feat-plan")
+    t = _load(ws, "feat-x")
+    t["status"] = TaskStatus.ACTIVE
+    ws_module.Workspace().store.save(t)
     t = _load(ws, "feat-done")
     t["status"] = TaskStatus.DONE
-    import skeinlib.core.workspace as ws_module
     ws_module.Workspace().store.save(t)
-    out = sk.query.list_(_ns(status="open"))
-    assert {t["id"] for t in out["tasks"]} == {"feat-x"}
+    # open 只剩待处理 (active/done 均不在)
+    assert {x["id"] for x in sk.query.list_(_ns(status="open"))["tasks"]} == {"feat-plan"}
+    # unfinished = 非done 全部
+    assert {x["id"] for x in sk.query.list_(_ns(status="unfinished"))["tasks"]} == {"feat-x", "feat-plan"}
+    # 阶段别名: plan/exec 与 pending/active 同义
+    assert {x["id"] for x in sk.query.list_(_ns(status="plan"))["tasks"]} == {"feat-plan"}
+    assert {x["id"] for x in sk.query.list_(_ns(status="exec"))["tasks"]} == {"feat-x"}
 
 
 def test_query_list_with_all_status(ws: Path, monkeypatch: pytest.MonkeyPatch) -> None:
