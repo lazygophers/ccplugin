@@ -94,7 +94,7 @@ if 模式 == 'plan':
 
 # ============================================================
 # EXEC 阶段 — 消费 flow run 派发 executor
-# (executor 绑定 skill skein:skein-executor, 执行方法论自动随 frontmatter 注入; dispatch prompt 仍是纯 JSON)
+# (executor 绑定 skill skein:skein-exec, 执行方法论自动随 frontmatter 注入; dispatch prompt 仍是纯 JSON)
 # ============================================================
 loop exec_tick:
   out = Bash("skein flow run")

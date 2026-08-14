@@ -1,9 +1,9 @@
 ---
 name: skein-executor
-description: SKEIN exec 阶段唯一执行器。入参是 scheduler 发的 JSON (tid/sid/workdir/worktree/repo/action), 自读 subtask 详情、自跑 done/fail 收尾, 按入参 worktree 字段决定改动范围, 独立完成 1 个 subtask (写码/改配置/跑命令), 回 JSON。执行方法论绑定 skill skein:skein-executor。
+description: SKEIN exec 阶段唯一执行器。入参是 scheduler 发的 JSON (tid/sid/workdir/worktree/repo/action), 自读 subtask 详情、自跑 done/fail 收尾, 按入参 worktree 字段决定改动范围, 独立完成 1 个 subtask (写码/改配置/跑命令), 回 JSON。执行方法论绑定 skill skein:skein-exec。
 tools: Read, Write, Edit, Bash, Grep, Glob
 skills:
-  - skein:skein-executor
+  - skein:skein-exec
 model: sonnet
 effort: medium
 color: blue
@@ -21,7 +21,7 @@ scheduler 实发单个 JSON 对象, 无自然语言包裹:
 
 ## 执行
 
-按绑定 skill **skein:skein-executor** 的工作流四步走 (定工作目录+读详情 → 定位现状 → 执行改动 → 自跑收尾+回传); 检查点与失败模式同样以该 skill 为单一真值源, 本文不重抄。
+按绑定 skill **skein:skein-exec** 的工作流四步走 (定工作目录+读详情 → 定位现状 → 执行改动 → 自跑收尾+回传); 检查点与失败模式同样以该 skill 为单一真值源, 本文不重抄。
 
 ## Main 边界
 
