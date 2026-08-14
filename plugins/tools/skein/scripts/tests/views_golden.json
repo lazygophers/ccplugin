@@ -1007,6 +1007,21 @@
       },
       {
         "badge": [
+          0,
+          1
+        ],
+        "items": [
+          {
+            "done": false,
+            "kind": "check",
+            "proseCls": "",
+            "text": "不动调度"
+          }
+        ],
+        "name": "边界"
+      },
+      {
+        "badge": [
           1,
           2
         ],

@@ -427,20 +427,9 @@ function TaskDetailContent() {
                 </Card>
               )}
 
-              {/* PRD sections */}
-              {prd.map((sec, i) => (
-                <Card key={i} title={`${sec.name}${sec.badge ? ` (${sec.badge[0]}/${sec.badge[1]})` : ""}`} icon={sec.name === "目标" ? Target : sec.name === "验收标准" ? CheckSquare : FileText}>
-                  {sec.items && sec.items.length ? (
-                    <div className="space-y-2">
-                      {sec.items.map((item, j) => (
-                        <div key={j} className="flex items-start gap-3 text-sm">
-                          {item.done ? <CheckSquare className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: "var(--st-done)" }} /> : <Square className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: "var(--muted-foreground)" }} />}
-                          <span className={item.done ? "text-muted-foreground line-through" : "text-foreground"}>{item.text}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : <p className="text-sm text-muted-foreground">—</p>}
-                </Card>
+              {/* PRD sections — 三段固定渲染: 缺文件/空章节也亮卡片, 空态引导编辑 */}
+              {PRD_FIXED.map((sec) => (
+                <PrdSectionCard key={sec.name} taskId={task.id} sec={sec} data={prd.find(p => p.name === sec.name)} onSaved={load} />
               ))}
 
               {/* Contracts */}
@@ -460,17 +449,8 @@ function TaskDetailContent() {
               {/* Subtask DAG */}
               {subs.length >= 2 && <SubtaskDagCard subs={subs} />}
 
-              {/* Design doc */}
-              {/* design.md 存在即展示: 只有标题/冒号行的模板态也要露出来 —— 「测试接缝还没填」
-                  正是 confirm 硬门会拦的事, 藏起来等于让用户到 confirm 报错时才知道 */}
-              {docs.design && (
-                <Card title="详细设计" icon={Network}>
-                  {isPlaceholder(docs.design) && (
-                    <p className="mb-2 text-xs text-muted-foreground">尚未填写，以下为模板占位</p>
-                  )}
-                  <div className="md-body text-xs leading-relaxed text-foreground" dangerouslySetInnerHTML={{ __html: renderMd(docs.design) }} />
-                </Card>
-              )}
+              {/* Design doc — 恒渲染 (无文件/占位也亮卡), 可直接编辑全文 */}
+              <DesignCard taskId={task.id} content={docs.design} onSaved={load} />
 
               {/* Findings + research */}
               {(docs.findings || Object.entries(research).filter(([, b]) => !isPlaceholder(b)).length > 0) && (
@@ -631,6 +611,127 @@ function DepDagView({ taskId, allTasks }: { taskId: string; allTasks: NormTask[]
         />
       </DagFlowProvider>
     </div>
+  );
+}
+
+// ── PRD 三段固定顺序 (与后端 PRD_SECTIONS 对齐); type 是 CLI 章节名 ──
+const PRD_FIXED: { name: string; type: string; icon: LucideIcon }[] = [
+  { name: "目标", type: "goal", icon: Target },
+  { name: "边界", type: "scope", icon: FileText },
+  { name: "验收标准", type: "acceptance", icon: CheckSquare },
+];
+
+// PRD 章节卡: 浏览态 checklist + 编辑态 textarea (一行一条, 整章重建 — 增/删/改一条都是改全文后 write)
+function PrdSectionCard({ taskId, sec, data, onSaved }: {
+  taskId: string;
+  sec: { name: string; type: string; icon: LucideIcon };
+  data?: { name: string; items?: { text: string; done?: boolean; kind?: string }[]; badge?: [number, number] };
+  onSaved: () => void;
+}) {
+  const toast = useToast();
+  const [editing, setEditing] = useState(false);
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const items = data?.items;
+  const Icon = sec.icon;
+
+  const save = async () => {
+    setBusy(true);
+    try {
+      await api.prd(taskId, "write", sec.type, text);
+      toast(`${sec.name} 已保存`, "success");
+      setEditing(false);
+      onSaved();
+    } catch (e) {
+      toast(e instanceof ApiError ? e.message : "保存失败", "error");
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <Card title={`${sec.name}${data?.badge ? ` (${data.badge[0]}/${data.badge[1]})` : ""}`} icon={Icon}>
+      {editing ? (
+        <div>
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            rows={Math.max(4, text.split("\n").length + 1)}
+            className="w-full rounded-md border border-border bg-background p-2 font-mono text-xs leading-relaxed text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            placeholder="一行一条，留空保存即清空本章"
+            autoFocus
+          />
+          <p className="mt-1 text-[10px] text-muted-foreground">保存整章重建，勾选态将重置（勾选归 check 阶段）</p>
+          <div className="mt-2 flex gap-2">
+            <button onClick={save} disabled={busy} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">{busy ? "保存中…" : "保存"}</button>
+            <button onClick={() => setEditing(false)} className="rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted/50">取消</button>
+          </div>
+        </div>
+      ) : (
+        <div>
+          {items && items.length ? (
+            <div className="space-y-2">
+              {items.map((item, j) => (
+                <div key={j} className="flex items-start gap-3 text-sm">
+                  {item.done ? <CheckSquare className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: "var(--st-done)" }} /> : <Square className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: "var(--muted-foreground)" }} />}
+                  <span className={item.done ? "text-muted-foreground line-through" : "text-foreground"}>{item.text}</span>
+                </div>
+              ))}
+            </div>
+          ) : <p className="text-sm text-muted-foreground">暂无条目 — 点「编辑」添加</p>}
+          <button onClick={() => { setText((items || []).map(i => i.text).join("\n")); setEditing(true); }} className="mt-3 rounded-md border border-border px-2.5 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground">编辑</button>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+// 详细设计卡: design.md 全文; 浏览态渲染 markdown, 编辑态 textarea 直写全文
+function DesignCard({ taskId, content, onSaved }: { taskId: string; content?: string; onSaved: () => void }) {
+  const toast = useToast();
+  const [editing, setEditing] = useState(false);
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const save = async () => {
+    setBusy(true);
+    try {
+      await api.designSave(taskId, text);
+      toast("详细设计已保存", "success");
+      setEditing(false);
+      onSaved();
+    } catch (e) {
+      toast(e instanceof ApiError ? e.message : "保存失败", "error");
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <Card title="详细设计" icon={Network}>
+      {editing ? (
+        <div>
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            rows={16}
+            className="w-full rounded-md border border-border bg-background p-2 font-mono text-xs leading-relaxed text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            placeholder="# 架构 / 数据流 / 取舍 / 技术选型 / 测试接缝 (seam) / 可能性分支"
+            autoFocus
+          />
+          <div className="mt-2 flex gap-2">
+            <button onClick={save} disabled={busy} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">{busy ? "保存中…" : "保存"}</button>
+            <button onClick={() => setEditing(false)} className="rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted/50">取消</button>
+          </div>
+        </div>
+      ) : (
+        <div>
+          {content ? (
+            <>
+              {isPlaceholder(content) && <p className="mb-2 text-xs text-muted-foreground">尚未填写，以下为模板占位</p>}
+              <div className="md-body text-xs leading-relaxed text-foreground" dangerouslySetInnerHTML={{ __html: renderMd(content) }} />
+            </>
+          ) : <p className="text-sm text-muted-foreground">暂无详细设计 — 点「编辑」撰写</p>}
+          <button onClick={() => { setText(content || ""); setEditing(true); }} className="mt-3 rounded-md border border-border px-2.5 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground">编辑</button>
+        </div>
+      )}
+    </Card>
   );
 }
 

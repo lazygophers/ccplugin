@@ -1,6 +1,6 @@
 1:"$Sreact.fragment"
-2:I[86181,["/_next/static/chunks/134ya86rhtt6f.js","/_next/static/chunks/035nsswbrdshv.js"],"ViewportBoundary"]
-3:I[86181,["/_next/static/chunks/134ya86rhtt6f.js","/_next/static/chunks/035nsswbrdshv.js"],"MetadataBoundary"]
+2:I[68523,["/_next/static/chunks/40g4n9l0g3hhd.js","/_next/static/chunks/2oylxkomrnn3a.js"],"ViewportBoundary"]
+3:I[68523,["/_next/static/chunks/40g4n9l0g3hhd.js","/_next/static/chunks/2oylxkomrnn3a.js"],"MetadataBoundary"]
 4:"$Sreact.suspense"
-5:I[98111,["/_next/static/chunks/134ya86rhtt6f.js","/_next/static/chunks/035nsswbrdshv.js"],"IconMark"]
-0:{"rsc":["$","$1","h",{"children":[["$","meta",null,{"name":"robots","content":"noindex"}],["$","$L2",null,{"children":[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]}],["$","div",null,{"hidden":true,"children":["$","$L3",null,{"children":["$","$4",null,{"name":"Next.Metadata","children":[["$","title","0",{"children":"SKEIN"}],["$","meta","1",{"name":"description","content":"Task orchestration board"}],["$","link","2",{"rel":"icon","href":"/favicon.ico?favicon.2vob68tjqpejf.ico","sizes":"256x256","type":"image/x-icon"}],["$","$L5","3",{}]]}]}]}],null]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"x7f4VlQ2SJTWJoNCVX2eo"}
+5:I[20317,["/_next/static/chunks/40g4n9l0g3hhd.js","/_next/static/chunks/2oylxkomrnn3a.js"],"IconMark"]
+0:{"rsc":["$","$1","h",{"children":[["$","meta",null,{"name":"robots","content":"noindex"}],["$","$L2",null,{"children":[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]}],["$","div",null,{"hidden":true,"children":["$","$L3",null,{"children":["$","$4",null,{"name":"Next.Metadata","children":[["$","title","0",{"children":"SKEIN"}],["$","meta","1",{"name":"description","content":"Task orchestration board"}],["$","link","2",{"rel":"icon","href":"/favicon.ico?favicon.2vob68tjqpejf.ico","sizes":"256x256","type":"image/x-icon"}],["$","$L5","3",{}]]}]}]}],null]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"ourXsMtyz7SAKa21Gq84l"}

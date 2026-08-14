@@ -83,15 +83,16 @@ def _prd_data(snap: Snapshot, tid: str) -> list[dict[str, Any]]:
     prd = snap.prd_path(tid)
     return _prd_parse(prd.read_text(encoding="utf-8", errors="replace")) if prd.exists() else []
 def _prd_parse(text: Optional[str]) -> list[dict[str, Any]]:
-    # 解析 prd.md 目标/验收标准 两节: checklist (勾选态) + prose 直显; 跳 TODO 占位
+    # 解析 prd.md 目标/边界/验收标准 三节: checklist (勾选态) + prose 直显; 跳 TODO 占位
     if not text:
         return []
     secs: dict[str, list[tuple[str, bool, str]]] = {}
     cur: Optional[str] = None
+    _prd_sections = ("目标", "边界", "验收标准")
     for ln in text.splitlines():
         h = re.match(r"^#{1,6}\s+(.+?)\s*$", ln)
         if h:
-            cur = h.group(1).strip() if h.group(1).strip() in ("目标", "验收标准") else None
+            cur = h.group(1).strip() if h.group(1).strip() in _prd_sections else None
             continue
         if not cur:
             continue
@@ -105,7 +106,7 @@ def _prd_parse(text: Optional[str]) -> list[dict[str, Any]]:
         if txt and not txt.lstrip().startswith("TODO"):
             secs.setdefault(cur, []).append(("prose", False, txt))
     out: list[dict[str, Any]] = []
-    for name in ("目标", "验收标准"):
+    for name in ("目标", "边界", "验收标准"):
         items = secs.get(name)
         if not items:
             continue

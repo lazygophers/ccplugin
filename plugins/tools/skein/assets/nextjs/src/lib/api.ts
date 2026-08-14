@@ -160,6 +160,8 @@ export const api = {
     cliPost<CliResult>(`${BASE}/task/clean`, { days }),
   prd: (id: string, action: string, type: string, list?: string) =>
     cliPost<CliResult>(`${BASE}/task/prd`, { id, action, type, list }),
+  designSave: (id: string, content: string) =>
+    postJSON<{ ok: boolean }>(`${BASE}/task/design-save`, { id, content }),
   subtaskAdd: (id: string, sid: string, name: string, desc: string, estimate: string, deps?: string) =>
     cliPost<CliResult>(`${BASE}/subtask/add`, { id, sid, name, desc, estimate, deps }),
   finish: (id: string, force = false) =>

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import datetime
@@ -549,6 +550,21 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
     @app.post("/__skein__/task/prd")
     def _task_prd(request: Request) -> Any:
         return _cli_from_cmd("prd", _body(request))
+
+    @app.post("/__skein__/task/design-save")
+    def _task_design_save(request: Request) -> Any:
+        # design.md 全文直写 (web 端编辑详细设计)。prd.md 走 CLI (勾选格式有语义), design.md 无此约束直写。
+        body = _body(request)
+        tid, content = body.get("id"), body.get("content", "")
+        if not isinstance(tid, str) or not re.fullmatch(r"[\w.-]+", tid):
+            return JSONResponse({"error": "id 必填且禁路径分隔符"}, status_code=400)
+        if not isinstance(content, str):
+            return JSONResponse({"error": "bad request"}, status_code=400)
+        tdir = Path(str(board.tasks)) / tid
+        if not tdir.is_dir():
+            return JSONResponse({"error": "task 不存在"}, status_code=404)
+        (tdir / "design.md").write_text(content, encoding="utf-8")
+        return {"ok": True, "id": tid}
 
     # ── Subtask ──
     @app.post("/__skein__/subtask/add")
