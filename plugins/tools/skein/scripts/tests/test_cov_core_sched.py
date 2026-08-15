@@ -22,7 +22,7 @@ from conftest import run_git  # noqa: E402
 from skeinlib.core.commands import Skein  # noqa: E402
 from skeinlib.core.scheduling import (_dispatch_hints, _hint_prompt,  # noqa: E402
                                       _report_mismatches)
-from skeinlib.task.model import SubtaskPhase, SubtaskStatus, TaskStatus  # noqa: E402
+from skeinlib.task.model import SubtaskStatus, TaskStatus  # noqa: E402
 from skeinlib.utils.errors import SkeinError  # noqa: E402
 
 
@@ -47,10 +47,26 @@ def _create(sk: Skein, tid: str, **over: Any) -> dict[str, Any]:
 
 def _add_sub(sk: Skein, tid: str, sid: str, **over: Any) -> dict[str, Any]:
     a = _ns(action="add", tid=tid, sid=sid, name=sid, desc="d", estimate="1",
-            deps="", check="", skills="", phase=None, repo=None)
+            deps="", check="", skills="", repo=None)
     for k, v in over.items():
         setattr(a, k, v)
     return sk.scheduler.subtask(a)
+
+
+def _add_research(sk: Skein, tid: str, sid: str, **over: Any) -> dict[str, Any]:
+    a = _ns(action="add", tid=tid, sid=sid, name=sid, desc="d", estimate="1",
+            deps="", check="", note=None)
+    for k, v in over.items():
+        setattr(a, k, v)
+    return sk.scheduler.research(a)
+
+
+def _research_act(sk: Skein, action: str, tid: str, sid: str = "", **over: Any) -> dict[str, Any]:
+    a = _ns(action=action, tid=tid, sid=sid, name=None, desc=None, estimate=None,
+            deps=None, check=None, note=None)
+    for k, v in over.items():
+        setattr(a, k, v)
+    return sk.scheduler.research(a)
 
 
 def _sub_act(sk: Skein, action: str, tid: str, sid: str = "", **over: Any) -> dict[str, Any]:
@@ -187,8 +203,7 @@ def _wt_task(tid: str, wts: list[dict[str, Any]]) -> dict[str, Any]:
 def test_hints_executor_carries_repo_and_workdir(tmp_path: Path) -> None:
     """单 worktree + 声明 repo 的 exec subtask: hint 带 workdir/repo/workdir_kind 与成品 prompt。"""
     t = _wt_task("feat-x", [{"repo": "svc", "wt": "svc/.worktrees/skein-feat-x"}])
-    hints = _dispatch_hints(claimed=[{"tid": "feat-x", "sid": "sub-a", "repo": "svc",
-                                      "phase": SubtaskPhase.EXEC}],
+    hints = _dispatch_hints(claimed=[{"tid": "feat-x", "sid": "sub-a", "repo": "svc"}],
                             tasks={"feat-x": t}, root=tmp_path)
     assert hints[0]["agent"] == "skein:skein-executor"
     assert hints[0]["workdir_kind"] == "worktree"
@@ -201,10 +216,9 @@ def test_hints_executor_carries_repo_and_workdir(tmp_path: Path) -> None:
     assert "subtask show feat-x sub-a" in p["action"]
 
 
-def test_hints_research_phase_routes_to_researcher(tmp_path: Path) -> None:
-    """phase=research 的 subtask 派 researcher (非 executor)。"""
-    hints = _dispatch_hints(claimed=[{"tid": "feat-x", "sid": "sub-r",
-                                      "phase": SubtaskPhase.RESEARCH}])
+def test_hints_research_flag_routes_to_researcher(tmp_path: Path) -> None:
+    """research 标记的认领条目派 researcher (非 executor)。"""
+    hints = _dispatch_hints(claimed=[{"tid": "feat-x", "sid": "sub-r", "research": True}])
     assert hints[0]["agent"] == "skein:skein-researcher"
 
 
@@ -301,15 +315,15 @@ def test_report_mismatches_flags_orphan_research_report(ws: Path,
     """调研报告已落盘但 research subtask 还没收尾 → 报 mismatch 供 main 介入。"""
     sk = _skein(ws, monkeypatch)
     _create(sk, "feat-x")
-    _add_sub(sk, "feat-x", "sub-r", phase=SubtaskPhase.RESEARCH)
+    _add_research(sk, "feat-x", "sub-r")
     sk.lifecycle.research(_ns(id="feat-x"))
     rd = ws / ".skein" / "task" / "feat-x" / "research"
     rd.mkdir(parents=True, exist_ok=True)
     (rd / "sub-r.md").write_text("# 调研结论\n", encoding="utf-8")
     assert _report_mismatches(sk) == [{"tid": "feat-x", "sid": "sub-r",
                                        "reason": "research_report_exists_subtask_not_finished"}]
-    # subtask done 后不再报
-    _sub_act(sk, "done", "feat-x", "sub-r")
+    # research done 后不再报
+    _research_act(sk, "done", "feat-x", "sub-r")
     assert _report_mismatches(sk) == []
 
 
@@ -659,15 +673,15 @@ def test_subtask_start_blocked_by_task_deps(ws: Path, monkeypatch: pytest.Monkey
 
 def test_subtask_start_in_research_only_research_phase(ws: Path,
                                                        monkeypatch: pytest.MonkeyPatch) -> None:
-    """调研中 task 只放行 phase=research 的 subtask。"""
+    """调研中 task: exec subtask 一律拒, research 任务经 research start 放行。"""
     sk = _skein(ws, monkeypatch)
     _create(sk, "feat-x")
-    _add_sub(sk, "feat-x", "sub-r", phase=SubtaskPhase.RESEARCH)
+    _add_research(sk, "feat-x", "sub-r")
     _add_sub(sk, "feat-x", "sub-a")
     sk.lifecycle.research(_ns(id="feat-x"))
-    with pytest.raises(SkeinError, match="只能 start phase=research"):
+    with pytest.raises(SkeinError, match="subtask 不开工"):
         _sub_act(sk, "start", "feat-x", "sub-a")
-    assert _sub_act(sk, "start", "feat-x", "sub-r")["status"] == SubtaskStatus.RUNNING
+    assert _research_act(sk, "start", "feat-x", "sub-r")["status"] == SubtaskStatus.RUNNING
 
 
 def test_subtask_start_rejects_wrong_status_and_undone_deps(
@@ -1208,19 +1222,19 @@ def test_plan_requires_all_research_subtasks_done(ws: Path, monkeypatch: pytest.
     """测试 plan 时要求所有 research subtask 都完成。"""
     sk = _skein(ws, monkeypatch)
     _create(sk, "feat-x")
-    _add_sub(sk, "feat-x", "sub-r", phase=SubtaskPhase.RESEARCH)
+    _add_research(sk, "feat-x", "sub-r")
     sk.lifecycle.research(_ns(id="feat-x"))
-    # research subtask 还没 done
-    with pytest.raises(SkeinError, match="调研 subtask 未全完成"):
+    # research 任务还没 done
+    with pytest.raises(SkeinError, match="research 任务未全完成"):
         sk.lifecycle.plan(_ns(id="feat-x"))
 
 
 def test_research_requires_research_subtask(ws: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """测试 research 时要求有 research phase 的 subtask。"""
+    """测试 research 时要求有 research 任务。"""
     sk = _skein(ws, monkeypatch)
     _create(sk, "feat-x")
     _add_sub(sk, "feat-x", "sub-a")  # 默认 EXEC phase
-    with pytest.raises(SkeinError, match="无 research subtask"):
+    with pytest.raises(SkeinError, match="无 research 任务"):
         sk.lifecycle.research(_ns(id="feat-x"))
 
 

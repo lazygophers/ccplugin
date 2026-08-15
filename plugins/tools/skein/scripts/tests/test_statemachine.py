@@ -4,7 +4,7 @@
 覆盖 task 状态机: 待处理(pending) ⇄ 调研中(research) → [confirm, 吸收原 start] → 进行中(active)
 → [check] → 检查中(check) → [finishing, 占 gate 槽] → 收尾中(finishing) → [finish] → 已完成(done) → 归档。
 
-待处理→调研中 经 research (须先登记 ≥1 个 --phase research 的 subtask); 调研中→待处理 经 plan
+待处理→调研中 经 research (须先 `skein research add` 登记 ≥1 个 research 任务); 调研中→待处理 经 plan
 (须 research subtask 全 done); 待处理→进行中 经 confirm (吸收原 start: doctor 体检 + 建 worktree,
 一步直接开工, 不再有「就绪」中间态)。非法转换断言被拒 (exit 1 + 中文态校验信息); 幂等转换断言
 当前真实行为。
@@ -68,8 +68,8 @@ def test_research_to_researching(skein_cli: SkeinCli, ws: Path) -> None:
     """research: 待处理 → 调研中 (须先登记 ≥1 个 research subtask)。"""
     tid = "feat-research"
     skein_cli(ws, "create", tid, "--name", tid, "--desc", "d")
-    skein_cli(ws, "subtask", "add", tid, "sub-r", "--name", "R", "--desc", "d",
-              "--estimate", "1", "--phase", "research")
+    skein_cli(ws, "research", "add", tid, "sub-r", "--name", "R", "--desc", "d",
+              "--estimate", "1", )
     r = skein_cli(ws, "research", tid)
     assert r.returncode == 0, r.stderr
     assert _status_of(skein_cli, ws, tid) == TaskStatus.RESEARCH
@@ -79,10 +79,10 @@ def test_plan_back_to_pending(skein_cli: SkeinCli, ws: Path) -> None:
     """plan: 调研中 → 待处理 (须 research subtask 全 done)。"""
     tid = "feat-plan"
     skein_cli(ws, "create", tid, "--name", tid, "--desc", "d")
-    skein_cli(ws, "subtask", "add", tid, "sub-r", "--name", "R", "--desc", "d",
-              "--estimate", "1", "--phase", "research")
+    skein_cli(ws, "research", "add", tid, "sub-r", "--name", "R", "--desc", "d",
+              "--estimate", "1", )
     skein_cli(ws, "research", tid)
-    skein_cli(ws, "subtask", "done", tid, "sub-r")
+    skein_cli(ws, "research", "done", tid, "sub-r")
     r = skein_cli(ws, "plan", tid)
     assert r.returncode == 0, r.stderr
     assert _status_of(skein_cli, ws, tid) == TaskStatus.PENDING
@@ -166,8 +166,8 @@ def test_confirm_during_research_rejected(skein_cli: SkeinCli, ws: Path) -> None
     """非法: 调研中态直接 confirm (应拒, 提示先 plan)。"""
     tid = "feat-mid-research"
     skein_cli(ws, "create", tid, "--name", tid, "--desc", "d")
-    skein_cli(ws, "subtask", "add", tid, "sub-r", "--name", "R", "--desc", "d",
-              "--estimate", "1", "--phase", "research")
+    skein_cli(ws, "research", "add", tid, "sub-r", "--name", "R", "--desc", "d",
+              "--estimate", "1", )
     skein_cli(ws, "research", tid)
     r = skein_cli(ws, "confirm", tid, "--approved", check=False)
     assert r.returncode == 1
@@ -186,8 +186,8 @@ def test_confirm_force_skips_planning_and_research_gates(skein_cli: SkeinCli, ws
 
     research = "feat-force-research"
     skein_cli(ws, "create", research, "--name", research, "--desc", "d")
-    skein_cli(ws, "subtask", "add", research, "sub-r", "--name", "R", "--desc", "d",
-              "--estimate", "1", "--phase", "research")
+    skein_cli(ws, "research", "add", research, "sub-r", "--name", "R", "--desc", "d",
+              "--estimate", "1", )
     skein_cli(ws, "research", research)
     r = skein_cli(ws, "confirm", research, "--approved", "--force")
     assert r.returncode == 0, r.stderr
@@ -210,8 +210,8 @@ def test_plan_rejects_unfinished_research(skein_cli: SkeinCli, ws: Path) -> None
     """非法: research subtask 未全 done 时 plan 被拒。"""
     tid = "feat-research-undone"
     skein_cli(ws, "create", tid, "--name", tid, "--desc", "d")
-    skein_cli(ws, "subtask", "add", tid, "sub-r", "--name", "R", "--desc", "d",
-              "--estimate", "1", "--phase", "research")
+    skein_cli(ws, "research", "add", tid, "sub-r", "--name", "R", "--desc", "d",
+              "--estimate", "1", )
     skein_cli(ws, "research", tid)
     r = skein_cli(ws, "plan", tid, check=False)
     assert r.returncode == 1

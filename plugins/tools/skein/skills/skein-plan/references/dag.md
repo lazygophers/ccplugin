@@ -8,15 +8,15 @@ SKEIN 只认显式依赖边，不推测隐式顺序。
 
 | 层级    | 字段         | 登记位置                                        | 登记命令                                                                                         |
 | ------- | ------------ | ----------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| subtask | `depends_on` | per-task `task.json` 的 `subtasks[].depends_on` | `skein subtask add <tid> <sid> --name <str> --desc <str> --estimate <小时> --deps <sid1>,<sid2>` |
-| task    | `deps`       | 顶层 task 索引                                  | `skein task create --deps <tid1>,<tid2>`                                                              |
+| subtask | `depends_on` | per-task `task.json` 的 `subtasks[].depends_on` | `Bash("skein subtask add <tid> <sid> --name <标题> --desc <描述> --estimate <小时> --deps <sid1>,<sid2>")` |
+| task    | `deps`       | 顶层 task 索引                                  | `Bash("skein task create <tid> --name <标题> --desc <描述> --deps <tid1>,<tid2>")`                  |
 
 `A --deps B` = A 依赖 B，B done 后 A 才 ready。规矩：
 
 - 并行与否只看显式 DAG，不靠脚本猜文件重叠；有序关系必须在 planning 写进 `--deps`。
 - 无真实顺序依赖就不加边 —— 伪依赖拉长关键路径、扼杀并行。
-- DAG 是调度真值源：不写 mermaid 图文件，运行态看 `skein subtask list <tid>`，不看任何 md。
-- planning 未登记任何 subtask → `skein task confirm` 硬拒。
+- DAG 是调度真值源：不写 mermaid 图文件，运行态看 `Bash("skein subtask list <tid>")`，不看任何 md。
+- planning 未登记任何 subtask → `Bash("skein task confirm <tid> --approved")` 硬拒。
 
 `--deps` 必须无环，三个常见挂错：
 
@@ -40,13 +40,13 @@ SKEIN 只认显式依赖边，不推测隐式顺序。
 
 落盘由 main 同步跑：
 
-```bash
-skein subtask add <tid> st1 --name "改 schema"   --desc "加迁移列并回填默认值" --estimate 2 --skills db-migration --check "迁移可回滚; 新列有默认值"
-skein subtask add <tid> st2 --name "改调用站点" --desc "调用站点透传新字段" --estimate 1.5 --deps st1 --check "新字段透传响应; 旧字段不删"
-skein subtask add <tid> st3 --name "加测试"     --desc "覆盖新旧字段两条路径" --estimate 1 --deps st1 --check "覆盖新旧字段两条路径"
+```text
+Bash("skein subtask add <tid> st1 --name '改 schema' --desc '加迁移列并回填默认值' --estimate 2 --skills db-migration --check '迁移可回滚; 新列有默认值'")
+Bash("skein subtask add <tid> st2 --name '改调用站点' --desc '调用站点透传新字段' --estimate 1.5 --deps st1 --check '新字段透传响应; 旧字段不删'")
+Bash("skein subtask add <tid> st3 --name '加测试' --desc '覆盖新旧字段两条路径' --estimate 1 --deps st1 --check '覆盖新旧字段两条路径'")
 ```
 
-`sid`/`--name`/`--desc`/`--estimate` 四者必填（缺一即报错退出），字段全表查 `skein subtask --help`。
+`sid`/`--name`/`--desc`/`--estimate` 四者必填（缺一即报错退出），字段全表查 `Bash("skein subtask --help")`。
 
 **求最短工期（min makespan）**：就绪批由脚本打分排序后截到空闲槽位（打分细则见 §5），planning 只需做对三件事：
 
@@ -60,8 +60,8 @@ skein subtask add <tid> st3 --name "加测试"     --desc "覆盖新旧字段两
 
 | 信号                                                    | 判据                                    | 动作                                                                                   |
 | ------------------------------------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------- |
-| 复合嗅味（"X and Y and Z"）/ 多独立能力 / subtask 会 >8 | capability 按**用户行为**拆（非技术层） | 拆多 task：`skein task create <id>` 逐个建, 用 `--deps` 声明执行序 |
-| 雾到列不出 capability（路径不可见） | capability 本身怎么拆都答不出 / 关键选型全悬空 | **decision-first**：先全拆 `--phase research` decision subtask（每项只产决策不产码，`--check` 写「产出决策 + 依据」），全 done 雾推完后再拆 exec DAG。决策没收敛前禁建 exec subtask |
+| 复合嗅味（"X and Y and Z"）/ 多独立能力 / subtask 会 >8 | capability 按**用户行为**拆（非技术层） | 拆多 task：`Bash("skein task create <id> --name <标题> --desc <描述>")` 逐个建, `--deps <tid1>,<tid2>` 声明执行序 |
+| 雾到列不出 capability（路径不可见） | capability 本身怎么拆都答不出 / 关键选型全悬空 | **decision-first**：先全拆 decision subtask `Bash("skein subtask add <tid> d1-<决策项> --name '<决策项>' --desc '产出决策 + 依据' --estimate <小时> --phase research --check '产出决策 + 依据'")`（每项只产决策不产码），全 done 雾推完后再拆 exec DAG。决策没收敛前禁建 exec subtask |
 
 - **capability ≠ 技术模块** — capability 是用户行为（「下单」「退款」），非技术层（「DB 层」「API 层」）。按技术层拆 = 跨层耦合依旧的假拆。
 - **walking skeleton 优先** — 第一个 task 强制端到端最薄能跑通（验证数据流 / 契约 / 部署链路假设），非铺平所有能力域。假设证伪早返工，比铺平再发现省。
@@ -90,10 +90,10 @@ subtask.ready = 所有 depends_on 均 done
 
 | 操作                           | 是否被 deps 阻塞 | 说明                           |
 | ------------------------------ | ---------------- | ------------------------------ |
-| `skein task create` / `subtask add` | 否               | planning 可提前做。            |
-| `skein task confirm`                | 否               | confirm 只审 planning 产物 + 人审，不看前置进度（前置没跑完也能先批）。 |
-| `skein claim exec` / `flow run`     | 是               | 前置 task 未 done 的 task 不出活；subtask 自身 depends_on 未 done 也不 ready。 |
-| `skein subtask claim` / `subtask start` | 是           | 同上，单 task 路径同一道门。   |
+| `Bash("skein task create <tid> ...")` / `Bash("skein subtask add <tid> <sid> ...")` | 否 | planning 可提前做。 |
+| `Bash("skein task confirm <tid> --approved")` | 否 | confirm 只审 planning 产物 + 人审，不看前置进度（前置没跑完也能先批）。 |
+| `Bash("skein claim exec")` / `Bash("skein flow run")` | 是 | 前置 task 未 done 的 task 不出活；subtask 自身 depends_on 未 done 也不 ready。 |
+| `Bash("skein subtask claim <tid>")` / `Bash("skein subtask start <tid> <sid>")` | 是 | 同上，单 task 路径同一道门。 |
 
 ready 数超过空闲槽时按四键稳定排序截取：
 
@@ -119,10 +119,10 @@ layer(source) = 0; layer(node) = max(layer(dep)) + 1                            
 
 | 池     | 计数对象                                    | 配置         | 校验位置                        |
 | ------ | ------------------------------------------- | ------------ | ------------------------------- |
-| `work` | `status=running` 的 exec/research subtask   | `pools.work` | `skein claim` / `subtask start` |
-| `gate` | `status=check` / `status=finishing` 的 task | `pools.gate` | `skein task finishing`               |
+| `work` | `status=running` 的 exec/research subtask   | `pools.work` | `Bash("skein claim")` / `Bash("skein subtask start <tid> <sid>")` |
+| `gate` | `status=check` / `status=finishing` 的 task | `pools.gate` | `Bash("skein task finishing <tid>")` |
 
-`skein task confirm` 不占池；真正资源约束在 running subtask 与 gate task。
+`Bash("skein task confirm <tid> --approved")` 不占池；真正资源约束在 running subtask 与 gate task。
 
 > **利用率警戒（Kingman 近似）**：work 池利用率 ρ = running/exec 槽位超 80% 时，subtask 等待时间呈非线性增长。planning 阶段若预估 subtask 总量大，考虑提高 `pools.work` 或减少伪依赖释放并行度。
 >
@@ -132,12 +132,12 @@ layer(source) = 0; layer(node) = max(layer(dep)) + 1                            
 
 | 命令                              | 范围        | 语义                                                                                                                              |
 | --------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `skein claim`                     | 全局跨 task | 同时处理 exec + check 两路，只推状态不做路由；派谁由 main 按 task 状态判，见 [skein-flow/references/flow-loop.md#主循环骨架](../../skein-flow/references/flow-loop.md#主循环骨架)。 |
-| `skein claim exec`                | 全局跨 task | 只认领 ready subtask 并标 `running`。                                                                                             |
-| `skein claim check`               | 全局跨 task | 只认领可进 check / finishing 的 task。                                                                                            |
-| `skein subtask claim <tid>`       | 单 task     | 单 task 内批量认领。                                                                                                              |
-| `skein subtask start <tid> <sid>` | 单 subtask  | 启动 pending/failed subtask。                                                                                                     |
+| `Bash("skein claim")`            | 全局跨 task | 同时处理 exec + check 两路，只推状态不做路由；派谁由 main 按 task 状态判，见 [skein-flow/references/flow-loop.md#主循环骨架](../../skein-flow/references/flow-loop.md#主循环骨架)。 |
+| `Bash("skein claim exec")`       | 全局跨 task | 只认领 ready subtask 并标 `running`。  |
+| `Bash("skein claim check")`      | 全局跨 task | 只认领可进 check / finishing 的 task。 |
+| `Bash("skein subtask claim <tid>")` | 单 task  | 单 task 内批量认领。 |
+| `Bash("skein subtask start <tid> <sid>")` | 单 subtask | 启动 pending/failed subtask。 |
 
-任一 claim 加 `--dry-run` = 只读预览，不改状态。
+任一 claim 加 `--dry-run` = 只读预览，不改状态。例：`Bash("skein claim --dry-run")`。
 
-exec 统一派 `skein:skein-executor`，dispatch 只给 tid、sid、工作目录，executor 自读 `skein subtask show <tid> <sid>`。完成即派、失败重试、断点续跑见 [skein-flow/references/flow-loop.md#主循环骨架](../../skein-flow/references/flow-loop.md#主循环骨架) 与 [skein-redo/references/redo.md](../../skein-redo/references/redo.md)。
+exec 统一派 `skein:skein-executor`，dispatch 只给 tid、sid、工作目录，executor 自读 `Bash("skein subtask show <tid> <sid>")`。完成即派、失败重试、断点续跑见 [skein-flow/references/flow-loop.md#主循环骨架](../../skein-flow/references/flow-loop.md#主循环骨架) 与 [skein-redo/references/redo.md](../../skein-redo/references/redo.md)。

@@ -30,7 +30,7 @@ background: true
 
 ### 1. 状态核对
 
-scheduler 派 checker 前已在 `skein flow run` 的 check 路把 task 推进到 `check`。先读取当前状态；已是 `check` 时不要重复推进，`Bash("skein task check <id>")` 可安全重跑并返回 `idempotent=true`。若仍是 `active`，可执行该命令补齐切换；其他状态按工具失败上报。
+scheduler 派 checker 前已在 `Bash("skein flow run")` 的 check 路把 task 推进到 `check`。先读取当前状态；已是 `check` 时不要重复推进，`Bash("skein task check <id>")` 可安全重跑并返回 `idempotent=true`。若仍是 `active`，可执行该命令补齐切换；其他状态按工具失败上报。
 
 ### 2. checkpoint 核对 (task + subtask 双层)
 
@@ -51,7 +51,7 @@ Bash("skein subtask show <id> <sid>")     # 单 subtask 全字段, 含 --check c
 - task 级 acceptance 无勾选存储: 逐条验证, 结果 (PASS/FAIL/MANUAL + 依据) 只写进回传 JSON 的 acceptance 数组, 不写盘。
 - `task spec` 读不到 acceptance → `[工具失败: spec 无 acceptance]`, 全项标 MANUAL。
 
-### 3. 验收标准验证执行 (PRD 驱动)
+### 3. 验收标准验证执行 (TaskSpec acceptance 驱动)
 
 **🛑 优先按 TaskSpec acceptance 逐条执行验证, 不只跑 pytest**:
 
@@ -61,7 +61,7 @@ Bash("skein task spec <id>")              # 回显 acceptance 验收项
 
 - 读不到 acceptance → 该项 `[工具失败: spec 无 acceptance]`, 记 note 但**不阻断**后续 fallback 到场景推测。
 - 读到 acceptance → **逐条执行**:
-  - **CI/CD 验证** → 等待 CI pipeline 通过 (查 `gh run list` / `git status` 或项目 CI 工具状态)
+  - **CI/CD 验证** → 等待 CI pipeline 通过 (`Bash("gh run list")` / `Bash("git status")` 或项目 CI 工具状态)
   - **部署验证** → 验证部署成功 (curl/请求返回 200/健康检查通过)
   - **本地验证优先** → 优先跑本地命令 (pytest/lint/type-check/build)
   - **手工验证** → 只标 MANUAL 交人审——非机验场景没有可机判的 pass 依据
@@ -82,9 +82,9 @@ Bash("skein task spec <id>")              # 回显 acceptance 验收项
 当 spec 无 acceptance 时, 按项目特征探测跑对应内置检查 (多特征并存跑命中的**多类**):
 
 - **编程类** (有 `pyproject.toml`/`package.json`/`Makefile`) — lint / type-check / test / build + 架构一致性:
-  - `pyproject.toml` → `ruff check` / `mypy` / `pytest`
-  - `package.json` → `npm run lint` / `npm run type-check` / `npm test`
-  - 仅 Makefile → `make lint` / `make test`
+  - `pyproject.toml` → `Bash("ruff check .")` / `Bash("mypy .")` / `Bash("pytest")`
+  - `package.json` → `Bash("npm run lint")` / `Bash("npm run type-check")` / `Bash("npm test")`
+  - 仅 Makefile → `Bash("make lint")` / `Bash("make test")`
 - **小说 / 内容类** (有 `章节/`/`大纲/` 目录, 无 build/test 栈) — **逻辑一致性** (情节因果不断裂) + 设定一致性 (人物/世界观不矛盾) + 伏笔呼应, 用 Read/Grep 核对文本。
 - **数据 / ETL 类** (有 pipeline/迁移脚本/`*.sql`/schema 定义) — schema 校验 / 数据管道跑通 / 字段一致性 / 样本抽检 (跑迁移或校验脚本 + Read 核对 schema)。
 - **文档 / 知识类** (交付以 `*.md`/文档为主) — 链接有效性 (相对链接目标存在) / 结构完整 (标题层级/章节齐) / 术语一致 / 交叉引用不断裂, 用 Read/Grep 核对。
@@ -114,9 +114,9 @@ main 只在 flow-loop 允许的状态门后派真实 `Agent(subagent_type="skein
 
 🛑 **硬门全跑完才回传** — 状态切换 / checkpoint 核对 (task+subtask 验收) / **验收标准验证执行 (TaskSpec acceptance 驱动逐条执行)** / 场景内置 check (fallback, 按项目自适应命中类: 编程/小说/数据ETL/文档知识/配置基建/设计前端) / 一致性 缺一回传 = 漏检, main 会据不全报告误放行。
 🛑 **工具失败必标 `[工具失败: <原因>]`** — Bash 超时/Read 不存在/CLI 报错时, 只标 `[工具失败: <原因>]`, 不当成功结果返回 (原始错误输出不是有效结果, main 消费错误摘要当数据会静默降级)。
-🛑 **只验证不修复, 修复循环归 main** — 无 Write/Edit (能力边界), 全部写盘经 `skein subtask check` CLI 完成 (仅限勾选 subtask 验收项, 内容保持原样); task 级 acceptance 结果只入回传 JSON 不写盘。查出代码/文本问题原样上报——就地改归后续 executor、补 subtask 归 main、重派 executor 归 main。FAIL/冲突 → needs_main 写清方向供 main 走 grill/AskUserQuestion 定夺。
+🛑 **只验证不修复, 修复循环归 main** — 无 Write/Edit (能力边界), 全部写盘经 `Bash("skein subtask check <id> <sid> --passed <序号|all|none>")` 完成 (仅限勾选 subtask 验收项, 内容保持原样); task 级 acceptance 结果只入回传 JSON 不写盘。查出代码/文本问题原样上报——就地改归后续 executor、补 subtask 归 main、重派 executor 归 main。FAIL/冲突 → needs_main 写清方向供 main 走 grill/AskUserQuestion 定夺。
 🛑 **无法机验标 MANUAL** — 验收项如「体验流畅」只标 MANUAL 交人审, 机判 pass 无依据。
-🛑 **生命周期脚本仅限 check / subtask check** — 本职内只跑 `skein task check` (状态切换) 与 `skein subtask check` (subtask 验收回写); `create/start/finish/del` 等生命周期命令归 main。
+🛑 **生命周期脚本仅限 check / subtask check** — 本职内只跑 `Bash("skein task check <id>")` (状态切换) 与 `Bash("skein subtask check <id> <sid> --passed <序号|all|none>")` (subtask 验收回写); `create/start/finish/del` 等生命周期命令归 main。
 🛑 **入参与回传只用 JSON** — 接收 scheduler / main 实发的单个 JSON 对象；回传单个 JSON 对象，无自然语言或 Markdown 包裹。
 🛑 **公共铁律** (Recursion Guard + 无 AskUser + 生命周期脚本仅限 check / subtask check) 见 core/agent/skein-skill-agent-slim-01。
 

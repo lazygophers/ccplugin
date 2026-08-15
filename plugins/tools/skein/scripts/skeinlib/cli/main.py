@@ -136,26 +136,36 @@ TASK_COMMANDS = {"create", "research", "plan", "confirm", "check", "revert", "fi
                  "priority", "estimate", "spec", "repos", "deps", "rename", "status", "show"}
 
 
+# `-h` 与 `--help` 等价 —— click 默认只认 `--help`, 每个 Typer 实例 (含子组) 都要显式带上,
+# 否则子命令下 `-h` 仍报 "No such option"。
+HELP_OPTIONS = {"help_option_names": ["-h", "--help"]}
+
 app = typer.Typer(
     cls=AliasTyperGroup,
     help="SKEIN 任务管理引擎 — task 生命周期 + 看板\n\ntask 编辑: task create → (research ⇄ plan) → confirm → check → revert/finishing → finish; task rename/parent/deps/repos/estimate/priority/status",
     no_args_is_help=True,
     add_completion=False,
     rich_markup_mode=None,  # docstring 里 [sid] 会被 rich 当样式标签吃掉, 关掉 markup 保留原文
+    context_settings=HELP_OPTIONS,
 )
-task_app = typer.Typer(cls=TaskTyperGroup, help="task 查看、编辑、状态变更", no_args_is_help=True)
-config_app = typer.Typer(help="读写 .skein/config.yaml 配置", invoke_without_command=True)
-design_app = typer.Typer(help="读/写 design.md 测试接缝段 (confirm 硬门校验的那段)")
+task_app = typer.Typer(cls=TaskTyperGroup, help="task 查看、编辑、状态变更", no_args_is_help=True,
+                       context_settings=HELP_OPTIONS)
+config_app = typer.Typer(help="读写 .skein/config.yaml 配置", invoke_without_command=True,
+                         context_settings=HELP_OPTIONS)
+design_app = typer.Typer(help="读/写 design.md 测试接缝段 (confirm 硬门校验的那段)",
+                         context_settings=HELP_OPTIONS)
+subtask_app = typer.Typer(help="单 task 内 subtask DAG 调度", no_args_is_help=True,
+                          context_settings=HELP_OPTIONS)
 
 MUTATING = {"init", "setup", "create", "confirm", "research", "plan", "check", "revert", "finishing",
             "finish", "clean",
-            "repos", "deps", "estimate", "spec", "priority", "subtask", "claim",
+            "repos", "deps", "estimate", "spec", "priority", "subtask", "research-task", "claim",
             "design", "flow", "del",
             "rename", "config"}
 
 
 def _namespace(cmd: str, **kwargs: object) -> SimpleNamespace:
-    data = {"cmd": cmd, "json": False}
+    data: dict[str, object] = {"cmd": cmd, "show": False}
     data.update(kwargs)
     return SimpleNamespace(**data)
 
@@ -174,6 +184,7 @@ def _dispatch(a: SimpleNamespace) -> None:
         "priority": sk.lifecycle.priority, "rename": sk.lifecycle.rename,
         "del": sk.lifecycle.del_,
         "claim": sk.scheduler.claim, "flow": sk.scheduler.flow, "subtask": sk.scheduler.subtask,
+        "research-task": sk.scheduler.research,
         "ready": sk.query.ready,
         "status-overview": sk.query.status_overview,
         "status": sk.query.status, "list": sk.query.list_,
@@ -189,9 +200,9 @@ def _dispatch(a: SimpleNamespace) -> None:
         result = dispatch[a.cmd](a)  # type: ignore[arg-type]
     DBG.log(f"✓ {a.cmd} 完成", style="bold green")
     # 业务方法返回 dict → 统一 JSON 输出; 返回 None → 静默 (已自行输出或无输出)。
-    # -p/--pretty: dict 改走 rich 面板渲染 (人读); 非 dict 返回值不受影响。
+    # --show: dict 改走 rich 面板渲染 (人读); 非 dict 返回值不受影响。
     if isinstance(result, dict):
-        if getattr(a, "pretty", False):
+        if getattr(a, "show", False):
             _pretty_print(a.cmd, result)
         else:
             print(json.dumps(result, ensure_ascii=False))
@@ -333,20 +344,13 @@ def spec(id: str,
     _run("spec", id=id, desc=desc, should=should, not_=not_, acceptance=acceptance)
 
 
-def _delete(ctx: typer.Context, dry_run: bool = False, force: bool = False) -> None:
-    args = list(ctx.args)
-    if len(args) < 1 or len(args) > 2:
-        raise typer.BadParameter("del 用法: del <task_id> [subtask_sid]")
-    task_id = args[0]
-    subtask_sid = args[1] if len(args) == 2 else None
-    _run("del", task_id=task_id, subtask_sid=subtask_sid, dry_run=dry_run, force=force)
-
-
-@app.command("del", context_settings={"allow_extra_args": True, "ignore_unknown_options": False})
-def del_(ctx: typer.Context, dry_run: Annotated[bool, typer.Option("--dry-run")] = False,
+@app.command("del")
+def del_(task_id: Annotated[str, typer.Argument(help="task id")],
+         subtask_sid: Annotated[Optional[str], typer.Argument(help="给了则只删该 subtask")] = None,
+         dry_run: Annotated[bool, typer.Option("--dry-run")] = False,
          force: Annotated[bool, typer.Option("--force")] = False) -> None:
     """删 task 或单 subtask。"""
-    _delete(ctx, dry_run, force)
+    _run("del", task_id=task_id, subtask_sid=subtask_sid, dry_run=dry_run, force=force)
 
 
 @task_app.command("rename")
@@ -370,13 +374,12 @@ def ready() -> None:
 
 
 @app.command("status")
-def status_overview(pretty: Annotated[bool, typer.Option(
-        "--pretty", help="rich 渲染人读输出 (默认 JSON)")] = False) -> None:
+def status_overview() -> None:
     """全局运行态概览: 两池占用 + 执行中 subtask + 状态统计。
 
-    单 task 详情走 `skein task status <tid>`。
+    单 task 详情走 `skein task status <tid>`; 人读渲染走全局 `--show`。
     """
-    _run("status-overview", pretty=pretty)
+    _run("status-overview")
 
 
 @app.command()
@@ -406,10 +409,9 @@ def flow(
 @app.command("list")
 def list_(status: Annotated[Optional[str], typer.Option(
               "--status", help="plan/research/exec/check/finishing/finish/done (中文名亦可), "
-                               "open/plan=待处理阶段, unfinished=全部未完成, all=不筛; 逗号分隔可多选")] = None,
-          json_: Annotated[bool, typer.Option("--json")] = False) -> None:
+                               "open/plan=待处理阶段, unfinished=全部未完成, all=不筛; 逗号分隔可多选")] = None) -> None:
     """列所有 task。"""
-    _run("list", status=status, json=json_)
+    _run("list", status=status)
 
 
 # `skein task list` 是最自然的猜测 (task 组里其余全是 task 子命令), 但真命令在顶层。
@@ -437,15 +439,15 @@ def serve(auto: Annotated[bool, typer.Option("--auto")] = False,
 
 
 @task_app.command("status")
-def task_status(tid: str, json_: Annotated[bool, typer.Option("--json")] = False) -> None:
+def task_status(tid: str) -> None:
     """查 task 态 + subtask 汇总。"""
-    _run("status", tid=tid, sid=None, json=json_)
+    _run("status", tid=tid, sid=None)
 
 
 @task_app.command("show")
-def task_show(tid: str, json_: Annotated[bool, typer.Option("--json")] = False) -> None:
+def task_show(tid: str) -> None:
     """查 task 详情。"""
-    _run("status", tid=tid, sid=None, json=json_)
+    _run("status", tid=tid, sid=None)
 
 
 @app.command(context_settings={"allow_extra_args": True, "ignore_unknown_options": False})
@@ -458,7 +460,6 @@ def subtask(
     deps: Annotated[Optional[str], typer.Option("--deps")] = None,
     check: Annotated[Optional[list[str]], typer.Option(
         "--check", help="验收标准, 分号分隔多条; 可重复传, 各段累加")] = None,
-    phase: Annotated[Optional[str], typer.Option("--phase")] = None,
     repo: Annotated[Optional[str], typer.Option("--repo", help="多 repo task 的目标 repo")] = None,
     note: Annotated[Optional[str], typer.Option("--note")] = None,
     passed: Annotated[Optional[str], typer.Option("--passed")] = None,
@@ -471,7 +472,7 @@ def subtask(
     用法: subtask <action> <tid> [sid]
 
     \b
-    add   <tid> <sid> --name <str> --desc <str> --estimate <num> [--deps] [--check] [--phase] [--skills] [--repo]  登记→待处理
+    add   <tid> <sid> --name <str> --desc <str> --estimate <num> [--deps] [--check] [--skills] [--repo]  登记→待处理
     claim <tid>                                                                         批量 ready→运行中
     start <tid> <sid>                                                                   单个 待处理/失败→运行中
     done  <tid> <sid>                                                                   运行中→已完成 (验收全过)
@@ -492,7 +493,7 @@ def subtask(
     if action in ("add", "start", "check", "show", "rename", "done", "fail") and not sid:
         # 报错带上该 action 的完整用法 —— 只说「需要 sid」的话, agent 还得再跑一次 --help 才知道
         # sid 该摆在 tid 后面 (实测撞过两次)
-        usage = {"add": "subtask add <tid> <sid> --name <str> --desc <str> --estimate <num> [--deps] [--check] [--phase] [--skills] [--repo]",
+        usage = {"add": "subtask add <tid> <sid> --name <str> --desc <str> --estimate <num> [--deps] [--check] [--skills] [--repo]",
                  "check": "subtask check <tid> <sid> --passed <序号|all|none>",
                  "rename": "subtask rename <tid> <sid> [--id <新sid>] [--name <新名>]",
                  "done": "subtask done <tid> <sid>",
@@ -506,13 +507,53 @@ def subtask(
         missing = [flag for flag, value in (("--name", name), ("--desc", desc), ("--estimate", estimate)) if not value]
         if missing:
             raise typer.BadParameter(f"subtask add 必填: {', '.join(missing)} (sid/name/desc/estimate 缺一不可)")
-    if phase not in (None, "exec", "research"):
-        raise typer.BadParameter("phase 仅允许 exec/research")
     if status_filter not in (None, "pending", "running", "done", "failed"):
         raise typer.BadParameter("--status 仅允许 pending/running/done/failed")
     _run("subtask", action=action, tid=tid, sid=sid, name=name, desc=desc, estimate=estimate,
-         deps=deps, check=check, phase=phase, repo=repo, note=note, passed=passed, skills=skills,
+         deps=deps, check=check, repo=repo, note=note, passed=passed, skills=skills,
          status_filter=status_filter)
+
+
+@app.command("research", context_settings={"allow_extra_args": True, "ignore_unknown_options": False})
+def research_cli(
+    ctx: typer.Context,
+    name: Annotated[Optional[str], typer.Option("--name")] = None,
+    desc: Annotated[Optional[str], typer.Option("--desc")] = None,
+    estimate: Annotated[Optional[str], typer.Option("--estimate", help=ESTIMATE_HINT)] = None,
+    deps: Annotated[Optional[str], typer.Option("--deps")] = None,
+    check: Annotated[Optional[list[str]], typer.Option(
+        "--check", help="验收标准, 分号分隔多条; 可重复传, 各段累加")] = None,
+    note: Annotated[Optional[str], typer.Option("--note")] = None,
+) -> None:
+    """research 任务清单 (与 exec subtask 分列存储, 调研中态被调度派 researcher)。
+
+    用法: research <action> <tid> [sid]
+
+    \b
+    add   <tid> <sid> --name <str> --desc <str> --estimate <num> [--deps] [--check]  登记→待处理
+    start <tid> <sid>                                                                单个 待处理/失败→运行中 (须调研中)
+    done  <tid> <sid>                                                                运行中→已完成
+    fail  <tid> <sid> [--note]                                                       运行中→失败
+    show  <tid> <sid>                                                                单条详情
+    list  <tid>                                                                      全表
+    """
+    args = list(ctx.args)
+    if len(args) < 2 or len(args) > 3:
+        raise typer.BadParameter("research 用法: research <action> <tid> [sid]")
+    action, tid = args[0], args[1]
+    sid = args[2] if len(args) == 3 else None
+    if action not in ("add", "start", "done", "fail", "show", "list"):
+        raise typer.BadParameter("action 仅允许 add/start/done/fail/show/list")
+    if action in ("add", "start", "done", "fail", "show") and not sid:
+        usage = {"add": "research add <tid> <sid> --name <str> --desc <str> --estimate <num> [--deps] [--check]",
+                 "fail": "research fail <tid> <sid> --note <原因>"}.get(action, f"research {action} <tid> <sid>")
+        raise typer.BadParameter(f"research {action} 需要 sid — 用法: {usage}")
+    if action == "add":
+        missing = [flag for flag, value in (("--name", name), ("--desc", desc), ("--estimate", estimate)) if not value]
+        if missing:
+            raise typer.BadParameter(f"research add 必填: {', '.join(missing)} (sid/name/desc/estimate 缺一不可)")
+    _run("research-task", action=action, tid=tid, sid=sid, name=name, desc=desc, estimate=estimate,
+         deps=deps, check=check, note=note)
 
 
 app.add_typer(task_app, name="task")
@@ -611,6 +652,11 @@ def _pretty_print(cmd: str, data: dict) -> None:
 
 
 def _rewrite_legacy_task_args(argv: list[str]) -> list[str]:
+    # `skein research add/list/show/start/done/fail ...` 走顶层 research 命令组 (research_tasks 清单);
+    # 其余 `skein research <tid>` 仍转 task research (状态切换: 待处理→调研中)。
+    if argv[:2] and argv[0] == "research" and argv[1:2] and argv[1] in (
+            "add", "list", "show", "start", "done", "fail"):
+        return argv
     if argv[:1] == ["state"]:
         return ["task", *argv[1:]]
     if argv[:1] == ["rename"] and len(argv) >= 3 and not argv[2].startswith("-"):

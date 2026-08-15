@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 from skeinlib.infra.worktree import workdir_for, worktrees_of
 from skeinlib.task.dag import _crit_weight, _split, _split_semi, _sub_estimate_sum, _sub_pct
 from skeinlib.utils.errors import SkeinError
-from skeinlib.task.model import (SubtaskStatus, SubtaskPhase, TaskStatus, PRIORITY_RANK, PRIORITY_DEFAULT,
+from skeinlib.task.model import (SubtaskStatus, TaskStatus, PRIORITY_RANK, PRIORITY_DEFAULT,
                                  STATUS_ACTIVE,
                                  ESTIMATE_HINT, parse_hours, now)
 from skeinlib.task import timeline as _timeline
@@ -98,8 +98,7 @@ def _dispatch_hints(claimed: list[dict[str, Any]] | None = None,
     """
     hints: list[dict[str, Any]] = []
     for c in claimed or []:
-        agent = ("skein:skein-researcher" if c.get("phase") == SubtaskPhase.RESEARCH
-                 else "skein:skein-executor")
+        agent = "skein:skein-researcher" if c.get("research") else "skein:skein-executor"
         hint: dict[str, Any] = {"agent": agent, "tid": c["tid"], "sid": c["sid"],
                                 "why": "执行该 subtask"}
         if tasks:
@@ -164,21 +163,19 @@ def _report_mismatches(ws: "Workspace") -> list[dict[str, str]]:
         report_dir = ws.tasks / t["id"] / "research"
         if not report_dir.is_dir():
             continue
-        for s in t.get("subtasks", []):
+        for s in t.get("research_tasks", []):
             report = report_dir / f"{s['sid']}.md"
-            if (s.get("phase") == SubtaskPhase.RESEARCH
-                    and s.get("status") in (SubtaskStatus.PENDING, SubtaskStatus.RUNNING)
+            if (s.get("status") in (SubtaskStatus.PENDING, SubtaskStatus.RUNNING)
                     and report.is_file()):
                 mismatches.append({"tid": t["id"], "sid": s["sid"],
                                    "reason": "research_report_exists_subtask_not_finished"})
     return mismatches
 
 
-def _score(s: dict[str, Any], crit_val: int) -> float:
+def _score(s: dict[str, Any], crit_val: int, is_research: bool = False) -> float:
     """打分 = 关键路径权重×W_CRIT + 等待小时数×W_WAIT + (exec ? W_EXEC : 0)。"""
     wait_h = (now() - (s.get("created") or now())) / 3600.0
-    exec_bonus = _W_EXEC if s.get("phase", SubtaskPhase.EXEC) == SubtaskPhase.EXEC else 0.0
-    return crit_val * _W_CRIT + wait_h * _W_WAIT + exec_bonus
+    return crit_val * _W_CRIT + wait_h * _W_WAIT + (0.0 if is_research else _W_EXEC)
 
 
 class Scheduler:
@@ -237,7 +234,8 @@ class Scheduler:
         tasks = self._schedulable()
         # 占槽按全部 active task 算 (含前置阻塞的): 它们的 running subtask 也在真跑, 漏算会超发。
         global_running = sum(
-            1 for t in self.ws.store.active() for s in t.get("subtasks", [])
+            1 for t in self.ws.store.active()
+            for s in t.get("subtasks", []) + t.get("research_tasks", [])
             if s["status"] == SubtaskStatus.RUNNING)
         slots = self.ws.config()["pools"]["work"] - global_running
         if slots <= 0:
@@ -245,15 +243,18 @@ class Scheduler:
         cand: list[tuple[dict[str, Any], dict[str, Any], int, int, float, int]] = []
         for ti, t in enumerate(tasks):
             subs = t.get("subtasks", [])
-            done = {s["sid"] for s in subs if s["status"] == SubtaskStatus.DONE}
+            rsubs = t.get("research_tasks", [])
+            done = {s["sid"] for s in subs + rsubs if s["status"] == SubtaskStatus.DONE}
             crit = _crit_weight(subs)
             prio = PRIORITY_RANK.get(t.get("priority") or PRIORITY_DEFAULT, PRIORITY_RANK[PRIORITY_DEFAULT])
-            for i, s in enumerate(subs):
+            # exec subtask 与 research 任务合池 (research 无 exec 加分); deps 跨两列均可解析
+            for i, s in enumerate(subs + rsubs):
                 if s["status"] not in (SubtaskStatus.PENDING, SubtaskStatus.FAILED):
                     continue
                 if not all(d in done for d in s.get("depends_on", [])):
                     continue  # 依赖未全 done 不入池 (依赖硬优先, 优先级不越过)
-                cand.append((t, s, ti, i, _score(s, crit.get(s["sid"], 0)), prio))
+                is_r = any(r["sid"] == s["sid"] for r in rsubs)
+                cand.append((t, s, ti, i, _score(s, crit.get(s["sid"], 0), is_r), prio))
         # 优先级降序 → 打分降序 → PENDING 优先于 FAILED → task 登记序 → subtask 登记序
         # (PENDING 先于 FAILED: 重试不抢新活的槽; 全同分时退化为改动前的顺序 → 零回归)
         cand.sort(key=lambda x: (-x[5], -x[4],
@@ -291,9 +292,10 @@ class Scheduler:
         它那些 pending subtask 就数不到, 空批原因会误报成「无待处理 subtask」。
         """
         tasks = self.ws.store.active()
-        grun = sum(1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SubtaskStatus.RUNNING)
-        gpend = sum(1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SubtaskStatus.PENDING)
-        gfailed = sum(1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SubtaskStatus.FAILED)
+        def _all_subs(ts): return [s for t in ts for s in t.get("subtasks", []) + t.get("research_tasks", [])]
+        grun = sum(1 for s in _all_subs(tasks) if s["status"] == SubtaskStatus.RUNNING)
+        gpend = sum(1 for s in _all_subs(tasks) if s["status"] == SubtaskStatus.PENDING)
+        gfailed = sum(1 for s in _all_subs(tasks) if s["status"] == SubtaskStatus.FAILED)
         mp = self.ws.config()["pools"]["work"]
         info: dict[str, Any] = {"running": grun, "capacity": mp, "pending": gpend, "failed": gfailed}
         if grun >= mp:
@@ -364,7 +366,7 @@ class Scheduler:
                 "task": t["id"],
                 "subtask": s["sid"],
                 "name": s["name"],
-                "phase": s.get("phase", SubtaskPhase.EXEC),
+                "research": any(r["sid"] == s["sid"] for r in t.get("research_tasks", [])),
                 "repo": s.get("repo"),
                 "skills": s.get("skills", []),
                 "acceptance": s.get("acceptance", []),
@@ -412,7 +414,8 @@ class Scheduler:
         claimed: list[dict[str, Any]] = []
         for tid in order:
             t = next(x for x, _ in batch if x["id"] == tid)
-            subs = {s["sid"]: s for s in t.get("subtasks", [])}
+            subs = {s["sid"]: s for s in t.get("subtasks", []) + t.get("research_tasks", [])}
+            rsids = {r["sid"] for r in t.get("research_tasks", [])}
             for sid in by_tid[tid]:
                 s = subs[sid]
                 s["status"] = SubtaskStatus.RUNNING
@@ -420,7 +423,7 @@ class Scheduler:
                     s["started"] = now()  # exec 时刻 (首次认领, 重认领不覆盖)
                 _timeline.append(t, "subtask", SubtaskStatus.RUNNING, sid=sid)
                 claimed.append({"tid": tid, "sid": sid, "name": s["name"],
-                                "phase": s.get("phase", SubtaskPhase.EXEC),
+                                "research": sid in rsids,
                                 "repo": s.get("repo"),
                                 "skills": s.get("skills", []),
                                 "acceptance": s.get("acceptance", [])})
@@ -518,6 +521,77 @@ class Scheduler:
             "result": result,
         }
 
+    def research(self, a: argparse.Namespace) -> dict[str, Any]:
+        """research 任务清单操作 — 与 exec subtask 分列存储 (task.json 的 research_tasks)。
+
+        research 任务只在调研中 (RESEARCH) 被调度; 全 done 后 `skein task plan` 收敛回规划。
+        """
+        t = self.ws.store.load(a.tid)
+        rsubs = t.setdefault("research_tasks", [])
+        if a.action == "add":
+            if t["status"] not in (TaskStatus.PENDING, TaskStatus.RESEARCH):
+                raise SkeinError(
+                    f"{a.tid} 状态 {t['status']}, research add 只能在待处理/调研中登记")
+            if any(s["sid"] == a.sid for s in rsubs):
+                raise SkeinError(f"research 任务已存在: {a.tid}/{a.sid}")
+            try:
+                est = parse_hours(a.estimate)
+            except (TypeError, ValueError):
+                raise SkeinError(f"research 预计工时非法: {a.estimate!r} — {ESTIMATE_HINT}")
+            if est <= 0:
+                raise SkeinError(f"research 预计工时须为正数: {est}")
+            rsubs.append({
+                "tid": a.tid,
+                "sid": a.sid, "name": a.name, "desc": a.desc,
+                "estimate": est,
+                "depends_on": _split(a.deps),
+                "acceptance": _split_semi(a.check),
+                "acceptance_done": [],
+                "status": SubtaskStatus.PENDING,
+                "created": now(), "started": None, "finished": None,
+            })
+            self.ws.store.save(t)
+            return {"tid": a.tid, "sid": a.sid, "estimate": est, "total": len(rsubs)}
+        if a.action == "list":
+            return {"tid": a.tid, "research_tasks": [_sub_row(a.tid, s) for s in rsubs]}
+        if a.action == "show":
+            s = next((x for x in rsubs if x["sid"] == a.sid), None)
+            if s is None:
+                raise SkeinError(f"{a.tid} 无 research 任务 {a.sid} — `skein research list {a.tid}` 查全部")
+            return {"tid": a.tid, "research": s}
+        # start / done / fail 针对单 sid
+        s = next((x for x in rsubs if x["sid"] == a.sid), None)
+        if s is None:
+            raise SkeinError(f"{a.tid} 无 research 任务 {a.sid} — `skein research list {a.tid}` 查全部")
+        if a.action == "start":
+            if t["status"] != TaskStatus.RESEARCH:
+                raise SkeinError(
+                    f"{a.tid} 状态 {t['status']}, 只有调研中 task 能 start research — "
+                    f"先 `skein task research {a.tid}`")
+            if s["status"] not in (SubtaskStatus.PENDING, SubtaskStatus.FAILED):
+                raise SkeinError(f"{a.sid} 状态 {s['status']}, 只能 start 待处理/失败")
+            done = {x["sid"] for x in rsubs if x["status"] == SubtaskStatus.DONE}
+            undone = [d for d in s.get("depends_on", []) if d not in done]
+            if undone:
+                raise SkeinError(f"依赖未完成: {', '.join(undone)} — 先 done 它们")
+            s["status"] = SubtaskStatus.RUNNING
+            if not s.get("started"):
+                s["started"] = now()
+            _timeline.append(t, "subtask", SubtaskStatus.RUNNING, sid=a.sid)
+        elif a.action == "done":
+            s["status"] = SubtaskStatus.DONE
+            s["finished"] = now()
+            s.pop("note", None)
+            _timeline.append(t, "subtask", SubtaskStatus.DONE, sid=a.sid)
+        elif a.action == "fail":
+            s["status"] = SubtaskStatus.FAILED
+            s["finished"] = now()
+            if a.note:
+                s["note"] = a.note
+            _timeline.append(t, "subtask", SubtaskStatus.FAILED, sid=a.sid, note=a.note or "")
+        self.ws.store.save(t)
+        return {"tid": a.tid, "sid": a.sid, "status": s["status"]}
+
     def subtask(self, a: argparse.Namespace) -> dict[str, Any]:
         if a.action == "add":
             t = self.ws.store.load(a.tid)
@@ -544,7 +618,6 @@ class Scheduler:
                 "acceptance": _split_semi(a.check),  # 验收标准 checklist (字符串数组)
                 "acceptance_done": [],  # 已通过验收标准序号(1-based); 完成百分比 = len/len(acceptance)
                 "status": SubtaskStatus.PENDING,
-                "phase": getattr(a, "phase", None) or SubtaskPhase.EXEC,  # exec(默认) | research
                 "repo": repo,
                 "skills": _split(a.skills),  # 关联 skills (0-n)
                 "created": now(),   # 创建时刻
@@ -594,7 +667,6 @@ class Scheduler:
             mismatches: list[dict[str, str]] = []
             for s in batch:
                 item = {"sid": s["sid"], "name": s["name"],
-                        "phase": s.get("phase", SubtaskPhase.EXEC),
                         "repo": s.get("repo"),
                         "skills": s.get("skills", []),
                         "acceptance": s.get("acceptance", [])}
@@ -610,7 +682,6 @@ class Scheduler:
                     "claimed" if a.action == "claim" else "ready": items,
                     "next": _dispatch_hints(
                         claimed=[{"tid": a.tid, "sid": s["sid"],
-                                  "phase": s.get("phase", SubtaskPhase.EXEC),
                                   "repo": s.get("repo")} for s in batch],
                         tasks={a.tid: t}, root=self.ws.root
                     ) if a.action == "claim" else [],
@@ -632,10 +703,10 @@ class Scheduler:
             if blocked := self._deps_blocked(t):
                 raise SkeinError(
                     f"{a.tid} 前置 task 未完成: {', '.join(blocked)} — 先 finish 它们再开工")
-            if t["status"] == TaskStatus.RESEARCH and s.get("phase") != SubtaskPhase.RESEARCH:
+            if t["status"] == TaskStatus.RESEARCH:
                 raise SkeinError(
-                    f"{a.tid} 调研中, 只能 start phase=research 的 subtask — "
-                    f"先 `skein task plan {a.tid}` 收敛回规划再 confirm")
+                    f"{a.tid} 调研中, subtask 不开工 — research 任务走 "
+                    f"`skein research claim {a.tid}`, 全 done 后 `skein task plan {a.tid}` 收敛回规划")
             if s["status"] not in (SubtaskStatus.PENDING, SubtaskStatus.FAILED):
                 raise SkeinError(f"{a.sid} 状态 {s['status']}, 只能 start 待处理/失败")
             done = {x["sid"] for x in t["subtasks"] if x["status"] == SubtaskStatus.DONE}

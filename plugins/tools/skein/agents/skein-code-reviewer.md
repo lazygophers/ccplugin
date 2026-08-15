@@ -23,11 +23,11 @@ main 只发单个 JSON 对象:
 
 ### 0. 确定审查范围
 
-```bash
+```text
 # 确定固定点：task 分支的 merge-base 或 task 创建时的 commit
-git log --oneline -1
-git diff <fixed-point>...HEAD   # 三点 diff
-git log <fixed-point>..HEAD --oneline
+Bash("git log --oneline -1")
+Bash("git diff <fixed-point>...HEAD")      # 三点 diff
+Bash("git log <fixed-point>..HEAD --oneline")
 ```
 
 fixed-point 取 task 分支从主干分叉的点。无法确定 → 取 `HEAD~10`，并把不确定项写进回传的 `needs_main`。
@@ -94,7 +94,7 @@ repo 中任何编码规范文档：`CODING_STANDARDS.md` / `CONTRIBUTING.md` / `
   },
   "spec": {
     "verdict": "PASS | FAIL | SKIP",
-    "spec_source": "<PRD | design.md | 不明>",
+    "spec_source": "<TaskSpec | design.md | 不明>",
     "findings": [
       {"type": "missing | creep | wrong", "spec_line": "<spec原文>", "diff_location": "<path>:<line>", "note": "<描述>"}
     ]

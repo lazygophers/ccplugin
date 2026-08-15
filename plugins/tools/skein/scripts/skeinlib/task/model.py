@@ -59,12 +59,6 @@ class SubtaskStatus(StrEnum):
 	FAILED = "failed"
 
 
-# subtask phase: exec(改码/写产出) | research(查资料), 缺省 exec
-class SubtaskPhase(StrEnum):
-	EXEC = "exec"
-	RESEARCH = "research"
-
-
 # 可读 task id: kebab-case slug, 兼作 git 分支名 + 目录名 (人工传入)
 SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 # 拒短字母+数字编号 (t01/t2/ab12): 不可读, 强制描述性 slug. subtask sid 不受此限.

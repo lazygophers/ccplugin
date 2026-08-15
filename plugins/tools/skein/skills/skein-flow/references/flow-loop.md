@@ -1,15 +1,15 @@
 # flow 模式
 
-**进入本文件后第一动作：先跑 `skein list --status unfinished --json` 取现状。拿到 CLI 回显中的已注册 tid 前，禁止任何 Edit/Write；回复前缀中的 tid 必须来自该回显，禁止自造。**
+**进入本文件后第一动作：先跑 `Bash("skein list --status unfinished --json")` 取现状。拿到 CLI 回显中的已注册 tid 前，禁止任何 Edit/Write；回复前缀中的 tid 必须来自该回显，禁止自造。**
 
 | `$1`                     | 阶段            | 行为                                                                                                                     |
 | ------------------------ | --------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| 全空                     | flow · 清空模式 | 不新建 task，取 `skein list --status unfinished --json`，按可推进顺序清空全部未完成 task。无未完成 task 则报「无待执行 task」。 |
+| 全空                     | flow · 清空模式 | 不新建 task，取 `Bash("skein list --status unfinished --json")` 回显，按可推进顺序清空全部未完成 task。无未完成 task 则报「无待执行 task」。 |
 | `flow` / 缺省 / 任务描述 | flow 默认闭环   | 有任务描述先走 plan 建/并入 task；之后自动续 exec→check→finish。                                                         |
-| `plan`                   | 仅规划          | 推到规划完成态，完成 `skein task confirm --approved` 后停，不续 exec。                                                        |
+| `plan`                   | 仅规划          | 推到规划完成态，完成 `Bash("skein task confirm <tid> --approved")` 后停，不续 exec。                                                        |
 | `exec`                   | 续执行          | 驱动待处理/在途 task 继续闭环到 finish。                                                                                 |
 | `check`                  | 质量门          | 派 `skein-checker` 验证；失败按本文件「失败扭转」。                                                                      |
-| `finish`                 | 收尾门          | check 全绿后派 `skein-finisher` 完成 `skein task finish` 和异步 sediment。                                                    |
+| `finish`                 | 收尾门          | check 全绿后派 `skein-finisher` 完成 `Bash("skein task finish <tid>")` 和异步 sediment。                                                    |
 
 硬规：无参/任务描述 -> flow 闭环模式；只有显式 `plan` 才在 confirm 后停，不续 exec。
 
@@ -17,17 +17,17 @@
 
 1. 沿 `deps` 链取全部未完成前置 task (递归, 直到无未完成前置), 按拓扑序执行。
 2. 前置 task 是待处理态 → 先走 plan→confirm→exec 完整闭环; 已是进行中/调研中 → 直接续推进。
-3. 前置全部 finish 后, 调度层的依赖门自动放行 X (`claim`/`flow run` 即可派活), 无需手动绕门。
-4. 并发槽够时前置之间无相互依赖的可并行 (照 `flow run` hint 派), 不必串行等完。
+3. 前置全部 finish 后, 调度层的依赖门自动放行 X (`Bash("skein claim")` / `Bash("skein flow run")` 即可派活), 无需手动绕门。
+4. 并发槽够时前置之间无相互依赖的可并行 (照 `Bash("skein flow run")` 的 hint 派), 不必串行等完。
 
 ## CLI 签名速查（本表与 `skein --help` 是同一契约，抄错就是一次白跑）
 
 | 命令 | 易错点 |
 | --- | --- |
-| `skein task create <tid> --name <str> --desc <str> [--priority urgent\|high\|normal\|low] [--estimate <小时>]` | `--priority` 只收这四个英文值，**没有中文档位**；`--estimate` 单位是**小时**（`0.5`=30 分钟，也收 `30m`/`1.5h`） |
-| `skein subtask add <tid> <sid> --name <str> --desc <str> --estimate <小时> [--deps sid1,sid2] [--skills] [--check "a;b"] [--phase exec\|research]` | `<sid>` 是**位置参数**不是 `--id`；`sid`/`--name`/`--desc`/`--estimate` 四者缺一即拒；`--check` 分号分隔多条，也可重复传（各段累加） |
-| `skein list --status <plan\|exec\|all\|unfinished\|pending\|...>` | 顶层命令；`skein task list` 是转发别名，两者等价；`open`/`plan`=待处理阶段，`unfinished`=全部未完成 |
-| `skein task spec <tid> [--desc <str>] [--should <a;b;c>] [--not <a;b;c>] [--acceptance <a;b;c>]` | TaskSpec 四要素落盘 prd.md frontmatter；列表 `;` 分号分隔；不带参数 = 只读回显；confirm 后锁定 |
+| `Bash("skein task create <tid> --name <str> --desc <str> [--priority urgent\|high\|normal\|low] [--estimate <小时>]")` | `--priority` 只收这四个英文值，**没有中文档位**；`--estimate` 单位是**小时**（`0.5`=30 分钟，也收 `30m`/`1.5h`） |
+| `Bash("skein subtask add <tid> <sid> --name <str> --desc <str> --estimate <小时> [--deps sid1,sid2] [--skills] [--check 'a;b'] [--phase exec\|research]")` | `<sid>` 是**位置参数**不是 `--id`；`sid`/`--name`/`--desc`/`--estimate` 四者缺一即拒；`--check` 分号分隔多条，也可重复传（各段累加） |
+| `Bash("skein list --status <plan\|exec\|all\|unfinished\|pending\|...>")` | 顶层命令；`skein task list` 是转发别名，两者等价；`open`/`plan`=待处理阶段，`unfinished`=全部未完成 |
+| `Bash("skein task spec <tid> [--desc <str>] [--should <a;b;c>] [--not <a;b;c>] [--acceptance <a;b;c>]")` | TaskSpec 四要素落盘 prd.md frontmatter；列表 `;` 分号分隔；不带参数 = 只读回显；confirm 后锁定 |
 | 状态变更 | **没有 `task update --status`**。逐阶段命令：`confirm`（待处理→进行中）/ `research`+`plan`（待处理⇄调研中）/ `check` / `revert`（检查中→待处理）/ `finishing` / `finish`。改字段才用 `task rename\|priority\|estimate\|deps\|repos` |
 
 **`subtask start` 不是开工的入口，`task confirm` 才是**。task 没过 confirm 门（还在待处理），它的 subtask 一律 start 不了 —— 别指望先干活后补审。
@@ -41,7 +41,7 @@
 无论模式，流程首步固定为：
 
 ```text
-Bash("skein list --status unfinished --json")  # 任何 Edit/Write 或 task 操作之前
+Bash("skein list --status unfinished --json")  # 流程首步一次性盘点: 未完成 task + 已注册 tid, 之后不再重复跑
 ```
 
 拿到未完成 task 与已注册 tid 后，才进入对应模式：
@@ -152,19 +152,19 @@ else:
 
 ## 主循环骨架
 
-`skein flow run` 是一次 scheduler tick：自动认领 ready exec/check，并把 Agent 派发信息放进 `result.exec.next[]` 与 `result.check.next[]`（**顶层 `result` 没有 `next` 键**，两层都要取，任一层都可能有 hint）。只消费 hint 的 `agent`、`tid`、`sid`、`workdir` / `workdirs`、`prompt`；不要从 `skein list` 重建 dispatch，也不要从 `task.worktree` 自行拼接 cwd。
+`Bash("skein flow run")` 是一次 scheduler tick：自动认领 ready exec/check，并把 Agent 派发信息放进 `result.exec.next[]` 与 `result.check.next[]`（**顶层 `result` 没有 `next` 键**，两层都要取，任一层都可能有 hint）。只消费 hint 的 `agent`、`tid`、`sid`、`workdir` / `workdirs`、`prompt`；不要从 `skein list` 重建 dispatch，也不要从 `task.worktree` 自行拼接 cwd。
 
 🛑 **Agent 派发只传 `subagent_type` + `prompt`，不传 isolation 参数** —— worktree/cwd 已由 skein CLI 建好并写进 `hint.prompt` 的 `workdir`，agent 按该 workdir 原地干活。`workdir_kind`（`worktree` / `none`）只是信息位，说明 workdir 是 task worktree 还是原地仓库根。
 
-🛑 **executor 只能由 Agent 工具派** —— 禁用 Bash 起任何 `claude` 子进程（`claude -p` / `claude --agent` / `claude agents` 等一律禁），也禁跑 `claude --help` 探参。Agent 派发受阻（被拒 / 回传异常）的唯一处置：重派一次；仍失败则 `skein subtask fail <tid> <sid> --note "Agent dispatch blocked: <最短原因>"` 释放已 claim 的 work 槽 + 回报用户并停下，不自撰替代执行路径，也不由 main 亲自把活干了。此处 `fail` 是 **agent 从未启动**时的调度补偿，不违反「done/fail 由已启动 agent 自跑」契约；等外部修复工具/权限后由后续 flow tick 重派。
+🛑 **executor 只能由 Agent 工具派** —— 禁用 Bash 起任何 `claude` 子进程（`claude -p` / `claude --agent` / `claude agents` 等一律禁），也禁跑 `claude --help` 探参。Agent 派发受阻（被拒 / 回传异常）的唯一处置：重派一次；仍失败则 `Bash("skein subtask fail <tid> <sid> --note 'Agent dispatch blocked: <最短原因>'")` 释放已 claim 的 work 槽 + 回报用户并停下，不自撰替代执行路径，也不由 main 亲自把活干了。此处 `fail` 是 **agent 从未启动**时的调度补偿，不违反「done/fail 由已启动 agent 自跑」契约；等外部修复工具/权限后由后续 flow tick 重派。
 
 真正下发给 agent 的模式开关在 `hint.prompt` 里：它是 scheduler 生成的**单行 JSON**（`tid` / `sid` / `workdir` 或 `workdirs` / `worktree: on\|off` / `repo` / `action`），main 原样转发，不重写不加料。`worktree=on` → 改动只准落在 workdir 内；`worktree=off` → 在仓库根原地改，无隔离。agent 回传同样只允许 JSON。
 
 **`prompt` 是 scheduler 生成的成品串，原样传给 Agent，别自己重写加料** —— 自撰 prompt 有两个实测下场：写太长被 Agent 工具拒，或干脆不派、main 自己把活干了（一场会话 479 次 Edit 全在 main，executor 一次没派）。running subtask 的活归 executor；main 亲做没有 hook 会拦（提醒层已撤），只会让该 subtask 的落盘状态和实际改动对不上。
 
-researcher/executor 完成工作后自行执行 `skein subtask done <tid> <sid>`，失败执行 `skein subtask fail <tid> <sid> --note "<原因>"`。main 只核对回传、报告和实际状态；报告已存在但 research subtask 仍 pending/running 时报告 mismatch。checker 只验证，scheduler 已推进 task 到 `check` 时安全幂等重跑。finisher 只在绝对仓库根执行 `skein task finish <tid>`，不在将被销毁的 task worktree 内执行。多 repo checker 使用 `workdirs[]`。
+researcher/executor 完成工作后自行执行 `Bash("skein subtask done <tid> <sid>")`，失败执行 `Bash("skein subtask fail <tid> <sid> --note '<原因>'")`。main 只核对回传、报告和实际状态；报告已存在但 research subtask 仍 pending/running 时报告 mismatch。checker 只验证，scheduler 已推进 task 到 `check` 时安全幂等重跑。finisher 只在绝对仓库根执行 `Bash("skein task finish <tid>")`，不在将被销毁的 task worktree 内执行。多 repo checker 使用 `workdirs[]`。
 
-`--summary` 只属于 `task confirm`；`subtask done` 不接受该选项，也不接受 `--passed`（done 即验收全过）。部分勾选验收走 `skein subtask check <tid> <sid> --passed <序号|all|none>`，`--check` 只属于 `subtask add`。
+`--summary` 只属于 `task confirm`；`subtask done` 不接受该选项，也不接受 `--passed`（done 即验收全过）。部分勾选验收走 `Bash("skein subtask check <tid> <sid> --passed <序号|all|none>")`，`--check` 只属于 `subtask add`。
 
 ```text
 out = Bash("skein flow run")
@@ -190,7 +190,7 @@ for hint in out.result.exec.next + out.result.check.next:
 
 ## 调度原则
 
-- 🛑 **禁 sleep 轮询** — main 禁 `Bash("sleep N")` / `Bash("sleep N && skein ...")` 或定时轮询来等 agent 完成。Agent 工具本身是异步的：派出去后 main 继续下一轮 `skein flow run` 或处理其他 task；agent 完成后自跑 done/fail + 异步回传通知 main，下一轮 flow tick 自然看到状态变化。
+- 🛑 **禁 sleep 轮询** — main 禁 `Bash("sleep N")` / `Bash("sleep N && skein ...")` 或定时轮询来等 agent 完成。Agent 工具本身是异步的：派出去后 main 继续下一轮 `Bash("skein flow run")` 或处理其他 task；agent 完成后自跑 done/fail + 异步回传通知 main，下一轮 flow tick 自然看到状态变化。
 - **异步通知驱动** — "等待 agent"= 派发后继续做别的，靠 Agent 回传通知推进后续逻辑，而非阻塞 sleep。所有 ready subtask 在一轮 flow run 里全部派出去，不等单个完成。
 - 需要和 User 交互的必须在 main 中执行
 - 调度需要考虑最终耗时最小化，避免等待过长
@@ -201,29 +201,29 @@ for hint in out.result.exec.next + out.result.check.next:
 
 | 落盘值      | 展示名 | 阶段     | 池           | 进入命令                  | 含义                                                          |
 | ----------- | ------ | -------- | ------------ | ------------------------- | ------------------------------------------------------------- |
-| `pending`   | 待处理 | plan     | 无           | `create` / `plan`         | 已 create，PRD/design/subtask/estimate/grill/人审尚未全收敛。 |
-| `research`  | 调研中 | research | work         | `research`                | research subtask 在跑；全 done 后 `plan` 收敛回 `pending`。   |
-| `active`    | 进行中 | exec     | 无 task 级池 | `confirm --approved`      | 已 confirm，worktree 已建，subtask 可经 claim 派发。          |
-| `check`     | 检查中 | check    | gate         | `claim`（或 `check`）     | 全 subtask done 后进入验证。                                  |
-| `finishing` | 收尾中 | finish   | gate         | `claim`（或 `finishing`） | check 全绿后占 gate 槽，等待/运行 finisher。                  |
-| `done`      | 已完成 | 完结     | 无           | `finish`                  | finish 成功，worktree 已销，闭环结束；`archive` 移入归档。    |
+| `pending`   | 待处理 | plan     | 无           | `Bash("skein task create <tid> ...")` / `Bash("skein task plan <tid>")` | 已 create，spec/design/subtask/estimate/grill/人审尚未全收敛。 |
+| `research`  | 调研中 | research | work         | `Bash("skein task research <tid>")` | research subtask 在跑；全 done 后 `plan` 收敛回 `pending`。 |
+| `active`    | 进行中 | exec     | 无 task 级池 | `Bash("skein task confirm <tid> --approved")` | 已 confirm，worktree 已建，subtask 可经 claim 派发。 |
+| `check`     | 检查中 | check    | gate         | `Bash("skein task check <tid>")` | 全 subtask done 后进入验证。 |
+| `finishing` | 收尾中 | finish   | gate         | `Bash("skein task finishing <tid>")` | check 全绿后占 gate 槽，等待/运行 finisher。 |
+| `done`      | 已完成 | 完结     | 无           | `Bash("skein task finish <tid>")` | finish 成功，worktree 已销，闭环结束；`archive` 移入归档。 |
 
 #### plan
 
 > **Planning 工件写法 (PRD/design/estimate) 见 [skein-plan/references/plan.md](../../skein-plan/references/plan.md)，DAG 拆分调度模型见 [skein-plan/references/dag.md](../../skein-plan/references/dag.md)。本段只保留状态推进与出口规则。**
 
-- 先查未完成 task，判新诉求是并入现有 task 还是新建；同目标 / 同模块 / 共享改动面 / 互为前置默认并入，只有目标独立且无共享改动面才新建。
+- 先查未完成 task（`Bash("skein list --status unfinished --json")`），判新诉求是并入现有 task 还是新建；同目标 / 同模块 / 共享改动面 / 互为前置默认并入，只有目标独立且无共享改动面才新建。
 - 判 direct-fix / standard / heavy：direct-fix 仅限单文件单处 ≤20 行且位置已知；跨 ≥2 文件、多步、外部调研、文档交付一律建 task。
-- 需要调研时，先登记 `--phase research` subtask，再 `skein task research <id>`；`skein-researcher` 只读调研，结论落 `.skein/task/<id>/research/` 与 `findings.md`，全 done 后 `skein task plan <id>` 收敛回 pending。
+- 需要调研时，先登记 `Bash("skein subtask add <id> <sid> --name <标题> --desc <描述> --estimate <小时> --phase research")`，再 `Bash("skein task research <id>")`；`skein-researcher` 只读调研，结论落 `.skein/task/<id>/research/` 与 `findings.md`，全 done 后 `Bash("skein task plan <id>")` 收敛回 pending。
 - brainstorm / 关键取舍用 `AskUserQuestion`；事实先自查，决策才问用户，禁止把可查事实甩给用户。
-- 跑 grill 硬门：按弱点表逐项裁决并补回 PRD/design/subtask；有未裁决弱点不得 confirm。
-- `skein task confirm --summary` 只给用户审、不改状态；用户明确批准后才 `skein task confirm --approved`，裸 `skein task confirm` 不作为自动过门手段。
+- 跑 grill 硬门：按弱点表逐项裁决并补回 spec/design/subtask；有未裁决弱点不得 confirm。
+- `Bash("skein task confirm <tid> --summary")` 只给用户审、不改状态；用户明确批准后才 `Bash("skein task confirm <tid> --approved")`，裸 confirm 不作为自动过门手段。
 - flow 默认焦点 task 通过 confirm 后直接续 exec；显式 `plan` / `--plan` 路由到 skein-plan skill，confirm 后停，不续 exec。
 
 #### 周期 / 无人值守场景（cron、`/loop`、CI）
 
-- **别每轮从零 planning**：先 `skein list --status all --json` 找上一轮同 intent 的 task（**含已完成的**），用 `skein task create <新tid> --like <上一轮tid>` 克隆 prd/design/subtask 骨架，只改本轮真正不同的部分。不这么做的后果实测过：同一个巡检 intent 堆出 5 个内容雷同的 task。
-- **别拿 `--approved` 冒充人审**：无人值守没有用户可问，`--approved` 就是伪造。走 `skein task confirm <tid> --unattended`（需用户预先 `skein config set confirm.unattended true` 授权一次），`confirmed_by` 会记 `unattended` 留痕。
+- **别每轮从零 planning**：先 `Bash("skein list --status all --json")` 找上一轮同 intent 的 task（**含已完成的**），用 `Bash("skein task create <新tid> --like <上一轮tid> --name <标题> --desc <描述>")` 克隆 spec/design/subtask 骨架，只改本轮真正不同的部分。不这么做的后果实测过：同一个巡检 intent 堆出 5 个内容雷同的 task。
+- **别拿 `--approved` 冒充人审**：无人值守没有用户可问，`--approved` 就是伪造。走 `Bash("skein task confirm <tid> --unattended")`（需用户预先 `Bash("skein config set confirm.unattended true")` 授权一次），`confirmed_by` 会记 `unattended` 留痕。
 - 参考 [skein-plan/references/dag.md](../../skein-plan/references/dag.md) 设计task/subtask 的编排以确保依赖关系得到满足、任务调度最高效
 
 ## check 过程 — 双 checker 并行
@@ -250,10 +250,10 @@ check 阶段可派两个 checker **并行**（各自独立 context，互不污�
 
 | 落盘值    | 展示名 | 占 `pools.work` | 进入命令                  | 含义                                              |
 | --------- | ------ | --------------- | ------------------------- | ------------------------------------------------- |
-| `pending` | 待处理 | 否              | `subtask add`             | 已登记，等待 depends_on 全 done 和 claim。        |
-| `running` | 运行中 | 是              | `claim` / `subtask start` | 已认领占槽，executor/researcher 正在执行。        |
-| `done`    | 已完成 | 否              | `subtask done`            | 执行完成并释放槽；正式验收仍归 check。            |
-| `failed`  | 失败   | 否              | `subtask fail`            | 执行失败并释放槽，可 start 重派或补修复 subtask。 |
+| `pending` | 待处理 | 否              | `Bash("skein subtask add <tid> <sid> ...")` | 已登记，等待 depends_on 全 done 和 claim。 |
+| `running` | 运行中 | 是              | `Bash("skein subtask start <tid> <sid>")` | 已认领占槽，executor/researcher 正在执行。 |
+| `done`    | 已完成 | 否              | `Bash("skein subtask done <tid> <sid>")` | 执行完成并释放槽；正式验收仍归 check。 |
+| `failed`  | 失败   | 否              | `Bash("skein subtask fail <tid> <sid> --note '<原因>'")` | 执行失败并释放槽，可 start 重派或补修复 subtask。 |
 
 ## 作用域边界
 

@@ -180,8 +180,8 @@ def test_subtask_start_allowed_after_confirm(skein_cli: SkeinCli, ws: Path) -> N
 def test_research_task_only_starts_research_subtask(skein_cli: SkeinCli, ws: Path) -> None:
     """调研中 task 只放行 phase=research 的 subtask, exec 的仍须先 plan→confirm。"""
     _mk(skein_cli, ws)
-    skein_cli(ws, "subtask", "add", "demo", "rs1", "--name", "查", "--desc", "查",
-              "--estimate", "1", "--phase", "research")
+    skein_cli(ws, "research", "add", "demo", "rs1", "--name", "查", "--desc", "查",
+              "--estimate", "1", )
     skein_cli(ws, "subtask", "add", "demo", "ex1", "--name", "做", "--desc", "做",
               "--estimate", "1")
     skein_cli(ws, "task", "research", "demo")
@@ -236,8 +236,8 @@ def test_flow_run_advances_to_check_without_confirm_or_finish(
 
 def test_report_state_mismatch_is_reported(skein_cli: SkeinCli, ws: Path) -> None:
     _mk(skein_cli, ws)
-    skein_cli(ws, "subtask", "add", "demo", "rs1", "--name", "调研", "--desc", "资料",
-              "--estimate", "1", "--phase", "research")
+    skein_cli(ws, "research", "add", "demo", "rs1", "--name", "调研", "--desc", "资料",
+              "--estimate", "1", )
     skein_cli(ws, "task", "estimate", "demo", "--set", "1")
     skein_cli(ws, "task", "research", "demo")
     report = ws / ".skein" / "task" / "demo" / "research" / "rs1.md"

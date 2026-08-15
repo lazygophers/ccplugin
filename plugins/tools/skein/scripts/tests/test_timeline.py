@@ -76,10 +76,10 @@ def test_timeline_append_only_grows(skein_cli: SkeinCli, ws: Path) -> None:
 def test_timeline_rollback_task_level(skein_cli: SkeinCli, ws: Path) -> None:
     tid = "feat-research"
     skein_cli(ws, "create", tid, "--name", "任务", "--desc", "d")
-    skein_cli(ws, "subtask", "add", tid, "r1", "--name", "调研一", "--desc", "d",
-              "--estimate", "1", "--phase", "research")
+    skein_cli(ws, "research", "add", tid, "r1", "--name", "调研一", "--desc", "d",
+              "--estimate", "1", )
     skein_cli(ws, "research", tid)
-    skein_cli(ws, "subtask", "done", tid, "r1")  # plan 门槛: research subtask 须全 done
+    skein_cli(ws, "research", "done", tid, "r1")  # plan 门槛: research subtask 须全 done
     skein_cli(ws, "plan", tid)  # 调研中→待处理, 序号倒退 (research=1 → pending=0)
     t = _task(ws, tid)
     task_events = [e for e in _timeline(t) if e["kind"] == "task"]

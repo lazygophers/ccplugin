@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
 from skeinlib.task.dag import _sub_estimate_sum, detect_cycle
 from skeinlib.utils.errors import SkeinError
-from skeinlib.task.model import (CODE_ID_RE, PRIORITY_DEFAULT, SLUG_RE, SubtaskStatus, SubtaskPhase, STATUS_INFLIGHT,
+from skeinlib.task.model import (CODE_ID_RE, PRIORITY_DEFAULT, SLUG_RE, SubtaskStatus, STATUS_INFLIGHT,
                                  TaskStatus, ESTIMATE_HINT, parse_hours, now)
 from skeinlib.task.design import validate_seam
 from skeinlib.task.specfile import load_spec, save_spec, scaffold_spec, validate_spec as _spec_ready
@@ -301,11 +301,10 @@ class Lifecycle:
         t = self.ws.store.load(a.id)
         if t["status"] != TaskStatus.PENDING:
             raise SkeinError(f"{a.id} 状态为 {t['status']}, 只能对待处理 (规划中) task 发起调研")
-        subs = t.get("subtasks") or []
-        if not any(s.get("phase") == SubtaskPhase.RESEARCH for s in subs):
+        if not (t.get("research_tasks") or []):
             raise SkeinError(
-                f"{a.id} 无 research subtask — 先 "
-                f"`skein subtask add {a.id} <sid> --phase research ...` 登记再发起调研")
+                f"{a.id} 无 research 任务 — 先 "
+                f"`skein research add {a.id} <sid> --name <标题> --desc <描述> --estimate <小时>` 登记再发起调研")
         self.ws._stage_hooks("research", "before", self.ws._hook_ctx(a.id, t=t))
         t["status"] = TaskStatus.RESEARCH
         _timeline.append(t, "task", TaskStatus.RESEARCH)
@@ -320,10 +319,10 @@ class Lifecycle:
         t = self.ws.store.load(a.id)
         if t["status"] != TaskStatus.RESEARCH:
             raise SkeinError(f"{a.id} 状态为 {t['status']}, 只能对调研中 task 收敛回规划")
-        undone = [s["sid"] for s in t.get("subtasks") or []
-                 if s.get("phase") == SubtaskPhase.RESEARCH and s["status"] != SubtaskStatus.DONE]
+        undone = [s["sid"] for s in t.get("research_tasks") or []
+                 if s["status"] != SubtaskStatus.DONE]
         if undone:
-            raise SkeinError(f"{a.id} 调研 subtask 未全完成: {', '.join(undone)} — 先 done 它们再 plan")
+            raise SkeinError(f"{a.id} research 任务未全完成: {', '.join(undone)} — 先 `skein research done` 它们再 plan")
         self.ws._stage_hooks("plan", "before", self.ws._hook_ctx(a.id, t=t))
         t["status"] = TaskStatus.PENDING
         _timeline.append(t, "task", TaskStatus.PENDING)

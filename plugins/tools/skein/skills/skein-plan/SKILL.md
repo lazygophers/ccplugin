@@ -18,11 +18,11 @@ effort: medium
 
 ## 流程（五步，一步不破窗）
 
-1. 创建 task → **第一步必须是建 task**，先归一判定再 create
-2. 任务分析 → 填 TaskSpec 四要素 (`task spec`) + design 接缝 (`design seam`)
-3. research 分流 → 需调研则 `subtask add --phase research` + `task research` + 调度
-4. 拆 subtask → 逐个 `subtask add` 填齐必要信息 + 自下而上估 task 工时
-5. 人审门 → 先回显 spec + design + subtask 编排，AskUserQuestion 批准后 confirm
+1. 创建 task → **第一步必须是建 task**，先归一判定 `Bash("skein list --status unfinished --json")`，新建即 `Bash("skein task create <tid> --name <标题> --desc <描述>")`
+2. 任务分析 → 填 TaskSpec 四要素 `Bash("skein task spec <tid> --desc <str> --should <a;b> --not <a;b> --acceptance <a;b>")` + design 接缝 `Bash("skein design seam <tid> --list '接缝一\n接缝二'")`
+3. research 分流 → 需调研则 `Bash("skein subtask add <tid> <sid> --name <标题> --desc <描述> --estimate <小时> --phase research")` + `Bash("skein task research <tid>")` + 调度
+4. 拆 subtask → 逐个 `Bash("skein subtask add <tid> <sid> --name <标题> --desc <描述> --estimate <小时> --deps <sid,...>")` 填齐必要信息 + 自下而上估工时 `Bash("skein task estimate <tid> --set <小时>")`
+5. 人审门 → 先回显 `Bash("skein task spec <tid>")` + `Bash("skein design read <tid>")` + `Bash("skein subtask list <tid>")`，AskUserQuestion 批准后 `Bash("skein task confirm <tid> --approved")`
 
 **会话纪律**：第 1 步到第 5 步一个不破窗完成（中途禁 `/clear` / `/compact`）；research 全量结论走 `findings.md` 落盘，主对话只引摘要，不引全文。
 
@@ -50,7 +50,7 @@ Bash("skein design seam order-create-api --list 'API 层响应契约\nDB 迁移�
 
 ### 3. research 分流（需要时）
 
-需要调研时：先登记 `--phase research` subtask，再切 task 进调研态，然后调度 `skein-researcher` 执行。调研结论落 `.skein/task/<tid>/research/` 与 `findings.md`，全 done 后收敛回 pending。
+需要调研时：先登记 research subtask、切调研态，然后调度 `skein-researcher` 执行。调研结论落 `.skein/task/<tid>/research/` 与 `findings.md`，全 done 后收敛回 pending（命令见下方代码块）。
 
 ```
 Bash("skein subtask add order-create-api r1-lock --name '库存锁方案调研' --desc '对比乐观/悲观锁在秒杀场景的正确性, 结论写 findings.md' --estimate 2 --phase research")
@@ -69,11 +69,11 @@ Bash("skein task plan order-create-api")
 
 tracer-bullet 垂直切片，每个 subtask 切穿所有层（schema→API→UI→tests），声明 `--deps` 阻塞边。协议先行后并行：共享契约抽成前置 subtask。完整拆分模型 / ready 判定 / 双池模型见 [references/dag.md](references/dag.md)。
 
-每个 subtask 必填：sid / name / desc / estimate（缺一即拒）。desc 必须锚定 design.md 接缝（如「按 design.md 测试接缝节的 seam」），保证 executor 自读 `skein subtask show` 即可独立执行，不回读全局猜上下文。
+每个 subtask 必填：sid / name / desc / estimate（缺一即拒）。desc 必须锚定 design.md 接缝（如「按 design.md 测试接缝节的 seam」），保证 executor 自读 `Bash("skein subtask show <tid> <sid>")` 即可独立执行，不回读全局猜上下文。
 
 ```
-Bash("skein subtask add order-create-api s1-schema --name 'orders 表迁移' --desc '按 design.md 测试接缝节的 'DB 迁移可回滚', 建 orders 表 + 回滚脚本' --estimate 2 --check '迁移可 up/down'")
-Bash("skein subtask add order-create-api s2-api --name 'POST /orders 接口' --desc '按 design.md 测试接缝节的 'API 层响应契约', 依赖 s1 的 orders 表' --estimate 4 --deps s1-schema --check '201/400 契约单测全绿'")
+Bash("skein subtask add order-create-api s1-schema --name 'orders 表迁移' --desc '按 design.md 测试接缝节的「DB 迁移可回滚」, 建 orders 表 + 回滚脚本' --estimate 2 --check '迁移可 up/down'")
+Bash("skein subtask add order-create-api s2-api --name 'POST /orders 接口' --desc '按 design.md 测试接缝节的「API 层响应契约」, 依赖 s1 的 orders 表' --estimate 4 --deps s1-schema --check '201/400 契约单测全绿'")
 Bash("skein subtask add order-create-api s3-e2e --name '端到端验证' --desc '串 s1+s2 跑完整下单流, 按 acceptance 逐条核对' --estimate 1 --deps s1-schema,s2-api")
 ```
 
@@ -112,17 +112,17 @@ else:
 
 | 命令 | 易错点 |
 | --- | --- |
-| `skein task create <tid> --name <str> --desc <str> [--deps tid1,tid2] [--repos repo1,repo2] [--priority urgent\|high\|normal\|low] [--estimate <小时>] [--like <模板tid>]` | `<tid>` 是位置参数；`--name`/`--desc` 必填；`--priority` 只收四个英文值；`--estimate` 单位是小时；`--deps` 声明前置 task；`--like` 克隆既有 task 的 spec/design/subtask 骨架，状态全重置 |
-| `skein task spec <tid> [--desc <str>] [--should <a;b;c>] [--not <a;b;c>] [--acceptance <a;b;c>]` | TaskSpec 落盘 prd.md frontmatter；列表 `;` 分号分隔；不带参数 = 只读回显；confirm 后锁定 |
-| `skein subtask add <tid> <sid> --name <str> --desc <str> --estimate <小时> [--deps sid1,sid2] [--check <a;b>] [--phase exec\|research]` | `<sid>` 是位置参数不是 `--id`；四必填缺一即拒 |
-| `skein design seam <tid> --list <条目>` / `skein design read <tid>` | seam `--list` 用 `\n` 分隔多条，整段清重建；read 只读回显 |
+| `Bash("skein task create <tid> --name <str> --desc <str> [--deps tid1,tid2] [--repos repo1,repo2] [--priority urgent\|high\|normal\|low] [--estimate <小时>] [--like <模板tid>]")` | `<tid>` 是位置参数；`--name`/`--desc` 必填；`--priority` 只收四个英文值；`--estimate` 单位是小时；`--deps` 声明前置 task；`--like` 克隆既有 task 的 spec/design/subtask 骨架，状态全重置 |
+| `Bash("skein task spec <tid> [--desc <str>] [--should <a;b;c>] [--not <a;b;c>] [--acceptance <a;b;c>]")` | TaskSpec 落盘 prd.md frontmatter；列表 `;` 分号分隔；不带参数 = 只读回显；confirm 后锁定 |
+| `Bash("skein subtask add <tid> <sid> --name <str> --desc <str> --estimate <小时> [--deps sid1,sid2] [--check <a;b>] [--phase exec\|research]")` | `<sid>` 是位置参数不是 `--id`；四必填缺一即拒 |
+| `Bash("skein design seam <tid> --list <条目>")` / `Bash("skein design read <tid>")` | seam `--list` 用 `\n` 分隔多条，整段清重建；read 只读回显 |
 
 多条 skein 可以串接，但**串写命令看回显**：中途失败时后续命令照跑，回显里哪条挂了就重跑哪条（落盘状态即真值，不必预先拆）。
 
 ## 周期 / 无人值守场景
 
-- **别每轮从零 planning**：先 `skein list --status all --json` 找上一轮同 intent 的 task，用 `skein task create <新tid> --like <上一轮tid>` 克隆骨架。
-- **别拿 `--approved` 冒充人审**：无人值守走 `skein task confirm <tid> --unattended`（需用户预先授权）。
+- **别每轮从零 planning**：先 `Bash("skein list --status all --json")` 找上一轮同 intent 的 task，用 `Bash("skein task create <新tid> --like <上一轮tid> --name <标题> --desc <描述>")` 克隆骨架。
+- **别拿 `--approved` 冒充人审**：无人值守走 `Bash("skein task confirm <tid> --unattended")`（需用户预先授权）。
 
 ## ✅ 正向配方
 

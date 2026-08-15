@@ -24,24 +24,24 @@ scheduler / main 只发单个 JSON 对象:
 
 ### 1. 定位 task + 读取产物
 
-```bash
+```text
 # 入参给了 tid 就用入参; 入参没给才回退 CLI 探测最近 pending
 # --json 是对象信封 {"tasks":[...]}, 取单个 id 必须走 .tasks[0].id
-tid=${tid:-$(skein list --status pending --json | jq -r '.tasks[0].id')}
+Bash("tid=${tid:-$(skein list --status pending --json | jq -r '.tasks[0].id')} && echo $tid")
 
 # 读取全部 planning 产物
-skein task spec <tid>                       # TaskSpec: desc/boundary/acceptance
-skein subtask list <tid>                    # subtask DAG + estimate
-cat .skein/task/<tid>/prd.md                # prd.md 全文 (frontmatter + 散文)
-cat .skein/task/<tid>/design.md             # 设计文档
+Bash("skein task spec <tid>")               # TaskSpec: desc/boundary/acceptance
+Bash("skein subtask list <tid>")            # subtask DAG + estimate
+Bash("cat .skein/task/<tid>/prd.md")        # prd.md 全文 (frontmatter + 散文)
+Bash("cat .skein/task/<tid>/design.md")     # 设计文档
 ```
 
 产物不齐时标 `产物缺失` 继续扫已有产物; 全无 → 报「task 尚未 planning, 无可审计」直接返回。
 
 ### 2. 复用 skein-spec analyze (不重复造轮)
 
-```bash
-skein-spec analyze <tid> --json
+```text
+Bash("skein-spec analyze <tid> --json")
 ```
 
 消费其 5 类检查 (验收覆盖率 / 硬规冲突 / 范围蔓延 / proposed 置信度 / 接缝存在性) 作为基础层候选, 嵌入审计报告 `spec_analyze` 段。CLI 报错 → `[工具失败: analyze 检索失败]`, 手工补一致性检查, 标 `analyze 未跑`。
@@ -86,7 +86,7 @@ skein-spec analyze <tid> --json
 
 **问**: subtask DAG 完整无环? 拆分粒度合理? 并行度够?
 
-- `depends_on` 有无环 (`skein doctor` 已检测, 但 audit 补语义层)
+- `depends_on` 有无环 (`Bash("skein doctor")` 已检测, 但 audit 补语义层)
 - 伪依赖: A→B 但 desc 无真实数据 / 接口依赖 → 标 `伪依赖, 建议移除`
 - 漏依赖: A 用了 B 产出的 schema 但没挂 deps → 标 `漏依赖`
 - 粒度: 单 subtask estimate > 8h → 标 `粒度过粗, 建议拆`
@@ -138,7 +138,7 @@ skein-spec analyze <tid> --json
 
 #### 轴 9: subtask 自包含
 
-**问**: executor 只读 `skein subtask show <tid> <sid>` 能不能独立执行该 subtask?
+**问**: executor 只读 `Bash("skein subtask show <tid> <sid>")` 能不能独立执行该 subtask?
 
 - desc 是否锚定 design.md 接缝（如「按 design.md 测试接缝节的 seam」）— 无锚点且改动面跨文件 → 标 `依赖全局上下文, 不可独立执行`
 - desc 里出现「按上文」「同前」「如前所述」等指代词 → 标 `悬挂指代`
@@ -214,6 +214,6 @@ skein-spec analyze <tid> --json
 | 触发 | 一线处理 | 兜底 |
 |---|---|---|
 | 产物不齐 (缺 design.md) | 读已有产物, 缺的标 `产物缺失` | 全无产物 → 报「task 尚未 planning, 无可审计」 |
-| `skein-spec analyze` 报错 | 跳过 analyze, 手工补一致性检查 | 全手工, 标 `analyze 未跑` |
+| `Bash("skein-spec analyze <tid> --json")` 报错 | 跳过 analyze, 手工补一致性检查 | 全手工, 标 `analyze 未跑` |
 | 某轴扫不出弱点 | 换角度深挖 (极端输入 / 并发 / 依赖失效 / 反向问) | 显式记「该轴已过, 无阻断项」 |
-| skein CLI 不在 PATH | 换 `$CLAUDE_PLUGIN_ROOT/bin/skein` 重试 1 次 | `[工具失败: skein CLI 不可用]`, 空审计回传 |
+| skein CLI 不在 PATH | 换 `Bash("$CLAUDE_PLUGIN_ROOT/bin/skein <同参数>")` 重试 1 次 | `[工具失败: skein CLI 不可用]`, 空审计回传 |

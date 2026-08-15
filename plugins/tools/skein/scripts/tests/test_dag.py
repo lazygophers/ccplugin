@@ -44,15 +44,17 @@ def _set_max_active(ws: Path, n: int) -> None:
 
 
 def _add(skein_cli: SkeinCli, ws: Path, tid: str, sid: str, *, deps: str = "",
-         check: str = "", phase: str = "") -> None:
+         check: str = "") -> None:
     args = ["subtask", "add", tid, sid, "--name", f"N{sid}", "--desc", "d", "--estimate", "1"]
     if deps:
         args += ["--deps", deps]
     if check:
         args += ["--check", check]
-    if phase:
-        args += ["--phase", phase]
     skein_cli(ws, *args)
+
+
+def _add_research(skein_cli: SkeinCli, ws: Path, tid: str, sid: str) -> None:
+    skein_cli(ws, "research", "add", tid, sid, "--name", f"N{sid}", "--desc", "d", "--estimate", "1")
 
 
 def _backdate_created(ws: Path, tid: str, sid: str, hours_ago: float) -> None:
@@ -61,7 +63,7 @@ def _backdate_created(ws: Path, tid: str, sid: str, hours_ago: float) -> None:
     import time
     tj = ws / ".skein" / "task" / tid / "task.json"
     t = json.loads(tj.read_text())
-    for s in t["subtasks"]:
+    for s in t["subtasks"] + t.get("research_tasks", []):
         if s["sid"] == sid:
             s["created"] = int(time.time() - hours_ago * 3600)
     tj.write_text(json.dumps(t, ensure_ascii=False))
@@ -354,19 +356,17 @@ def test_two_pools_independent_work_full_check_still_claimable(skein_cli: SkeinC
 
 
 def test_exec_wins_over_research_on_tie(skein_cli: SkeinCli, ws: Path) -> None:
-    """exec 同分优先: 关键路径权重/优先级/等待时长全相等时, phase=exec 排在 phase=research 前面。"""
+    """exec 同分优先: 关键路径权重/优先级/等待时长全相等时, exec subtask 排在 research 任务前面。"""
     _set_max_active(ws, 2)
     skein_cli(ws, "create", "task-exec", "--name", "task-exec", "--desc", "d")
-    _add(skein_cli, ws, "task-exec", "x")  # 默认 phase=exec
+    _add(skein_cli, ws, "task-exec", "x")  # exec subtask
     _fill_prd(ws, "task-exec")
     skein_cli(ws, "estimate", "task-exec", "--set", "1")
     skein_cli(ws, "confirm", "task-exec")
 
     skein_cli(ws, "create", "task-research", "--name", "task-research", "--desc", "d")
-    _add(skein_cli, ws, "task-research", "y", phase="research")
-    _fill_prd(ws, "task-research")
-    skein_cli(ws, "estimate", "task-research", "--set", "1")
-    skein_cli(ws, "confirm", "task-research")
+    _add_research(skein_cli, ws, "task-research", "y")
+    skein_cli(ws, "research", "task-research")  # 待处理→调研中 (research 任务进调度池)
 
     order = _dry_run_order(skein_cli, ws)
     assert order.index("task-exec/x") < order.index("task-research/y")
@@ -382,11 +382,9 @@ def test_long_waiting_research_overtakes_fresh_exec(skein_cli: SkeinCli, ws: Pat
     skein_cli(ws, "confirm", "task-exec")
 
     skein_cli(ws, "create", "task-research", "--name", "task-research", "--desc", "d")
-    _add(skein_cli, ws, "task-research", "y", phase="research")
+    _add_research(skein_cli, ws, "task-research", "y")
     _backdate_created(ws, "task-research", "y", hours_ago=3)  # 等了 3h > W_EXEC 等价的 1h
-    _fill_prd(ws, "task-research")
-    skein_cli(ws, "estimate", "task-research", "--set", "1")
-    skein_cli(ws, "confirm", "task-research")
+    skein_cli(ws, "research", "task-research")  # 待处理→调研中
 
     order = _dry_run_order(skein_cli, ws)
     assert order.index("task-research/y") < order.index("task-exec/x")
@@ -407,16 +405,14 @@ def test_empty_batch_message_names_which_pool_is_full(skein_cli: SkeinCli, ws: P
 
 
 def test_claim_returns_phase_not_agent(skein_cli: SkeinCli, ws: Path) -> None:
-    """claim 只回传 phase 这类事实数据, **不做 agent 路由** —— 派谁由 main 按 task 状态判
+    """claim 只回传 research 标记这类事实数据, **不做 agent 路由** —— 派谁由 main 按 task 状态判
     (flow-loop.md §3 硬规 2)。回传里冒出 agent 字段即是把路由决策漏回了引擎层。"""
     skein_cli(ws, "create", "t-r", "--name", "t-r", "--desc", "d")
-    _add(skein_cli, ws, "t-r", "y", phase="research")
-    _fill_prd(ws, "t-r")
-    skein_cli(ws, "estimate", "t-r", "--set", "1")
-    skein_cli(ws, "confirm", "t-r")
+    _add_research(skein_cli, ws, "t-r", "y")
+    skein_cli(ws, "research", "t-r")  # 待处理→调研中 (research 任务进调度池)
     out = json.loads(skein_cli(ws, "claim", "exec", "--dry-run").stdout)
     ready = out.get("exec", out)["ready"]
-    assert [r["phase"] for r in ready] == ["research"]
+    assert [r["research"] for r in ready] == [True]
     assert "agent" not in json.dumps(out)
 
 

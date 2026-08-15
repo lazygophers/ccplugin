@@ -33,10 +33,18 @@ def _create(sk: Skein, tid: str, **over: Any) -> dict[str, Any]:
 
 def _add_sub(sk: Skein, tid: str, sid: str, **over: Any) -> dict[str, Any]:
     a = _ns(action="add", tid=tid, sid=sid, name=sid, desc="d", estimate="1",
-            deps="", check="", skills="", phase=None, repo=None)
+            deps="", check="", skills="", repo=None)
     for k, v in over.items():
         setattr(a, k, v)
     return sk.scheduler.subtask(a)
+
+
+def _add_research(sk: Skein, tid: str, sid: str, **over: Any) -> dict[str, Any]:
+    a = _ns(action="add", tid=tid, sid=sid, name=sid, desc="d", estimate="1",
+            deps="", check="", note=None)
+    for k, v in over.items():
+        setattr(a, k, v)
+    return sk.scheduler.research(a)
 
 
 def _fill_prd(ws: Path, tid: str) -> None:
@@ -281,7 +289,7 @@ def test_confirm_research_blocked(ws: Path, monkeypatch: pytest.MonkeyPatch) -> 
     """confirm 时调研中态被拒绝，需先 plan。"""
     sk = _skein(ws, monkeypatch)
     _create(sk, "feat-x")
-    _add_sub(sk, "feat-x", "sub-r", phase="research")
+    _add_research(sk, "feat-x", "sub-r")
     sk.lifecycle.research(_ns(id="feat-x"))
     with pytest.raises(SkeinError, match="调研中.*先.*plan"):
         sk.lifecycle.confirm(_ns(id="feat-x", approved=True))

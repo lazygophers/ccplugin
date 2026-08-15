@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 from skeinlib.task.dag import _sub_pct, _task_pct
 from skeinlib.utils.errors import SkeinError
-from skeinlib.task.model import (PRIORITY_DEFAULT, STATUS_ACTIVE, SubtaskPhase, SubtaskStatus,
+from skeinlib.task.model import (PRIORITY_DEFAULT, STATUS_ACTIVE, SubtaskStatus,
                                  TaskStatus, _STATUS_ALIAS, now)
 
 from skeinlib.infra.worktree import worktrees_of
@@ -61,7 +61,6 @@ class Query:
                     started = s.get("started")
                     running_subs.append({
                         "tid": t["id"], "sid": s["sid"], "name": s.get("name", s["sid"]),
-                        "phase": s.get("phase", SubtaskPhase.EXEC),
                         "started": started,
                         "elapsed_min": round((tnow - started) / 60, 1) if started else None,
                         "pct": _sub_pct(s),
@@ -136,11 +135,11 @@ class Query:
             console.print("\n[bold]执行中 subtask:[/bold]")
             table = Table(show_header=True, box=None, padding=(0, 2))
             for col, style in (("tid", "cyan"), ("sid", "cyan"), ("名称", None),
-                               ("阶段", "yellow"), ("进度", "green"), ("已跑", "dim")):
+                               ("进度", "green"), ("已跑", "dim")):
                 table.add_column(col, style=style)
             for s in d["running_subtasks"]:
                 elapsed = f"{s['elapsed_min']}m" if s["elapsed_min"] is not None else "-"
-                table.add_row(s["tid"], s["sid"], s["name"], s["phase"],
+                table.add_row(s["tid"], s["sid"], s["name"],
                               f"{s['pct']}%", elapsed)
             console.print(table)
         else:
