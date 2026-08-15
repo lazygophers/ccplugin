@@ -36,8 +36,8 @@ from skeinlib.cli import app
 
 PLUGIN = SCRIPTS.parent
 ALIASES = ("del",)   # dispatch 里有, --help 不列
-# 全局 flag: _strip_global_flags 对所有命令收 -j/--json/-p/--pretty/-d/--debug, 不进命令合法面
-GLOBAL_FLAGS = {"--json", "--pretty", "--debug"}
+# 全局 flag: _strip_global_flags 对所有命令收 --show/-d/--debug, 不进各命令合法面
+GLOBAL_FLAGS = {"--show", "--debug"}
 # 散文里的假阳性: README 讲名字来源「skein of yarn」
 PROSE_SKIP = ("skein of",)
 

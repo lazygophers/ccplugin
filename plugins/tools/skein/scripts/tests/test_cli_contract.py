@@ -18,6 +18,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from conftest import SkeinCli, run_git
 
 
@@ -329,13 +331,14 @@ def test_unknown_command_error_lists_available_commands(skein_cli: SkeinCli, ws:
 # ---------- 13. prd write 的覆盖必须可见 + `--list a b c` 收多条 ----------
 
 
-def test_strip_global_flags_pretty() -> None:
-    """-p/--pretty 是全局 flag: strip 出四元组, argv 中移除。"""
-    from skeinlib.cli.main import _strip_global_flags
-    argv, dbg, js, pretty = _strip_global_flags(["list", "--pretty", "-j"])
-    assert argv == ["list"] and dbg is False and js is True and pretty is True
-    argv, _, _, pretty = _strip_global_flags(["task", "show", "demo"])
-    assert argv == ["task", "show", "demo"] and pretty is False
+def test_strip_global_flags_show() -> None:
+    """--show 是全局 flag: strip 出三元组, argv 中移除; 无 --json/--pretty 同义 flag。"""
+    from skeinlib.cli.main import GLOBAL_FLAGS, _strip_global_flags
+    argv, dbg, show = _strip_global_flags(["list", "--show"])
+    assert argv == ["list"] and dbg is False and show is True
+    argv, dbg, show = _strip_global_flags(["task", "show", "demo", "-d"])
+    assert argv == ["task", "show", "demo"] and dbg is True and show is False
+    assert "--json" not in GLOBAL_FLAGS and "--pretty" not in GLOBAL_FLAGS
 
 
 def test_pretty_value_renders_nested() -> None:

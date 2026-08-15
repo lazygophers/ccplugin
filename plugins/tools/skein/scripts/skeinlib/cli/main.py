@@ -665,19 +665,18 @@ def design_read(id: str) -> None:
     _run("design", action="read", id=id, list=None)
 
 
-GLOBAL_FLAGS = ("-d", "--debug", "-j", "--json", "-p", "--pretty", "--show")
+GLOBAL_FLAGS = ("-d", "--debug", "--show")
 
 
-def _strip_global_flags(argv: list[str]) -> tuple[list[str], bool, bool, bool]:
+def _strip_global_flags(argv: list[str]) -> tuple[list[str], bool, bool]:
     """剥离全局 flag —— 它们可置于任意位置, 不进各子命令的签名。
 
-    输出形态只有一个开关: 缺省 JSON (机器读, `-j/--json` 只是显式重申同一形态),
-    `-p/--pretty` / `--show` 走 rich 人读渲染。
+    输出形态只有一个开关: 缺省 JSON (机器读), `--show` 走 rich 人读渲染。没有 `--json` ——
+    JSON 本就是缺省, 留一个同义 flag 只会让调用方以为存在第二种默认形态。
     """
     cli_debug = any(arg in ("-d", "--debug") for arg in argv)
-    cli_json = any(arg in ("-j", "--json") for arg in argv)
-    cli_pretty = any(arg in ("-p", "--pretty", "--show") for arg in argv)
-    return [arg for arg in argv if arg not in GLOBAL_FLAGS], cli_debug, cli_json, cli_pretty
+    cli_show = "--show" in argv
+    return [arg for arg in argv if arg not in GLOBAL_FLAGS], cli_debug, cli_show
 
 
 def _pretty_value(v: Any, indent: str = "  ") -> str:
@@ -705,7 +704,7 @@ def _pretty_value(v: Any, indent: str = "  ") -> str:
 
 
 def _pretty_print(cmd: str, data: dict[str, Any]) -> None:
-    """dict 结果 → rich 面板渲染 (全局 -p/--pretty 时替代 JSON print)。"""
+    """dict 结果 → rich 面板渲染 (全局 --show 时替代 JSON print)。"""
     from rich.console import Console
     from rich.panel import Panel
     from rich.table import Table
@@ -733,7 +732,7 @@ def _rewrite_legacy_task_args(argv: list[str]) -> list[str]:
     if argv[:1] == ["status"] and len(argv) >= 3:
         return ["subtask", "show", *argv[1:]]
     if argv and argv[0] in TASK_COMMANDS:
-        # `skein status` / `skein status --pretty` (仅跟 flag 无位置参数) = 顶层全局运行态概览,
+        # `skein status` / `skein status --show` (仅跟 flag 无位置参数) = 顶层全局运行态概览,
         # 不转发; 带位置参数 `skein status <tid>` 仍转 task status (legacy)
         if not (argv[0] == "status"
                 and all(x.startswith("-") for x in argv[1:])):
@@ -744,14 +743,14 @@ def _rewrite_legacy_task_args(argv: list[str]) -> list[str]:
 def main() -> None:
     from skeinlib.gitignore.preflight import run_preflight
     run_preflight()
-    argv, cli_debug, cli_json, cli_pretty = _strip_global_flags(sys.argv[1:])
+    argv, cli_debug, cli_show = _strip_global_flags(sys.argv[1:])
     DBG.enable(cli_debug or debug_enabled(None))
     original_namespace = _namespace
 
     def namespace_with_flags(cmd: str, **kwargs: object) -> SimpleNamespace:
         a = original_namespace(cmd, **kwargs)
-        # --pretty/--show: dict 结果改走 rich 面板渲染; 局部值 (如各命令自带 pretty) 为先, 全局补真
-        a.show = bool(getattr(a, "show", False) or cli_pretty)
+        # --show: dict 结果改走 rich 面板渲染 (缺省 JSON)
+        a.show = bool(getattr(a, "show", False) or cli_show)
         return a
 
     globals()["_namespace"] = namespace_with_flags
