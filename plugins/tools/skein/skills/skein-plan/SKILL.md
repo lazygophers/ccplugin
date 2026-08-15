@@ -1,6 +1,6 @@
 ---
 name: skein-plan
-description: "SKEIN planning 独立入口。归一判定 (并入 vs 新建 task)、research 分流、PRD/design/subtask DAG/estimate 工件写法、grill 硬门、confirm 人审门。工件写法见 references/plan.md，拆分调度模型见 references/dag.md。skein-flow 在 $1=plan 或含 --plan 时路由到本 skill。"
+description: "SKEIN planning 独立入口。第一步建 task、分析并填 TaskSpec (task spec)、research 分流与调度、subtask DAG 拆分、confirm 人审门。工件写法见 references/plan.md，拆分调度模型见 references/dag.md。skein-flow 在 $1=plan 或含 --plan 时路由到本 skill。"
 user-invocable: true
 argument-hint: "[任务描述/ID] [--plan]"
 arguments: "[任务描述/ID]"
@@ -16,79 +16,106 @@ effort: medium
 
 任务描述（自然语言）或 task ID（续规划已有 task）。
 
-## 流程
+## 流程（五步，一步不破窗）
 
-```
-0. 需求收敛 → 含糊/多读法先 AskUserQuestion 逼用户拍板
-1. 归一判定 → 并入现有 task 还是新建，调用 `skein task create <tid> --name <str> --desc <str>`
-2. research 分流 → 需调研则建 --phase research subtask + skein task research
-3. 工件写法 → 见 references/plan.md (PRD 三段 / design.md / estimate)
-4. DAG 拆分 → 见 references/dag.md (tracer-bullet 垂直切片 / depends_on / CPM)
-5. 独立审计 → Agent(skein:skein-plan-auditor)，JSON 弱点报告作为 grill 输入
-6. grill 硬门 → Skill(skein-grill)，弱点表逐条裁决补回
-7. confirm 人审门 → skein task confirm --summary → AskUserQuestion → --approved
-```
+1. 创建 task → **第一步必须是建 task**，先归一判定再 create
+2. 任务分析 → 填 TaskSpec 四要素 (`task spec`) + design 接缝 (`design seam`)
+3. research 分流 → 需调研则 `subtask add --phase research` + `task research` + 调度
+4. 拆 subtask → 逐个 `subtask add` 填齐必要信息 + 自下而上估 task 工时
+5. 人审门 → 先回显 spec + design + subtask 编排，AskUserQuestion 批准后 confirm
 
-**会话纪律**：第 0 步到第 7 步一个不破窗完成（中途禁 `/clear` / `/compact`）；research 全量结论走 `findings.md` 落盘，主对话只引摘要，不引全文。
+**会话纪律**：第 1 步到第 5 步一个不破窗完成（中途禁 `/clear` / `/compact`）；research 全量结论走 `findings.md` 落盘，主对话只引摘要，不引全文。
 
-### 0. 需求收敛
+### 1. 创建 task（第一步）
 
-动笔前先判需求含糊度。目标 / 边界 / 验收标准存在多个等价读法或互相冲突时，先 `AskUserQuestion` 逐项逼用户拍板 —— 每问附推荐答案，决策归用户、事实归 AI 自查（查得到的不问）。含糊清了才进归一判定；骨架已清晰（目标唯一、边界无歧义）→ 直接跳到第 1 步。
-
-### 1. 归一判定
-
-先查未完成 task，判新诉求并入现有 task 还是新建。同目标 / 同模块 / 共享改动面 / 互为前置 → **并入拆 subtask**；仅目标独立且无共享改动面才新建。判不准 → AI 自行裁定（默认归一）。
+**归一判定**：先查未完成 task，判新诉求并入现有 task 还是新建。同目标 / 同模块 / 共享改动面 / 互为前置 → **并入拆 subtask**（转到该 task 的第 2 步）；仅目标独立且无共享改动面才新建。
 
 复杂度分档：direct-fix（单文件单处 ≤20 行）不建 task；跨 ≥2 文件、多步、外部调研、文档交付一律建 task。
 
-### 2. research 分流
+```
+Bash("skein list --status unfinished --json")
+Bash("skein task create order-create-api --name '下单接口' --desc '为 C 端新增下单 API' --priority normal")
+```
 
-需要调研时，先登记 `--phase research` subtask，再 `skein task research <id>`；`skein-researcher` 只读调研，结论落 `.skein/task/<id>/research/` 与 `findings.md`，全 done 后 `skein task plan <id>` 收敛回 pending。
+### 2. 任务分析，填写 task 信息
 
-**可行性探针**：设计问题纸面定不了（状态模型手感 / 契约是否成立 / UI 形态）→ 先跑最小 throwaway 探针验证，探针代码即弃、不进正式 DAG、不并入交付物；结论回写 design.md 的取舍或可能性分支（标「已探针验证」），再继续拆分。
-
-### 3. 工件写法
-
-使用 references/plan.md](references/plan.md) 规范，更新任务信息
-
-### 4. DAG 拆分
-
-tracer-bullet 垂直切片，每个 subtask 切穿所有层（schema→API→UI→tests），声明 `--deps` 阻塞边。协议先行后并行：共享契约抽成前置 subtask。
-
-**subtask 自包含**：desc 必须锚定 design.md 接缝（如「按 design.md 测试接缝节的 seam」），保证 executor 自读 `skein subtask show` 即可独立执行，不回读全局猜上下文。
-
-**完整拆分模型 / ready 判定 / 排序 / 双池模型见 [references/dag.md](references/dag.md)。**
-
-### 5. 独立审计
-
-DAG 与 estimate 就绪后，派 `Agent(subagent_type='skein:skein-plan-auditor')`，传 `{"tid":"<tid>","workdir":"<绝对工作目录>","worktree":"on | off","repo":"<目标 repo 或 null>","action":"审计全部 plan 产物"}`。将返回的 JSON 弱点报告交给 grill；audit 只读、非门控，失败时记录工具失败并继续 grill。
-
-### 6. grill 硬门（STOP）
-
-planning 产物产出并完成独立审计后、`skein task confirm` 前必跑 grill。把 audit findings 纳入弱点表，按 skein-grill 审查轴逐条逼问，交用户裁决。有未裁决弱点禁 confirm。
-
-### 7. confirm 人审门
+分析代码改动面后，把结论写进 TaskSpec（desc / boundary / acceptance，落盘 prd.md frontmatter）与 design.md 测试接缝。含糊 / 多读法先 `AskUserQuestion` 逼用户拍板 —— 每问附推荐答案，决策归用户、事实归 AI 自查（查得到的不问）。
 
 ```
-summary = skein task confirm <tid> --summary
-answer = AskUserQuestion(question=summary, options=["批准（仅规划，不执行）", "有修改意见"])
+Bash("skein task spec order-create-api --desc '新增 POST /orders 下单接口, 直连 DB 单商品直购' --should 'API 层+DB 迁移+单测;入参校验' --not '不动支付回调;不做购物车;不改老订单接口' --acceptance 'POST /orders 正常单返回 201;非法参数返回 400;单测全绿'")
+Bash("skein design seam order-create-api --list 'API 层响应契约\nDB 迁移可回滚'")
+```
+
+只读回显：`Bash("skein task spec order-create-api")`（不带参数即读）。工件写法规范见 [references/plan.md](references/plan.md)。
+
+### 3. research 分流（需要时）
+
+需要调研时：先登记 `--phase research` subtask，再切 task 进调研态，然后调度 `skein-researcher` 执行。调研结论落 `.skein/task/<tid>/research/` 与 `findings.md`，全 done 后收敛回 pending。
+
+```
+Bash("skein subtask add order-create-api r1-lock --name '库存锁方案调研' --desc '对比乐观/悲观锁在秒杀场景的正确性, 结论写 findings.md' --estimate 2 --phase research")
+Bash("skein task research order-create-api")
+```
+
+调度：派 `Agent(subagent_type='skein:skein-researcher')`，传 `{"tid":"order-create-api","workdir":"<绝对工作目录>","topic":"<调研主题>"}`。全部 research subtask done 后：
+
+```
+Bash("skein task plan order-create-api")
+```
+
+**可行性探针**：设计问题纸面定不了（状态模型手感 / 契约是否成立 / UI 形态）→ 先跑最小 throwaway 探针验证，探针代码即弃、不进正式 DAG、不并入交付物；结论回写 design.md（标「已探针验证」），再继续拆分。
+
+### 4. 拆 subtask，逐个填必要信息
+
+tracer-bullet 垂直切片，每个 subtask 切穿所有层（schema→API→UI→tests），声明 `--deps` 阻塞边。协议先行后并行：共享契约抽成前置 subtask。完整拆分模型 / ready 判定 / 双池模型见 [references/dag.md](references/dag.md)。
+
+每个 subtask 必填：sid / name / desc / estimate（缺一即拒）。desc 必须锚定 design.md 接缝（如「按 design.md 测试接缝节的 seam」），保证 executor 自读 `skein subtask show` 即可独立执行，不回读全局猜上下文。
+
+```
+Bash("skein subtask add order-create-api s1-schema --name 'orders 表迁移' --desc '按 design.md 测试接缝节的 'DB 迁移可回滚', 建 orders 表 + 回滚脚本' --estimate 2 --check '迁移可 up/down'")
+Bash("skein subtask add order-create-api s2-api --name 'POST /orders 接口' --desc '按 design.md 测试接缝节的 'API 层响应契约', 依赖 s1 的 orders 表' --estimate 4 --deps s1-schema --check '201/400 契约单测全绿'")
+Bash("skein subtask add order-create-api s3-e2e --name '端到端验证' --desc '串 s1+s2 跑完整下单流, 按 acceptance 逐条核对' --estimate 1 --deps s1-schema,s2-api")
+```
+
+subtask 拆完后自下而上估 task 工时（= Σ subtask + plan/check 开销，**纯 AI 估禁问用户**，铁律见 [references/plan.md](references/plan.md#预计工时硬门-estimate)）：
+
+```
+Bash("skein task estimate order-create-api --set 9")
+```
+
+产出后跑质量自检：派 `Agent(subagent_type='skein:skein-plan-auditor')`（只读审计，非门控）→ 弱点报告交 grill 逐条裁决。有未裁决弱点禁进第 5 步。
+
+### 5. 人审门（AskUserQuestion）
+
+**先回显产物再问**。按顺序跑下面三条命令，把输出拼进提问内容（spec 信息 + 设计信息 + subtask 编排结果）：
+
+```
+Bash("skein task spec order-create-api")
+Bash("skein design read order-create-api")
+Bash("skein subtask list order-create-api")
+```
+
+然后：
+
+```
+answer = AskUserQuestion(question=<上述三条命令输出 + 工时/优先级>, options=["批准（仅规划，不执行）", "有修改意见"])
 if answer != '批准（仅规划，不执行）':
-    goto 1 (分析失败原因, 重新规划)
+    goto 2 (按意见改 spec/design/subtask, 重新过人审)
 else:
-    skein task confirm <tid> --approved
+    Bash("skein task confirm order-create-api --approved")
+    plan 结束, stop — 不续 exec, 续执行归 skein-flow
 ```
 
-confirm 后 **stop** — 不续 exec。续执行归 skein-flow。
-
-🔒 **选项文案禁写「同意并执行」**：skein-plan 是 planning 独立入口，confirm 门批准后固定停在此处，不续 exec —— 选项若含「执行」二字会让用户误以为批准即自动跑起来，跟本节最后一句「confirm 后 stop」自相矛盾。要续执行的场景走 skein-flow（其 confirm 门文案见 [flow-loop.md](../skein-flow/references/flow-loop.md#plan)）。
+🔒 **选项文案禁写「同意并执行」**：skein-plan 是 planning 独立入口，confirm 门批准后固定停在此处，不续 exec。要续执行走 skein-flow（其 confirm 门文案见 [flow-loop.md](../skein-flow/references/flow-loop.md#plan)）。
 
 ## CLI 签名速查
 
 | 命令 | 易错点 |
 | --- | --- |
-| `skein task create <tid> --name <str> --desc <str> [--deps tid1,tid2] [--repos repo1,repo2] [--priority urgent\|high\|normal\|low] [--estimate <小时>] [--like <模板tid>]` | `<tid>` 是位置参数；`--name`/`--desc` 必填；`--priority` 只收四个英文值；`--estimate` 单位是小时；`--deps` 声明前置 task；`--like` 克隆既有 task（含已完成）的 prd/design/subtask 骨架，状态全重置 |
-| `skein subtask add <tid> <sid> --name <str> --desc <str> --estimate <小时> [--deps sid1,sid2] [--skills] [--check] [--phase exec\|research]` | `<sid>` 是位置参数不是 `--id`；四必填缺一即拒 |
-| `skein prd write <tid> --type <段名> --list <条目>` | 段名 `goal\|scope\|stories\|acceptance\|verification\|testing`；`--type`/`--list` 可成对重复，一回合写多章 |
+| `skein task create <tid> --name <str> --desc <str> [--deps tid1,tid2] [--repos repo1,repo2] [--priority urgent\|high\|normal\|low] [--estimate <小时>] [--like <模板tid>]` | `<tid>` 是位置参数；`--name`/`--desc` 必填；`--priority` 只收四个英文值；`--estimate` 单位是小时；`--deps` 声明前置 task；`--like` 克隆既有 task 的 spec/design/subtask 骨架，状态全重置 |
+| `skein task spec <tid> [--desc <str>] [--should <a;b;c>] [--not <a;b;c>] [--acceptance <a;b;c>]` | TaskSpec 落盘 prd.md frontmatter；列表 `;` 分号分隔；不带参数 = 只读回显；confirm 后锁定 |
+| `skein subtask add <tid> <sid> --name <str> --desc <str> --estimate <小时> [--deps sid1,sid2] [--check <a;b>] [--phase exec\|research]` | `<sid>` 是位置参数不是 `--id`；四必填缺一即拒 |
+| `skein design seam <tid> --list <条目>` / `skein design read <tid>` | seam `--list` 用 `\n` 分隔多条，整段清重建；read 只读回显 |
 
 多条 skein 可以串接，但**串写命令看回显**：中途失败时后续命令照跑，回显里哪条挂了就重跑哪条（落盘状态即真值，不必预先拆）。
 
@@ -101,8 +128,8 @@ confirm 后 **stop** — 不续 exec。续执行归 skein-flow。
 
 | 场景 | 正确做法 (❌ 反面) |
 |---|---|
+| 第一步 | 先建 task 再分析填信息 (❌ 先长篇分析后补 task) |
 | 相关工作 | 归一拆 subtask (❌ 另开多 task 丢上下文一致性) |
 | estimate | 先拆 subtask 再逐个估 (❌ 整体拍脑袋 / 问用户) |
-| grill | confirm 前必跑，弱点表全裁决 (❌ 跳 grill 直接 confirm) |
-| confirm | `--summary` 给用户审 → 明确批准 → `--approved` (❌ 裸 confirm 冒充过门) |
+| 人审 | 先回显 spec+design+subtask 再 AskUserQuestion (❌ 裸 confirm / 无产物就问) |
 | 工件占位 | 全部替换为真实内容 (❌ 留 TODO 占位 → confirm 硬拒) |

@@ -35,7 +35,7 @@ fixed-point 取 task 分支从主干分叉的点。无法确定 → 取 `HEAD~10
 ### 1. 定位 spec 来源
 
 按优先级找 originating spec：
-1. task 的 PRD（`skein prd read <tid>`）— 验收标准 / 目标 / 边界
+1. task 的 TaskSpec（`Bash("skein task spec <tid>")`）— desc / boundary / acceptance
 2. task 的 design.md（`.skein/task/<tid>/design.md`）
 3. commit messages 中的 issue 引用
 

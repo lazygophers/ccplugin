@@ -26,14 +26,13 @@
 | --- | --- |
 | `skein task create <tid> --name <str> --desc <str> [--priority urgent\|high\|normal\|low] [--estimate <小时>]` | `--priority` 只收这四个英文值，**没有中文档位**；`--estimate` 单位是**小时**（`0.5`=30 分钟，也收 `30m`/`1.5h`） |
 | `skein subtask add <tid> <sid> --name <str> --desc <str> --estimate <小时> [--deps sid1,sid2] [--skills] [--check "a;b"] [--phase exec\|research]` | `<sid>` 是**位置参数**不是 `--id`；`sid`/`--name`/`--desc`/`--estimate` 四者缺一即拒；`--check` 分号分隔多条，也可重复传（各段累加） |
-| `skein prd write <tid> --type <段名> --list <条目> [--type <段名> --list <条目> ...]` | `--type`/`--list` 成对重复，一回合可写多段；段名 `goal\|scope\|stories\|acceptance\|verification\|testing` |
 | `skein list --status <plan\|exec\|all\|unfinished\|pending\|...>` | 顶层命令；`skein task list` 是转发别名，两者等价；`open`/`plan`=待处理阶段，`unfinished`=全部未完成 |
-| `skein prd check <tid> --type <段名> --list <条目原文子串\|序号>` | `check/uncheck` 的 `--list` 是**匹配串**，`write/add` 的 `--list` 是**内容** —— 同名反义。纯数字按章节内第 N 条解（1-based），其余按子串匹配，拿不准先 `prd read` |
+| `skein task spec <tid> [--desc <str>] [--should <a;b;c>] [--not <a;b;c>] [--acceptance <a;b;c>]` | TaskSpec 四要素落盘 prd.md frontmatter；列表 `;` 分号分隔；不带参数 = 只读回显；confirm 后锁定 |
 | 状态变更 | **没有 `task update --status`**。逐阶段命令：`confirm`（待处理→进行中）/ `research`+`plan`（待处理⇄调研中）/ `check` / `revert`（检查中→待处理）/ `finishing` / `finish`。改字段才用 `task rename\|priority\|estimate\|deps\|repos` |
 
 **`subtask start` 不是开工的入口，`task confirm` 才是**。task 没过 confirm 门（还在待处理），它的 subtask 一律 start 不了 —— 别指望先干活后补审。
 
-**串接 skein 写命令时看回显**——中途失败（如 `create` 成了但 `prd write` 挂了）不会静默：每条命令各自打自己的结果，照着回显重跑失败的那条即可。落盘状态是真值，别为「防半成品」预先把命令拆成一条一回合。
+**串接 skein 写命令时看回显**——中途失败（如 `create` 成了但 `task spec` 挂了）不会静默：每条命令各自打自己的结果，照着回显重跑失败的那条即可。落盘状态是真值，别为「防半成品」预先把命令拆成一条一回合。
 
 **`subtask done`/`fail` 属于 executor/researcher agent 自跑收尾**——main 串接 Bash 命令时不要把 `subtask done`/`fail` 串进去。executor 完成工作后自行执行 done/fail；main 串接这两条 = 替 agent 补收尾，破坏 agent 自治契约。main 只核对 agent 回传与实际状态是否一致。
 
@@ -48,21 +47,21 @@ Bash("skein list --status unfinished --json")  # 任何 Edit/Write 或 task 操�
 拿到未完成 task 与已注册 tid 后，才进入对应模式：
 
 ```text
-Bash(skein task create <tid> --name <任务标题> --desc <任务描述> [--priority ...] [--parent ...] [--deps ...] [--estimate ...])
+Bash("skein task create <tid> --name <任务标题> --desc <任务描述> [--priority ...] [--parent ...] [--deps ...] [--estimate ...]")
 
 # ============================================================
 # PLAN 阶段 (含可选 research 循环)
 # ============================================================
 loop plan:
   # 编写需求文档、设计文档
-  Bash(skein prd write <tid> --type goal --list <目标> --type scope --list <边界> --type stories --list <故事> --type acceptance --list <验收> --type verification --list <验证> --type testing --list <测试>)
-  Write(.skein/task/<tid>/design.md)   # 测试接缝段必填, confirm 硬门
+  Bash("skein task spec <tid> --desc <任务描述> --should <应该做;a;b> --not <不做;a;b> --acceptance <验收;a;b>")
+  Bash("skein design seam <tid> --list '接缝一\\n接缝二'")   # 测试接缝段必填, confirm 硬门
 
   if need_research:
     # 登记研究子任务并发起调研
     for subtask in research_subtasks:
-      Bash(skein subtask add <tid> <sid> --name <标题> --desc <描述> --estimate <小时> --phase research [...])
-    Bash(skein task research <tid>)
+      Bash("skein subtask add <tid> <sid> --name <标题> --desc <描述> --estimate <小时> --phase research [...]")
+    Bash("skein task research <tid>")
 
     # 派发 research agent, 不 sleep 等待 — 每轮 flow tick 检查是否全 done
     loop research_tick:
@@ -73,12 +72,12 @@ loop plan:
       if 还有 running/pending 的 research subtask:
         continue research_tick  # agent 还在跑, 下轮 tick 检查
       # 全 done → 收敛回 pending
-    Bash(skein task plan <tid>)
+    Bash("skein task plan <tid>")
     continue plan          # 收敛后带着调研结果重新规划
 
   # 建执行子任务
   for subtask in exec_subtasks:
-    Bash(skein subtask add <tid> <sid> --name <标题> --desc <描述> --estimate <小时> [--deps ...] [--skills ...] [--check "a;b"])
+    Bash("skein subtask add <tid> <sid> --name <标题> --desc <描述> --estimate <小时> [--deps ...] [--skills ...] [--check 'a;b']")
 
   if need_grill:
     # 按 skein-grill / ask-matt / grill-me / grill-doc 跑弱点审计
@@ -89,12 +88,12 @@ loop plan:
     continue plan
 
 # 人审门
-summary = Bash(skein task confirm <tid> --summary)
+summary = Bash("skein task confirm <tid> --summary")
 options = ["批准（仅规划，不执行）", "有修改意见"] if 模式 == 'plan' else ["批准并继续执行", "有修改意见"]
 answer = AskUserQuestion(question=summary, options=options)
 if answer 含 "修改意见":
   goto plan loop           # 重新规划
-Bash(skein task confirm <tid> --approved)
+Bash("skein task confirm <tid> --approved")
 
 if 模式 == 'plan':
   exit 0                   # 显式 plan 模式到此为止
@@ -110,7 +109,7 @@ loop exec_tick:
   # Agent 派发受阻: 重派一次, 仍失败 → subtask fail + report_and_stop
   # 派完后不 sleep / 不轮询 — 直接看 task 状态是否已推进到 check
 
-  status = Bash(skein task status <tid> --json)
+  status = Bash("skein task status <tid> --json")
   if task.status == "check":
     break exec_tick            # scheduler 在全 subtask done 后自动推 task 到 check
   if 仍有 running/pending subtask 且本轮无新 hint:
@@ -127,12 +126,12 @@ loop check_tick:
     Agent(subagent_type='skein-checker', prompt=hint.prompt)  # 异步派发, 不等待
   # 派完后看 task 状态是否已推进 (checker 自跑 done 后 scheduler 推 finishing)
 
-  status = Bash(skein task status <tid> --json)
+  status = Bash("skein task status <tid> --json")
   if task.status == "finishing" or task.status == "done":
     break check_tick           # checker 全 PASS, scheduler 推进到 finishing
   if task.status == "pending":
     # checker FAIL → 已有修复 subtask 被 revert 回 plan, 需重新 confirm + exec
-    Bash(skein task confirm <tid> --approved)
+    Bash("skein task confirm <tid> --approved")
     goto exec_tick
   # checker 还在跑, 继续 tick
 
@@ -144,7 +143,7 @@ for hint in (out.result.exec.next + out.result.check.next):
   Agent(subagent_type='skein-finisher', prompt=hint.prompt)  # skein-finisher
 
 # 确认 task 已 done
-status = Bash(skein task status <tid> --json)
+status = Bash("skein task status <tid> --json")
 if status.done:
   print('任务完成')
 else:
@@ -181,7 +180,7 @@ for hint in out.result.exec.next + out.result.check.next:
     # 唯一处置：重派一次；禁 Bash 起 claude 子进程，禁 main 亲做
     retry once
     # 仍失败：agent 未启动，由 main 补 fail 释放已 claim 的槽，然后回报用户并停下
-    Bash(skein subtask fail <hint.tid> <hint.sid> --note "Agent dispatch blocked: <error最短原因>")
+    Bash("skein subtask fail <hint.tid> <hint.sid> --note 'Agent dispatch blocked: <error最短原因>'")
     report_and_stop(error)
 
 # researcher/executor 自行执行 subtask done/fail；main 核对回传与实际状态

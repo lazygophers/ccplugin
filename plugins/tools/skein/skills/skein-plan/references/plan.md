@@ -2,13 +2,13 @@
 
 plan 的状态推进、research 分流、confirm、人审门、plan-ahead、出口规则见 [skein-flow/references/flow-loop.md](../../skein-flow/references/flow-loop.md#plan)。本文件只写三件工件各自怎么落。
 
-## prd.md
+## prd.md (TaskSpec)
 
-标准三段（顺序固定，`skein task confirm` 硬校验）：`目标` / `边界` / `验收标准`。
+TaskSpec 四要素存 prd.md 的 YAML frontmatter（单一真值，task.json 不存）：`desc` / `boundary.should` / `boundary.should_not` / `acceptance` / `estimate`。正文散文区人读，不参与校验。
 
-- 占位 `- [ ] TODO: 填X` 必须整行替换为真实内容，留一条即被 confirm 拒。
-- planning 期 `目标` / `验收标准` 条目保持 `- [ ]`，勾选归 check。
-- `目标` / `边界` / `验收标准` 优先用 `skein prd write` / `prd add` / `prd check`；无脚本覆盖的段落可直接编辑。
+- 读写一律走 CLI，禁直接编辑：`Bash("skein task spec <tid> --desc <str> --should <a;b> --not <a;b> --acceptance <a;b>")`，只读回显 `Bash("skein task spec <tid>")`。
+- `skein task confirm` 硬校验：desc 非空、boundary 有内容、acceptance 非空、estimate > 0，缺一即拒。
+- confirm 后 spec 锁定（仅 `pending` / `research` 可改）。
 
 ## design.md
 
@@ -49,7 +49,7 @@ task 与 subtask 各有 `estimate` 字段（小时，浮点，未填为 `null`�
 
 #### 在 confirm 硬门中的位置
 
-`skein task confirm` 依次校验：① subtask ≥1 → ② prd 三段齐备无 TODO 占位 → ③ 工时已填实且 ≥ Σ subtask。任一不满足即报错阻断。
+`skein task confirm` 依次校验：① subtask ≥1 → ② TaskSpec 齐备（desc 非空 / boundary 有内容 / acceptance 非空）+ design 接缝填实 → ③ 工时已填实且 ≥ Σ subtask。任一不满足即报错阻断。
 
 subtask 工时在 `subtask add` 时已必填，走到 confirm 时 Σ 一定齐 —— ③ 只查 task 自身有没有漏算 plan/check 开销。
 
