@@ -22,10 +22,7 @@ def _task(ws: Path, tid: str) -> dict[str, Any]:
 
 def _fill_prd(ws: Path, tid: str) -> None:
     """写满 confirm 的 prd + design 接缝门。"""
-    (ws / ".skein" / "task" / tid / "prd.md").write_text(
-        f"# {tid} — PRD\n\n## 目标\n- 解决 X\n\n"
-        "## 边界\n- a\n\n"
-        "## 验收标准\n- 通过\n\n")
+    (ws / ".skein" / "task" / tid / "prd.md").write_text("---\ndesc: 解决 X 问题\nboundary:\n  should:\n  - 范围内a\n  should_not: []\nestimate: 1\nacceptance:\n  - 用例通过\n---\n", encoding="utf-8")
     (ws / ".skein" / "task" / tid / "design.md").write_text(
         f"# {tid} — 详细设计\n\n## 测试接缝 (seam)\n- [x] API 层\n")
 

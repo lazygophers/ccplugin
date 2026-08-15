@@ -314,7 +314,7 @@ function TaskDetailContent() {
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
                             <span className="truncate text-xs font-medium text-foreground">{s.title || s.name || s.sid}</span>
-                            <span className="cursor-pointer font-mono text-[10px] text-muted-foreground hover:text-primary transition-colors" onClick={() => { navigator.clipboard?.writeText(s.sid); toast(`已复制: ${s.sid}`, "success"); }} title="点击复制">{s.sid}</span>
+                            <span className="cursor-pointer font-mono text-[10px] text-muted-foreground hover:text-primary transition-colors" onClick={() => { const v = `${task.id} ${s.sid}`; navigator.clipboard?.writeText(v); toast(`已复制: ${v}`, "success"); }} title="点击复制 (tid + sid)">{s.sid}</span>
                           </div>
                           {s.desc && <div className="mt-0.5 break-words text-[11px] text-muted-foreground overflow-hidden">{s.desc}</div>}
                           <div className="mt-0.5 flex items-center gap-2 text-[10px] text-muted-foreground">
@@ -517,7 +517,7 @@ function SubTimeline({ subs, taskId }: { subs: NormSubtask[]; taskId: string }) 
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="truncate text-xs text-foreground">{s.title || s.name || s.sid}</span>
-                  <span className="cursor-pointer font-mono text-[10px] text-muted-foreground hover:text-primary transition-colors" onClick={() => navigator.clipboard?.writeText(s.sid)} title="点击复制">{s.sid}</span>
+                  <span className="cursor-pointer font-mono text-[10px] text-muted-foreground hover:text-primary transition-colors" onClick={() => navigator.clipboard?.writeText(`${taskId} ${s.sid}`)} title="点击复制 (tid + sid)">{s.sid}</span>
                 </div>
                 <div className="text-[10px] text-muted-foreground">
                   {[meta.label, s.startedAt ? `起 ${fmtTime(s.startedAt)}` : null, s.finishedAt ? `止 ${fmtTime(s.finishedAt)}` : null, dur || null].filter(Boolean).join(" · ")}

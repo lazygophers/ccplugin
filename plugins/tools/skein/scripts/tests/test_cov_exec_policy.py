@@ -166,32 +166,13 @@ def test_prd_invalid_action_returns_none() -> None:
     assert exec_argv({"cmd": "prd", "id": "t1", "type": "goal", "action": "bogus"}) is None
 
 
-def test_prd_read_no_list_needed() -> None:
-    assert exec_argv({"cmd": "prd", "id": "t1", "type": "goal", "action": "read"}) == BASE + ["prd", "read", "t1", "--type", "goal"]
-
 
 def test_prd_write_needs_list() -> None:
     assert exec_argv({"cmd": "prd", "id": "t1", "type": "goal", "action": "write"}) is None
 
 
-def test_prd_write_with_list() -> None:
-    r = exec_argv({"cmd": "prd", "id": "t1", "type": "goal", "action": "write", "list": "item1"})
-    assert r == BASE + ["prd", "write", "t1", "--type", "goal", "--list", "item1"]
 
 
-def test_prd_add_with_list() -> None:
-    r = exec_argv({"cmd": "prd", "id": "t1", "type": "scope", "action": "add", "list": "x"})
-    assert r == BASE + ["prd", "add", "t1", "--type", "scope", "--list", "x"]
-
-
-def test_prd_check_with_list() -> None:
-    r = exec_argv({"cmd": "prd", "id": "t1", "type": "goal", "action": "check", "list": "item1"})
-    assert r == BASE + ["prd", "check", "t1", "--type", "goal", "--list", "item1"]
-
-
-def test_prd_uncheck_with_list() -> None:
-    r = exec_argv({"cmd": "prd", "id": "t1", "type": "goal", "action": "uncheck", "list": "1"})
-    assert r == BASE + ["prd", "uncheck", "t1", "--type", "goal", "--list", "1"]
 
 
 def test_unknown_cmd_returns_none() -> None:

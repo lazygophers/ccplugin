@@ -650,7 +650,7 @@ function TaskTimeline({ task, eta, subs }: { task: NormTask; eta: { main: string
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
                               <span className="truncate text-[11px] text-foreground">{sub.title || sub.name || sub.sid}</span>
-                              <span onClick={() => navigator.clipboard?.writeText(sub.sid)} className="cursor-pointer flex-shrink-0 font-mono text-[9px] text-muted-foreground/60 hover:text-primary" title={`点击复制: ${sub.sid}`}>{sub.sid}</span>
+                              <span onClick={() => navigator.clipboard?.writeText(`${task.id} ${sub.sid}`)} className="cursor-pointer flex-shrink-0 font-mono text-[9px] text-muted-foreground/60 hover:text-primary" title={`点击复制: ${task.id} ${sub.sid}`}>{sub.sid}</span>
                               {sub.status === "active" && <span className="h-1 w-1 flex-shrink-0 rounded-full bg-primary tl-dot-active" style={{ position: "relative" }} />}
                             </div>
                             <div className="text-[10px] text-muted-foreground">{sm.label}</div>

@@ -42,7 +42,7 @@ except ImportError:
 
 from skeinlib.hooks.runner import DBG, debug_enabled
 from skeinlib.core.commands import Skein, _workspace_lock
-from skeinlib.task.model import PRD_SECTIONS, PRD_TYPE_ALIAS, PRIORITIES, PRIORITY_DEFAULT, ESTIMATE_HINT
+from skeinlib.task.model import PRIORITIES, PRIORITY_DEFAULT, ESTIMATE_HINT
 
 
 # 跨 typer 版本的 make_metavar 签名兼容 shim。给 stub 打补丁天然过不了 method-assign/call-arg,
@@ -133,12 +133,7 @@ class TaskTyperGroup(TyperGroup):
 
 
 TASK_COMMANDS = {"create", "research", "plan", "confirm", "check", "revert", "finishing", "finish",
-                 "priority", "estimate", "repos", "deps", "rename", "status", "show"}
-
-# prd --type 的合法值提示 — 中英 alias 都收, help 里只列英文短名 (够 agent 用且不撑爆一行)
-_PRD_TYPE_HELP = "章节: goal|scope|stories|acceptance|verification|testing (中文段名亦可); write/add 可重复传并一次写多段"
-# check/uncheck 的 --list 与 write/add 的 --list 同名但语义相反 (匹配 vs 内容) —— 必须点破
-_PRD_MATCH_HELP = "要勾的条目原文子串 (先 `prd read` 看原文取一段唯一子串); 也收纯数字 = 章节内第 N 条"
+                 "priority", "estimate", "spec", "repos", "deps", "rename", "status", "show"}
 
 
 app = typer.Typer(
@@ -150,13 +145,12 @@ app = typer.Typer(
 )
 task_app = typer.Typer(cls=TaskTyperGroup, help="task 查看、编辑、状态变更", no_args_is_help=True)
 config_app = typer.Typer(help="读写 .skein/config.yaml 配置", invoke_without_command=True)
-prd_app = typer.Typer(help="读/写/追加/勾选 prd 章节 (目标/边界/验收标准)")
 design_app = typer.Typer(help="读/写 design.md 测试接缝段 (confirm 硬门校验的那段)")
 
 MUTATING = {"init", "setup", "create", "confirm", "research", "plan", "check", "revert", "finishing",
-            "finish", "fmt", "clean",
-            "repos", "deps", "estimate", "priority", "subtask", "claim",
-            "prd", "design", "flow", "del",
+            "finish", "clean",
+            "repos", "deps", "estimate", "spec", "priority", "subtask", "claim",
+            "design", "flow", "del",
             "rename", "config"}
 
 
@@ -176,13 +170,14 @@ def _dispatch(a: SimpleNamespace) -> None:
         "check": sk.lifecycle.check, "revert": sk.lifecycle.revert, "finishing": sk.lifecycle.finishing,
         "finish": sk.lifecycle.finish,
         "repos": sk.lifecycle.repos, "deps": sk.lifecycle.deps,
-        "estimate": sk.lifecycle.estimate, "priority": sk.lifecycle.priority, "rename": sk.lifecycle.rename,
+        "estimate": sk.lifecycle.estimate, "spec": sk.lifecycle.spec,
+        "priority": sk.lifecycle.priority, "rename": sk.lifecycle.rename,
         "del": sk.lifecycle.del_,
         "claim": sk.scheduler.claim, "flow": sk.scheduler.flow, "subtask": sk.scheduler.subtask,
         "ready": sk.query.ready,
         "status-overview": sk.query.status_overview,
         "status": sk.query.status, "list": sk.query.list_,
-        "fmt": sk.artifacts.fmt, "prd": sk.artifacts.prd, "design": sk.artifacts.design,
+        "design": sk.artifacts.design,
         "serve": sk.serve, "doctor": sk.doctor,
     }
     DBG.rule(f"skein {a.cmd}")
@@ -237,7 +232,7 @@ def create(
     priority: Annotated[Optional[str], typer.Option(
         "--priority", help=f"仅允许: {', '.join(PRIORITIES)} (默认 {PRIORITY_DEFAULT})")] = None,
     like: Annotated[Optional[str], typer.Option(
-        "--like", help="拿既有 task (含已完成的) 当模板: 克隆 prd/design/subtask 骨架, 状态全重置")] = None,
+        "--like", help="拿既有 task (含已完成的) 当模板: 克隆 TaskSpec/design/subtask 骨架, 状态全重置")] = None,
 ) -> None:
     """登记新 task。"""
     _run("create", id=id, name=name, desc=desc, deps=deps, repos=repos,
@@ -328,10 +323,14 @@ def finish(id: str, force: Annotated[bool, typer.Option(
     _run("finish", id=id, force=force)
 
 
-@app.command()
-def fmt(id: str) -> None:
-    """规范化 prd.md。"""
-    _run("fmt", id=id)
+@task_app.command("spec")
+def spec(id: str,
+         desc: Annotated[Optional[str], typer.Option("--desc", help="任务描述")] = None,
+         should: Annotated[Optional[str], typer.Option("--should", help="边界·应该做的, ; 分号分隔多值")] = None,
+         not_: Annotated[Optional[str], typer.Option("--not", help="边界·不应该做的, ; 分号分隔多值")] = None,
+         acceptance: Annotated[Optional[str], typer.Option("--acceptance", help="验收项, ; 分号分隔多值")] = None) -> None:
+    """读写 TaskSpec 四要素 (desc/边界/验收; 不带参数只读回显)。"""
+    _run("spec", id=id, desc=desc, should=should, not_=not_, acceptance=acceptance)
 
 
 def _delete(ctx: typer.Context, dry_run: bool = False, force: bool = False) -> None:
@@ -544,13 +543,7 @@ def config_reset() -> None:
     _run("config", action="reset", key=None, value=None, json=False)
 
 
-app.add_typer(prd_app, name="prd")
 app.add_typer(design_app, name="design")
-
-
-@prd_app.callback()
-def prd() -> None:
-    """PRD 章节操作。"""
 
 
 @design_app.callback()
@@ -560,7 +553,7 @@ def design() -> None:
 
 @design_app.command("seam")
 def design_seam(id: str, list_: Annotated[str, typer.Option(
-        "--list", help="接缝条目, \\n 分隔多条; 整段清重建 (同 prd write 语义)")]) -> None:
+        "--list", help="接缝条目, \\n 分隔多条; 整段清重建")]) -> None:
     """写 design.md 测试接缝段 (confirm 硬门)。"""
     _run("design", action="seam", id=id, list=list_)
 
@@ -569,80 +562,6 @@ def design_seam(id: str, list_: Annotated[str, typer.Option(
 def design_read(id: str) -> None:
     """读 design.md 测试接缝段。"""
     _run("design", action="read", id=id, list=None)
-
-
-def _prd_action(action: str, id: str, type_: str, list_: Optional[str]) -> None:
-    if type_ not in PRD_TYPE_ALIAS:
-        raise typer.BadParameter(f"--type 仅允许: {', '.join(PRD_TYPE_ALIAS)}")
-    _run("prd", action=action, id=id, type=type_, list=list_)
-
-
-def _merge_extra(lists: list[str], extra: Optional[list[str]]) -> list[str]:
-    """`--list "a" "b" "c"` 里的裸位置参数并入最后一个 `--list` 那一段。
-
-    click 的 `--list` 只吃一个值, 余下的落成位置参数直接报 unexpected extra argument, 逼调用方
-    拆成一条一次 —— 而 write 是整章清重建, 拆开写等于一条条把前面的清掉。
-    """
-    if not extra:
-        return lists
-    if not lists:
-        raise typer.BadParameter(f"多出的位置参数 {extra} 无 --list 可并入 — 先写 --list")
-    return [*lists[:-1], "\n".join([lists[-1], *extra])]
-
-
-def _prd_pairs(action: str, id: str, types: list[str], lists: list[str]) -> None:
-    """`--type`/`--list` 成对重复 = 一回合写多章。
-
-    PRD 各段原本要逐段调用 (审计: 35 个 task 摊了 200 次 prd 写)。成对重复后一次写完,
-    循环内逐段落盘 + 逐段回显, 语义与分七次调用完全一致。
-    """
-    if len(types) != len(lists):
-        raise typer.BadParameter(
-            f"--type 与 --list 必须成对: 收到 {len(types)} 个 --type, {len(lists)} 个 --list")
-    for type_, list_ in zip(types, lists):
-        _prd_action(action, id, type_, list_)
-
-
-@prd_app.command("read")
-def prd_read(id: str, type_: Annotated[Optional[str], typer.Option(
-        "--type", help=f"{_PRD_TYPE_HELP}; 省略 = 全文")] = None) -> None:
-    """读章节正文 (省略 --type 读全文)。"""
-    if type_ is None:
-        _run("prd", action="read", id=id, type=None, list=None)
-        return
-    _prd_action("read", id, type_, None)
-
-
-@prd_app.command("write")
-def prd_write(id: str, type_: Annotated[list[str], typer.Option("--type", help=_PRD_TYPE_HELP)],
-              list_: Annotated[list[str], typer.Option("--list")],
-              extra: Annotated[Optional[list[str]], typer.Argument(
-                  help="`--list` 后多写的条目, 并入最后一个 --list 那一段")] = None) -> None:
-    """整章清重建 (--type/--list 可成对重复, 一回合写多章)。"""
-    _prd_pairs("write", id, type_, _merge_extra(list_, extra))
-
-
-@prd_app.command("add")
-def prd_add(id: str, type_: Annotated[list[str], typer.Option("--type", help=_PRD_TYPE_HELP)],
-            list_: Annotated[list[str], typer.Option("--list")],
-            extra: Annotated[Optional[list[str]], typer.Argument(
-                help="`--list` 后多写的条目, 并入最后一个 --list 那一段")] = None) -> None:
-    """追加条目 (--type/--list 可成对重复, 一回合写多章)。"""
-    _prd_pairs("add", id, type_, _merge_extra(list_, extra))
-
-
-@prd_app.command("check")
-def prd_check(id: str, type_: Annotated[str, typer.Option("--type", help=_PRD_TYPE_HELP)],
-              list_: Annotated[str, typer.Option("--list", help=_PRD_MATCH_HELP)]) -> None:
-    """勾选条目 (--list 传条目原文子串, 非序号)。"""
-    _prd_action("check", id, type_, list_)
-
-
-@prd_app.command("uncheck")
-def prd_uncheck(id: str, type_: Annotated[str, typer.Option("--type", help=_PRD_TYPE_HELP)],
-                list_: Annotated[str, typer.Option("--list", help=_PRD_MATCH_HELP)]) -> None:
-    """反勾选条目 (--list 传条目原文子串, 非序号)。"""
-    _prd_action("uncheck", id, type_, list_)
 
 
 def _strip_global_flags(argv: list[str]) -> tuple[list[str], bool, bool, bool]:

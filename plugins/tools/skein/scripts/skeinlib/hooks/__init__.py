@@ -19,7 +19,6 @@ DISPATCH: dict[str, str] = {
     "permission": "permission_request:cmd_permission",
     "guard": "pre_tool_use:cmd_guard",
     "report": "post_tool_use_failure:cmd_report",
-    "fmt": "post_tool_use:cmd_fmt",
     "spec-meta": "post_tool_use:cmd_spec_meta",
     "stop-check": "stop:cmd_stop_check",
     "user-prompt": "user_prompt_submit:cmd_user_prompt",

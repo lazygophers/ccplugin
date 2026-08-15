@@ -43,7 +43,7 @@ def _ready_task(ws: Path, skein_cli: SkeinCli, tid: str = "feat-tl") -> str:
     """结构上够格 confirm 的 task (复用 test_confirm_gate 的配方)。"""
     skein_cli(ws, "create", tid, "--name", "任务", "--desc", "d")
     skein_cli(ws, "subtask", "add", tid, "s1", "--name", "子一", "--desc", "d", "--estimate", "2")
-    (ws / ".skein/task" / tid / "prd.md").write_text(PRD.format(tid=tid))
+    (ws / ".skein/task" / tid / "prd.md").write_text("---\ndesc: 解决 X 问题\nboundary:\n  should:\n  - 范围内a\n  should_not: []\nestimate: 1\nacceptance:\n  - 用例通过\n---\n", encoding="utf-8")
     (ws / ".skein/task" / tid / "design.md").write_text(
         f"# {tid} — 详细设计\n\n## 测试接缝 (seam)\n- [x] 复用 tests/test_statemachine.py\n")
     skein_cli(ws, "estimate", tid, "--set", "4")

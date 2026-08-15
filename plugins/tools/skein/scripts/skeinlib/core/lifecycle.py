@@ -2,7 +2,7 @@
 
 ## 这个类的边界
 只管**一个 task 自身的状态迁移与计划字段** (deps/estimate/repos)。不碰调度 (归 `Scheduler`)、
-不碰只读投影 (归 `Query`)、不碰 prd/契约正文 (归 `Artifacts`)、不碰工作区级命令 (归 `Admin`)。
+不碰只读投影 (归 `Query`)、不碰 design 工件 (归 `Artifacts`)、不碰工作区级命令 (归 `Admin`)。
 
 ## 依赖为什么是构造入参
 `ws` 给路径/配置/落盘/钩子, `doctor` 给 confirm 前置体检 (confirm 吸收原 start 的启动职责) —— 后者本来是 `DoctorMixin` 挂在门面
@@ -20,8 +20,9 @@ if TYPE_CHECKING:
 from skeinlib.task.dag import _sub_estimate_sum, detect_cycle
 from skeinlib.utils.errors import SkeinError
 from skeinlib.task.model import (CODE_ID_RE, PRIORITY_DEFAULT, SLUG_RE, SubtaskStatus, SubtaskPhase, STATUS_INFLIGHT,
-                                 TaskStatus, TS_CHECKED_END, ESTIMATE_HINT, parse_hours, now)
-from skeinlib.task.prd import review_summary, validate_prd, validate_seam
+                                 TaskStatus, ESTIMATE_HINT, parse_hours, now)
+from skeinlib.task.design import validate_seam
+from skeinlib.task.specfile import load_spec, save_spec, scaffold_spec, validate_spec as _spec_ready
 from skeinlib.task import timeline as _timeline
 from skeinlib.task.priority import validate_priority
 from skeinlib.infra.worktree import commit_all, destroy_worktrees, git, make_worktree, parse_repos, worktrees_of
@@ -35,6 +36,33 @@ from typing import Callable, Optional
 
 # 强制路径的 timeline 留痕: 看板上的强制按钮跳的是前置门, 动作照跑 —— 事后要能看出这一步是强制的。
 _FORCE_NOTE = "--force: 看板强制操作, 跳过前置门"
+
+
+def _review_summary(tid: str, t: dict[str, Any]) -> str:
+	"""给用户人眼审核用的摘要 — 吃 task dict 返字符串。
+
+	只摘**够判断该不该放行**的东西: TaskSpec 四要素 (desc/边界/验收/工时) + subtask 拆解。
+	刻意不摘全文: 详细内容用户可以自己开 task.json 看, 终端里滚三屏反而没人读。
+	"""
+	subs = t.get("subtasks") or []
+	sub_est = sum(float(s.get("estimate") or 0) for s in subs)
+	b = t.get("boundary") or {}
+	out = [f"── {tid}  {t.get('name') or tid} ──", f"   {t.get('desc') or ''}", ""]
+	out.append(f"## 边界 (该做 {len(b.get('should') or [])} / 不该做 {len(b.get('should_not') or [])} 条)")
+	out += [f"   + {ln}" for ln in (b.get("should") or [])] or ["   (空)"]
+	out += [f"   × {ln}" for ln in (b.get("should_not") or [])]
+	out.append("")
+	acc = t.get("acceptance") or []
+	out.append(f"## 验收标准 ({len(acc)} 条)")
+	out += [f"   {i}. {ln}" for i, ln in enumerate(acc, 1)] or ["   (空)"]
+	out.append("")
+	out.append(f"## subtask ({len(subs)} 个, Σ工时 {sub_est:g}h)")
+	for s in subs:
+		dep = f" ← {','.join(s.get('depends_on') or [])}" if s.get("depends_on") else ""
+		out.append(f"   [{s['sid']}] {s.get('name', '')} ({s.get('estimate') or '?'}h){dep}")
+	out.append("")
+	out.append(f"## 预计工时  task {t.get('estimate')}h  (Σsubtask {sub_est:g}h)")
+	return "\n".join(out)
 
 
 class Lifecycle:
@@ -63,18 +91,17 @@ class Lifecycle:
             raise SkeinError(f"{tid} 声明 --repos 但 config worktree.enabled=false — 多子 git 隔离需启用 worktree")
         self.ws._stage_hooks("create", "before", self.ws._hook_ctx(tid))
         (self.ws.tasks / tid).mkdir(parents=True)
-        self._scaffold(tid, a.name)  # 落 prd/design/findings 脚手架 (planning 填)
         deps = [d.strip() for d in (a.deps or "").split(",") if d.strip()]
         raw_est = getattr(a, "estimate", None)
         try:
             est = parse_hours(raw_est) if raw_est not in (None, "") else None
         except ValueError:
             raise SkeinError(f"预计工时非法: {raw_est!r} — {ESTIMATE_HINT}")
+        self._scaffold(tid, a.name, a.desc, est)  # 落 prd.md (TaskSpec 载体) / design 脚手架
         t = {
-            "id": tid, "name": a.name, "desc": a.desc,
+            "id": tid, "name": a.name,
             "status": TaskStatus.PENDING, "deps": deps, "subtasks": [],
             "priority": validate_priority(getattr(a, "priority", None)),  # 四档枚举, 未指定落中档
-            "estimate": est,  # 预计工时(小时), plan 阶段必填, confirm 硬门校验
             "repos": repos,          # planning 声明的目标子 git (rel 路径; 空=单根/原地模式)
             "worktree": None, "worktrees": [], "branch": f"skein/{tid}",
             "created": now(),        # 创建时刻
@@ -96,16 +123,16 @@ class Lifecycle:
         return out
 
     def _clone_planning(self, tid: str, t: dict[str, Any], src_id: str | None) -> str | None:
-        """`--like <src>`: 把 src 的 prd/design/subtask 骨架搬过来, 状态全部重置。
+        """`--like <src>`: 把 src 的 TaskSpec/design/subtask 骨架搬过来, 状态全部重置。
 
-        周期任务 (cron 巡检之类) 每轮都是同一份 planning, 从零重写六段 PRD + design + subtask
+        周期任务 (cron 巡检之类) 每轮都是同一份 planning, 从零重写 spec + design + subtask
         纯属重复劳动 —— 实测一个 cron 会话为同一个 intent 建了 5 个内容雷同的 task。
         已完成的 src 也能当模板 (done task 恰恰是最靠谱的模板)。
         """
         if not src_id:
             return None
         src = self.ws.store.load(src_id)  # 不存在直接 raise
-        for fn in ("prd.md", "design.md"):
+        for fn in ("prd.md", "design.md"):  # prd.md 连 TaskSpec 一起克隆 (frontmatter 骨架)
             p = self.ws.tasks / src_id / fn
             if p.exists():
                 (self.ws.tasks / tid / fn).write_text(p.read_text(encoding="utf-8"), encoding="utf-8")
@@ -117,26 +144,16 @@ class Lifecycle:
                 c.pop(k, None)
             clones.append(c)
         t["subtasks"] = clones
-        if t.get("estimate") is None:
-            t["estimate"] = src.get("estimate")
-        return src_id
+        return src_id  # estimate 随 prd.md 一起克隆 (TaskSpec 真值在 frontmatter)
 
-    def _scaffold(self, tid: str, name: str) -> None:
-        """落 planning 双工件脚手架 (prd 主入口 / design 详细设计).
+    def _scaffold(self, tid: str, name: str, desc: str, est: float | None) -> None:
+        """落 prd.md (TaskSpec frontmatter 载体) + design.md 脚手架。
         findings.md 不预建 — 仅真调研时由 skein-researcher 边研边增量生成 (无调研不产出)。
-        模板极简 (只给骨架标题, 正文 planning 填), 避免占 token; 已存在则不覆盖。
+        模板极简 (只给骨架, 正文 planning 填), 避免占 token; 已存在则不覆盖。
         调度 DAG / 子任务不在此 — 归 task.json (脚本维护)。"""
         d = self.ws.tasks / tid
         files = {
-            "prd.md": (
-                f"# {name} — PRD (主入口)\n\n"
-                "> 禁写具体文件路径与代码片段 (会很快过期) —— 例外: prototype 产出的能精确编码决策的片段 "
-                "(状态机/schema/type shape) 可内联, 且须注明来自 prototype。\n"
-                "> 详细设计: design.md · 调研收敛: findings.md (仅真调研时生) · "
-                "任务/子任务/调度: task.json (`skein subtask list " + tid + "`)\n\n"
-                "## 目标\n要解决什么 / 用户价值 / 成功长什么样:\n- [ ] TODO: 填目标\n\n"
-                "## 边界\n范围内 / 范围外 (非目标) / 已知约束:\n- [ ] TODO: 填边界\n\n"
-                "## 验收标准\n可执行、可核对的完成断言 (逐条):\n- [ ] TODO: 填验收标准\n\n"),
+            "prd.md": scaffold_spec(name, desc, est),
             "design.md": (
                 f"# {name} — 详细设计\n\n"
                 "架构 / 数据流 / 关键取舍 / 技术选型 (不含调度图, 调度归 task.json):\n\n"
@@ -180,10 +197,34 @@ class Lifecycle:
             raise SkeinError(f"预计工时非法: {a.set!r} — {ESTIMATE_HINT}")
         if val <= 0:
             raise SkeinError(f"预计工时须为正数: {val}")
-        t["estimate"] = val
-        self.ws.store.save(t)
-        self.ws.store.sync()
+        spec = load_spec(self.ws.tasks, a.id)
+        spec["estimate"] = val
+        save_spec(self.ws.tasks, a.id, spec)
         return {"id": a.id, "estimate": val}
+
+    def spec(self, a: argparse.Namespace) -> dict[str, Any]:
+        """TaskSpec 四要素的读/写 — 落盘 prd.md frontmatter (estimate 有专命令)。
+        列表参数 (; 分号分隔多值); 不带任何参数 = 只读回显。"""
+        t = self.ws.store.load(a.id)
+        if all(getattr(a, k) is None for k in ("desc", "should", "not_", "acceptance")):
+            return {"id": a.id, "desc": t.get("desc"),
+                    "boundary": t.get("boundary") or {}, "acceptance": t.get("acceptance") or []}
+        if t["status"] not in (TaskStatus.PENDING, TaskStatus.RESEARCH):
+            raise SkeinError(f"{a.id} 状态 {t['status']}, spec 只能在 confirm 前 (待处理/调研中) 设置")
+        spec = load_spec(self.ws.tasks, a.id)
+        if a.desc is not None:
+            spec["desc"] = a.desc
+        b = dict(spec.get("boundary") or {})
+        if a.should is not None:
+            b["should"] = [x.strip() for x in a.should.split(";") if x.strip()]
+        if a.not_ is not None:
+            b["should_not"] = [x.strip() for x in a.not_.split(";") if x.strip()]
+        spec["boundary"] = b
+        if a.acceptance is not None:
+            spec["acceptance"] = [x.strip() for x in a.acceptance.split(";") if x.strip()]
+        save_spec(self.ws.tasks, a.id, spec)
+        return {"id": a.id, "desc": spec.get("desc"), "boundary": spec["boundary"],
+                "acceptance": spec.get("acceptance") or []}
 
     def priority(self, a: argparse.Namespace) -> dict[str, Any]:
         t = self.ws.store.load(a.id)
@@ -245,7 +286,7 @@ class Lifecycle:
             gaps.append(f"无 subtask 登记 — `skein subtask add {tid} <sid> --name <标题> "
                         f"--desc <描述> --estimate <小时>`")
         gates: tuple[Callable[[], None], ...] = (
-            lambda: validate_prd(self.ws.tasks, tid),
+            lambda: _spec_ready(self.ws.tasks, tid),
             lambda: validate_seam(self.ws.tasks, tid),
             lambda: self._validate_estimate(tid, t))
         for gate in gates:
@@ -292,12 +333,12 @@ class Lifecycle:
         return {"id": a.id, "status": TaskStatus.PENDING}
 
     def confirm(self, a: argparse.Namespace) -> dict[str, Any]:
-        """用户确认门 (待处理→进行中), **吸收原 `start` 的全部职责**: planning 完成 (prd 填齐 +
-        ≥1 subtask + 预计工时) 且用户评审通过后, doctor 体检 + 建 worktree,
+        """用户确认门 (待处理→进行中), **吸收原 `start` 的全部职责**: planning 完成 (TaskSpec 四要素
+        填齐 + ≥1 subtask) 且用户评审通过后, doctor 体检 + 建 worktree,
         一步直接把 task 推进「进行中」——「就绪」中间态已删 (人审通过的下一秒就该开工, 没人真
         停在那儿, 见 design.md §1)。
 
-        **不校验前置 task 是否完成**: confirm 只确认「PRD 这批审批做完了」, 是否可执行由调度侧
+        **不校验前置 task 是否完成**: confirm 只确认「这批审批做完了」, 是否可执行由调度侧
         取 subtask 时判 (`_schedulable` / `_ready` / `subtask start`)。把依赖门放这里会让一整
         批下游 task 在前置跑完前连审批都进行不了, 人审被迫串行化。
         """
@@ -315,23 +356,23 @@ class Lifecycle:
                         "worktrees": t.get("worktrees", []), "worktree": t.get("worktree"),
                         "note": "已是在途状态, 强制确认无需重复执行"}
             raise SkeinError(f"{a.id} 状态为 {t['status']}, 只能 confirm 待处理 (规划中) task")
-        # planning 完成门: 无 subtask / prd 未填齐 / design 接缝占位 / 预计工时未填 → 拒绝开工。
-        # 收集式而非 fail-fast: 四道门逐条报会逼调用方来回三四趟 (填 design → 撞 estimate →
-        # 撞 prd TODO), 每趟都是一次完整往返。一次列全, 一次补齐。
+        # planning 完成门: 无 subtask / TaskSpec 未填齐 / design 接缝占位 / 预计工时未填 → 拒绝开工。
+        # 收集式而非 fail-fast: 四道门逐条报会逼调用方来回三四趟 (填 design → 撞 estimate),
+        # 每趟都是一次完整往返。一次列全, 一次补齐。
         gaps = self._planning_gaps(a.id, t)
         if gaps and not force:
             raise SkeinError(
                 f"{a.id} planning 未就绪 ({len(gaps)} 项待补):\n"
                 + "\n".join(f"  {i}. {g}" for i, g in enumerate(gaps, 1)))
         if getattr(a, "summary", False):
-            return {"summary": review_summary(self.ws.tasks, a.id, t)}
+            return {"summary": _review_summary(a.id, t)}
         channel = self._require_user_review(a.id, bool(getattr(a, "approved", False)),
                                             bool(getattr(a, "unattended", False)))
-        # 吸收原 start 的前置校验: doctor 体检 + prd double-check (confirm 后被改空的兜底)
+        # 吸收原 start 的前置校验: doctor 体检 + spec double-check (confirm 后被改空的兜底)
         self._doctor(a)
         self.ws._stage_hooks("confirm", "before", self.ws._hook_ctx(a.id, t=t))
         if not force:
-            validate_prd(self.ws.tasks, a.id)
+            _spec_ready(self.ws.tasks, a.id)
         result = self._activate(t, channel, note=_FORCE_NOTE if force else "")
         return result
 
@@ -373,11 +414,11 @@ class Lifecycle:
 
     # ---- 人审门 (待处理→进行中 的最后一道) ----
     def _require_user_review(self, tid: str, approved: bool, unattended: bool = False) -> str:
-        """PRD 必须经用户过目才允许开工。返回审核渠道 (写进 `confirmed_by`)。
+        """规划必须经用户过目才允许开工。返回审核渠道 (写进 `confirmed_by`)。
 
         ## 为什么要有这道门
-        前面三道 (prd 填齐 / ≥1 subtask / 预计工时) 校验的都是**结构**, AI 自己就能填满然后
-        自己跑 confirm —— 于是「用户确认门」名存实亡, 一个没人看过的 PRD 直接开了工。
+        前面三道 (TaskSpec 填齐 / ≥1 subtask / 预计工时) 校验的都是**结构**, AI 自己就能填满然后
+        自己跑 confirm —— 于是「用户确认门」名存实亡, 一份没人看过的规划直接开了工。
 
         ## 🛑 本方法禁读 stdin
         CLI 的定位是被 skill / agent 调用的, **任何交互都会把调用方挂住** (等一个永远不来的
@@ -405,7 +446,7 @@ class Lifecycle:
                     f"`skein config set confirm.unattended true` (用户显式开一次)")
             return "unattended"
         raise SkeinError(
-            f"{tid} 需用户审核 PRD 后才能开工。两条路 (都要真实用户动作):\n"
+            f"{tid} 需用户审核规划后才能开工。两条路 (都要真实用户动作):\n"
             f"  ① 看板点击 (最稳): 打开 task 详情, 点「确认规划」按钮\n"
             f"  ② 对话确认: `skein task confirm {tid} --summary` 取摘要 → `AskUserQuestion` 请用户"
             f"批准 → `skein task confirm {tid} --approved`\n"
@@ -464,8 +505,8 @@ class Lifecycle:
         if occupied >= gate:
             raise SkeinError(f"gate 池已满 ({occupied}/{gate}) — 先 finish 一个再收尾")
         self.ws._stage_hooks("finishing", "before", self.ws._hook_ctx(a.id, t=t))
-        if not t.get(TS_CHECKED_END):
-            t[TS_CHECKED_END] = now()
+        if not t.get("checked_end"):
+            t["checked_end"] = now()
         t["status"] = TaskStatus.FINISHING
         _timeline.append(t, "task", TaskStatus.FINISHING)
         self.ws.store.save(t)
@@ -544,8 +585,8 @@ class Lifecycle:
         t["worktree"] = None
         t["worktrees"] = []
         t["finished"] = now()
-        if not t.get(TS_CHECKED_END):
-            t[TS_CHECKED_END] = now()  # 强制路径没走过 finishing, 补齐检查结束时刻 (看板算耗时用)
+        if not t.get("checked_end"):
+            t["checked_end"] = now()  # 强制路径没走过 finishing, 补齐检查结束时刻 (看板算耗时用)
         _timeline.append(t, "task", TaskStatus.DONE, note=_FORCE_NOTE if force else "")
         self.ws.store.save(t)
         self.ws.store.sync()
@@ -657,7 +698,7 @@ class Lifecycle:
         t["id"] = new_id
         t["branch"] = f"skein/{new_id}"  # pending 无 worktree, 只更 branch 字符串
         # 目录改名 (旧 → 新), 再经 _save 按新 id 落 task.json + 刷子任务看板
-        # ponytail: prd.md 脚手架内的 `subtask list <old-id>` 提示行不重写 (planning 后 prd 已被 AI 大改, 属 AI 内容, 非脚本真值)
+        # ponytail: design.md 脚手架内的提示行不重写 (planning 后已被 AI 大改, 属 AI 内容, 非脚本真值)
         shutil.move(str(self.ws.tasks / old_id), str(self.ws.tasks / new_id))
         self.ws.store.save(t)
         for other in self.ws.store.all_tasks():  # 同步别 task 的 deps 引用

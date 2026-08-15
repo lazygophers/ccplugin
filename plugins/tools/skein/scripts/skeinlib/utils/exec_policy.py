@@ -70,20 +70,4 @@ def exec_argv(body: dict[str, Any]) -> Optional[list[str]]:
         return base + ["task", "priority", g("id"), "--set", g("set")] if (s("id") and s("set")) else None
     if cmd == "del":
         return base + ["del", g("id")] + force if s("id") else None
-    if cmd == "prd":
-        if not (s("id") and s("type") and s("action")):
-            return None
-        act = g("action")
-        if act not in ("read", "write", "add", "check", "uncheck"):
-            return None
-        argv = ["prd", act, g("id"), "--type", g("type")]
-        if act != "read":
-            raw_list = body.get("list")
-            if not isinstance(raw_list, str):
-                return None
-            # write 空串 = 整章清空 (web 端删光条目要能落盘); 其余 action 空 list 无意义照旧拒
-            if act != "write" and not raw_list.strip():
-                return None
-            argv += ["--list", raw_list]
-        return base + argv
     return None

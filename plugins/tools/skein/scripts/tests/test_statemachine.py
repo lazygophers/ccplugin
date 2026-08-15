@@ -39,12 +39,8 @@ def _mk(skein_cli: SkeinCli, ws: Path, tid: str = "feat-x", *,
 
 
 def _fill_prd(ws: Path, tid: str) -> None:
-    """写一份规范 prd.md + design.md (三段齐 + 无 TODO 占位), 过 confirm 的 _validate_prd + _validate_seam 门。"""
-    (ws / ".skein" / "task" / tid / "prd.md").write_text(
-        f"# {tid} — PRD\n\n"
-        "## 目标\n- 解决 X 问题\n\n"
-        "## 边界\n- 范围内: a\n\n"
-        "## 验收标准\n- 用例通过\n\n")
+    """写齐 prd.md frontmatter (TaskSpec 四要素) + design 接缝, 过 confirm 的 planning 硬门。"""
+    (ws / ".skein" / "task" / tid / "prd.md").write_text("---\ndesc: 解决 X 问题\nboundary:\n  should:\n  - 范围内a\n  should_not: []\nestimate: 1\nacceptance:\n  - 用例通过\n---\n", encoding="utf-8")
     (ws / ".skein" / "task" / tid / "design.md").write_text(
         f"# {tid} — 详细设计\n\n"
         "## 测试接缝 (seam)\n- [x] API 层\n")
@@ -283,7 +279,8 @@ def test_confirm_no_subtask_rejected(skein_cli: SkeinCli, ws: Path) -> None:
 
 def test_confirm_no_estimate_rejected(skein_cli: SkeinCli, ws: Path) -> None:
     """非法: confirm 未填预计工时的 task (estimate 硬门, 应拒, 留待处理)。"""
-    tid = _mk(skein_cli, ws, sub=True)  # 有 subtask+prd, 只差 estimate
+    tid = _mk(skein_cli, ws, sub=True)  # 有 subtask+spec
+    _strip_estimate(ws, tid)  # 只差 estimate
     r = skein_cli(ws, "confirm", tid, "--approved", check=False)
     assert r.returncode == 1
     assert "预计工时未填" in r.stdout + r.stderr
@@ -324,39 +321,41 @@ def test_confirm_estimate_below_subtask_sum_rejected(skein_cli: SkeinCli, ws: Pa
     assert _status_of(skein_cli, ws, tid) == TaskStatus.ACTIVE
 
 
-def test_confirm_prd_placeholder_rejected(skein_cli: SkeinCli, ws: Path) -> None:
-    """非法: confirm 时 prd.md 残留 `- [ ] TODO` 占位 (模板初始态, 说明未填实, 应拒)。"""
+def test_confirm_spec_missing_desc_rejected(skein_cli: SkeinCli, ws: Path) -> None:
+    """非法: confirm 时 prd.md frontmatter 缺 desc (TaskSpec 未填实, 应拒)。"""
     tid = _mk(skein_cli, ws, sub=True)
-    skein_cli(ws, "estimate", tid, "--set", "1")
-    (ws / ".skein" / "task" / tid / "prd.md").write_text(
-        f"# {tid} — PRD\n\n## 目标\n- [ ] TODO: 填目标\n\n"
-        "## 边界\n- 边界内容\n\n"
-        "## 验收标准\n- 用例通过\n\n")
-    r = skein_cli(ws, "confirm", tid, "--approved", check=False)
-    assert r.returncode == 1
-    assert "prd 未就绪" in r.stdout + r.stderr
-    assert "TODO" in r.stdout + r.stderr
-    assert _status_of(skein_cli, ws, tid) == TaskStatus.PENDING
-
-
-def test_confirm_prd_checked_placeholder_rejected(skein_cli: SkeinCli, ws: Path) -> None:
-    """非法: 占位被勾成 `- [x] TODO` — 勾选不等于填实, 同样应拒 (防 plan 期预勾绕门)。"""
-    tid = _mk(skein_cli, ws, sub=True)
-    skein_cli(ws, "estimate", tid, "--set", "1")
-    (ws / ".skein" / "task" / tid / "prd.md").write_text(
-        f"# {tid} — PRD\n\n## 目标\n- [x] TODO: 填目标\n\n"
-        "## 边界\n- 边界内容\n\n"
-        "## 验收标准\n- [X] TODO: 填验收标准\n\n")
+    _strip_spec_field(ws, tid, "desc")
     r = skein_cli(ws, "confirm", tid, "--approved", check=False)
     assert r.returncode == 1
     out = r.stdout + r.stderr
-    assert "prd 未就绪" in out
-    assert "2 处" in out, f"勾选态占位应全数计入: {out}"
+    assert "任务描述未填" in out
     assert _status_of(skein_cli, ws, tid) == TaskStatus.PENDING
 
 
+def test_confirm_spec_missing_acceptance_rejected(skein_cli: SkeinCli, ws: Path) -> None:
+    """非法: TaskSpec 验收项空 — 应拒 (gap 收集式逐条报)。"""
+    tid = _mk(skein_cli, ws, sub=True)
+    _strip_spec_field(ws, tid, "acceptance")
+    r = skein_cli(ws, "confirm", tid, "--approved", check=False)
+    assert r.returncode == 1
+    out = r.stdout + r.stderr
+    assert "验收项未填" in out
+    assert _status_of(skein_cli, ws, tid) == TaskStatus.PENDING
+
+
+def _strip_spec_field(ws: Path, tid: str, field: str) -> None:
+    """从 prd.md frontmatter 删一个字段行 (造 TaskSpec 缺口)。"""
+    prd = ws / ".skein" / "task" / tid / "prd.md"
+    lines = [ln for ln in prd.read_text().splitlines() if not ln.startswith(f"{field}:")]
+    prd.write_text("\n".join(lines) + "\n")
+
+
+def _strip_estimate(ws: Path, tid: str) -> None:
+    _strip_spec_field(ws, tid, "estimate")
+
+
 def test_confirm_prd_ok_passes(skein_cli: SkeinCli, ws: Path) -> None:
-    """合法: prd.md 章节齐 + 无占位 → confirm 正常进 active。"""
+    """合法: prd.md frontmatter (TaskSpec) 齐 → confirm 正常进 active。"""
     tid = _mk(skein_cli, ws, sub=True)  # _mk 内已 _fill_prd
     skein_cli(ws, "estimate", tid, "--set", "1")
     r = skein_cli(ws, "confirm", tid, "--approved")

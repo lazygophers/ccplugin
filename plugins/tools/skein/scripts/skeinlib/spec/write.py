@@ -292,7 +292,7 @@ class WriteMixin:
 
     # ---- finish-candidates (finish 回写候选反查) ----
     def finish_candidates(self, a: argparse.Namespace) -> None:
-        """为 task 生成候选 product wiki 页 (三路降级: anchors反查→prd关键词recall→皆无建议新建)。
+        """为 task 生成候选 product wiki 页 (三路降级: anchors反查→TaskSpec关键词recall→皆无建议新建)。
 
         验收要求:
         1. anchors 命中路输出带命中 anchor
@@ -313,13 +313,16 @@ class WriteMixin:
         if not task_dir.exists():
             raise SkeinError(f"任务目录不存在: {task_dir}")
 
-        # 读取 prd.md 获取关键词
-        prd_file = task_dir / "prd.md"
-        if not prd_file.exists():
-            keywords = []
-        else:
-            prd_content = prd_file.read_text()
-            keywords = self._extract_keywords_from_prd(prd_content)
+        # 关键词来源: task.json 的 TaskSpec 字段 (desc/边界/验收) 拼接文本
+        keywords: list[str] = []
+        task_json = task_dir / "task.json"
+        if task_json.exists():
+            import json as _json
+            data = _json.loads(task_json.read_text())
+            b = data.get("boundary") or {}
+            spec_text = " ".join([data.get("desc") or "", *(b.get("should") or []),
+                                  *(b.get("should_not") or []), *(data.get("acceptance") or [])])
+            keywords = self._extract_keywords(spec_text)
 
         # 获取文件列表
         if files_param:
@@ -361,7 +364,7 @@ class WriteMixin:
             # 第一路: anchors 反查 (高优先级)
             anchor_hits = self._reverse_lookup_anchors(changed_files)
 
-            # 第二路: prd 关键词 recall --src product (弱候选)
+            # 第二路: TaskSpec 关键词 recall --src product (弱候选)
             weak_candidates: list[KeywordCandidate] = []
             if keywords and not anchor_hits:
                 weak_candidates = self._recall_by_keywords(keywords)
@@ -386,32 +389,21 @@ class WriteMixin:
         else:
             self._print_finish_candidates_result(result)
 
-    def _extract_keywords_from_prd(self, prd_content: str) -> list[str]:
-        """从 prd.md 中提取关键词。
-
-        寻找类似 `keywords: [tag1, tag2, tag3]` 或者其他关键词标记。
-        """
+    def _extract_keywords(self, spec_text: str) -> list[str]:
+        """从 TaskSpec 拼接文本中提取关键词 (标题/强调/分词)。"""
         import re
 
         keywords: set[str] = set()
 
         # 尝试解析 frontmatter 中的 keywords
-        frontmatter_match = re.search(r'keywords:\s*\[(.*?)\]', prd_content, re.DOTALL)
+        frontmatter_match = re.search(r'keywords:\s*\[(.*?)\]', spec_text, re.DOTALL)
         if frontmatter_match:
             kw_str = frontmatter_match.group(1)
             keywords.update(k.strip().strip('"\'') for k in kw_str.split(',') if k.strip())
 
-        # 如果没有找到 frontmatter keywords, 尝试从标题和内容中提取
         if not keywords:
-            # 提取标题中的关键词 (## 开头的行)
-            for match in re.finditer(r'^##+\s+(.+)$', prd_content, re.MULTILINE):
-                title = match.group(1).strip()
-                # 简单分词, 去除常见停用词
-                words = re.findall(r'[\w一-鿿]+', title)
-                keywords.update(words)
-
             # 提取强调内容 (**加粗** 或 *斜体*)
-            for match in re.finditer(r'[*_*_](.+?)[_*_*_]', prd_content):
+            for match in re.finditer(r'[*_*_](.+?)[_*_*_]', spec_text):
                 emphasized = match.group(1).strip()
                 words = re.findall(r'[\w一-鿿]+', emphasized)
                 keywords.update(words)

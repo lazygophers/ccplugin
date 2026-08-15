@@ -1,34 +1,12 @@
 from __future__ import annotations
 
 import json
-import os
 import re
-import subprocess
-import sys
 from typing import Any
 
-PRD_RE = re.compile(r"(?:^|/)\.skein/task/([^/]+)/prd\.md$")
 SPEC_RE = re.compile(r"(?:^|/)\.skein/spec/[^/]+/[^/]+/.+\.md$")
 SPEC_REQUIRED = ("title", "namespace", "inclusion", "keywords")
 SPEC_INCLUSIONS = ("always", "auto", "fileMatch", "manual")
-
-
-def cmd_fmt(payload: dict[str, Any]) -> int:
-    file_path = payload.get("tool_input", {}).get("file_path", "")
-    if not file_path:
-        return 0
-    normalized_path = file_path.replace("\\", "/")
-    match = PRD_RE.search(normalized_path)
-    if not match:
-        return 0
-    root = normalized_path[:match.start()] or (payload.get("cwd") or os.getcwd())
-    from skeinlib.utils.paths import SKEIN_ENTRY
-    try:
-        subprocess.run([sys.executable, str(SKEIN_ENTRY), "fmt", match.group(1)], cwd=root,
-                       capture_output=True, timeout=10)
-    except (OSError, subprocess.SubprocessError):
-        pass
-    return 0
 
 
 def parse_spec_frontmatter(text: str) -> dict[str, str]:
@@ -92,5 +70,5 @@ def cmd_spec_meta(payload: dict[str, Any]) -> int:
     return 0
 
 
-__all__ = ["PRD_RE", "SPEC_RE", "SPEC_REQUIRED", "SPEC_INCLUSIONS",
-           "cmd_fmt", "cmd_spec_meta", "parse_spec_frontmatter", "spec_frontmatter_text"]
+__all__ = ["SPEC_RE", "SPEC_REQUIRED", "SPEC_INCLUSIONS",
+           "cmd_spec_meta", "parse_spec_frontmatter", "spec_frontmatter_text"]

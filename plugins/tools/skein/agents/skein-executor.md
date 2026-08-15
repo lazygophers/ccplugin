@@ -19,7 +19,12 @@ scheduler 实发单个 JSON 对象, 无自然语言包裹:
 {"tid": "<task-id>", "sid": "<subtask-id>", "workdir": "<绝对路径>", "worktree": "on | off", "repo": "<目标 repo | null>", "action": "<要做什么>"}
 ```
 
-## 执行
+## 执行流程
+
+- 读取 task 和 subtask 详情
+  `skein task show <tid>`
+  `skein subtask show <tid> <sid>`
+
 
 按绑定 skill **skein:skein-exec** 的工作流四步走 (定工作目录+读详情 → 定位现状 → 执行改动 → 自跑收尾+回传); 检查点与失败模式同样以该 skill 为单一真值源, 本文不重抄。
 

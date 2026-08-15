@@ -49,13 +49,7 @@ effort: medium
 
 ### 3. 工件写法
 
-**PRD 三段**（`skein task confirm` 硬校验）：`目标` / `边界` / `验收标准`。占位 `- [ ] TODO` 留一条即被拒。
-
-**design.md**：架构、数据流、取舍、技术选型、测试接缝（必填实）、可能性分支（标触发条件）。
-
-**estimate**：先拆 subtask 再逐个估，task 工时 ≥ Σ subtask。🔒 纯 AI 估，禁问用户。
-
-**完整工件写法规范见 [references/plan.md](references/plan.md)。**
+使用 references/plan.md](references/plan.md) 规范，更新任务信息
 
 ### 4. DAG 拆分
 

@@ -1,8 +1,7 @@
 # mypy: ignore-errors
-"""views.py 覆盖率补测 — 补 _prd_parse / _view_* 各种分支。
+"""views.py 覆盖率补测 — 补 _view_* 各种分支。
 
 重点:
-  - _prd_parse 的各种格式 (空文本 / TODO 跳过 / prose 行 / 无 checkbox 段落)
   - _view_board_data 的 git 用户名读取失败分支
   - _view_dashboard / _view_queue 的各种分支
   - _view_search 的 spec 搜索命中
@@ -15,101 +14,11 @@ from typing import Any
 
 import pytest
 
-from skeinlib.web.views import (_prd_parse, _view_board_data, _view_dashboard, _view_queue,
+from skeinlib.web.views import (_view_board_data, _view_dashboard, _view_queue,
                                 _view_search, Snapshot)
 from skeinlib.task.model import TaskStatus, SubtaskStatus
 
 
-# ---- _prd_parse: prd.md 解析器 ------------------------------------------------
-
-def test_prd_parse_empty_text() -> None:
-    """空文本返回空列表。"""
-    assert _prd_parse("") == []
-    assert _prd_parse(None) == []
-
-
-def test_prd_parse_skips_todos() -> None:
-    """TODO 占位行被跳过, 不计入 items。"""
-    txt = (
-        "# 目标\n"
-        "- [x] 已完成\n"
-        "- [ ] TODO: 占位\n"
-        "- [ ] 正常项\n"
-    )
-    out = _prd_parse(txt)
-    assert len(out) == 1
-    assert out[0]["name"] == "目标"
-    items = out[0]["items"]
-    assert len(items) == 2  # 已完成 + 正常项, TODO 被跳过
-    assert items[0]["text"] == "已完成"
-    assert items[1]["text"] == "正常项"
-
-
-def test_prd_parse_prose_lines() -> None:
-    """非 checkbox 行当 prose 处理, 段落文字保留。"""
-    txt = (
-        "# 目标\n"
-        "这是 prose 行 1\n"
-        "这是 prose 行 2\n"
-        "- [x] checkbox 行\n"
-    )
-    out = _prd_parse(txt)
-    goal = next(s for s in out if s["name"] == "目标")
-    # 有 1 个 checkbox, 所以 badge 是 [1, 1]
-    assert goal["badge"] == [1, 1]
-    items = goal["items"]
-    assert items[0]["kind"] == "prose"
-    assert items[0]["text"] == "这是 prose 行 1"
-    assert items[1]["kind"] == "prose"
-    assert items[2]["kind"] == "check"
-
-
-def test_prd_parse_only_target_section() -> None:
-    """只有目标, 无验收标准 → 只返回目标 section。"""
-    txt = (
-        "# 目标\n"
-        "- [x] G1\n"
-        "- [ ] G2\n"
-    )
-    out = _prd_parse(txt)
-    assert len(out) == 1
-    assert out[0]["name"] == "目标"
-    assert out[0]["badge"] == [1, 2]
-
-
-def test_prd_parse_unnamed_sections_ignored() -> None:
-    """非目标/验收标准的 section 被忽略。"""
-    txt = (
-        "# 其他\n"
-        "- [x] O1\n"
-        "# 目标\n"
-        "- [x] G1\n"
-    )
-    out = _prd_parse(txt)
-    assert len(out) == 1
-    assert out[0]["name"] == "目标"
-
-
-def test_prd_parse_mixed_checklist_and_prose() -> None:
-    """同一段内混 checkbox 与 prose 行, badge 只计数 checkbox。"""
-    txt = (
-        "# 验收标准\n"
-        "先做这些事\n"
-        "- [x] 标准 A\n"
-        "再做那些事\n"
-        "- [ ] 标准 B\n"
-    )
-    out = _prd_parse(txt)
-    acc = next(s for s in out if s["name"] == "验收标准")
-    assert acc["badge"] == [1, 2]  # 2 个 checkbox
-    items = acc["items"]
-    assert items[0]["kind"] == "prose"
-    assert items[1]["kind"] == "check"
-    assert items[2]["kind"] == "prose"
-    assert items[3]["kind"] == "check"
-
-
-# ---- _view_board_data: git 用户名读取失败 ------------------------------------
 
 def test_view_board_data_git_user_fallback(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """git config 失败 → git_user 为 None (不抛异常)。"""
@@ -361,22 +270,3 @@ def test_view_search_hits_subtasks(tmp_path: Path) -> None:
     assert "t1/s1" in hits[0]["id"]
 
 
-def test_view_search_hits_prd(tmp_path: Path) -> None:
-    """搜索命中 PRD 内容 (跨文件检索)。"""
-    tasks_dir = tmp_path / "tasks"
-    tasks_dir.mkdir(parents=True)
-    tdir = tasks_dir / "t1"
-    tdir.mkdir()
-    (tdir / "prd.md").write_text("# PRD\n\n目标: 实现 X 功能\n", encoding="utf-8")
-
-    snap = Snapshot(
-        proj="TEST", wt_shown=False,
-        tasks_fn=lambda: [{"id": "t1"}],
-        all_tasks_fn=lambda: [{"id": "t1"}],
-        tasks_dir=tasks_dir,
-        archive_dir=tmp_path / "archive",
-        spec_root=tmp_path / "spec",
-    )
-
-    hits = _view_search(snap, "实现 X")["hits"]
-    assert any(h["kind"] == "prd" and h["id"] == "t1" for h in hits)

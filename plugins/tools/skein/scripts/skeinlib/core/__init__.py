@@ -5,7 +5,7 @@ commands: Skein 门面 — 继承 Workspace, 装配协作对象
 lifecycle: create→confirm→start→check→finish 状态机
 scheduling: DAG 调度 (claim/exec/subtask)
 query: 只读投影 (ready/status/list)
-artifacts: task 工件 (prd/fmt)
+artifacts: task 工件 (design 测试接缝)
 admin: 工作区级命令 (init/setup/config/clean/board)
 doctor: 体检 + 质量门 + session 上下文
 """

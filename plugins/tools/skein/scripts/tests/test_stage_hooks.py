@@ -40,11 +40,7 @@ def _mk(skein_cli: SkeinCli, ws: Path, tid: str = "feat-x", *,
 
 
 def _fill_prd(ws: Path, tid: str) -> None:
-    (ws / ".skein" / "task" / tid / "prd.md").write_text(
-        f"# {tid} — PRD\n\n"
-        "## 目标\n- 解决 X 问题\n\n"
-        "## 边界\n- 范围内: a\n\n"
-        "## 验收标准\n- 用例通过\n\n")
+    (ws / ".skein" / "task" / tid / "prd.md").write_text("---\ndesc: 解决 X 问题\nboundary:\n  should:\n  - 范围内a\n  should_not: []\nestimate: 1\nacceptance:\n  - 用例通过\n---\n", encoding="utf-8")
     (ws / ".skein" / "task" / tid / "design.md").write_text(
         f"# {tid} — 详细设计\n\n## 测试接缝 (seam)\n- [x] API 层\n")
 

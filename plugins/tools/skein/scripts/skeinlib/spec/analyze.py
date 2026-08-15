@@ -1,9 +1,9 @@
 """`skein-spec analyze <tid>` — 只读一致性核查 (对齐 spec-kit `/speckit.analyze`)。
 
-五类检查, 全部只读 prd.md / design.md / task.json + 已有 spec 规则库, 不写任何盘:
-  验收覆盖率  prd 验收标准 ↔ subtask 验收项, 报关键词无命中的验收条 (候选未覆盖)
+五类检查, 全部只读 task.json (TaskSpec 字段) / design.md + 已有 spec 规则库, 不写任何盘:
+  验收覆盖率  task 验收项 (acceptance) ↔ subtask 验收项, 报关键词无命中的验收条 (候选未覆盖)
   硬规冲突    design.md ↔ inclusion=always 规则的否定式表述, 报候选 (不断言违规)
-  范围蔓延    subtask 名/desc ↔ prd 全文关键词, 报无命中的 subtask (候选蔓延)
+  范围蔓延    subtask 名/desc ↔ task spec 关键词 (desc/边界), 报无命中的 subtask (候选蔓延)
   置信度      design.md 提及的规则标题 ↔ 该规则 status=proposed, 报未验证引用
   接缝存在性  design.md「测试接缝」段声明的路径/符号 ↔ codebase, 报未找到
 
@@ -38,14 +38,11 @@ def _keywords(text: str) -> set[str]:
     return {t for t in toks if len(t) >= 2}
 
 
-def _prd_section(text: str, name: str) -> str:
-    """从 prd 全文抠一个 `## name` 章节正文 (到下一 `## ` 或文件尾); 章节不存在返回空串。
-    不复用 skeinlib.task.prd.section_read — 那个要求 prd.md 必须落盘存在, analyze 只读内存文本更轻。"""
-    m = re.search(rf"^##\s+{re.escape(name)}\s*$", text, re.MULTILINE)
-    if not m:
-        return ""
-    nxt = re.search(r"^##\s+", text[m.end():], re.MULTILINE)
-    return text[m.end():m.end() + nxt.start()] if nxt else text[m.end():]
+def _spec_text(t: dict[str, Any]) -> str:
+    """task.json 的 TaskSpec 字段 (desc/边界/验收) 拼接文本 — analyze 的需求侧输入。"""
+    b = t.get("boundary") or {}
+    return " ".join([t.get("desc") or "", *(b.get("should") or []), *(b.get("should_not") or []),
+                     *(t.get("acceptance") or [])])
 
 
 def _design_section(text: str, name: str) -> str:
@@ -76,13 +73,12 @@ class AnalyzeMixin:
         task_json = tdir / "task.json"
         if task_json.exists():
             t = json.loads(task_json.read_text())
-        prd_text = (tdir / "prd.md").read_text() if (tdir / "prd.md").exists() else ""
         design_text = (tdir / "design.md").read_text() if (tdir / "design.md").exists() else ""
 
         findings: list[SpecFinding] = []
-        findings += self._analyze_coverage(prd_text, t)
+        findings += self._analyze_coverage(t)
         findings += self._analyze_hardrule(design_text)
-        findings += self._analyze_scope(prd_text, t)
+        findings += self._analyze_scope(t)
         findings += self._analyze_confidence(design_text)
         findings += self._analyze_seam(design_text)
 
@@ -97,22 +93,20 @@ class AnalyzeMixin:
         for fd in findings:
             print(f"  [{fd.kind}] {fd.text}")
 
-    # ---- 1. 验收覆盖率: prd 验收标准条目 ↔ subtask 验收项 ----
-    def _analyze_coverage(self, prd_text: str, t: dict[str, Any]) -> list[SpecFinding]:
-        section = _prd_section(prd_text, "验收标准")
-        items = [m.group(1).strip() for ln in section.splitlines()
-                 if (m := re.match(r"^-\s*\[[ xX]\]\s*(.+)$", ln.strip()))]
+    # ---- 1. 验收覆盖率: task 验收项 (acceptance) ↔ subtask 验收项 ----
+    def _analyze_coverage(self, t: dict[str, Any]) -> list[SpecFinding]:
+        items = [i.strip() for i in (t.get("acceptance") or []) if i.strip()]
         if not items:
             return []
         sub_kw: set[str] = set()
         for s in t.get("subtasks") or []:
             sub_kw |= _keywords(f"{s.get('name', '')} {s.get('desc', '')} "
-                                 f"{' '.join(s.get('验收') or [])}")
+                                 f"{' '.join(s.get('acceptance') or [])}")
         out = []
         for item in items:
             if not (_keywords(item) & sub_kw):
                 out.append(SpecFinding(kind="coverage",
-                                       text=f"[候选未覆盖] prd 验收条「{item}」未在任何 subtask 找到关键词对应"))
+                                       text=f"[候选未覆盖] task 验收条「{item}」未在任何 subtask 找到关键词对应"))
         return out
 
     # ---- 2. 硬规冲突: design.md ↔ inclusion=always 规则的否定式表述 (报候选交人判, 不断言) ----
@@ -141,18 +135,18 @@ class AnalyzeMixin:
                                                     f"规则要求「{m.group(0).strip()}」, design 上下文: {line}"))
         return out
 
-    # ---- 3. 范围蔓延: subtask 名/desc ↔ prd 全文关键词 ----
-    def _analyze_scope(self, prd_text: str, t: dict[str, Any]) -> list[SpecFinding]:
-        if not prd_text:
+    # ---- 3. 范围蔓延: subtask 名/desc ↔ task spec 关键词 (desc/边界) ----
+    def _analyze_scope(self, t: dict[str, Any]) -> list[SpecFinding]:
+        spec_kw = _keywords(_spec_text(t))
+        if not spec_kw:
             return []
-        prd_kw = _keywords(prd_text)
         out = []
         for s in t.get("subtasks") or []:
             sub_kw = _keywords(f"{s.get('name', '')} {s.get('desc', '')}")
-            if sub_kw and not (sub_kw & prd_kw):
+            if sub_kw and not (sub_kw & spec_kw):
                 out.append(SpecFinding(kind="scope",
                                        text=f"[候选] subtask {s.get('sid')} 「{s.get('name', '')}」"
-                                            f"在 prd 全文无关键词对应, 疑似范围蔓延"))
+                                            f"在 task spec (desc/边界) 无关键词对应, 疑似范围蔓延"))
         return out
 
     # ---- 4. 置信度: design 引用的规则 status=proposed ----

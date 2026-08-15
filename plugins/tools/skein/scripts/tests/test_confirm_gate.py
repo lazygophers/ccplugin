@@ -47,7 +47,7 @@ def _ready_task(ws: Path, tid: str = "feat-x") -> str:
     """造一个「结构上完全够格、只差人审」的 task。"""
     run_skein(ws, "create", tid, "--name", "任务X", "--desc", "d")
     run_skein(ws, "subtask", "add", tid, "s1", "--name", "子一", "--desc", "d", "--estimate", "2")
-    (ws / ".skein/task" / tid / "prd.md").write_text(PRD.format(tid=tid))
+    (ws / ".skein/task" / tid / "prd.md").write_text("---\ndesc: 解决 X 问题\nboundary:\n  should:\n  - 范围内a\n  should_not: []\nestimate: 1\nacceptance:\n  - 用例通过\n---\n", encoding="utf-8")
     (ws / ".skein/task" / tid / "design.md").write_text(
         f"# {tid} — 详细设计\n\n## 测试接缝 (seam)\n- [x] 复用 tests/test_statemachine.py\n")
     run_skein(ws, "estimate", tid, "--set", "4")
@@ -95,7 +95,7 @@ def test_summary_prints_and_does_not_change_state(ws: Path) -> None:
     assert r.returncode == 0, r.stderr
     data = json.loads(r.stdout)
     summary = data.get("summary", "")
-    assert "## 目标" in summary and "## subtask" in summary, f"摘要不完整: {summary}"
+    assert "## 边界" in summary and "## 验收标准" in summary and "## subtask" in summary, f"摘要不完整: {summary}"
     assert _task(ws, tid)["status"] == "pending", "--summary 不该改状态"
 
 def test_summary_shows_what_user_needs_to_judge(ws: Path) -> None:
@@ -103,8 +103,7 @@ def test_summary_shows_what_user_needs_to_judge(ws: Path) -> None:
     tid = _ready_task(ws)
     data = json.loads(_raw(ws, "task", "confirm", tid, "--summary").stdout)
     out = data.get("summary", "")
-    for must in ("目标", "边界", "验收标准", "subtask", "预计工时",
-                 "让 confirm 真的需要人看", "[s1]"):
+    for must in ("解决 X 问题", "边界", "验收标准", "subtask", "预计工时", "[s1]"):
         assert must in out, f"摘要缺 {must!r}:\n{out}"
 
 def test_approved_passes_and_records_channel(ws: Path) -> None:

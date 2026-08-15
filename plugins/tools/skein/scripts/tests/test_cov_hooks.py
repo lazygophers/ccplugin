@@ -106,10 +106,6 @@ def test_cmd_guard_blocks_skein_task_json(tmp_path: Path,
     assert "禁直接读写" in capsys.readouterr().err
 
 
-def test_cmd_guard_allows_prd_read(tmp_path: Path) -> None:
-    payload = {"tool_name": "Read", "tool_input": {"file_path": str(tmp_path / ".skein" / "task" / "t1" / "prd.md")}}
-    assert ptu.cmd_guard(payload) == 0
-
 
 def test_cmd_guard_blocks_prd_write(tmp_path: Path,
                                     capsys: pytest.CaptureFixture[str]) -> None:
@@ -165,42 +161,10 @@ def test_spec_frontmatter_text() -> None:
     assert pou.spec_frontmatter_text("---\ntitle: T\nno end") == ""
 
 
-# ---- post_tool_use: cmd_fmt ----
-
-def test_cmd_fmt_no_file_path() -> None:
-    assert pou.cmd_fmt({"tool_input": {}}) == 0
 
 
-def test_cmd_fmt_non_prd_file() -> None:
-    assert pou.cmd_fmt({"tool_input": {"file_path": "/some/code.py"}}) == 0
 
 
-def test_cmd_fmt_prd_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    skein_root = tmp_path / ".skein" / "task" / "t1"
-    skein_root.mkdir(parents=True)
-    prd = skein_root / "prd.md"
-    prd.write_text("# PRD")
-    called: list[list[str]] = []
-    def _fake_run(cmd: list[str], **kw: Any) -> Any:
-        called.append(cmd)
-        return type("R", (), {"returncode": 0})()
-    monkeypatch.setattr("skeinlib.hooks.post_tool_use.subprocess.run", _fake_run)
-    payload = {"tool_input": {"file_path": str(prd)}}
-    assert pou.cmd_fmt(payload) == 0
-    assert any("fmt" in str(c) for c in called[0]) if called else True
-
-
-def test_cmd_fmt_prd_subprocess_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    prd = tmp_path / ".skein" / "task" / "t1" / "prd.md"
-    prd.parent.mkdir(parents=True)
-    prd.write_text("x")
-    def boom(cmd: list[str], **kw: Any) -> Any:
-        raise OSError("boom")
-    monkeypatch.setattr("skeinlib.hooks.post_tool_use.subprocess.run", boom)
-    assert pou.cmd_fmt({"tool_input": {"file_path": str(prd)}}) == 0
-
-
-# ---- post_tool_use: cmd_spec_meta ----
 
 def test_spec_meta_no_file_path() -> None:
     assert pou.cmd_spec_meta({"tool_input": {}}) == 0

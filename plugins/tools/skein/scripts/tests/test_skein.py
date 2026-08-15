@@ -60,9 +60,7 @@ def main() -> None:
 
         def rdy(tid: str) -> None:
             """填实 prd + confirm (吸收 start: 待处理→进行中, 直接建 worktree)。"""
-            (d / ".skein/task" / tid / "prd.md").write_text(
-                f"# {tid} — PRD\n\n## 目标\n- 解决 X\n\n## 边界\n- 范围内: a\n\n"
-                "## 验收标准\n- 用例通过")
+            (d / ".skein/task" / tid / "prd.md").write_text("---\ndesc: 解决 X 问题\nboundary:\n  should:\n  - 范围内a\n  should_not: []\nestimate: 1\nacceptance:\n  - 用例通过\n---\n", encoding="utf-8")
             # 填实测试接缝段 (confirm 硬门): scaffold 落的是占位, 不填会被 _validate_seam 挡在工时门之前
             design = d / ".skein/task" / tid / "design.md"
             design.write_text(re.sub(
@@ -157,9 +155,7 @@ def main() -> None:
         (d / ".skein/task/task-3/task.json").write_text(
             json.dumps({**json.loads((d / ".skein/task/task-3/task.json").read_text()),
                         "deps": ["task-2"]}, ensure_ascii=False))
-        (d / ".skein/task/task-3/prd.md").write_text(
-            "# task-3 — PRD\n\n## 目标\n- 解决 X\n\n## 边界\n- 范围内: a\n\n"
-            "## 验收标准\n- 用例通过\n")
+        (d / ".skein/task/task-3/prd.md").write_text("---\ndesc: 解决 X 问题\nboundary:\n  should:\n  - 范围内a\n  should_not: []\nestimate: 1\nacceptance:\n  - 用例通过\n---\n", encoding="utf-8")
         design3 = d / ".skein/task/task-3/design.md"
         design3.write_text(re.sub(
             r"- \[ \] TODO: 填测试接缝", "- [x] 复用 `test_x.py::test_y` 现有单测", design3.read_text()))
@@ -379,9 +375,7 @@ def test_multirepo() -> None:
         # 多 repo task 的 subtask 必须点名 --repo (否则 workdir 无从推导)
         sk(d, "subtask", "add", "feat", "s1", "--name", "改A", "--desc", "d", "--estimate", "1",
            "--repo", "repoA")
-        (d / ".skein/task/feat/prd.md").write_text(
-            "# feat — PRD\n\n## 目标\n- 改两仓\n\n## 边界\n- 范围内: a\n\n"
-            "## 验收标准\n- 用例通过")
+        (d / ".skein/task/feat/prd.md").write_text("---\ndesc: 解决 X 问题\nboundary:\n  should:\n  - 范围内a\n  should_not: []\nestimate: 1\nacceptance:\n  - 用例通过\n---\n", encoding="utf-8")
         design = d / ".skein/task/feat/design.md"
         design.write_text(re.sub(
             r"- \[ \] TODO: 填测试接缝", "- [x] 复用 `test_x.py::test_y` 现有单测", design.read_text()))
@@ -414,9 +408,7 @@ def test_seam_gate() -> None:
         make_ws(d)
 
         def _prd(tid: str) -> None:
-            (d / ".skein/task" / tid / "prd.md").write_text(
-                f"# {tid} — PRD\n\n## 目标\n- 解决 X\n\n## 边界\n- 范围内: a\n\n"
-                "## 验收标准\n- 用例通过")
+            (d / ".skein/task" / tid / "prd.md").write_text("---\ndesc: 解决 X 问题\nboundary:\n  should:\n  - 范围内a\n  should_not: []\nestimate: 1\nacceptance:\n  - 用例通过\n---\n", encoding="utf-8")
 
         def _ready(tid: str) -> None:
             sk(d, "create", tid, "--name", tid, "--desc", "d")
@@ -467,14 +459,14 @@ def test_prd_section_gate() -> None:
 
         # 场景 1: 标准三段齐备顺序对 → 放行
         _ready("std-task",
-               "# std-task — PRD\n\n## 目标\n- 解决 X\n\n## 边界\n- 范围内: a\n\n"
+               "# std-task — PRD\n\n## 目标\n- 解决 X\n\n## 边界\n- 范围内a\n\n"
                "## 验收标准\n- 用例通过\n")
         r = sk(d, "confirm", "std-task", check=False)
         assert r.returncode == 0, f"标准三段不该被拒: {r.stderr}"
 
         # 场景 2: 旧七段 PRD 已退役 → 硬拒 (多出 User Stories/验证方式/Testing Decisions)
         _ready("legacy-task",
-               "# legacy-task — PRD\n\n## 目标\n- 解决 X\n\n## 边界\n- 范围内: a\n\n"
+               "# legacy-task — PRD\n\n## 目标\n- 解决 X\n\n## 边界\n- 范围内a\n\n"
                "## User Stories\n1. As a u, I want x\n\n"
                "## 验收标准\n- 用例通过\n\n"
                "## 验证方式\n- 跑 pytest"
@@ -486,8 +478,7 @@ def test_prd_section_gate() -> None:
         # 场景 3: 章节残缺 (缺「边界」) → 硬拒
         sk(d, "create", "bad-task", "--name", "bad-task", "--desc", "d")
         sk(d, "subtask", "add", "bad-task", "s1", "--name", "n", "--desc", "d", "--estimate", "1")
-        (d / ".skein/task/bad-task/prd.md").write_text(
-            "# bad-task — PRD\n\n## 目标\n- 解决 X\n\n## 验收标准\n- 用例通过\n")
+        (d / ".skein/task/bad-task/prd.md").write_text("---\ndesc: 解决 X 问题\nboundary:\n  should:\n  - 范围内a\n  should_not: []\nestimate: 1\nacceptance:\n  - 用例通过\n---\n", encoding="utf-8")
         _seam_fill("bad-task")
         sk(d, "estimate", "bad-task", "--set", "4")
         r = sk(d, "confirm", "bad-task", check=False)
@@ -509,9 +500,7 @@ def test_setup() -> None:
         (d / ".trellis/spec/git.md").write_text("# 禁 force push\n")
         (d / ".trellis/task/x").mkdir(parents=True)
         (d / ".trellis/task/x/task.json").write_text('{"id":"x","title":"任务X","status":"in_progress"}')
-        (d / ".trellis/task/x/prd.md").write_text("# PRD\n")  # planning 工件应随迁
-        (d / ".trellis/task/archive/2026/01-01/old").mkdir(parents=True)  # 归档不迁
-        (d / ".trellis/task/archive/2026/01-01/old/task.json").write_text('{"id":"old"}')
+        (d / ".trellis/task/x/prd.md").write_text("---\ndesc: 解决 X 问题\nboundary:\n  should:\n  - 范围内a\n  should_not: []\nestimate: 1\nacceptance:\n  - 用例通过\n---\n", encoding="utf-8")
         (d / ".trellis/hooks").mkdir()  # 接线: 无条件删
         (d / ".trellis/settings.json").write_text("{}")
         (d / ".claude/skills/foo-trellis").mkdir(parents=True)

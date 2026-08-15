@@ -29,7 +29,8 @@ from typing import Any, Callable, Optional, cast
 from skeinlib.hooks.runner import DBG
 from skeinlib.infra.board import render_board, render_task_board
 from skeinlib.utils.errors import SkeinError
-from skeinlib.task.model import PRIORITY_DEFAULT, PRIORITY_RANK, STATUS_ACTIVE, STATUS_ORDER, TaskStatus, TS_CHECKED_END, normalize_task_status, now
+from skeinlib.task.model import PRIORITY_DEFAULT, PRIORITY_RANK, STATUS_ACTIVE, STATUS_ORDER, TaskStatus, normalize_task_status, now
+from skeinlib.task.specfile import SPEC_KEYS, load_spec
 
 
 class TaskStore:
@@ -99,7 +100,7 @@ class TaskStore:
                   "confirmed": t.get("confirmed"),
                   "started": t.get("started"),
                   "checked": t.get("checked"),
-                  "checked_end": t.get(TS_CHECKED_END),
+                  "checked_end": t.get("checked_end"),
                   "finished": t.get("finished")} for t in self.all_tasks()]
         self.write_if_changed(self.dir / "task.json",
             json.dumps({"tasks": tasks}, ensure_ascii=False, indent=2))
@@ -109,13 +110,17 @@ class TaskStore:
         f = self.tasks / tid / "task.json"
         if not f.exists():
             raise SkeinError(f"task 不存在: {tid}")
-        return cast(dict[str, Any], json.loads(f.read_text()))
+        t = cast(dict[str, Any], json.loads(f.read_text()))
+        t.update(load_spec(self.tasks, tid))  # TaskSpec 真值在 prd.md frontmatter, 读侧注入
+        return t
 
     def save(self, t: dict[str, Any]) -> None:
         t["updated"] = now()
+        # TaskSpec 四字段不落 task.json (真值在 prd.md), save 时剥离注入键
+        stripped = {k: v for k, v in t.items() if k not in SPEC_KEYS}
         # 先算 diff 再写: 内容未变则跳过 (增量, 不全量覆盖 → 免无谓 IO/mtime 抖动)
         self.write_if_changed(self.tasks / t["id"] / "task.json",
-                               json.dumps(t, ensure_ascii=False, indent=2))
+                               json.dumps(stripped, ensure_ascii=False, indent=2))
         self._write_task_board(t)  # task.json 唯一写入口 → 同步渲染子任务看板, 免各调用点漏刷 (task.json 变更即同步 task.md)
 
     def all_tasks(self) -> list[dict[str, Any]]:
@@ -133,7 +138,7 @@ class TaskStore:
                     # 单个 task.json 损坏 (半写/手改坏) 不该炸整个看板: 跳过并告警, 其余 task 照常渲染
                     DBG.error(f"跳过损坏 {f}: {e}")
                     continue
-                out.append(t)
+                out.append({**t, **load_spec(self.tasks, d.name)})  # spec 注入 (prd.md 真值)
                 DBG.log(f"读 {f}  → id={t.get('id')} status={t.get('status')} "
                         f"subtasks={len(t.get('subtasks', []))} deps={t.get('deps') or '-'}", style="dim")
         # 状态优先排序 (进行中>检查中>待处理>已完成), 同状态内按优先级降序 (紧急>高>中>低), 同优先级按 id 序

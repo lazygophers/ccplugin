@@ -831,8 +831,7 @@ def test_search_hits_prd_content(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     (tdir / "task.json").write_text(
         '{"id": "prd-task", "name": "有 PRD", "status": "pending"}',
         encoding="utf-8")
-    (tdir / "prd.md").write_text("# PRD\n\n目标: 实现 X 功能\n\n验收标准:\n- [ ] 功能 A\n- [x] 功能 B\n",
-                                 encoding="utf-8")
+    (tdir / "prd.md").write_text("---\ndesc: 解决 X 问题\nboundary:\n  should:\n  - 范围内a\n  should_not: []\nestimate: 1\nacceptance:\n  - 用例通过\n---\n", encoding="utf-8")
 
     with _client(app) as c:
         r = c.get("/__skein__/search", params={"q": "功能"})

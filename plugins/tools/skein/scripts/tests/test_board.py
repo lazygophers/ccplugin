@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""skein.py 看板测试 — prd checklist 渲染 + 效率不变量 (零无谓写) + serve http 面。
+"""skein.py 看板测试 — TaskSpec 注入卡片 + 效率不变量 (零无谓写) + serve http 面。
 
 pytest 收集 test_*; 亦可 python3 test_board.py 直跑 (main)。
 
@@ -57,7 +57,7 @@ def test_prd_and_efficiency() -> None:
         d = Path(td)
         _init_ws(d)
         sk(d, "create", "prd-demo", "--name", "任务一", "--desc", "d")
-        (d / ".skein/task/prd-demo/prd.md").write_text(PRD)
+        (d / ".skein/task/prd-demo/prd.md").write_text("---\ndesc: 解决 X 问题\nboundary:\n  should:\n  - 范围内a\n  should_not: []\nestimate: 1\nacceptance:\n  - 用例通过\n---\n", encoding="utf-8")
         m = _load()
         cwd0 = os.getcwd()
         os.chdir(d)
@@ -71,25 +71,12 @@ def test_prd_and_efficiency() -> None:
             # 断言 —— 与 404 页面 (无 <main>, 见 assets/dist/404/index.html) 能明确区分。
             assert "<main" in html, "_webapp_html 应出 SPA 挂载点"
 
-            # --- prd 数据 (前端渲染, 校验 __SKEIN__ JSON 结构而非 HTML) ---
+            # --- TaskSpec 数据 (前端渲染, prd.md frontmatter 注入卡片) ---
             data = _view_board_data(sk_obj._snapshot())
             card = next(c for c in data["cards"] if c["id"] == "prd-demo")
-            prd = {s["name"]: s for s in card["prd"]}
-            assert set(prd) == {"目标", "验收标准"}, "prd 只应含 目标/验收标准 (边界节泄漏?)"
-            assert prd["目标"]["badge"] == [1, 2], "目标徽标/计数错 (TODO 未跳过?)"
-            assert prd["验收标准"]["badge"] == [1, 2], "验收标准徽标/计数错"
-
-            def items(name: str) -> dict[str, dict[str, Any]]:
-                return {i["text"]: i for i in prd[name]["items"]}
-            g, a = items("目标"), items("验收标准")
-            assert "TODO: 占位" not in g and "TODO: 占位" not in a, "TODO 占位未跳过 (泄漏到卡片)"
-            assert g["做A"]["kind"] == "check" and g["做A"]["done"] is True, "完成项状态错"
-            assert g["做B"]["kind"] == "check" and g["做B"]["done"] is False, "未完成项状态错"
-            # prose 行 (无 checkbox 段落): 目标/验收标准 一致渲 todo UI — proseCls 空 (不再打 .prose 去标记)
-            gp = g["定义中立配置 schema, 作单一真值。"]
-            ap = a["纯文本验收也要显示。"]
-            assert gp["kind"] == "prose" and gp["proseCls"] == "", "目标 prose 行应无 .prose (todo UI)"
-            assert ap["kind"] == "prose" and ap["proseCls"] == "", "验收标准 prose 行应无 .prose (todo UI)"
+            assert card["desc"] == "解决 X 问题", "spec desc 未注入卡片"
+            assert card["estimate"] == 1, "spec estimate 未注入卡片"
+            assert card["acceptance"] == ["用例通过"], "spec acceptance 未注入卡片"
 
             # --- 效率: _webapp_html() 零落盘 (实时渲染, 不写 task.html) ---
             assert not (d / ".skein/task.html").exists(), "_webapp_html() 不应落盘 task.html"
@@ -148,11 +135,11 @@ def test_cards_signature_covers_display_fields() -> None:
             assert sig() != base, "改 name (卡片标签) 未反映到签名"
 
             data["name"] = "旧名字"
-            data["desc"] = "新描述"
             tj.write_text(json.dumps(data))
-            assert sig() != base, "改 desc (hover 摘要) 未反映到签名"
+            prd = tj.parent / "prd.md"
+            prd.write_text(prd.read_text().replace("解决 X 问题", "新描述"), encoding="utf-8")
+            assert sig() != base, "改 desc (prd.md frontmatter, hover 摘要) 未反映到签名"
 
-            data["desc"] = "旧描述"
             data["deps"] = []
             tj.write_text(json.dumps(data))
             assert sig() != base, "改 deps (DAG 连线) 未反映到签名"
@@ -242,8 +229,7 @@ def test_serve_http() -> None:
         d = Path(td)
         _init_ws(d)
         sk(d, "create", "prd-demo", "--name", "任务一", "--desc", "d")
-        (d / ".skein/task/prd-demo/prd.md").write_text(
-            "# PRD\n## 目标\n- [x] G1\n- [ ] G2\n## 验收标准\n- [x] A1\n")
+        (d / ".skein/task/prd-demo/prd.md").write_text("---\ndesc: 解决 X 问题\nboundary:\n  should:\n  - 范围内a\n  should_not: []\nestimate: 1\nacceptance:\n  - 用例通过\n---\n", encoding="utf-8")
         lock = d / ".skein/.board-server.lock"
         proc = subprocess.Popen([sys.executable, str(SKEIN), "serve"], cwd=d,
                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

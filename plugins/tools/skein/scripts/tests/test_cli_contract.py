@@ -35,9 +35,8 @@ def _mk(cli: SkeinCli, ws: Path, tid: str = "demo", **kw: str) -> None:
 
 def _fill_planning(cli: SkeinCli, ws: Path, tid: str) -> None:
     """把 tid 填到 confirm 全绿 (prd 三段 + seam + subtask + estimate)。"""
-    for type_, text in (("goal", "目标一"), ("scope", "边界一"),
-                        ("acceptance", "验收一")):
-        cli(ws, "prd", "write", tid, "--type", type_, "--list", text)
+    cli(ws, "task", "spec", tid, "--desc", "目标一", "--should", "边界一",
+        "--acceptance", "验收一")
     cli(ws, "design", "seam", tid, "--list", "走 CLI 边界")
     cli(ws, "subtask", "add", tid, "st1", "--name", "干活", "--desc", "描述", "--estimate", "1")
     cli(ws, "task", "estimate", tid, "--set", "2")
@@ -74,7 +73,7 @@ def test_confirm_reports_all_gaps_at_once(skein_cli: SkeinCli, ws: Path) -> None
     r = skein_cli(ws, "task", "confirm", "demo", "--summary", check=False)
     assert r.returncode != 0
     msg = r.stdout + r.stderr
-    for want in ("subtask", "prd", "接缝", "工时"):
+    for want in ("subtask", "边界", "接缝", "工时"):
         assert want in msg, f"未就绪清单漏了「{want}」: {msg}"
 
 
@@ -202,30 +201,8 @@ def test_task_update_guess_gets_state_machine_hint(skein_cli: SkeinCli, ws: Path
 
 
 # ---------- 10. prd check 的 --list 是匹配串不是序号 ----------
-def test_prd_check_list_help_covers_both_forms(skein_cli: SkeinCli, ws: Path) -> None:
-    """write/add 的 --list 是内容, check 的 --list 是匹配串 —— 同名反义, help 必须点破;
-    序号形态现已受支持, help 也要写明, 免得调用方还得试一轮才知道。"""
-    out = skein_cli(ws, "prd", "check", "--help").stdout
-    assert "子串" in out and "第 N 条" in out, f"--list help 须写清两种形态: {out}"
 
 
-def test_prd_check_by_substring_or_index_works(skein_cli: SkeinCli, ws: Path) -> None:
-    """按原文子串勾选生效; 纯数字按第 N 条勾, 越界才报错。"""
-    _mk(skein_cli, ws)
-    skein_cli(ws, "prd", "write", "demo", "--type", "goal", "--list", "交付完整报告")
-    r = skein_cli(ws, "prd", "check", "demo", "--type", "goal", "--list", "9", check=False)
-    assert r.returncode != 0 and "越界" in r.stdout + r.stderr, f"越界序号应报错: {r.stdout}"
-    skein_cli(ws, "prd", "uncheck", "demo", "--type", "goal", "--list", "1")
-    skein_cli(ws, "prd", "check", "demo", "--type", "goal", "--list", "1")
-    body1 = json.loads(skein_cli(ws, "prd", "read", "demo", "--type", "goal").stdout)["body"]
-    assert "- [x] 交付完整报告" in body1, f"序号勾选未生效: {body1}"
-    skein_cli(ws, "prd", "uncheck", "demo", "--type", "goal", "--list", "交付完整报告")
-    skein_cli(ws, "prd", "check", "demo", "--type", "goal", "--list", "交付完整报告")
-    body = json.loads(skein_cli(ws, "prd", "read", "demo", "--type", "goal").stdout)["body"]
-    assert "- [x] 交付完整报告" in body, f"子串勾选未生效: {body}"
-
-
-# ---------- 11. flow run 调度契约 ----------
 def test_flow_run_claims_and_dispatches_without_running_agents(
     skein_cli: SkeinCli, ws: Path,
 ) -> None:
@@ -331,25 +308,6 @@ def test_unknown_option_error_lists_available_options(skein_cli: SkeinCli, ws: P
     assert "--set" in r.stdout + r.stderr, f"须列出可用选项: {r.stdout}{r.stderr}"
 
 
-def test_prd_read_without_type_returns_whole_doc(skein_cli: SkeinCli, ws: Path) -> None:
-    """`prd read <id>` 省略 --type = 读全文, 不再报 `Missing option '--type'`。"""
-    _mk(skein_cli, ws)
-    body = json.loads(skein_cli(ws, "prd", "read", "demo").stdout)["body"]
-    assert "## 目标" in body and "## 验收标准" in body, body
-
-
-def test_prd_write_accepts_paired_type_list(skein_cli: SkeinCli, ws: Path) -> None:
-    """`--type`/`--list` 成对重复 = 一回合写多章 (PRD 各段原本逐段调用)。"""
-    _mk(skein_cli, ws)
-    skein_cli(ws, "prd", "write", "demo",
-              "--type", "goal", "--list", "目标一",
-              "--type", "scope", "--list", "边界一")
-    body = json.loads(skein_cli(ws, "prd", "read", "demo").stdout)["body"]
-    assert "目标一" in body and "边界一" in body, body
-    bad = skein_cli(ws, "prd", "write", "demo", "--type", "goal", "--list", "a",
-                    "--type", "scope", check=False)
-    assert bad.returncode != 0
-    assert "成对" in bad.stdout + bad.stderr, f"不成对须说清收到几个: {bad.stdout}{bad.stderr}"
 
 
 def test_subtask_missing_sid_error_carries_usage(skein_cli: SkeinCli, ws: Path) -> None:
@@ -361,14 +319,6 @@ def test_subtask_missing_sid_error_carries_usage(skein_cli: SkeinCli, ws: Path) 
     assert "subtask add <tid> <sid>" in r.stdout + r.stderr, f"须带用法行: {r.stdout}{r.stderr}"
 
 
-def test_help_describes_repeatable_prd_types_and_subtask_add_options(
-        skein_cli: SkeinCli, ws: Path) -> None:
-    prd_help = skein_cli(ws, "prd", "write", "--help").stdout
-    assert "可重复传" in prd_help and "一次写多段" in prd_help, prd_help
-    subtask_help = skein_cli(ws, "subtask", "--help").stdout
-    add_usage = next(line for line in subtask_help.splitlines() if line.strip().startswith("add"))
-    assert "--check" in add_usage and "--phase" in add_usage, add_usage
-
 
 def test_unknown_command_error_lists_available_commands(skein_cli: SkeinCli, ws: Path) -> None:
     r = skein_cli(ws, "unknown", check=False)
@@ -378,39 +328,8 @@ def test_unknown_command_error_lists_available_commands(skein_cli: SkeinCli, ws:
 
 
 # ---------- 13. prd write 的覆盖必须可见 + `--list a b c` 收多条 ----------
-def test_prd_write_reports_cleared_items(skein_cli: SkeinCli, ws: Path) -> None:
-    """write 是整章清重建, 回显须报清掉几条/写进几条 —— 否则逐条 write 会静默丢数据。
-    占位 `- [ ] TODO:` 是模板初始态, 不计入 cleared。"""
-    _mk(skein_cli, ws)
-    first = json.loads(skein_cli(ws, "prd", "write", "demo", "--type", "acceptance",
-                                 "--list", "验收一\\n验收二\\n验收三").stdout)
-    assert first["written"] == 3, first
-    assert first["cleared"] == 0, f"清的是 TODO 占位, 不该报警: {first}"
-    second = json.loads(skein_cli(ws, "prd", "write", "demo", "--type", "acceptance",
-                                  "--list", "验收四").stdout)
-    assert (second["cleared"], second["written"]) == (3, 1), f"须报清掉 3 条只写 1 条: {second}"
 
 
-def test_prd_write_accepts_bare_positional_items(skein_cli: SkeinCli, ws: Path) -> None:
-    """`--list "a" "b" "c"` 不再报 unexpected extra argument, 三条并入同一段一次写完。
-    与 --type/--list 成对重复共存: 位置参数只并入最后一个 --list。"""
-    _mk(skein_cli, ws)
-    out = json.loads(skein_cli(ws, "prd", "write", "demo", "--type", "acceptance",
-                               "--list", "验收一", "验收二", "验收三").stdout)
-    assert out["written"] == 3, out
-    body = json.loads(skein_cli(ws, "prd", "read", "demo", "--type", "acceptance").stdout)["body"]
-    assert all(x in body for x in ("验收一", "验收二", "验收三")), body
-
-    skein_cli(ws, "prd", "write", "demo",
-              "--type", "goal", "--list", "目标一",
-              "--type", "scope", "--list", "边界一", "边界二")
-    goal = json.loads(skein_cli(ws, "prd", "read", "demo", "--type", "goal").stdout)["body"]
-    scope = json.loads(skein_cli(ws, "prd", "read", "demo", "--type", "scope").stdout)["body"]
-    assert "目标一" in goal and "边界二" not in goal, goal
-    assert "边界一" in scope and "边界二" in scope, scope
-
-
-# ── 全局 --pretty 渲染 ──────────────────────────────────────────────────────
 def test_strip_global_flags_pretty() -> None:
     """-p/--pretty 是全局 flag: strip 出四元组, argv 中移除。"""
     from skeinlib.cli.main import _strip_global_flags

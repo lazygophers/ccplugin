@@ -14,10 +14,11 @@ from typing import Any, Callable, Optional, Protocol, cast
 from skeinlib.task.dag import _pending_queue, _sub_pct, _task_pct, _task_stage
 from skeinlib.task.model import (PRIORITY_DEFAULT, SubtaskStatus, STATUS_ACTIVE, STATUS_INFLIGHT, STATUS_ORDER, TaskStatus, now)
 from skeinlib.task.timeline import fmt_ts as _fmt_ts
+from skeinlib.task.specfile import load_spec
 
 class Snapshot:
     """一次目录扫描的 task/subtask 内存快照 — board 视图的统一输入。
-    惰性: tasks(渲染源)/all_tasks(严格真值) 首次访问才扫盘并缓存; prd/design/task.json 按需读 (task_path/prd_path)。
+    惰性: tasks(渲染源)/all_tasks(严格真值) 首次访问才扫盘并缓存; design/task.json 按需读 (task_path)。
     → task_detail 只碰路径不触发全量扫描 (旧行为), 其余视图访问 .tasks 时才实扫。
     dep_unfinished 由缓存态 O(1) 判定 (取代逐 dep 读盘)。构造经 Skein._snapshot(), 每请求一次。"""
 
@@ -73,56 +74,12 @@ class Snapshot:
     def task_path(self, tid: str) -> Path:
         return self._tasks_dir / tid
 
-    def prd_path(self, tid: str) -> Path:
-        return self._tasks_dir / tid / "prd.md"
-
     def archived_path(self, tid: str) -> Optional[Path]:
         hits = list(self.archive_dir.glob(f"*/*/{tid}")) if self.archive_dir.exists() else []
         return hits[0] if hits else None
-def _prd_data(snap: Snapshot, tid: str) -> list[dict[str, Any]]:
-    prd = snap.prd_path(tid)
-    return _prd_parse(prd.read_text(encoding="utf-8", errors="replace")) if prd.exists() else []
-def _prd_parse(text: Optional[str]) -> list[dict[str, Any]]:
-    # 解析 prd.md 目标/边界/验收标准 三节: checklist (勾选态) + prose 直显; 跳 TODO 占位
-    if not text:
-        return []
-    secs: dict[str, list[tuple[str, bool, str]]] = {}
-    cur: Optional[str] = None
-    _prd_sections = ("目标", "边界", "验收标准")
-    for ln in text.splitlines():
-        h = re.match(r"^#{1,6}\s+(.+?)\s*$", ln)
-        if h:
-            cur = h.group(1).strip() if h.group(1).strip() in _prd_sections else None
-            continue
-        if not cur:
-            continue
-        m = re.match(r"^\s*[-*]\s+\[([ xX])\]\s+(.+?)\s*$", ln)
-        if m:
-            txt = m.group(2).strip()
-            if not txt.lstrip().startswith("TODO"):
-                secs.setdefault(cur, []).append(("check", m.group(1).lower() == "x", txt))
-            continue
-        txt = re.sub(r"^\s*[-*]\s+", "", ln).strip()
-        if txt and not txt.lstrip().startswith("TODO"):
-            secs.setdefault(cur, []).append(("prose", False, txt))
-    out: list[dict[str, Any]] = []
-    for name in ("目标", "边界", "验收标准"):
-        items = secs.get(name)
-        if not items:
-            continue
-        checks = [d for k, d, _ in items if k == "check"]
-        badge: Optional[list[int]] = [sum(1 for c in checks if c), len(checks)] if checks else None
-        prose_cls = ""  # 目标/验收标准 一致: 非 checkbox 行也渲 todo ○/● 标记 (不再对验收段打 .prose 去标记)
-        out.append({
-            "name": name, "badge": badge,
-            "items": [{"kind": k, "done": bool(d), "text": tt,
-                       "proseCls": ("" if k == "check" else prose_cls)}
-                      for k, d, tt in items],
-        })
-    return out
 def _view_board_data(snap: Snapshot) -> dict[str, Any]:
     # 结构化看板数据 (GET /__skein__/data); 呈现全由 webapp 前端做。
-    # 业务逻辑 (pct/耗时/聚合/next-up/prd 解析) 留此当数据, 不拼 HTML; DAG 由前端从 cards 推。
+    # 业务逻辑 (pct/耗时/聚合/next-up) 留此当数据, 不拼 HTML; DAG 由前端从 cards 推。
     # git 仓库用户名 (作为默认负责人)
     # 直接 subprocess 读 git config, 不经 worktree.git — 免 views → worktree 跨层依赖 (ADR 0003 S7)
     import subprocess as _sp
@@ -245,6 +202,8 @@ def _view_board_data(snap: Snapshot) -> dict[str, Any]:
             "finished": t.get("finished"),
             "elapsed": elapsed_of(t),
             "estimate": t.get("estimate"),  # task 预计工时(小时) = Σ subtask + plan/check 自身开销
+            "boundary": t.get("boundary") or {},  # TaskSpec 边界 (prd.md frontmatter 注入)
+            "acceptance": t.get("acceptance") or [],  # TaskSpec 验收项
             "priority": t.get("priority") or PRIORITY_DEFAULT,  # 看板卡片/详情面板优先级 (真实值; 未存则中档)
             "sdone": sdone, "stotal": len(subs), "spct": task_pct(t),
             "subtable": subtable,
@@ -268,7 +227,7 @@ def _view_board_data(snap: Snapshot) -> dict[str, Any]:
         "cards": cards,
     }
 def _view_task_detail(snap: Snapshot, tid: str) -> Optional[dict[str, Any]]:
-    # task.json 全文 + prd/design/findings 原文 + subtask; 未归档缺失则回落归档目录
+    # task.json 全文 (含注入的 TaskSpec) + prd/design/findings 原文 + subtask; 未归档缺失则回落归档目录
     tdir = snap.task_path(tid)
     archived = False
     if not (tdir / "task.json").exists():
@@ -303,11 +262,12 @@ def _view_task_detail(snap: Snapshot, tid: str) -> Optional[dict[str, Any]]:
             dep_tasks.append(brief)
         if tid in t.get("deps", []):
             dependents.append(brief)
-    return {"task": data, "docs": docs, "research": research, "archived": archived,
+    return {"task": {**data, **load_spec(tdir.parent, data.get("id") or tid)},
+            "docs": docs, "research": research, "archived": archived,
             "subtasks": data.get("subtasks", []),
             "timeline": data.get("timeline", []),  # 原样带出, 不聚合; 老 task 缺字段回落空列表
             "maxActive": snap.pool_work,  # 前端 ETA 折算并行墙钟用
-            "prd": _prd_parse(docs.get("prd")), "progress": _task_pct(data),
+            "progress": _task_pct(data),
             "stage": _task_stage(data), "depTasks": dep_tasks, "dependents": dependents}
 def _view_archive_list(snap: Snapshot) -> list[dict[str, Any]]:
     # 已归档 task 列表 (archive/<年>/<月-日>/<id>)
@@ -477,7 +437,7 @@ def _view_queue(snap: Snapshot) -> dict[str, Any]:
             "readyTasks": ready_tasks, "readySubtasks": ready_subs,
             "activeTasks": active_tasks, "runningSubs": running_subs}
 def _view_search(snap: Snapshot, q: Any) -> dict[str, Any]:
-    # 跨 task/subtask/prd/spec 关键词 (子串, 不分词): 命中即返回一条 {kind,id,name,snippet}
+    # 跨 task/subtask/spec 关键词 (子串, 不分词): 命中即返回一条 {kind,id,name,snippet}
     q = (q or "").strip().lower()
     if not q:
         return {"query": q, "hits": []}
@@ -490,10 +450,6 @@ def _view_search(snap: Snapshot, q: Any) -> dict[str, Any]:
             if q in " ".join(str(x or "") for x in (s["sid"], s.get("name", ""), s.get("desc", ""))).lower():
                 hits.append({"kind": "subtask", "id": f'{t["id"]}/{s["sid"]}',
                              "name": s.get("name", s["sid"]), "snippet": s.get("desc", "")})
-        prd = snap.prd_path(t["id"])
-        if prd.exists() and q in prd.read_text(encoding="utf-8", errors="replace").lower():
-            hits.append({"kind": "prd", "id": t["id"],
-                         "name": f'{t.get("name", t["id"])} · PRD', "snippet": ""})
     root = snap.spec_root
     if root.exists():
         for f in sorted(root.rglob("*.md")):
@@ -552,7 +508,7 @@ def _spec_frontmatter(text: str) -> tuple[dict[str, Any], str]:
 def _cards_signature(data: dict[str, Any]) -> dict[str, tuple[Any, ...]]:
     # 取 cards 关键字段做 signature (变即推 task-changed)。
     # 取舍判据: 只收「会出现在卡片视觉上的展示字段」(标签/hover 摘要/DAG 连线), 逐字段判 —— 不做整结构深
-    # 比 (deep-diff subtable/prd 等嵌套明细会让开销随 task 数 x 描述长度一起涨, 详见 design.md「变更签名的取舍」)。
+    # 比 (deep-diff subtable 等嵌套明细会让开销随 task 数 x 描述长度一起涨, 详见 design.md「变更签名的取舍」)。
     # name/desc/deps 会画到看板卡片标签、hover 摘要或 DAG 连线上, 故补入; assignee/estimate 只出现在选中态
     # 详情侧栏 (非卡片本体), 排除。
     # ponytail: O(n) n=task 数, 每字段一次浅比较, 非深比。

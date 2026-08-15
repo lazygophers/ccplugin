@@ -41,11 +41,7 @@ def _add_sub(sk: Skein, tid: str, sid: str, **over: Any) -> dict[str, Any]:
 
 def _fill_prd(ws: Path, tid: str) -> None:
     d = ws / ".skein" / "task" / tid
-    (d / "prd.md").write_text(
-        f"# {tid} — PRD\n\n"
-        "## 目标\n- 解决 X\n\n"
-        "## 边界\n- 范围内: a\n\n"
-        "## 验收标准\n- 用例通过\n\n", encoding="utf-8")
+    (d / "prd.md").write_text("---\ndesc: 解决 X 问题\nboundary:\n  should:\n  - 范围内a\n  should_not: []\nestimate: 1\nacceptance:\n  - 用例通过\n---\n", encoding="utf-8")
     (d / "design.md").write_text(
         f"# {tid} — 详细设计\n\n## 测试接缝 (seam)\n- [x] API 层\n", encoding="utf-8")
 
@@ -121,41 +117,7 @@ def test_workspace_sub_raises_on_unknown_sid(ws: Path, monkeypatch: pytest.Monke
 
 
 # ── artifacts: prd / design ───────────────────────────────────────────
-def test_artifacts_prd_read_without_type_reads_full(ws: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """prd read 不带 --type 时读取全文。"""
-    sk = _skein(ws, monkeypatch)
-    _create(sk, "feat-x")
-    _fill_prd(ws, "feat-x")
-    out = sk.artifacts.prd(_ns(id="feat-x", action="read", type=None))
-    assert out["section"] == "全文"
-    assert "## 目标" in out["body"]
 
-
-def test_artifacts_prd_write_with_clear(ws: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """prd write 时覆盖了既有条目，返回 cleared>0。"""
-    sk = _skein(ws, monkeypatch)
-    _create(sk, "feat-x")
-    _fill_prd(ws, "feat-x")
-    out = sk.artifacts.prd(_ns(id="feat-x", action="write", type="目标",
-                                list="新目标内容"))
-    assert out["cleared"] > 0  # 覆盖了原有的 "- 解决 X"
-
-
-def test_artifacts_prd_check_and_uncheck(ws: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """prd check/uncheck 切换验收标准勾选状态。"""
-    sk = _skein(ws, monkeypatch)
-    _create(sk, "feat-x")
-    # 先写入验收标准条目
-    sk.artifacts.prd(_ns(id="feat-x", action="write", type="验收标准",
-                         list="- [ ] 条目一\n- [ ] 条目二"))
-    # check 勾选第一条
-    check_out = sk.artifacts.prd(_ns(id="feat-x", action="check", type="验收标准",
-                                     list="条目一"))
-    assert check_out["matched"] == 1
-    # uncheck 取消勾选
-    uncheck_out = sk.artifacts.prd(_ns(id="feat-x", action="uncheck", type="验收标准",
-                                       list="条目一"))
-    assert uncheck_out["matched"] == 1
 
 
 def test_artifacts_design_seam_write(ws: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -167,33 +129,7 @@ def test_artifacts_design_seam_write(ws: Path, monkeypatch: pytest.MonkeyPatch) 
     assert out["items"] == 2
 
 
-def test_artifacts_fmt_no_changes(ws: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """fmt 对已规范的 PRD 不做修改。"""
-    sk = _skein(ws, monkeypatch)
-    _create(sk, "feat-x")
-    _fill_prd(ws, "feat-x")
-    # 先格式化一次
-    sk.artifacts.fmt(_ns(id="feat-x"))
-    # 再格式化，应无变化
-    out = sk.artifacts.fmt(_ns(id="feat-x"))
-    assert out["formatted"] is False
-    assert out["changes"] == 0
 
-
-def test_artifacts_prd_rejects_invalid_type(ws: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """prd 拒绝非法的 --type 值。"""
-    sk = _skein(ws, monkeypatch)
-    _create(sk, "feat-x")
-    with pytest.raises(SkeinError, match="非法 --type"):
-        sk.artifacts.prd(_ns(id="feat-x", action="read", type="非法章节"))
-
-
-def test_artifacts_prd_requires_list_for_write(ws: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """prd write/add 需要 --list 参数。"""
-    sk = _skein(ws, monkeypatch)
-    _create(sk, "feat-x")
-    with pytest.raises(SkeinError, match="需要 --list"):
-        sk.artifacts.prd(_ns(id="feat-x", action="write", type="目标", list=None))
 
 
 def test_artifacts_design_unknown_action(ws: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -204,16 +140,7 @@ def test_artifacts_design_unknown_action(ws: Path, monkeypatch: pytest.MonkeyPat
         sk.artifacts.design(_ns(id="feat-x", action="unknown"))
 
 
-def test_artifacts_prd_unknown_action(ws: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """prd 拒绝未知 action。"""
-    sk = _skein(ws, monkeypatch)
-    _create(sk, "feat-x")
-    # 需要提供 list 参数来通过参数检查，然后在 action 判断时报错
-    with pytest.raises(SkeinError, match="未知 prd 动作"):
-        sk.artifacts.prd(_ns(id="feat-x", action="unknown", type="目标", list="测试"))
 
-
-# ── query: ready / list status ───────────────────────────────────────────────────
 def test_query_ready_filters_by_deps(ws: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """ready 只出待处理且前置全完成的 task。"""
     sk = _skein(ws, monkeypatch)

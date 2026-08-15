@@ -82,7 +82,7 @@ def test_finish_candidates_anchor_match(mem_ws: Path, monkeypatch: pytest.Monkey
     tdir = mem_ws / ".skein" / "task" / "feat-login"
     tdir.mkdir(parents=True)
     (tdir / "task.json").write_text(json.dumps({"id": "feat-login", "status": "active", "subtasks": []}))
-    (tdir / "prd.md").write_text("# PRD\nGoal: implement login\n")
+    (tdir / "prd.md").write_text("---\ndesc: 解决 X 问题\nboundary:\n  should:\n  - 范围内a\n  should_not: []\nestimate: 1\nacceptance:\n  - 用例通过\n---\n", encoding="utf-8")
     s = Spec()
     s.finish_candidates(argparse.Namespace(tid="feat-login", json=True, files="src/auth.py"))
 
@@ -96,7 +96,7 @@ def test_finish_candidates_no_anchors_keyword_recall(mem_ws: Path, monkeypatch: 
     tdir = mem_ws / ".skein" / "task" / "feat-x"
     tdir.mkdir(parents=True)
     (tdir / "task.json").write_text(json.dumps({"id": "feat-x", "status": "active", "subtasks": []}))
-    (tdir / "prd.md").write_text("# PRD\nGoal: auth login\nScope: login feature\n")
+    (tdir / "prd.md").write_text("---\ndesc: 解决 X 问题\nboundary:\n  should:\n  - 范围内a\n  should_not: []\nestimate: 1\nacceptance:\n  - 用例通过\n---\n", encoding="utf-8")
     s = Spec()
     s.finish_candidates(argparse.Namespace(tid="feat-x", json=True, files=None))
 

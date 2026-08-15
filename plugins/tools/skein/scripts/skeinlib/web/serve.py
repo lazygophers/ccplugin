@@ -230,7 +230,7 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
         # 数据变 (task.json + 文档) → 两路:
         #   (a) _cards_signature diff 命中 (status/计数/字段) → 逐 task id 推 {type:"task-changed", id, card}
         #       (card 含看板卡片全字段 + subtable, board 页 + detail 页据此增量刷新)。
-        #   (b) 卡片 sig 无差异但 _task_mtimes 变 (prd/design/findings/research 编辑) → 仍推 task-changed,
+        #   (b) 卡片 sig 无差异但 _task_mtimes 变 (design/findings/research 编辑) → 仍推 task-changed,
         #       card 用当前快照 (让 detail 页 load() 重拉富内容); board 卡片 sig 未变 → spread 合并是 no-op, 安全。
         #   (c) 兜底: 都无差异 (仅 mtime 变内容未变) → 推 {type:"data"} 全订阅软刷。
         # spec 变 (.skein/spec/*.md) → 推 {type:"spec-changed", path:""}; path 暂空 (spec 页全订阅, 不细粒度)。
@@ -547,13 +547,9 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
     def _task_clean(request: Request) -> Any:
         return _cli_from_cmd("clean", _body(request))
 
-    @app.post("/__skein__/task/prd")
-    def _task_prd(request: Request) -> Any:
-        return _cli_from_cmd("prd", _body(request))
-
     @app.post("/__skein__/task/design-save")
     def _task_design_save(request: Request) -> Any:
-        # design.md 全文直写 (web 端编辑详细设计)。prd.md 走 CLI (勾选格式有语义), design.md 无此约束直写。
+        # design.md 全文直写 (web 端编辑详细设计, 无格式语义约束)。
         body = _body(request)
         tid, content = body.get("id"), body.get("content", "")
         if not isinstance(tid, str) or not re.fullmatch(r"[\w.-]+", tid):

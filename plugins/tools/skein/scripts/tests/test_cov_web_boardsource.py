@@ -270,7 +270,7 @@ def test_task_mtimes_aggregates_max_mtime(tmp_path: Path) -> None:
     # 稍后写入 prd.md (mtime 更大)
     import time
     time.sleep(0.01)
-    (tdir / "prd.md").write_text("# PRD\n", encoding="utf-8")
+    (tdir / "prd.md").write_text("---\ndesc: 解决 X 问题\nboundary:\n  should:\n  - 范围内a\n  should_not: []\nestimate: 1\nacceptance:\n  - 用例通过\n---\n", encoding="utf-8")
 
     mtimes = board._task_mtimes()
     assert "t1" in mtimes
@@ -288,7 +288,7 @@ def test_data_rev_includes_docs_and_json(tmp_path: Path) -> None:
     tdir = board.tasks / "t1"
     tdir.mkdir()
     (tdir / "task.json").write_text('{"id": "t1"}', encoding="utf-8")
-    (tdir / "prd.md").write_text("# PRD\n", encoding="utf-8")
+    (tdir / "prd.md").write_text("---\ndesc: 解决 X 问题\nboundary:\n  should:\n  - 范围内a\n  should_not: []\nestimate: 1\nacceptance:\n  - 用例通过\n---\n", encoding="utf-8")
 
     import time
     time.sleep(0.01)

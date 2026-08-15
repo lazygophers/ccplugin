@@ -22,15 +22,11 @@ from typing import Any, Callable, Optional, cast
 
 import pytest
 
-from skeinlib.infra.board import (_subtask_status_label, _task_status_label, render_board,
-                                  render_task_board)
+from skeinlib.infra.board import render_board, render_task_board
 from skeinlib.task.model import SubtaskStatus, TaskStatus
 from skeinlib.utils.paths import SCRIPTS_DIR
 from skeinlib.web.boardsource import BoardSourceMixin
-from skeinlib.web.views import (Snapshot, _prd_parse, _spec_frontmatter, _view_archive,
-                                _view_archive_list, _view_board_data, _view_search,
-                                _view_task_detail)
-from skeinlib.web.views import (Snapshot, _prd_parse, _spec_frontmatter, _view_archive,
+from skeinlib.web.views import (Snapshot, _spec_frontmatter, _view_archive,
                                 _view_archive_list, _view_board_data, _view_search,
                                 _view_task_detail)
 
@@ -45,24 +41,16 @@ def _t(tid: str, status: str = TaskStatus.PENDING, **kw: Any) -> dict[str, Any]:
     return base
 
 
-def test_status_label_falls_back_to_raw_string() -> None:
-    # 合法枚举 → 中文展示名; 非法值 (老盘/脏数据) → 原样字符串, 不抛 ValueError
-    assert _task_status_label(TaskStatus.DONE) == "已完成"
-    assert _task_status_label("外星状态") == "外星状态"
-    assert _subtask_status_label(SubtaskStatus.RUNNING) == "运行中"
-    assert _subtask_status_label("外星状态") == "外星状态"
-
-
 def test_render_board_empty_and_worktree_column() -> None:
     # 无 task → 占位空行; wt_shown 决定表头/空行是 4 列还是 5 列
     assert "| - | - | - | - |\n" in render_board([], wt_shown=False)
     assert "| - | - | - | - | - |\n" in render_board([], wt_shown=True)
     assert "worktree" not in render_board([], wt_shown=False)
-    # 有 task 且开 worktree 列: 无 worktree 字段回落 "-"
+    # 有 task 且开 worktree 列: 无 worktree 字段回落 "-"; 状态列直接落英文 enum 值 (中文归前端)
     out = render_board([_t("t1", TaskStatus.ACTIVE, deps=["t0"], worktree="/wt/t1"),
                         _t("t2")], wt_shown=True)
-    assert "| t1 | 名-t1 | 进行中 | t0 | /wt/t1 |" in out
-    assert "| t2 | 名-t2 | 待处理 | - | - |" in out
+    assert "| t1 | 名-t1 | active | t0 | /wt/t1 |" in out
+    assert "| t2 | 名-t2 | pending | - | - |" in out
 
 
 def test_render_task_board_rows_and_empty() -> None:
@@ -76,8 +64,8 @@ def test_render_task_board_rows_and_empty() -> None:
         {"sid": "s2", "name": "子二", "status": SubtaskStatus.PENDING},
     ])
     out = render_task_board(t, work_active=1, gate_active=1)
-    assert "| s1 | 子一 | 已完成 | 100% | py | s0 | 能跑; 有测 |" in out
-    assert "| s2 | 子二 | 待处理 | 2% | - | - | - |" in out
+    assert "| s1 | 子一 | done | 100% | py | s0 | 能跑; 有测 |" in out
+    assert "| s2 | 子二 | pending | 2% | - | - | - |" in out
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -123,19 +111,6 @@ def test_dep_unfinished_without_archive_dir(tmp_path: Path) -> None:
     assert snap.archived_path("a") is None
 
 
-def test_prd_parse_sections_and_todo_skip() -> None:
-    # 只有「目标」一节 → 输出只含该节 (「验收标准」缺失时跳过, 不产空壳)
-    out = _prd_parse("# 目标\n- [x] 已做\n- [ ] 未做\n散文行\n- TODO 占位\n")
-    assert [s["name"] for s in out] == ["目标"]
-    assert out[0]["badge"] == [1, 2]
-    kinds = [(i["kind"], i["done"], i["text"]) for i in out[0]["items"]]
-    assert kinds == [("check", True, "已做"), ("check", False, "未做"), ("prose", False, "散文行")]
-    # 空文本 / None → 空列表
-    assert _prd_parse("") == [] and _prd_parse(None) == []
-    # 只有 prose 行 → badge 为 None (无 checkbox 不显示进度徽标)
-    prose_only = _prd_parse("## 验收标准\n全部人工验收\n")
-    assert prose_only[0]["badge"] is None
-
 
 def test_board_data_survives_git_failure_and_missing_timestamps(
         tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -169,7 +144,7 @@ def test_task_detail_research_docs_and_dependents(tmp_path: Path) -> None:
     (d / "research").mkdir(parents=True)
     (d / "task.json").write_text(json.dumps({"id": "t1", "status": TaskStatus.ACTIVE,
                                              "deps": ["t0"]}), encoding="utf-8")
-    (d / "prd.md").write_text("# 目标\n- [ ] 甲\n", encoding="utf-8")
+    (d / "prd.md").write_text("---\ndesc: 解决 X 问题\nboundary:\n  should:\n  - 范围内a\n  should_not: []\nestimate: 1\nacceptance:\n  - 用例通过\n---\n", encoding="utf-8")
     (d / "research" / "b.md").write_text("笔记B", encoding="utf-8")
     (d / "research" / "a.md").write_text("笔记A", encoding="utf-8")
     snap = _mk_snap(tmp_path, all_tasks=[
@@ -184,7 +159,6 @@ def test_task_detail_research_docs_and_dependents(tmp_path: Path) -> None:
     assert [x["id"] for x in det["dependents"]] == ["t2"]
     assert det["docs"]["design"] is None and det["docs"]["prd"].startswith("# 目标")
     assert det["archived"] is False
-    assert det["prd"][0]["name"] == "目标"
 
 
 def test_archive_views_skip_incomplete_dirs(tmp_path: Path) -> None:
@@ -212,22 +186,21 @@ def test_archive_views_without_archive_dir(tmp_path: Path) -> None:
     assert _view_archive(snap) == {"tasks": []}
 
 
-def test_view_search_hits_subtask_prd_and_spec(tmp_path: Path) -> None:
-    # 命中四类: task / subtask / prd 正文 / spec 文件; index.md 是衍生索引, 不进结果
+def test_view_search_hits_subtask_and_spec(tmp_path: Path) -> None:
+    # 命中三类: task / subtask / spec 文件; index.md 是衍生索引, 不进结果
     spec = tmp_path / "spec" / "rules"
     spec.mkdir(parents=True)
     (spec / "index.md").write_text("关键词", encoding="utf-8")   # 衍生索引 → 跳过
     (spec / "r1.md").write_text("含关键词的规则", encoding="utf-8")
     d = tmp_path / "task" / "t1"
     d.mkdir(parents=True)
-    (d / "prd.md").write_text("prd 里也有关键词", encoding="utf-8")
     snap = _mk_snap(tmp_path, [_t("t1", TaskStatus.ACTIVE, desc="关键词描述", subtasks=[
         {"sid": "s1", "name": "子", "desc": "带关键词的子任务", "status": SubtaskStatus.PENDING},
         {"sid": "s2", "name": "子二", "desc": "无关", "status": SubtaskStatus.PENDING},
     ])])
     hits = _view_search(snap, "关键词")["hits"]
     assert [(h["kind"], h["id"]) for h in hits] == [
-        ("task", "t1"), ("subtask", "t1/s1"), ("prd", "t1"), ("spec", "rules/r1.md")]
+        ("task", "t1"), ("subtask", "t1/s1"), ("spec", "rules/r1.md")]
     # 空查询 → 直接短路, 不扫盘
     assert _view_search(snap, "  ") == {"query": "", "hits": []}
     assert _view_search(snap, None) == {"query": "", "hits": []}

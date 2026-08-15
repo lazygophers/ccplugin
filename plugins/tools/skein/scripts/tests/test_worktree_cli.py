@@ -32,12 +32,8 @@ def _mk(skein_cli: SkeinCli, ws: Path, tid: str = "feat-wt", *, sub: bool = True
 
 
 def _fill_prd(ws: Path, tid: str) -> None:
-    """写一份规范 prd.md + design.md (三段齐 + 无 TODO 占位), 过 confirm 的 _validate_prd + _validate_seam 门。"""
-    (ws / ".skein" / "task" / tid / "prd.md").write_text(
-        f"# {tid} — PRD\n\n"
-        "## 目标\n- 解决 X 问题\n\n"
-        "## 边界\n- 范围内: a\n\n"
-        "## 验收标准\n- 用例通过\n\n")
+    """写齐 prd.md frontmatter (TaskSpec 四要素) + design 接缝, 过 confirm 的 planning 硬门。"""
+    (ws / ".skein" / "task" / tid / "prd.md").write_text("---\ndesc: 解决 X 问题\nboundary:\n  should:\n  - 范围内a\n  should_not: []\nestimate: 1\nacceptance:\n  - 用例通过\n---\n", encoding="utf-8")
     (ws / ".skein" / "task" / tid / "design.md").write_text(
         f"# {tid} — 详细设计\n\n"
         "## 测试接缝 (seam)\n- [x] API 层\n")
@@ -229,7 +225,7 @@ def test_cli_create_parse_name_desc_repos(skein_cli: SkeinCli, ws: Path) -> None
     skein_cli(ws, "create", "feat-p", "--name", "N", "--desc", "D", "--repos", "x,y")
     t = _task_json(ws, "feat-p")
     assert t["name"] == "N"
-    assert t["desc"] == "D"
+    assert "desc: D" in (ws / ".skein" / "task" / "feat-p" / "prd.md").read_text()
     assert t["repos"] == ["x", "y"]
 
 

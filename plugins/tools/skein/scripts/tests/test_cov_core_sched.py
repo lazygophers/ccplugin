@@ -61,13 +61,9 @@ def _sub_act(sk: Skein, action: str, tid: str, sid: str = "", **over: Any) -> di
 
 
 def _fill_prd(ws: Path, tid: str) -> None:
-    """写齐 prd 三段 + design 接缝 (无 TODO 占位), 过 confirm 的 planning 硬门。"""
+    """写齐 prd.md frontmatter (TaskSpec 四要素) + design 接缝, 过 confirm 的 planning 硬门。"""
     d = ws / ".skein" / "task" / tid
-    (d / "prd.md").write_text(
-        f"# {tid} — PRD\n\n"
-        "## 目标\n- 解决 X\n\n## 边界\n- 范围内: a\n\n"
-        "## 验收标准\n- 用例通过"
-, encoding="utf-8")
+    (d / "prd.md").write_text("---\ndesc: 解决 X 问题\nboundary:\n  should:\n  - 范围内a\n  should_not: []\nestimate: 1\nacceptance:\n  - 用例通过\n---\n", encoding="utf-8")
     (d / "design.md").write_text(
         f"# {tid} — 详细设计\n\n## 测试接缝 (seam)\n- [x] API 层\n", encoding="utf-8")
 
@@ -791,8 +787,8 @@ def test_create_like_clones_planning(ws: Path, monkeypatch: pytest.MonkeyPatch) 
     _write(ws, t)
     out = _create(sk, "cron-run2", like="cron-src")
     assert out["cloned_from"] == "cron-src"
-    new = _load(ws, "cron-run2")
-    assert new["estimate"] == 4, "src 的 estimate 跟着继承"
+    new_prd = (ws / ".skein" / "task" / "cron-run2" / "prd.md").read_text()
+    assert "desc: 解决 X" in new_prd, "src 的 TaskSpec 跟着继承"
     s = new["subtasks"][0]
     assert s["status"] == SubtaskStatus.PENDING and s["finished"] is None
     assert "note" not in s and s["acceptance_done"] == []
@@ -913,7 +909,7 @@ def test_confirm_without_review_is_rejected(ws: Path, monkeypatch: pytest.Monkey
     _add_sub(sk, "feat-x", "sub-a")
     _fill_prd(ws, "feat-x")
     sk.lifecycle.estimate(_ns(id="feat-x", set="8"))
-    with pytest.raises(SkeinError, match="需用户审核 PRD"):
+    with pytest.raises(SkeinError, match="需用户审核规划"):
         sk.lifecycle.confirm(_ns(id="feat-x", approved=False, unattended=False, summary=False))
 
 

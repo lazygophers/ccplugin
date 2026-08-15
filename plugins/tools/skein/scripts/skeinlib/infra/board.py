@@ -10,21 +10,8 @@ from __future__ import annotations
 from typing import Any
 
 from skeinlib.task.dag import _sub_pct
-from skeinlib.task.model import SUBTASK_STATUS_DISPLAY, TASK_STATUS_DISPLAY, SubtaskStatus, TaskStatus
 
-
-def _task_status_label(value: Any) -> str:
-    try:
-        return TASK_STATUS_DISPLAY[TaskStatus(value)]
-    except ValueError:
-        return str(value)
-
-
-def _subtask_status_label(value: Any) -> str:
-    try:
-        return SUBTASK_STATUS_DISPLAY[SubtaskStatus(value)]
-    except ValueError:
-        return str(value)
+# 状态直接落英文 enum 值 (中文展示归前端 assets/nextjs/src/components/status.tsx)
 
 
 def render_board(tasks: list[dict[str, Any]], wt_shown: bool) -> str:
@@ -33,7 +20,7 @@ def render_board(tasks: list[dict[str, Any]], wt_shown: bool) -> str:
 
     def row(t: dict[str, Any]) -> str:
         deps = ",".join(t.get("deps", [])) or "-"
-        base = f"| {t['id']} | {t['name']} | {_task_status_label(t['status'])} | {deps} |"
+        base = f"| {t['id']} | {t['name']} | {t['status']} | {deps} |"
         return f"{base} {t.get('worktree') or '-'} |" if wt_shown else base
 
     body = "\n".join(row(t) for t in tasks) if tasks else empty
@@ -58,7 +45,7 @@ def render_task_board(t: dict[str, Any], work_active: int, gate_active: int) -> 
         deps = ",".join(s.get("depends_on", [])) or "-"
         chk = "; ".join(s.get("acceptance", [])) or "-"
         sk = ",".join(s.get("skills", [])) or "-"
-        rows.append(f"| {s['sid']} | {s['name']} | {_subtask_status_label(s['status'])} | {_sub_pct(s)}% | {sk} | {deps} | {chk} |")
+        rows.append(f"| {s['sid']} | {s['name']} | {s['status']} | {_sub_pct(s)}% | {sk} | {deps} | {chk} |")
     body = "\n".join(rows) if rows else "| - | - | - | - | - | - | - |"
     deps = ",".join(t.get("deps", [])) or "-"
     return (

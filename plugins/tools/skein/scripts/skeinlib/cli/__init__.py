@@ -7,9 +7,8 @@ from skeinlib.cli.main import (  # noqa: F401
     app,
     config_app,
     main as skein_main,
-    prd_app,
     task_app,
 )
 from skeinlib.cli.main import main  # noqa: F401
 
-__all__ = ["app", "config_app", "main", "prd_app", "skein_main", "task_app"]
+__all__ = ["app", "config_app", "main", "skein_main", "task_app"]

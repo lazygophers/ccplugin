@@ -537,6 +537,7 @@ class Scheduler:
             if repo is None and len(declared_repos) > 1:
                 raise SkeinError(f"{a.tid} 有多个 repo — subtask add 必须声明 --repo")
             subs.append({
+                "tid": a.tid,
                 "sid": a.sid, "name": a.name, "desc": a.desc,
                 "estimate": est,  # 预计工时(小时), add 必填; task estimate 须 ≥ Σ 本字段
                 "depends_on": _split(a.deps),

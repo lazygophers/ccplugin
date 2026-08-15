@@ -12,7 +12,6 @@
   .skein/task.md                  顶层看板 (task.json 渲染, git 忽略) — 脚本维护, AI 禁读写
   .skein/task/<id>/task.json      单 task 记录 + subtask DAG — 脚本维护, AI 禁读写
   .skein/task/<id>/task.md        单 task 子任务看板 + 调度 DAG (渲染) — 脚本维护, AI 禁读写
-  .skein/task/<id>/prd.md         主入口: 需求 + 索引区 (create 落脚手架, skein-plan 填, AI 可读写)
   .skein/task/<id>/design.md      详细设计 (架构/取舍/选型; 不含调度图, 调度归 task.json)
   .skein/task/<id>/findings.md    深度调研收敛结论 (仅真调研时生; skein-researcher 边研边增量写, 非预建)
   .skein/task/<id>/research/       researcher 过程笔记 (多篇, 仅真调研时生; 收敛增量进 findings.md)

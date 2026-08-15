@@ -22,7 +22,6 @@ task/         task 数据模型 + 落盘 + 迁移
   model         TaskStatus / SubtaskStatus / 时间戳常量 (数据底座)       → (无)
   dag           纯函数: 可派发判定 / 关键路径权重 / 进度百分比 / 环检测   → task/model
   timeline      生命周期事件渲染 + fmt_ts                               → task/model
-  prd           prd.md 章节读写                                          → utils/errors, task/model
   store         TaskStore: load/save/all/sync — 落盘唯一入口             → utils/errors, task/model, infra/board
   priority      四档优先级校验 + 存量迁移                                → utils/errors, task/model
   readystate    中文 status 一次性迁移                                  → task/model
@@ -38,10 +37,10 @@ config/       配置层
 core/         业务核心 — 工作区 + 门面 + 协作对象
   workspace     Workspace: 路径/配置/store/阶段钩子 + 工作区写锁         → config, task/store, infra/worktree, hooks
   commands      Skein 门面: 继承 Workspace, 装配协作对象                 → core/*, web/boardsource, core/doctor
-  lifecycle     create→confirm→start→check→finish + del/rename          → workspace, task/prd, task/timeline, task/priority, task/dag
+  lifecycle     create→confirm→start→check→finish + del/rename          → workspace, task/design, task/timeline, task/priority, task/dag
   scheduling    claim exec / subtask (DAG 调度)                         → workspace, lifecycle, task/dag, task/timeline
   query         ready / status / list (只读投影)                        → workspace, task/dag, task/model, infra/worktree
-  artifacts     prd / fmt (task 工件)                                          → workspace, task/prd, task/model
+  artifacts     design 测试接缝 (task 工件)                                    → workspace, task/design
   admin         init / setup / config / clean / board                   → workspace, task/migrate, gitignore/derivatives, config, gitignore/worktree_ignore
   doctor        DoctorMixin: 体检 + 质量门 + session 上下文注入          → 全部
 

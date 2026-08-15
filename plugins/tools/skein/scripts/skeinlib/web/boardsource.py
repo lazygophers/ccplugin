@@ -252,9 +252,9 @@ class BoardSourceMixin:
         self._run_server(open_browser=(manual and cfg["web"]["board_open"]) or open_browser,
                          quiet=not (manual or DBG.enabled))
     def _data_rev(self) -> str:
-        # 数据 rev: task.json (顶层 + 各 task) + task 详情页文档 (prd/design/findings + research/*.md) 最大 mtime_ns。
+        # 数据 rev: task.json (顶层 + 各 task) + task 详情页文档 (design/findings + research/*.md) 最大 mtime_ns。
         # 变 → WS 推 task-changed/data。task.json 是状态主真值; 文档是详情页富内容, 改动也需实时推前端
-        # (否则编辑 prd.md 后详情页不刷新, 即「前端不刷新」bug 的典型成因)。
+        # (否则编辑 design.md 后详情页不刷新, 即「前端不刷新」bug 的典型成因)。
         return max_mtime([self.dir / "task.json"] + self._task_watch_files())
     def _task_watch_files(self) -> list[Path]:
         """所有 task 目录下需监听的文件 (task.json + prd/design/findings + research/*.md)。
