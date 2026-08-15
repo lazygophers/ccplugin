@@ -6,7 +6,8 @@
 
 子命令:
   permission  PermissionRequest/PermissionDenied: .skein/ 自有内容操作默认同意, 免逐次授权。
-  guard       PreToolUse: 硬阻 AI 直接读写 .skein/ 脚本管理文件 + 注入 fileMatch 命中的 spec。
+  guard       PreToolUse: 硬阻 AI 直接读写 .skein/ 脚本管理文件 + 拦进入 worktree 的调用
+              (EnterWorktree / `git worktree add` — 生命周期归 skein CLI) + 注入 fileMatch 命中的 spec。
               (曾有的 && 串接硬阻 / flow-gate / 派发提醒已撤 —— 落盘状态即真值, 预防式拦截只逼出重试)
   report      PostToolUseFailure: 本插件脚本报错时注入上下文 + 引导手动报 issue。
   fmt         PostToolUse: 写 .skein/task/<id>/prd.md 后自动 skein fmt <id> 规范化。

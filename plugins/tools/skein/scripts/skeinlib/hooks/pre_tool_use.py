@@ -90,13 +90,31 @@ def filematch_context(file_path: str, workspace_root: str) -> str:
     return "\n\n".join(sections)
 
 
+def _deny_worktree_entry(tool_name: str, tool_input: dict[str, Any]) -> bool:
+    """拦进入 worktree 的工具调用 — worktree 生命周期 (建/并/销) 全归 skein CLI,
+    AI 经 EnterWorktree 或手拼 `git worktree add` 进去 = 绕过追踪的野生改动面。"""
+    if tool_name == "EnterWorktree":
+        return True
+    if tool_name == "Bash":
+        command = tool_input.get("command", "")
+        return bool(re.search(r"\bgit\s+worktree\s+add\b", command))
+    return False
+
+
 def cmd_guard(payload: dict[str, Any]) -> int:
     # 曾在此拦「单条 Bash 串 ≥2 个 skein 状态写命令」。已撤: 串接中途失败本就由各命令自身报错,
     # 落盘状态是真值, 重跑照着回显改即可 —— 预防式硬阻反而逼出重试与等待, 净耗 token。
     file_path = payload.get("tool_input", {}).get("file_path", "")
     path_parts = file_path.replace("\\", "/").split("/") if file_path else []
     tool_name = payload.get("tool_name", "")
+    tool_input = payload.get("tool_input", {})
     cwd = payload.get("cwd") or os.getcwd()
+    if _deny_worktree_entry(tool_name, tool_input):
+        print(
+            "禁进入 worktree — 生命周期 (创建/合并/销毁) 归 skein CLI: `skein task confirm/finish` 走配置的 worktree 隔离, 手动进出绕过追踪。",
+            file=sys.stderr,
+        )
+        return 2
     if file_path and ".skein" in path_parts and os.path.basename(file_path) in {"task.json", "task.md", "prd.md"}:
         print(
             """禁直接读写 .skein/ 的 task.json / task.md / prd.md — 均由 skein CLI 维护。
@@ -119,4 +137,4 @@ def cmd_guard(payload: dict[str, Any]) -> int:
     return 0
 
 __all__ = ["cmd_guard", "file_matches_globs", "filematch_context", "find_filematch_specs",
-           "parse_frontmatter", "strip_frontmatter", "GATED"]
+           "parse_frontmatter", "strip_frontmatter", "GATED", "_deny_worktree_entry"]

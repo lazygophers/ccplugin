@@ -101,7 +101,7 @@
         ],
         "PreToolUse": [
             {
-                "matcher": "Edit|Write|MultiEdit|Read",
+                "matcher": "Edit|Write|MultiEdit|Read|Bash|EnterWorktree",
                 "hooks": [
                     {
                         "type": "command",
