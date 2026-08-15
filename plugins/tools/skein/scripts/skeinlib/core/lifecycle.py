@@ -267,7 +267,7 @@ class Lifecycle:
         # confirm 硬门: 预计工时(小时)必须已填且为正数, 缺失/默认空 → 拒绝开工。
         # 且须自下而上累加: task 工时 ≥ Σ subtask 工时 (差额 = plan/check 等 task 自身开销),
         # 低于合计说明整体拍脑袋而非按实际要做的事逐项估。规则详见
-        # skills/skein-flow/references/plan.md#预计工时硬门-estimate。
+        # skills/skein-plan/references/plan.md#预计工时硬门-estimate。
         est = t.get("estimate")
         if est is None or est == "" or not (isinstance(est, (int, float)) and est > 0):
             raise SkeinError(
@@ -285,7 +285,7 @@ class Lifecycle:
         if not (t.get("subtasks") or []):
             gaps.append(f"无 subtask 登记 — `skein subtask add {tid} <sid> --name <标题> "
                         f"--desc <描述> --estimate <小时>`")
-        gates: tuple[Callable[[], None], ...] = (
+        gates: tuple[Callable[[], Any], ...] = (
             lambda: _spec_ready(self.ws.tasks, tid),
             lambda: validate_seam(self.ws.tasks, tid),
             lambda: self._validate_estimate(tid, t))

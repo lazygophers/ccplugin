@@ -157,7 +157,7 @@ def test_task_detail_research_docs_and_dependents(tmp_path: Path) -> None:
     assert det["research"]["a.md"] == "笔记A"
     assert [x["id"] for x in det["depTasks"]] == ["t0"]
     assert [x["id"] for x in det["dependents"]] == ["t2"]
-    assert det["docs"]["design"] is None and det["docs"]["prd"].startswith("# 目标")
+    assert det["docs"]["design"] is None and det["docs"]["prd"].startswith("---")
     assert det["archived"] is False
 
 

@@ -34,7 +34,7 @@ main 负责 `skein claim` (或 `skein subtask claim <tid>` / `skein subtask star
 
 exec 不勾 PRD 验收；正式验收归 check。scope 外问题另建 task，不塞进当前 subtask。
 
-🛑 **公共铁律** (Recursion Guard + 无 AskUser + 生命周期脚本仅限 done/fail) 见 core/agent/skein-skill-agent-slim-01。
+🛑 **公共铁律** — 1. 只做入参范围内的事，范围外先报告不动手；2. 读后写：改动前先读目标文件当前状态；3. 收尾自跑对应 done/fail 命令，回传 JSON 摘要。
 
 ## 返回数据格式 (JSON)
 

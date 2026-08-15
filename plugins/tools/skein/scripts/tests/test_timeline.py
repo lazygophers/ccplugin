@@ -139,7 +139,7 @@ def test_timeline_legacy_data_missing_field_tolerated(skein_cli: SkeinCli, ws: P
     _write_task(ws, tid, t)
 
     # 只读路径: status --json 不因缺字段崩, 原样回落空列表 (views.py 注释所述)
-    r_status = skein_cli(ws, "status", tid, "--json")
+    r_status = skein_cli(ws, "status", tid)
     assert r_status.returncode == 0, f"老数据读 status 不该崩: {r_status.stderr}"
     status_data = json.loads(r_status.stdout)
     assert status_data.get("timeline", []) == [], f"缺字段应回落空列表: {status_data.get('timeline')}"

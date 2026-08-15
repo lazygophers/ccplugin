@@ -13,7 +13,9 @@
   "board_data": {
     "cards": [
       {
+        "acceptance": [],
         "assignee": "t",
+        "boundary": {},
         "checked": null,
         "confirmed": null,
         "created": 1999990000,
@@ -140,7 +142,9 @@
         "worktree": null
       },
       {
+        "acceptance": [],
         "assignee": "t",
+        "boundary": {},
         "checked": 1999999000,
         "confirmed": null,
         "created": 1999990000,
@@ -189,7 +193,9 @@
         "worktree": null
       },
       {
+        "acceptance": [],
         "assignee": "t",
+        "boundary": {},
         "checked": null,
         "confirmed": null,
         "created": 1999990000,
@@ -238,7 +244,9 @@
         "worktree": null
       },
       {
+        "acceptance": [],
         "assignee": "t",
+        "boundary": {},
         "checked": null,
         "confirmed": null,
         "created": 1999990000,
@@ -287,7 +295,9 @@
         "worktree": null
       },
       {
+        "acceptance": [],
         "assignee": "t",
+        "boundary": {},
         "checked": null,
         "confirmed": null,
         "created": null,
@@ -312,7 +322,9 @@
         "worktree": null
       },
       {
+        "acceptance": [],
         "assignee": "t",
+        "boundary": {},
         "checked": null,
         "confirmed": null,
         "created": 1999990000,
@@ -365,7 +377,9 @@
         "worktree": null
       },
       {
+        "acceptance": [],
         "assignee": "t",
+        "boundary": {},
         "checked": null,
         "confirmed": null,
         "created": 1999990000,
@@ -927,12 +941,6 @@
         "snippet": "活跃任务"
       },
       {
-        "id": "alpha",
-        "kind": "prd",
-        "name": "Alpha 任务 · PRD",
-        "snippet": ""
-      },
-      {
         "id": "core/arch/zero-dep.md",
         "kind": "spec",
         "name": "core/arch/zero-dep.md",
@@ -946,14 +954,7 @@
     "query": ""
   },
   "search_snapshot": {
-    "hits": [
-      {
-        "id": "alpha",
-        "kind": "prd",
-        "name": "Alpha 任务 · PRD",
-        "snippet": ""
-      }
-    ],
+    "hits": [],
     "query": "视图"
   },
   "task_detail_alpha": {
@@ -973,77 +974,6 @@
       "prd": "# alpha — PRD\n\n## 目标\n交付纯视图模块。\n- [x] 拆出 Snapshot\n- [ ] 六视图纯函数化\n- [ ] TODO: 占位跳过\n\n## 边界\n- [ ] 不动调度\n\n## 验收标准\n输出字节级不变。\n- [x] golden 通过\n- [ ] TestClient 覆盖\n"
     },
     "maxActive": 2,
-    "prd": [
-      {
-        "badge": [
-          1,
-          2
-        ],
-        "items": [
-          {
-            "done": false,
-            "kind": "prose",
-            "proseCls": "",
-            "text": "交付纯视图模块。"
-          },
-          {
-            "done": true,
-            "kind": "check",
-            "proseCls": "",
-            "text": "拆出 Snapshot"
-          },
-          {
-            "done": false,
-            "kind": "check",
-            "proseCls": "",
-            "text": "六视图纯函数化"
-          }
-        ],
-        "name": "目标"
-      },
-      {
-        "badge": [
-          0,
-          1
-        ],
-        "items": [
-          {
-            "done": false,
-            "kind": "check",
-            "proseCls": "",
-            "text": "不动调度"
-          }
-        ],
-        "name": "边界"
-      },
-      {
-        "badge": [
-          1,
-          2
-        ],
-        "items": [
-          {
-            "done": false,
-            "kind": "prose",
-            "proseCls": "",
-            "text": "输出字节级不变。"
-          },
-          {
-            "done": true,
-            "kind": "check",
-            "proseCls": "",
-            "text": "golden 通过"
-          },
-          {
-            "done": false,
-            "kind": "check",
-            "proseCls": "",
-            "text": "TestClient 覆盖"
-          }
-        ],
-        "name": "验收标准"
-      }
-    ],
     "progress": 38,
     "research": {},
     "stage": "exec",
@@ -1168,7 +1098,6 @@
       "prd": null
     },
     "maxActive": 2,
-    "prd": [],
     "progress": 0,
     "research": {},
     "stage": "plan",
@@ -1218,7 +1147,6 @@
       "prd": null
     },
     "maxActive": 2,
-    "prd": [],
     "progress": 100,
     "research": {},
     "stage": "done",

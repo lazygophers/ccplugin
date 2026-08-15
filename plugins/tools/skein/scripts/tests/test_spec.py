@@ -428,19 +428,22 @@ def test_analyze_no_conflicts_and_readonly(mem_ws: Path, mem_cli: MemCli) -> Non
         mem_ws, tid,
         subtasks=[{"sid": "s1", "name": "实现日志写入", "desc": "写日志文件模块",
                    "depends_on": [], "acceptance": ["日志文件权限只读"]}],
-        prd=("# clean-task — PRD\n\n## 目标\n交付安全的日志写入模块。\n\n"
+        prd=("---\ndesc: 交付安全的日志写入模块\nboundary:\n  should:\n  - 仅涉及日志写入\n"
+             "  should_not: []\nacceptance:\n  - 日志文件权限设为只读\n---\n\n"
+             "# clean-task — PRD\n\n## 目标\n交付安全的日志写入模块。\n\n"
              "## 边界\n仅涉及日志写入。\n\n"
              "## 验收标准\n- [ ] 日志文件权限设为只读\n\n"),
         design=("# clean-task — 详细设计\n\n按接口规范写入日志, 不直接碰全局配置。\n\n"
                 "## 测试接缝 (seam)\n- `seed.txt` (repo 根真实存在路径)\n"),
     )
     repo_root = mem_ws
+    mem_cli(mem_ws, "analyze", tid)  # 热身: preflight 首跑幂等补 .skein/.gitignore, 之后才是被测只读窗口
     before = _snapshot(repo_root)
 
-    out = mem_cli(mem_ws, "analyze", tid).stdout
+    out = mem_cli(mem_ws, "analyze", tid, "--show").stdout
     assert "零冲突" in out, f"应零命中却报了候选: {out}"
 
-    j = json.loads(mem_cli(mem_ws, "analyze", tid, "--json").stdout)
+    j = json.loads(mem_cli(mem_ws, "analyze", tid).stdout)
     assert j["tid"] == tid and j["count"] == 0 and j["findings"] == [], f"json 输出应零 finding: {j}"
 
     after = _snapshot(repo_root)
@@ -471,7 +474,9 @@ def test_analyze_five_kinds_hit(mem_ws: Path, mem_cli: MemCli) -> None:
             {"sid": "s2", "name": "搭建用户认证", "desc": "加OAuth登录流程",
              "depends_on": [], "acceptance": []},
         ],
-        prd=("# dirty-task — PRD\n\n## 目标\n交付一个安全的日志模块。\n\n"
+        prd=("---\ndesc: 交付一个安全的日志模块\nboundary:\n  should:\n  - 仅涉及日志写入\n"
+             "  should_not: []\nacceptance:\n  - 日志文件权限设为只读\n  - 支持异步刷新缓冲区\n---\n\n"
+             "# dirty-task — PRD\n\n## 目标\n交付一个安全的日志模块。\n\n"
              "## 边界\n仅涉及日志写入。\n\n"
              "## 验收标准\n- [ ] 日志文件权限设为只读\n- [ ] 支持异步刷新缓冲区\n\n"),
         design=("# dirty-task — 详细设计\n\n"
@@ -480,14 +485,14 @@ def test_analyze_five_kinds_hit(mem_ws: Path, mem_cli: MemCli) -> None:
                 "## 测试接缝 (seam)\n- `plugins/tools/skein/scripts/nope_seam_test_file.py`\n"),
     )
 
-    out = mem_cli(mem_ws, "analyze", tid).stdout
+    out = mem_cli(mem_ws, "analyze", tid, "--show").stdout
     assert "[coverage]" in out and "异步刷新缓冲区" in out, f"验收覆盖率未命中: {out}"
     assert "[hardrule]" in out and "配置写入规范" in out, f"硬规冲突未命中: {out}"
     assert "[scope]" in out and "s2" in out, f"范围蔓延未命中: {out}"
     assert "[confidence]" in out and "异步刷新策略" in out, f"置信度未命中: {out}"
     assert "[seam]" in out and "nope_seam_test_file.py" in out, f"接缝存在性未命中: {out}"
 
-    j = json.loads(mem_cli(mem_ws, "analyze", tid, "--json").stdout)
+    j = json.loads(mem_cli(mem_ws, "analyze", tid).stdout)
     kinds = {fd["kind"] for fd in j["findings"]}
     assert kinds == {"coverage", "hardrule", "scope", "confidence", "seam"}, f"五类未全覆盖: {kinds}"
     assert j["count"] == len(j["findings"]) == len(kinds), f"计数与条目不一致: {j}"
@@ -661,6 +666,8 @@ def sample():
     subprocess.run(["git", "add", "-A"], cwd=mem_ws, check=True, capture_output=True)
     subprocess.run(["git", "commit", "-qm", "add sample"], cwd=mem_ws, check=True, capture_output=True)
 
+    # 热身: preflight 首跑幂等补 .skein/.gitignore, 不算 map 的写盘
+    mem_cli(mem_ws, "map", "--skeleton")
     # 记录运行前的文件快照
     before_files = _snapshot(mem_ws)
 

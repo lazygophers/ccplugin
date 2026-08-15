@@ -40,7 +40,7 @@ class Query:
     def status_overview(self, a: argparse.Namespace) -> dict[str, Any] | None:
         """全局运行态概览: 两池占用 + 执行中 subtask + 各状态 task 统计。
 
-        默认返回结构化 dict (走 cli 统一 JSON 输出); `--pretty` rich 渲染自打印, 返回 None。
+        默认返回结构化 dict (走 cli 统一 JSON 输出); `--show` rich 渲染自打印, 返回 None。
         """
         tasks = self.ws.store.all_tasks()
         cfg = self.ws.config()
@@ -98,10 +98,14 @@ class Query:
             "plan_tasks": plan_tasks,
         }
 
-        if not getattr(a, "pretty", False):
+        show = getattr(a, "show", None)
+        if show is None:
+            show = getattr(a, "pretty", False)
+        if not show:
             # JSON 形态精简: subtask 只留 status/tid/sid/name, task 只留 status/id/name
-            # (调度细节是 rich/--pretty 的事; JSON 消费方要细节走 flow run --dry-run)
-            brief_task = lambda ts: [{"id": t["id"], "name": t["name"], "status": t["status"]} for t in ts]
+            # (调度细节是 rich/--show 的事; JSON 消费方要细节走 flow run --dry-run)
+            def brief_task(ts: list[dict[str, Any]]) -> list[dict[str, str]]:
+                return [{"id": t["id"], "name": t["name"], "status": t["status"]} for t in ts]
             return {**data,
                     "running_subtasks": [{"tid": s["tid"], "sid": s["sid"], "name": s["name"],
                                           "status": "running"} for s in running_subs],

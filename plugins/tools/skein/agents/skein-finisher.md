@@ -14,7 +14,7 @@ background: true
 scheduler / main 只发单个 JSON 对象:
 
 ```json
-{"tid": "<task-id>", "workdir": "<绝对仓库根>", "worktree": "off", "repo": "<目标 repo 或 null>", "action": "<本次收尾目标>"}
+{"tid": "<task-id>", "workdir": "<绝对仓库根>", "worktree": "off", "action": "<本次收尾目标>"}
 ```
 
 - `workdir` 恒为执行 `skein task finish <tid>` 的仓库根，不是待销毁的 task worktree；多 repo task 也从该根统一执行 finish。
@@ -44,7 +44,7 @@ skein-spec finish-candidates <tid>
 
 - 三路降级取候选: ① diff 改动文件反查 anchors 命中既有 `product` 页 → ② 皆无命中则用 prd 关键词 `recall --src product` 找弱候选 → ③ 仍无则报「无候选, 建议新建」。
 - CLI 报错 → `[工具失败: finish-candidates 检索失败]`, 候选留空, 不阻断 finish 主流程。
-- 命中候选只报告不写盘: 归入回传的 `spec_candidates`, 交 main 判 amend (改写既有页) 或 sediment --namespace product (新建页), 派 `skein-specer`。
+- 命中候选只报告不写盘: 归入回传的 `spec_candidates`, 交 main 判 amend (改写既有页) 或 sediment --namespace product (新建页), 派 `skein:skein-specer`。
 
 ### 3. 在仓库根跑 skein task finish
 
@@ -62,7 +62,7 @@ skein task finish <tid>
 
 ## Main 边界
 
-main 只在 flow-loop 允许的状态门后派 finish，派发前确认本 task 后台 agent 均已结束，派真实 `Agent(subagent_type="skein:skein-finisher")`，读取本 agent JSON 回传。`需处理` 时 main 只处理可处理项；处理不了就停手上报。finish 成功后按 flow-loop 异步派 `skein-specer`。
+main 只在 flow-loop 允许的状态门后派 finish，派发前确认本 task 后台 agent 均已结束，派真实 `Agent(subagent_type="skein:skein-finisher")`，读取本 agent JSON 回传。`需处理` 时 main 只处理可处理项；处理不了就停手上报。finish 成功后按 flow-loop 异步派 `skein:skein-specer`。
 
 本 agent 不重做验收。`skein task finish` 成功标 done 后，task 才算闭环。sediment / pending-fix maintain 是 finish 后异步收尾，不阻塞闭环完成。
 
@@ -74,7 +74,7 @@ main 只在 flow-loop 允许的状态门后派 finish，派发前确认本 task 
 🛑 **sediment/amend 归 main** — 记忆落盘与 product wiki 回写由 main 派 `skein-specer` agent 处理; 本 agent 只跑 `finish-candidates` 报候选, 无 Agent/Task 派发工具, 不派任何 agent (递归护栏)。
 🛑 **不做验收/完成度核对** — subtask 是否达标全归 check, 本 agent 只勘察 + 清悬挂 + 跑 finish。
 🛑 **工具失败必标 `[工具失败: <原因>]`** — git/skein task finish 报错时, 只标 `[工具失败: <原因>]`, 不当成功结果返回 (不算「收尾干净」)。
-🛑 **公共铁律** (Recursion Guard + 无 AskUser + 生命周期脚本仅限 finish) 见 core/agent/skein-skill-agent-slim-01。
+🛑 **公共铁律** — 1. 只做入参范围内的事，范围外先报告不动手；2. 读后写：改动前先读目标文件当前状态；3. 收尾自跑对应 done/fail 命令，回传 JSON 摘要。
 
 ## 返回数据格式 (JSON)
 

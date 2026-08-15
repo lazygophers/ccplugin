@@ -52,7 +52,7 @@ skein-spec recall <关键词> [--src rules/product/map/code/all]
 🛑 **同步回传** — main 等召回结果进 planning, 非 fire-and-forget。
 🛑 **工具失败必标 `[工具失败: <原因>]`** — CLI 报错时, 只标 `[工具失败: <原因>]`, 空/错结果不当成功结果返回 (main 误判「无相关规则」→ 漏注入)。
 🛑 **入参与回传只用 JSON** — 接收 main 实发的单个 JSON 对象; 回传单个 JSON 对象, 无自然语言或 Markdown 包裹。
-🛑 **公共铁律** (Recursion Guard + 无 AskUser + 无生命周期脚本) 见 core/agent/skein-skill-agent-slim-01。
+🛑 **公共铁律** — 1. 只做入参范围内的事，范围外先报告不动手；2. 读后写：改动前先读目标文件当前状态；3. 收尾自跑对应 done/fail 命令，回传 JSON 摘要。
 
 ## 返回数据格式 (JSON)
 

@@ -46,7 +46,7 @@ Bash("skein subtask add <tid> st2 --name '改调用站点' --desc '调用站点�
 Bash("skein subtask add <tid> st3 --name '加测试' --desc '覆盖新旧字段两条路径' --estimate 1 --deps st1 --check '覆盖新旧字段两条路径'")
 ```
 
-`sid`/`--name`/`--desc`/`--estimate` 四者必填（缺一即报错退出），字段全表查 `Bash("skein subtask --help")`。
+`sid`/`--name`/`--desc`/`--estimate` 四者必填（缺一即报错退出），字段全表查 `Bash("skein subtask --help")`。`--check` 不止 `subtask add` 收，`Bash("skein research add <tid> <sid> ...")` 同样收（分号分隔多条验收）。
 
 **求最短工期（min makespan）**：就绪批由脚本打分排序后截到空闲槽位（打分细则见 §5），planning 只需做对三件事：
 
@@ -61,7 +61,7 @@ Bash("skein subtask add <tid> st3 --name '加测试' --desc '覆盖新旧字段�
 | 信号                                                    | 判据                                    | 动作                                                                                   |
 | ------------------------------------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------- |
 | 复合嗅味（"X and Y and Z"）/ 多独立能力 / subtask 会 >8 | capability 按**用户行为**拆（非技术层） | 拆多 task：`Bash("skein task create <id> --name <标题> --desc <描述>")` 逐个建, `--deps <tid1>,<tid2>` 声明执行序 |
-| 雾到列不出 capability（路径不可见） | capability 本身怎么拆都答不出 / 关键选型全悬空 | **decision-first**：先全拆 decision subtask `Bash("skein subtask add <tid> d1-<决策项> --name '<决策项>' --desc '产出决策 + 依据' --estimate <小时> --phase research --check '产出决策 + 依据'")`（每项只产决策不产码），全 done 雾推完后再拆 exec DAG。决策没收敛前禁建 exec subtask |
+| 雾到列不出 capability（路径不可见） | capability 本身怎么拆都答不出 / 关键选型全悬空 | **decision-first**：先全拆 decision 任务 `Bash("skein research add <tid> d1-<决策项> --name '<决策项>' --desc '产出决策 + 依据' --estimate <小时> --check '产出决策 + 依据'")`（每项只产决策不产码），全 done 雾推完后再拆 exec DAG。决策没收敛前禁建 exec subtask |
 
 - **capability ≠ 技术模块** — capability 是用户行为（「下单」「退款」），非技术层（「DB 层」「API 层」）。按技术层拆 = 跨层耦合依旧的假拆。
 - **walking skeleton 优先** — 第一个 task 强制端到端最薄能跑通（验证数据流 / 契约 / 部署链路假设），非铺平所有能力域。假设证伪早返工，比铺平再发现省。
@@ -84,7 +84,7 @@ Bash("skein subtask add <tid> st3 --name '加测试' --desc '覆盖新旧字段�
 
 ```text
 subtask.ready = 所有 depends_on 均 done
-                且 subtask.status == pending
+                且 subtask.status ∈ {pending, failed}（PENDING 先于 FAILED）
                 且 pools.work 有空槽
 ```
 
@@ -95,14 +95,15 @@ subtask.ready = 所有 depends_on 均 done
 | `Bash("skein claim exec")` / `Bash("skein flow run")` | 是 | 前置 task 未 done 的 task 不出活；subtask 自身 depends_on 未 done 也不 ready。 |
 | `Bash("skein subtask claim <tid>")` / `Bash("skein subtask start <tid> <sid>")` | 是 | 同上，单 task 路径同一道门。 |
 
-ready 数超过空闲槽时按四键稳定排序截取：
+ready 数超过空闲槽时按五键稳定排序截取：
 
 ```text
 排序键 (降序优先):
   1. task 优先级 (urgent=3 > high=2 > normal=1 > low=0)
   2. score = crit_weight × 100 + 等待小时数 × 1 + (exec phase ? 1 : 0)
-  3. task 登记序
-  4. subtask 登记序
+  3. PENDING 先于 FAILED (重试不抢新活的槽)
+  4. task 登记序
+  5. subtask 登记序
 ```
 
 score 的三项权重设计：`W_CRIT >> W_WAIT ≈ W_EXEC`。关键路径权重占绝对主导（保证 makespan 最小化），等待时长和 exec phase 只在同 crit 级别内微调 —— `W_WAIT` 防饿死（等够久的低 crit subtask 能翻盘），`W_EXEC` 软优先 exec phase（同分时 exec 先走，但 research 不会被无限期饿死）。
@@ -132,7 +133,7 @@ layer(source) = 0; layer(node) = max(layer(dep)) + 1                            
 
 | 命令                              | 范围        | 语义                                                                                                                              |
 | --------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `Bash("skein claim")`            | 全局跨 task | 同时处理 exec + check 两路，只推状态不做路由；派谁由 main 按 task 状态判，见 [skein-flow/references/flow-loop.md#主循环骨架](../../skein-flow/references/flow-loop.md#主循环骨架)。 |
+| `Bash("skein claim")`            | 全局跨 task | 同时处理 exec + check 两路，认领并附 dispatch hints（`next[]` 含 agent/prompt）；main 按 hint.agent 原样派发，见 [skein-flow/references/flow-loop.md#主循环骨架](../../skein-flow/references/flow-loop.md#主循环骨架)。 |
 | `Bash("skein claim exec")`       | 全局跨 task | 只认领 ready subtask 并标 `running`。  |
 | `Bash("skein claim check")`      | 全局跨 task | 只认领可进 check / finishing 的 task。 |
 | `Bash("skein subtask claim <tid>")` | 单 task  | 单 task 内批量认领。 |
@@ -140,4 +141,4 @@ layer(source) = 0; layer(node) = max(layer(dep)) + 1                            
 
 任一 claim 加 `--dry-run` = 只读预览，不改状态。例：`Bash("skein claim --dry-run")`。
 
-exec 统一派 `skein:skein-executor`，dispatch 只给 tid、sid、工作目录，executor 自读 `Bash("skein subtask show <tid> <sid>")`。完成即派、失败重试、断点续跑见 [skein-flow/references/flow-loop.md#主循环骨架](../../skein-flow/references/flow-loop.md#主循环骨架) 与 [skein-redo/references/redo.md](../../skein-redo/references/redo.md)。
+exec 统一派 `skein:skein-executor`，dispatch 只给 tid、sid、工作目录，executor 自读 `Bash("skein subtask show <tid> <sid>")`。完成即派、失败重试、断点续跑见 [skein-flow/references/flow-loop.md#主循环骨架](../../skein-flow/references/flow-loop.md#主循环骨架) 与 [skein-redo/SKILL.md](../../skein-redo/SKILL.md)。

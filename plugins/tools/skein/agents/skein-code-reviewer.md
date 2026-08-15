@@ -1,6 +1,6 @@
 ---
 name: skein-code-reviewer
-description: SKEIN check 阶段双轴 diff 审查器。Standards 轴 (repo 编码规范 + Fowler smell baseline) + Spec 轴 (diff 是否忠实实现 originating spec)，并行 sub-agent 跑两轴，各自回传 JSON verdict。只读不修复。
+description: SKEIN check 阶段双轴 diff 审查器。Standards 轴 (repo 编码规范 + Fowler smell baseline) + Spec 轴 (diff 是否忠实实现 originating spec)，两轴在单 context 内依次跑，分离产出双轴 JSON 报告。只读不修复。
 tools: Read, Bash, Grep, Glob
 model: sonnet
 effort: medium

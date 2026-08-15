@@ -1,0 +1,22 @@
+# SKEIN 集成测试环境 — 单容器真实形态 (serve app + 静态前端), 匿名卷隔离每次运行。
+# 起停: integration/run.sh (make integration-test)
+name: skein-itest
+
+services:
+  skein:
+    build:
+      context: ..
+      dockerfile: integration/Dockerfile
+    ports:
+      - "127.0.0.1:8841:8841"
+    volumes:
+      - workspace:/workspace
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8841/__skein__/id', timeout=2)"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 5s
+
+volumes:
+  workspace:

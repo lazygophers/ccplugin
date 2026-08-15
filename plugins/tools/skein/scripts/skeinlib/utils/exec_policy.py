@@ -24,7 +24,7 @@ def exec_argv(body: dict[str, Any]) -> Optional[list[str]]:
         return cast(str, s(k))
 
     if cmd == "list":
-        argv = ["list", "--json"]
+        argv = ["list"]
         return base + (argv + ["--status", g("status")] if s("status") else argv)
     if cmd == "ready":
         return base + ["ready"]
@@ -33,7 +33,7 @@ def exec_argv(body: dict[str, Any]) -> Optional[list[str]]:
     if cmd == "status":
         if not s("id"):
             return None
-        argv = ["status", g("id")] + ([g("sid")] if s("sid") else []) + ["--json"]
+        argv = ["status", g("id")] + ([g("sid")] if s("sid") else [])
         return base + argv
     if cmd == "subtask-list":
         return base + ["subtask", "list", g("id")] if s("id") else None

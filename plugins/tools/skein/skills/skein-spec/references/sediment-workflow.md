@@ -1,4 +1,4 @@
-# sediment 沉淀流程 (task finish 阶段, main) — 判定门 + 自动写盘
+# sediment 沉淀流程 (task finish 阶段, skein-specer 异步) — 判定门 + 自动写盘
 
 ## 1. 判定门 (任一正向触发即沉淀)
 
@@ -26,7 +26,7 @@
 
 ## 3. 自动写盘 (判定门通过即写, 无需逐次询问用户)
 
-判定门 (语义) + namespace×inclusion 归类 通过后**直接写盘**, 不走 AskUserQuestion。main 逐项输出沉淀 trace (namespace/inclusion + 标题 + 触发项) 供事后审阅, 但不硬停等批 —— 记忆积累是高频动作, 每次询问是噪声。误沉淀可靠 `skein-spec reindex` 前手动删文件 / 后续 sediment 调 inclusion 纠正 (低成本可逆)。
+执行主体是 **skein-specer (异步 fire-and-forget)**: task finish 闭环后被派发, 自主跑判定门 + namespace×inclusion 归类 → 直接写盘, 不走 AskUserQuestion, main 不等待回传 (finish 已闭环)。skein-specer 逐项输出沉淀 trace (namespace/inclusion + 标题 + 触发项), 回传到达后 main 只补 output trace 供审阅, 不硬停等批 —— 记忆积累是高频动作, 每次询问是噪声。误沉淀可靠 `skein-spec reindex` 前手动删文件 / 后续 sediment 调 inclusion 纠正 (低成本可逆)。
 
 > 全局 / 批量动作仍前置征同意 (非「每次」): bootstrap 冷启动播种、reconstruct 整库重建 各自跑前一次 `AskUserQuestion`, 一次覆盖整轮, 内部候选自动写。
 

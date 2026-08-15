@@ -137,7 +137,7 @@ def test_cards_signature_covers_display_fields() -> None:
             data["name"] = "旧名字"
             tj.write_text(json.dumps(data))
             prd = tj.parent / "prd.md"
-            prd.write_text(prd.read_text().replace("解决 X 问题", "新描述"), encoding="utf-8")
+            prd.write_text(prd.read_text().replace("旧描述", "新描述"), encoding="utf-8")
             assert sig() != base, "改 desc (prd.md frontmatter, hover 摘要) 未反映到签名"
 
             data["deps"] = []
@@ -148,6 +148,7 @@ def test_cards_signature_covers_display_fields() -> None:
             data["deps"] = ["sig-base"]
             data["estimate"] = 99
             tj.write_text(json.dumps(data))
+            prd.write_text(prd.read_text().replace("新描述", "旧描述"), encoding="utf-8")  # desc 复原
             assert sig() == base, "改 estimate (非卡片展示字段) 不应触发签名变化"
         finally:
             os.chdir(cwd0)

@@ -58,17 +58,19 @@ mkdir -p .skein/task/<task-id>/research
 
 - **findings.md 由 agent 边研边增量写** (每主题收敛即追加, 首次写补 `# <task> — 调研收敛` 标题), 使后续 planning 整理**只读 findings.md 不重读 research/**。research/ = 过程证据留档, findings.md = 收敛交付。
 
-### 5. 回传压缩结论 + subtask 收尾
+### 5. 回传压缩结论 + research 任务收尾
 
 按 agent 定义的返回 JSON 格式填: 收敛结论 (已增量写入 findings.md) + findings.md 路径 + subtask 收尾状态 + 需要 + 工具失败。
 
-**报告落盘后必须完成 subtask 状态收尾**:
+**报告落盘后必须完成 research 任务状态收尾** (research 条目存 task.json 的 research_tasks[], 不在 subtasks[], 走 `subtask done/fail` 必报「subtask 不存在」):
 
 ```
-skein subtask done <tid> <sid>
+skein research done <tid> <sid>
 ```
 
-调研失败或缺少关键资料 → `skein subtask fail <tid> <sid> --note "<原因>"`。
+调研失败或缺少关键资料 → `skein research fail <tid> <sid> --note "<原因>"`。
+
+入参 `sid` 为 null (未 claim 派发, 如 main 手派调研) 时跳过收尾自跑, 由 main 收。
 
 ## bootstrap 模式 (入参 `mode` 为 `bootstrap`)
 
@@ -90,7 +92,7 @@ skein subtask done <tid> <sid>
 🛑 **不替用户拍板** — 给收敛结论 + 权衡, 选型决策交 main+用户。
 🛑 **缺信息标 `需要: <问题>` 回传, 由 main 转达用户** — 无 AskUserQuestion 权限。
 🛑 **工具失败必标 `[工具失败: <原因>]`** — 检索/Fetch 失败时, 只标 `[工具失败: <原因>]`, 空结果不当成功结果返回 (main 误判无信息)。
-🛑 **允许自跑 `subtask done/fail`；其余生命周期命令归 main** — agent 是 subtask 状态唯一收尾者，main 只校验状态。
+🛑 **允许自跑 `research done/fail`；其余生命周期命令归 main** — agent 是 research 任务状态唯一收尾者，main 只校验状态。
 
 ## 失败模式 (if-then 三段式)
 

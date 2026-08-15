@@ -11,7 +11,7 @@ background: true
 
 ## 入参格式 (JSON)
 
-scheduler / main 只发单个 JSON 对象:
+main 只发单个 JSON 对象:
 
 ```json
 {"tid": "<task-id>", "workdir": "<绝对工作目录>", "worktree": "on | off", "repo": "<目标 repo 或 null>", "action": "<本次审计范围>"}
@@ -26,8 +26,8 @@ scheduler / main 只发单个 JSON 对象:
 
 ```text
 # 入参给了 tid 就用入参; 入参没给才回退 CLI 探测最近 pending
-# --json 是对象信封 {"tasks":[...]}, 取单个 id 必须走 .tasks[0].id
-Bash("tid=${tid:-$(skein list --status pending --json | jq -r '.tasks[0].id')} && echo $tid")
+# 是对象信封 {"tasks":[...]}, 取单个 id 必须走 .tasks[0].id
+Bash("tid=${tid:-$(skein list --status pending | jq -r '.tasks[0].id')} && echo $tid")
 
 # 读取全部 planning 产物
 Bash("skein task spec <tid>")               # TaskSpec: desc/boundary/acceptance
@@ -41,7 +41,7 @@ Bash("cat .skein/task/<tid>/design.md")     # 设计文档
 ### 2. 复用 skein-spec analyze (不重复造轮)
 
 ```text
-Bash("skein-spec analyze <tid> --json")
+Bash("skein-spec analyze <tid>")
 ```
 
 消费其 5 类检查 (验收覆盖率 / 硬规冲突 / 范围蔓延 / proposed 置信度 / 接缝存在性) 作为基础层候选, 嵌入审计报告 `spec_analyze` 段。CLI 报错 → `[工具失败: analyze 检索失败]`, 手工补一致性检查, 标 `analyze 未跑`。
@@ -99,7 +99,7 @@ Bash("skein-spec analyze <tid> --json")
 **问**: 每条 AC Specific / Measurable / Achievable / Relevant / Context-bound?
 
 - 逐条验收标准检查 SMARC 五项
-- 命中 wishful 词 (`user-friendly` / `快速` / `好用` / `灵活` / `高效` / `稳定`) → 降级建议: 移到 Open Question
+- 命中 wishful 词 (`user-friendly` / `快速` / `高效` / `好用` / `灵活` / `稳定`, 词表与 grill `review-axes-and-output.md` 的 wishful 词表保持同步) → 降级建议: 移到 Open Question
 - 缺可执行基准 (无具体数值 / 无可观测行为) → 标 `不可测`
 
 **严重度**: 核心 AC 不可测 = Blocker; 次要 AC = Major。
@@ -167,8 +167,8 @@ Bash("skein-spec analyze <tid> --json")
 🛑 **复用 analyze 不重复** — skein-spec analyze 能查的不手工重查; analyze 报错才降级手工。
 🛑 **每条 finding 必带 evidence + suggestion** — evidence = file:line / 原文引用; suggestion = 可操作建议 (「把 X 改成 Y」, 非「需要改进」)。
 🛑 **工具失败必标 `[工具失败: <原因>]`** — CLI 报错/Read 不存在时标失败, 不当空结果返回。
-🛑 **入参与回传只用 JSON** — 接收 scheduler / main 实发的单个 JSON 对象; 回传单个 JSON 对象, 无自然语言或 Markdown 包裹。
-🛑 **公共铁律** (Recursion Guard + 无 AskUser + 无生命周期脚本) 见 core/agent/skein-skill-agent-slim-01。
+🛑 **入参与回传只用 JSON** — 接收 main 实发的单个 JSON 对象; 回传单个 JSON 对象, 无自然语言或 Markdown 包裹。
+🛑 **公共铁律** — 1. 只做入参范围内的事，范围外先报告不动手；2. 读后写：改动前先读目标文件当前状态；3. 收尾自跑对应 done/fail 命令，回传 JSON 摘要。
 
 ## 返回数据格式 (JSON)
 
@@ -214,6 +214,6 @@ Bash("skein-spec analyze <tid> --json")
 | 触发 | 一线处理 | 兜底 |
 |---|---|---|
 | 产物不齐 (缺 design.md) | 读已有产物, 缺的标 `产物缺失` | 全无产物 → 报「task 尚未 planning, 无可审计」 |
-| `Bash("skein-spec analyze <tid> --json")` 报错 | 跳过 analyze, 手工补一致性检查 | 全手工, 标 `analyze 未跑` |
+| `Bash("skein-spec analyze <tid>")` 报错 | 跳过 analyze, 手工补一致性检查 | 全手工, 标 `analyze 未跑` |
 | 某轴扫不出弱点 | 换角度深挖 (极端输入 / 并发 / 依赖失效 / 反向问) | 显式记「该轴已过, 无阻断项」 |
 | skein CLI 不在 PATH | 换 `Bash("$CLAUDE_PLUGIN_ROOT/bin/skein <同参数>")` 重试 1 次 | `[工具失败: skein CLI 不可用]`, 空审计回传 |

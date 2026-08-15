@@ -21,10 +21,6 @@ def test_resolve_guard() -> None:
     assert callable(fn)
 
 
-def test_resolve_fmt() -> None:
-    fn = _resolve("fmt")
-    assert callable(fn)
-
 
 def test_main_no_args(capsys: pytest.CaptureFixture[str],
                       monkeypatch: pytest.MonkeyPatch) -> None:

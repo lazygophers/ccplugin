@@ -18,13 +18,13 @@
 
 ### ① 派 skein-researcher (bootstrap 模式) 扫代码库
 
-dispatch prompt「已知」段标 `mode=bootstrap` + `task-id=bootstrap`, 让 researcher 走其**bootstrap 扫描模式** (见 `agents/skein-researcher.md`): 扫命名/错误处理/测试/架构边界/构建五维, 提炼**既有约定**为候选规则。
+dispatch prompt「已知」段标 `mode=bootstrap` + `tid=bootstrap`, 让 researcher 走其**bootstrap 扫描模式** (见 `agents/skein-researcher.md`): 扫命名/错误处理/测试/架构边界/构建五维, 提炼**既有约定**为候选规则。
 
 - researcher 只读, 结论落盘 `.skein/task/bootstrap/research/conventions.md` (复用现有 research 落盘机制)。
 
 #### 五维扫描明细 (供 main 校对 researcher 覆盖面)
 
-researcher bootstrap 模式扫以下五维, 每维产 0..N 条候选 (无信号则 0 条, 禁硬凑)。每条 MUST 附证据 (file:line, ≥2 处一致才算约定, 单处前缀 `推测:` 或 drop)。候选落盘格式见 `agents/skein-researcher.md`。
+researcher bootstrap 模式扫以下五维, 每维产 0..N 条候选 (无信号则 0 条, 禁硬凑)。每条 MUST 附证据 (file:line, ≥2 处一致才算约定, 单处前缀 `推测:` 或 drop)。候选落盘格式: `research/` 目录下 markdown 文件, frontmatter 含 `tid` / `sid` / `query` / `date` 四字段, 正文为候选清单 (每条: 维度 + 规则描述 + 证据)。
 
 | 维度 | 扫什么 |
 |---|---|

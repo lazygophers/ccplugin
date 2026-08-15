@@ -184,6 +184,6 @@ def test_status_and_list_show_priority(ws: Path, skein_cli: SkeinCli) -> None:
     assert "high" in r.stdout
     r = skein_cli(ws, "list")
     assert "high" in r.stdout
-    data = json.loads(skein_cli(ws, "list", "--json").stdout)
+    data = json.loads(skein_cli(ws, "list").stdout)
     rows = data.get("tasks", data) if isinstance(data, dict) else data
     assert next(x for x in rows if x["id"] == "feat-s")["priority"] == "high"

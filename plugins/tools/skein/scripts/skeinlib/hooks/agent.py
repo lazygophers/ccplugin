@@ -14,7 +14,7 @@ def cmd_agent_hook(when: str) -> int:
     task_id = options.get("tid", "")
     subtask_id = options.get("sid", "")
     root = git_root(options.get("cwd") or os.getcwd())
-    import yaml  # type: ignore[import-untyped]
+    import yaml
     try:
         config_path = os.path.join(root, ".skein", "config.yaml")
         if not os.path.exists(config_path):

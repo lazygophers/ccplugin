@@ -22,7 +22,7 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional
 
-import yaml  # type: ignore[import-untyped]
+import yaml
 
 from skeinlib.utils.errors import SkeinError
 from skeinlib.task.dag import detect_cycle

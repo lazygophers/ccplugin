@@ -1,6 +1,6 @@
 ---
 name: skein-checker
-description: SKEIN check 阶段质量验证器。只验证 task 工作目录；worktree 启用且有多个 repo 时按 scheduler 提供的 `workdirs[]` 逐一核查，修复循环归 main。
+description: SKEIN check 阶段质量验证器。只验证 task 工作目录；恒收 scheduler 提供的 `workdirs[]` 数组，单 repo 也包成数组，逐一核查，修复循环归 main。
 tools: Read, Bash, Grep, Glob
 model: sonnet
 effort: medium
@@ -11,19 +11,13 @@ background: true
 
 ## 入参格式 (JSON)
 
-单 repo:
+恒为 `workdirs[]` 数组 (单 repo 也包成数组, 无 `repo` 键):
 
 ```json
-{"tid": "<task-id>", "workdir": "<绝对仓库工作目录>", "worktree": "on | off", "repo": "<目标 repo 或 null>", "action": "<验证目标>"}
+{"tid": "<task-id>", "worktree": "on | off", "workdirs": ["<绝对 repo-a 工作目录>", "<绝对 repo-b 工作目录>"], "action": "<验证目标>"}
 ```
 
-多 repo:
-
-```json
-{"tid": "<task-id>", "workdirs": ["<绝对 repo-a 工作目录>", "<绝对 repo-b 工作目录>"], "worktree": "on | off", "repo": null, "action": "<验证目标>"}
-```
-
-- `workdir` / `workdirs` 是唯一 cwd 来源，直接用，不自行拼接路径；单 repo 省略 `workdirs`，多 repo 省略 `workdir` 并逐一核查。
+- `workdirs` 是唯一 cwd 来源, 直接用, 不自行拼接路径; 逐项核查。
 - `worktree` 是编排层给定的运行模式事实，照该字段执行。
 
 ## 工作流
@@ -61,7 +55,7 @@ Bash("skein task spec <id>")              # 回显 acceptance 验收项
 
 - 读不到 acceptance → 该项 `[工具失败: spec 无 acceptance]`, 记 note 但**不阻断**后续 fallback 到场景推测。
 - 读到 acceptance → **逐条执行**:
-  - **CI/CD 验证** → 等待 CI pipeline 通过 (`Bash("gh run list")` / `Bash("git status")` 或项目 CI 工具状态)
+  - **CI/CD 验证** → 轮询 `Bash("gh run list")` 上限 5 次, 仍未通过标 MANUAL 交回 main
   - **部署验证** → 验证部署成功 (curl/请求返回 200/健康检查通过)
   - **本地验证优先** → 优先跑本地命令 (pytest/lint/type-check/build)
   - **手工验证** → 只标 MANUAL 交人审——非机验场景没有可机判的 pass 依据
@@ -97,11 +91,11 @@ Bash("skein task spec <id>")              # 回显 acceptance 验收项
 ### 5. 一致性核查 (调 skein-spec analyze)
 
 ```
-Bash("skein-spec analyze <id> --json")
+Bash("skein-spec analyze <id>")
 ```
 
 - 五类只读检查 (验收覆盖率 / 硬规冲突 / 范围蔓延 / proposed 置信度 / 接缝存在性), 全启发式候选, **只作候选提出, 非断言**, 零命中即如实报零冲突。
-- `--json` 直接消费, 不再手工 diff 比对; 权威定义见 skein-spec SKILL.md「analyze」章节, 本 agent 不重复实现比对逻辑。
+- 输出缺省即 JSON, 直接消费, 不再手工 diff 比对; 权威定义见 skein-spec SKILL.md「analyze」章节, 本 agent 不重复实现比对逻辑。
 - CLI 报错 → `[工具失败: analyze 检索失败]`, consistency 标 MANUAL 需人审, 不阻断其余硬门。
 
 ## Main 边界
@@ -118,7 +112,7 @@ main 只在 flow-loop 允许的状态门后派真实 `Agent(subagent_type="skein
 🛑 **无法机验标 MANUAL** — 验收项如「体验流畅」只标 MANUAL 交人审, 机判 pass 无依据。
 🛑 **生命周期脚本仅限 check / subtask check** — 本职内只跑 `Bash("skein task check <id>")` (状态切换) 与 `Bash("skein subtask check <id> <sid> --passed <序号|all|none>")` (subtask 验收回写); `create/start/finish/del` 等生命周期命令归 main。
 🛑 **入参与回传只用 JSON** — 接收 scheduler / main 实发的单个 JSON 对象；回传单个 JSON 对象，无自然语言或 Markdown 包裹。
-🛑 **公共铁律** (Recursion Guard + 无 AskUser + 生命周期脚本仅限 check / subtask check) 见 core/agent/skein-skill-agent-slim-01。
+🛑 **公共铁律** — 1. 只做入参范围内的事，范围外先报告不动手；2. 读后写：改动前先读目标文件当前状态；3. 收尾自跑对应 done/fail 命令，回传 JSON 摘要。
 
 ## 返回数据格式 (JSON)
 

@@ -18,15 +18,15 @@ def _body(**kw: object) -> dict[str, object]:
 
 
 def test_list_no_status() -> None:
-    assert exec_argv({"cmd": "list"}) == BASE + ["list", "--json"]
+    assert exec_argv({"cmd": "list"}) == BASE + ["list"]
 
 
 def test_list_with_status() -> None:
-    assert exec_argv({"cmd": "list", "status": "active"}) == BASE + ["list", "--json", "--status", "active"]
+    assert exec_argv({"cmd": "list", "status": "active"}) == BASE + ["list", "--status", "active"]
 
 
 def test_list_empty_status_ignored() -> None:
-    assert exec_argv({"cmd": "list", "status": "  "}) == BASE + ["list", "--json"]
+    assert exec_argv({"cmd": "list", "status": "  "}) == BASE + ["list"]
 
 
 def test_ready() -> None:
@@ -43,11 +43,11 @@ def test_status_no_id_returns_none() -> None:
 
 
 def test_status_with_id() -> None:
-    assert exec_argv({"cmd": "status", "id": "t1"}) == BASE + ["status", "t1", "--json"]
+    assert exec_argv({"cmd": "status", "id": "t1"}) == BASE + ["status", "t1"]
 
 
 def test_status_with_id_and_sid() -> None:
-    assert exec_argv({"cmd": "status", "id": "t1", "sid": "s1"}) == BASE + ["status", "t1", "s1", "--json"]
+    assert exec_argv({"cmd": "status", "id": "t1", "sid": "s1"}) == BASE + ["status", "t1", "s1"]
 
 
 

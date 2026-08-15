@@ -220,7 +220,8 @@ def test_analyze_zero_findings_reports_clean(
 def test_analyze_coverage_and_scope_findings_json(
         mem_ws: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
     """验收条在 subtask 无关键词对应 → coverage 候选; subtask 在 prd 无对应 → scope 候选。"""
-    prd = "## 验收标准\n\n- [ ] zebra 必须可用\n\n## 其他\n\n收尾\n"
+    prd = ("---\ndesc: zebra 模块交付\nboundary:\n  should: []\n  should_not: []\n"
+           "acceptance:\n  - zebra 必须可用\n---\n\n## 其他\n\n收尾\n")
     _task(mem_ws, "t-cov", prd=prd,
           task_json={"subtasks": [{"sid": "s1", "name": "quokka", "desc": "quokka 相关"}]})
     _spec(mem_ws, monkeypatch).analyze(argparse.Namespace(tid="t-cov", json=True))

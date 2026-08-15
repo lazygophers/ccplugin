@@ -36,6 +36,8 @@ from skeinlib.cli import app
 
 PLUGIN = SCRIPTS.parent
 ALIASES = ("del",)   # dispatch 里有, --help 不列
+# 全局 flag: _strip_global_flags 对所有命令收 -j/--json/-p/--pretty/-d/--debug, 不进命令合法面
+GLOBAL_FLAGS = {"--json", "--pretty", "--debug"}
 # 散文里的假阳性: README 讲名字来源「skein of yarn」
 PROSE_SKIP = ("skein of",)
 
@@ -99,7 +101,8 @@ def _cli_surface() -> dict[str, dict[str, set[str]]]:
 
 
 def _doc_files() -> list[Path]:
-    files = [p for p in PLUGIN.rglob("*.md") if ".archive" not in str(p)]
+    files = [p for p in PLUGIN.rglob("*.md")
+             if ".archive" not in str(p) and "graphify-out" not in str(p)]  # graphify-out=生成产物
     files += list((PLUGIN / "docs").glob("*.mmd"))
     return sorted(files)
 
@@ -122,7 +125,7 @@ def _scan(files: list[Path] | None = None) -> list[str]:
                     continue
                 words = rest.split()
                 key = f"{cmd} {words[0]}" if words and f"{cmd} {words[0]}" in cli[tool] else cmd
-                legal = cli[tool][key] | {"--help"}
+                legal = cli[tool][key] | {"--help"} | GLOBAL_FLAGS
                 for flag in re.findall(r"(--[a-z][a-z0-9\-]*)", rest):
                     if flag not in legal:
                         problems.append(f"{rel}:{i} `{tool} {key}` 没有 {flag} — {ln.strip()[:80]}")
@@ -158,7 +161,8 @@ def test_task_commands_are_grouped() -> None:
     for command in ("create", "research", "plan", "confirm", "check", "finishing", "finish",
                     "rename", "deps", "repos", "estimate", "priority", "status", "show"):
         # status 双注册: 顶层=全局运行态概览, task 组内=单 task 详情 (legacy 转发依赖)
-        if command != "status":
+        # research 双注册: 顶层=research 任务清单 (research_tasks), task 组内=待处理→调研中
+        if command not in ("status", "research"):
             assert command not in group.commands
         assert task.get_command(task_ctx, command) is not None
     assert "state" not in group.commands

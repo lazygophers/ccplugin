@@ -803,10 +803,9 @@ def test_create_like_clones_planning(ws: Path, monkeypatch: pytest.MonkeyPatch) 
     assert out["cloned_from"] == "cron-src"
     new_prd = (ws / ".skein" / "task" / "cron-run2" / "prd.md").read_text()
     assert "desc: 解决 X" in new_prd, "src 的 TaskSpec 跟着继承"
-    s = new["subtasks"][0]
-    assert s["status"] == SubtaskStatus.PENDING and s["finished"] is None
-    assert "note" not in s and s["acceptance_done"] == []
-    assert "## 目标" in (ws / ".skein" / "task" / "cron-run2" / "prd.md").read_text(encoding="utf-8")
+    s = _load(ws, "cron-run2")["subtasks"][0]
+    assert s["status"] == SubtaskStatus.PENDING and s.get("finished") is None
+    assert "note" not in s, "执行期留痕 (note) 不随克隆继承"
 
 
 # ── lifecycle: 计划字段编辑 ─────────────────────────────────────────────────

@@ -59,10 +59,17 @@ def _hint_prompt(hint: dict[str, Any]) -> str:
     scope = "改动只准落在 workdir 内" if wt == "on" else "在仓库根原地改, 无隔离"
     payload: dict[str, Any] = {"tid": tid, "worktree": wt}
     if hint.get("sid"):
+        # research 条目存 research_tasks, 走 research 命令族; exec subtask 走 subtask 命令族。
+        # 收尾命令写错族, agent 拿到 "No such command" 只会瞎猜一路。
+        research = hint["agent"].endswith("skein-researcher")
+        show_cmd = (f"skein research show {tid} {hint['sid']}" if research
+                    else f"skein subtask show {tid} {hint['sid']}")
+        finish_cmd = (f"skein research done/fail {tid} {hint['sid']}" if research
+                      else f"skein subtask done/fail {tid} {hint['sid']}")
         payload |= {
             "sid": hint["sid"], "workdir": where, "repo": hint.get("repo"),
-            "action": f"先 `skein subtask show {tid} {hint['sid']}` 自读全部字段, "
-                      f"在 workdir 内完成该 subtask ({scope}), 收尾自跑 subtask done/fail, 回传 JSON",
+            "action": f"先 `{show_cmd}` 自读全部字段, "
+                      f"在 workdir 内完成该条目 ({scope}), 收尾自跑 {finish_cmd}, 回传 JSON",
         }
     elif hint["agent"].endswith("skein-checker"):
         payload |= {
@@ -245,7 +252,7 @@ class Scheduler:
             subs = t.get("subtasks", [])
             rsubs = t.get("research_tasks", [])
             done = {s["sid"] for s in subs + rsubs if s["status"] == SubtaskStatus.DONE}
-            crit = _crit_weight(subs)
+            crit = _crit_weight(subs + rsubs)
             prio = PRIORITY_RANK.get(t.get("priority") or PRIORITY_DEFAULT, PRIORITY_RANK[PRIORITY_DEFAULT])
             # exec subtask 与 research 任务合池 (research 无 exec 加分); deps 跨两列均可解析
             for i, s in enumerate(subs + rsubs):
@@ -292,7 +299,8 @@ class Scheduler:
         它那些 pending subtask 就数不到, 空批原因会误报成「无待处理 subtask」。
         """
         tasks = self.ws.store.active()
-        def _all_subs(ts): return [s for t in ts for s in t.get("subtasks", []) + t.get("research_tasks", [])]
+        def _all_subs(ts: list[dict[str, Any]]) -> list[dict[str, Any]]:
+            return [s for t in ts for s in t.get("subtasks", []) + t.get("research_tasks", [])]
         grun = sum(1 for s in _all_subs(tasks) if s["status"] == SubtaskStatus.RUNNING)
         gpend = sum(1 for s in _all_subs(tasks) if s["status"] == SubtaskStatus.PENDING)
         gfailed = sum(1 for s in _all_subs(tasks) if s["status"] == SubtaskStatus.FAILED)
@@ -706,7 +714,7 @@ class Scheduler:
             if t["status"] == TaskStatus.RESEARCH:
                 raise SkeinError(
                     f"{a.tid} 调研中, subtask 不开工 — research 任务走 "
-                    f"`skein research claim {a.tid}`, 全 done 后 `skein task plan {a.tid}` 收敛回规划")
+                    f"`skein research start {a.tid} <sid>`, 全 done 后 `skein task plan {a.tid}` 收敛回规划")
             if s["status"] not in (SubtaskStatus.PENDING, SubtaskStatus.FAILED):
                 raise SkeinError(f"{a.sid} 状态 {s['status']}, 只能 start 待处理/失败")
             done = {x["sid"] for x in t["subtasks"] if x["status"] == SubtaskStatus.DONE}

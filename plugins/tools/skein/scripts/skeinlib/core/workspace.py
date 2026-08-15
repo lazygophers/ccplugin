@@ -172,7 +172,7 @@ class Workspace:
                 import sys as _sys
                 from skeinlib.config import HOOK_STAGE_DISPLAY, LEGAL_HOOK_STAGES
                 # 从原始 YAML 提取非法键名
-                import yaml as _yaml  # type: ignore[import-untyped]
+                import yaml as _yaml
                 raw = _yaml.safe_load(f.read_text(encoding="utf-8")) or {}
                 raw_hooks = (raw.get("hooks") or {}) if isinstance(raw, dict) else {}
                 for bad_stage in raw_hooks:

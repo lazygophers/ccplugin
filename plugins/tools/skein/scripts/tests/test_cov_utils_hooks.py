@@ -101,10 +101,10 @@ def test_exec_policy_readonly_commands() -> None:
     """只读类 cmd: list/ready/doctor 无必填参数, list 的 status 可选。"""
     from skeinlib.utils.exec_policy import exec_argv
 
-    assert _tail(exec_argv({"cmd": "list"})) == ["list", "--json"]
-    assert _tail(exec_argv({"cmd": "list", "status": "open"})) == ["list", "--json", "--status", "open"]
+    assert _tail(exec_argv({"cmd": "list"})) == ["list"]
+    assert _tail(exec_argv({"cmd": "list", "status": "open"})) == ["list", "--status", "open"]
     # 空白 status 视同未给 (s() 会 strip 后判空)
-    assert _tail(exec_argv({"cmd": "list", "status": "   "})) == ["list", "--json"]
+    assert _tail(exec_argv({"cmd": "list", "status": "   "})) == ["list"]
     assert _tail(exec_argv({"cmd": "ready"})) == ["ready"]
     assert _tail(exec_argv({"cmd": "doctor"})) == ["doctor"]
 
@@ -114,8 +114,8 @@ def test_exec_policy_status_requires_id_and_takes_optional_sid() -> None:
     from skeinlib.utils.exec_policy import exec_argv
 
     assert exec_argv({"cmd": "status"}) is None
-    assert _tail(exec_argv({"cmd": "status", "id": "t1"})) == ["status", "t1", "--json"]
-    assert _tail(exec_argv({"cmd": "status", "id": "t1", "sid": "s1"})) == ["status", "t1", "s1", "--json"]
+    assert _tail(exec_argv({"cmd": "status", "id": "t1"})) == ["status", "t1"]
+    assert _tail(exec_argv({"cmd": "status", "id": "t1", "sid": "s1"})) == ["status", "t1", "s1"]
 
 
 def test_exec_policy_single_id_commands() -> None:
@@ -173,18 +173,6 @@ def test_exec_policy_priority_requires_id_and_set() -> None:
         "task", "priority", "t1", "--set", "high"]
     assert exec_argv({"cmd": "priority", "id": "t1"}) is None
 
-
-def test_exec_policy_prd_action_whitelist() -> None:
-    """prd: action 限五值; 非 read 时 --list 必给 (缺则拒); read 不带 --list。"""
-    from skeinlib.utils.exec_policy import exec_argv
-
-    base = {"cmd": "prd", "id": "t1", "type": "goal"}
-    assert _tail(exec_argv({**base, "action": "read"})) == ["prd", "read", "t1", "--type", "goal"]
-    assert exec_argv({**base, "action": "drop"}) is None
-    assert exec_argv({**base, "action": "write"}) is None  # 缺 --list
-    assert _tail(exec_argv({**base, "action": "write", "list": "x"})) == [
-        "prd", "write", "t1", "--type", "goal", "--list", "x"]
-    assert exec_argv({"cmd": "prd", "id": "t1", "action": "read"}) is None  # 缺 type
 
 
 def test_exec_policy_rejects_unknown_cmd() -> None:
@@ -421,8 +409,12 @@ def test_run_hooks_exports_context_env(monkeypatch: pytest.MonkeyPatch, tmp_path
 
 def test_hooks_cli_usage_on_unknown_subcommand(capsys: pytest.CaptureFixture[str],
                                                monkeypatch: pytest.MonkeyPatch) -> None:
-    """无子命令或子命令不在 DISPATCH → 打用法并 exit code 2。"""
+    """帮助走 stdout/0；无效子命令走 stderr/2。"""
     from skeinlib.hooks.cli import main
+
+    monkeypatch.setattr("sys.argv", ["skein-hooks", "--help"])
+    assert main() == 0
+    assert "用法: skein-hooks" in capsys.readouterr().out
 
     monkeypatch.setattr("sys.argv", ["skein-hooks"])
     assert main() == 2

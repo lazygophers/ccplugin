@@ -1,9 +1,9 @@
 ---
 name: skein-spec
-description: 规则记忆库 (基于 .skein/spec)。namespace (自由目录, 默认 rules/product/map/external, 目录扫描得非白名单) × inclusion (封闭四值 always/auto/fileMatch/manual, 写在 frontmatter) 正交两维 —— 目录管内容分类, inclusion 管加载策略, 互不决定, 搬目录不改加载策略。planning 时 recall 召回相关规则、task finish 后 sediment 沉淀学习 + maintain 自动精简过期/重复/断链/超预算, 经判定门自动写盘 (不逐次问用户)。product namespace 是需求现状 wiki (delta 变更历史 vs state 现状快照分离, 按功能域切页), 现状过时用 amend 改写既有章节 (而非无限追加并存); map namespace 现算目录树+符号骨架 (`map --skeleton`) 合并人写语义页; analyze 对 task 跑只读一致性核查 (验收覆盖率/硬规冲突/范围蔓延/proposed 置信度/接缝存在性); 旧两层结构 (core/recall) 迁移新 namespace 结构见 migrate。另支持空仓 bootstrap 播种规则基线、记忆大面积失效 (大重构/换栈) 时 reconstruct 可逆归档后按项目类型分型重建、maintain 手动体检 (超预算/stale/断链/重复/废弃, 判据按 namespace 分表, --apply 自动修复)、auto-fix (Stop hook 写 .pending-fix 标记 → main 派 skein-specer bg 跑 maintain --apply 全自动修, 断链只报告)。
+description: SKEIN 规则记忆库 (.skein/spec)。触发: planning 召回既有约定 / finish 后沉淀或改写规则 / 现状 wiki 与记忆库维护 / spec 一致性核查 / 空仓播种与整库重构。recall·sediment·amend·map·analyze·migrate·bootstrap·reconstruct·maintain 全模式入口。
 user-invocable: true
-argument-hint: "[模式: recall/召回, sediment/沉淀, amend/改写, map/结构现算, analyze/一致性核查, bootstrap/播种, reconstruct/重构, maintain/维护 (加 --apply 自动修)] [--deep=recall/low/full/deep/max/high (reconstruct 模式可选)]"
-arguments: "['recall(召回)|sediment(沉淀)|amend(改写)|map(结构现算)|analyze(一致性核查)|bootstrap(播种)|reconstruct(重构)|maintain(维护)', '--deep=recall/low/full/deep/max/high']"
+argument-hint: "[模式: recall/召回, sediment/沉淀, amend/改写, map/结构现算, analyze/一致性核查, migrate/迁移, bootstrap/播种, reconstruct/重构, maintain/维护 (加 --apply 自动修)] [--deep=recall/low/full/deep/max/high (reconstruct 模式可选)]"
+arguments: "['recall(召回)|sediment(沉淀)|amend(改写)|map(结构现算)|analyze(一致性核查)|migrate(迁移)|bootstrap(播种)|reconstruct(重构)|maintain(维护)', '--deep=recall/low/full/deep/max/high']"
 model: inherit
 effort: medium
 ---
@@ -16,8 +16,8 @@ effort: medium
 
 > **绑定 agent (按读/写拆两个, 均 frontmatter `skills: skein:skein-spec`)**:
 >
-> - **读路径 → `skein-recaller`** (只读同步召回员, 单一 recall 职责): recall 检索 (planning) 派它, **main 等召回结果进 planning** (dispatch prompt「已知」段带上)。
-> - **写路径 → `skein-specer`** (记忆写盘员): sediment/amend/reconstruct·maintain/prune 五类写作业 (finish 读 diff + subagent 回传摘要 跑判定门产候选 + 写盘 + reindex)。**异步 fire-and-forget 模式** (被 skein-flow finish 阶段在 finish 闭环后派发): specer 自主跑判定门 + `skein-spec sediment`/`amend` 写盘 + reindex, **无需 main 等待回传** (main 派发即结束回合, 回传到达后只补 output trace; 判定门通过即自主写, 不逐次询问用户)。仅 bootstrap/reconstruct 全局动作跑前一次征同意。
+> - **读路径默认归 `skein-recaller`** (只读同步召回员): recall 检索 (planning) 派它, **main 等召回结果进 planning** (dispatch prompt「已知」段带上); executor/main 也可直跑 `skein-spec recall` CLI 等价命令。
+> - **写路径默认归 `skein-specer`** (记忆写盘员): sediment/amend/reconstruct·maintain/prune 五类写作业 (finish 读 diff + subagent 回传摘要 跑判定门产候选 + 写盘 + reindex)。executor 踩到可复用约定也可直跑 `skein-spec sediment` CLI 等价命令。**异步 fire-and-forget 模式** (被 skein-flow finish 阶段在 finish 闭环后派发): specer 自主跑判定门 + `skein-spec sediment`/`amend` 写盘 + reindex, **无需 main 等待回传** (main 派发即结束回合, 回传到达后只补 output trace; 判定门通过即自主写, 不逐次询问用户)。仅 bootstrap/reconstruct 全局动作跑前一次征同意。
 
 ## namespace × inclusion 正交两维
 
@@ -41,7 +41,7 @@ external 层 (不入 hook, 纯手动) 存长文档/外部资料, 同经 `recall`
 
 ## recall (planning 阶段, 派 skein-recaller)
 
-> 召回由 `skein-recaller` (只读同步召回员) 承载, main 等其结果进 planning。
+> 默认派 `skein-recaller` (只读同步召回员) 承载, main 等其结果进 planning; main 也可直跑 `skein-spec recall` CLI 等价命令。
 
 ```
 skein-spec recall "<任务关键词>" [--src rules/product/map/code/all]
@@ -118,7 +118,7 @@ skein-spec map [--skeleton] [--paths <逗号分隔路径>]
 ## analyze (task 一致性核查, 只读)
 
 ```
-skein-spec analyze <tid> [--json]
+skein-spec analyze <tid> 
 ```
 
 对齐 spec-kit `/speckit.analyze`, 五类只读检查 (不写任何盘), 全启发式关键词/子串匹配, 措辞统一带「候选」字样, 零命中就如实报零冲突, **禁断言违规**:
@@ -131,11 +131,19 @@ skein-spec analyze <tid> [--json]
 | proposed 置信度 | design.md 提及的规则标题 ↔ 该规则 `status: proposed`, 报未验证引用    |
 | 接缝存在性      | design.md「测试接缝」段声明的路径/符号 ↔ codebase, 报未找到           |
 
-`--json` 输出机器可读结果供 `skein-checker` 消费; `for-check.md` 的一致性核查段直接调这条, 不再手工 diff 比对。
+缺省输出机器可读 JSON 供 `skein-checker` 消费 (`--show` 才是人读文本); `for-check.md` 的一致性核查段直接调这条, 不再手工 diff 比对。
 
 ## migrate (旧两层结构 → namespace × inclusion)
 
 旧 `spec/core/` + `spec/recall/` 两层结构迁移到 `rules/product/map/external` namespace × inclusion 新结构: `skein-setup` 在已初始化仓检出 `spec/core/` 存在时提示跑迁移, `init` 对全新仓直接建新结构目录。两阶段全流程 —— 阶段 1 机械改名 (旧 core→rules/inclusion:always, 旧 recall→rules/inclusion:auto) / 阶段 2 语义分拣 (把该归 product 的现状类内容、该归 map 的结构说明从 rules 分拣出去) —— 详见 [references/migration-v2.md](references/migration-v2.md)。
+
+## restructure (碎片文件批量合并进主题文件)
+
+```
+skein-spec restructure --map <plan.json> [--dry-run]
+```
+
+映射 JSON (`{"<namespace>/<类目>/<主题>.md": ["<namespace>/<类目>/<碎片>.md", ...]}`) 把右侧碎片文件合并为左侧主题文件; 源文件自动归档到 `.archive/` (可 `restore <ts>` 回滚), 写盘后自动 reindex。`--dry-run` 只打印计划不落盘。碎片规则文件批量归并走此命令, 禁一条规则一个文件手工搬。
 
 ## 空仓冷启动播种 (一次性, main)
 

@@ -221,7 +221,7 @@ def test_finish_candidates_three_paths(mem_ws: Path, mem_cli: MemCli) -> None:
     (tdir / "prd.md").write_text(prd)
 
     # 测试路径1: anchors 命中 (传入包含真实文件的参数)
-    fc_out = mem_cli(mem_ws, "finish-candidates", tid, "--json",
+    fc_out = mem_cli(mem_ws, "finish-candidates", tid,
                     "--files", str(real_file)).stdout
     fc_data = json.loads(fc_out)
 
@@ -234,7 +234,7 @@ def test_finish_candidates_three_paths(mem_ws: Path, mem_cli: MemCli) -> None:
         assert any("real_feature" in str(hit) for hit in anchor_hits)
 
     # 测试路径2: 关键词弱候选 (传入不存在的文件)
-    fc_out2 = mem_cli(mem_ws, "finish-candidates", tid, "--json",
+    fc_out2 = mem_cli(mem_ws, "finish-candidates", tid,
                      "--files", "nonexistent/file.py").stdout
     fc_data2 = json.loads(fc_out2)
 
@@ -245,7 +245,7 @@ def test_finish_candidates_three_paths(mem_ws: Path, mem_cli: MemCli) -> None:
                   for c in weak_candidates)
 
     # 测试路径3: 无命中建议新建 (空文件列表)
-    fc_out3 = mem_cli(mem_ws, "finish-candidates", tid, "--json", "--files", "").stdout
+    fc_out3 = mem_cli(mem_ws, "finish-candidates", tid, "--files", "").stdout
     fc_data3 = json.loads(fc_out3)
 
     # 路径3: 皆无则如实报建议新建

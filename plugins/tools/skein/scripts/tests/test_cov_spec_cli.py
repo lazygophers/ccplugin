@@ -117,7 +117,7 @@ def test_spec_finish_candidates_no_task(mem_ws: Path, mem_cli: Any) -> None:
 
 
 def test_spec_finish_candidates_json_no_task(mem_ws: Path, mem_cli: Any) -> None:
-    r = mem_cli(mem_ws, "finish-candidates", "nonexistent-task", "--json", check=False)
+    r = mem_cli(mem_ws, "finish-candidates", "nonexistent-task", check=False)
     assert r.returncode in (0, 1, 2)
 
 

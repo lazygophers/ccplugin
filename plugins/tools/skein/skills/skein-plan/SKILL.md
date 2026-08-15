@@ -1,6 +1,6 @@
 ---
 name: skein-plan
-description: "SKEIN planning 独立入口。第一步建 task、分析并填 TaskSpec (task spec)、research 分流与调度、subtask DAG 拆分、confirm 人审门。工件写法见 references/plan.md，拆分调度模型见 references/dag.md。skein-flow 在 $1=plan 或含 --plan 时路由到本 skill。"
+description: "SKEIN planning 独立入口: 建 task→填 TaskSpec→research 分流→subtask DAG 拆分→grill 硬门→confirm 人审。工件写法见 references/plan.md, 调度模型见 references/dag.md。skein-flow 在 $1=plan 或含 --plan 时路由到本 skill。"
 user-invocable: true
 argument-hint: "[任务描述/ID] [--plan]"
 arguments: "[任务描述/ID]"
@@ -16,24 +16,25 @@ effort: medium
 
 任务描述（自然语言）或 task ID（续规划已有 task）。
 
-## 流程（五步，一步不破窗）
+## 流程（六步，一步不破窗）
 
-1. 创建 task → **第一步必须是建 task**，先归一判定 `Bash("skein list --status unfinished --json")`，新建即 `Bash("skein task create <tid> --name <标题> --desc <描述>")`
+1. 创建 task → **第一步必须是建 task**，先归一判定 `Bash("skein list --status unfinished")`，新建即 `Bash("skein task create <tid> --name <标题> --desc <描述>")`
 2. 任务分析 → 填 TaskSpec 四要素 `Bash("skein task spec <tid> --desc <str> --should <a;b> --not <a;b> --acceptance <a;b>")` + design 接缝 `Bash("skein design seam <tid> --list '接缝一\n接缝二'")`
-3. research 分流 → 需调研则 `Bash("skein subtask add <tid> <sid> --name <标题> --desc <描述> --estimate <小时> --phase research")` + `Bash("skein task research <tid>")` + 调度
+3. research 分流 → 需调研则 `Bash("skein research add <tid> <sid> --name <标题> --desc <描述> --estimate <小时>")` + `Bash("skein task research <tid>")` + 调度
 4. 拆 subtask → 逐个 `Bash("skein subtask add <tid> <sid> --name <标题> --desc <描述> --estimate <小时> --deps <sid,...>")` 填齐必要信息 + 自下而上估工时 `Bash("skein task estimate <tid> --set <小时>")`
-5. 人审门 → 先回显 `Bash("skein task spec <tid>")` + `Bash("skein design read <tid>")` + `Bash("skein subtask list <tid>")`，AskUserQuestion 批准后 `Bash("skein task confirm <tid> --approved")`
+5. grill 硬门 → 按 [skein-grill](../skein-grill/SKILL.md) 对 planning 产物跑对抗式审查，弱点表逐条裁决并补回 spec/design/subtask；有未裁决弱点禁进人审门
+6. 人审门 → 先回显 `Bash("skein task spec <tid>")` + `Bash("skein design read <tid>")` + `Bash("skein subtask list <tid>")`，AskUserQuestion 批准后 `Bash("skein task confirm <tid> --approved")`
 
-**会话纪律**：第 1 步到第 5 步一个不破窗完成（中途禁 `/clear` / `/compact`）；research 全量结论走 `findings.md` 落盘，主对话只引摘要，不引全文。
+**会话纪律**：第 1 步到第 6 步一个不破窗完成（中途禁 `/clear` / `/compact`）；research 全量结论走 `findings.md` 落盘，主对话只引摘要，不引全文。
 
 ### 1. 创建 task（第一步）
 
 **归一判定**：先查未完成 task，判新诉求并入现有 task 还是新建。同目标 / 同模块 / 共享改动面 / 互为前置 → **并入拆 subtask**（转到该 task 的第 2 步）；仅目标独立且无共享改动面才新建。
 
-复杂度分档：direct-fix（单文件单处 ≤20 行）不建 task；跨 ≥2 文件、多步、外部调研、文档交付一律建 task。
+复杂度分档：direct-fix（单文件单处 ≤20 行且位置已知）不建 task；跨 ≥2 文件、多步、外部调研、文档交付一律建 task。
 
 ```
-Bash("skein list --status unfinished --json")
+Bash("skein list --status unfinished")
 Bash("skein task create order-create-api --name '下单接口' --desc '为 C 端新增下单 API' --priority normal")
 ```
 
@@ -50,14 +51,14 @@ Bash("skein design seam order-create-api --list 'API 层响应契约\nDB 迁移�
 
 ### 3. research 分流（需要时）
 
-需要调研时：先登记 research subtask、切调研态，然后调度 `skein-researcher` 执行。调研结论落 `.skein/task/<tid>/research/` 与 `findings.md`，全 done 后收敛回 pending（命令见下方代码块）。
+需要调研时：先登记 research 任务（research_tasks 清单，与 exec subtask 分列存储）、切调研态，然后调度 `skein-researcher` 执行。调研结论落 `.skein/task/<tid>/research/` 与 `findings.md`，全 done 后收敛回 pending，**再回到第 2 步带着调研结果重新分析、填 TaskSpec**（research 不改变六步主流程，只插在 2 与 4 之间）。
 
 ```
-Bash("skein subtask add order-create-api r1-lock --name '库存锁方案调研' --desc '对比乐观/悲观锁在秒杀场景的正确性, 结论写 findings.md' --estimate 2 --phase research")
+Bash("skein research add order-create-api r1-lock --name '库存锁方案调研' --desc '对比乐观/悲观锁在秒杀场景的正确性, 结论写 findings.md' --estimate 2")
 Bash("skein task research order-create-api")
 ```
 
-调度：派 `Agent(subagent_type='skein:skein-researcher')`，传 `{"tid":"order-create-api","workdir":"<绝对工作目录>","topic":"<调研主题>"}`。全部 research subtask done 后：
+调度：跑 `Bash("skein flow run")`，把 exec.next 中 agent=skein-researcher 的 `hint.prompt` 原样派发 `Agent(subagent_type='skein:skein-researcher', prompt=hint.prompt)`（prompt 是 scheduler 生成的成品串，禁重写加料）。全部 research 任务 done 后（`skein research done <tid> <sid>` 由 researcher 自跑，main 不代跑）收敛并回到第 2 步重填 spec：
 
 ```
 Bash("skein task plan order-create-api")
@@ -83,9 +84,13 @@ subtask 拆完后自下而上估 task 工时（= Σ subtask + plan/check 开销�
 Bash("skein task estimate order-create-api --set 9")
 ```
 
-产出后跑质量自检：派 `Agent(subagent_type='skein:skein-plan-auditor')`（只读审计，非门控）→ 弱点报告交 grill 逐条裁决。有未裁决弱点禁进第 5 步。
+产出后跑质量自检：派 `Agent(subagent_type='skein:skein-plan-auditor')`（只读审计，非门控）→ 弱点报告交 grill 逐条裁决。有未裁决弱点禁进第 6 步。
 
-### 5. 人审门（AskUserQuestion）
+### 5. grill 硬门
+
+spec/design/subtask/estimate 齐后、人审门前，按 [skein-grill](../skein-grill/SKILL.md) 对全部 planning 产物跑一轮对抗式审查（main 亲做，禁派 subagent）。弱点表逐条 `AskUserQuestion` 裁决并补回 spec/design/subtask；**有未裁决弱点禁进人审门、禁 confirm**。审查轴与弱点表格式见 [skein-grill/references/review-axes-and-output.md](../skein-grill/references/review-axes-and-output.md)。
+
+### 6. 人审门（AskUserQuestion）
 
 **先回显产物再问**。按顺序跑下面三条命令，把输出拼进提问内容（spec 信息 + 设计信息 + subtask 编排结果）：
 
@@ -110,19 +115,11 @@ else:
 
 ## CLI 签名速查
 
-| 命令 | 易错点 |
-| --- | --- |
-| `Bash("skein task create <tid> --name <str> --desc <str> [--deps tid1,tid2] [--repos repo1,repo2] [--priority urgent\|high\|normal\|low] [--estimate <小时>] [--like <模板tid>]")` | `<tid>` 是位置参数；`--name`/`--desc` 必填；`--priority` 只收四个英文值；`--estimate` 单位是小时；`--deps` 声明前置 task；`--like` 克隆既有 task 的 spec/design/subtask 骨架，状态全重置 |
-| `Bash("skein task spec <tid> [--desc <str>] [--should <a;b;c>] [--not <a;b;c>] [--acceptance <a;b;c>]")` | TaskSpec 落盘 prd.md frontmatter；列表 `;` 分号分隔；不带参数 = 只读回显；confirm 后锁定 |
-| `Bash("skein subtask add <tid> <sid> --name <str> --desc <str> --estimate <小时> [--deps sid1,sid2] [--check <a;b>] [--phase exec\|research]")` | `<sid>` 是位置参数不是 `--id`；四必填缺一即拒 |
-| `Bash("skein design seam <tid> --list <条目>")` / `Bash("skein design read <tid>")` | seam `--list` 用 `\n` 分隔多条，整段清重建；read 只读回显 |
-
-多条 skein 可以串接，但**串写命令看回显**：中途失败时后续命令照跑，回显里哪条挂了就重跑哪条（落盘状态即真值，不必预先拆）。
+CLI 签名速查表以 [skein-flow/references/flow-loop.md](../skein-flow/references/flow-loop.md) 的「CLI 签名速查」节为单一真值源（含各命令 flag / 易错点 / 串接纪律），本文件不重复维护。
 
 ## 周期 / 无人值守场景
 
-- **别每轮从零 planning**：先 `Bash("skein list --status all --json")` 找上一轮同 intent 的 task，用 `Bash("skein task create <新tid> --like <上一轮tid> --name <标题> --desc <描述>")` 克隆骨架。
-- **别拿 `--approved` 冒充人审**：无人值守走 `Bash("skein task confirm <tid> --unattended")`（需用户预先授权）。
+周期（cron、`/loop`、CI）与无人值守的 `--like` 克隆、`--unattended` 授权规则统一见 [skein-flow/references/flow-loop.md](../skein-flow/references/flow-loop.md) 的「周期 / 无人值守场景」节。
 
 ## ✅ 正向配方
 

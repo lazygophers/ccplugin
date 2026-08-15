@@ -1,6 +1,6 @@
 ---
 name: skein-grill
-description: 对抗式审查 (红队, 非审批)。planning 产物 (prd 主入口/design 详细设计/findings 调研 + task.json 子任务) start 前硬门、或用户显式 "grill/盘方案/审设计/红队" 时使用 — 多轴逼问挖漏洞/隐藏假设/未定边界, 逐问给推荐答案+codebase 先查, 弱点表交用户裁才放行。main 亲做 (交互式)。
+description: 对抗式审查 (红队, 非审批)。planning 产物 (prd 主入口/design 详细设计/findings 调研 + task.json 子任务) confirm 前硬门、或用户显式 "grill/盘方案/审设计/红队" 时使用 — 多轴逼问挖漏洞/隐藏假设/未定边界, 逐问给推荐答案+codebase 先查, 弱点表交用户裁才放行。main 亲做 (交互式)。
 user-invocable: false
 argument-hint: "[审查对象路径: 缺省=当前任务 planning 产物]"
 arguments: "[审查对象路径: 缺省=当前任务 planning 产物]"
@@ -12,7 +12,7 @@ effort: high
 
 > 🔒 全局流程规则（状态机/调度/优先级等）以 skein-flow/references/ 为单一真值源。
 
-审查对象 = planning 产物 (`prd.md` 主入口 / `design.md` 详细设计 / `findings.md` 调研收敛 + task.json 子任务/调度) 或用户点名要盘的方案。目的: **start/exec 前把需求与方案的漏洞、隐藏假设、未定边界逼出来**, 不是复述内容。
+审查对象 = planning 产物 (`prd.md` 主入口 / `design.md` 详细设计 / `findings.md` 调研收敛 + task.json 子任务/调度) 或用户点名要盘的方案。目的: **confirm/exec 前把需求与方案的漏洞、隐藏假设、未定边界逼出来**, 不是复述内容。
 
 **载体**: main 亲做, 交互式 (逐条与用户确认), **禁派 subagent** (它不能 `AskUserQuestion`)。
 
@@ -70,9 +70,9 @@ effort: high
 | 每次提问 | 带推荐答案让用户裁 (补 / 接受风险 / 砍需求) (❌ 空问不给推荐答案) |
 | 遇事实类问题 | Read/Grep 自查, 只问文件答不了的决策点 (❌ 能自查的去问用户 — codebase 优先) |
 | 选 grill 载体 | main 亲做 (它能 `AskUserQuestion`) (❌ 派 subagent 做 grill — 它不能 `AskUserQuestion`) |
-| 弱点表未裁决完 / 想 start | 全部裁决补齐才放行, 否则停在本步、禁推进 exec (❌ 有未裁决项就放行 start) |
+| 弱点表未裁决完 / 想 confirm | 全部裁决补齐才放行, 否则停在本步、禁推进 exec (❌ 有未裁决项就放行 confirm) |
 | 环境装有 /grill-me 引擎 | 复用其访谈法, skein-grill 只叠 skein 专属层 (❌ 装了却弃用另起炉灶) |
 
 ## 明细 (审查轴 / 失败模式 / 输出弱点表)
 
-跑 grill 时详见 `references/review-axes-and-output.md` — 7 条审查轴逐条逼问、失败模式 if-then 三段式、弱点表输出格式。
+跑 grill 时详见 `references/review-axes-and-output.md` — 9 条审查轴逐条逼问、失败模式 if-then 三段式、弱点表输出格式。

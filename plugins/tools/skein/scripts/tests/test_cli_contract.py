@@ -108,8 +108,8 @@ def test_claim_returns_dispatch_hints(skein_cli: SkeinCli, ws: Path) -> None:
 def test_task_list_alias_and_status_all(skein_cli: SkeinCli, ws: Path) -> None:
     """`skein task list` (task 组里其余全是 task 子命令) 与 `--status all` 都该直接可用。"""
     _mk(skein_cli, ws)
-    via_task = json.loads(skein_cli(ws, "task", "list", "--status", "all", "--json").stdout)
-    via_top = json.loads(skein_cli(ws, "list", "--status", "all", "--json").stdout)
+    via_task = json.loads(skein_cli(ws, "task", "list", "--status", "all").stdout)
+    via_top = json.loads(skein_cli(ws, "list", "--status", "all").stdout)
     assert via_task == via_top, "task list 应与顶层 list 等价"
     assert [t["id"] for t in via_task["tasks"]] == ["demo"]
 
@@ -178,14 +178,14 @@ def test_subtask_start_allowed_after_confirm(skein_cli: SkeinCli, ws: Path) -> N
 
 
 def test_research_task_only_starts_research_subtask(skein_cli: SkeinCli, ws: Path) -> None:
-    """调研中 task 只放行 phase=research 的 subtask, exec 的仍须先 plan→confirm。"""
+    """调研中 task 只放行 research 任务的 start, exec subtask 须先 plan→confirm。"""
     _mk(skein_cli, ws)
     skein_cli(ws, "research", "add", "demo", "rs1", "--name", "查", "--desc", "查",
               "--estimate", "1", )
     skein_cli(ws, "subtask", "add", "demo", "ex1", "--name", "做", "--desc", "做",
               "--estimate", "1")
     skein_cli(ws, "task", "research", "demo")
-    skein_cli(ws, "subtask", "start", "demo", "rs1")  # research 放行
+    skein_cli(ws, "research", "start", "demo", "rs1")  # research 任务放行
     r = skein_cli(ws, "subtask", "start", "demo", "ex1", check=False)
     assert r.returncode != 0, "调研中不该能 start exec subtask"
     assert "plan" in r.stdout + r.stderr, f"报错须指向 plan: {r.stdout}{r.stderr}"
@@ -230,7 +230,7 @@ def test_flow_run_advances_to_check_without_confirm_or_finish(
 
     result = json.loads(skein_cli(ws, "flow", "run").stdout)["result"]
     assert result["check"]["next"][0]["agent"] == "skein:skein-checker"
-    status = json.loads(skein_cli(ws, "task", "status", "demo", "--json").stdout)["task"]["status"]
+    status = json.loads(skein_cli(ws, "task", "status", "demo").stdout)["task"]["status"]
     assert status == "check"
 
 
@@ -246,7 +246,7 @@ def test_report_state_mismatch_is_reported(skein_cli: SkeinCli, ws: Path) -> Non
 
     result = json.loads(skein_cli(ws, "flow", "run", "--dry-run").stdout)["result"]
     assert {m["sid"] for m in result["exec"]["mismatches"]} == {"rs1"}
-    skein_cli(ws, "subtask", "start", "demo", "rs1")
+    skein_cli(ws, "research", "start", "demo", "rs1")
     result = json.loads(skein_cli(ws, "flow", "run", "--dry-run").stdout)["result"]
     assert {m["sid"] for m in result["exec"]["mismatches"]} == {"rs1"}
 
@@ -276,9 +276,8 @@ def test_multi_repo_requires_repo_and_maps_dispatch_workdirs(
     for sid, repo in (("st1", "child-a"), ("st2", "child-b")):
         skein_cli(ws, "subtask", "add", "demo", sid, "--name", "干活", "--desc", "描述",
                   "--estimate", "1", "--repo", repo)
-    for type_, text in (("goal", "目标一"), ("scope", "边界一"),
-                        ("acceptance", "验收一")):
-        skein_cli(ws, "prd", "write", "demo", "--type", type_, "--list", text)
+    skein_cli(ws, "task", "spec", "demo", "--desc", "目标一", "--should", "边界一",
+              "--acceptance", "验收一")
     skein_cli(ws, "design", "seam", "demo", "--list", "走 CLI 边界")
     skein_cli(ws, "task", "estimate", "demo", "--set", "2")
     skein_cli(ws, "task", "confirm", "demo", "--approved")

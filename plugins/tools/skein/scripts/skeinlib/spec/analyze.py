@@ -15,6 +15,8 @@ from __future__ import annotations
 import argparse
 import json
 import re
+from skeinlib.task.specfile import load_spec
+from skeinlib.task.specfile import load_spec
 import subprocess
 from typing import Any, cast
 
@@ -63,7 +65,8 @@ class AnalyzeMixin:
     # ---- analyze 子命令 (只读, 见 SpecBase 提供的 root/_scan_namespaces/_rules/_inclusion) ----
     def analyze(self, a: argparse.Namespace) -> None:
         tid = cast(str, a.tid)
-        as_json = bool(getattr(a, "json", False))
+        json_flag = getattr(a, "json", None)
+        as_json = bool(json_flag) if json_flag is not None else not bool(getattr(a, "show", False))
         tasks_dir = self.root.parent / "task"  # type: ignore[attr-defined]  # SpecBase.root = .skein/spec
         tdir = tasks_dir / tid
         if not tdir.exists():
@@ -73,6 +76,7 @@ class AnalyzeMixin:
         task_json = tdir / "task.json"
         if task_json.exists():
             t = json.loads(task_json.read_text())
+        t.update(load_spec(tasks_dir, tid))  # TaskSpec 真值在 prd.md frontmatter, 读侧注入
         design_text = (tdir / "design.md").read_text() if (tdir / "design.md").exists() else ""
 
         findings: list[SpecFinding] = []

@@ -13,7 +13,7 @@ permissionMode: bypassPermissions
 main 只发单个 JSON 对象:
 
 ```json
-{"workdir": "<绝对仓库根>", "mode": "fresh | trellis-migration", "full": false, "action": "<本次初始化/迁移范围>"}
+{"workdir": "<绝对仓库根>", "mode": "trellis-migration", "full": false, "action": "<本次迁移范围>"}
 ```
 
 `workdir` 是唯一 cwd 来源, 直接用; `full` 决定跑 `skein setup` 还是 `skein setup --full`, 由 main 定, 不自行升级。
@@ -37,7 +37,7 @@ skein setup [--full]     # 入参 full=true 才带 --full
 逐条定 namespace (`rules`/`product`/`map`/`external`) + inclusion (`always`/`auto`/`fileMatch`/`manual`) + 类目 + 主题, 写入后删扁平旧文件:
 
 ```
-skein-spec sediment --namespace=<ns> [--inclusion=always|auto] --category=<类目> --topic=<主题>
+skein-spec sediment --namespace=<ns> [--inclusion=always|auto] --category=<类目> --topic=<主题> --title=<规则标题> --body-file=<正文文件>
 ```
 
 - `rules` namespace 内 `inclusion=always` 放硬约束, `inclusion=auto` 放长尾; 现状类内容归 `product`, 结构说明归 `map`。旧扁平文件迁完即删, 不留双份。
@@ -64,12 +64,12 @@ JSON 编辑剔除残留 trellis hook 接线 → 复核 `.skein/` 结构完整 �
 🛑 **模式由入参定** — `mode` / `full` 照入参执行, 不自行升级 --full。
 🛑 **入参与回传只用 JSON** — 接收 main 实发的单个 JSON 对象; 回传单个 JSON 对象, 无自然语言或 Markdown 包裹。
 🛑 **工具失败必标 `[工具失败: <原因>]`** — setup/create 脚本报错时, 只标 `[工具失败: <原因>]`, 不当成功结果返回 (main 消费错误摘要当数据 → 静默降级)。
-🛑 **公共铁律** (Recursion Guard + 无 AskUser + 生命周期脚本仅限 setup / create) 见 core/agent/skein-skill-agent-slim-01。
+🛑 **公共铁律** — 1. 只做入参范围内的事，范围外先报告不动手；2. 读后写：改动前先读目标文件当前状态；3. 收尾自跑对应 done/fail 命令，回传 JSON 摘要。
 
 ## 返回数据格式 (JSON)
 
 ```json
-{"mode": "fresh | trellis-migration", "spec": {"rules": 0, "product": 0, "map": 0, "external": 0}, "legacy_structure": "<'检出 spec/core, 待 migrate' | 无>", "tasks_migrated": [{"id": "<id>", "subtasks": 0}], "cleaned": ["<剔除的残留 trellis hook/文件>"], "needs_main": ["<需 main 介入项>"], "tool_failures": ["[工具失败: <原因>]"]}
+{"mode": "trellis-migration", "spec": {"rules": 0, "product": 0, "map": 0, "external": 0}, "legacy_structure": "<'检出 spec/core, 待 migrate' | 无>", "tasks_migrated": [{"id": "<id>", "subtasks": 0}], "cleaned": ["<剔除的残留 trellis hook/文件>"], "needs_main": ["<需 main 介入项>"], "tool_failures": ["[工具失败: <原因>]"]}
 ```
 
 ## 失败模式 (if-then 三段式)
@@ -77,6 +77,6 @@ JSON 编辑剔除残留 trellis hook 接线 → 复核 `.skein/` 结构完整 �
 | 触发                           | 一线处理                      | 兜底                                           |
 | ------------------------------ | ----------------------------- | ---------------------------------------------- |
 | `skein setup` 脚本报错         | 读报错定位, 修环境重跑 1 次   | `[工具失败: <原因>]`, 停止后续迁移, 上报       |
-| `.trellis/` 规则分层判不准     | 保守归 recall (可后续升 core) | needs_main 标「分层待人确认」                  |
+| `.trellis/` 规则分层判不准     | 保守归 rules namespace、inclusion: auto | needs_main 标「分层待人确认」                  |
 | task 重建缺字段 (无 name/desc) | 从 `.trellis/` 原文件补       | 补不全 → needs_main 标缺失, 跳过该 task        |
 | 残留 hook 结构未知             | 只剔明确 trellis 接线         | 拿不准的保留 + needs_main 标「疑似残留待人核」 |

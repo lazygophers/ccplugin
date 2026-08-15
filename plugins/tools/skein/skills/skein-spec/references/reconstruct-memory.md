@@ -36,6 +36,8 @@
 
 ## 2. 总流程 (main 同步驱动, 7 步)
 
+reconstruct/bootstrap 是 main 亲做的全局动作 (整库归档/重建属全局编排); skein-specer 的 reconstruct 模式仅承接其中的批量写盘片段 (⑥ sediment 落盘), 不拥有整条流程。
+
 ```
 ① 快照现状 → ② 可逆归档 → ③ 识别项目类型 → ④ 分型扫描 →
 ⑤ 逐条定 ns×inclusion → ⑥ sediment 自动写盘 → ⑦ 验证 + 保留归档(供回滚)
@@ -58,7 +60,7 @@ skein-spec archive --namespace <ns>  # recall/low 档: 只归档指定 namespace
 按 §4 文件指纹表判**主类型** (可复合, 如 monorepo 内含 backend+frontend → 逐包分型)。识别错 → 扫描侧重偏, 但不致命 (仍走审批门兜底)。**low 档只扫五维基线不判主类型; deep/max/high 档跳过主类型收窄, 直接跑全 8 型探针**。
 
 ### ④ 分型扫描 (派 skein-researcher, bootstrap 模式 + 类型侧重)
-dispatch prompt「已知」段标 `mode=bootstrap` + `task-id=reconstruct` + **扫描侧重 (按程度档): recall/full = §5 主类型探针清单; low = 仅五维基线, 不加主类型侧重; deep/max/high = §5 全 8 型探针交叉扫 + 项目内容全量**。researcher 只读, 候选落盘 `.skein/task/reconstruct/research/conventions.md`。
+dispatch prompt「已知」段标 `mode=bootstrap` + `tid=reconstruct` + **扫描侧重 (按程度档): recall/full = §5 主类型探针清单; low = 仅五维基线, 不加主类型侧重; deep/max/high = §5 全 8 型探针交叉扫 + 项目内容全量**。researcher 只读, 候选落盘 `.skein/task/reconstruct/research/conventions.md`。
 - 五维基线 (命名/错误处理/测试/架构边界/构建) **恒扫**, 类型侧重 = 在此之上加权 + 追加类型专属探针。
 - 每条候选 MUST 附证据 (file:line, ≥2 处一致才算约定; 单处 `推测:` 或 drop)。
 

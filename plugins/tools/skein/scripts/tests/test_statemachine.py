@@ -220,11 +220,11 @@ def test_plan_rejects_unfinished_research(skein_cli: SkeinCli, ws: Path) -> None
 
 
 def test_research_without_research_subtask_rejected(skein_cli: SkeinCli, ws: Path) -> None:
-    """非法: 无 research subtask 的 task 发起调研 (应拒)。"""
+    """非法: 无 research 任务的 task 发起调研 (应拒)。"""
     tid = _mk(skein_cli, ws, sub=True)  # 只有 exec(默认) subtask
     r = skein_cli(ws, "research", tid, check=False)
     assert r.returncode == 1
-    assert "无 research subtask" in r.stdout + r.stderr
+    assert "无 research 任务" in r.stdout + r.stderr
     assert _status_of(skein_cli, ws, tid) == TaskStatus.PENDING
 
 

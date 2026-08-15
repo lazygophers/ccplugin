@@ -437,8 +437,8 @@ def test_seam_gate() -> None:
 
 
 def test_prd_section_gate() -> None:
-    """confirm 的 prd 章节门 (`validate_prd`): 三段齐备顺序对 → 放行;
-    多出旧段/残缺 → 硬拒 (非零退出 + 报错含标准章节清单)。
+    """confirm 的 TaskSpec 门 (`validate_spec`): frontmatter 四要素齐 → 放行;
+    旧三段散文体 / 缺要素 → 硬拒 (非零退出 + 报错指向 `skein task spec`)。
     """
     with tempfile.TemporaryDirectory() as td:
         d: Path = Path(td)
@@ -453,37 +453,32 @@ def test_prd_section_gate() -> None:
         def _ready(tid: str, prd_body: str) -> None:
             sk(d, "create", tid, "--name", tid, "--desc", "d")
             sk(d, "subtask", "add", tid, "s1", "--name", "n", "--desc", "d", "--estimate", "1")
-            (d / ".skein/task" / tid / "prd.md").write_text(prd_body)
+            (d / ".skein/task" / tid / "prd.md").write_text(prd_body, encoding="utf-8")
             _seam_fill(tid)
             sk(d, "estimate", tid, "--set", "4")
 
-        # 场景 1: 标准三段齐备顺序对 → 放行
+        # 场景 1: frontmatter 四要素齐 → 放行
         _ready("std-task",
-               "# std-task — PRD\n\n## 目标\n- 解决 X\n\n## 边界\n- 范围内a\n\n"
-               "## 验收标准\n- 用例通过\n")
+               "---\ndesc: 解决 X 问题\nboundary:\n  should:\n  - 范围内a\n  should_not: []\n"
+               "estimate: 1\nacceptance:\n  - 用例通过\n---\n")
         r = sk(d, "confirm", "std-task", check=False)
-        assert r.returncode == 0, f"标准三段不该被拒: {r.stderr}"
+        assert r.returncode == 0, f"齐备 frontmatter 不该被拒: {r.stderr}"
 
-        # 场景 2: 旧七段 PRD 已退役 → 硬拒 (多出 User Stories/验证方式/Testing Decisions)
+        # 场景 2: 旧三段散文体 (无 frontmatter) → 硬拒, 报错指向 task spec
         _ready("legacy-task",
                "# legacy-task — PRD\n\n## 目标\n- 解决 X\n\n## 边界\n- 范围内a\n\n"
-               "## User Stories\n1. As a u, I want x\n\n"
-               "## 验收标准\n- 用例通过\n\n"
-               "## 验证方式\n- 跑 pytest"
-               "## 索引\n- design.md\n")
+               "## 验收标准\n- 用例通过\n")
         r = sk(d, "confirm", "legacy-task", check=False)
-        assert r.returncode != 0, "旧七段 PRD 不该放行"
-        assert "二级章节须为" in r.stderr, f"旧七段 PRD 未报标准清单: {r.stderr}"
+        assert r.returncode != 0, "旧散文体 PRD 不该放行"
+        assert "skein task spec" in r.stderr, f"未指向 task spec: {r.stderr}"
 
-        # 场景 3: 章节残缺 (缺「边界」) → 硬拒
-        sk(d, "create", "bad-task", "--name", "bad-task", "--desc", "d")
-        sk(d, "subtask", "add", "bad-task", "s1", "--name", "n", "--desc", "d", "--estimate", "1")
-        (d / ".skein/task/bad-task/prd.md").write_text("---\ndesc: 解决 X 问题\nboundary:\n  should:\n  - 范围内a\n  should_not: []\nestimate: 1\nacceptance:\n  - 用例通过\n---\n", encoding="utf-8")
-        _seam_fill("bad-task")
-        sk(d, "estimate", "bad-task", "--set", "4")
+        # 场景 3: 缺边界 (boundary 空) → 硬拒
+        _ready("bad-task",
+               "---\ndesc: 解决 X 问题\nboundary:\n  should: []\n  should_not: []\n"
+               "estimate: 1\nacceptance:\n  - 用例通过\n---\n")
         r = sk(d, "confirm", "bad-task", check=False)
-        assert r.returncode != 0, "章节残缺不该放行"
-        assert "二级章节须为" in r.stderr, f"残缺章节未报标准清单: {r.stderr}"
+        assert r.returncode != 0, "boundary 残缺不该放行"
+        assert "skein task spec" in r.stderr, f"残缺未报 spec 提示: {r.stderr}"
 
 
 def test_setup() -> None:

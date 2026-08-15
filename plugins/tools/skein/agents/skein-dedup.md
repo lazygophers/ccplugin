@@ -26,7 +26,7 @@ main 在 planning 收尾异步派你扫未完成 task (或用户 `/skein-dedup` 
 ### 1. 探活 CLI (第一条命令)
 
 ```bash
-skein list --status unfinished --json >/dev/null || echo "[工具失败: skein CLI 不可用]"
+skein list --status unfinished >/dev/null || echo "[工具失败: skein CLI 不可用]"
 ```
 
 `skein` / `skein-hooks` / `skein-spec` 由插件装进 PATH, 非交互 subagent shell 同样解析得到。
@@ -34,7 +34,7 @@ skein list --status unfinished --json >/dev/null || echo "[工具失败: skein C
 ### 2. 查重归并
 
 ```bash
-skein list --status unfinished --json | jq -c '[.tasks[] | {id,status,name,desc,deps}]'
+skein list --status unfinished | jq -c '[.tasks[] | {id,status,name,desc,deps}]'
 ```
 
 - 判据: 同目标 / 同模块 / 共享改动面 / 互为前置。
@@ -54,7 +54,7 @@ skein del <次-id>
 让相关 task 有明确执行序, **只连有依赖关系的, 无关 task 保持孤立** (不硬连):
 
 ```bash
-skein list --status unfinished --json | jq -c '[.tasks[] | select(.status == "pending" or .status == "research") | select((.deps|length)==0) | {id,name,desc}]'
+skein list --status unfinished | jq -c '[.tasks[] | select(.status == "pending" or .status == "research") | select((.deps|length)==0) | {id,name,desc}]'
 skein task deps <后置-id> --set <前置-id[,前置2]>
 skein task deps <后置-id>                                          # 回读校验写入
 ```
@@ -72,7 +72,7 @@ skein task deps <后置-id>                                          # 回读校
 🛑 **成环/自引用 CLI 会拒** — 报错即该连法非法, 只能换方向或跳过。
 🛑 **工具失败必标 `[工具失败: <原因>]`** — CLI 报错时, 只标 `[工具失败: <原因>]` 并停止该连法路径, 不当成功结果返回 (main 消费错误摘要当数据会静默降级)。
 🛑 **入参与回传只用 JSON** — 接收 main 实发的单个 JSON 对象; 回传单个 JSON 对象, 无自然语言或 Markdown 包裹。
-🛑 **公共铁律** (Recursion Guard + 无 AskUser + 无生命周期脚本) 见 core/agent/skein-skill-agent-slim-01。
+🛑 **公共铁律** — 1. 只做入参范围内的事，范围外先报告不动手；2. 读后写：改动前先读目标文件当前状态；3. 收尾自跑对应 done/fail 命令，回传 JSON 摘要。
 
 ## 返回数据格式 (JSON)
 

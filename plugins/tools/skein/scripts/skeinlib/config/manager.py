@@ -9,7 +9,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-import yaml  # type: ignore[import-untyped]
+import yaml
 from pydantic import BaseModel, Field
 
 # ---- 配置结构定义 (pydantic BaseModel: 类型+范围+默认值+说明) ----

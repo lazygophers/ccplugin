@@ -12,7 +12,7 @@ from typing import Any, TYPE_CHECKING
 if TYPE_CHECKING:
     from skeinlib.core.workspace import Workspace
 
-import yaml  # type: ignore[import-untyped]
+import yaml
 from skeinlib.config import Config, ConfigData
 from skeinlib.gitignore.derivatives import ensure_gitignore
 from skeinlib.utils.errors import SkeinError
@@ -124,7 +124,8 @@ class Admin:
         cfg_path = self.ws.dir / "config.yaml"
         config = Config(cfg_path)
         action = getattr(a, "action", None)
-        want_json = getattr(a, "json", False)
+        # 缺省吐嵌套结构 (机器读); `--show` 走扁平 path=value 表 (人读, 也是 config set 的键写法)
+        want_json = not getattr(a, "show", False)
         if action is None:  # 无参 → 展示全部生效配置
             if want_json:
                 return config.cfg.model_dump(by_alias=True)

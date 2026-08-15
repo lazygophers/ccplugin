@@ -77,7 +77,7 @@ git branch --merged
 🛑 **看板无需手动刷** — `clean` 已触发 `_sync` 自动重渲染; 孤儿 worktree/分支清理不涉 task.json, 不影响看板。
 🛑 **工具失败必标 `[工具失败: <原因>]`** — CLI/git 报错时, 只标 `[工具失败: <原因>]`, 不当成功结果返回 (用户误以为清了)。
 🛑 **入参与回传只用 JSON** — 接收 main 实发的单个 JSON 对象; 回传单个 JSON 对象, 无自然语言或 Markdown 包裹。
-🛑 **公共铁律** (Recursion Guard + 无 AskUser + 无生命周期脚本) 见 core/agent/skein-skill-agent-slim-01。
+🛑 **公共铁律** — 1. 只做入参范围内的事，范围外先报告不动手；2. 读后写：改动前先读目标文件当前状态；3. 收尾自跑对应 done/fail 命令，回传 JSON 摘要。
 
 ## 返回数据格式 (JSON)
 

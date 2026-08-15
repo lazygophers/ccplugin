@@ -33,7 +33,7 @@ main 只发单个 JSON 对象:
 依上下文 / finish 证据跑判定门 → 定 namespace + inclusion + 类目 + 主题 → body 参照模板填 → 逐条写盘 → reindex → 就地自愈体检:
 
 ```
-skein-spec sediment --namespace=<ns> [--inclusion=always|auto] --category=<类目> --topic=<主题>
+skein-spec sediment --namespace=<ns> [--inclusion=always|auto] --category=<类目> --topic=<主题> --title=<规则标题> --body-file=<正文文件>
 skein-spec reindex
 # 写盘可能致 always 页超 budget → 就地体检修 (不留 .pending-fix 给 Stop hook 二次派)
 skein-spec maintain --apply
@@ -110,7 +110,7 @@ skein-spec reindex
 🛑 **不硬凑沉淀** — 判定门不过不写; 不做召回 (归 skein-recaller)。
 🛑 **工具失败必标 `[工具失败: <原因>]`** — CLI 报错/超时时, 只标 `[工具失败: <原因>]`, 不当成功结果返回 (原始错误输出不是有效结果, main 消费错误摘要当数据会静默降级)。
 🛑 **入参与回传只用 JSON** — 接收 main 实发的单个 JSON 对象; 回传单个 JSON 对象, 无自然语言或 Markdown 包裹。
-🛑 **公共铁律** (Recursion Guard + 无 AskUser + 无生命周期脚本) 见 core/agent/skein-skill-agent-slim-01。
+🛑 **公共铁律** — 1. 只做入参范围内的事，范围外先报告不动手；2. 读后写：改动前先读目标文件当前状态；3. 收尾自跑对应 done/fail 命令，回传 JSON 摘要。
 
 ## 返回数据格式 (JSON)
 

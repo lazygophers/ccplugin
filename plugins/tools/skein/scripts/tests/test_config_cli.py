@@ -5,9 +5,9 @@ CONFIG_DEFAULTS 10 叶 (pools.work/pools.gate/auto_commit/retain_days/worktree.e
 web.serve/web.board_open/spec.core_budget/spec.always_budget)。
 报错用例传 check=False 断 returncode + stderr 文案。
 
-全部命令输出结构化 JSON (扁平或嵌套):
-  - config 无参 → flat JSON dict (点号路径做 key, 跳过 hooks)
-  - config --json → 嵌套 JSON dict (含 hooks)
+全部命令缺省输出结构化 JSON；`--show` 改为人读面板:
+  - config 无参 → 嵌套 JSON dict (含 hooks; 机器读缺省形态)
+  - config --show → 扁平 path/value 面板 (跳过 hooks; 也是 config set 的键写法)
   - config set → {"key": ..., "value": ...}
   - config reset → {"reset": true, "config": {...}}
 """
@@ -33,9 +33,20 @@ _STAGES = tuple(
 
 
 def _flat(skein_cli: SkeinCli, ws: Path) -> dict[str, Any]:
-    """config 无参 → flat JSON dict (点号路径做 key)。"""
-    data: dict[str, Any] = json.loads(skein_cli(ws, "config").stdout)
-    return data
+    """从缺省嵌套 JSON 展平为 config set 使用的点号路径。"""
+    nested: dict[str, Any] = json.loads(skein_cli(ws, "config").stdout)
+    flat: dict[str, Any] = {}
+
+    def visit(node: dict[str, Any], prefix: str = "") -> None:
+        for key, value in node.items():
+            path = f"{prefix}.{key}" if prefix else key
+            if isinstance(value, dict):
+                visit(value, path)
+            else:
+                flat[path] = value
+
+    visit({key: value for key, value in nested.items() if key != "hooks"})
+    return flat
 
 
 def _readback(skein_cli: SkeinCli, ws: Path, path: str) -> str | None:
@@ -47,9 +58,9 @@ def _readback(skein_cli: SkeinCli, ws: Path, path: str) -> str | None:
     return None
 
 
-# ---------- 1. 无参展示全部 ----------
+# ---------- 1. 展示全部 ----------
 def test_show_all(skein_cli: SkeinCli, ws: Path) -> None:
-    """config 无参 → flat JSON dict, 11 叶 (跳过 hooks), 含 pools.work=2 与 worktree.enabled=False。"""
+    """缺省 JSON 可展平为 11 个非 hooks 叶，含关键默认值。"""
     data = _flat(skein_cli, ws)
     assert len(data) == 11, f"应 11 叶, 得 {len(data)}: {data}"
     assert data.get("confirm.unattended") is False, f"缺 confirm.unattended 默认 False: {data}"
@@ -59,12 +70,12 @@ def test_show_all(skein_cli: SkeinCli, ws: Path) -> None:
 
 # ---------- 0. hooks 空骨架在 CONFIG_DEFAULTS 内 ----------
 def test_hooks_skeleton_present(skein_cli: SkeinCli, ws: Path) -> None:
-    """hooks 空骨架进 CONFIG_DEFAULTS: init 写出占位键, --json 含它且为 dict。"""
+    """hooks 空骨架进 CONFIG_DEFAULTS: init 写出占位键, 缺省输出含它且为 dict。"""
     assert "hooks" in _DEFAULTS, "CONFIG_DEFAULTS 应含 hooks 完整骨架"
     h = _DEFAULTS["hooks"]
     assert h["check"] == {"before": [], "after": []}, "阶段骨架应含空 before/after"
     assert "hooks" in (ws / ".skein" / "config.yaml").read_text()
-    data = json.loads(skein_cli(ws, "config", "--json").stdout.strip())
+    data = json.loads(skein_cli(ws, "config").stdout.strip())
     assert isinstance(data.get("hooks"), dict), f"hooks 应读回 dict, 得 {type(data.get('hooks'))}"
 
 
@@ -82,9 +93,9 @@ def test_set_nested_path_and_readback(skein_cli: SkeinCli, ws: Path) -> None:
 
 
 def test_set_nested_path_json_output(skein_cli: SkeinCli, ws: Path) -> None:
-    """config set spec.always_budget 9000 → --json 嵌套结构反映新值。"""
+    """config set spec.always_budget 9000 → 缺省嵌套结构反映新值。"""
     skein_cli(ws, "config", "set", "spec.always_budget", "9000")
-    data = json.loads(skein_cli(ws, "config", "--json").stdout.strip())
+    data = json.loads(skein_cli(ws, "config").stdout.strip())
     assert data["spec"]["always_budget"] == 9000, f"嵌套 json 未反映: {data['spec']}"
 
 
@@ -148,10 +159,10 @@ def test_get_removed(skein_cli: SkeinCli, ws: Path) -> None:
     assert r.returncode != 0, f"get 未拒: rc={r.returncode}"
 
 
-# ---------- 9. --json 输出 (嵌套结构) ----------
+# ---------- 9. 缺省输出 (嵌套结构) ----------
 def test_show_json(skein_cli: SkeinCli, ws: Path) -> None:
-    """config --json → 合法嵌套 JSON dict, worktree.enabled 为 bool (供 jq 解析)。"""
-    r = skein_cli(ws, "config", "--json")
+    """config 无参 → 合法嵌套 JSON dict, worktree.enabled 为 bool (供 jq 解析)。"""
+    r = skein_cli(ws, "config")
     data = json.loads(r.stdout.strip())
     assert isinstance(data["worktree"]["enabled"], bool), f"worktree.enabled 非 bool: {data['worktree']!r}"
     assert data["pools"]["work"] == 2, f"pools.work 非默认 2: {data['pools']}"
@@ -160,9 +171,9 @@ def test_show_json(skein_cli: SkeinCli, ws: Path) -> None:
 
 
 def test_json_reflects_set(skein_cli: SkeinCli, ws: Path) -> None:
-    """set worktree.enabled false 后 config --json → worktree.enabled=false (jq 可解析禁用态)。"""
+    """set worktree.enabled false 后 config → worktree.enabled=false (jq 可解析禁用态)。"""
     skein_cli(ws, "config", "set", "worktree.enabled", "false")
-    data = json.loads(skein_cli(ws, "config", "--json").stdout.strip())
+    data = json.loads(skein_cli(ws, "config").stdout.strip())
     assert data["worktree"]["enabled"] is False, f"set 后 json 未反映: {data['worktree']!r}"
 
 
@@ -176,7 +187,7 @@ def test_flat_config_missing_keys_backfilled(skein_cli: SkeinCli, ws: Path) -> N
         "retain_days: 7\n"
     )
     cfg.write_text(flat)
-    data = json.loads(skein_cli(ws, "config", "--json").stdout.strip())
+    data = json.loads(skein_cli(ws, "config").stdout.strip())
     assert data == {
         "auto_commit": False, "retain_days": 7,
         "pools": {"work": 2, "gate": 3},

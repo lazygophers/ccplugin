@@ -298,14 +298,14 @@ class WriteMixin:
         1. anchors 命中路输出带命中 anchor
         2. 关键词路标注弱候选
         3. 皆无命中如实报建议新建且不硬凑
-        4. --json 机器可读
+        4. 缺省 JSON 机器可读, --show 人读文本
         5. 文件列表可参数注入(测试无需真 git 仓)
         """
         import json
         import subprocess
 
         tid = cast(str, a.tid)
-        use_json = cast(bool, getattr(a, "json", False))
+        use_json = not cast(bool, getattr(a, "show", False))  # 缺省 JSON; --show 走人读文本
         files_param = cast(Optional[str], getattr(a, "files", None))
 
         # 构建任务目录路径

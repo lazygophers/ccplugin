@@ -21,7 +21,7 @@ from typing import Any, AsyncIterator, Callable, Iterable, Optional, cast
 from skeinlib.utils.debug import debug_enabled
 from skeinlib.utils.paths import PLUGIN_ROOT, SPEC_ENTRY
 from skeinlib.utils.exec_policy import exec_argv
-import yaml  # type: ignore[import-untyped]
+import yaml
 from skeinlib.config import Config, ConfigData
 from skeinlib.web.views import (DataSource, _cards_signature, _spec_frontmatter, _view_archive,
                             _view_board_data, _view_dashboard, _view_queue, _view_search,
@@ -434,7 +434,7 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
 
     # ---- POST-only 业务端点 (语义化路径 /domain/action; 入参全走 body) ----
     def _body(request: Request) -> dict[str, Any]:
-        return json.loads(request.scope.get("skein_body") or b"{}")
+        return cast(dict[str, Any], json.loads(request.scope.get("skein_body") or b"{}"))
 
     def _spec_reindex() -> None:
         """spec 变更后重建索引 (index.md/backlinks.md) + spec_meta 表。"""
@@ -552,7 +552,8 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
         # design.md 全文直写 (web 端编辑详细设计, 无格式语义约束)。
         body = _body(request)
         tid, content = body.get("id"), body.get("content", "")
-        if not isinstance(tid, str) or not re.fullmatch(r"[\w.-]+", tid):
+        # tid 对齐 SLUG_RE (kebab 字符集): 拒 "." / ".." / 路径分隔符, 从根上断路径穿越
+        if not isinstance(tid, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9-]*", tid):
             return JSONResponse({"error": "id 必填且禁路径分隔符"}, status_code=400)
         if not isinstance(content, str):
             return JSONResponse({"error": "bad request"}, status_code=400)

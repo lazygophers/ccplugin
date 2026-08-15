@@ -46,6 +46,8 @@ dev = [
     "ruff>=0.15.12",
     "pytest>=7.0.0",
     "mypy>=1.13.0",
+    # mypy --strict 需要 yaml 类型存根 (specfile.py import yaml), 不声明则基线常红
+    "types-PyYAML>=6.0",
     "fastapi>=0.115.0",
     "uvicorn>=0.30.0",
     "httpx>=0.27.0",

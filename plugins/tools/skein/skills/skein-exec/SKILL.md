@@ -42,7 +42,7 @@ Grep / Glob 定位改动点 → Read 目标文件全文
 
 - 命令带 `cwd` 指向工作目录; 记 exit code + 结果摘要。
 - 命令失败 → `[工具失败: <命令 + 原因>]`, 不把报错当成功继续。
-- 踩到可复用约定 → `skein-spec sediment --namespace=<ns> [--inclusion=always|auto] --category=<类目> --topic=<主题>` 落盘 (先 `skein-spec sediment --help` 核实参数)。
+- 踩到可复用约定 → `skein-spec sediment --namespace <ns> --inclusion always|auto --category <类目> --topic <主题> --title <规则标题> --body-file <正文.md>` 落盘 (`--title` 与 `--body-file` 必填, 正文只认 `--body-file` 文件; 先 `skein-spec sediment --help` 核实参数)。
 
 ### 4. 自跑收尾 + 回传
 
