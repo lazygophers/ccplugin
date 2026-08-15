@@ -31,14 +31,18 @@ def test_sediment_merges_globs_and_anchors(mem_ws: Path, monkeypatch: pytest.Mon
     monkeypatch.chdir(mem_ws)
     s = Spec()
     # 第一条: 带 globs + anchors
+    body_a = mem_ws / "body-a.md"
+    body_a.write_text("Rule A body")
     s.sediment(argparse.Namespace(
         namespace="rules", inclusion="fileMatch", category="arch", topic="merge1",
-        title="Rule A", keywords="kw1", status="active", body_file=None,
+        title="Rule A", keywords="kw1", status="active", body_file=str(body_a),
         globs="*.py", anchors="src/code.py:func1"))
     # 第二条: 不带 globs/anchors → 应保留第一条的值
+    body_b = mem_ws / "body-b.md"
+    body_b.write_text("Rule B body")
     s.sediment(argparse.Namespace(
         namespace="rules", inclusion="fileMatch", category="arch", topic="merge1",
-        title="Rule B", keywords="kw2", status="active", body_file=None,
+        title="Rule B", keywords="kw2", status="active", body_file=str(body_b),
         globs=None, anchors=None))
     content = (mem_ws / ".skein" / "spec" / "rules" / "arch" / "merge1.md").read_text()
     assert "globs: *.py" in content

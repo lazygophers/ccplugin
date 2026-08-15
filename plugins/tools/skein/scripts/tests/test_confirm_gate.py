@@ -149,11 +149,12 @@ def test_board_whitelist_maps_confirm_to_fixed_argv() -> None:
     assert exec_argv({"cmd": "confirm", "id": "  "}) is None, "空白 id 应拒"
 
 def test_board_confirm_does_not_shell_out(ws: Path) -> None:
-    """id 里的 shell 元字符只是普通字符串 — argv 固定构造, 从不拼 shell。"""
+    """id 里的 shell 元字符连 argv 都进不去 — tid 统一过 SLUG_RE, 元字符 id 直接拒。"""
     from skeinlib.utils.exec_policy import exec_argv
-    argv = exec_argv({"cmd": "confirm", "id": "x; rm -rf /"})
-    assert argv is not None and argv[-2] == "x; rm -rf /", argv
-    assert not any(";" in a for a in argv[:-2]), "元字符逃到了别的 argv 位"
+    argv = exec_argv({"cmd": "confirm", "id": "feat-x"})
+    assert argv is not None and argv[-3:] == ["confirm", "feat-x", "--approved"], argv
+    assert exec_argv({"cmd": "confirm", "id": "x; rm -rf /"}) is None, "元字符 id 应被 SLUG_RE 拒"
+    assert not any(";" in a for a in argv), "元字符逃进了别的 argv 位"
 
 if __name__ == "__main__":
     import tempfile

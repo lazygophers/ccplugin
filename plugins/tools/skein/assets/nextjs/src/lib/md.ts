@@ -1,15 +1,25 @@
 // 极简 GFM markdown → HTML (从旧 md.js 移植, 无第三方依赖)
 
-function esc(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+export function esc(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+// 链接/图片 URL 协议白名单: http(s)://、绝对路径 /、锚点 #、相对路径 (无 scheme)。
+// javascript: / data: 等一律拒绝 (判定在 esc 之后、正则替换前, URL 已实体化)。
+function okUrl(u: string): boolean {
+  if (/^(https?:\/\/|\/|#|\.\.\/|\.\/)/i.test(u)) return true;
+  return !/^[a-z][a-z0-9+.-]*:/i.test(u); // 无 scheme = 相对路径
 }
 
 function inline(s: string): string {
   const codes: string[] = [];
   s = s.replace(/`([^`]+)`/g, (_, c) => { codes.push(`<code>${esc(c)}</code>`); return ` §${codes.length - 1}§ `; });
   s = esc(s);
-  s = s.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, '<img alt="$1" src="$2">');
-  s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, '<a href="$2">$1</a>');
+  s = s.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g,
+    (m, alt, url) => okUrl(url) ? `<img alt="${alt}" src="${url}">` : m);
+  s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g,
+    (m, text, url) => okUrl(url) ? `<a href="${url}">${text}</a>` : m);
   s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>").replace(/__([^_]+)__/g, "<strong>$1</strong>");
   s = s.replace(/\*([^*]+)\*/g, "<em>$1</em>");
   s = s.replace(/~~([^~]+)~~/g, "<del>$1</del>");

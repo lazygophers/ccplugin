@@ -77,6 +77,9 @@ class WriteMixin:
         keywords = cast(Optional[str], getattr(a, "keywords", None)) or ""
         status = cast(Optional[str], getattr(a, "status", None)) or "active"
         body_file = cast(Optional[str], getattr(a, "body_file", None))
+        if not body_file:
+            raise SkeinError("--body-file 必填: 正文只认文件, 不收命令行内联 — "
+                             "先把规则正文写进一个 .md 文件, 再 `skein-spec sediment ... --body-file <该文件>`")
         cat = cast(Optional[str], getattr(a, "category", None)) or "misc"
         globs = cast(Optional[str], getattr(a, "globs", None))
         anchors = cast(Optional[str], getattr(a, "anchors", None))

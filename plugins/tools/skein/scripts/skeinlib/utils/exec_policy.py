@@ -5,10 +5,18 @@
 """
 from __future__ import annotations
 
+import re
 import sys
 from typing import Any, Optional, cast
 
 from skeinlib.utils.paths import SKEIN_ENTRY
+
+# tid 合法字符集 (kebab slug): 拒 "." / ".." / 路径分隔符, 从根上断 CLI 参数里的路径穿越
+SLUG_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9-]*")
+
+
+def slug_ok(v: Any) -> bool:
+    return isinstance(v, str) and SLUG_RE.fullmatch(v) is not None
 
 
 def exec_argv(body: dict[str, Any]) -> Optional[list[str]]:
@@ -19,6 +27,11 @@ def exec_argv(body: dict[str, Any]) -> Optional[list[str]]:
     def s(k: str) -> Optional[str]:
         v = body.get(k)
         return v.strip() if isinstance(v, str) and v.strip() else None
+
+    def tid(k: str) -> Optional[str]:
+        # tid 位置参数统一过 SLUG_RE (web → CLI 的穿越闸)
+        v = s(k)
+        return v if v and slug_ok(v) else None
 
     def g(k: str) -> str:
         return cast(str, s(k))
@@ -31,19 +44,19 @@ def exec_argv(body: dict[str, Any]) -> Optional[list[str]]:
     if cmd == "doctor":
         return base + ["doctor"]
     if cmd == "status":
-        if not s("id"):
+        if not tid("id"):
             return None
         argv = ["status", g("id")] + ([g("sid")] if s("sid") else [])
         return base + argv
     if cmd == "subtask-list":
-        return base + ["subtask", "list", g("id")] if s("id") else None
+        return base + ["subtask", "list", g("id")] if tid("id") else None
     if cmd == "create":
-        if not (s("id") and s("name") and s("desc")):
+        if not (tid("id") and s("name") and s("desc")):
             return None
         argv = ["task", "create", g("id"), "--name", g("name"), "--desc", g("desc")]
         return base + (argv + ["--deps", g("deps")] if s("deps") else argv)
     if cmd == "subtask-add":
-        if not (s("id") and s("sid") and s("name") and s("desc") and s("estimate")):
+        if not (tid("id") and s("sid") and s("name") and s("desc") and s("estimate")):
             return None
         argv = ["subtask", "add", g("id"), g("sid"), "--name", g("name"), "--desc", g("desc"),
                 "--estimate", g("estimate")]
@@ -61,13 +74,13 @@ def exec_argv(body: dict[str, Any]) -> Optional[list[str]]:
         return base + ["clean", "--days", str(d)] if d >= 0 else None
     force = ["--force"] if body.get("force") is True else []
     if cmd == "confirm":
-        return base + ["task", "confirm", g("id"), "--approved"] + force if s("id") else None
+        return base + ["task", "confirm", g("id"), "--approved"] + force if tid("id") else None
     if cmd == "revert":
-        return base + ["task", "revert", g("id")] if s("id") else None
+        return base + ["task", "revert", g("id")] if tid("id") else None
     if cmd == "finish":
-        return base + ["task", "finish", g("id")] + force if s("id") else None
+        return base + ["task", "finish", g("id")] + force if tid("id") else None
     if cmd == "priority":
-        return base + ["task", "priority", g("id"), "--set", g("set")] if (s("id") and s("set")) else None
+        return base + ["task", "priority", g("id"), "--set", g("set")] if (tid("id") and s("set")) else None
     if cmd == "del":
-        return base + ["del", g("id")] + force if s("id") else None
+        return base + ["del", g("id")] + force if tid("id") else None
     return None

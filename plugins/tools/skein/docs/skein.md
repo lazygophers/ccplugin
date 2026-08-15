@@ -42,9 +42,9 @@
 | --- | --- | --- |
 | session-start | SessionStart | spec 索引注入 (`skein-spec`) |
 | session-start | SessionStart | 注入 spec 待修告警 + 运行配置 + 回复前缀 |
-| user-prompt | UserPromptSubmit | 信号路由 (flow/inline/grey) |
+| user-prompt | UserPromptSubmit | 信号路由 (flow/plan/inline/补充) |
 | subagent-start | SubagentStart | 注入 core 规则到 subagent |
-| guard | PreToolUse (Edit/Write/MultiEdit/Read) | 阻止 AI 直接读写脚本管理文件 |
+| guard | PreToolUse (Edit/Write/MultiEdit/Read/Bash/EnterWorktree) | 阻止 AI 直接读写脚本管理文件 + 拦进入 worktree (EnterWorktree / `git worktree add`) |
 | permission | PermissionRequest + PermissionDenied | 自动批准 `.skein/` 操作 |
 | fmt | PostToolUse (Edit/Write/MultiEdit) | 自动格式化 prd.md |
 | spec-meta | PostToolUse (Edit/Write/MultiEdit) | 检查 spec frontmatter |

@@ -60,7 +60,8 @@ class _FakeBoard:
 
 def _client(app: Any) -> Any:
     from fastapi.testclient import TestClient
-    return TestClient(app)
+    # base_url 用 127.0.0.1: serve 的本地绑定闸只放行回环 Host/Origin (默认 testserver 会被 403)
+    return TestClient(app, base_url="http://127.0.0.1")
 
 
 def _app(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[Any, _FakeBoard]:
@@ -92,6 +93,17 @@ def test_websocket_disconnect_cleanup(tmp_path: Path, monkeypatch: pytest.Monkey
                 pass
     except Exception:
         pass
+
+
+def test_websocket_rejects_forged_origin(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """CSRF: 外域 Origin 的 WS 连接被拒 (1008), 不进 clients 集。"""
+    from starlette.websockets import WebSocketDisconnect
+    app, _ = _app(tmp_path, monkeypatch)
+    with _client(app) as c:
+        with pytest.raises(WebSocketDisconnect):
+            with c.websocket_connect("/__skein__/live",
+                                     headers={"origin": "http://evil.example"}):
+                pass
 
 
 def test_404_returns_not_found(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

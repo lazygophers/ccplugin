@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -84,6 +85,47 @@ def _hint_prompt(hint: dict[str, Any]) -> str:
     return json.dumps(payload, ensure_ascii=False)
 
 
+def _try_workdir(t: dict[str, Any], repo: str | None, root: Path | None) -> tuple[str | None, str | None]:
+    """workdir_for 的容错包装: 解析失败返 (None, 错误文案), 调用点据此标 mismatch 而非整条命令炸掉。"""
+    try:
+        return workdir_for(t, repo, root), None
+    except SkeinError as e:
+        return None, str(e)
+
+
+def _transition(ws: "Workspace", t: dict[str, Any], s: dict[str, Any],
+                action: str, *, exec_done: bool, note: str | None = None) -> None:
+    """subtask/research 单条目的 start/done/fail 迁移单点: stage hooks + 置态 + 时间戳 + timeline + 落盘。
+
+    两族条目共用同一条迁移体 —— `subtask.start/done/fail` 钩子对 exec subtask 与 research
+    条目一致触发。差异仅 done 分支: exec 完成 = 验收全过 (acceptance_done 全勾 → 100%),
+    research 无验收清单语义不动它 (`exec_done=False`)。start 的门禁归调用方 (两族门禁不同:
+    subtask 限 confirm 过 + 前置门 + work 池, research 限调研中态 + 依赖门)。
+    """
+    tid, sid = t["id"], s["sid"]
+    ws._stage_hooks(f"subtask.{action}", "before", ws._hook_ctx(tid, sid, t=t))
+    if action == "start":
+        s["status"] = SubtaskStatus.RUNNING
+        if not s.get("started"):
+            s["started"] = now()  # exec 时刻 (首次, 重认领不覆盖)
+    else:
+        s["status"] = SubtaskStatus.DONE if action == "done" else SubtaskStatus.FAILED
+        s["finished"] = now()  # 完成/失败时刻 (两态对称)
+        if action == "done":
+            if exec_done:
+                s["acceptance_done"] = list(range(1, len(s.get("acceptance", [])) + 1))
+            s.pop("note", None)  # 清上一轮 fail 的备注, 否则 done 的条目仍挂着失效失败原因
+        elif note:
+            s["note"] = note  # 失败备注 (运行时, 非 planning schema)
+    if action == "fail":
+        _timeline.append(t, "subtask", SubtaskStatus.FAILED, sid=sid, note=note or "")
+    else:
+        _timeline.append(t, "subtask", s["status"], sid=sid)
+    # subtask 级变更不动顶层索引字段 (status/deps/...), save 本身已渲染本 task 看板 → 免全量 sync
+    ws.store.save(t, sync_index=False)
+    ws._stage_hooks(f"subtask.{action}", "after", ws._hook_ctx(tid, sid, t=t))
+
+
 def _sub_row(tid: str, s: dict[str, Any]) -> dict[str, Any]:
     """subtask list 的单行投影 (单 task / 全局 all 视图共用, 字段同构)。"""
     return {"tid": tid, "sid": s["sid"], "status": s["status"], "name": s["name"],
@@ -115,11 +157,12 @@ def _dispatch_hints(claimed: list[dict[str, Any]] | None = None,
             if repo is None and len(t.get("worktrees") or []) > 1:
                 hint["mismatch"] = "multi_repo_subtask_missing_repo"
             else:
-                try:
-                    hint["workdir"] = workdir_for(t, repo, root)
-                except SkeinError as e:
+                wd, err = _try_workdir(t, repo, root)
+                if wd is not None:
+                    hint["workdir"] = wd
+                if err is not None:
                     hint["mismatch"] = "invalid_workdir"
-                    hint["error"] = str(e)
+                    hint["error"] = err
                 if repo is not None:
                     hint["repo"] = repo
         hints.append(hint)
@@ -133,21 +176,23 @@ def _dispatch_hints(claimed: list[dict[str, Any]] | None = None,
                 workdirs: list[str] = []
                 errors: list[str] = []
                 for w in wts:
-                    try:
-                        workdirs.append(workdir_for(t, w.get("repo"), root))
-                    except SkeinError as e:
-                        errors.append(str(e))
+                    wd, err = _try_workdir(t, w.get("repo"), root)
+                    if wd is not None:
+                        workdirs.append(wd)
+                    if err is not None:
+                        errors.append(err)
                 if errors:
                     hint["mismatch"] = "invalid_workdir"
                     hint["errors"] = errors
                 else:
                     hint["workdirs"] = workdirs
             else:
-                try:
-                    hint["workdir"] = workdir_for(t, root=root)
-                except SkeinError as e:
+                wd, err = _try_workdir(t, None, root)
+                if wd is not None:
+                    hint["workdir"] = wd
+                if err is not None:
                     hint["mismatch"] = "invalid_workdir"
-                    hint["error"] = str(e)
+                    hint["error"] = err
         hints.append(hint)
     for tid in finishing or []:
         hint = {"agent": "skein:skein-finisher", "tid": tid, "why": "收尾合并该 task"}
@@ -346,22 +391,6 @@ class Scheduler:
                              "message": "待处理 subtask 的依赖 (depends_on) 未全部完成"})
         return info
 
-    def _empty_batch_msg(self) -> str:
-        info = self._empty_batch_info()
-        if info["reason"] == "work_pool_full":
-            return f"work 池已满 (running {info['running']}/{info['capacity']}) — 先等一个 subtask done 释放槽"
-        if info["reason"] == "no_pending_subtask":
-            return f"无待处理 subtask (work 池 running {info['running']}/{info['capacity']})"
-        if info["reason"] == "dep_failed":
-            deps = ", ".join(info.get("failed_deps", []))
-            return (f"subtask 依赖链中有 FAILED subtask ({deps}) — 需要 reset 或 replan "
-                    f"(work 池 running {info['running']}/{info['capacity']}, pending: {info['pending']}, failed: {info['failed']})")
-        if info["reason"] == "task_dep_blocked":
-            return (f"前置 task 未完成 (work 池 running {info['running']}/{info['capacity']}, "
-                    f"pending: {info['pending']}, failed: {info['failed']})")
-        return (f"待处理 subtask 的依赖未全部完成 (work 池 running {info['running']}/{info['capacity']}, "
-                f"pending: {info['pending']}, failed: {info['failed']})")
-
     def _claim_exec_preview(self, a: argparse.Namespace) -> dict[str, Any]:
         batch = self._global_ready()
         task_filter = getattr(a, "task", None)
@@ -379,13 +408,14 @@ class Scheduler:
                 "skills": s.get("skills", []),
                 "acceptance": s.get("acceptance", []),
             }
-            try:
-                item["workdir"] = workdir_for(t, s.get("repo"), self.ws.root)
-            except SkeinError as e:
+            wd, err = _try_workdir(t, s.get("repo"), self.ws.root)
+            if wd is not None:
+                item["workdir"] = wd
+            if err is not None:
                 item["mismatch"] = "invalid_workdir"
-                item["error"] = str(e)
+                item["error"] = err
                 mismatches.append({"tid": t["id"], "sid": s["sid"],
-                                   "reason": "invalid_workdir", "error": str(e)})
+                                   "reason": "invalid_workdir", "error": err})
             items.append(item)
         data: dict[str, Any] = {
             "ready": items,
@@ -435,7 +465,7 @@ class Scheduler:
                                 "repo": s.get("repo"),
                                 "skills": s.get("skills", []),
                                 "acceptance": s.get("acceptance", [])})
-            self.ws.store.save(t)
+            self.ws.store.save(t, sync_index=False)  # subtask 级变更不动顶层索引字段, save 已渲染本 task 看板
         tasks = {t["id"]: t for t in self.ws.store.all_tasks()}
         return {"claimed": claimed, "count": len(claimed),
                 "next": _dispatch_hints(claimed=claimed, tasks=tasks, root=self.ws.root),
@@ -558,7 +588,7 @@ class Scheduler:
                 "status": SubtaskStatus.PENDING,
                 "created": now(), "started": None, "finished": None,
             })
-            self.ws.store.save(t)
+            self.ws.store.save(t, sync_index=False)  # subtask 级变更不动顶层索引字段, save 已渲染本 task 看板
             return {"tid": a.tid, "sid": a.sid, "estimate": est, "total": len(rsubs)}
         if a.action == "list":
             return {"tid": a.tid, "research_tasks": [_sub_row(a.tid, s) for s in rsubs]}
@@ -582,22 +612,11 @@ class Scheduler:
             undone = [d for d in s.get("depends_on", []) if d not in done]
             if undone:
                 raise SkeinError(f"依赖未完成: {', '.join(undone)} — 先 done 它们")
-            s["status"] = SubtaskStatus.RUNNING
-            if not s.get("started"):
-                s["started"] = now()
-            _timeline.append(t, "subtask", SubtaskStatus.RUNNING, sid=a.sid)
+            _transition(self.ws, t, s, "start", exec_done=False)
         elif a.action == "done":
-            s["status"] = SubtaskStatus.DONE
-            s["finished"] = now()
-            s.pop("note", None)
-            _timeline.append(t, "subtask", SubtaskStatus.DONE, sid=a.sid)
+            _transition(self.ws, t, s, "done", exec_done=False)
         elif a.action == "fail":
-            s["status"] = SubtaskStatus.FAILED
-            s["finished"] = now()
-            if a.note:
-                s["note"] = a.note
-            _timeline.append(t, "subtask", SubtaskStatus.FAILED, sid=a.sid, note=a.note or "")
-        self.ws.store.save(t)
+            _transition(self.ws, t, s, "fail", exec_done=False, note=a.note)
         return {"tid": a.tid, "sid": a.sid, "status": s["status"]}
 
     def subtask(self, a: argparse.Namespace) -> dict[str, Any]:
@@ -632,7 +651,7 @@ class Scheduler:
                 "started": None,    # exec 时刻 (claim/start →运行中 时置)
                 "finished": None,   # 完成时刻 (done 时置)
             })
-            self.ws.store.save(t)  # _save 已渲染子任务看板
+            self.ws.store.save(t, sync_index=False)  # subtask 级变更不动顶层索引字段, save 已渲染本 task 看板
             return {"tid": a.tid, "sid": a.sid, "estimate": est,
                     "total": len(subs), "subtask_sum": _sub_estimate_sum(t)}
         if a.action == "list":
@@ -670,7 +689,7 @@ class Scheduler:
                     if not s.get("started"):
                         s["started"] = now()  # exec 时刻 (首次认领, 重认领不覆盖)
                     _timeline.append(t, "subtask", SubtaskStatus.RUNNING, sid=s["sid"])
-                self.ws.store.save(t)  # _save 已渲染子任务看板
+                self.ws.store.save(t, sync_index=False)  # subtask 级变更不动顶层索引字段, save 已渲染本 task 看板
             items: list[dict[str, Any]] = []
             mismatches: list[dict[str, str]] = []
             for s in batch:
@@ -678,13 +697,14 @@ class Scheduler:
                         "repo": s.get("repo"),
                         "skills": s.get("skills", []),
                         "acceptance": s.get("acceptance", [])}
-                try:
-                    item["workdir"] = workdir_for(t, s.get("repo"), self.ws.root)
-                except SkeinError as e:
+                wd, err = _try_workdir(t, s.get("repo"), self.ws.root)
+                if wd is not None:
+                    item["workdir"] = wd
+                if err is not None:
                     item["mismatch"] = "invalid_workdir"
-                    item["error"] = str(e)
+                    item["error"] = err
                     mismatches.append({"tid": a.tid, "sid": s["sid"],
-                                       "reason": "invalid_workdir", "error": str(e)})
+                                       "reason": "invalid_workdir", "error": err})
                 items.append(item)
             return {"tid": a.tid, "action": a.action,
                     "claimed" if a.action == "claim" else "ready": items,
@@ -724,11 +744,7 @@ class Scheduler:
             run = [x for x in t["subtasks"] if x["status"] == SubtaskStatus.RUNNING]
             if len(run) >= self.ws.config()["pools"]["work"]:
                 raise SkeinError(f"并发已满 ({len(run)}) — 先 done 一个再 start")
-            self.ws._stage_hooks("subtask.start", "before", self.ws._hook_ctx(a.tid, a.sid, t=t))
-            s["status"] = SubtaskStatus.RUNNING
-            if not s.get("started"):
-                s["started"] = now()  # exec 时刻 (首次 start, 重启不覆盖)
-            _timeline.append(t, "subtask", SubtaskStatus.RUNNING, sid=a.sid)
+            _transition(self.ws, t, s, "start", exec_done=True)
         elif a.action == "check":
             # `--check` 是 add 的验收登记项, 不是勾选入口: 静默走下去只会把 acceptance_done 清零
             # 并回一个 accepted 0 的「成功」。
@@ -753,7 +769,7 @@ class Scheduler:
                 if bad:
                     raise SkeinError(f"验收序号越界: {bad} (共 {len(crit)} 条)")
             s["acceptance_done"] = idx
-            self.ws.store.save(t)  # _save 已渲染子任务看板
+            self.ws.store.save(t, sync_index=False)  # subtask 级变更不动顶层索引字段, save 已渲染本 task 看板
             return {"tid": a.tid, "sid": a.sid, "accepted": len(idx),
                     "total": len(crit), "pct": _sub_pct(s)}
         elif a.action == "done":
@@ -763,20 +779,7 @@ class Scheduler:
                 raise SkeinError(
                     f"subtask done 不收 --passed (done 即验收全过) — "
                     f"要部分勾选走 `skein subtask check {a.tid} {a.sid} --passed <序号|all|none>`")
-            self.ws._stage_hooks("subtask.done", "before", self.ws._hook_ctx(a.tid, a.sid, t=t))
-            s["status"] = SubtaskStatus.DONE
-            s["finished"] = now()  # 完成时刻
-            s["acceptance_done"] = list(range(1, len(s.get("acceptance", [])) + 1))  # 完成即全过 → 100%
-            s.pop("note", None)  # 清掉上一轮 fail 的备注, 否则 done 的 subtask 仍挂着失效失败原因
-            _timeline.append(t, "subtask", SubtaskStatus.DONE, sid=a.sid)
+            _transition(self.ws, t, s, "done", exec_done=True)
         elif a.action == "fail":
-            self.ws._stage_hooks("subtask.fail", "before", self.ws._hook_ctx(a.tid, a.sid, t=t))
-            s["status"] = SubtaskStatus.FAILED
-            s["finished"] = now()  # 失败时刻 (与 done 对称)
-            if a.note:
-                s["note"] = a.note  # 失败备注 (运行时, 非 planning schema)
-            _timeline.append(t, "subtask", SubtaskStatus.FAILED, sid=a.sid, note=a.note or "")
-        self.ws.store.save(t)  # _save 已渲染子任务看板
-        if a.action in ("start", "done", "fail"):
-            self.ws._stage_hooks(f"subtask.{a.action}", "after", self.ws._hook_ctx(a.tid, a.sid, t=t))
+            _transition(self.ws, t, s, "fail", exec_done=True, note=a.note)
         return {"tid": a.tid, "sid": a.sid, "status": s["status"]}

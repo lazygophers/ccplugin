@@ -178,3 +178,13 @@ def test_prd_write_needs_list() -> None:
 def test_unknown_cmd_returns_none() -> None:
     assert exec_argv({"cmd": "bogus"}) is None
     assert exec_argv({}) is None
+
+
+def test_tid_path_traversal_rejected() -> None:
+    """tid 位置参数统一过 SLUG_RE: `../x` / `a/b` / `..` / 带点 id 一律 None, 不进 argv。"""
+    for bad in ("../x", "a/b", "..", ".", "a.b", "../", "x y"):
+        for cmd in ("status", "subtask-list", "create", "subtask-add",
+                    "confirm", "revert", "finish", "priority", "del"):
+            body = {"cmd": cmd, "id": bad, "sid": "s1", "name": "n", "desc": "d", "estimate": "1",
+                    "set": "high"}
+            assert exec_argv(body) is None, f"cmd={cmd} id={bad!r} 不该放行"

@@ -123,16 +123,17 @@ loop exec_tick:
 # CHECK 阶段 — 派 checker 验证, 聚合结果
 # ============================================================
 loop check_tick:
-  out = Bash("skein flow run")   # check.next[] 带 checker hint
+  # 先消费 checker 回传, 再跑 flow run —— scheduler 会在某 tick 见 CHECK+全 subtask done 自动推
+  # finishing, 推进后 revert 不再可用; FAIL 必须在推进前处理 (此时状态仍 check, revert 可用)
+  if 任一 checker 回传 FAIL:
+    goto 失败扭转              # revert 销 worktree → 补修复 subtask → confirm → 回 exec_tick, 顺序见该节
+  out = Bash("skein flow run")   # check.next[] 混含 checker 与 finisher hint
   for hint in out.result.check.next:
-    Agent(subagent_type='skein:skein-checker', prompt=hint.prompt)  # 异步派发, 不等待
-  # 派完后看 task 状态是否已推进 (checker 自跑 done 后 scheduler 推 finishing)
+    Agent(subagent_type=hint.agent, prompt=hint.prompt)  # 按 hint.agent 派发, 不硬编码 agent 类型
 
   out = Bash("skein task status <tid>")
   if out.task.status == "finishing" or out.task.status == "done":
-    break check_tick           # checker 全 PASS, scheduler 推进到 finishing
-  if 任一 checker 回传 FAIL:
-    goto 失败扭转              # revert 销 worktree → 补修复 subtask → confirm → 回 exec_tick, 顺序见该节
+    break check_tick           # checker 全 PASS, scheduler 已自动推进到 finishing
   # checker 还在跑, 继续 tick
 
 # ============================================================
@@ -245,9 +246,11 @@ check 阶段可派两个 checker **并行**（各自独立 context，互不污�
 - **全 PASS** → 放行 finishing
 - **skein:skein-code-reviewer 为可选** — 无 spec 来源或 diff 为空时跳过，不阻塞 skein:skein-checker
 
+🛑 **skein:skein-code-reviewer 由 main 手拼派发** —— `flow run` 的 `_dispatch_hints` 永不产 code-reviewer hint。main 按 `agents/skein-code-reviewer.md` 的入参格式手拼单行 JSON prompt（`tid` / `workdir` / `worktree: on|off` / `repo` / `action`）派发。这是「prompt 是 scheduler 成品串，禁自撰」铁律的**唯一豁免**，仅此一个 agent 适用。
+
 ## 失败扭转
 
-checker 任一 FAIL 后的回流路径。check 态 task 上补的修复 subtask 永不被派发 —— scheduler 只取 active task 的 subtask，所以必须先 revert 解锁，顺序是硬门：
+checker 任一 FAIL 后的回流路径。check 态 task 上补的修复 subtask 永不被派发 —— scheduler 只取 active task 的 subtask，所以必须先 revert 解锁，顺序是硬门。入口时序同样是硬门：FAIL 消费必须赶在 scheduler 自动推 finishing **之前**（check_tick 每轮先查 checker 回传再跑 `flow run`，见 CHECK 阶段伪码）；一旦推进到 finishing/done，revert 不再可用，修复只能等本 task finish 后另立新 task。
 
 1. `Bash("skein task revert <tid>")` — check → pending，销毁 task worktree（修复 subtask 确认后会重建并重做，别在已销 worktree 里找旧改动）。
 2. 补修复 subtask：`Bash("skein subtask add <tid> <sid> --name <标题> --desc <失败原因+修法> --check <对应验收项>")`，一次 FAIL 可补多条。

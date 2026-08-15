@@ -27,7 +27,6 @@ from skeinlib.task import timeline as _timeline
 from skeinlib.task.priority import validate_priority
 from skeinlib.infra.worktree import commit_all, destroy_worktrees, git, make_worktree, parse_repos, worktrees_of
 
-import datetime
 import json
 import shutil
 import sys
@@ -114,8 +113,7 @@ class Lifecycle:
         }
         cloned = self._clone_planning(tid, t, getattr(a, "like", None))
         _timeline.append(t, "task", TaskStatus.PENDING)
-        self.ws.store.save(t)  # _save 已渲染子任务看板
-        self.ws.store.sync()  # 刷新顶层 tasks 索引 + 看板 + html
+        self.ws.store.save(t)  # save 已渲染子任务看板 + 刷顶层索引
         self.ws._stage_hooks("create", "after", self.ws._hook_ctx(tid, t=t))
         out = {"id": tid, "path": str(self.ws.tasks / tid)}
         if cloned:
@@ -179,7 +177,6 @@ class Lifecycle:
             raise SkeinError(f"{a.id} 状态 {t['status']}, repos 只能在 confirm 前 (待处理/调研中) 声明")
         t["repos"] = parse_repos(a.set)
         self.ws.store.save(t)
-        self.ws.store.sync()
         return {"id": a.id, "repos": t["repos"]}
 
     def estimate(self, a: argparse.Namespace) -> dict[str, Any]:
@@ -232,7 +229,6 @@ class Lifecycle:
             return {"id": a.id, "priority": t.get("priority") or PRIORITY_DEFAULT}
         t["priority"] = validate_priority(a.set)
         self.ws.store.save(t)
-        self.ws.store.sync()
         return {"id": a.id, "priority": t["priority"]}
 
     def deps(self, a: argparse.Namespace) -> dict[str, Any]:
@@ -260,7 +256,6 @@ class Lifecycle:
             raise SkeinError(f"deps 成环: {' -> '.join(cycle_path)}")
         t["deps"] = new
         self.ws.store.save(t)
-        self.ws.store.sync()
         return {"id": a.id, "deps": new}
 
     def _validate_estimate(self, tid: str, t: dict[str, Any]) -> None:
@@ -309,7 +304,6 @@ class Lifecycle:
         t["status"] = TaskStatus.RESEARCH
         _timeline.append(t, "task", TaskStatus.RESEARCH)
         self.ws.store.save(t)
-        self.ws.store.sync()
         self.ws._stage_hooks("research", "after", self.ws._hook_ctx(a.id, t=t))
         return {"id": a.id, "status": TaskStatus.RESEARCH}
 
@@ -327,7 +321,6 @@ class Lifecycle:
         t["status"] = TaskStatus.PENDING
         _timeline.append(t, "task", TaskStatus.PENDING)
         self.ws.store.save(t)
-        self.ws.store.sync()
         self.ws._stage_hooks("plan", "after", self.ws._hook_ctx(a.id, t=t))
         return {"id": a.id, "status": TaskStatus.PENDING}
 
@@ -406,7 +399,6 @@ class Lifecycle:
             t["started"] = now()  # exec 时刻 (首次 confirm; 重复不覆盖)
         _timeline.append(t, "task", TaskStatus.ACTIVE, note=note)
         self.ws.store.save(t)
-        self.ws.store.sync()
         self.ws._stage_hooks("confirm", "after", self.ws._hook_ctx(a_id, t=t))
         return {"id": a_id, "status": TaskStatus.ACTIVE, "confirmed": True,
                 "worktrees": t["worktrees"], "worktree": t["worktree"]}
@@ -465,7 +457,6 @@ class Lifecycle:
         t["checked"] = now()
         _timeline.append(t, "task", TaskStatus.CHECK)
         self.ws.store.save(t)
-        self.ws.store.sync()
         self.ws._stage_hooks("check", "after", self.ws._hook_ctx(a.id, t=t))
         return {"id": a.id, "status": TaskStatus.CHECK}
 
@@ -486,7 +477,6 @@ class Lifecycle:
         t["worktrees"] = []
         _timeline.append(t, "task", TaskStatus.PENDING, note="revert: check 回退到 plan")
         self.ws.store.save(t)
-        self.ws.store.sync()
         self.ws._stage_hooks("revert", "after", self.ws._hook_ctx(a.id, t=t))
         return {"id": a.id, "status": TaskStatus.PENDING}
 
@@ -509,7 +499,6 @@ class Lifecycle:
         t["status"] = TaskStatus.FINISHING
         _timeline.append(t, "task", TaskStatus.FINISHING)
         self.ws.store.save(t)
-        self.ws.store.sync()
         self.ws._stage_hooks("finishing", "after", self.ws._hook_ctx(a.id, t=t))
         return {"id": a.id, "status": TaskStatus.FINISHING}
 
@@ -551,7 +540,6 @@ class Lifecycle:
                         continue
                 w["merged"] = True
                 self.ws.store.save(t)
-                self.ws.store.sync()
             if wt.exists():
                 removed = git("worktree", "remove", str(wt), "--force", cwd=sub, check=False)
                 if removed.returncode != 0:
@@ -571,7 +559,6 @@ class Lifecycle:
         if conflicts:
             t["worktrees"] = wts
             self.ws.store.save(t)
-            self.ws.store.sync()
             detail = "\n".join(f"  子 git {r}: 自动 theirs 合并仍失败" for r, _ in conflicts)
             raise SkeinError(
                 f"{tid} 部分子 git 合并冲突 (已尝试自动 theirs 仍失败), "
@@ -588,8 +575,7 @@ class Lifecycle:
             t["checked_end"] = now()  # 强制路径没走过 finishing, 补齐检查结束时刻 (看板算耗时用)
         _timeline.append(t, "task", TaskStatus.DONE, note=_FORCE_NOTE if force else "")
         self.ws.store.save(t)
-        self.ws.store.sync()
-        # commit 必须排在 save/sync 之后: 先 commit 会把 .skein/task.json 的完成态和归档移动
+        # commit 必须排在 save 之后: 先 commit 会把 .skein/task.json 的完成态和归档移动
         # 留在工作区外, finish 完仓库仍是脏的 (原地模式实测)。
         if not wts and self.ws.git and cfg.get("auto_commit", True):
             commit_all(self.ws.root, f"skein({tid}): {t['name']}")
@@ -617,8 +603,7 @@ class Lifecycle:
                 return {"dry_run": True, "action": "remove_subtask", "task": tid,
                         "subtask": sid, "remaining": len(new_subs)}
             t["subtasks"] = new_subs
-            self.ws.store.save(t)  # _save 渲染子任务看板
-            self.ws.store.sync()   # 刷顶层索引 + 看板
+            self.ws.store.save(t)  # save 已渲染子任务看板 + 刷顶层索引
             return {"id": tid, "subtask": sid, "removed": True, "remaining": len(new_subs)}
 
         if a.dry_run:
@@ -632,11 +617,7 @@ class Lifecycle:
         # 在途 task (进行中/检查中/收尾中) 先销 worktree/分支 (finish/del 同策略, 免悬挂); 待处理/调研中/done 无 worktree, 跳过
         if t["status"] in STATUS_INFLIGHT:
             destroy_worktrees(t, self.ws.root)
-        dst = self.ws.trash_dir / f"{tid}.{datetime.datetime.now().strftime('%Y%m%d')}"
-        self.ws.trash_dir.mkdir(parents=True, exist_ok=True)
-        if dst.exists():  # 同日重复删同 id → 先清旧 (同名目录 shutil.move 跨平台行为不一)
-            shutil.rmtree(dst)
-        shutil.move(str(src), str(dst))
+        dst = self.ws.trash(src, tid)
         self.ws.store.sync()  # 刷顶层索引 (移除该 task) + 看板
         return {"id": tid, "deleted": True, "trash_path": str(dst)}
 
@@ -670,7 +651,6 @@ class Lifecycle:
                         continue
                     x["depends_on"] = [new_id if d == old_sid else d for d in x.get("depends_on", [])]
             self.ws.store.save(t)
-            self.ws.store.sync()
             return {"task": tid, "subtask": new_id or a.sid,
                     "sid": new_id or a.sid,
                     "name": new_name if new_name is not None else s["name"]}
@@ -680,7 +660,6 @@ class Lifecycle:
             t["name"] = new_name
         if not new_id:  # 仅改 name
             self.ws.store.save(t)
-            self.ws.store.sync()
             return {"id": tid, "name": t["name"]}
         # 改 id: 仅 pre-confirm (待处理/调研中 无 live worktree; active/check/finishing 改 id 需迁分支+移 worktree, 风险高不支持)
         if t["status"] not in (TaskStatus.PENDING, TaskStatus.RESEARCH):
@@ -699,7 +678,7 @@ class Lifecycle:
         # 目录改名 (旧 → 新), 再经 _save 按新 id 落 task.json + 刷子任务看板
         # ponytail: design.md 脚手架内的提示行不重写 (planning 后已被 AI 大改, 属 AI 内容, 非脚本真值)
         shutil.move(str(self.ws.tasks / old_id), str(self.ws.tasks / new_id))
-        self.ws.store.save(t)
+        self.ws.store.save(t, sync_index=False)
         for other in self.ws.store.all_tasks():  # 同步别 task 的 deps 引用
             if other["id"] == new_id:
                 continue
@@ -708,6 +687,6 @@ class Lifecycle:
                 other["deps"] = [new_id if d == old_id else d for d in other["deps"]]
                 changed = True
             if changed:
-                self.ws.store.save(other)
-        self.ws.store.sync()
+                self.ws.store.save(other, sync_index=False)
+        self.ws.store.sync()  # 多 task 落盘后一次刷顶层索引
         return {"old_id": old_id, "new_id": new_id}

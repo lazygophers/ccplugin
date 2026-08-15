@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Sidebar, Topbar } from "@/components/layout";
 import { api, type SpecItem, type SpecSearchResult, type SpecMetaItem } from "@/lib/api";
-import { renderMd } from "@/lib/md";
+import { renderMd, esc } from "@/lib/md";
 import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { useToast } from "@/components/toast";
@@ -150,11 +150,14 @@ export default function SpecPage() {
   }
 
   function highlight(text: string, q: string) {
-    if (!q) return text;
+    if (!q) return esc(text);
     const ql = q.toLowerCase();
     const idx = text.toLowerCase().indexOf(ql);
-    if (idx < 0) return text;
-    return text.slice(0, idx) + '<mark class="rounded bg-primary/20 px-0.5 text-foreground">' + text.slice(idx, idx + q.length) + '</mark>' + text.slice(idx + q.length);
+    if (idx < 0) return esc(text);
+    // 结果经 dangerouslySetInnerHTML 直插, 三段 slice 都必须先 esc 再包 <mark>
+    return esc(text.slice(0, idx))
+      + '<mark class="rounded bg-primary/20 px-0.5 text-foreground">' + esc(text.slice(idx, idx + q.length)) + '</mark>'
+      + esc(text.slice(idx + q.length));
   }
 
   // 从 metaMap 提取 distinct types (namespace) 和 keywords (tags)

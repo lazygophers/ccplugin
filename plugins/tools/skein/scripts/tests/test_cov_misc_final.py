@@ -70,6 +70,44 @@ def test_file_matches_globs_value_error(tmp_path: Path, monkeypatch: pytest.Monk
     assert result is False
 
 
+def _filematch_ws(tmp_path: Path, body: str) -> Path:
+    """造一个含单条 fileMatch 规则的工作区, 返回其根。"""
+    spec = tmp_path / ".skein" / "spec"
+    spec.mkdir(parents=True)
+    (spec / "rule.md").write_text(
+        f"---\ninclusion: fileMatch\nglobs: *.py\ntitle: T\n---\n{body}\n")
+    return tmp_path
+
+
+def test_filematch_context_dedupes_within_session(tmp_path: Path) -> None:
+    """同一 session 第二次命中同一 spec 页 → 降级为一行「已注入过」, 不再全文重发。"""
+    from skeinlib.hooks import pre_tool_use as ptu
+    ws = _filematch_ws(tmp_path, "规则正文内容")
+    first = ptu.filematch_context(str(ws / "a.py"), str(ws), session_id="s1")
+    assert "规则正文内容" in first
+    second = ptu.filematch_context(str(ws / "a.py"), str(ws), session_id="s1")
+    assert "规则正文内容" not in second
+    assert "已注入过" in second and "T" in second
+
+
+def test_filematch_context_no_dedup_without_session(tmp_path: Path) -> None:
+    """无 session_id (旧调用面) 不去重, 每次都全文注入。"""
+    from skeinlib.hooks import pre_tool_use as ptu
+    ws = _filematch_ws(tmp_path, "规则正文内容")
+    for _ in range(2):
+        assert "规则正文内容" in ptu.filematch_context(str(ws / "a.py"), str(ws))
+
+
+def test_filematch_context_budget_truncation(tmp_path: Path,
+                                              capsys: pytest.CaptureFixture[str]) -> None:
+    """fileMatch 注入超 filematch 预算 → budget_guard 硬截断并写 stderr 告警。"""
+    from skeinlib.hooks import pre_tool_use as ptu
+    ws = _filematch_ws(tmp_path, "长" * 4000)   # 4000 字符 ≈ 1000 token > 预算 500
+    out = ptu.filematch_context(str(ws / "a.py"), str(ws))
+    assert "超预算已截断" in out
+    assert "filematch" in capsys.readouterr().err
+
+
 # ---- user_prompt_submit.py: 剩余分支 ----
 
 # ---- hooks/agent.py: yaml error / no agents ----

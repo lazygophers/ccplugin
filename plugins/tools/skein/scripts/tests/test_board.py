@@ -325,9 +325,11 @@ def test_serve_config_post() -> None:
             # 合法 POST: 落盘 retain_days=30
             assert post({"retain_days": 30}) == 200, "合法 POST 应 200"
             assert "retain_days: 30" in (d / ".skein/config.yaml").read_text(), "合法值未落盘"
-            # 非法 POST: 兜底为 CONFIG_DEFAULTS (retain_days=7), 不落 "not-a-number"
-            assert post({"retain_days": "not-a-number"}) == 200, "非法值兜底应仍 200"
-            assert "not-a-number" not in (d / ".skein/config.yaml").read_text(), "非法值误落盘"
+            # 非法 POST: 400 拒绝且不动盘上的合法配置 (兜底默认值会把用户配置静默抹成出厂值)
+            before = (d / ".skein/config.yaml").read_text()
+            assert post({"retain_days": "not-a-number"}) == 400, "非法 POST 应 400"
+            assert (d / ".skein/config.yaml").read_text() == before, "非法值触发了落盘"
+            assert "not-a-number" not in before
             # 🔒 hooks 键在写端点侧硬排除 (skein.py CFG_REMOTE_DENY, 见 design.md §4): 值是 shell
             # 命令, 远程可写 = RCE。骨架本身在 CONFIG_DEFAULTS 里 (空列表), 故 "hooks" 这个串**会**
             # 出现在盘上 —— 该断言的是「POST 来的命令串一个字都不落盘」, 断言键名不出现是查错了东西。

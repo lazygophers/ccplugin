@@ -56,7 +56,7 @@ class TaskStore:
         for t in snapshot:
             if t["id"] in blocked:
                 continue
-            if normalize_task_status(t["status"]) == TaskStatus.DONE and t.get("finished", t.get("done_at", 0)) <= cutoff:
+            if normalize_task_status(t["status"]) == TaskStatus.DONE and (t.get("finished") or t.get("done_at") or 0) <= cutoff:
                 self.archive_task(t["id"])
                 archived.append(t["id"])
         return archived
@@ -114,7 +114,9 @@ class TaskStore:
         t.update(load_spec(self.tasks, tid))  # TaskSpec 真值在 prd.md frontmatter, 读侧注入
         return t
 
-    def save(self, t: dict[str, Any]) -> None:
+    def save(self, t: dict[str, Any], sync_index: bool = True) -> None:
+        """落盘一个 task; `sync_index=True` 时连带刷顶层索引与汇总看板 (save+sync 原子收口)。
+        subtask 级变更不动顶层索引字段 (id/status/deps/...) 时可传 False 免一次全量重算。"""
         t["updated"] = now()
         # TaskSpec 四字段不落 task.json (真值在 prd.md), save 时剥离注入键
         stripped = {k: v for k, v in t.items() if k not in SPEC_KEYS}
@@ -122,6 +124,8 @@ class TaskStore:
         self.write_if_changed(self.tasks / t["id"] / "task.json",
                                json.dumps(stripped, ensure_ascii=False, indent=2))
         self._write_task_board(t)  # task.json 唯一写入口 → 同步渲染子任务看板, 免各调用点漏刷 (task.json 变更即同步 task.md)
+        if sync_index:
+            self.sync()
 
     def all_tasks(self) -> list[dict[str, Any]]:
         if not self.tasks.exists():

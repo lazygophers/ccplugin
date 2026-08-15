@@ -248,11 +248,17 @@ class _FakeBoard:
         self.tasks = self.dir / "task"
         self.spec_root = self.dir / "spec"
         self.archive_dir = self.dir / "archive"
+        self.trash_dir = self.dir / "trash"
         for p in (self.tasks, self.spec_root, self.archive_dir):
             p.mkdir(parents=True, exist_ok=True)
         self.rev = "rev-1"
         self.mtimes: dict[str, str] = {}
         self.spec_meta_calls: list[dict[str, Any]] = []
+
+    def trash(self, src: Path, tid: str) -> Path:
+        # 与真实 Workspace 同协议 (archive/delete 端点走它), 直接复用真实现
+        from skeinlib.core.workspace import Workspace
+        return Workspace.trash(self, src, tid)  # type: ignore[arg-type]
 
     def _snapshot(self) -> Any:
         from skeinlib.web.views import Snapshot
@@ -321,7 +327,8 @@ def _app(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[Any, _FakeBoa
 
 def _client(app: Any) -> Any:
     from fastapi.testclient import TestClient
-    return TestClient(app)
+    # base_url 用 127.0.0.1: serve 的本地绑定闸只放行回环 Host/Origin (默认 testserver 会被 403)
+    return TestClient(app, base_url="http://127.0.0.1")
 
 
 def _no_reindex(monkeypatch: pytest.MonkeyPatch) -> list[list[str]]:
@@ -751,18 +758,105 @@ def test_config_post_rejects_remote_hooks_write(tmp_path: Path,
         assert "old" in cfg and "pwned" not in cfg
 
 
-def test_config_post_validates_and_falls_back_to_defaults(tmp_path: Path,
-                                                          monkeypatch: pytest.MonkeyPatch) -> None:
-    """非法配置值 → 回退到 ConfigData 默认值 (不 500)。"""
+def test_config_post_invalid_payload_rejected_without_touching_disk(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """非法配置值 → 400 不落盘 (默认值兜底会把整份用户配置静默抹成出厂值)。"""
     app, board = _app(tmp_path, monkeypatch)
+    (board.dir / "config.yaml").write_text("pools:\n  work: 2\n", encoding="utf-8")
     with _client(app) as c:
         r = c.post("/__skein__/system/config-set",
                    json={"retain_days": "not-a-number", "pools": "invalid"})
+        assert r.status_code == 400
+        assert r.json()["ok"] is False
+    # 非法值一个字不落盘; Config.reload 的「补默认值回写」是既有行为, 只断用户键保原值
+    saved = (board.dir / "config.yaml").read_text(encoding="utf-8")
+    assert "not-a-number" not in saved and "invalid" not in saved
+    assert "work: 2" in saved
+
+
+# ---- 本地绑定安全闸: Host/Origin/Content-Type/烂 body --------------------------
+
+def test_bad_json_body_returns_400_not_500(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """烂 JSON body → 400 JSON 错误体, 绝不让 json.loads 把 ASGI 拖成 500。"""
+    app, _ = _app(tmp_path, monkeypatch)
+    _no_reindex(monkeypatch)
+    with _client(app) as c:
+        for path in ("/__skein__/spec/save", "/__skein__/system/config-set"):
+            r = c.post(path, content=b"{not-json",
+                       headers={"content-type": "application/json"})
+            assert r.status_code == 400, f"{path} 烂 body 应 400, 实际 {r.status_code}"
+            assert r.json() == {"error": "bad json", "ok": False}
+        # 合法 JSON 但不是对象 (list) 同样拒 — handler 全按 dict 用
+        r = c.post("/__skein__/task/get", content=b"[1,2]",
+                   headers={"content-type": "application/json"})
+        assert r.status_code == 400
+
+
+def test_post_body_requires_json_content_type(tmp_path: Path,
+                                              monkeypatch: pytest.MonkeyPatch) -> None:
+    """/__skein__/* POST 带 body 时 Content-Type 必须 application/json (表单/文本/plain 全拒)。"""
+    app, _ = _app(tmp_path, monkeypatch)
+    with _client(app) as c:
+        r = c.post("/__skein__/task/search", content=b'{"q":"x"}',
+                   headers={"content-type": "text/plain"})
+        assert r.status_code == 400
+        r = c.post("/__skein__/task/search", content=b'{"q":"x"}')  # 完全不带
+        assert r.status_code == 400
+
+
+def test_post_rejects_forged_origin_and_foreign_host(tmp_path: Path,
+                                                     monkeypatch: pytest.MonkeyPatch) -> None:
+    """CSRF: 外域 Origin 的 POST 一律 403; DNS rebinding: 非回环 Host 的 POST 一律 403。"""
+    app, _ = _app(tmp_path, monkeypatch)
+    with _client(app) as c:
+        r = c.post("/__skein__/trash/purge", json={},
+                   headers={"origin": "http://evil.example"})
+        assert r.status_code == 403
+        r = c.post("/__skein__/task/finish", json={"id": "a"}, headers={"host": "evil.example"})
+        assert r.status_code == 403
+        # 合法本地 Origin (带端口) 必须放行
+        r = c.post("/__skein__/system/config-get", json={},
+                   headers={"origin": "http://127.0.0.1:8787"})
         assert r.status_code == 200
-        data = r.json()
-        assert data["ok"] is True
-        # 非法值应被默认值兜底 (retain_days=7), 不保留原值
-        assert data["config"]["retain_days"] == 7
+        r = c.post("/__skein__/system/config-get", json={},
+                   headers={"origin": "http://localhost:8787", "host": "localhost:8787"})
+        assert r.status_code == 200
+
+
+def test_options_preflight_not_blocked(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """CORS 预检 OPTIONS 不带写语义, 安全闸放行 (405 来自路由本身, 不是 403)。"""
+    app, _ = _app(tmp_path, monkeypatch)
+    with _client(app) as c:
+        r = c.options("/__skein__/task/list", headers={"origin": "http://evil.example",
+                                                       "access-control-request-method": "POST"})
+        assert r.status_code != 403
+
+
+# ---- 路径穿越: tid 走 SLUG_RE ---------------------------------------------------
+
+def test_finish_rejects_path_traversal_id(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """finish 的 tid 拒 `../x` 等穿越片段 (4xx), 绝不拼进 CLI argv。"""
+    app, _ = _app(tmp_path, monkeypatch)
+    monkeypatch.setattr("skeinlib.web.serve.subprocess.run",
+                        lambda *a, **kw: pytest.fail("穿越 id 不该起子进程"))
+    with _client(app) as c:
+        for bad in ("../x", "a/b", "..", "a.b", ".hidden"):
+            r = c.post("/__skein__/task/finish", json={"id": bad})
+            assert r.status_code == 400, f"id={bad!r} 应 400, 实际 {r.status_code}"
+
+
+def test_trash_purge_matches_exact_tid_date_pattern(tmp_path: Path,
+                                                    monkeypatch: pytest.MonkeyPatch) -> None:
+    """purge 前缀匹配会让 tid=a 误删任意 a.* 目录 — 只认整名 <tid> / <tid>.<YYYYMMDD>。"""
+    app, board = _app(tmp_path, monkeypatch)
+    trash = board.dir / "trash"
+    for name in ("a.20260101", "a.20260102", "a.not-a-date", "abc.20260101"):
+        (trash / name).mkdir(parents=True)
+    with _client(app) as c:
+        got = c.post("/__skein__/trash/purge", json={"id": "a"}).json()
+    assert sorted(got["purged"]) == ["a.20260101", "a.20260102"]
+    assert (trash / "a.not-a-date").exists()      # 非日期后缀不删
+    assert (trash / "abc.20260101").exists()      # 前缀相似不删
 
 
 # ---- archive 端点: 已归档 + 已完成 task ---------------------------------------

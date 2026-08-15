@@ -16,14 +16,15 @@ from pathlib import Path
 from typing import Any, Optional, cast
 
 
-# 单一预算表: 三个注入点的 token 预算 (单位: token)
+# 单一预算表: 各注入点的 token 预算 (单位: token)
 # 新增注入点 → 在此表加一行，自动纳入预算管控
-# 设计约束: 三个注入点预算总和 ≤800 token (design.md)
+# 设计约束: 常驻类注入点 (session_index/session_core/subagent_core) 预算总和 ≤800 token (design.md)
 # ponytail: 单一真值源，三处分散预算 → 收进一张表
 INJECTION_BUDGETS: dict[str, int] = {
     "session_index": 200,   # SessionStart 极简索引 token 硬预算 (每条 1 行, 只 title+类目)
     "session_core": 300,     # 会话常驻注入 token 软预算 (原 1000 字符 ≈ 580 token, 降为 300)
     "subagent_core": 300,    # SubagentStart core 全文 token 硬预算 (原 2000 字符 ≈ 1160 token, 大幅降为 300)
+    "filematch": 500,        # PreToolUse fileMatch 命中正文注入 token 硬预算 (多次命中累加, 超即截断)
 }
 NAMESPACES = ("rules", "product", "map", "external")  # namespace 默认清单 (仅 init 建目录用); 实际可用 namespace 由 Spec._scan_namespaces() 目录扫描得, 非白名单
 INCLUSIONS = ("always", "auto", "fileMatch", "manual")  # inclusion 封闭四值 (加载策略, frontmatter 级); 对齐 Cursor .cursor/rules 与 Kiro .kiro/steering 收敛结论

@@ -28,6 +28,22 @@ def test_git_worktree_add_denied() -> None:
         assert _guard("Bash", command="git worktree add ../wt1 main") == 2
 
 
+def test_git_worktree_add_in_compound_command_denied() -> None:
+    """`cd x && git worktree add y` 的非首段执行段也要拦 —— 按段判定而非全文搜字样。"""
+    with redirect_stderr(io.StringIO()):
+        assert _guard("Bash", command="cd /tmp && git worktree add ../wt1 main") == 2
+        assert _guard("Bash", command="true; git worktree add ../wt1 main") == 2
+        assert _guard("Bash", command="false || git worktree add ../wt1 main") == 2
+
+
+def test_readonly_reference_to_worktree_add_passes() -> None:
+    """grep/echo 里引用 `git worktree add` 字样是只读命令, 不拦。"""
+    with redirect_stderr(io.StringIO()):
+        assert _guard("Bash", command='grep -rn "git worktree add" docs/') == 0
+        assert _guard("Bash", command="echo git worktree add ../wt1 main") == 0
+        assert _guard("Bash", command="git worktree list | grep 'git worktree add'") == 0
+
+
 def test_readonly_worktree_commands_pass() -> None:
     with redirect_stderr(io.StringIO()):
         assert _guard("Bash", command="git worktree list") == 0

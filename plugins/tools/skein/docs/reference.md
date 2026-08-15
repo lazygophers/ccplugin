@@ -76,7 +76,9 @@
 | ------------------ | ------ | -------------------------------- |
 | 纯查询/单文件小改  | inline | Claude 直接改                    |
 | 跨文件/多步/破坏式 | flow   | 明确说“走 skein-flow 闭环”或自动 |
-| 模糊/边界不清      | grey   | AskUserQuestion                  |
+| 明确只要规划       | plan   | skein-plan, confirm 后停         |
+| 对在途 task 的追加诉求 | 补充 | 并入现有 task 拆 subtask       |
+| 模糊/边界不清      | 判不准 | 在最接近的判定档位下 AskUserQuestion 问清 (不单设档位) |
 
 ### 场景表
 
@@ -139,6 +141,8 @@
 | 术语                       | 定义                  |
 | -------------------------- | --------------------- |
 | flow                       | 复杂请求→建 task 闭环 |
+| plan                       | 明确只要规划→skein-plan, confirm 后停 |
 | inline                     | 简单请求→直接改       |
-| grey                       | 模糊→AskUserQuestion  |
+| 补充                       | 在途 task 的追加诉求→并入现有 task |
+| 模糊/边界不清              | 不设独立档位, 在最接近的判定档位下 AskUserQuestion 问清 |
 | 明确说“走 skein-flow 闭环” | 强制 flow 信号        |

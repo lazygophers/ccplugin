@@ -364,7 +364,8 @@ def test_empty_batch_reason_work_pool_full(ws: Path, monkeypatch: pytest.MonkeyP
     _sub_act(sk, "start", "feat-x", "sub-a")
     info = sk.scheduler._empty_batch_info()
     assert info["reason"] == "work_pool_full"
-    assert "1/1" in sk.scheduler._empty_batch_msg()
+    assert (info["running"], info["capacity"]) == (1, 1)
+    assert "work 池已满" in info["message"]
 
 
 def test_empty_batch_reason_no_pending(ws: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -372,8 +373,9 @@ def test_empty_batch_reason_no_pending(ws: Path, monkeypatch: pytest.MonkeyPatch
     sk = _skein(ws, monkeypatch)
     _active_task(sk, ws, "feat-x")
     _sub_act(sk, "done", "feat-x", "sub-a")
-    assert sk.scheduler._empty_batch_info()["reason"] == "no_pending_subtask"
-    assert "无待处理 subtask" in sk.scheduler._empty_batch_msg()
+    info = sk.scheduler._empty_batch_info()
+    assert info["reason"] == "no_pending_subtask"
+    assert "无待处理 subtask" in info["message"]
 
 
 def test_empty_batch_reason_task_dep_blocked(ws: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -384,8 +386,9 @@ def test_empty_batch_reason_task_dep_blocked(ws: Path, monkeypatch: pytest.Monke
     t = _load(ws, "feat-x")
     t["deps"] = ["base-api"]
     _write(ws, t)
-    assert sk.scheduler._empty_batch_info()["reason"] == "task_dep_blocked"
-    assert "前置 task 未完成" in sk.scheduler._empty_batch_msg()
+    info = sk.scheduler._empty_batch_info()
+    assert info["reason"] == "task_dep_blocked"
+    assert "前置 task 未完成" in info["message"]
 
 
 def test_empty_batch_reason_subtask_dep_blocked(ws: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -407,7 +410,7 @@ def test_empty_batch_reason_subtask_dep_blocked(ws: Path, monkeypatch: pytest.Mo
     _write(ws, t)
     info = sk.scheduler._empty_batch_info()
     assert info["reason"] == "subtask_dep_blocked"
-    assert "依赖" in sk.scheduler._empty_batch_msg()
+    assert "依赖" in info["message"]
 
 
 def test_empty_batch_reason_dep_failed(ws: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -422,7 +425,7 @@ def test_empty_batch_reason_dep_failed(ws: Path, monkeypatch: pytest.MonkeyPatch
     info = sk.scheduler._empty_batch_info()
     assert info["reason"] == "dep_failed"
     assert info["failed_deps"] == ["sub-a"]
-    assert "sub-a" in sk.scheduler._empty_batch_msg()
+    assert "sub-a" in info["message"]
 
 
 # ── claim exec / check / flow ────────────────────────────────────────────────
@@ -1180,16 +1183,19 @@ def test_rename_task_id_syncs_refs(ws: Path, monkeypatch: pytest.MonkeyPatch) ->
 
 
 # ── 补充测试：覆盖缺失的分支 ───────────────────────────────────────────────────
-def test_empty_batch_msg_full_message(ws: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """测试 _empty_batch_msg 的完整消息路径。"""
+def test_research_done_fires_subtask_stage_hooks(ws: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """research 条目的 done 与 exec subtask 走同一条迁移体 → `subtask.done` 钩子两族一致触发。"""
     sk = _skein(ws, monkeypatch)
     _create(sk, "feat-x")
-    _add_sub(sk, "feat-x", "sub-a")
-    _confirm(sk, ws, "feat-x")
-    # 让所有 subtask done 来触发 no_pending 消息
-    _sub_act(sk, "done", "feat-x", "sub-a")
-    msg = sk.scheduler._empty_batch_msg()
-    assert "无待处理 subtask" in msg
+    _add_research(sk, "feat-x", "sub-r")
+    sk.lifecycle.research(_ns(id="feat-x"))
+    _research_act(sk, "start", "feat-x", "sub-r")
+    calls: list[tuple[str, str]] = []
+    monkeypatch.setattr(sk, "_stage_hooks",
+                        lambda stage, when, ctx: calls.append((stage, when)))
+    _research_act(sk, "done", "feat-x", "sub-r")
+    assert calls == [("subtask.done", "before"), ("subtask.done", "after")]
+    assert _load(ws, "feat-x")["research_tasks"][0]["status"] == SubtaskStatus.DONE
 
 
 def test_create_fails_on_invalid_estimate_format(ws: Path, monkeypatch: pytest.MonkeyPatch) -> None:

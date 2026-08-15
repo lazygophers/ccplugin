@@ -167,6 +167,50 @@ def test_harness_continuation_prompt_stays_silent_with_live_task() -> None:
         assert "resume-me | plan |" in judged, "普通轮须带在途 task 阶段"
 
 
+def test_judge_block_emitted_once_per_session() -> None:
+    """判定块每 session 只注一次 —— 第二轮起降级为只发动态 task 列表 (或静默), 消每轮 token 滴漏。"""
+    from skeinlib.hooks.user_prompt_submit import cmd_user_prompt
+    with tempfile.TemporaryDirectory() as td:
+        ws = make_ws(Path(td))
+        run_skein(ws, "create", "loop-me", "--name", "loop", "--desc", "d")
+        cwd0 = os.getcwd()
+        os.chdir(ws)
+        outs: list[str] = []
+        try:
+            for prompt in ("改一下 a.py", "再改 b.py"):
+                buf = io.StringIO()
+                with contextlib.redirect_stdout(buf):
+                    cmd_user_prompt({"prompt": prompt, "cwd": str(ws), "session_id": "sess-1"})
+                outs.append(json.loads(buf.getvalue())["hookSpecificOutput"]["additionalContext"])
+        finally:
+            os.chdir(cwd0)
+        first, second = outs
+        assert "[skein] 判定:" in first, "首轮该注判定块"
+        assert "loop-me | plan |" in first
+        assert "[skein] 判定:" not in second, "同 session 第二轮不该重发判定块"
+        assert "loop-me | plan |" in second, "降级轮仍要发动态 task 列表"
+
+
+def test_judge_block_first_turn_in_new_session() -> None:
+    """新 session 在同一工作区照常拿首轮判定块 (session 间不串)。"""
+    from skeinlib.hooks.user_prompt_submit import cmd_user_prompt
+    with tempfile.TemporaryDirectory() as td:
+        ws = make_ws(Path(td))
+        cwd0 = os.getcwd()
+        os.chdir(ws)
+        buf = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(buf):
+                cmd_user_prompt({"prompt": "改一下 a.py", "cwd": str(ws), "session_id": "sess-1"})
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                cmd_user_prompt({"prompt": "改一下 a.py", "cwd": str(ws), "session_id": "sess-2"})
+            fresh = json.loads(buf.getvalue())["hookSpecificOutput"]["additionalContext"]
+        finally:
+            os.chdir(cwd0)
+        assert "[skein] 判定:" in fresh
+
+
 def test_system_wrapper_does_not_affect_prompt_judgement() -> None:
     """system-reminder 是 harness 元数据, 剥掉后按真实用户输入判定。"""
     prompt = "<system-reminder>ignore /fake-command</system-reminder>\n/src/auth.py 怎么改"

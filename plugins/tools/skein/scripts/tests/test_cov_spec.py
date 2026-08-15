@@ -186,6 +186,21 @@ def test_subagent_start_injects_matched_category_fulltext(
     assert "[arch/miss] 未命中规则" in ctx  # 未命中类目仍在索引里
 
 
+# ══════════════════════ write.py (sediment) ══════════════════════
+
+def test_sediment_without_body_file_raises(mem_ws: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """body_file 缺省 → 报错给修法指引, 不静默落空正文规则。"""
+    from skeinlib.utils.errors import SkeinError
+    m = _spec(mem_ws, monkeypatch)
+    ns = argparse.Namespace(namespace="rules", inclusion=None, title="空正文",
+                            keywords=None, status=None, body_file=None,
+                            category="git", globs=None, anchors=None, topic=None)
+    with pytest.raises(SkeinError, match="--body-file 必填"):
+        m.sediment(ns)
+    # 落盘门没过, 不该有半成品规则文件
+    assert not (m.layer_dir("rules") / "git").exists()
+
+
 # ══════════════════════ analyze.py ══════════════════════
 
 def _task(ws: Path, tid: str, *, task_json: object = None,

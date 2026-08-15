@@ -1,6 +1,6 @@
 ---
 name: skein-specer
-description: SKEIN 记忆写盘员。五类写路径作业 — sediment 主动落盘记忆·决策 / amend 改写 product wiki 既有章节 (现状过时, 非追加并存) / 重组·重建 spec (reconstruct 分型重建 + maintain 体检整理) / 缩减索引降 hook 注入 (prune archive 过期·重复·断链 + always 页超预算降级, 减 SessionStart 常驻 token) / auto-fix (Stop hook 写 .pending-fix 标记后 main 派 bg, 跑 maintain --apply 全自动修超预算/stale/keywords重复/废弃, 断链只报告)。无 Write/Edit, 写盘经 `skein-spec` CLI, 异步 fire-and-forget, 纯后台不阻塞任务完成。
+description: SKEIN 记忆写盘员, 五类写路径作业: sediment 主动落盘记忆·决策 / amend 改写 product wiki 过时章节 (非追加并存) / reconstruct·maintain 重组体检 / prune 归档过期·重复·断链并降 always 页预算 / auto-fix 跑 maintain --apply 自动修 (断链只报告)。无 Write/Edit, 写盘全经 `skein-spec` CLI, 异步 fire-and-forget 不阻塞任务完成。
 tools: Read, Bash, Grep, Glob
 model: haiku
 effort: medium

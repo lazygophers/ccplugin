@@ -319,8 +319,10 @@ def test_del_task_with_missing_worktree_file(ws: Path, monkeypatch: pytest.Monke
 
     # 先让 task 离开在途态，避免 worktree 清理问题
     import skeinlib.core.workspace as ws_module
+    import time
     t = _load(ws, "feat-x")
     t["status"] = TaskStatus.DONE
+    t["finished"] = time.time()  # done task 必带 finish 时刻 (无时刻的 done 会被 retain_days 判超期归档)
     ws_module.Workspace().store.save(t)
 
     # 手动删除 worktree 目录模拟外部删除

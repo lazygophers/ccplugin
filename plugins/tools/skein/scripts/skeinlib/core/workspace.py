@@ -15,9 +15,11 @@
 from __future__ import annotations
 
 import contextlib
+import datetime
 import fcntl
 import json
 import os
+import shutil
 import sys
 import time
 from pathlib import Path
@@ -209,6 +211,19 @@ class Workspace:
             _run_hooks(stage, when, dict(ctx, hooks=todo))
         except HookBlocked as e:
             raise SkeinError(str(e))
+
+    def trash(self, src: Path, tid: str) -> Path:
+        """src 目录移入 `.skein/trash/<tid>.<YYYYMMDD>/`, 返回落点。
+
+        同日重复删同 id → 先清旧 (同名目录 shutil.move 跨平台行为不一)。
+        task 软删 (lifecycle.del) 与 web 归档删除共用此协议。
+        """
+        dst = self.trash_dir / f"{tid}.{datetime.datetime.now().strftime('%Y%m%d')}"
+        self.trash_dir.mkdir(parents=True, exist_ok=True)
+        if dst.exists():
+            shutil.rmtree(dst)
+        shutil.move(str(src), str(dst))
+        return dst
 
     def _wt_shown(self) -> bool:
         # 禁用态 (worktree.enabled=false) 各出口不展示 worktree 段/列

@@ -20,7 +20,7 @@ from typing import Any, AsyncIterator, Callable, Iterable, Optional, cast
 
 from skeinlib.utils.debug import debug_enabled
 from skeinlib.utils.paths import PLUGIN_ROOT, SPEC_ENTRY
-from skeinlib.utils.exec_policy import exec_argv
+from skeinlib.utils.exec_policy import SLUG_RE, exec_argv
 import yaml
 from skeinlib.config import Config, ConfigData
 from skeinlib.web.views import (DataSource, _cards_signature, _spec_frontmatter, _view_archive,
@@ -30,6 +30,29 @@ from skeinlib.web.views import (DataSource, _cards_signature, _spec_frontmatter,
 
 def max_mtime(files: Iterable[Path]) -> str:
     return str(max((f.stat().st_mtime_ns for f in files if f.exists()), default=0))
+
+
+# ---- 本地绑定安全闸: serve 只绑回环, Host/Origin 也只许本机名 ----------------
+# 防两类攻击: ① CSRF — 恶意页面伪造 Origin 直接喷本地端口 (trash/purge rmtree、
+# archive/delete、spec 覆写全是破坏端点); ② DNS rebinding — 外域解析到 127.0.0.1
+# 后 Host 是攻击者域名。非本机名一律 403。
+_ALLOWED_HOSTS = frozenset({"127.0.0.1", "localhost", "::1", "[::1]"})
+
+
+def _host_ok(host: str) -> bool:
+    """Host 头去端口后只许 127.0.0.1 / localhost / [::1]。空 Host (HTTP/1.0) 拒。"""
+    h = host.strip().lower()
+    if h.startswith("["):  # IPv6 字面量 [::1]:8000
+        h = h.split("]", 1)[0] + "]"
+    elif ":" in h:
+        h = h.rsplit(":", 1)[0]
+    return h in _ALLOWED_HOSTS
+
+
+def _origin_ok(origin: str) -> bool:
+    """Origin (若带) 必须是 http(s)://本机名[:端口]; `null`/外域/非 http(s) 一律拒。"""
+    m = re.fullmatch(r"https?://(\[[^\]]+\]|[^/:?#]+)(?::\d+)?", origin.strip().lower())
+    return m is not None and _host_ok(m.group(1))
 
 
 def serve_deps_present() -> bool:
@@ -407,6 +430,35 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
             sys.stderr.write(f"{ts} {request.method} {request.url.path}{extra} -> {resp.status_code}\n")
         return resp
 
+    @app.middleware("http")
+    async def _local_guard(request: Request, call_next: Callable[[Request], Any]) -> Any:
+        # 写语义请求 (POST) 的 Host/Origin 只许本机名; /__skein__/* POST 的 body
+        # 强制 application/json 且必须可解析成 JSON 对象 (烂 body 400, 不让 ASGI 吐 500)。
+        # OPTIONS 一律放行 (CORS 预检不带写语义)。
+        if request.method == "OPTIONS":
+            return await call_next(request)
+        if request.method == "POST":
+            if not _host_ok(request.headers.get("host", "")):
+                return JSONResponse({"error": "forbidden host", "ok": False}, status_code=403)
+            origin = request.headers.get("origin")
+            if origin and not _origin_ok(origin):
+                return JSONResponse({"error": "forbidden origin", "ok": False}, status_code=403)
+            if request.url.path.startswith("/__skein__/"):
+                raw = await request.body()
+                request.scope["skein_body"] = raw
+                ctype = request.headers.get("content-type", "").split(";", 1)[0].strip().lower()
+                if raw and ctype != "application/json":
+                    return JSONResponse({"error": "content-type must be application/json",
+                                         "ok": False}, status_code=400)
+                if raw:
+                    try:
+                        parsed = json.loads(raw)
+                    except ValueError:
+                        return JSONResponse({"error": "bad json", "ok": False}, status_code=400)
+                    if not isinstance(parsed, dict):
+                        return JSONResponse({"error": "bad json", "ok": False}, status_code=400)
+        return await call_next(request)
+
     # ---- 基础设施端点 (GET, 非 业务 API) ----
     @app.get(board._LOCK_ID_PATH, response_class=PlainTextResponse)
     async def _identify() -> str:  # 身份探测: 返回项目标识 (.skein 绝对路径)。probe_same_project 用 urllib GET。
@@ -422,6 +474,10 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
 
     @app.websocket(board._LIVE_PATH)
     async def _live(ws: WebSocket) -> None:  # 热重载: 接受连接后阻塞保活, rev 变时 _watch_loop 推 "reload"
+        origin = ws.headers.get("origin")
+        if not _host_ok(ws.headers.get("host", "")) or (origin and not _origin_ok(origin)):
+            await ws.close(code=1008)  # policy violation: 非 localhost 发起的 WS 一律拒
+            return
         await ws.accept()
         clients.add(ws)
         try:
@@ -434,6 +490,7 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
 
     # ---- POST-only 业务端点 (语义化路径 /domain/action; 入参全走 body) ----
     def _body(request: Request) -> dict[str, Any]:
+        # 烂 body (非 JSON / 非对象) 已在 _local_guard 统一 400, 这里只管取值。
         return cast(dict[str, Any], json.loads(request.scope.get("skein_body") or b"{}"))
 
     def _spec_reindex() -> None:
@@ -474,15 +531,16 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
     @app.post("/__skein__/system/config-set")
     async def _config_set(request: Request) -> JSONResponse:
         body = _body(request)
-        # hooks 禁远程写 (值是 shell 命令 = RCE), 保留盘上原值
+        # hooks 禁远程写 (值是 shell 命令 = RCE), 保留盘上原值; 其余键以盘上值为底、body 覆盖 —
+        # 部分字段 POST 不许把未提及字段抹回默认值
         config = Config(board.dir / "config.yaml")
         disk = config.cfg.model_dump(by_alias=True)
-        if "hooks" in disk:
-            body["hooks"] = disk["hooks"]
+        merged = {**disk, **{k: v for k, v in body.items() if k != "hooks"}}
         try:
-            config._cfg = ConfigData.model_validate(body)
+            config._cfg = ConfigData.model_validate(merged)
         except Exception:
-            config._cfg = ConfigData()
+            # 校验失败直接 400, 不落盘 — 默认值兜底会把整份用户配置静默抹掉
+            return JSONResponse({"error": "config 校验失败", "ok": False}, status_code=400)
         config._write()
         return JSONResponse({"ok": True, "config": config.cfg.model_dump(by_alias=True)})
 
@@ -526,8 +584,9 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
     def _task_finish(request: Request) -> Any:
         body = _body(request)
         tid = body.get("id")
-        if not isinstance(tid, str) or not tid.strip():
-            return JSONResponse({"error": "id 必填"}, status_code=400)
+        # tid 对齐 SLUG_RE (与 design-save / exec_policy 同闸): 拒 "../" 等穿越片段
+        if not isinstance(tid, str) or SLUG_RE.fullmatch(tid) is None:
+            return JSONResponse({"error": "id 必填且禁路径分隔符"}, status_code=400)
         argv = [sys.executable, str(SPEC_ENTRY.parent.parent / "skein.py"), "finish", tid]
         if body.get("force") is True:
             argv.append("--force")
@@ -663,18 +722,14 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
     async def _archive_delete(request: Request) -> JSONResponse:
         body = _body(request)
         tid = body.get("id")
-        if not isinstance(tid, str) or not tid.strip():
-            return JSONResponse({"error": "id 必填"}, status_code=400)
+        if not isinstance(tid, str) or SLUG_RE.fullmatch(tid) is None:
+            return JSONResponse({"error": "id 必填且禁路径分隔符"}, status_code=400)
         snap = board._snapshot()
         src = snap.archived_path(tid)
         if src is None or not src.exists():
             return JSONResponse({"error": f"归档任务不存在: {tid}"}, status_code=404)
-        trash_dir = board.dir / "trash"
-        trash_dir.mkdir(parents=True, exist_ok=True)
-        dst = trash_dir / f"{tid}.{datetime.datetime.now().strftime('%Y%m%d')}"
-        if dst.exists():
-            shutil.rmtree(dst)
-        shutil.move(str(src), str(dst))
+        # DataSource (views.py) 只列读面; trash 是 Workspace 的写协议, 走注入对象的实现
+        dst = cast(Any, board).trash(src, tid)
         return JSONResponse({"ok": True, "moved": str(dst)})
 
     # ── 回收站 ──
@@ -707,7 +762,12 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
         if not trash_dir.exists():
             return JSONResponse({"error": "垃圾桶为空"}, status_code=404)
         if isinstance(tid, str) and tid.strip():
-            matches = [p for p in trash_dir.iterdir() if p.is_dir() and (p.name == tid or p.name.startswith(f"{tid}."))]
+            if SLUG_RE.fullmatch(tid) is None:
+                return JSONResponse({"error": "id 必填且禁路径分隔符"}, status_code=400)
+            # 整名精确匹配 <tid> 或 <tid>.<YYYYMMDD> — 前缀匹配会让 tid=a 误删 a.* 任意后缀目录
+            pat = re.compile(re.escape(tid) + r"\.\d{8}")
+            matches = [p for p in trash_dir.iterdir()
+                       if p.is_dir() and (p.name == tid or pat.fullmatch(p.name) is not None)]
             if not matches:
                 return JSONResponse({"error": f"垃圾桶中不存在: {tid}"}, status_code=404)
             for m in matches:

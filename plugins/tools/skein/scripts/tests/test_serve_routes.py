@@ -25,7 +25,8 @@ from test_views_char import TNOW, _load, _seed  # noqa: E402
 
 def _client(app: Any) -> Any:
     from fastapi.testclient import TestClient
-    return TestClient(app)
+    # base_url 用 127.0.0.1: serve 的本地绑定闸只放行回环 Host/Origin (默认 testserver 会被 403)
+    return TestClient(app, base_url="http://127.0.0.1")
 
 
 def _built(m: ModuleType, sk: Any) -> Any:

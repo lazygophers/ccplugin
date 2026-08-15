@@ -37,6 +37,8 @@ DERIVATIVES: list[Derivative] = [
     Derivative(".priority-migration-backup/", "priority.py migrate_priority_values 迁移前快照, 供回滚"),
     Derivative(".ready-migration-backup/", "readystate.py migrate_ready_status 迁移前快照, 供回滚"),
     Derivative("serve.log", "boardsource.py _run_server serve 崩溃日志"),
+    Derivative(".cache/", "hooks 会话级缓存目录 (判定块已注标记 / fileMatch 注入去重表)"),
+    Derivative(".cache/*.json", "hooks/pre_tool_use.py filematch-injected + user_prompt_submit.py judge-emitted"),
 ]
 
 
