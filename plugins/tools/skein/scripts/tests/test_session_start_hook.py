@@ -29,14 +29,16 @@ def test_silent_when_uninitialized(tmp_path: Path) -> None:
 
 
 def test_injects_config_and_prefix(ws: Path) -> None:
-    """恒注运行配置 (仅 worktree + auto_commit 两行) 与回复前缀。"""
+    """恒注 Skein 配置块 (回复前缀规则 + worktree/auto_commit 一句话) 与回复前缀。"""
     ctx = _run(ws)
-    assert "# SKEIN 运行配置" in ctx
-    assert "- worktree: " in ctx
-    assert "- auto_commit: " in ctx
-    assert "最大并行 subtask" not in ctx, "并行度行已删, 不该回流"
-    assert "# 回复前缀 (强制)" in ctx
+    assert "# **Skein 配置**" in ctx
+    assert "- 每条回复以 `[skein]` 开头" in ctx
     assert "[skein|<tid" in ctx
+    # 默认 (worktree 禁用 + auto_commit 启用) 的执行约束行
+    assert "禁止使用 worktree 执行 task" in ctx
+    assert "# SKEIN 运行配置" not in ctx, "旧配置块标题不该回流"
+    assert "最大并行 subtask" not in ctx, "并行度行已删, 不该回流"
+    assert "# 回复前缀 (强制)" not in ctx, "旧前缀段标题不该回流"
 
 
 def test_dropped_sections_stay_out(ws: Path) -> None:
@@ -69,8 +71,8 @@ def test_pending_fix_hint_empty_or_bad_json(ws: Path) -> None:
 
 
 def test_worktree_enabled_shows_root(skein_cli: SkeinCli, ws: Path) -> None:
-    """启用态 worktree 行带存放目录路径。"""
+    """启用态配置行带 worktree 存放目录路径。"""
     skein_cli(ws, "config", "set", "worktree.enabled", "true")
     ctx = _run(ws)
-    assert "- worktree: 启用 (task 各开 worktree 隔离, 目录: " in ctx
-    assert ".worktrees" in ctx
+    assert "启用 worktree 执行 task" in ctx
+    assert ".worktrees" in ctx and "合并到源分支" in ctx

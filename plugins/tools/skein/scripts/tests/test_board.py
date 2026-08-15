@@ -252,18 +252,26 @@ def test_serve_http() -> None:
                 with urllib.request.urlopen(base + path, timeout=2) as r:
                     return r.status, r.read()
 
+            def post(path: str, obj: dict[str, Any] | None = None) -> tuple[int, bytes]:
+                req = urllib.request.Request(
+                    base + path, data=json.dumps(obj or {}).encode(),
+                    headers={"Content-Type": "application/json"}, method="POST")
+                with urllib.request.urlopen(req, timeout=2) as r:
+                    return r.status, r.read()
+
             # 看板页实时渲染: serve 走 Next.js static export SPA shell (dist/board/); 结构化数据走
-            # /__skein__/data。旧 `/task.html` 路由随迁移消失, 看板真实页面现挂在 `/board/`
+            # POST /__skein__/task/list。旧 `/task.html` 路由随迁移消失, 看板真实页面现挂在 `/board/`
             # (dist/ 以 html=True 挂载在 "/", `/board/` 命中 dist/board/index.html)。
             st, body = get("/board/")
             b = body.decode()
             # `<main id="view">` 是旧手写 SPA 的挂载点; 迁移后各页面组件统一渲染 `<main` 结构标签
             # (assets/nextjs/src/app/board/page.tsx), 取它做挂载点存在性断言。
             assert st == 200 and "<main" in b, "serve 页缺 SPA 挂载点 (Next.js board 页)"
-            st, body = get("/__skein__/data")
+            st, body = post("/__skein__/task/list")
             card = next(c for c in json.loads(body)["cards"] if c["id"] == "prd-demo")
-            prd = {s["name"]: s for s in card["prd"]}
-            assert st == 200 and prd["目标"]["badge"] == [1, 2], "serve 数据端点缺 prd 徽标"
+            # TaskSpec (prd.md frontmatter) 注入卡片: desc + acceptance 直出
+            assert st == 200 and card["desc"] == "解决 X 问题", "serve 数据端点缺 spec desc"
+            assert card["acceptance"] == ["用例通过"], "serve 数据端点缺 spec acceptance"
             # rev 端点: 数字串 (data_rev.asset_rev)
             st, body = get("/__skein__/rev")
             assert st == 200 and re.fullmatch(r"\d+\.\d+", body.decode()), "rev 端点格式非 data.asset 数字对"
@@ -290,10 +298,7 @@ def test_serve_http() -> None:
 
 
 def test_serve_config_post() -> None:
-    """POST /__skein__/config: 合法落盘 + 非法兜底默认值。
-
-    commit 25dce519 给 handler 加返回注解致 FastAPI 把 `request: Request` 误解析为 query 参数
-    → 422; 注解已撤回 (恢复无注解形态), POST 落盘/兜底恢复。"""
+    """POST /__skein__/system/config-set: 合法落盘 + 非法兜底默认值 + hooks 禁远程写。"""
     _import_pytest()  # 仅触发可用性 (pytest 下无 skip)
     with tempfile.TemporaryDirectory() as td:
         d = Path(td)
@@ -309,7 +314,7 @@ def test_serve_config_post() -> None:
 
             def post(obj: dict[str, Any]) -> int:
                 req = urllib.request.Request(
-                    base + "/__skein__/config", data=json.dumps(obj).encode(),
+                    base + "/__skein__/system/config-set", data=json.dumps(obj).encode(),
                     headers={"Content-Type": "application/json"}, method="POST")
                 try:
                     with urllib.request.urlopen(req, timeout=2) as r:

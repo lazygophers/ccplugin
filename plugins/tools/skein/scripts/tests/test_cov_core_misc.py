@@ -349,6 +349,7 @@ def test_status_overview_json_and_rich(ws: Path, monkeypatch: pytest.MonkeyPatch
     ws_module.Workspace().store.save(t)
 
     out = sk.query.status_overview(_ns(pretty=False))
+    assert out is not None  # pretty=False → JSON dict (mypy: status_overview 返回 dict | None)
     assert out["pool"]["work"] == {"running": 1, "capacity": 2}
     assert out["pool"]["gate"]["running"] == 0
     assert out["tasks"]["by_status"] == {TaskStatus.ACTIVE: 1}
@@ -360,6 +361,7 @@ def test_status_overview_json_and_rich(ws: Path, monkeypatch: pytest.MonkeyPatch
     _create(sk, "feat-next", deps="feat-x")
     assert [t["id"] for t in out["plan_tasks"]] == []  # 快照在 feat-next 建立前
     out2 = sk.query.status_overview(_ns(pretty=False))
+    assert out2 is not None
     # JSON 形态精简: task 只留 id/name/status
     assert out2["plan_tasks"] == [{"id": "feat-next", "name": "feat-next",
                                    "status": TaskStatus.PENDING}]

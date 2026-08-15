@@ -103,36 +103,36 @@ def test_404_returns_not_found(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) 
 
 
 def test_data_endpoint_returns_json(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """/__skein__/data 返回 board 快照 JSON。"""
+    """/__skein__/task/list 返回 board 快照 JSON。"""
     app, _ = _app(tmp_path, monkeypatch)
     with _client(app) as c:
-        r = c.get("/__skein__/data")
+        r = c.post("/__skein__/task/list")
         assert r.status_code == 200
         assert r.headers["content-type"].startswith("application/json")
 
 
 def test_config_get_returns_dict(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """/__skein__/config 返回 config dict。"""
+    """/__skein__/system/config-get 返回 config dict。"""
     app, _ = _app(tmp_path, monkeypatch)
     with _client(app) as c:
-        r = c.get("/__skein__/config")
+        r = c.post("/__skein__/system/config-get")
         assert r.status_code == 200
 
 
-def test_config_put_rejects_empty(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """config POST 空 body → 不写盘。"""
+def test_config_set_accepts_valid_payload(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """config-set 合法 body → 200, 不抛异常。"""
     app, board = _app(tmp_path, monkeypatch)
     with _client(app) as c:
-        r = c.post("/__skein__/config", json={"pools": {"work": 3}})
+        r = c.post("/__skein__/system/config-set", json={"pools": {"work": 3}})
         assert r.status_code in (200, 400)
 
 
-def test_exec_rejects_non_whitelisted(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """exec 非白名单命令 → 403。"""
+def test_cli_relay_rejects_non_whitelisted(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """CLI 转发端点收到非白名单命令 → 400。"""
     app, _ = _app(tmp_path, monkeypatch)
     with _client(app) as c:
-        r = c.post("/__skein__/exec", json={"cmd": "rm -rf /"})
-        assert r.status_code == 403
+        r = c.post("/__skein__/task/create", json={"cmd": "rm -rf /"})
+        assert r.status_code == 400
 
 
 @pytest.mark.parametrize(("force", "suffix"),
@@ -148,7 +148,7 @@ def test_finish_passes_force_to_cli(tmp_path: Path, monkeypatch: pytest.MonkeyPa
     app, _ = _app(tmp_path, monkeypatch)
     monkeypatch.setattr(serve.subprocess, "run", run)
     with _client(app) as c:
-        r = c.post("/__skein__/finish", json={"id": "task-1", "force": force})
+        r = c.post("/__skein__/task/finish", json={"id": "task-1", "force": force})
 
     assert r.status_code == 200
     assert calls[-1] == [sys.executable, str(serve.SPEC_ENTRY.parent.parent / "skein.py"),

@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-import yaml  # type: ignore[import-untyped]
+import yaml
 
 import conftest  # noqa: F401  模块体把 scripts/ 塞进 sys.path
 from skeinlib.core.commands import Skein  # noqa: E402

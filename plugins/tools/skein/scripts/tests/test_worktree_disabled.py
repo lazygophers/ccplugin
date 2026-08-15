@@ -6,8 +6,8 @@
 
 - R1 禁填: use_worktree=false 时 create --repos / repos --set 直接拒 (SystemExit)。
 - R2 不展示: 禁用态下 session-start / list --status open / status --json 不含 worktree 段。
-- R3 注入: session-start 恒注入「# SKEIN 运行配置」块 (仅 worktree + auto_commit); hooks
-  user-prompt 一轮都不重发这块。
+- R3 注入: session-start 恒注入「# **Skein 配置**」块 (回复前缀 + worktree/auto_commit 约束);
+  hooks user-prompt 一轮都不重发这块。
 """
 from __future__ import annotations
 
@@ -114,7 +114,7 @@ def test_open_list_no_worktree_col_when_disabled(skein_cli: SkeinCli, ws: Path) 
 
 
 def test_session_start_hides_worktree_when_disabled(skein_cli: SkeinCli, ws: Path) -> None:
-    """禁用态 session-start: 配置行标禁用, 不出现 worktree 路径段。"""
+    """禁用态 session-start: 配置行禁 worktree, 不出现 worktree 路径段。"""
     _disable(skein_cli, ws)
     tid = "feat-sc"
     skein_cli(ws, "create", tid, "--name", tid, "--desc", "d")
@@ -123,35 +123,35 @@ def test_session_start_hides_worktree_when_disabled(skein_cli: SkeinCli, ws: Pat
     skein_cli(ws, "estimate", tid, "--set", "1")  # estimate 硬门: confirm 前须填实工时
     skein_cli(ws, "confirm", tid)
     ctx = _session_ctx(ws)
-    assert "— worktree:" not in ctx, f"禁用态泄露 worktree: {ctx!r}"
-    assert "- worktree: 禁用 (原地执行, 无 worktree)" in ctx
+    assert "禁止使用 worktree 执行 task" in ctx, f"禁用态未标禁 worktree: {ctx!r}"
+    assert ".worktrees" not in ctx, f"禁用态泄露 worktree 路径: {ctx!r}"
 
 
 # ---------- R3 注入 (SessionStart 注入运行配置块) ----------
 
 def test_session_start_config_block_disabled(skein_cli: SkeinCli, ws: Path) -> None:
-    """禁用态 session-start 注入运行配置块: worktree 禁用 + auto_commit。"""
+    """禁用态 session-start 注入配置块: 禁 worktree + 要求及时提交 (auto_commit 默认启用)。"""
     _disable(skein_cli, ws)
     ctx = _session_ctx(ws)
-    assert "# SKEIN 运行配置" in ctx, "缺运行配置块"
-    assert "- worktree: 禁用" in ctx, f"worktree 未标禁用: {ctx!r}"
-    assert "- auto_commit: " in ctx, "缺 auto_commit 行"
+    assert "# **Skein 配置**" in ctx, "缺配置块"
+    assert "禁止使用 worktree 执行 task" in ctx, f"worktree 未标禁用: {ctx!r}"
+    assert "及时提交" in ctx, "缺 auto_commit 提交约束"
 
 
 def test_session_start_config_block_enabled(skein_cli: SkeinCli, ws: Path) -> None:
-    """启用态 session-start 注入: worktree 启用 (auto_commit 随之标强制)。"""
+    """启用态 session-start 注入: worktree 启用 (含目录与合并/清理收尾约束)。"""
     skein_cli(ws, "config", "set", "worktree.enabled", "true")
     ctx = _session_ctx(ws)
-    assert "# SKEIN 运行配置" in ctx, "缺运行配置块"
-    assert "- worktree: 启用 (task 各开 worktree 隔离, 目录: " in ctx, f"worktree 未标启用: {ctx!r}"
-    assert "- auto_commit: 启用 (finish 时自动 commit)" in ctx, "worktree 模式 auto_commit 生效值恒启用"
+    assert "# **Skein 配置**" in ctx, "缺配置块"
+    assert "启用 worktree 执行 task" in ctx, f"worktree 未标启用: {ctx!r}"
+    assert ".worktrees" in ctx and "自动提交变更" in ctx
 
 
 def test_user_prompt_never_repeats_config_block(skein_cli: SkeinCli, ws: Path) -> None:
-    """运行配置已由 SessionStart 注入, user-prompt 每轮都不重发 (有无在途 task 都不发)。"""
+    """配置已由 SessionStart 注入, user-prompt 每轮都不重发 (有无在途 task 都不发)。"""
     ctx = _user_prompt(ws, "改一下 a.py 的逻辑")
-    assert "# SKEIN 运行配置" not in ctx, f"user-prompt 重发了运行配置块: {ctx!r}"
+    assert "# **Skein 配置**" not in ctx, f"user-prompt 重发了配置块: {ctx!r}"
 
     skein_cli(ws, "create", "feat-up", "--name", "up", "--desc", "d")
     ctx = _user_prompt(ws, "继续 feat-up")
-    assert "# SKEIN 运行配置" not in ctx, f"user-prompt 重发了运行配置块: {ctx!r}"
+    assert "# **Skein 配置**" not in ctx, f"user-prompt 重发了配置块: {ctx!r}"

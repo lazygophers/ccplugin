@@ -90,15 +90,7 @@ def test_serve_deps_present_reflects_importability(monkeypatch: pytest.MonkeyPat
     assert serve.serve_deps_present() is False
 
 
-# ---- _src_newer_than_dist / ensure_dist_built ------------------------------
-
-def test_dist_fresh_when_src_tree_absent(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """产物在、但源码目录整个不存在 (只装了 dist 的发行副本) → 不判过期, 免无源码时空跑构建。"""
-    src, dist = _tree(tmp_path, monkeypatch)
-    (dist / "index.html").write_text("<html></html>", encoding="utf-8")
-    shutil.rmtree(src)
-    assert serve._src_newer_than_dist() is False
-
+# ---- ensure_dist_built ----------------------------------------------
 
 def test_no_autobuild_skips_rebuild_of_stale_dist(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -153,7 +145,7 @@ def test_ensure_dist_built_wraps_build_failure_with_stderr(
 
 
 def test_ensure_dist_built_wraps_timeout(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """install/build 超时同样转成 RuntimeError (TimeoutExpired 没有 .stderr, 走 str(e) 分支)。"""
+    """install/build 超时重试 3 次后转成 RuntimeError (TimeoutExpired 没有 .stderr, 走 str(e) 分支)。"""
     _tree(tmp_path, monkeypatch)
     monkeypatch.delenv("SKEIN_NO_AUTOBUILD", raising=False)
     monkeypatch.setattr("skeinlib.web.serve.pkg_manager", lambda: "npm")
@@ -162,7 +154,7 @@ def test_ensure_dist_built_wraps_timeout(tmp_path: Path, monkeypatch: pytest.Mon
         raise subprocess.TimeoutExpired(cmd, 120)
 
     monkeypatch.setattr("skeinlib.web.serve.subprocess.run", fake_run)
-    with pytest.raises(RuntimeError, match="编译失败"):
+    with pytest.raises(RuntimeError, match="失败 \\(3 次重试后\\)"):
         serve.ensure_dist_built(quiet=True)
 
 
@@ -345,13 +337,13 @@ def _no_reindex(monkeypatch: pytest.MonkeyPatch) -> list[list[str]]:
 # ---- spec 读端点 ----------------------------------------------------------
 
 def test_spec_tree_and_meta_endpoints(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """/spec 直出 board 的树; /spec/meta 把 5 个 query 参数原样透到 board._spec_meta。"""
+    """/spec/list 直出 board 的树; /spec/meta 把 5 个 body 参数原样透到 board._spec_meta。"""
     app, board = _app(tmp_path, monkeypatch)
     with _client(app) as c:
-        assert c.get("/__skein__/spec").json() == {"namespaces": {"rules": []}}
-        r = c.get("/__skein__/spec/meta",
-                  params={"page": 3, "page_size": 5, "namespace": "rules",
-                          "category": "git", "keyword": "commit"})
+        assert c.post("/__skein__/spec/list").json() == {"namespaces": {"rules": []}}
+        r = c.post("/__skein__/spec/meta",
+                   json={"page": 3, "page_size": 5, "namespace": "rules",
+                         "category": "git", "keyword": "commit"})
         assert r.json()["page"] == 3
         assert board.spec_meta_calls == [{"page": 3, "page_size": 5, "namespace": "rules",
                                           "category": "git", "keyword": "commit"}]
@@ -362,8 +354,8 @@ def test_spec_file_rejects_escape_and_missing(tmp_path: Path,
     """越界路径 403 / 不存在 404 —— 两种失败必须区分开, 不能都糊成 404。"""
     app, _ = _app(tmp_path, monkeypatch)
     with _client(app) as c:
-        assert c.get("/__skein__/spec/file", params={"path": "../../etc/passwd"}).status_code == 403
-        assert c.get("/__skein__/spec/file", params={"path": "rules/none.md"}).status_code == 404
+        assert c.post("/__skein__/spec/get", json={"path": "../../etc/passwd"}).status_code == 403
+        assert c.post("/__skein__/spec/get", json={"path": "rules/none.md"}).status_code == 404
 
 
 def test_spec_file_splits_frontmatter(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -374,7 +366,7 @@ def test_spec_file_splits_frontmatter(tmp_path: Path, monkeypatch: pytest.Monkey
     raw = "---\ntitle: 提交规范\nkeywords: [git, commit]\n---\n\n正文\n"
     f.write_text(raw, encoding="utf-8")
     with _client(app) as c:
-        got = c.get("/__skein__/spec/file", params={"path": "rules/a.md"}).json()
+        got = c.post("/__skein__/spec/get", json={"path": "rules/a.md"}).json()
     assert got["content"] == raw          # 原文一字不改
     assert got["meta"]["title"] == "提交规范"
     assert got["meta"]["keywords"] == ["git", "commit"]
@@ -386,8 +378,8 @@ def test_spec_search_short_circuits_on_blank_query(tmp_path: Path,
     """空白 q 直接回空数组, 不打扰 board._spec_search (否则全量扫盘白跑一趟)。"""
     app, _ = _app(tmp_path, monkeypatch)
     with _client(app) as c:
-        assert c.get("/__skein__/spec/search", params={"q": "   "}).json() == []
-        assert c.get("/__skein__/spec/search", params={"q": "git"}).json()[0]["hit"] == "git"
+        assert c.post("/__skein__/spec/search", json={"q": "   "}).json() == []
+        assert c.post("/__skein__/spec/search", json={"q": "git"}).json()[0]["hit"] == "git"
 
 
 # ---- spec 写端点 ----------------------------------------------------------
@@ -405,12 +397,10 @@ def test_spec_save_writes_and_reindexes(tmp_path: Path, monkeypatch: pytest.Monk
 
 def test_spec_save_rejects_bad_body_and_non_md(tmp_path: Path,
                                                monkeypatch: pytest.MonkeyPatch) -> None:
-    """非法 JSON / 缺字段 / 类型不对 → 400; 越界或非 .md → 403。"""
+    """字段类型不对 → 400; 越界或非 .md → 403。"""
     app, _ = _app(tmp_path, monkeypatch)
     _no_reindex(monkeypatch)
     with _client(app) as c:
-        assert c.post("/__skein__/spec/save", content=b"not-json").status_code == 400
-        assert c.post("/__skein__/spec/save", json={"path": "a.md"}).status_code == 400
         assert c.post("/__skein__/spec/save",
                       json={"path": "a.md", "content": 42}).status_code == 400
         assert c.post("/__skein__/spec/save",
@@ -453,7 +443,6 @@ def test_spec_create_conflict_and_validation(tmp_path: Path,
     _no_reindex(monkeypatch)
     (board.spec_root / "dup.md").write_text("old", encoding="utf-8")
     with _client(app) as c:
-        assert c.post("/__skein__/spec/create", content=b"{").status_code == 400
         assert c.post("/__skein__/spec/create", json={"path": "  "}).status_code == 400
         assert c.post("/__skein__/spec/create", json={"path": "a.txt"}).status_code == 400
         assert c.post("/__skein__/spec/create", json={"path": "../x.md"}).status_code == 403
@@ -482,7 +471,6 @@ def test_spec_delete_happy_path_and_errors(tmp_path: Path,
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text("bye", encoding="utf-8")
     with _client(app) as c:
-        assert c.post("/__skein__/spec/delete", content=b"{").status_code == 400
         assert c.post("/__skein__/spec/delete", json={"path": ""}).status_code == 400
         assert c.post("/__skein__/spec/delete", json={"path": "a.txt"}).status_code == 403
         assert c.post("/__skein__/spec/delete", json={"path": "rules/nope.md"}).status_code == 404
@@ -491,43 +479,43 @@ def test_spec_delete_happy_path_and_errors(tmp_path: Path,
     assert any(cmd[-1] == "reindex" for cmd in seen)
 
 
-# ---- exec / finish: 白名单命令与收尾 ---------------------------------------
+# ---- 白名单 CLI 转发 / finish: 收尾 ------------------------------------------
 
-def test_exec_rejects_bad_body_and_non_whitelisted(tmp_path: Path,
-                                                   monkeypatch: pytest.MonkeyPatch) -> None:
-    """exec 是唯一能起子进程的端点: 烂 body 400, 非白名单命令 403 (禁 shell 拼串, 只认 enum)。"""
+def test_cli_relay_rejects_bad_body_and_non_whitelisted(tmp_path: Path,
+                                                        monkeypatch: pytest.MonkeyPatch) -> None:
+    """CLI 转发端点只认 exec_policy 白名单: 烂参数 400, 非白名单命令 400 (禁 shell 拼串, 只认 enum)。"""
     app, _ = _app(tmp_path, monkeypatch)
     monkeypatch.setattr("skeinlib.web.serve.subprocess.run",
                         lambda *a, **kw: pytest.fail("被拒的命令不该起子进程"))
     with _client(app) as c:
-        assert c.post("/__skein__/exec", content=b"nope").status_code == 400
-        r = c.post("/__skein__/exec", json={"cmd": "rm -rf /"})
-        assert r.status_code == 403 and r.json()["ok"] is False
+        assert c.post("/__skein__/task/create", json={"cmd": "rm -rf /"}).status_code == 400
+        # 白名单命令但缺必填参数 (create 要 id/name/desc) → 同样 400
+        assert c.post("/__skein__/task/create", json={"id": "x"}).status_code == 400
 
 
-def test_exec_runs_whitelisted_command_in_repo_root(tmp_path: Path,
-                                                    monkeypatch: pytest.MonkeyPatch) -> None:
+def test_cli_relay_runs_whitelisted_command_in_repo_root(tmp_path: Path,
+                                                         monkeypatch: pytest.MonkeyPatch) -> None:
     """白名单命令 → 在仓库根跑, 返回体带回 exit/stdout/stderr 供前端直显。"""
     app, board = _app(tmp_path, monkeypatch)
     calls: list[dict[str, Any]] = []
 
     def fake_run(cmd: list[str], **kw: Any) -> subprocess.CompletedProcess[str]:
         calls.append({"cmd": list(cmd), "cwd": kw.get("cwd")})
-        return subprocess.CompletedProcess(list(cmd), 0, "ready-out", "warn")
+        return subprocess.CompletedProcess(list(cmd), 0, "ok-out", "warn")
 
     monkeypatch.setattr("skeinlib.web.serve.subprocess.run", fake_run)
     with _client(app) as c:
-        got = c.post("/__skein__/exec", json={"cmd": "ready"}).json()
-    assert got == {"ok": True, "cmd": "ready", "exit": 0, "stdout": "ready-out", "stderr": "warn"}
+        got = c.post("/__skein__/task/clean", json={}).json()
+    assert got == {"ok": True, "exit": 0, "stdout": "ok-out", "stderr": "warn"}
     # monkeypatch 设 serve.subprocess.run 会改全局 subprocess.run (subprocess 是单例模块),
     # 所以 calls 里可能混入非 exec 的调用 (如 starlette/httpx 内部)。取最后一次 = exec 的。
     exec_call = calls[-1]
-    assert exec_call["cwd"] == str(board.root) and exec_call["cmd"][-1] == "ready"
+    assert exec_call["cwd"] == str(board.root) and exec_call["cmd"][-3:] == ["clean", "--days", "0"]
 
 
-def test_exec_reports_spawn_failure_as_500(tmp_path: Path,
-                                           monkeypatch: pytest.MonkeyPatch) -> None:
-    """子进程起不来 (超时 / 解释器没了) → 500 带原因, 不能把异常抛成 ASGI traceback。"""
+def test_cli_relay_reports_spawn_failure_in_body(tmp_path: Path,
+                                                 monkeypatch: pytest.MonkeyPatch) -> None:
+    """子进程起不来 (超时 / 解释器没了) → 返回体 ok=False 带原因, 不把异常抛成 ASGI traceback。"""
     app, _ = _app(tmp_path, monkeypatch)
 
     def boom(cmd: Any, **kw: Any) -> Any:
@@ -535,19 +523,18 @@ def test_exec_reports_spawn_failure_as_500(tmp_path: Path,
 
     monkeypatch.setattr("skeinlib.web.serve.subprocess.run", boom)
     with _client(app) as c:
-        r = c.post("/__skein__/exec", json={"cmd": "ready"})
-    assert r.status_code == 500 and r.json()["ok"] is False
+        r = c.post("/__skein__/task/clean", json={})
+    assert r.status_code == 200 and r.json()["ok"] is False and "error" in r.json()
 
 
 def test_finish_requires_id(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """finish 缺 id / id 空白 / body 不是 JSON → 一律 400, 绝不空跑 skein.py finish。"""
+    """finish 缺 id / id 空白 → 一律 400, 绝不空跑 skein.py finish。"""
     app, _ = _app(tmp_path, monkeypatch)
     monkeypatch.setattr("skeinlib.web.serve.subprocess.run",
                         lambda *a, **kw: pytest.fail("没有 id 时不该起子进程"))
     with _client(app) as c:
-        assert c.post("/__skein__/finish", content=b"~").status_code == 400
-        assert c.post("/__skein__/finish", json={}).status_code == 400
-        assert c.post("/__skein__/finish", json={"id": "  "}).status_code == 400
+        assert c.post("/__skein__/task/finish", json={}).status_code == 400
+        assert c.post("/__skein__/task/finish", json={"id": "  "}).status_code == 400
 
 
 def test_finish_invokes_cli_and_relays_exit(tmp_path: Path,
@@ -560,15 +547,15 @@ def test_finish_invokes_cli_and_relays_exit(tmp_path: Path,
         return subprocess.CompletedProcess(list(cmd), 2, "", "验收未过")
     monkeypatch.setattr("skeinlib.web.serve.subprocess.run", _record_fail)
     with _client(app) as c:
-        got = c.post("/__skein__/finish", json={"id": "alpha"}).json()
+        got = c.post("/__skein__/task/finish", json={"id": "alpha"}).json()
     assert got["ok"] is False and got["exit"] == 2 and got["stderr"] == "验收未过"
     # monkeypatch 全局 subprocess.run, 取最后一次 = finish 的调用
     assert calls[-1][-2:] == ["finish", "alpha"]
 
 
-def test_finish_reports_spawn_failure_as_500(tmp_path: Path,
-                                             monkeypatch: pytest.MonkeyPatch) -> None:
-    """finish 起子进程本身失败 → 500, 与「子进程跑了但失败」区分开。"""
+def test_finish_reports_spawn_failure_in_body(tmp_path: Path,
+                                              monkeypatch: pytest.MonkeyPatch) -> None:
+    """finish 起子进程本身失败 → 返回体 ok=False 带 error, 不抛 ASGI traceback。"""
     app, _ = _app(tmp_path, monkeypatch)
 
     def boom(cmd: Any, **kw: Any) -> Any:
@@ -576,16 +563,8 @@ def test_finish_reports_spawn_failure_as_500(tmp_path: Path,
 
     monkeypatch.setattr("skeinlib.web.serve.subprocess.run", boom)
     with _client(app) as c:
-        assert c.post("/__skein__/finish", json={"id": "alpha"}).status_code == 500
-
-
-def test_config_post_rejects_non_json_body(tmp_path: Path,
-                                           monkeypatch: pytest.MonkeyPatch) -> None:
-    """config 写端点收到非 JSON → 400, 不能拿半截 body 去覆盖盘上的 config.yaml。"""
-    app, board = _app(tmp_path, monkeypatch)
-    with _client(app) as c:
-        assert c.post("/__skein__/config", content=b"<html>").status_code == 400
-    assert not (board.dir / "config.yaml").exists()  # 一个字都没写
+        r = c.post("/__skein__/task/finish", json={"id": "alpha"})
+    assert r.status_code == 200 and r.json()["ok"] is False and "fork failed" in r.json()["error"]
 
 
 # ---- 归档 / 垃圾桶 --------------------------------------------------------
@@ -605,7 +584,7 @@ def test_trash_lists_entries_and_tolerates_broken_json(tmp_path: Path,
     (trash / "stray.txt").write_text("x", encoding="utf-8")  # 非目录, 跳过
 
     with _client(app) as c:
-        tasks = c.get("/__skein__/trash").json()["tasks"]
+        tasks = c.post("/__skein__/trash/list").json()["tasks"]
     by_id = {t["id"]: t for t in tasks}
     assert set(by_id) == {"alpha", "beta.20260102", "gamma.20260103"}
     assert by_id["alpha"]["name"] == "阿尔法" and by_id["alpha"]["deletedAt"] == "alpha.20260101"
@@ -616,17 +595,16 @@ def test_trash_empty_when_dir_absent(tmp_path: Path, monkeypatch: pytest.MonkeyP
     """从没删过东西 (.skein/trash 不存在) → 空列表而不是 404/500。"""
     app, _ = _app(tmp_path, monkeypatch)
     with _client(app) as c:
-        assert c.get("/__skein__/trash").json() == {"tasks": []}
+        assert c.post("/__skein__/trash/list").json() == {"tasks": []}
 
 
 def test_archive_del_validates_body_and_existence(tmp_path: Path,
                                                   monkeypatch: pytest.MonkeyPatch) -> None:
-    """归档删除: 烂 body / 缺 id → 400; 归档里没这个 task → 404。"""
+    """归档删除: 缺 id → 400; 归档里没这个 task → 404。"""
     app, _ = _app(tmp_path, monkeypatch)
     with _client(app) as c:
-        assert c.post("/__skein__/archive/del", content=b"@").status_code == 400
-        assert c.post("/__skein__/archive/del", json={"id": " "}).status_code == 400
-        assert c.post("/__skein__/archive/del", json={"id": "ghost"}).status_code == 404
+        assert c.post("/__skein__/archive/delete", json={"id": " "}).status_code == 400
+        assert c.post("/__skein__/archive/delete", json={"id": "ghost"}).status_code == 404
 
 
 def test_archive_del_moves_into_trash_overwriting_same_day(
@@ -643,7 +621,7 @@ def test_archive_del_moves_into_trash_overwriting_same_day(
     (dst / "old.txt").write_text("旧的同名残留", encoding="utf-8")
 
     with _client(app) as c:
-        r = c.post("/__skein__/archive/del", json={"id": "alpha"})
+        r = c.post("/__skein__/archive/delete", json={"id": "alpha"})
     assert r.json()["ok"] is True and r.json()["moved"] == str(dst)
     assert (dst / "task.json").exists() and not (dst / "old.txt").exists()
     assert not arch.exists()
@@ -665,10 +643,9 @@ def test_trash_purge_by_id_and_all(tmp_path: Path, monkeypatch: pytest.MonkeyPat
 
 
 def test_trash_purge_errors(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """烂 body → 400; 垃圾桶目录压根不存在 → 404 (「空」和「删不掉」得分得清)。"""
+    """垃圾桶目录压根不存在 → 404; 指定 id 不在桶里 → 404 («空»和«删不掉»得分得清)。"""
     app, _ = _app(tmp_path, monkeypatch)
     with _client(app) as c:
-        assert c.post("/__skein__/trash/purge", content=b"%").status_code == 400
         assert c.post("/__skein__/trash/purge", json={"id": "x"}).status_code == 404
 
 
@@ -719,31 +696,28 @@ def test_access_log_prints_post_body_when_debug(tmp_path: Path, monkeypatch: pyt
     app = serve.build_app(_FakeBoard(tmp_path / "repo"), "PROJ-ID", quiet=False)  # type: ignore[arg-type]
     with _client(app) as c:
         c.get("/__skein__/rev")
-        c.post("/__skein__/exec", json={"cmd": "ready"})
+        c.post("/__skein__/task/clean", json={})
     err = capsys.readouterr().err
     assert "GET /__skein__/rev -> 200" in err
-    assert 'POST /__skein__/exec body={"cmd":"ready"} -> 200' in err
+    assert "POST /__skein__/task/clean body={} -> 200" in err
 
 
-def test_access_log_keeps_server_errors_when_quiet(tmp_path: Path,
-                                                   monkeypatch: pytest.MonkeyPatch,
-                                                   capsys: pytest.CaptureFixture[str]) -> None:
-    """非 debug 时只留 5xx —— 静态资源 200 刷屏没信息量, 但服务端错误不许被静默。"""
+def test_access_log_quiet_when_not_debug(tmp_path: Path,
+                                         monkeypatch: pytest.MonkeyPatch,
+                                         capsys: pytest.CaptureFixture[str]) -> None:
+    """非 debug 时 2xx/4xx 一律不打 —— 静态资源刷屏没信息量。"""
     dist = tmp_path / "dist"
     monkeypatch.setattr("skeinlib.web.serve.dist_dir", lambda: dist)
     monkeypatch.setattr("skeinlib.web.serve.debug_enabled", lambda _x: False)
-
-    def boom(cmd: Any, **kw: Any) -> Any:
-        raise OSError("boom")
-
-    monkeypatch.setattr("skeinlib.web.serve.subprocess.run", boom)
+    monkeypatch.setattr("skeinlib.web.serve.subprocess.run",
+                        lambda cmd, **kw: subprocess.CompletedProcess(list(cmd), 0, "", ""))
     app = serve.build_app(_FakeBoard(tmp_path / "repo"), "PROJ-ID", quiet=False)  # type: ignore[arg-type]
     with _client(app) as c:
         c.get("/__skein__/rev")
-        c.post("/__skein__/exec", json={"cmd": "ready"})
+        c.post("/__skein__/task/finish", json={})
     err = capsys.readouterr().err
-    assert "/__skein__/rev" not in err          # 200 被过滤掉
-    assert "/__skein__/exec" in err and "-> 500" in err
+    assert "/__skein__/rev" not in err       # 200 被过滤掉
+    assert "/__skein__/task/finish" not in err  # 400 同样是 debug 级
 
 
 # ---- WS watch loop: 前端重编译 / spec 变更 ------------------------------------
@@ -768,7 +742,7 @@ def test_config_post_rejects_remote_hooks_write(tmp_path: Path,
         encoding="utf-8")
 
     with _client(app) as c:
-        r = c.post("/__skein__/config", json={"hooks": {"agent": {"*": {"start": [
+        r = c.post("/__skein__/system/config-set", json={"hooks": {"agent": {"*": {"start": [
             {"type": "command", "command": "touch /tmp/pwned"}
         ]}}}})
         assert r.status_code == 200
@@ -782,12 +756,13 @@ def test_config_post_validates_and_falls_back_to_defaults(tmp_path: Path,
     """非法配置值 → 回退到 ConfigData 默认值 (不 500)。"""
     app, board = _app(tmp_path, monkeypatch)
     with _client(app) as c:
-        r = c.post("/__skein__/config", json={"retain_days": "not-a-number", "pools": "invalid"})
+        r = c.post("/__skein__/system/config-set",
+                   json={"retain_days": "not-a-number", "pools": "invalid"})
         assert r.status_code == 200
         data = r.json()
         assert data["ok"] is True
-        # 非法值应被默认值兜底，不保留原值
-        assert "config" in data
+        # 非法值应被默认值兜底 (retain_days=7), 不保留原值
+        assert data["config"]["retain_days"] == 7
 
 
 # ---- archive 端点: 已归档 + 已完成 task ---------------------------------------
@@ -812,32 +787,14 @@ def test_archive_includes_done_tasks_not_yet_archived(tmp_path: Path,
         encoding="utf-8")
 
     with _client(app) as c:
-        r = c.get("/__skein__/archive")
+        r = c.post("/__skein__/archive/list")
         tasks = r.json()["tasks"]
         ids = {t["id"] for t in tasks}
         assert "done-task" in ids  # 未归档的已完成
         assert "archived-task" in ids  # 已归档的
 
 
-# ---- search 端点: 跨 task/subtask/prd/spec ------------------------------------
-
-def test_search_hits_prd_content(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """搜索命中 PRD 内容 (跨文件检索)。"""
-    app, board = _app(tmp_path, monkeypatch)
-
-    # 创建带 PRD 的 task
-    tdir = board.tasks / "prd-task"
-    tdir.mkdir(parents=True)
-    (tdir / "task.json").write_text(
-        '{"id": "prd-task", "name": "有 PRD", "status": "pending"}',
-        encoding="utf-8")
-    (tdir / "prd.md").write_text("---\ndesc: 解决 X 问题\nboundary:\n  should:\n  - 范围内a\n  should_not: []\nestimate: 1\nacceptance:\n  - 用例通过\n---\n", encoding="utf-8")
-
-    with _client(app) as c:
-        r = c.get("/__skein__/search", params={"q": "功能"})
-        hits = r.json()["hits"]
-        assert any(h["kind"] == "prd" and h["id"] == "prd-task" for h in hits)
-
+# ---- search 端点: 跨 task/subtask/spec ----------------------------------------
 
 def test_search_hits_spec_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """搜索命中 spec 文件 (跳过 index.md)。"""
@@ -852,7 +809,7 @@ def test_search_hits_spec_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
     (board.spec_root / "rules" / "index.md").write_text("# Rules Index\n", encoding="utf-8")
 
     with _client(app) as c:
-        r = c.get("/__skein__/search", params={"q": "命名"})
+        r = c.post("/__skein__/task/search", json={"q": "命名"})
         hits = r.json()["hits"]
         assert any(h["kind"] == "spec" and "naming.md" in h["id"] for h in hits)
         assert not any("index.md" in h.get("id", "") for h in hits)
@@ -862,8 +819,8 @@ def test_search_empty_query_returns_empty(tmp_path: Path, monkeypatch: pytest.Mo
     """空白查询直接回空数组, 不跑检索。"""
     app, _ = _app(tmp_path, monkeypatch)
     with _client(app) as c:
-        assert c.get("/__skein__/search", params={"q": ""}).json()["hits"] == []
-        assert c.get("/__skein__/search", params={"q": "   "}).json()["hits"] == []
+        assert c.post("/__skein__/task/search", json={"q": ""}).json()["hits"] == []
+        assert c.post("/__skein__/task/search", json={"q": "   "}).json()["hits"] == []
 
 
 # ---- queue 端点: 待执行队列 --------------------------------------------------
@@ -883,7 +840,7 @@ def test_queue_running_subs_includes_elapsed(tmp_path: Path, monkeypatch: pytest
         encoding="utf-8")
 
     with _client(app) as c:
-        r = c.get("/__skein__/queue")
+        r = c.post("/__skein__/task/queue")
         data = r.json()
         assert len(data["runningSubs"]) == 1
         # elapsed 应约 5 分钟 (允许舍入误差)
@@ -905,7 +862,7 @@ def test_queue_ready_subs_filters_by_dependencies(tmp_path: Path, monkeypatch: p
         encoding="utf-8")
 
     with _client(app) as c:
-        r = c.get("/__skein__/queue")
+        r = c.post("/__skein__/task/queue")
         ready = r.json()["readySubtasks"]
         # s2 就绪 (s1 done), s3 阻塞 (s2 pending)
         assert any(s["sid"] == "s2" for s in ready)
@@ -929,7 +886,7 @@ def test_dashboard_running_subs_detail(tmp_path: Path, monkeypatch: pytest.Monke
         encoding="utf-8")
 
     with _client(app) as c:
-        r = c.get("/__skein__/dashboard")
+        r = c.post("/__skein__/task/dashboard")
         running = r.json()["runningSubs"]
         assert len(running) == 1
         assert running[0] == {"tid": "dash-active", "sid": "runner", "name": "跑中", "elapsed": 2}
@@ -949,7 +906,7 @@ def test_dashboard_recent_includes_active_and_done(tmp_path: Path, monkeypatch: 
             encoding="utf-8")
 
     with _client(app) as c:
-        r = c.get("/__skein__/dashboard")
+        r = c.post("/__skein__/task/dashboard")
         data = r.json()
         assert len(data["recentDone"]) == 5  # 只取前 5
         # 验证按时间倒序 (最近的前面)
@@ -984,7 +941,7 @@ def test_dashboard_to_plan_filters_pending_with_subtask_count(tmp_path: Path,
         encoding="utf-8")
 
     with _client(app) as c:
-        r = c.get("/__skein__/dashboard")
+        r = c.post("/__skein__/task/dashboard")
         data = r.json()
         # 检查 toPlanTasks 字段存在
         assert "toPlanTasks" in data

