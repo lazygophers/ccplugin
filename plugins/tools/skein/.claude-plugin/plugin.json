@@ -139,10 +139,6 @@
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "${CLAUDE_PLUGIN_ROOT}/bin/skein-hooks fmt"
-                    },
-                    {
-                        "type": "command",
                         "command": "${CLAUDE_PLUGIN_ROOT}/bin/skein-hooks spec-meta"
                     }
                 ]
