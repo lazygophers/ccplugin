@@ -92,7 +92,7 @@ async function readJson(file, fallback = undefined) {
 async function atomicWriteJson(file, value) {
   await fs.mkdir(path.dirname(file), { recursive: true });
   const temporary = `${file}.${process.pid}.${randomBytes(4).toString('hex')}.tmp`;
-  await fs.writeFile(temporary, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
+  await fs.writeFile(temporary, `${JSON.stringify(value)}\n`, 'utf8');
   try {
     await fs.rename(temporary, file);
   } catch (error) {
@@ -917,7 +917,7 @@ async function readInput(inputFile) {
 }
 
 function print(value) {
-  process.stdout.write(`${JSON.stringify(value, null, 2)}\n`);
+  process.stdout.write(`${JSON.stringify(value)}\n`);
 }
 
 function help() {
