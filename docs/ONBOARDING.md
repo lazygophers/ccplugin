@@ -105,9 +105,7 @@ plugins/tools/<name>/
 
 | 分类 | 子 skill |
 |------|----------|
-| `skills/skill-dev/` | `skill-dev`（单 skill 创建/优化方法论）、`plugin-dev`（整插件开发） |
 | `skills/git/` | `git-commit` / `git-merge` / `git-rebase` / `git-pr` |
-| `skills/code-quality/` | `architecture-design` / `clean-code` / `perf-optimization` |
 | `skills/project/` | `oss-license` / `promo-posts` |
 
 > 注意区分：插件内部的 skill 位于 `plugins/tools/<name>/skills/`（随插件分发），根 `skills/` 是开发模板。
@@ -144,7 +142,7 @@ plugins/tools/<name>/
 | 4 | 插件 CLI 入口 | `plugins/tools/<name>/scripts/main.py`（如 notify / version） |
 | 5 | 共享库 | `lib/__init__.py`、`lib/db/core.py`、`lib/hooks/hook.py` |
 | 6 | 项目级 CLI | `scripts/install.py`、`scripts/check.py` |
-| 7 | skill 开发模板 | `skills/skill-dev/`、`skills/git/` |
+| 7 | skill 开发模板 | `skills/git/`、`skills/project/` |
 | 8 | 开发规范 | `docs/plugin-development.md`、`CLAUDE.md`（=`AGENTS.md`） |
 
 ---

@@ -12,14 +12,11 @@
     {
       "name": "ccplugin-skills",
       "source": "./",
-      "description": "Claude Code skill 集合 plugin——设计(主题配色/UI-UX)、Git、代码质量、项目工程、skill 开发，13 个 skill 一键装齐。",
+      "description": "Claude Code skill 集合 plugin——Git、项目工程，6 个 skill 一键装齐。",
       "category": "skills",
       "keywords": [
-        "design",
-        "ui-ux",
-        "color",
         "git",
-        "code-quality",
+        "project",
         "skills"
       ]
     },

@@ -20,9 +20,7 @@
 
 非市场插件，是 skill 本身的开发模板与方法论目录：
 
-- `skill-dev/` — skill / subagent 开发方法论（流程 A 创建 / 流程 B 优化）
 - `git/` — git 相关 skill 模板
-- `code-quality/` — 代码质量 skill 模板
 - `project/` — 项目级 skill 模板
 
 ### 顶层关键文件
@@ -60,7 +58,6 @@ cat <待测文件> | claude -p --bare "<问题>" --output-format stream-json 2>/
 
 项目的详细开发规范和指导已分散到更合适的位置：
 
-- **skill / subagent 开发方法论**：参见 `skills/skill-dev/`（流程 A 创建 / 流程 B 优化）
 - **项目概览和架构**：参见 `README.md` 和 `AGENTS.md`
 - **插件开发指南**：参见 `docs/plugin-development.md`
 - **质量检查工具**：见上文「代码质量检查规范」章节
