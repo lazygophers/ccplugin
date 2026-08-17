@@ -66,18 +66,11 @@ function setTheme(theme) {
   if (bundle) render();
 }
 
+// 推荐值只做视觉提示，绝不预填答案：只有用户点过、选过、输入过才算已答。
 function defaultAnswer(question) {
-  if (question.type === 'text') {
-    return {
-      questionId: question.id,
-      selectedOptionIds: [],
-      customText: question.recommendedDraft || '',
-      supplementaryText: '',
-    };
-  }
   return {
     questionId: question.id,
-    selectedOptionIds: [...(question.recommendedOptionIds || [])],
+    selectedOptionIds: [],
     customText: '',
     supplementaryText: '',
   };
@@ -403,6 +396,7 @@ function renderTextQuestion(card, question, answer, editable) {
   const counter = element('span', 'text-counter');
   input.className = 'text-input';
   if (input.tagName === 'TEXTAREA') input.rows = 3;
+  if (question.recommendedDraft) input.placeholder = `建议：${question.recommendedDraft}`;
   input.maxLength = question.maxLength || 4000;
   input.value = answer.customText || '';
   input.disabled = !editable;
@@ -647,15 +641,10 @@ function renderSubmitDock(container) {
         ? '提交后 Agent 会立即用你的答案继续工作，本轮不可再修改。'
         : '提交后本轮变为只读，请回到 Agent 会话回复「已提交」继续。',
     ));
-    const hasRecommendation = round.questions.questions.some((question) => (
-      question.recommendedOptionIds?.length || question.recommendedDraft
-    ));
     saveStatusElement = element(
       'span',
       'save-status',
-      round.draft
-        ? '已恢复草稿'
-        : (hasRecommendation ? '推荐答案已预选' : '答案会自动存草稿'),
+      round.draft ? '已恢复草稿' : '答案会自动存草稿',
     );
     dock.append(saveStatusElement);
 

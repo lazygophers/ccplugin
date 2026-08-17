@@ -40,6 +40,8 @@
 
 同一 Session 的后续轮次可以省略 Session 级字段，首轮写入的值会保留。
 
+`recommendedOptionIds`、`recommendedDraft`、`recommendationReason` 只做视觉提示——选项上加「推荐」徽标、文本题填成 placeholder、附一条推荐理由横幅。**它们不会预选任何答案**：一道题只有在用户真的点过、选过或输入过之后才算已答，未作答的必填题会挡住提交。
+
 ### 单选
 
 ```json

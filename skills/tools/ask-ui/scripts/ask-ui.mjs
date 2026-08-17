@@ -922,7 +922,7 @@ function print(value) {
 
 function help() {
   process.stdout.write(`Ask UI\n\n`);
-  process.stdout.write(`  ask --input <file> [--data-dir <dir>] [--port <number>] [--open] [--no-open]\n`);
+  process.stdout.write(`  ask --input <file> [--data-dir <dir>] [--port <number>] [--no-open]\n`);
   process.stdout.write(`  create --input <file> [--data-dir <dir>] [--no-open] [--no-serve]\n`);
   process.stdout.write(`  serve [--data-dir <dir>] [--port <number>] [--token <token>]\n`);
   process.stdout.write(`  resume [--session <id>] [--data-dir <dir>]\n`);
@@ -954,11 +954,8 @@ export async function main(argv = process.argv.slice(2)) {
     process.once('SIGTERM', onSigterm);
     process.stderr.write(`Ask UI ready at ${url}\n`);
     process.stderr.write(`Waiting for round ${created.roundNumber} submission; data is saved under ${dataRoot}\n`);
-    const shouldOpen = !args['no-open'] && (Boolean(args.open) || created.roundNumber === 1);
-    if (shouldOpen) openBrowser(url);
-    else if (!args['no-open']) {
-      process.stderr.write(`Reusing the existing Ask UI browser page for round ${created.roundNumber}; use --open if it was closed.\n`);
-    }
+    // 页面在提交后自行关闭，所以每一轮都要重新打开浏览器。
+    if (!args['no-open']) openBrowser(url);
     try {
       await waitForRoundSubmission(
         dataRoot,
