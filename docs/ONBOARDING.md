@@ -107,6 +107,7 @@ plugins/tools/<name>/
 |------|----------|
 | `skills/git/` | `git-commit` / `git-merge` / `git-rebase` / `git-pr` |
 | `skills/project/` | `oss-license` / `promo-posts` |
+| `skills/tools/` | `ask-ui`（本地交互表单问答） |
 
 > 注意区分：插件内部的 skill 位于 `plugins/tools/<name>/skills/`（随插件分发），根 `skills/` 是开发模板。
 

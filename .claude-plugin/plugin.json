@@ -1,13 +1,14 @@
 {
     "name": "ccplugin-skills",
     "version": "0.1.0",
-    "description": "Claude Code skill 集合——Git 工作流、项目工程。一套 plugin 打包全部 skills，/plugin install 一键装齐。",
+    "description": "Claude Code skill 集合——Git 工作流、项目工程、交互工具。一套 plugin 打包全部 skills，/plugin install 一键装齐。",
     "skills": [
         "./skills/git/git-commit",
         "./skills/git/git-merge",
         "./skills/git/git-pr",
         "./skills/git/git-rebase",
         "./skills/project/oss-license",
-        "./skills/project/promo-posts"
+        "./skills/project/promo-posts",
+        "./skills/tools/ask-ui"
     ]
 }

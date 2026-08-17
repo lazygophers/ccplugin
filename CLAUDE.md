@@ -22,6 +22,7 @@
 
 - `git/` — git 相关 skill 模板
 - `project/` — 项目级 skill 模板
+- `tools/` — 交互工具 skill（`ask-ui`）
 
 ### 顶层关键文件
 

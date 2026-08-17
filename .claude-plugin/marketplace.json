@@ -12,11 +12,12 @@
     {
       "name": "ccplugin-skills",
       "source": "./",
-      "description": "Claude Code skill 集合 plugin——Git、项目工程，6 个 skill 一键装齐。",
+      "description": "Claude Code skill 集合 plugin——Git、项目工程、交互工具，7 个 skill 一键装齐。",
       "category": "skills",
       "keywords": [
         "git",
         "project",
+        "ask-ui",
         "skills"
       ]
     },

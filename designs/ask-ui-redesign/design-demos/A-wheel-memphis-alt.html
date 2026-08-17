@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ask UI · 个人工作台需求确认收集</title>
+<style>
+/* ============ 语义 token ============ */
+:root{
+  --base:#F5EAD6;          /* 做旧米色暖底（纯色 + 叠加纹理降级） */
+  --surface:#FFF8EA;
+  --surface-2:#EFE2C9;
+  --ink:#17140F;
+  --ink-2:#4A4034;
+  --line:#17140F;
+  --red:#C2381F;
+  --mustard:#E8B22B;
+  --blue:#1E4FCE;
+  --purple:#6B3FA0;
+  --olive:#4F5A22;
+  --on-red:#FFFFFF;
+  --on-blue:#FFFFFF;
+  --on-purple:#FFFFFF;
+  --on-olive:#FFFFFF;
+  --on-mustard:#17140F;
+  --shadow:#17140F;
+  --focus:#1E4FCE;
+}
+:root[data-theme="dark"]{
+  --base:#16130E;
+  --surface:#241E16;
+  --surface-2:#2F281D;
+  --ink:#F6EDDC;
+  --ink-2:#CDBEA4;
+  --line:#F6EDDC;
+  --red:#E9573A;
+  --mustard:#F3C24A;
+  --blue:#5A83FF;
+  --purple:#A87BE8;
+  --olive:#9FB253;
+  --on-red:#17140F;
+  --on-blue:#0E1226;
+  --on-purple:#1A0F2A;
+  --on-olive:#14170A;
+  --on-mustard:#17140F;
+  --shadow:#000000;
+  --focus:#F3C24A;
+}
+@media (prefers-reduced-motion: reduce){ *{animation:none !important; transition:none !important} }
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  height:100dvh; overflow:hidden;
+  background:var(--base); color:var(--ink);
+  font-family:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",system-ui,-apple-system,sans-serif;
+  font-size:17px; line-height:1.6;
+}
+.display{font-family:"Songti SC","STSong","SimSun",Georgia,"Times New Roman",serif}
+.hard{box-shadow:6px 6px 0 var(--shadow)}
+
+.app{height:100dvh; display:grid; grid-template-rows:auto 1fr auto}
+
+/* ---- 顶部 ---- */
+.top{
+  position:relative; overflow:hidden;
+  border-bottom:3px solid var(--line);
+  background:var(--surface-2);
+  padding:12px 26px 10px;
+  display:flex; align-items:flex-end; gap:22px; flex-wrap:wrap;
+}
+.deco{position:absolute; z-index:0; pointer-events:none}
+.deco.d1{width:118px;height:118px;background:var(--mustard);border:3px solid var(--line);border-radius:50%;top:-56px;left:47%}
+.deco.d2{width:78px;height:78px;background:var(--blue);border:3px solid var(--line);bottom:-40px;left:39%;transform:rotate(18deg)}
+.deco.d3{width:210px;height:12px;background:repeating-linear-gradient(90deg,var(--red) 0 15px,transparent 15px 28px);bottom:10px;left:57%}
+.top>.titles,.top>.rounds{position:relative; z-index:1}
+
+.proj{
+  display:inline-block; background:var(--red); color:var(--on-red);
+  border:3px solid var(--line); padding:3px 14px;
+  font-size:18px; font-weight:700; letter-spacing:.06em; transform:rotate(-1.6deg);
+}
+.titles h1{margin:6px 0 2px; font-size:29px; line-height:1.2; font-weight:700}
+.titles .sub{margin:0; font-size:16px; color:var(--ink-2)}
+
+.rounds{display:flex; gap:10px; margin-left:auto; align-items:flex-end; flex-wrap:wrap; justify-content:flex-end}
+.tab{
+  font-family:inherit; font-size:17px; font-weight:700; cursor:pointer;
+  border:3px solid var(--line); background:var(--surface); color:var(--ink);
+  padding:7px 15px; transform:rotate(1deg);
+}
+.tab[aria-selected="true"]{background:var(--blue); color:var(--on-blue); box-shadow:5px 5px 0 var(--shadow); transform:rotate(-1.4deg)}
+.tab[aria-disabled="true"]{opacity:.55; cursor:not-allowed; background:var(--surface-2); box-shadow:none}
+.themebtn{
+  font-family:inherit; font-size:17px; font-weight:700; cursor:pointer;
+  border:3px solid var(--line); background:var(--purple); color:var(--on-purple);
+  padding:7px 14px; transform:rotate(-1.2deg);
+}
+/* 暗色主题预览：一眼看见暗底下的同一套状态撞色 */
+.darkpeek{
+  border:3px solid var(--line); background:#16130E; color:#F6EDDC;
+  padding:7px 12px 8px; transform:rotate(1deg);
+}
+.darkpeek b{font-size:16px; color:#F3C24A; display:block; margin-bottom:5px}
+.darkpeek .row{display:flex; gap:6px}
+.darkpeek .row span{font-size:16px; border:2px solid #F6EDDC; padding:0 8px; font-weight:700}
+.dp1{background:#9FB253; color:#14170A; border-color:#9FB253 !important}
+.dp2{background:#E9573A; color:#17140F; border-color:#E9573A !important}
+.dp3{background:transparent; color:#CDBEA4; border-style:dashed}
+
+/* ---- 主体两栏 ---- */
+.body{display:grid; grid-template-columns:342px minmax(0,1fr); min-height:0}
+
+/* ---- 左栏：还有谁在等 ---- */
+.rail{border-right:3px solid var(--line); background:var(--surface-2); overflow-y:auto; padding:16px 18px 24px}
+.blk{border:3px solid var(--line); padding:11px 14px; background:var(--surface); margin-bottom:14px}
+.blk h2{margin:0 0 5px; font-size:19px; font-weight:700}
+.blk p{margin:0; font-size:16px; line-height:1.6}
+.blk.ctx{background:var(--mustard); color:var(--on-mustard); transform:rotate(-0.8deg)}
+.blk.round{background:var(--purple); color:var(--on-purple); transform:rotate(0.9deg)}
+.blk.round .kicker{font-size:16px; font-weight:700; letter-spacing:.14em; display:block; margin-bottom:2px}
+
+.railhead{
+  font-size:17px; font-weight:700; letter-spacing:.12em;
+  border-bottom:3px solid var(--line); padding-bottom:5px; margin:16px 0 12px;
+  display:flex; justify-content:space-between; align-items:baseline;
+}
+.nav{list-style:none; margin:0; padding:0 4px; display:flex; flex-direction:column; gap:9px}
+.navbtn{
+  width:100%; text-align:left; font-family:inherit; font-size:17px; cursor:pointer;
+  border:3px solid var(--line); background:var(--surface); color:var(--ink);
+  padding:7px 11px; display:grid; grid-template-columns:36px 1fr auto; gap:10px; align-items:center;
+  box-shadow:4px 4px 0 var(--shadow);
+}
+.navbtn .n{
+  font-family:"Songti SC",Georgia,serif; font-size:19px; font-weight:700;
+  border:2px solid var(--line); text-align:center; line-height:1.35; background:var(--base);
+}
+.navbtn .t{line-height:1.3}
+.navbtn .st{font-size:16px; font-weight:700; padding:0 8px; border:2px solid var(--line); white-space:nowrap}
+.navbtn[data-state="done"]{background:var(--olive); color:var(--on-olive); transform:rotate(-1deg)}
+.navbtn[data-state="done"] .n{background:var(--on-olive); color:var(--olive); border-color:var(--on-olive)}
+.navbtn[data-state="done"] .st{background:var(--on-olive); color:var(--olive); border-color:var(--on-olive)}
+.navbtn[data-state="todo"]{background:var(--surface); border-style:dashed; transform:rotate(0.7deg); box-shadow:none}
+.navbtn[data-state="todo"] .st{background:var(--base); color:var(--ink-2)}
+.navbtn[data-state="current"]{
+  background:var(--mustard); color:var(--on-mustard);
+  box-shadow:7px 7px 0 var(--red); transform:rotate(-1.8deg) scale(1.02); z-index:2;
+}
+.navbtn[data-state="current"] .n{background:var(--red); color:var(--on-red); border-color:var(--line)}
+.navbtn[data-state="current"] .st{background:var(--red); color:var(--on-red); border-color:var(--line)}
+
+/* ---- 右栏：现在轮到哪一句 ---- */
+.main{overflow-y:auto; padding:22px 34px 34px}
+.q{border:3px solid var(--line); background:var(--surface); padding:18px 20px 20px; margin:0 0 24px; position:relative; box-shadow:6px 6px 0 var(--shadow)}
+.q[data-state="done"]{transform:rotate(-0.35deg)}
+.q[data-state="todo"]{transform:rotate(0.3deg)}
+.q[data-state="current"]{transform:rotate(0deg); border-width:4px; box-shadow:10px 10px 0 var(--red)}
+.q-flag{
+  position:absolute; top:-16px; right:18px;
+  background:var(--red); color:var(--on-red); border:3px solid var(--line);
+  font-size:16px; font-weight:700; padding:2px 12px; transform:rotate(2deg);
+}
+.q-head{display:flex; gap:14px; align-items:flex-start}
+.q-num{
+  font-family:"Songti SC",Georgia,serif; font-size:32px; font-weight:700; line-height:1;
+  border:3px solid var(--line); padding:7px 11px; background:var(--base); transform:rotate(-2deg); flex:none;
+}
+.q[data-state="current"] .q-num{background:var(--red); color:var(--on-red)}
+.q[data-state="done"] .q-num{background:var(--olive); color:var(--on-olive)}
+.q-title{margin:0; font-size:21px; font-weight:700; line-height:1.35}
+.q-desc{margin:3px 0 0; font-size:17px; color:var(--ink-2)}
+.tags{display:flex; gap:7px; margin-left:auto; flex:none; flex-wrap:wrap; justify-content:flex-end; max-width:200px}
+.tag{font-size:16px; font-weight:700; border:2px solid var(--line); padding:1px 9px; background:var(--base)}
+.tag.req{background:var(--red); color:var(--on-red); border-color:var(--line)}
+.tag.multi{background:var(--blue); color:var(--on-blue); border-color:var(--line)}
+.tag.opt{background:var(--surface-2); color:var(--ink-2)}
+
+.q-bg{margin:14px 0 0; font-size:16px; line-height:1.65; border-left:10px solid var(--purple); background:var(--surface-2); padding:8px 14px}
+.q-bg b{color:var(--purple)}
+
+.opts{list-style:none; margin:14px 0 0; padding:0; display:flex; flex-direction:column; gap:11px}
+.opt{display:grid; grid-template-columns:26px 1fr; gap:13px; align-items:start; border:3px solid var(--line); background:var(--base); padding:10px 14px; cursor:pointer}
+.opt input{width:23px; height:23px; margin:2px 0 0; accent-color:var(--red); cursor:pointer}
+.opt .ot{font-size:18px; font-weight:700; line-height:1.35; display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+.opt .od{font-size:16px; color:var(--ink-2); margin-top:1px; display:block}
+.opt:has(input:checked){background:var(--mustard); color:var(--on-mustard); box-shadow:5px 5px 0 var(--shadow)}
+.opt:has(input:checked) .od{color:var(--on-mustard)}
+.opt:has(input:focus-visible){outline:4px solid var(--focus); outline-offset:3px}
+.rec{font-size:16px; font-weight:700; padding:0 9px; border:2px solid var(--line); background:var(--blue); color:var(--on-blue); transform:rotate(-2deg); display:inline-block}
+.why{margin:13px 0 0; font-size:16px; background:var(--blue); color:var(--on-blue); border:3px solid var(--line); padding:7px 14px; transform:rotate(-0.6deg)}
+.other-in{margin:9px 0 0 39px; display:none}
+.opt:has(input:checked) + .other-in,.other-in.open{display:block}
+input[type="text"],textarea{
+  font-family:inherit; font-size:17px; line-height:1.6; color:var(--ink);
+  background:var(--base); border:3px solid var(--line); padding:9px 12px; width:100%;
+}
+textarea{resize:vertical; min-height:82px}
+.count{font-size:16px; color:var(--ink-2); margin:5px 0 0; text-align:right}
+.note{border:3px dashed var(--line); background:var(--base); margin-top:14px}
+.note>summary{font-size:17px; font-weight:700; padding:8px 14px; cursor:pointer; list-style:none; display:flex; align-items:center; gap:10px}
+.note>summary::-webkit-details-marker{display:none}
+.note>summary::before{content:"＋"; font-size:18px; font-weight:700}
+.note[open]>summary::before{content:"－"}
+.note .inner{padding:0 14px 12px}
+.note.filled{border-style:solid; background:var(--mustard); color:var(--on-mustard)}
+.note.filled>summary::after{content:"已填写"; font-size:16px; border:2px solid var(--line); padding:0 8px; margin-left:auto}
+:focus-visible{outline:4px solid var(--focus); outline-offset:3px}
+
+/* ---- 提交栏 ---- */
+.submit{border-top:4px solid var(--line); background:var(--red); color:var(--on-red); padding:12px 26px; display:flex; align-items:center; gap:22px; flex-wrap:wrap}
+.submit .notice{font-size:17px; max-width:470px; line-height:1.45; margin:0}
+.saved{font-size:16px; background:var(--on-red); color:var(--red); border:3px solid var(--on-red); padding:3px 12px; font-weight:700}
+.meter{display:flex; align-items:center; gap:10px; margin-left:auto}
+.meter .cells{display:flex; gap:5px}
+.meter .cell{width:20px; height:25px; border:3px solid var(--on-red); background:transparent}
+.meter .cell.on{background:var(--mustard); border-color:var(--mustard)}
+.meter .txt{font-size:18px; font-weight:700; white-space:nowrap}
+.go{
+  font-family:"Songti SC",Georgia,serif; font-size:21px; font-weight:700; cursor:pointer;
+  background:var(--mustard); color:var(--on-mustard); border:3px solid var(--line);
+  padding:10px 26px; box-shadow:6px 6px 0 var(--shadow); transform:rotate(1deg);
+}
+.go:active{box-shadow:2px 2px 0 var(--shadow); translate:4px 4px}
+
+dialog{border:4px solid var(--line); background:var(--surface); color:var(--ink); padding:0; max-width:520px; box-shadow:12px 12px 0 var(--shadow)}
+dialog::backdrop{background:rgba(23,20,15,.62)}
+dialog .dh{background:var(--olive); color:var(--on-olive); padding:13px 22px; font-size:22px; font-weight:700}
+dialog .db{padding:18px 22px; font-size:17px; line-height:1.7}
+dialog .df{padding:0 22px 18px; display:flex; justify-content:flex-end}
+dialog button{font-family:inherit; font-size:17px; font-weight:700; border:3px solid var(--line); padding:8px 18px; cursor:pointer; background:var(--mustard); color:var(--on-mustard)}
+
+/* ---- 响应式 ---- */
+@media (max-width:1200px){
+  .body{grid-template-columns:286px minmax(0,1fr)}
+  .main{padding:20px 22px 30px}
+}
+@media (max-width:900px){
+  body{overflow:auto; height:auto}
+  .app{height:auto; min-height:100dvh}
+  .body{grid-template-columns:1fr}
+  .rail{border-right:none; border-bottom:3px solid var(--line); overflow:visible}
+  .nav{flex-direction:row; flex-wrap:wrap}
+  .navbtn{width:auto; grid-template-columns:auto auto auto}
+  .navbtn .t{max-width:170px}
+  .top{padding:12px 16px}
+  .rounds{margin-left:0}
+  .titles h1{font-size:24px}
+  .submit{padding:12px 16px; gap:14px; position:sticky; bottom:0}
+  .meter{margin-left:0}
+  .tags{max-width:none; margin-left:0}
+  .q-head{flex-wrap:wrap}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="top">
+    <span class="deco d1"></span><span class="deco d2"></span><span class="deco d3"></span>
+    <div class="titles">
+      <span class="proj display">项目 ccplugin</span>
+      <h1 class="display">个人工作台需求确认收集</h1>
+      <p class="sub">Agent 已暂停，正在等你的答复 · 预计 1-3 分钟</p>
+    </div>
+    <div class="rounds" role="tablist" aria-label="轮次切换">
+      <button class="tab" role="tab" aria-selected="true" id="tab-r1">第 1 轮 · 进行中</button>
+      <button class="tab" role="tab" aria-selected="false" aria-disabled="true" id="tab-r2">第 2 轮 · 尚未开始</button>
+      <button class="themebtn" id="themebtn" type="button" aria-pressed="false">切换暗色主题</button>
+      <div class="darkpeek" aria-label="暗色主题状态配色预览">
+        <b>暗色主题预览</b>
+        <div class="row"><span class="dp1">已答</span><span class="dp2">当前</span><span class="dp3">未答</span></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="body">
+
+    <aside class="rail">
+      <section class="blk ctx">
+        <h2>本次背景</h2>
+        <p>Agent 正在为你搭建个人工作台的首个版本。在写代码之前，需要你确认范围、模块和交互偏好。你的选择会直接决定接下来生成的目录结构与组件清单。</p>
+      </section>
+      <section class="blk round">
+        <span class="kicker">第一轮</span>
+        <h2>方向确认</h2>
+        <p>确认个人工作台首版的范围与交互偏好。</p>
+      </section>
+
+      <div class="railhead"><span>队列里还有谁在等</span><span id="railCount">3 / 6</span></div>
+      <ul class="nav" id="nav">
+        <li><button class="navbtn" data-state="done" data-target="q1" type="button"><span class="n">01</span><span class="t">首版最重要的目标</span><span class="st">已答</span></button></li>
+        <li><button class="navbtn" data-state="done" data-target="q2" type="button"><span class="n">02</span><span class="t">首批包含哪些模块</span><span class="st">已答</span></button></li>
+        <li><button class="navbtn" data-state="done" data-target="q3" type="button"><span class="n">03</span><span class="t">必须考虑的背景</span><span class="st">已答</span></button></li>
+        <li><button class="navbtn" data-state="current" data-target="q4" type="button"><span class="n">04</span><span class="t">首页默认落在哪个视图</span><span class="st">当前</span></button></li>
+        <li><button class="navbtn" data-state="todo" data-target="q5" type="button"><span class="n">05</span><span class="t">哪些数据要本地持久化</span><span class="st">未答</span></button></li>
+        <li><button class="navbtn" data-state="todo" data-target="q6" type="button"><span class="n">06</span><span class="t">想让我避免的做法</span><span class="st">未答</span></button></li>
+      </ul>
+    </aside>
+
+    <main class="main" id="main">
+
+      <article class="q" id="q1" data-state="done">
+        <div class="q-head">
+          <span class="q-num">01</span>
+          <div>
+            <h2 class="q-title display">首版最重要的目标是什么？</h2>
+            <p class="q-desc">请选择一个最优先验证的方向。</p>
+          </div>
+          <div class="tags"><span class="tag req">必填</span><span class="tag">单选</span></div>
+        </div>
+        <p class="q-bg"><b>背景 ·</b> 首版只做一件事做透，比三件事都做一半更容易验证价值。</p>
+        <ul class="opts">
+          <li><label class="opt"><input type="radio" name="q1" checked><span><span class="ot">每日聚焦<span class="rec">推荐</span></span><span class="od">集中展示今天最该处理的事项。</span></span></label></li>
+          <li><label class="opt"><input type="radio" name="q1"><span><span class="ot">知识聚合</span><span class="od">统一查找笔记、文档与上下文。</span></span></label></li>
+        </ul>
+        <p class="why">推荐理由：首版先解决高频、明确的每日决策问题。</p>
+      </article>
+
+      <article class="q" id="q2" data-state="done">
+        <div class="q-head">
+          <span class="q-num">02</span>
+          <div>
+            <h2 class="q-title display">首批包含哪些模块？</h2>
+            <p class="q-desc">可以多选，推荐项已默认选中。</p>
+          </div>
+          <div class="tags"><span class="tag req">必填</span><span class="tag multi">多选 1-3 项</span></div>
+        </div>
+        <ul class="opts">
+          <li><label class="opt"><input type="checkbox" name="q2" checked><span><span class="ot">任务<span class="rec">推荐</span></span><span class="od">待办与优先级。</span></span></label></li>
+          <li><label class="opt"><input type="checkbox" name="q2" checked><span><span class="ot">日历<span class="rec">推荐</span></span><span class="od">会议与时间块。</span></span></label></li>
+          <li><label class="opt"><input type="checkbox" name="q2"><span><span class="ot">笔记</span><span class="od">快速记录与检索。</span></span></label></li>
+          <li><label class="opt"><input type="checkbox" name="q2" data-other="true"><span><span class="ot">其他</span></span></label>
+            <div class="other-in"><input type="text" placeholder="请填写其他模块" aria-label="其他模块"></div>
+          </li>
+        </ul>
+      </article>
+
+      <article class="q" id="q3" data-state="done">
+        <div class="q-head">
+          <span class="q-num">03</span>
+          <div>
+            <h2 class="q-title display">还有什么必须考虑的背景？</h2>
+            <p class="q-desc">推荐草稿已填入，可直接修改。</p>
+          </div>
+          <div class="tags"><span class="tag opt">选填</span><span class="tag">文本</span></div>
+        </div>
+        <textarea id="t3" rows="2" data-count="c3">先以本地单人使用为主，后续再考虑团队协作。</textarea>
+        <p class="count" id="c3">24 字</p>
+        <details class="note filled" open>
+          <summary>补充说明</summary>
+          <div class="inner"><textarea rows="2">团队协作最快也要等到第三个迭代。</textarea></div>
+        </details>
+      </article>
+
+      <article class="q" id="q4" data-state="current">
+        <span class="q-flag">现在轮到这一题</span>
+        <div class="q-head">
+          <span class="q-num">04</span>
+          <div>
+            <h2 class="q-title display">首页默认落在哪个视图？</h2>
+            <p class="q-desc">决定打开工作台时第一眼看到什么。</p>
+          </div>
+          <div class="tags"><span class="tag req">必填</span><span class="tag">单选</span></div>
+        </div>
+        <p class="q-bg"><b>背景 ·</b> 这一项影响路由默认值，后面改动成本较高。</p>
+        <ul class="opts">
+          <li><label class="opt"><input type="radio" name="q4" autofocus><span><span class="ot">今日待办<span class="rec">推荐</span></span><span class="od">按优先级排序的当天任务列表。</span></span></label></li>
+          <li><label class="opt"><input type="radio" name="q4"><span><span class="ot">周视图</span><span class="od">以一周为单位的时间块概览。</span></span></label></li>
+          <li><label class="opt"><input type="radio" name="q4"><span><span class="ot">空白速记</span><span class="od">打开即可输入，不预设结构。</span></span></label></li>
+        </ul>
+        <p class="why">推荐理由：与题 1 选定的「每日聚焦」保持一致。</p>
+        <details class="note"><summary>补充说明</summary><div class="inner"><textarea rows="2" placeholder="想补充的取舍或限制"></textarea></div></details>
+      </article>
+
+      <article class="q" id="q5" data-state="todo">
+        <div class="q-head">
+          <span class="q-num">05</span>
+          <div>
+            <h2 class="q-title display">哪些数据需要本地持久化？</h2>
+            <p class="q-desc">未勾选的数据在关闭后不保留。</p>
+          </div>
+          <div class="tags"><span class="tag opt">选填</span><span class="tag multi">多选</span></div>
+        </div>
+        <ul class="opts">
+          <li><label class="opt"><input type="checkbox" name="q5"><span><span class="ot">任务与完成状态<span class="rec">推荐</span></span></span></label></li>
+          <li><label class="opt"><input type="checkbox" name="q5"><span><span class="ot">笔记正文<span class="rec">推荐</span></span></span></label></li>
+          <li><label class="opt"><input type="checkbox" name="q5"><span><span class="ot">界面偏好（主题、折叠状态）</span></span></label></li>
+          <li><label class="opt"><input type="checkbox" name="q5"><span><span class="ot">搜索历史</span></span></label></li>
+        </ul>
+      </article>
+
+      <article class="q" id="q6" data-state="todo">
+        <div class="q-head">
+          <span class="q-num">06</span>
+          <div>
+            <h2 class="q-title display">还有什么想让我避免的做法？</h2>
+            <p class="q-desc">比如不想引入的依赖、不想要的交互。</p>
+          </div>
+          <div class="tags"><span class="tag opt">选填</span><span class="tag">文本</span></div>
+        </div>
+        <textarea id="t6" rows="3" data-count="c6" placeholder="写下你的红线"></textarea>
+        <p class="count" id="c6">0 字</p>
+      </article>
+    </main>
+  </div>
+
+  <footer class="submit">
+    <p class="notice">提交后 Agent 会立即用你的答案继续工作，本轮不可再修改。</p>
+    <span class="saved">草稿已自动保存</span>
+    <div class="meter">
+      <div class="cells" id="cells" aria-hidden="true"></div>
+      <span class="txt" id="counter">已答 3 / 6</span>
+    </div>
+    <button class="go" id="go" type="button">提交本轮答案</button>
+  </footer>
+</div>
+
+<dialog id="dlg" role="dialog" aria-modal="true" aria-labelledby="dlgh">
+  <div class="dh" id="dlgh">已提交，Agent 继续工作</div>
+  <div class="db">本轮答案已回传给正在等待的 Agent 进程。第 2 轮会在需要时自动弹出。<br><b id="cd">5</b> 秒后自动关闭。</div>
+  <div class="df"><button id="dclose" type="button">立即关闭</button></div>
+</dialog>
+
+<script>
+(function(){
+  const $ = s => document.querySelector(s);
+  const $$ = s => Array.from(document.querySelectorAll(s));
+  const main = $('#main');
+
+  const tb = $('#themebtn');
+  tb.addEventListener('click', () => {
+    const dark = document.documentElement.dataset.theme === 'dark';
+    document.documentElement.dataset.theme = dark ? 'light' : 'dark';
+    tb.textContent = dark ? '切换暗色主题' : '切换亮色主题';
+    tb.setAttribute('aria-pressed', String(!dark));
+  });
+
+  function answered(id){
+    const q = document.getElementById(id);
+    const boxes = q.querySelectorAll('.opts input');
+    if (boxes.length) return Array.from(boxes).some(i => i.checked);
+    const ta = q.querySelector('textarea');
+    return ta.value.trim().length > 0;
+  }
+  function btnOf(id){ return $$('.navbtn').find(b => b.dataset.target === id); }
+
+  function refresh(){
+    let done = 0;
+    $$('.q').forEach(q => {
+      const ok = answered(q.id);
+      if (ok) done++;
+      const btn = btnOf(q.id);
+      if (q.dataset.state !== 'current'){
+        q.dataset.state = ok ? 'done' : 'todo';
+        btn.dataset.state = ok ? 'done' : 'todo';
+        btn.querySelector('.st').textContent = ok ? '已答' : '未答';
+      }
+    });
+    $('#counter').textContent = '已答 ' + done + ' / 6';
+    $('#railCount').textContent = done + ' / 6';
+    $('#cells').innerHTML = Array.from({length:6}, (_,i) =>
+      '<span class="cell' + (i < done ? ' on' : '') + '"></span>').join('');
+  }
+
+  function focusQ(id){
+    $$('.q').forEach(q => {
+      if (q.dataset.state === 'current'){
+        const flag = q.querySelector('.q-flag');
+        if (flag) flag.remove();
+      }
+      q.dataset.state = answered(q.id) ? 'done' : 'todo';
+    });
+    const target = document.getElementById(id);
+    target.dataset.state = 'current';
+    if (!target.querySelector('.q-flag')){
+      const f = document.createElement('span');
+      f.className = 'q-flag'; f.textContent = '现在轮到这一题';
+      target.prepend(f);
+    }
+    const btn = btnOf(id);
+    btn.dataset.state = 'current';
+    btn.querySelector('.st').textContent = '当前';
+    target.scrollIntoView({behavior:'smooth', block:'start'});
+    refresh();
+  }
+  $$('.navbtn').forEach(b => b.addEventListener('click', () => focusQ(b.dataset.target)));
+
+  document.addEventListener('change', e => {
+    if (e.target.dataset.other !== undefined){
+      e.target.closest('.opt').nextElementSibling.classList.toggle('open', e.target.checked);
+    }
+    if (e.target.matches('input,textarea')) refresh();
+  });
+
+  $$('textarea[data-count]').forEach(ta => {
+    const out = document.getElementById(ta.dataset.count);
+    const upd = () => { out.textContent = ta.value.trim().length + ' 字'; refresh(); };
+    ta.addEventListener('input', upd); upd();
+  });
+  $$('.note textarea').forEach(ta => {
+    ta.addEventListener('input', () => ta.closest('.note').classList.toggle('filled', ta.value.trim().length > 0));
+  });
+
+  const dlg = $('#dlg');
+  $('#go').addEventListener('click', () => {
+    dlg.showModal();
+    let n = 5; $('#cd').textContent = n;
+    const t = setInterval(() => { n--; $('#cd').textContent = n; if (n <= 0){ clearInterval(t); dlg.close(); } }, 1000);
+    dlg.addEventListener('close', () => clearInterval(t), {once:true});
+  });
+  $('#dclose').addEventListener('click', () => dlg.close());
+
+  refresh();
+  window.addEventListener('load', () => { main.scrollTop = document.getElementById('q4').offsetTop - 200; });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1043 @@
+#!/usr/bin/env node
+
+import { constants as fsConstants, createReadStream, existsSync } from 'node:fs';
+import fs from 'node:fs/promises';
+import http from 'node:http';
+import os from 'node:os';
+import path from 'node:path';
+import process from 'node:process';
+import { randomBytes, randomUUID, createHash } from 'node:crypto';
+import { spawn } from 'node:child_process';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+import { wakeClaudeCode } from './adapters/claude-code.mjs';
+import { wakeCodexAppServer } from './adapters/codex-app-server.mjs';
+
+const SCRIPT_FILE = fileURLToPath(import.meta.url);
+const SKILL_ROOT = path.resolve(path.dirname(SCRIPT_FILE), '..');
+const APP_ROOT = path.join(SKILL_ROOT, 'assets', 'app');
+const SCHEMA_VERSION = '1.0';
+const MAX_BODY_BYTES = 1_048_576;
+const SUPPLEMENTARY_TEXT_MAX_LENGTH = 2000;
+
+function now() {
+  return new Date().toISOString();
+}
+
+function parseArgs(argv) {
+  const result = { _: [] };
+  for (let index = 0; index < argv.length; index += 1) {
+    const value = argv[index];
+    if (!value.startsWith('--')) {
+      result._.push(value);
+      continue;
+    }
+
+    const key = value.slice(2);
+    const next = argv[index + 1];
+    if (next !== undefined && !next.startsWith('--')) {
+      result[key] = next;
+      index += 1;
+    } else {
+      result[key] = true;
+    }
+  }
+  return result;
+}
+
+function assertSafeId(value, label = 'id') {
+  if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]{2,127}$/.test(value || '')) {
+    throw new Error(`${label} must contain 3-128 safe characters`);
+  }
+  return value;
+}
+
+function makeSessionId(title = 'ask-ui') {
+  const slug = String(title)
+    .normalize('NFKD')
+    .replace(/[^a-zA-Z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .toLowerCase()
+    .slice(0, 36) || 'ask-ui';
+  const stamp = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14);
+  return `${slug}-${stamp}-${randomBytes(2).toString('hex')}`;
+}
+
+function roundDirectory(dataRoot, sessionId, roundNumber) {
+  return path.join(
+    dataRoot,
+    'sessions',
+    assertSafeId(sessionId, 'sessionId'),
+    'rounds',
+    String(roundNumber).padStart(3, '0'),
+  );
+}
+
+function sessionDirectory(dataRoot, sessionId) {
+  return path.join(dataRoot, 'sessions', assertSafeId(sessionId, 'sessionId'));
+}
+
+async function readJson(file, fallback = undefined) {
+  try {
+    return JSON.parse(await fs.readFile(file, 'utf8'));
+  } catch (error) {
+    if (error.code === 'ENOENT' && fallback !== undefined) return fallback;
+    if (error instanceof SyntaxError) {
+      throw new Error(`Invalid JSON: ${file}`);
+    }
+    throw error;
+  }
+}
+
+async function atomicWriteJson(file, value) {
+  await fs.mkdir(path.dirname(file), { recursive: true });
+  const temporary = `${file}.${process.pid}.${randomBytes(4).toString('hex')}.tmp`;
+  await fs.writeFile(temporary, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
+  try {
+    await fs.rename(temporary, file);
+  } catch (error) {
+    if (!['EEXIST', 'EPERM'].includes(error.code)) throw error;
+    await fs.copyFile(temporary, file);
+    await fs.rm(temporary, { force: true });
+  }
+}
+
+async function ensureDataRoot(requested, cwd = process.cwd()) {
+  const primary = requested
+    ? path.resolve(requested)
+    : path.join(path.resolve(cwd), '.ask-ui');
+
+  try {
+    await fs.mkdir(primary, { recursive: true });
+    await fs.access(primary, fsConstants.W_OK);
+    if (path.basename(primary) === '.ask-ui') {
+      const ignoreFile = path.join(primary, '.gitignore');
+      if (!existsSync(ignoreFile)) {
+        await fs.writeFile(ignoreFile, '*\n!.gitignore\n', 'utf8');
+      }
+    }
+    return primary;
+  } catch (error) {
+    if (requested) throw error;
+  }
+
+  const workspaceHash = createHash('sha256')
+    .update(path.resolve(cwd))
+    .digest('hex')
+    .slice(0, 16);
+  const stateBase = process.platform === 'win32'
+    ? process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local')
+    : process.env.XDG_STATE_HOME || path.join(os.homedir(), '.local', 'state');
+  const fallback = path.join(stateBase, 'ask-ui', 'workspaces', workspaceHash);
+  await fs.mkdir(fallback, { recursive: true });
+  await atomicWriteJson(path.join(fallback, 'workspace.json'), {
+    cwd: path.resolve(cwd),
+    fallback: true,
+    updatedAt: now(),
+  });
+  return fallback;
+}
+
+function normalizeWake(rawWake, cwd) {
+  const wake = rawWake && typeof rawWake === 'object' ? rawWake : {};
+  const mode = ['auto', 'manual', 'unavailable'].includes(wake.mode)
+    ? wake.mode
+    : 'manual';
+  const provider = ['claude-code', 'codex-app-server'].includes(wake.provider)
+    ? wake.provider
+    : null;
+  return {
+    mode: mode === 'auto' && !provider ? 'unavailable' : mode,
+    provider,
+    sessionRef: wake.sessionRef ? String(wake.sessionRef) : null,
+    cwd: wake.cwd ? path.resolve(wake.cwd) : path.resolve(cwd),
+  };
+}
+
+function normalizeQuestion(question, index) {
+  if (!question || typeof question !== 'object') {
+    throw new Error(`Question ${index + 1} must be an object`);
+  }
+
+  const type = question.type === 'multi' ? 'multiple' : question.type;
+  if (!['single', 'multiple', 'text'].includes(type)) {
+    throw new Error(`Question ${question.id || index + 1} has unsupported type`);
+  }
+
+  const id = String(question.id || `q${index + 1}`);
+  assertSafeId(id, `question ${index + 1} id`);
+  const normalized = {
+    id,
+    type,
+    title: String(question.title || `问题 ${index + 1}`),
+    description: String(question.description || ''),
+    background: String(question.background || ''),
+    required: question.required !== false,
+    recommendationReason: String(question.recommendationReason || ''),
+  };
+
+  if (type === 'text') {
+    normalized.recommendedDraft = String(question.recommendedDraft || '');
+    normalized.multiline = question.multiline !== false;
+    normalized.maxLength = Number.isInteger(question.maxLength)
+      ? Math.max(1, question.maxLength)
+      : 4000;
+    return normalized;
+  }
+
+  if (!Array.isArray(question.options) || question.options.length < 2) {
+    throw new Error(`Choice question ${id} requires at least two options`);
+  }
+  normalized.options = question.options.map((option, optionIndex) => {
+    const optionId = String(option.id || `option-${optionIndex + 1}`);
+    assertSafeId(optionId, `option id in ${id}`);
+    return {
+      id: optionId,
+      label: String(option.label || optionId),
+      description: String(option.description || ''),
+    };
+  });
+  const optionIds = new Set(normalized.options.map((option) => option.id));
+  normalized.recommendedOptionIds = [
+    ...new Set(
+      (Array.isArray(question.recommendedOptionIds)
+        ? question.recommendedOptionIds
+        : [])
+        .map(String)
+        .filter((optionId) => optionIds.has(optionId)),
+    ),
+  ];
+  if (type === 'single') normalized.recommendedOptionIds = normalized.recommendedOptionIds.slice(0, 1);
+  if (type === 'multiple') {
+    normalized.minSelections = Number.isInteger(question.minSelections)
+      ? Math.max(0, question.minSelections)
+      : normalized.required ? 1 : 0;
+    normalized.maxSelections = Number.isInteger(question.maxSelections)
+      ? Math.max(normalized.minSelections, question.maxSelections)
+      : normalized.options.length;
+  }
+  return normalized;
+}
+
+function normalizeQuestionSet(input, { cwd = process.cwd() } = {}) {
+  if (!input || typeof input !== 'object' || !Array.isArray(input.questions)) {
+    throw new Error('QuestionSet requires a questions array');
+  }
+  if (input.questions.length === 0) throw new Error('QuestionSet cannot be empty');
+
+  return {
+    schemaVersion: SCHEMA_VERSION,
+    sessionId: input.sessionId ? assertSafeId(String(input.sessionId), 'sessionId') : null,
+    projectName: String(input.projectName || path.basename(path.resolve(cwd))),
+    sessionTitle: String(input.sessionTitle || input.title || 'Ask UI 问题收集'),
+    sessionSummary: String(input.sessionSummary || ''),
+    sessionBackground: String(input.sessionBackground || ''),
+    roundNumber: Number.isInteger(input.roundNumber) ? input.roundNumber : null,
+    title: String(input.title || '需求确认'),
+    purpose: String(input.purpose || ''),
+    basedOnRound: Number.isInteger(input.basedOnRound) ? input.basedOnRound : null,
+    wake: normalizeWake(input.wake, cwd),
+    questions: input.questions.map(normalizeQuestion),
+  };
+}
+
+async function readSession(dataRoot, sessionId) {
+  return readJson(path.join(sessionDirectory(dataRoot, sessionId), 'session.json'));
+}
+
+async function writeSession(dataRoot, session) {
+  session.updatedAt = now();
+  session.roundCount = session.rounds.length;
+  session.totalQuestionCount = session.rounds.reduce(
+    (sum, round) => sum + round.questionCount,
+    0,
+  );
+  session.currentRound = session.rounds.length
+    ? Math.max(...session.rounds.map((round) => round.roundNumber))
+    : 0;
+  await atomicWriteJson(
+    path.join(sessionDirectory(dataRoot, session.sessionId), 'session.json'),
+    session,
+  );
+  return session;
+}
+
+async function updateIndex(dataRoot, session, extra = {}) {
+  const indexFile = path.join(dataRoot, 'index.json');
+  const index = await readJson(indexFile, {
+    schemaVersion: SCHEMA_VERSION,
+    sessions: [],
+  });
+  const summary = {
+    sessionId: session.sessionId,
+    title: session.title,
+    status: session.status,
+    currentRound: session.currentRound,
+    updatedAt: session.updatedAt,
+  };
+  const existing = index.sessions.findIndex((item) => item.sessionId === session.sessionId);
+  if (existing >= 0) index.sessions[existing] = summary;
+  else index.sessions.push(summary);
+  index.sessions.sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
+  Object.assign(index, extra, { updatedAt: now() });
+  await atomicWriteJson(indexFile, index);
+}
+
+export async function createRound(input, options = {}) {
+  const cwd = options.cwd || process.cwd();
+  const dataRoot = await ensureDataRoot(options.dataDir, cwd);
+  const deliveryMode = options.deliveryMode || 'manual';
+  if (!['direct', 'manual'].includes(deliveryMode)) {
+    throw new Error('deliveryMode must be direct or manual');
+  }
+  const questionSet = normalizeQuestionSet(input, { cwd });
+  const sessionId = questionSet.sessionId || makeSessionId(questionSet.sessionTitle);
+  const sessionFile = path.join(sessionDirectory(dataRoot, sessionId), 'session.json');
+  const existingSession = await readJson(sessionFile, null);
+  const session = existingSession || {
+    schemaVersion: SCHEMA_VERSION,
+    sessionId,
+    projectName: questionSet.projectName,
+    title: questionSet.sessionTitle,
+    summary: questionSet.sessionSummary,
+    background: questionSet.sessionBackground,
+    status: 'active',
+    workspace: path.resolve(cwd),
+    wake: questionSet.wake,
+    createdAt: now(),
+    updatedAt: now(),
+    currentRound: 0,
+    roundCount: 0,
+    totalQuestionCount: 0,
+    rounds: [],
+  };
+
+  if (session.status === 'completed' || session.status === 'cancelled') {
+    throw new Error(`Session ${sessionId} is ${session.status}; create a new session`);
+  }
+
+  const roundNumber = questionSet.roundNumber
+    || (session.rounds.length ? Math.max(...session.rounds.map((item) => item.roundNumber)) + 1 : 1);
+  if (!Number.isInteger(roundNumber) || roundNumber < 1) {
+    throw new Error('roundNumber must be a positive integer');
+  }
+  if (session.rounds.some((item) => item.roundNumber === roundNumber)) {
+    throw new Error(`Round ${roundNumber} already exists in ${sessionId}`);
+  }
+
+  const basedOnRound = questionSet.basedOnRound
+    ?? (roundNumber > 1 ? roundNumber - 1 : null);
+  if (basedOnRound !== null && !session.rounds.some((item) => item.roundNumber === basedOnRound)) {
+    throw new Error(`basedOnRound ${basedOnRound} does not exist`);
+  }
+
+  const storedQuestionSet = {
+    schemaVersion: SCHEMA_VERSION,
+    sessionId,
+    roundNumber,
+    title: questionSet.title,
+    purpose: questionSet.purpose,
+    basedOnRound,
+    createdAt: now(),
+    questions: questionSet.questions,
+  };
+  const roundDir = roundDirectory(dataRoot, sessionId, roundNumber);
+  await fs.mkdir(roundDir, { recursive: true });
+  await atomicWriteJson(path.join(roundDir, 'questions.json'), storedQuestionSet);
+
+  if (basedOnRound !== null) {
+    const previous = session.rounds.find((item) => item.roundNumber === basedOnRound);
+    if (previous?.status === 'submitted') {
+      previous.status = 'processed';
+      previous.processedAt = now();
+    }
+  }
+  session.title = session.title || questionSet.sessionTitle;
+  session.summary = session.summary || questionSet.sessionSummary;
+  session.projectName = session.projectName || questionSet.projectName;
+  session.background = session.background || questionSet.sessionBackground;
+  if (questionSet.wake.mode !== 'manual' || !existingSession) session.wake = questionSet.wake;
+  session.rounds.push({
+    roundNumber,
+    title: storedQuestionSet.title,
+    purpose: storedQuestionSet.purpose,
+    basedOnRound,
+    status: 'waiting_for_user',
+    deliveryMode,
+    questionCount: storedQuestionSet.questions.length,
+    createdAt: storedQuestionSet.createdAt,
+  });
+  await writeSession(dataRoot, session);
+  await updateIndex(dataRoot, session, { activeSessionId: sessionId });
+
+  return {
+    status: 'created',
+    dataRoot,
+    sessionId,
+    roundNumber,
+    questionsPath: path.join(roundDir, 'questions.json'),
+    session,
+  };
+}
+
+export async function submittedRoundResult(dataRoot, sessionId, roundNumber) {
+  const session = await readSession(dataRoot, sessionId);
+  const round = session.rounds.find((item) => item.roundNumber === roundNumber);
+  if (!round) throw new Error(`Round ${roundNumber} not found`);
+  if (!['submitted', 'processed'].includes(round.status)) {
+    throw new Error(`Round ${roundNumber} has not been submitted`);
+  }
+  const directory = roundDirectory(dataRoot, sessionId, roundNumber);
+  return {
+    status: 'submitted',
+    sessionId,
+    sessionTitle: session.title,
+    roundNumber,
+    questionsPath: path.join(directory, 'questions.json'),
+    answersPath: path.join(directory, 'answers.json'),
+    questions: await readJson(path.join(directory, 'questions.json')),
+    answers: await readJson(path.join(directory, 'answers.json')),
+  };
+}
+
+function normalizeAnswer(answer, question) {
+  const selected = Array.isArray(answer?.selectedOptionIds)
+    ? [...new Set(answer.selectedOptionIds.map(String))]
+    : [];
+  const customText = String(answer?.customText || '');
+  const supplementaryText = String(answer?.supplementaryText || '');
+  return {
+    questionId: question.id,
+    selectedOptionIds: selected,
+    customText,
+    supplementaryText,
+  };
+}
+
+function validateAnswers(questionSet, rawAnswers, { partial = false } = {}) {
+  const answerMap = new Map(
+    (Array.isArray(rawAnswers) ? rawAnswers : []).map((answer) => [String(answer.questionId), answer]),
+  );
+  const errors = [];
+  const answers = questionSet.questions.map((question) => {
+    const answer = normalizeAnswer(answerMap.get(question.id), question);
+    if (answer.supplementaryText.length > SUPPLEMENTARY_TEXT_MAX_LENGTH) {
+      errors.push(`${question.title} supplement exceeds ${SUPPLEMENTARY_TEXT_MAX_LENGTH} characters`);
+    }
+    if (question.type === 'text') {
+      if (!partial && question.required && !answer.customText.trim()) {
+        errors.push(`${question.title} is required`);
+      }
+      if (answer.customText.length > question.maxLength) {
+        errors.push(`${question.title} exceeds ${question.maxLength} characters`);
+      }
+      answer.selectedOptionIds = [];
+      return answer;
+    }
+
+    const allowed = new Set(question.options.map((option) => option.id));
+    if (answer.selectedOptionIds.some((optionId) => !allowed.has(optionId))) {
+      errors.push(`${question.title} contains an unknown option`);
+    }
+    if (answer.customText.trim()) {
+      errors.push(`${question.title} does not allow a custom answer`);
+    }
+    const selectionCount = answer.selectedOptionIds.length;
+    if (!partial && question.required && selectionCount === 0) {
+      errors.push(`${question.title} is required`);
+    }
+    if (question.type === 'single' && selectionCount > 1) {
+      errors.push(`${question.title} allows only one answer`);
+    }
+    if (question.type === 'multiple') {
+      if (!partial && selectionCount < question.minSelections) {
+        errors.push(`${question.title} requires at least ${question.minSelections} selections`);
+      }
+      if (selectionCount > question.maxSelections) {
+        errors.push(`${question.title} allows at most ${question.maxSelections} selections`);
+      }
+    }
+    return answer;
+  });
+  return { answers, errors };
+}
+
+export async function loadSessionBundle(dataRoot, sessionId) {
+  const session = await readSession(dataRoot, sessionId);
+  const rounds = [];
+  for (const roundSummary of [...session.rounds].sort((a, b) => a.roundNumber - b.roundNumber)) {
+    const directory = roundDirectory(dataRoot, sessionId, roundSummary.roundNumber);
+    rounds.push({
+      ...roundSummary,
+      questions: await readJson(path.join(directory, 'questions.json')),
+      answers: await readJson(path.join(directory, 'answers.json'), null),
+      draft: await readJson(path.join(directory, 'draft.json'), null),
+    });
+  }
+  return { schemaVersion: SCHEMA_VERSION, session, rounds };
+}
+
+async function saveDraft(dataRoot, sessionId, roundNumber, payload) {
+  const session = await readSession(dataRoot, sessionId);
+  const round = session.rounds.find((item) => item.roundNumber === roundNumber);
+  if (!round) throw new Error(`Round ${roundNumber} not found`);
+  if (round.status !== 'waiting_for_user') throw new Error('Submitted rounds are read-only');
+  const questions = await readJson(
+    path.join(roundDirectory(dataRoot, sessionId, roundNumber), 'questions.json'),
+  );
+  const normalized = validateAnswers(questions, payload.answers, { partial: true });
+  const draft = { updatedAt: now(), answers: normalized.answers };
+  await atomicWriteJson(
+    path.join(roundDirectory(dataRoot, sessionId, roundNumber), 'draft.json'),
+    draft,
+  );
+  return draft;
+}
+
+export async function submitAnswers(dataRoot, sessionId, roundNumber, payload) {
+  const session = await readSession(dataRoot, sessionId);
+  const round = session.rounds.find((item) => item.roundNumber === roundNumber);
+  if (!round) throw new Error(`Round ${roundNumber} not found`);
+  const directory = roundDirectory(dataRoot, sessionId, roundNumber);
+  const existing = await readJson(path.join(directory, 'answers.json'), null);
+  if (existing) {
+    return { duplicate: true, answerSet: existing, session };
+  }
+  if (round.status !== 'waiting_for_user') throw new Error('Round is not accepting answers');
+
+  const questions = await readJson(path.join(directory, 'questions.json'));
+  const validated = validateAnswers(questions, payload.answers, { partial: false });
+  if (validated.errors.length) {
+    const error = new Error(validated.errors.join('; '));
+    error.statusCode = 422;
+    throw error;
+  }
+  const answerSet = {
+    schemaVersion: SCHEMA_VERSION,
+    submissionId: String(payload.submissionId || `submit-${randomUUID()}`),
+    sessionId,
+    roundNumber,
+    submittedAt: now(),
+    answers: validated.answers,
+  };
+  await atomicWriteJson(path.join(directory, 'answers.json'), answerSet);
+  round.status = 'submitted';
+  round.submittedAt = answerSet.submittedAt;
+  await writeSession(dataRoot, session);
+  await updateIndex(dataRoot, session, {
+    activeSessionId: sessionId,
+    lastSubmittedSessionId: sessionId,
+  });
+  return { duplicate: false, answerSet, session };
+}
+
+async function listSessions(dataRoot) {
+  const sessionsRoot = path.join(dataRoot, 'sessions');
+  let entries = [];
+  try {
+    entries = await fs.readdir(sessionsRoot, { withFileTypes: true });
+  } catch (error) {
+    if (error.code === 'ENOENT') return [];
+    throw error;
+  }
+  const sessions = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    try {
+      sessions.push(await readSession(dataRoot, entry.name));
+    } catch {
+      // A damaged session is reported by status when addressed explicitly.
+    }
+  }
+  return sessions;
+}
+
+export async function resumeRound(dataRoot, requestedSessionId = null) {
+  let candidates = [];
+  if (requestedSessionId) {
+    candidates = [await readSession(dataRoot, requestedSessionId)];
+  } else {
+    candidates = (await listSessions(dataRoot)).filter((session) =>
+      session.rounds.some((round) => round.status === 'submitted'));
+  }
+
+  const submitted = candidates.flatMap((session) =>
+    session.rounds
+      .filter((round) => round.status === 'submitted')
+      .map((round) => ({ session, round })));
+
+  if (submitted.length === 0) {
+    return { status: 'waiting', sessionId: requestedSessionId };
+  }
+  if (!requestedSessionId && submitted.length > 1) {
+    return {
+      status: 'ambiguous',
+      candidates: submitted.map(({ session, round }) => ({
+        sessionId: session.sessionId,
+        title: session.title,
+        summary: session.summary,
+        workspace: session.workspace,
+        roundNumber: round.roundNumber,
+        submittedAt: round.submittedAt,
+      })),
+    };
+  }
+
+  const { session, round } = submitted.sort((left, right) =>
+    right.round.submittedAt.localeCompare(left.round.submittedAt))[0];
+  return submittedRoundResult(dataRoot, session.sessionId, round.roundNumber);
+}
+
+export async function completeSession(dataRoot, sessionId, status = 'completed') {
+  const session = await readSession(dataRoot, sessionId);
+  if (!['completed', 'cancelled'].includes(status)) throw new Error('Invalid final status');
+  for (const round of session.rounds) {
+    if (round.status === 'submitted') {
+      round.status = 'processed';
+      round.processedAt = now();
+    }
+  }
+  session.status = status;
+  session.completedAt = now();
+  await writeSession(dataRoot, session);
+  await updateIndex(dataRoot, session, { activeSessionId: null });
+  return session;
+}
+
+function contentType(file) {
+  if (file.endsWith('.html')) return 'text/html; charset=utf-8';
+  if (file.endsWith('.js')) return 'text/javascript; charset=utf-8';
+  if (file.endsWith('.css')) return 'text/css; charset=utf-8';
+  return 'application/octet-stream';
+}
+
+function addSecurityHeaders(response) {
+  response.setHeader('X-Content-Type-Options', 'nosniff');
+  response.setHeader('X-Frame-Options', 'DENY');
+  response.setHeader('Referrer-Policy', 'no-referrer');
+  response.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self' https://cdn.bootcdn.net 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'",
+  );
+}
+
+function sendJson(response, statusCode, value) {
+  addSecurityHeaders(response);
+  response.writeHead(statusCode, { 'Content-Type': 'application/json; charset=utf-8' });
+  response.end(`${JSON.stringify(value)}\n`);
+}
+
+function sendFile(response, file) {
+  addSecurityHeaders(response);
+  response.writeHead(200, { 'Content-Type': contentType(file) });
+  createReadStream(file).pipe(response);
+}
+
+async function readRequestJson(request) {
+  const chunks = [];
+  let size = 0;
+  for await (const chunk of request) {
+    size += chunk.length;
+    if (size > MAX_BODY_BYTES) {
+      const error = new Error('Request body is too large');
+      error.statusCode = 413;
+      throw error;
+    }
+    chunks.push(chunk);
+  }
+  try {
+    return JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}');
+  } catch {
+    const error = new Error('Request body must be valid JSON');
+    error.statusCode = 400;
+    throw error;
+  }
+}
+
+async function recordWakeState(dataRoot, sessionId, value) {
+  const session = await readSession(dataRoot, sessionId);
+  session.wakeState = { ...(session.wakeState || {}), ...value, updatedAt: now() };
+  await writeSession(dataRoot, session);
+  await updateIndex(dataRoot, session);
+}
+
+async function triggerWake(dataRoot, sessionId, roundNumber) {
+  const session = await readSession(dataRoot, sessionId);
+  const binding = session.wake;
+  if (binding?.mode !== 'auto') return { status: 'manual' };
+  if (!binding.provider || !binding.sessionRef) {
+    await recordWakeState(dataRoot, sessionId, {
+      status: 'unavailable',
+      error: 'Missing provider session reference',
+    });
+    return { status: 'unavailable' };
+  }
+
+  const directory = roundDirectory(dataRoot, sessionId, roundNumber);
+  const answersPath = path.join(directory, 'answers.json');
+  const questionsPath = path.join(directory, 'questions.json');
+  const prompt = [
+    `Ask UI session "${session.title}" round ${roundNumber} has been submitted.`,
+    `Read questions from: ${questionsPath}`,
+    `Read answers from: ${answersPath}`,
+    'Continue the original workflow using these answers.',
+    'If two or more independent follow-up questions are needed, create the next Ask UI round with the same sessionId.',
+    'If the workflow is complete, mark the Ask UI session complete.',
+    'Do not repeat or overwrite a submitted round.',
+  ].join('\n');
+
+  await recordWakeState(dataRoot, sessionId, {
+    status: 'running',
+    provider: binding.provider,
+    roundNumber,
+    startedAt: now(),
+  });
+  try {
+    const result = binding.provider === 'claude-code'
+      ? await wakeClaudeCode({ binding, prompt })
+      : await wakeCodexAppServer({ binding, prompt });
+    const logDirectory = path.join(sessionDirectory(dataRoot, sessionId), 'wake');
+    await fs.mkdir(logDirectory, { recursive: true });
+    const logFile = path.join(logDirectory, `${Date.now()}-${binding.provider}.json`);
+    await atomicWriteJson(logFile, result);
+    await recordWakeState(dataRoot, sessionId, {
+      status: 'succeeded',
+      provider: binding.provider,
+      roundNumber,
+      completedAt: now(),
+      logFile,
+    });
+    return { status: 'succeeded', logFile };
+  } catch (error) {
+    await recordWakeState(dataRoot, sessionId, {
+      status: 'failed',
+      provider: binding.provider,
+      roundNumber,
+      completedAt: now(),
+      error: error.message,
+    });
+    return { status: 'failed', error: error.message };
+  }
+}
+
+export async function startHttpServer({
+  dataRoot,
+  token = randomBytes(24).toString('hex'),
+  port = 0,
+  persistServerInfo = true,
+  enableWake = true,
+  onSubmitted = null,
+} = {}) {
+  if (!dataRoot) throw new Error('dataRoot is required');
+  await fs.mkdir(dataRoot, { recursive: true });
+
+  const server = http.createServer(async (request, response) => {
+    const requestUrl = new URL(request.url, 'http://127.0.0.1');
+    if (request.method === 'GET' && requestUrl.pathname === '/app.js') {
+      sendFile(response, path.join(APP_ROOT, 'app.js'));
+      return;
+    }
+    if (request.method === 'GET' && requestUrl.pathname === '/fallback.css') {
+      sendFile(response, path.join(APP_ROOT, 'fallback.css'));
+      return;
+    }
+
+    const bearer = request.headers.authorization?.replace(/^Bearer\s+/i, '');
+    const suppliedToken = bearer || requestUrl.searchParams.get('token');
+
+    if (suppliedToken !== token) {
+      sendJson(response, 401, { error: 'Unauthorized' });
+      return;
+    }
+
+    try {
+      if (requestUrl.pathname === '/health') {
+        sendJson(response, 200, { ok: true, pid: process.pid });
+        return;
+      }
+      if (
+        request.method === 'GET'
+        && (requestUrl.pathname === '/' || requestUrl.pathname.startsWith('/session/'))
+      ) {
+        sendFile(response, path.join(APP_ROOT, 'index.html'));
+        return;
+      }
+
+      const apiMatch = requestUrl.pathname.match(
+        /^\/api\/sessions\/([^/]+)(?:\/rounds\/(\d+)\/(draft|answers)|\/(status))?$/,
+      );
+      if (!apiMatch) {
+        sendJson(response, 404, { error: 'Not found' });
+        return;
+      }
+      const sessionId = assertSafeId(decodeURIComponent(apiMatch[1]), 'sessionId');
+      const roundNumber = apiMatch[2] ? Number(apiMatch[2]) : null;
+      const operation = apiMatch[3] || apiMatch[4] || null;
+
+      if (request.method === 'GET' && operation === 'status') {
+        const session = await readSession(dataRoot, sessionId);
+        sendJson(response, 200, { session });
+        return;
+      }
+      if (request.method === 'GET' && operation === null) {
+        sendJson(response, 200, await loadSessionBundle(dataRoot, sessionId));
+        return;
+      }
+      if (request.method === 'POST' && operation === 'draft') {
+        sendJson(
+          response,
+          200,
+          await saveDraft(dataRoot, sessionId, roundNumber, await readRequestJson(request)),
+        );
+        return;
+      }
+      if (request.method === 'POST' && operation === 'answers') {
+        const result = await submitAnswers(
+          dataRoot,
+          sessionId,
+          roundNumber,
+          await readRequestJson(request),
+        );
+        sendJson(response, 200, result);
+        if (!result.duplicate) {
+          if (onSubmitted) {
+            setTimeout(() => {
+              try {
+                onSubmitted({ sessionId, roundNumber, result });
+              } catch {
+                // Submission is already durable; observer failures must not alter it.
+              }
+            }, 0);
+          }
+          const submittedRound = result.session.rounds.find(
+            (round) => round.roundNumber === roundNumber,
+          );
+          if (enableWake && submittedRound?.deliveryMode !== 'direct') {
+            setTimeout(() => {
+              triggerWake(dataRoot, sessionId, roundNumber).catch(() => {});
+            }, 0);
+          }
+        }
+        return;
+      }
+      sendJson(response, 405, { error: 'Method not allowed' });
+    } catch (error) {
+      sendJson(response, error.statusCode || 500, { error: error.message });
+    }
+  });
+
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(Number(port) || 0, '127.0.0.1', resolve);
+  });
+  const address = server.address();
+  const info = {
+    pid: process.pid,
+    host: '127.0.0.1',
+    port: address.port,
+    token,
+    dataRoot,
+    startedAt: now(),
+  };
+  if (persistServerInfo) await atomicWriteJson(path.join(dataRoot, 'server.json'), info);
+  return { server, info };
+}
+
+async function serverIsAlive(info) {
+  if (!info?.port || !info?.token) return false;
+  try {
+    const response = await fetch(
+      `http://127.0.0.1:${info.port}/health?token=${encodeURIComponent(info.token)}`,
+      { signal: AbortSignal.timeout(800) },
+    );
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function ensureServer(dataRoot, { port = 0 } = {}) {
+  const serverFile = path.join(dataRoot, 'server.json');
+  const existing = await readJson(serverFile, null);
+  if (await serverIsAlive(existing)) return existing;
+
+  const token = randomBytes(24).toString('hex');
+  const child = spawn(
+    process.execPath,
+    [SCRIPT_FILE, 'serve', '--data-dir', dataRoot, '--port', String(Number(port) || 0), '--token', token],
+    { detached: true, stdio: 'ignore', windowsHide: true },
+  );
+  child.unref();
+
+  const deadline = Date.now() + 8000;
+  while (Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    const info = await readJson(serverFile, null);
+    if (info?.token === token && await serverIsAlive(info)) return info;
+  }
+  throw new Error('Ask UI server did not start');
+}
+
+async function waitForRoundSubmission(dataRoot, sessionId, roundNumber, signal) {
+  while (!signal.aborted) {
+    const session = await readSession(dataRoot, sessionId);
+    const round = session.rounds.find((item) => item.roundNumber === roundNumber);
+    if (!round) throw new Error(`Round ${roundNumber} not found`);
+    if (['submitted', 'processed'].includes(round.status)) return round;
+    if (session.status !== 'active') {
+      throw new Error(`Ask UI session is ${session.status}`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  throw signal.reason || new Error('Ask UI wait interrupted');
+}
+
+function openBrowser(url) {
+  let child;
+  if (process.platform === 'win32') {
+    child = spawn('rundll32.exe', ['url.dll,FileProtocolHandler', url], {
+      detached: true,
+      stdio: 'ignore',
+      windowsHide: true,
+    });
+  } else if (process.platform === 'darwin') {
+    child = spawn('open', [url], { detached: true, stdio: 'ignore' });
+  } else {
+    child = spawn('xdg-open', [url], { detached: true, stdio: 'ignore' });
+  }
+  child.unref();
+}
+
+async function readInput(inputFile) {
+  if (!inputFile) throw new Error('--input <questions.json> is required');
+  if (inputFile !== '-') return readJson(path.resolve(inputFile));
+  const chunks = [];
+  for await (const chunk of process.stdin) chunks.push(chunk);
+  return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+}
+
+function print(value) {
+  process.stdout.write(`${JSON.stringify(value, null, 2)}\n`);
+}
+
+function help() {
+  process.stdout.write(`Ask UI\n\n`);
+  process.stdout.write(`  ask --input <file> [--data-dir <dir>] [--port <number>] [--open] [--no-open]\n`);
+  process.stdout.write(`  create --input <file> [--data-dir <dir>] [--no-open] [--no-serve]\n`);
+  process.stdout.write(`  serve [--data-dir <dir>] [--port <number>] [--token <token>]\n`);
+  process.stdout.write(`  resume [--session <id>] [--data-dir <dir>]\n`);
+  process.stdout.write(`  status --session <id> [--data-dir <dir>]\n`);
+  process.stdout.write(`  complete --session <id> [--data-dir <dir>]\n`);
+  process.stdout.write(`  cancel --session <id> [--data-dir <dir>]\n`);
+}
+
+export async function main(argv = process.argv.slice(2)) {
+  const args = parseArgs(argv);
+  const command = args._[0] || 'help';
+  const dataRoot = await ensureDataRoot(args['data-dir']);
+
+  if (command === 'ask') {
+    const created = await createRound(await readInput(args.input), {
+      dataDir: dataRoot,
+      cwd: process.cwd(),
+      deliveryMode: 'direct',
+    });
+    const server = await ensureServer(dataRoot, { port: Number(args.port) || 0 });
+    const url = `http://127.0.0.1:${server.port}/session/${encodeURIComponent(created.sessionId)}?token=${encodeURIComponent(server.token)}`;
+    const abortController = new AbortController();
+    const interrupt = (signal) => abortController.abort(
+      new Error(`Ask UI wait interrupted by ${signal}; saved session data was preserved`),
+    );
+    const onSigint = () => interrupt('SIGINT');
+    const onSigterm = () => interrupt('SIGTERM');
+    process.once('SIGINT', onSigint);
+    process.once('SIGTERM', onSigterm);
+    process.stderr.write(`Ask UI ready at ${url}\n`);
+    process.stderr.write(`Waiting for round ${created.roundNumber} submission; data is saved under ${dataRoot}\n`);
+    const shouldOpen = !args['no-open'] && (Boolean(args.open) || created.roundNumber === 1);
+    if (shouldOpen) openBrowser(url);
+    else if (!args['no-open']) {
+      process.stderr.write(`Reusing the existing Ask UI browser page for round ${created.roundNumber}; use --open if it was closed.\n`);
+    }
+    try {
+      await waitForRoundSubmission(
+        dataRoot,
+        created.sessionId,
+        created.roundNumber,
+        abortController.signal,
+      );
+      print(await submittedRoundResult(dataRoot, created.sessionId, created.roundNumber));
+    } finally {
+      process.removeListener('SIGINT', onSigint);
+      process.removeListener('SIGTERM', onSigterm);
+    }
+    return;
+  }
+
+  if (command === 'create') {
+    const created = await createRound(await readInput(args.input), {
+      dataDir: dataRoot,
+      cwd: process.cwd(),
+      deliveryMode: 'manual',
+    });
+    if (args['no-serve']) {
+      print({ ...created, session: undefined });
+      return;
+    }
+    const server = await ensureServer(dataRoot);
+    const url = `http://127.0.0.1:${server.port}/session/${encodeURIComponent(created.sessionId)}?token=${encodeURIComponent(server.token)}`;
+    if (!args['no-open']) openBrowser(url);
+    print({
+      status: 'created',
+      sessionId: created.sessionId,
+      roundNumber: created.roundNumber,
+      dataRoot,
+      questionsPath: created.questionsPath,
+      url,
+      marker: `ask-ui-session: ${created.sessionId}`,
+    });
+    return;
+  }
+
+  if (command === 'serve') {
+    const started = await startHttpServer({
+      dataRoot,
+      port: Number(args.port) || 0,
+      token: args.token || randomBytes(24).toString('hex'),
+    });
+    print(started.info);
+    return new Promise(() => {});
+  }
+
+  if (command === 'resume') {
+    print(await resumeRound(dataRoot, args.session || null));
+    return;
+  }
+
+  if (command === 'status') {
+    if (!args.session) throw new Error('--session is required');
+    print(await loadSessionBundle(dataRoot, args.session));
+    return;
+  }
+
+  if (command === 'complete' || command === 'cancel') {
+    if (!args.session) throw new Error('--session is required');
+    print(await completeSession(
+      dataRoot,
+      args.session,
+      command === 'cancel' ? 'cancelled' : 'completed',
+    ));
+    return;
+  }
+
+  help();
+}
+
+const isMain = process.argv[1]
+  && pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url;
+if (isMain) {
+  main().catch((error) => {
+    process.stderr.write(`${JSON.stringify({ error: error.message })}\n`);
+    process.exitCode = 1;
+  });
+}
