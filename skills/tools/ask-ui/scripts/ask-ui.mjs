@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { constants as fsConstants, createReadStream, existsSync } from 'node:fs';
+import { constants as fsConstants, createReadStream, existsSync, realpathSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import http from 'node:http';
 import os from 'node:os';
@@ -1033,8 +1033,10 @@ export async function main(argv = process.argv.slice(2)) {
   help();
 }
 
+// argv[1] 是命令行里的字面路径，import.meta.url 是 Node 解析入口后 realpath 过的 URL。
+// 经 symlink（skills add 的默认安装方式）或 /tmp 调用时两者不等，必须都归一到真实路径再比。
 const isMain = process.argv[1]
-  && pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url;
+  && pathToFileURL(realpathSync(path.resolve(process.argv[1]))).href === import.meta.url;
 if (isMain) {
   main().catch((error) => {
     process.stderr.write(`${JSON.stringify({ error: error.message })}\n`);

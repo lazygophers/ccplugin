@@ -114,6 +114,21 @@ let server;
 let directDataRoot;
 
 try {
+  // 经 symlink 调用时 CLI 必须照常执行。skills add 默认以 symlink 安装到 agent 目录，
+  // 早前的 main 判定拿 argv[1] 字面路径比 realpath 过的 import.meta.url，导致静默退出 0。
+  const skillLink = path.join(temporaryRoot, 'linked-skill');
+  await fs.symlink(path.dirname(path.dirname(fileURLToPath(import.meta.url))), skillLink);
+  const linkedHelp = await new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [path.join(skillLink, 'scripts', 'ask-ui.mjs'), '--help'], {
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+    let output = '';
+    child.stdout.on('data', (chunk) => { output += chunk; });
+    child.on('error', reject);
+    child.on('close', () => resolve(output));
+  });
+  assert.match(linkedHelp, /Ask UI/);
+
   const first = await createRound({
     sessionTitle: '个人工作台需求确认收集',
     title: '第一轮：目标确认',
