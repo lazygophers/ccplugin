@@ -22,33 +22,41 @@ description: 把 Agent 工作流中彼此独立的问题渲染成本地交互式
 3. 创建 QuestionSet JSON 文件。新任务省略 `sessionId`；后续轮次复用当前活跃的 `sessionId` 并设置 `basedOnRound`。
    一并写上上下文字段，让用户不看对话也能判断在问什么：Session 级 `projectName` / `sessionSummary` / `sessionBackground`，Round 级 `purpose`，需要单独交代前情的题写 `background`。
    选择题没有「其他」选项。预设选项之外的答案由每题的补充说明承载，所以选项只列真正互斥的几种，不要凑「其他」。
-4. 运行前台命令，并保持该工具调用一直活跃直到它退出：
+4. **在后台运行命令，并把 stdout 和 stderr 分开重定向到两个文件**：
 
    ```text
-   node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs ask --input <questions.json>
+   node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs ask --input <questions.json> > <run>.stdout.json 2> <run>.stderr.log
    ```
 
-5. 该命令把就绪信息、`ask-ui-session: <id>` 标记和本地 URL 写入 stderr，打开表单并等待。不要结束 Agent 轮次，也不要让用户回复「已提交」。
-6. 用户提交后，解析 stdout 输出的那一个 JSON 结果，立即继续原工作流。
+   用 harness 的后台机制启动（Claude Code 里是 Bash 工具的 `run_in_background: true`），**不要**用 `nohup ... &` 之类的手写方式——那样 harness 收不到退出事件，就退回到要人工追问的老路。
+
+5. 启动后立刻结束本轮，什么都不用等。`ask` 没有超时，会一直阻塞到用户提交；用户提交后进程退出，harness 主动把任务完成通知推给你，那就是唤醒信号。禁止 `sleep` 轮询，禁止催用户，禁止让用户回复「已提交」。
+6. 收到完成通知后，直接读 `<run>.stdout.json`——它是一整行 JSON，解析后继续原工作流。stderr 文件只用于排查，正常路径不必看。
 7. 若还需要更多独立问题，用同一个 `sessionId` 再次调用 `ask`，并把 `basedOnRound` 设为返回的轮次号。没有更多问题时，结束该 Session。
 
-### 命令被放到后台或中断时
+### 为什么必须分流重定向
 
-`ask` 会一直阻塞到用户提交，容易被 harness 转到后台。转后台之后 stdout 和 stderr 混在同一个任务输出文件里，**直接解析那个文件必然失败**。
+后台任务的 stdout 和 stderr 会混进 harness 的同一个任务输出文件，混在一起的内容 `JSON.parse` 必然失败——这是过去要人工 `resume` 兜底的唯一原因。用 `>` 和 `2>` 分开写到两个文件后，stdout 文件就是纯净的结果 JSON，任务输出文件里只剩 `[exited with code 0]`，整条链路不再需要任何人工确认。
 
-**绝不要求用户回复「已提交」来推进 `ask`。** 用户填完表单、页面自行关闭，`ask` 进程随即退出，harness 会把后台任务完成通知推给你——那就是结果就绪的信号，不需要用户再说一遍。用户被要求汇报自己刚做完的事，是这条流程唯一不该出现的状态。
+**绝不要求用户回复「已提交」来推进 `ask`。** 用户被要求汇报自己刚做完的事，是这条流程唯一不该出现的状态。
 
-转后台后按这个顺序判断：
+### 结果回收的兜底
 
-1. 命令还在跑 → 结束本轮，等 harness 的任务完成通知。不要 `sleep` 轮询，不要催用户。
-2. 收到完成通知，或输出里出现 `ask-ui-submitted: <id> round <n>` → 结果已就绪。
-3. 拿 stderr 里的 `ask-ui-session: <id>` 取结果：
+只有在下面这些情况才需要 `resume`：
 
-   ```text
-   node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs resume --session <sessionId>
-   ```
+- 后台任务被杀、崩溃，或退出码非 0
+- `<run>.stdout.json` 为空或不是合法 JSON
+- 换了新的 Agent 会话，拿不到原来的后台任务
 
-`resume` 返回 `status: "submitted"` 时其中就是完整答案；返回 `{"status":"waiting"}` 说明进程还没退出，回到第 1 步继续等。不要去 `tail` 任务输出、不要手动拼 `.ask-ui/` 下的文件路径。
+从 stderr 文件里的 `ask-ui-session: <id>` 标记取 `sessionId`，然后：
+
+```text
+node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs resume --session <sessionId>
+```
+
+`resume` 返回 `status: "submitted"` 时其中就是完整答案；返回 `{"status":"waiting"}` 说明用户还没提交，继续等通知。不要去 `tail` harness 的任务输出、不要手动拼 `.ask-ui/` 下的文件路径。
+
+stderr 文件里还有一行 `ask-ui-submitted: <id> round <n>`，是提交完成的备用信号。
 
 每一轮都会打开浏览器：页面在提交后自行关闭，所以下一轮必须重新打开。同一 Session 的各轮复用常驻服务和稳定 URL。
 
@@ -56,7 +64,7 @@ description: 把 Agent 工作流中彼此独立的问题渲染成本地交互式
 
 ## 手动回退与恢复
 
-这是最后手段，只在 `ask` 确实用不了时才走——它是唯一需要用户回复「已提交」的路径。`ask` 被转到后台**不算**用不了，那种情况按上一节等通知。
+这是最后手段，只在 `ask` 确实用不了时才走——它是唯一需要用户回复「已提交」的路径。`ask` 在后台运行**不算**用不了，那是标准路径，按上面等通知即可。
 
 出现以下情况时走分离式（detached）流程：前台工具调用无法保持活跃、本地浏览器连不上临时服务、或需要恢复一个被中断的直连轮次：
 
