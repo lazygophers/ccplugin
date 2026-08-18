@@ -1,6 +1,6 @@
 ---
 name: ask-ui
-description: 把 Agent 工作流中彼此独立的问题渲染成本地交互式表单，预选推荐答案，为每个问题收集可选补充说明，将回答保存为可移植 JSON，并把提交结果直接返回给等待中的 Agent 命令。适用于 grill-me、grill-with-docs、头脑风暴、需求澄清、配置、规划，以及任何需要用户确认或问题收集的工作流；当一轮包含超过两个问题时，必须显式调用 Ask UI。用户在一轮 Ask UI 进行中说「已提交」「提交好了」「答完了」时，也走本 skill 的手动恢复路径。
+description: 把 Agent 工作流中彼此独立的问题渲染成本地交互式表单，标注推荐答案，为每个问题收集可选补充说明，将回答保存为可移植 JSON，并把提交结果直接返回给等待中的 Agent 命令。适用于 grill-me、grill-with-docs、头脑风暴、需求澄清、配置、规划，以及任何需要用户确认或问题收集的工作流；当一轮包含超过两个问题时，必须显式调用 Ask UI。用户在一轮 Ask UI 进行中说「已提交」「提交好了」「答完了」时，也走本 skill 的手动恢复路径。
 ---
 
 # Ask UI
@@ -36,19 +36,27 @@ description: 把 Agent 工作流中彼此独立的问题渲染成本地交互式
 
 `ask` 会一直阻塞到用户提交，容易被 harness 转到后台。转后台之后 stdout 和 stderr 混在同一个任务输出文件里，**直接解析那个文件必然失败**。
 
-此时唯一正确的取结果方式是拿 stderr 里的 `ask-ui-session: <id>` 跑：
+**绝不要求用户回复「已提交」来推进 `ask`。** 用户填完表单、页面自行关闭，`ask` 进程随即退出，harness 会把后台任务完成通知推给你——那就是结果就绪的信号，不需要用户再说一遍。用户被要求汇报自己刚做完的事，是这条流程唯一不该出现的状态。
 
-```text
-node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs resume --session <sessionId>
-```
+转后台后按这个顺序判断：
 
-返回 `{"status":"waiting"}` 表示用户还没提交，等着再查；返回 `status: "submitted"` 时其中就是完整答案。不要去 `tail` 任务输出、不要手动拼 `.ask-ui/` 下的文件路径。
+1. 命令还在跑 → 结束本轮，等 harness 的任务完成通知。不要 `sleep` 轮询，不要催用户。
+2. 收到完成通知，或输出里出现 `ask-ui-submitted: <id> round <n>` → 结果已就绪。
+3. 拿 stderr 里的 `ask-ui-session: <id>` 取结果：
+
+   ```text
+   node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs resume --session <sessionId>
+   ```
+
+`resume` 返回 `status: "submitted"` 时其中就是完整答案；返回 `{"status":"waiting"}` 说明进程还没退出，回到第 1 步继续等。不要去 `tail` 任务输出、不要手动拼 `.ask-ui/` 下的文件路径。
 
 每一轮都会打开浏览器：页面在提交后自行关闭，所以下一轮必须重新打开。同一 Session 的各轮复用常驻服务和稳定 URL。
 
 仅当浏览器打开由外部单独管理时才用 `--no-open`。仅当必须固定 localhost 端口时才用 `--port <number>`。
 
 ## 手动回退与恢复
+
+这是最后手段，只在 `ask` 确实用不了时才走——它是唯一需要用户回复「已提交」的路径。`ask` 被转到后台**不算**用不了，那种情况按上一节等通知。
 
 出现以下情况时走分离式（detached）流程：前台工具调用无法保持活跃、本地浏览器连不上临时服务、或需要恢复一个被中断的直连轮次：
 

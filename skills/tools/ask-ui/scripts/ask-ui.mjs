@@ -971,6 +971,8 @@ export async function main(argv = process.argv.slice(2)) {
         created.roundNumber,
         abortController.signal,
       );
+      // 转后台时 stdout 会和 stderr 混在一起，这行是「结果已就绪」的唯一可靠信号。
+      process.stderr.write(`ask-ui-submitted: ${created.sessionId} round ${created.roundNumber}\n`);
       print(await submittedRoundResult(dataRoot, created.sessionId, created.roundNumber));
     } finally {
       process.removeListener('SIGINT', onSigint);
