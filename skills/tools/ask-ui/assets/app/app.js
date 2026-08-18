@@ -321,7 +321,8 @@ function renderRail(container) {
     button.dataset.questionId = question.id;
     button.dataset.state = state;
     button.append(element('span', 'n', String(index + 1).padStart(2, '0')));
-    button.append(element('span', 't', question.title));
+    // 导航是索引不是正文：多行标题只取第一行，免得把左栏撑乱。
+    button.append(element('span', 't', question.title.split('\n')[0]));
     button.append(element('span', 'st', { done: '已答', current: '当前', todo: '未答' }[state]));
     button.addEventListener('click', () => {
       if (editable) focusedQuestionId = question.id;

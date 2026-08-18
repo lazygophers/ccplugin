@@ -71,6 +71,20 @@ body {
   line-height: 1.6;
 }
 
+/* QuestionSet 里的文本按原样保留换行：\n 直接换行，不折成空格。 */
+.session-summary,
+.rail-block p,
+.question-title,
+.question-description,
+.question-background,
+.option-label,
+.option-description,
+.recommendation,
+.history-answer,
+.submit-readme {
+  white-space: pre-wrap;
+}
+
 button,
 input,
 textarea {
