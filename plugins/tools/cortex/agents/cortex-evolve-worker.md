@@ -25,13 +25,7 @@ background: true
 
 JSON 结果:
 ```json
-{
-  "scope": "<vault root>",
-  "moves": [
-    {"action": "promote|demote", "file": "<path>", "from": "L<n>", "to": "L<m>", "signals": {"freq": 0, "recency": 0, "importance": 0}, "reason": "<判断>", "applied": true}
-  ],
-  "summary": {"promote": 0, "demote": 0, "blocked": 0}
-}
+{"scope":"<vault root>","moves":[{"action":"promote|demote","file":"<path>","from":"L<n>","to":"L<m>","signals":{"freq":0,"recency":0,"importance":0},"reason":"<判断>","applied":true}],"summary":{"promote":0,"demote":0,"blocked":0}}
 ```
 
 ## 边界 (硬规)

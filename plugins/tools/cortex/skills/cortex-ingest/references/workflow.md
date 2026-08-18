@@ -14,26 +14,7 @@
 ## dry-run JSON plan 字段
 
 ```json
-{
-  "source": "https://github.com/lazygophers/ccplugin",
-  "kind": "github",
-  "host": "github.com",
-  "owner": "lazygophers",
-  "repo": "ccplugin",
-  "target_path": "项目/github.com/lazygophers/ccplugin",
-  "target_filename": "README.md",
-  "fetch_method": "gh",
-  "fetch_fallback": "WebFetch",
-  "frontmatter_preview": {
-    "type": "project",
-    "host": "github.com",
-    "owner": "lazygophers",
-    "repo": "ccplugin",
-    "source": "https://github.com/lazygophers/ccplugin"
-  },
-  "needs_main": false,
-  "notes": []
-}
+{"source":"https://github.com/lazygophers/ccplugin","kind":"github","host":"github.com","owner":"lazygophers","repo":"ccplugin","target_path":"项目/github.com/lazygophers/ccplugin","target_filename":"README.md","fetch_method":"gh","fetch_fallback":"WebFetch","frontmatter_preview":{"type":"project","host":"github.com","owner":"lazygophers","repo":"ccplugin","source":"https://github.com/lazygophers/ccplugin"},"needs_main":false,"notes":[]}
 ```
 
 `needs_main=true` 当 fetch_method 仅 sub-agent 可执行 (`WebFetch` website 情况).
@@ -50,16 +31,7 @@
 ## state/ingest-cursor.json
 
 ```json
-{
-  "entries": [
-    {
-      "source": "https://github.com/lazygophers/ccplugin",
-      "target_path": "项目/github.com/lazygophers/ccplugin",
-      "sha": "<commit-sha or content-sha>",
-      "ingested_at": "2025-06-09T12:00:00Z"
-    }
-  ]
-}
+{"entries":[{"source":"https://github.com/lazygophers/ccplugin","target_path":"项目/github.com/lazygophers/ccplugin","sha":"<commit-sha or content-sha>","ingested_at":"2025-06-09T12:00:00Z"}]}
 ```
 
 apply 落盘时追加; dry-run 不写. 用于增量 (二次 ingest 同源时跳过或 diff).

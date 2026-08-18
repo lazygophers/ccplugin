@@ -84,25 +84,7 @@ repo 中任何编码规范文档：`CODING_STANDARDS.md` / `CONTRIBUTING.md` / `
 单个 JSON 对象, 无自然语言或 Markdown 包裹:
 
 ```json
-{
-  "task_id": "<tid>",
-  "standards": {
-    "verdict": "PASS | FAIL",
-    "findings": [
-      {"file": "<path>:<line>", "smell": "<smell名>", "severity": "hard | judgement", "note": "<描述>", "fix": "<建议>"}
-    ]
-  },
-  "spec": {
-    "verdict": "PASS | FAIL | SKIP",
-    "spec_source": "<TaskSpec | design.md | 不明>",
-    "findings": [
-      {"type": "missing | creep | wrong", "spec_line": "<spec原文>", "diff_location": "<path>:<line>", "note": "<描述>"}
-    ]
-  },
-  "summary": "Standards: N findings (worst: <smell>). Spec: M findings (worst: <type>).",
-  "needs_main": ["<需 main 介入项, 如 fixed-point 无法确定>"],
-  "tool_failures": ["[工具失败: <原因>]"]
-}
+{"task_id":"<tid>","standards":{"verdict":"PASS | FAIL","findings":[{"file":"<path>:<line>","smell":"<smell名>","severity":"hard | judgement","note":"<描述>","fix":"<建议>"}]},"spec":{"verdict":"PASS | FAIL | SKIP","spec_source":"<TaskSpec | design.md | 不明>","findings":[{"type":"missing | creep | wrong","spec_line":"<spec原文>","diff_location":"<path>:<line>","note":"<描述>"}]},"summary":"Standards: N findings (worst: <smell>). Spec: M findings (worst: <type>).","needs_main":["<需 main 介入项, 如 fixed-point 无法确定>"],"tool_failures":["[工具失败: <原因>]"]}
 ```
 
 ## Checkpoints

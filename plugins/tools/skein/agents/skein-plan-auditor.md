@@ -173,38 +173,7 @@ Bash("skein-spec analyze <tid>")
 ## 返回数据格式 (JSON)
 
 ```json
-{
-  "task_id": "<tid>",
-  "task_name": "<task 标题>",
-  "verdict": "CLEAN | HAS_BLOCKER | HAS_MAJOR | HAS_MINOR",
-  "findings": [
-    {
-      "axis": "需求真伪|边界|假设|DAG|验收|drift|scope|工时|自包含",
-      "severity": "Blocker|Major|Minor",
-      "finding": "<弱点描述>",
-      "evidence": "<file:line / 原文引用>",
-      "suggestion": "<可操作改进建议>"
-    }
-  ],
-  "spec_analyze": {
-    "ran": true,
-    "candidates": [
-      {"category": "验收覆盖率|硬规冲突|范围蔓延|proposed置信度|接缝存在性", "note": "<候选说明>"}
-    ]
-  },
-  "axis_coverage": {
-    "需求真伪": "pass|findings|skipped",
-    "边界": "pass|findings|skipped",
-    "假设": "pass|findings|skipped",
-    "DAG": "pass|findings|skipped",
-    "验收": "pass|findings|skipped",
-    "drift": "pass|findings|skipped",
-    "scope": "pass|findings|skipped",
-    "工时": "pass|findings|skipped",
-    "自包含": "pass|findings|skipped"
-  },
-  "tool_failures": ["[工具失败: <原因>]"]
-}
+{"task_id":"<tid>","task_name":"<task 标题>","verdict":"CLEAN | HAS_BLOCKER | HAS_MAJOR | HAS_MINOR","findings":[{"axis":"需求真伪|边界|假设|DAG|验收|drift|scope|工时|自包含","severity":"Blocker|Major|Minor","finding":"<弱点描述>","evidence":"<file:line / 原文引用>","suggestion":"<可操作改进建议>"}],"spec_analyze":{"ran":true,"candidates":[{"category":"验收覆盖率|硬规冲突|范围蔓延|proposed置信度|接缝存在性","note":"<候选说明>"}]},"axis_coverage":{"需求真伪":"pass|findings|skipped","边界":"pass|findings|skipped","假设":"pass|findings|skipped","DAG":"pass|findings|skipped","验收":"pass|findings|skipped","drift":"pass|findings|skipped","scope":"pass|findings|skipped","工时":"pass|findings|skipped","自包含":"pass|findings|skipped"},"tool_failures":["[工具失败: <原因>]"]}
 ```
 
 `verdict` 取所有 findings 中最高严重度; 无 findings = `CLEAN`。

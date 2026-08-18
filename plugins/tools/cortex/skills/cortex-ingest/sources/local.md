@@ -36,12 +36,7 @@ source: `/Users/foo/repos/myproject` (无 git remote)
 plan:
 
 ```json
-{
-  "kind": "local",
-  "basename": "myproject",
-  "target": "项目/local/myproject/",
-  "fetch": ["read README.md", "read package.json"]
-}
+{"kind":"local","basename":"myproject","target":"项目/local/myproject/","fetch":["read README.md","read package.json"]}
 ```
 
 其他变体:

@@ -26,14 +26,7 @@ background: true
 
 JSON 结果:
 ```json
-{
-  "scope": "<vault root>",
-  "cursor": {"from": "<last>", "to": "<advanced>", "scanned_sessions": 0},
-  "increments": [
-    {"type": "correction|decision|pitfall|L0-rule", "summary": "<增量>", "source_session": "<id>", "target_level": "L<n>", "target_path": "<memory/...>", "written": true}
-  ],
-  "summary": {"total": 0, "by_level": {}}
-}
+{"scope":"<vault root>","cursor":{"from":"<last>","to":"<advanced>","scanned_sessions":0},"increments":[{"type":"correction|decision|pitfall|L0-rule","summary":"<增量>","source_session":"<id>","target_level":"L<n>","target_path":"<memory/...>","written":true}],"summary":{"total":0,"by_level":{}}}
 ```
 
 ## 边界 (硬规)

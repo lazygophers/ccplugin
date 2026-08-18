@@ -43,10 +43,7 @@
 
 **array 形态** (新版本 / 含工具调用):
 ```json
-{"type":"assistant","content":[
-  {"type":"text","text":"我会先读文件"},
-  {"type":"tool_use","id":"toolu_01","name":"Read","input":{"file_path":"..."}}
-],"timestamp":"..."}
+{"type":"assistant","content":[{"type":"text","text":"我会先读文件"},{"type":"tool_use","id":"toolu_01","name":"Read","input":{"file_path":"..."}}],"timestamp":"..."}
 ```
 
 parser 必须两种都支持: string 直用; array 遍历 `{type:"text"}` 段拼接, 其他 type 段跳过.

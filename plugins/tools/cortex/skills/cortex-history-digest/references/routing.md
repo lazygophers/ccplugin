@@ -62,40 +62,7 @@ trigger_keywords: [...]
 ## dry-run JSON plan schema
 
 ```json
-{
-  "version": 1,
-  "generated_at": "ISO 8601",
-  "source_root": "/home/x/.claude/projects",
-  "target": "/home/x/.cortex",
-  "since": null,
-  "stats": {
-    "files_scanned": 12,
-    "lines_parsed": 4321,
-    "candidates": 8,
-    "warnings": 3
-  },
-  "candidates": [
-    {
-      "id": "...",
-      "kind": "user-correction",
-      "suggested_level": "L1-long",
-      "target_path": "/home/x/.cortex/.wiki/memory/L1-long/history-20250609-abc123.md",
-      "text_excerpt": "...前 80 字...",
-      "weight": 0.7,
-      "occurrences": 1,
-      "promote_marks": [],
-      "needs_user_review": true,
-      "source": {
-        "session_file": "/home/x/.claude/projects/.../<uuid>.jsonl",
-        "session_id": "...",
-        "timestamp": "..."
-      }
-    }
-  ],
-  "warnings": [
-    {"file": "...", "line": 42, "error": "json parse failed"}
-  ]
-}
+{"version":1,"generated_at":"ISO 8601","source_root":"/home/x/.claude/projects","target":"/home/x/.cortex","since":null,"stats":{"files_scanned":12,"lines_parsed":4321,"candidates":8,"warnings":3},"candidates":[{"id":"...","kind":"user-correction","suggested_level":"L1-long","target_path":"/home/x/.cortex/.wiki/memory/L1-long/history-20250609-abc123.md","text_excerpt":"...前 80 字...","weight":0.7,"occurrences":1,"promote_marks":[],"needs_user_review":true,"source":{"session_file":"/home/x/.claude/projects/.../<uuid>.jsonl","session_id":"...","timestamp":"..."}}],"warnings":[{"file":"...","line":42,"error":"json parse failed"}]}
 ```
 
 ## --apply 行为 (默认; 本 task 范围仅文档, 不实现)

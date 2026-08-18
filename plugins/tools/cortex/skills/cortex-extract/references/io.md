@@ -19,30 +19,7 @@
 ## dry-run 输出格式
 
 ```json
-{
-  "mode": "dry-run",
-  "target": "/abs/path",
-  "plan": [
-    {
-      "source": "/abs/.../L4-inbox/foo.md",
-      "sha256": "abc...",
-      "mtime": 1717900000.0,
-      "weight": 0.5,
-      "reuse_count": 1,
-      "kw_hits": {"L3": ["暂时"]},
-      "target": {
-        "module": "memory",
-        "level": "L3",
-        "path": "<由 schema-* 决定>",
-        "filename": "foo.md"
-      },
-      "reason": "L3 关键词命中: ['暂时']",
-      "ask": false,
-      "promote_hint": null
-    }
-  ],
-  "skipped": [{"rel": "...", "sha256": "...", "reason": "cursor skip"}]
-}
+{"mode":"dry-run","target":"/abs/path","plan":[{"source":"/abs/.../L4-inbox/foo.md","sha256":"abc...","mtime":1717900000,"weight":0.5,"reuse_count":1,"kw_hits":{"L3":["暂时"]},"target":{"module":"memory","level":"L3","path":"<由 schema-* 决定>","filename":"foo.md"},"reason":"L3 关键词命中: ['暂时']","ask":false,"promote_hint":null}],"skipped":[{"rel":"...","sha256":"...","reason":"cursor skip"}]}
 ```
 
 ## apply 行为

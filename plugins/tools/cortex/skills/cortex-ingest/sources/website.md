@@ -32,13 +32,7 @@ source: `https://docs.python.org/3/library/argparse.html`
 plan:
 
 ```json
-{
-  "kind": "website",
-  "host": "docs.python.org",
-  "slug": "3",
-  "target": "项目/docs.python.org/_/3/",
-  "fetch": ["WebFetch https://docs.python.org/3/library/argparse.html"]
-}
+{"kind":"website","host":"docs.python.org","slug":"3","target":"项目/docs.python.org/_/3/","fetch":["WebFetch https://docs.python.org/3/library/argparse.html"]}
 ```
 
 其他变体:

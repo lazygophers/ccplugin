@@ -16,14 +16,7 @@ background: true
 scheduler / main 只发单个 JSON 对象:
 
 ```json
-{
-	"tid": "<task-id>",
-	"sid": "<research subtask-id, scheduler 派发时必带, main 手派时无此键>",
-	"workdir": "<绝对工作目录>",
-	"worktree": "on | off",
-	"repo": "<目标 repo 或 null>",
-	"action": "<本次调研要产出什么>"
-}
+{"tid":"<task-id>","sid":"<research subtask-id, scheduler 派发时必带, main 手派时无此键>","workdir":"<绝对工作目录>","worktree":"on | off","repo":"<目标 repo 或 null>","action":"<本次调研要产出什么>"}
 ```
 
 入参有两种来源:
@@ -47,11 +40,5 @@ main 派 `Agent(subagent_type="skein:skein-researcher")`, 核对回传与落盘�
 只回单个 JSON 对象, 无自然语言或 Markdown 包裹:
 
 ```json
-{
-	"conclusion": "<收敛结论摘要>",
-	"findings_file": ".skein/task/<id>/findings.md",
-	"subtask_status": "done | fail | n/a",
-	"needs": ["需要: <缺的信息>"],
-	"tool_failures": ["[工具失败: <原因>]"]
-}
+{"conclusion":"<收敛结论摘要>","findings_file":".skein/task/<id>/findings.md","subtask_status":"done | fail | n/a","needs":["需要: <缺的信息>"],"tool_failures":["[工具失败: <原因>]"]}
 ```

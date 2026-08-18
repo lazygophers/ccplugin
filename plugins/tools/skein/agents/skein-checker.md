@@ -62,12 +62,7 @@ Bash("skein task spec <id>")              # 回显 acceptance 验收项
   - **其他自定义** → 按 PRD 描述的命令/步骤执行
 - **每条验证结果格式统一**:
   ```json
-  {
-    "method": "<验收标准条目原文>",
-    "result": "PASS | FAIL | MANUAL",
-    "evidence": "<file:line / URL / exit code / 原因>",
-    "cmd": "<执行的命令或步骤>"
-  }
+  {"method":"<验收标准条目原文>","result":"PASS | FAIL | MANUAL","evidence":"<file:line / URL / exit code / 原因>","cmd":"<执行的命令或步骤>"}
   ```
 - **任一条 FAIL → 必须上报**, 逐条不漏。CLI 报错 → `[工具失败: 验收标准执行失败]`。
 

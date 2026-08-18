@@ -26,13 +26,7 @@ background: true
 
 JSON 结果:
 ```json
-{
-  "scope": "<scanned root>",
-  "violations": [
-    {"rule": "R<n>", "file": "<path>", "detail": "<违规说明>", "fixable": true, "fixed": true, "fix_hint": "<如何修>"}
-  ],
-  "summary": {"total": 0, "by_rule": {}, "fixed": 0, "manual": 0}
-}
+{"scope":"<scanned root>","violations":[{"rule":"R<n>","file":"<path>","detail":"<违规说明>","fixable":true,"fixed":true,"fix_hint":"<如何修>"}],"summary":{"total":0,"by_rule":{},"fixed":0,"manual":0}}
 ```
 
 ## 边界 (硬规)

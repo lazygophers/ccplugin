@@ -30,13 +30,7 @@ source: `https://github.com/lazygophers/ccplugin`
 plan:
 
 ```json
-{
-  "kind": "github",
-  "owner": "lazygophers",
-  "repo": "ccplugin",
-  "target": "项目/github.com/lazygophers/ccplugin/",
-  "fetch": ["gh repo view lazygophers/ccplugin --json description,stargazerCount", "WebFetch README"]
-}
+{"kind":"github","owner":"lazygophers","repo":"ccplugin","target":"项目/github.com/lazygophers/ccplugin/","fetch":["gh repo view lazygophers/ccplugin --json description,stargazerCount","WebFetch README"]}
 ```
 
 其他变体:

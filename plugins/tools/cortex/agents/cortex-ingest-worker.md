@@ -26,14 +26,7 @@ background: true
 
 JSON 结果:
 ```json
-{
-  "source": "<input>",
-  "kind": "github|gitlab|website|local-git|local-dir",
-  "target_path": "<项目/...>",
-  "fetched": [{"method": "gh|git-clone|webfetch", "ref": "<url/path>", "note": "<抓了什么>"}],
-  "summary": "<入库摘要>",
-  "ingested": true
-}
+{"source":"<input>","kind":"github|gitlab|website|local-git|local-dir","target_path":"<项目/...>","fetched":[{"method":"gh|git-clone|webfetch","ref":"<url/path>","note":"<抓了什么>"}],"summary":"<入库摘要>","ingested":true}
 ```
 
 ## 边界 (硬规)

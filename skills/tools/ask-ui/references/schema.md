@@ -5,25 +5,7 @@
 使用 UTF-8 编码的 JSON。除非另有说明，此处未列出的字段一律忽略。
 
 ```json
-{
-  "schemaVersion": "1.0",
-  "sessionId": "optional-existing-session-id",
-  "projectName": "personal-workbench",
-  "sessionTitle": "个人工作台需求确认收集",
-  "sessionSummary": "收集个人工作台的目标、模块和交互需求",
-  "sessionBackground": "已有一版命令行工具，这次要把它做成可视化工作台，先定首页与首期模块。",
-  "roundNumber": 1,
-  "title": "基础需求确认",
-  "purpose": "确认工作台的核心目标",
-  "basedOnRound": null,
-  "wake": {
-    "mode": "manual",
-    "provider": null,
-    "sessionRef": null,
-    "cwd": null
-  },
-  "questions": []
-}
+{"schemaVersion":"1.0","sessionId":"optional-existing-session-id","projectName":"personal-workbench","sessionTitle":"个人工作台需求确认收集","sessionSummary":"收集个人工作台的目标、模块和交互需求","sessionBackground":"已有一版命令行工具，这次要把它做成可视化工作台，先定首页与首期模块。","roundNumber":1,"title":"基础需求确认","purpose":"确认工作台的核心目标","basedOnRound":null,"wake":{"mode":"manual","provider":null,"sessionRef":null,"cwd":null},"questions":[]}
 ```
 
 省略时，CLI 会自动生成 `sessionId` 和 `roundNumber`。后续轮次复用同一个 `sessionId`。
@@ -45,85 +27,25 @@
 ### 单选
 
 ```json
-{
-  "id": "q1",
-  "type": "single",
-  "title": "首页结构",
-  "description": "选择一种主要组织方式。",
-  "background": "现在的命令行版本只有一个列表视图，用户反馈找不到当天该做什么。",
-  "required": true,
-  "options": [
-    {
-      "id": "dashboard",
-      "label": "仪表盘",
-      "description": "集中展示核心状态"
-    }
-  ],
-  "recommendedOptionIds": ["dashboard"],
-  "recommendationReason": "更适合快速查看整体状态"
-}
+{"id":"q1","type":"single","title":"首页结构","description":"选择一种主要组织方式。","background":"现在的命令行版本只有一个列表视图，用户反馈找不到当天该做什么。","required":true,"options":[{"id":"dashboard","label":"仪表盘","description":"集中展示核心状态"}],"recommendedOptionIds":["dashboard"],"recommendationReason":"更适合快速查看整体状态"}
 ```
 
 ### 多选
 
 ```json
-{
-  "id": "q2",
-  "type": "multiple",
-  "title": "首期模块",
-  "description": "选择首期必须具备的模块。",
-  "required": true,
-  "minSelections": 1,
-  "maxSelections": 3,
-  "options": [
-    { "id": "tasks", "label": "任务", "description": "待办与进度" },
-    { "id": "notes", "label": "笔记", "description": "知识沉淀" }
-  ],
-  "recommendedOptionIds": ["tasks"],
-  "recommendationReason": "任务是工作台的主入口"
-}
+{"id":"q2","type":"multiple","title":"首期模块","description":"选择首期必须具备的模块。","required":true,"minSelections":1,"maxSelections":3,"options":[{"id":"tasks","label":"任务","description":"待办与进度"},{"id":"notes","label":"笔记","description":"知识沉淀"}],"recommendedOptionIds":["tasks"],"recommendationReason":"任务是工作台的主入口"}
 ```
 
 ### 自由文本
 
 ```json
-{
-  "id": "q3",
-  "type": "text",
-  "title": "成功标准",
-  "description": "描述上线后的成功标准。",
-  "required": true,
-  "recommendedDraft": "每天可以在一个页面完成工作安排和回顾。",
-  "recommendationReason": "可直接观察和验证",
-  "multiline": true,
-  "maxLength": 2000
-}
+{"id":"q3","type":"text","title":"成功标准","description":"描述上线后的成功标准。","required":true,"recommendedDraft":"每天可以在一个页面完成工作安排和回顾。","recommendationReason":"可直接观察和验证","multiline":true,"maxLength":2000}
 ```
 
 ## AnswerSet（答案集）
 
 ```json
-{
-  "schemaVersion": "1.0",
-  "submissionId": "submit-generated-id",
-  "sessionId": "personal-workbench-a7k2",
-  "roundNumber": 1,
-  "submittedAt": "2026-08-10T15:30:00.000Z",
-  "answers": [
-    {
-      "questionId": "q1",
-      "selectedOptionIds": ["dashboard"],
-      "customText": "",
-      "supplementaryText": "希望首页优先展示今天的任务。"
-    },
-    {
-      "questionId": "q3",
-      "selectedOptionIds": [],
-      "customText": "每天使用至少两次。",
-      "supplementaryText": ""
-    }
-  ]
-}
+{"schemaVersion":"1.0","submissionId":"submit-generated-id","sessionId":"personal-workbench-a7k2","roundNumber":1,"submittedAt":"2026-08-10T15:30:00.000Z","answers":[{"questionId":"q1","selectedOptionIds":["dashboard"],"customText":"","supplementaryText":"希望首页优先展示今天的任务。"},{"questionId":"q3","selectedOptionIds":[],"customText":"每天使用至少两次。","supplementaryText":""}]}
 ```
 
 `answers.json` 提交后即不可变。需要更正时创建新的 Round。

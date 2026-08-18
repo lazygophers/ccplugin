@@ -29,13 +29,7 @@ source: `https://gitlab.com/gitlab-org/gitlab`
 plan:
 
 ```json
-{
-  "kind": "gitlab",
-  "owner": "gitlab-org",
-  "repo": "gitlab",
-  "target": "项目/gitlab.com/gitlab-org/gitlab/",
-  "fetch": ["glab repo view gitlab-org/gitlab", "WebFetch README"]
-}
+{"kind":"gitlab","owner":"gitlab-org","repo":"gitlab","target":"项目/gitlab.com/gitlab-org/gitlab/","fetch":["glab repo view gitlab-org/gitlab","WebFetch README"]}
 ```
 
 其他变体:

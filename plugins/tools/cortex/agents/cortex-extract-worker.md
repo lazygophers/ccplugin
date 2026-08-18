@@ -26,14 +26,7 @@ background: true
 
 JSON 结果:
 ```json
-{
-  "scope": "<vault root>",
-  "routes": [
-    {"file": "<L4-inbox/...>", "target_level": "L<n>|project|domain", "target_path": "<memory/...>", "axes": {"durability": 0, "strength": 0, "reuse": 0}, "reason": "<判断>", "applied": true}
-  ],
-  "cursor": {"from": "<last>", "to": "<advanced>"},
-  "summary": {"total": 0, "by_target": {}}
-}
+{"scope":"<vault root>","routes":[{"file":"<L4-inbox/...>","target_level":"L<n>|project|domain","target_path":"<memory/...>","axes":{"durability":0,"strength":0,"reuse":0},"reason":"<判断>","applied":true}],"cursor":{"from":"<last>","to":"<advanced>"},"summary":{"total":0,"by_target":{}}}
 ```
 
 ## 边界 (硬规)

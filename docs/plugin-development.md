@@ -75,20 +75,7 @@ my-plugin/
 插件清单文件，包含插件元数据和配置。
 
 ```json
-{
-  "name": "my-plugin",
-  "version": "1.0.0",
-  "description": "插件描述",
-  "author": {
-    "name": "作者名",
-    "email": "email@example.com",
-    "url": "https://github.com/author"
-  },
-  "keywords": ["tag1", "tag2"],
-  "commands": "./commands/",
-  "agents": ["./agents/dev.md"],
-  "skills": "./skills/"
-}
+{"name":"my-plugin","version":"1.0.0","description":"插件描述","author":{"name":"作者名","email":"email@example.com","url":"https://github.com/author"},"keywords":["tag1","tag2"],"commands":"./commands/","agents":["./agents/dev.md"],"skills":"./skills/"}
 ```
 
 ### 2. Commands（命令）
@@ -272,21 +259,7 @@ allowed-tools: Read, Grep, Bash
 **格式**：
 
 ```json
-{
-  "hooks": {
-    "EventName": [
-      {
-        "matcher": "ToolName|Pattern",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "/path/to/script.sh"
-          }
-        ]
-      }
-    ]
-  }
-}
+{"hooks":{"EventName":[{"matcher":"ToolName|Pattern","hooks":[{"type":"command","command":"/path/to/script.sh"}]}]}}
 ```
 
 **可用事件**：
@@ -316,24 +289,7 @@ allowed-tools: Read, Grep, Bash
 **示例**：
 
 ```json
-{
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/format.sh",
-            "env": {
-              "FORMAT": "true"
-            }
-          }
-        ]
-      }
-    ]
-  }
-}
+{"hooks":{"PostToolUse":[{"matcher":"Write|Edit","hooks":[{"type":"command","command":"${CLAUDE_PLUGIN_ROOT}/scripts/format.sh","env":{"FORMAT":"true"}}]}]}}
 ```
 
 ### 6. MCP Servers
@@ -343,17 +299,7 @@ Model Context Protocol 服务器，提供外部工具集成。
 **配置文件** (`.mcp.json`)：
 
 ```json
-{
-  "mcpServers": {
-    "my-server": {
-      "command": "uvx",
-      "args": ["--from", "./scripts", "my-mcp-server"],
-      "env": {
-        "API_KEY": "${API_KEY}"
-      }
-    }
-  }
-}
+{"mcpServers":{"my-server":{"command":"uvx","args":["--from","./scripts","my-mcp-server"],"env":{"API_KEY":"${API_KEY}"}}}}
 ```
 
 ## 开发流程
@@ -492,21 +438,7 @@ cat .claude-plugin/plugin.json | jq '.name' | grep -E '^[a-z0-9-]+$'
 在市场仓库的 `marketplace.json` 中添加插件：
 
 ```json
-{
-  "name": "ccplugin-market",
-  "plugins": [
-    {
-      "name": "my-plugin",
-      "source": "./plugins/tools/my-plugin",
-      "description": "插件描述",
-      "author": { "name": "作者", "email": "email@example.com" },
-      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/my-plugin",
-      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/my-plugin",
-      "license": "AGPL-3.0-or-later",
-      "keywords": ["tag1", "tag2"]
-    }
-  ]
-}
+{"name":"ccplugin-market","plugins":[{"name":"my-plugin","source":"./plugins/tools/my-plugin","description":"插件描述","author":{"name":"作者","email":"email@example.com"},"homepage":"https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/my-plugin","repository":"https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/my-plugin","license":"AGPL-3.0-or-later","keywords":["tag1","tag2"]}]}
 ```
 
 ### 3. 提交更改

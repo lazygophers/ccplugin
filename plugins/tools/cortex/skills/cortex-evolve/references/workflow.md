@@ -46,40 +46,7 @@ L4-inbox:  342 条 (走 cortex-extract, 不在 evolve 范围)
 ### Plan 字段 schema
 
 ```json
-{
-  "generated_at": "2026-06-10T12:00:00Z",
-  "vault": "/path/to/vault",
-  "total_scanned": 248,
-  "actions": [
-    {
-      "file": "memory/L3-short/2025-12-foo.md",
-      "current_level": "L3",
-      "proposed_level": "L2",
-      "action": "promote",
-      "promote_score": 0.72,
-      "demote_score": 0.18,
-      "reason": "近 14d 提及 5 次 (freq 1.0), weight=0.8",
-      "skip_jump": false
-    },
-    {
-      "file": "memory/L2-mid/auth-rule.md",
-      "current_level": "L2",
-      "proposed_level": "L1",
-      "action": "promote",
-      "promote_score": 0.85,
-      "reason": "复用 6 次 + weight 0.9",
-      "audit_candidate": true
-    },
-    {
-      "file": "memory/L1-long/legacy-foo.md",
-      "current_level": "L1",
-      "proposed_level": "L1",
-      "action": "audit-candidate",
-      "demote_score": 0.92,
-      "reason": "120d 未访问, 但 L1/L0 不主动降"
-    }
-  ]
-}
+{"generated_at":"2026-06-10T12:00:00Z","vault":"/path/to/vault","total_scanned":248,"actions":[{"file":"memory/L3-short/2025-12-foo.md","current_level":"L3","proposed_level":"L2","action":"promote","promote_score":0.72,"demote_score":0.18,"reason":"近 14d 提及 5 次 (freq 1.0), weight=0.8","skip_jump":false},{"file":"memory/L2-mid/auth-rule.md","current_level":"L2","proposed_level":"L1","action":"promote","promote_score":0.85,"reason":"复用 6 次 + weight 0.9","audit_candidate":true},{"file":"memory/L1-long/legacy-foo.md","current_level":"L1","proposed_level":"L1","action":"audit-candidate","demote_score":0.92,"reason":"120d 未访问, 但 L1/L0 不主动降"}]}
 ```
 
 ### 字段说明

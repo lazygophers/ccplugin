@@ -14,12 +14,7 @@ background: true
 main 只发单个 JSON 对象:
 
 ```json
-{
-	"tid": "<task-id 或 null>",
-	"workdir": "<绝对仓库根>",
-	"mode": "sediment | amend | reconstruct | maintain | prune | auto-fix",
-	"action": "<本次要写什么, 如 amend 哪个 topic 的哪节>"
-}
+{"tid":"<task-id 或 null>","workdir":"<绝对仓库根>","mode":"sediment | amend | reconstruct | maintain | prune | auto-fix","action":"<本次要写什么, 如 amend 哪个 topic 的哪节>"}
 ```
 
 `workdir` 是唯一 cwd 来源, 直接用; `mode` 决定走哪条写路径。
@@ -115,30 +110,7 @@ skein-spec reindex
 ## 返回数据格式 (JSON)
 
 ```json
-{
-	"mode": "sediment | amend | reconstruct | maintain | prune | auto-fix",
-	"written": [
-		{
-			"slug": "<slug>",
-			"namespace": "<ns>",
-			"inclusion": "always | auto | fileMatch | manual",
-			"category": "<类目>"
-		}
-	],
-	"archived": [
-		{ "slug": "<slug>", "reason": "stale | 重复 | 废弃 | 断链 | 降级" }
-	],
-	"amended": [
-		{
-			"topic": "<ns/cat/topic>",
-			"section": "<章节名>",
-			"renamed_to": "<新章节名 | null>"
-		}
-	],
-	"unfixed_links": ["<断链 [[slug]] + 缺失端>"],
-	"needs_main": ["<需 main 介入项, 如全库动作待用户同意>"],
-	"tool_failures": ["[工具失败: <原因>]"]
-}
+{"mode":"sediment | amend | reconstruct | maintain | prune | auto-fix","written":[{"slug":"<slug>","namespace":"<ns>","inclusion":"always | auto | fileMatch | manual","category":"<类目>"}],"archived":[{"slug":"<slug>","reason":"stale | 重复 | 废弃 | 断链 | 降级"}],"amended":[{"topic":"<ns/cat/topic>","section":"<章节名>","renamed_to":"<新章节名 | null>"}],"unfixed_links":["<断链 [[slug]] + 缺失端>"],"needs_main":["<需 main 介入项, 如全库动作待用户同意>"],"tool_failures":["[工具失败: <原因>]"]}
 ```
 
 ## 失败模式 (if-then 三段式)
