@@ -189,6 +189,44 @@ try {
     ],
   }, { dataDir: dataRoot, cwd: temporaryRoot });
 
+  const supplementOnly = await createRound({
+    sessionTitle: '仅补充说明也算作答',
+    title: '第一轮',
+    questions: [
+      {
+        id: 'must-pick',
+        type: 'multiple',
+        title: '必填多选',
+        required: true,
+        minSelections: 2,
+        options: [
+          { id: 'alpha', label: '甲' },
+          { id: 'beta', label: '乙' },
+          { id: 'gamma', label: '丙' },
+        ],
+      },
+    ],
+  }, { dataDir: dataRoot, cwd: temporaryRoot });
+
+  const belowMinimum = await createRound({
+    sessionTitle: '选了就要满足下限',
+    title: '第一轮',
+    questions: [
+      {
+        id: 'must-pick',
+        type: 'multiple',
+        title: '必填多选',
+        required: true,
+        minSelections: 2,
+        options: [
+          { id: 'alpha', label: '甲' },
+          { id: 'beta', label: '乙' },
+          { id: 'gamma', label: '丙' },
+        ],
+      },
+    ],
+  }, { dataDir: dataRoot, cwd: temporaryRoot });
+
   const started = await startHttpServer({
     dataRoot,
     token: 'self-test-token',
@@ -200,6 +238,47 @@ try {
     Authorization: 'Bearer self-test-token',
     'Content-Type': 'application/json',
   };
+
+  // 必填多选：一个选项都不选，只写补充说明，也应当通过，且不触发 minSelections。
+  const supplementOnlyResponse = await fetch(
+    `${base}/api/sessions/${supplementOnly.sessionId}/rounds/1/answers`,
+    {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        answers: [
+          {
+            questionId: 'must-pick',
+            selectedOptionIds: [],
+            customText: '',
+            supplementaryText: '三个都不合适，我想要按项目分组。',
+          },
+        ],
+      }),
+    },
+  );
+  assert.equal(supplementOnlyResponse.status, 200);
+
+  // 但只要选了，数量仍须满足 minSelections。
+  const belowMinimumResponse = await fetch(
+    `${base}/api/sessions/${belowMinimum.sessionId}/rounds/1/answers`,
+    {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        submissionId: 'below-minimum',
+        answers: [
+          {
+            questionId: 'must-pick',
+            selectedOptionIds: ['alpha'],
+            customText: '',
+            supplementaryText: '只选一个',
+          },
+        ],
+      }),
+    },
+  );
+  assert.equal(belowMinimumResponse.status, 422);
 
   const bundleResponse = await fetch(`${base}/api/sessions/${first.sessionId}`, { headers });
   assert.equal(bundleResponse.status, 200);

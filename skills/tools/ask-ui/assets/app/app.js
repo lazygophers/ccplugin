@@ -127,11 +127,13 @@ function selectionCount(question, answer) {
   return (answer.selectedOptionIds || []).length;
 }
 
+// 只写补充说明、一个选项都不选，同样算这一题已经回答。
 function isAnswered(question, editable, submittedAnswers) {
   const answer = editable
     ? answerFor(question.id)
     : submittedAnswers?.find((item) => item.questionId === question.id);
-  return answer ? selectionCount(question, answer) > 0 : false;
+  if (!answer) return false;
+  return selectionCount(question, answer) > 0 || Boolean(answer.supplementaryText?.trim());
 }
 
 function answeredQuestionCount(round, editable) {
@@ -165,8 +167,10 @@ function refreshProgress() {
     answeredCountElement.textContent = `已答 ${answered} / ${round.questionCount}`;
   }
   if (progressCellsElement) {
+    // 每个格子对应同序号的那一题，跳答时空格留在原位，不做左对齐填充。
     [...progressCellsElement.children].forEach((cell, index) => {
-      cell.classList.toggle('on', index < answered);
+      const question = round.questions.questions[index];
+      cell.classList.toggle('on', Boolean(question) && isAnswered(question, editable, round.answers?.answers));
     });
   }
   if (editable && focusedQuestionId) {
@@ -569,9 +573,12 @@ function clientValidation(round) {
   for (const question of round.questions.questions) {
     const answer = answerFor(question.id);
     const count = selectionCount(question, answer);
-    if (question.required && count === 0) errors.push(`请回答“${question.title}”`);
+    const answeredBySupplement = Boolean(answer.supplementaryText?.trim());
+    if (question.required && count === 0 && !answeredBySupplement) {
+      errors.push(`请回答“${question.title}”`);
+    }
     if (question.type === 'single' && count > 1) errors.push(`“${question.title}”只能选择一项`);
-    if (question.type === 'multiple') {
+    if (question.type === 'multiple' && !(count === 0 && answeredBySupplement)) {
       if (count < question.minSelections) {
         errors.push(`“${question.title}”至少选择 ${question.minSelections} 项`);
       }

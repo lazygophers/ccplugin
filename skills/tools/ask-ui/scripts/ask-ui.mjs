@@ -424,8 +424,10 @@ function validateAnswers(questionSet, rawAnswers, { partial = false } = {}) {
     if (answer.supplementaryText.length > SUPPLEMENTARY_TEXT_MAX_LENGTH) {
       errors.push(`${question.title} supplement exceeds ${SUPPLEMENTARY_TEXT_MAX_LENGTH} characters`);
     }
+    // 只写补充说明、一个选项都不选，同样是一个有效回答。
+    const answeredBySupplement = Boolean(answer.supplementaryText.trim());
     if (question.type === 'text') {
-      if (!partial && question.required && !answer.customText.trim()) {
+      if (!partial && question.required && !answer.customText.trim() && !answeredBySupplement) {
         errors.push(`${question.title} is required`);
       }
       if (answer.customText.length > question.maxLength) {
@@ -443,13 +445,14 @@ function validateAnswers(questionSet, rawAnswers, { partial = false } = {}) {
       errors.push(`${question.title} does not allow a custom answer`);
     }
     const selectionCount = answer.selectedOptionIds.length;
-    if (!partial && question.required && selectionCount === 0) {
+    if (!partial && question.required && selectionCount === 0 && !answeredBySupplement) {
       errors.push(`${question.title} is required`);
     }
     if (question.type === 'single' && selectionCount > 1) {
       errors.push(`${question.title} allows only one answer`);
     }
-    if (question.type === 'multiple') {
+    // 补充说明可以替代选择，但一旦选了，数量仍须落在 min/max 区间内。
+    if (question.type === 'multiple' && !(selectionCount === 0 && answeredBySupplement)) {
       if (!partial && selectionCount < question.minSelections) {
         errors.push(`${question.title} requires at least ${question.minSelections} selections`);
       }
