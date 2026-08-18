@@ -22,6 +22,7 @@ description: 把 Agent 工作流中彼此独立的问题渲染成本地交互式
 3. 创建 QuestionSet JSON 文件。新任务省略 `sessionId`；后续轮次复用当前活跃的 `sessionId` 并设置 `basedOnRound`。
    一并写上上下文字段，让用户不看对话也能判断在问什么：Session 级 `projectName` / `sessionSummary` / `sessionBackground`，Round 级 `purpose`，需要单独交代前情的题写 `background`。
    选择题没有「其他」选项。预设选项之外的答案由每题的补充说明承载，所以选项只列真正互斥的几种，不要凑「其他」。
+   流程、时序、架构这类讲不清的东西，在 `sessionBackground` 或问题的 `description` / `background` 里写 ` ```mermaid ` 代码块，会渲染成跟随主题的图。
 4. **在后台运行命令，并把 stdout 和 stderr 分开重定向到两个文件**：
 
    ```text

@@ -25,6 +25,141 @@ function element(tag, className = '', text = '') {
   return value;
 }
 
+const MERMAID_BLOCK = /^[ \t]*```mermaid[ \t]*\r?\n([\s\S]*?)^[ \t]*```[ \t]*$/gm;
+
+let mermaidLoader = null;
+let diagramSequence = 0;
+
+function hasDiagram(text) {
+  MERMAID_BLOCK.lastIndex = 0;
+  return MERMAID_BLOCK.test(text || '');
+}
+
+function loadMermaid() {
+  mermaidLoader ||= new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = '/vendor/mermaid.min.js';
+    script.onload = () => resolve(globalThis.mermaid);
+    script.onerror = () => {
+      script.remove();
+      reject(new Error('图表组件加载失败，切换主题或刷新页面可重试'));
+    };
+    document.head.append(script);
+  // 失败的 promise 不能留下来，否则一次网络抖动会让这一页所有图表永远渲染不出。
+  }).catch((error) => {
+    mermaidLoader = null;
+    throw error;
+  });
+  return mermaidLoader;
+}
+
+// 把 Memphis 的语义 token 喂给 mermaid，这样切换明暗主题时图表跟着换。
+function mermaidTheme() {
+  const styles = getComputedStyle(document.documentElement);
+  const read = (name) => styles.getPropertyValue(name).trim();
+  const line = read('--line');
+  return {
+    theme: 'base',
+    fontFamily: styles.fontFamily,
+    themeVariables: {
+      background: read('--surface'),
+      primaryColor: read('--mustard'),
+      primaryTextColor: read('--on-mustard'),
+      primaryBorderColor: line,
+      secondaryColor: read('--blue'),
+      secondaryTextColor: read('--on-blue'),
+      secondaryBorderColor: line,
+      tertiaryColor: read('--surface-2'),
+      tertiaryTextColor: read('--ink'),
+      tertiaryBorderColor: line,
+      lineColor: line,
+      textColor: read('--ink'),
+      mainBkg: read('--mustard'),
+      nodeBorder: line,
+      clusterBkg: read('--surface-2'),
+      clusterBorder: line,
+      titleColor: read('--ink'),
+      edgeLabelBackground: read('--surface'),
+      actorBkg: read('--mustard'),
+      actorBorder: line,
+      actorTextColor: read('--on-mustard'),
+      signalColor: read('--ink'),
+      signalTextColor: read('--ink'),
+      labelBoxBkgColor: read('--blue'),
+      labelBoxBorderColor: line,
+      labelTextColor: read('--on-blue'),
+      noteBkgColor: read('--surface-2'),
+      noteBorderColor: line,
+      noteTextColor: read('--ink'),
+    },
+    // themeVariables 管不到线宽，也管不到连线标签的文字色——后者在暗色主题下
+    // 会留在默认深色上，压在深色背景里看不见。
+    themeCSS: `
+      .node rect, .node circle, .node ellipse, .node polygon, .node path,
+      .cluster rect, .actor, .labelBox, .note {
+        stroke-width: 3px;
+      }
+      .edgePath .path, .flowchart-link, .messageLine0, .messageLine1 {
+        stroke-width: 2.5px;
+      }
+      .edgeLabel, .edgeLabel p, .edgeLabel span, .edgeLabel foreignObject div {
+        color: ${read('--ink')};
+        background: ${read('--surface')};
+      }
+      .edgeLabel rect {
+        fill: ${read('--surface')};
+      }
+    `,
+  };
+}
+
+async function renderDiagram(host, code) {
+  diagramSequence += 1;
+  const id = `ask-ui-diagram-${diagramSequence}`;
+  try {
+    const mermaid = await loadMermaid();
+    mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', ...mermaidTheme() });
+    const { svg } = await mermaid.render(id, code);
+    host.innerHTML = svg;
+    host.dataset.state = 'ready';
+  } catch (error) {
+    // 渲染不出来时把原始图表源码亮出来，比留一个空框有用。
+    host.replaceChildren();
+    host.dataset.state = 'failed';
+    host.append(element('p', 'diagram-error', `图表无法渲染：${error.message}`));
+    host.append(element('pre', 'diagram-source', code));
+  }
+}
+
+// 文本里的 ```mermaid 块渲染成图，其余部分保持纯文本，绝不当 HTML 解析。
+// 返回第一个文字段落，调用方可以往它前面插标签，保持标签与正文同行。
+function appendRichText(container, text) {
+  const value = text || '';
+  MERMAID_BLOCK.lastIndex = 0;
+  let firstProse = null;
+  const addProse = (prose) => {
+    if (!prose) return;
+    const paragraph = element('p', 'rich-text', prose);
+    firstProse ||= paragraph;
+    container.append(paragraph);
+  };
+
+  let cursor = 0;
+  let match = MERMAID_BLOCK.exec(value);
+  while (match) {
+    addProse(value.slice(cursor, match.index).trim());
+    const host = element('div', 'diagram');
+    host.dataset.state = 'loading';
+    host.append(element('p', 'diagram-loading', '图表加载中…'));
+    container.append(host);
+    renderDiagram(host, match[1].trim());
+    cursor = match.index + match[0].length;
+    match = MERMAID_BLOCK.exec(value);
+  }
+  addProse(value.slice(cursor).trim());
+  return firstProse;
+}
+
 async function api(path, options = {}) {
   const response = await fetch(path, {
     ...options,
@@ -288,7 +423,7 @@ function renderRail(container) {
   if (bundle.session.background) {
     const context = element('div', 'rail-block context');
     context.append(element('h2', '', '本次背景'));
-    context.append(element('p', '', bundle.session.background));
+    appendRichText(context, bundle.session.background);
     rail.append(context);
   }
 
@@ -518,15 +653,25 @@ function renderQuestion(question, index, editable, submittedAnswers) {
   const copy = element('div', 'question-copy');
   copy.append(element('h3', 'question-title', question.title));
   if (question.description) {
-    copy.append(element('p', 'question-description', question.description));
+    const description = element('div', 'question-description');
+    appendRichText(description, question.description);
+    copy.append(description);
   }
   header.append(copy, questionFlags(question));
   card.append(header);
 
   if (question.background) {
-    const background = element('p', 'question-background');
-    background.append(element('b', '', '背景 · '));
-    background.append(question.background);
+    const background = element('div', 'question-background');
+    const firstProse = appendRichText(background, question.background);
+    const lead = element('b', '', '背景 · ');
+    if (firstProse) {
+      firstProse.prepend(lead);
+    } else {
+      // 背景整段只有一张图时，标签自成一行落在图前面。
+      const label = element('p', 'rich-text');
+      label.append(lead);
+      background.prepend(label);
+    }
     card.append(background);
   }
 

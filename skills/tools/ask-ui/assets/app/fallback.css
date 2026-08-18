@@ -1030,3 +1030,66 @@ textarea {
     animation: none !important;
   }
 }
+
+/* ============================================================
+   Mermaid 图表
+   文字段落完全继承所在容器，纯文本场景与改版前视觉一致
+   ============================================================ */
+
+.rich-text {
+  margin: 0;
+  font: inherit;
+  line-height: inherit;
+}
+
+.rich-text + .rich-text {
+  margin-top: 10px;
+}
+
+.diagram {
+  margin: 14px 0 0;
+  border: 3px solid var(--line);
+  box-shadow: 6px 6px 0 var(--shadow);
+  padding: 16px;
+  background: var(--surface);
+  overflow-x: auto;
+  /* 图表是块级排版，不跟随外层容器的 pre-wrap。 */
+  white-space: normal;
+}
+
+.rich-text + .diagram {
+  margin-top: 12px;
+}
+
+.diagram svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+}
+
+.diagram-loading {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 16px;
+}
+
+.diagram-error {
+  margin: 0 0 10px;
+  color: var(--red);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.diagram-source {
+  margin: 0;
+  border: 2px dashed var(--line);
+  padding: 12px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font-family: "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  font-size: 16px;
+  line-height: 1.5;
+  overflow-x: auto;
+  white-space: pre;
+}

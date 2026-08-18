@@ -16,11 +16,23 @@
 |---|---|---|---|
 | `projectName` | Session | 取工作目录名 | 页头徽标 |
 | `sessionSummary` | Session | 显示默认提示语 | 页头副标题 |
-| `sessionBackground` | Session | 整块不渲染 | 左栏「本次背景」 |
+| `sessionBackground` | Session | 整块不渲染 | 左栏「本次背景」，支持 Mermaid |
 | `purpose` | Round | 不渲染 | 左栏「第 N 轮」块 |
-| `background` | Question | 不渲染 | 题卡内「背景 ·」行 |
+| `background` | Question | 不渲染 | 题卡内「背景 ·」行，支持 Mermaid |
 
 同一 Session 的后续轮次可以省略 Session 级字段，首轮写入的值会保留。
+
+### 画图
+
+`sessionBackground`、问题的 `description` 和 `background` 支持 Mermaid。把图写成 ` ```mermaid ` 代码块嵌在文本里，其余文字照常显示：
+
+```json
+{"id":"q-flow","type":"single","title":"选哪条链路","description":"两条路线的差异：\n\n```mermaid\nflowchart TD\n  S[启动] --> D{有缓存?}\n  D -->|有| H[直接渲染]\n  D -->|无| N[下载后渲染]\n```\n\n右边那条首次会慢。","options":[{"id":"opt-a","label":"方案甲"},{"id":"opt-b","label":"方案乙"}]}
+```
+
+图表配色跟随界面的明暗主题。选项的 `description` 不渲染图表——每个选项一张图会把卡片撑得没法比较。
+
+Mermaid 有 3.4MB，不进仓库：只有页面上真的出现图表时才下载，缓存在 `~/.agents/ask-ui/vendor/`，此后所有项目共用同一份，离线可用（`ASK_UI_VENDOR_DIR` 可改缓存位置）。首次下载期间图表位置显示「图表加载中…」；下载不到或图表语法有错时，显示错误原因和原始图表源码，不影响答题和提交。
 
 `recommendedOptionIds`、`recommendedDraft`、`recommendationReason` 只做视觉提示——选项上加「推荐」徽标、文本题填成 placeholder、附一条推荐理由横幅。**它们不会预选任何答案**：一道题只有在用户真的点过、选过或输入过之后才算已答，未作答的必填题会挡住提交。
 

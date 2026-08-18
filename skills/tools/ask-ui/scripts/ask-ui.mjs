@@ -20,6 +20,19 @@ const SCHEMA_VERSION = '1.0';
 const MAX_BODY_BYTES = 1_048_576;
 const SUPPLEMENTARY_TEXT_MAX_LENGTH = 2000;
 
+// Mermaid 有 3.4MB，不进仓库。首次遇到含图的问题时下载到公共缓存，
+// 之后所有项目、所有 Session 共用同一份，离线也能渲染。
+const MERMAID_VERSION = '11.16.1';
+const MERMAID_URL = `https://cdn.jsdelivr.net/npm/mermaid@${MERMAID_VERSION}/dist/mermaid.min.js`;
+
+function vendorCacheRoot() {
+  return process.env.ASK_UI_VENDOR_DIR || path.join(os.homedir(), '.agents', 'ask-ui', 'vendor');
+}
+
+function mermaidCacheFile() {
+  return path.join(vendorCacheRoot(), `mermaid-${MERMAID_VERSION}.min.js`);
+}
+
 function now() {
   return new Date().toISOString();
 }
@@ -619,6 +632,27 @@ function sendFile(response, file) {
   createReadStream(file).pipe(response);
 }
 
+// 并发的图表请求只应触发一次下载，后到的请求等同一个 promise。
+let mermaidDownload = null;
+
+async function ensureMermaid() {
+  const cacheFile = mermaidCacheFile();
+  if (existsSync(cacheFile)) return cacheFile;
+  mermaidDownload ||= (async () => {
+    const response = await fetch(MERMAID_URL);
+    if (!response.ok) {
+      throw new Error(`Failed to download mermaid: ${response.status} ${MERMAID_URL}`);
+    }
+    const body = Buffer.from(await response.arrayBuffer());
+    await fs.mkdir(vendorCacheRoot(), { recursive: true });
+    const temporary = `${cacheFile}.${process.pid}.tmp`;
+    await fs.writeFile(temporary, body);
+    await fs.rename(temporary, cacheFile);
+    return cacheFile;
+  })().finally(() => { mermaidDownload = null; });
+  return mermaidDownload;
+}
+
 async function readRequestJson(request) {
   const chunks = [];
   let size = 0;
@@ -725,6 +759,15 @@ export async function startHttpServer({
     }
     if (request.method === 'GET' && requestUrl.pathname === '/fallback.css') {
       sendFile(response, path.join(APP_ROOT, 'fallback.css'));
+      return;
+    }
+    if (request.method === 'GET' && requestUrl.pathname === '/vendor/mermaid.min.js') {
+      // 只在页面真的出现图表时才被请求，所以下载成本不会落到没有图的轮次上。
+      try {
+        sendFile(response, await ensureMermaid());
+      } catch (error) {
+        sendJson(response, 502, { error: error.message });
+      }
       return;
     }
 

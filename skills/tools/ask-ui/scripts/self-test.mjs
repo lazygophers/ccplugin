@@ -239,6 +239,17 @@ try {
     'Content-Type': 'application/json',
   };
 
+  // 图表组件命中缓存时必须直接回文件，绝不联网：这是离线可用的前提。
+  const vendorDir = path.join(temporaryRoot, 'vendor');
+  await fs.mkdir(vendorDir, { recursive: true });
+  await fs.writeFile(path.join(vendorDir, 'mermaid-11.16.1.min.js'), 'globalThis.mermaid = "cached";');
+  process.env.ASK_UI_VENDOR_DIR = vendorDir;
+  const mermaidResponse = await fetch(`${base}/vendor/mermaid.min.js`);
+  assert.equal(mermaidResponse.status, 200);
+  assert.equal(mermaidResponse.headers.get('content-type'), 'text/javascript; charset=utf-8');
+  assert.equal(await mermaidResponse.text(), 'globalThis.mermaid = "cached";');
+  delete process.env.ASK_UI_VENDOR_DIR;
+
   // 必填多选：一个选项都不选，只写补充说明，也应当通过，且不触发 minSelections。
   const supplementOnlyResponse = await fetch(
     `${base}/api/sessions/${supplementOnly.sessionId}/rounds/1/answers`,
