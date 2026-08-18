@@ -9,9 +9,7 @@ const token = new URLSearchParams(location.search).get('token') || '';
 let bundle = null;
 let activeRoundNumber = null;
 let focusedQuestionId = null;
-let draftAnswers = [];
-let draftTimer = null;
-let saveStatusElement = null;
+let pendingAnswers = [];
 let answeredCountElement = null;
 let progressCellsElement = null;
 let railNavElement = null;
@@ -85,9 +83,7 @@ function normalizeAnswer(answer) {
 }
 
 function answersForRound(round) {
-  const source = round.answers?.answers
-    || round.draft?.answers
-    || round.questions.questions.map(defaultAnswer);
+  const source = round.answers?.answers || round.questions.questions.map(defaultAnswer);
   const byId = new Map(source.map((answer) => [answer.questionId, answer]));
   return round.questions.questions.map((question) => normalizeAnswer(
     byId.get(question.id) || defaultAnswer(question),
@@ -95,7 +91,7 @@ function answersForRound(round) {
 }
 
 function answerFor(questionId) {
-  let answer = draftAnswers.find((item) => item.questionId === questionId);
+  let answer = pendingAnswers.find((item) => item.questionId === questionId);
   if (!answer) {
     answer = {
       questionId,
@@ -103,7 +99,7 @@ function answerFor(questionId) {
       customText: '',
       supplementaryText: '',
     };
-    draftAnswers.push(answer);
+    pendingAnswers.push(answer);
   }
   return answer;
 }
@@ -273,7 +269,7 @@ function renderTabs() {
     button.dataset.locked = String(completed);
     button.addEventListener('click', () => {
       activeRoundNumber = round.roundNumber;
-      draftAnswers = answersForRound(round);
+      pendingAnswers = answersForRound(round);
       focusedQuestionId = firstUnansweredId(round, roundEditable(round));
       render();
     });
@@ -339,25 +335,6 @@ function renderRail(container) {
   container.append(rail);
 }
 
-function scheduleDraftSave() {
-  if (draftTimer) clearTimeout(draftTimer);
-  refreshProgress();
-  if (saveStatusElement) saveStatusElement.textContent = '正在保存草稿…';
-  draftTimer = setTimeout(async () => {
-    const round = currentRound();
-    if (!round || round.status !== 'waiting_for_user') return;
-    try {
-      await api(
-        `/api/sessions/${encodeURIComponent(sessionId)}/rounds/${round.roundNumber}/draft`,
-        { method: 'POST', body: JSON.stringify({ answers: draftAnswers }) },
-      );
-      if (saveStatusElement) saveStatusElement.textContent = '草稿已自动保存';
-    } catch (error) {
-      if (saveStatusElement) saveStatusElement.textContent = `保存失败：${error.message}`;
-    }
-  }, 500);
-}
-
 function renderChoiceQuestion(card, question, answer, editable) {
   const list = element('div', 'option-list');
   question.options.forEach((option, optionIndex) => {
@@ -377,7 +354,7 @@ function renderChoiceQuestion(card, question, answer, editable) {
       } else {
         answer.selectedOptionIds = answer.selectedOptionIds.filter((id) => id !== option.id);
       }
-      scheduleDraftSave();
+      refreshProgress();
     });
     const content = element('span', 'option-content');
     const title = element('span', 'option-label');
@@ -412,7 +389,7 @@ function renderTextQuestion(card, question, answer, editable) {
   input.addEventListener('input', () => {
     answer.customText = input.value;
     updateCounter();
-    scheduleDraftSave();
+    refreshProgress();
   });
   updateCounter();
   card.append(input, counter);
@@ -474,7 +451,7 @@ function renderSupplementaryInput(card, question, answer) {
     answer.supplementaryText = input.value;
     updateCounter();
     setExpanded(true);
-    scheduleDraftSave();
+    refreshProgress();
   });
   trigger.addEventListener('click', () => {
     const expanded = trigger.getAttribute('aria-expanded') === 'true';
@@ -608,7 +585,7 @@ async function submitRound(round, submitButton) {
         method: 'POST',
         body: JSON.stringify({
           submissionId: `submit-${crypto.randomUUID()}`,
-          answers: draftAnswers,
+          answers: pendingAnswers,
         }),
       },
     );
@@ -650,13 +627,6 @@ function renderSubmitDock(container) {
         ? '提交后 Agent 会立即用你的答案继续工作，本轮不可再修改。'
         : '提交后本轮变为只读，请回到 Agent 会话回复「已提交」继续。',
     ));
-    saveStatusElement = element(
-      'span',
-      'save-status',
-      round.draft ? '已恢复草稿' : '答案会自动存草稿',
-    );
-    dock.append(saveStatusElement);
-
     const status = element('div', 'dock-status');
     progressCellsElement = element('div', 'progress-cells');
     for (let index = 0; index < round.questionCount; index += 1) {
@@ -697,7 +667,6 @@ function renderError(error) {
 }
 
 function render() {
-  saveStatusElement = null;
   answeredCountElement = null;
   progressCellsElement = null;
   railNavElement = null;
@@ -724,7 +693,7 @@ async function loadBundle(force = false) {
   if (!activeStillExists || force || hasNewWaitingRound) {
     activeRoundNumber = waiting?.roundNumber || bundle.rounds.at(-1)?.roundNumber || null;
     const round = currentRound();
-    draftAnswers = round ? answersForRound(round) : [];
+    pendingAnswers = round ? answersForRound(round) : [];
     focusedQuestionId = round ? firstUnansweredId(round, roundEditable(round)) : null;
   }
   if (changed) render();

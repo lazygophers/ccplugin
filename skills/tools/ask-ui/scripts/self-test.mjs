@@ -352,11 +352,12 @@ try {
     { questionId: 'context', selectedOptionIds: [], customText: '先做本地 Demo。' },
     { questionId: 'channel', selectedOptionIds: ['email'], customText: '', supplementaryText: '工作日才提醒。' },
   ];
+  // 草稿自动保存已移除：答案只在用户点提交时落盘，draft 端点必须不复存在。
   const draftResponse = await fetch(
     `${base}/api/sessions/${first.sessionId}/rounds/1/draft`,
     { method: 'POST', headers, body: JSON.stringify({ answers }) },
   );
-  assert.equal(draftResponse.status, 200);
+  assert.equal(draftResponse.status, 404);
 
   const submitResponse = await fetch(
     `${base}/api/sessions/${first.sessionId}/rounds/1/answers`,

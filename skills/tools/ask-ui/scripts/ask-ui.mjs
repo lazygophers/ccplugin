@@ -415,7 +415,7 @@ function normalizeAnswer(answer, question) {
   };
 }
 
-function validateAnswers(questionSet, rawAnswers, { partial = false } = {}) {
+function validateAnswers(questionSet, rawAnswers) {
   const answerMap = new Map(
     (Array.isArray(rawAnswers) ? rawAnswers : []).map((answer) => [String(answer.questionId), answer]),
   );
@@ -428,7 +428,7 @@ function validateAnswers(questionSet, rawAnswers, { partial = false } = {}) {
     // 只写补充说明、一个选项都不选，同样是一个有效回答。
     const answeredBySupplement = Boolean(answer.supplementaryText.trim());
     if (question.type === 'text') {
-      if (!partial && question.required && !answer.customText.trim() && !answeredBySupplement) {
+      if (question.required && !answer.customText.trim() && !answeredBySupplement) {
         errors.push(`${question.title} is required`);
       }
       if (answer.customText.length > question.maxLength) {
@@ -446,7 +446,7 @@ function validateAnswers(questionSet, rawAnswers, { partial = false } = {}) {
       errors.push(`${question.title} does not allow a custom answer`);
     }
     const selectionCount = answer.selectedOptionIds.length;
-    if (!partial && question.required && selectionCount === 0 && !answeredBySupplement) {
+    if (question.required && selectionCount === 0 && !answeredBySupplement) {
       errors.push(`${question.title} is required`);
     }
     if (question.type === 'single' && selectionCount > 1) {
@@ -454,7 +454,7 @@ function validateAnswers(questionSet, rawAnswers, { partial = false } = {}) {
     }
     // 补充说明可以替代选择，但一旦选了，数量仍须落在 min/max 区间内。
     if (question.type === 'multiple' && !(selectionCount === 0 && answeredBySupplement)) {
-      if (!partial && selectionCount < question.minSelections) {
+      if (selectionCount < question.minSelections) {
         errors.push(`${question.title} requires at least ${question.minSelections} selections`);
       }
       if (selectionCount > question.maxSelections) {
@@ -475,27 +475,9 @@ export async function loadSessionBundle(dataRoot, sessionId) {
       ...roundSummary,
       questions: await readJson(path.join(directory, 'questions.json')),
       answers: await readJson(path.join(directory, 'answers.json'), null),
-      draft: await readJson(path.join(directory, 'draft.json'), null),
     });
   }
   return { schemaVersion: SCHEMA_VERSION, session, rounds };
-}
-
-async function saveDraft(dataRoot, sessionId, roundNumber, payload) {
-  const session = await readSession(dataRoot, sessionId);
-  const round = session.rounds.find((item) => item.roundNumber === roundNumber);
-  if (!round) throw new Error(`Round ${roundNumber} not found`);
-  if (round.status !== 'waiting_for_user') throw new Error('Submitted rounds are read-only');
-  const questions = await readJson(
-    path.join(roundDirectory(dataRoot, sessionId, roundNumber), 'questions.json'),
-  );
-  const normalized = validateAnswers(questions, payload.answers, { partial: true });
-  const draft = { updatedAt: now(), answers: normalized.answers };
-  await atomicWriteJson(
-    path.join(roundDirectory(dataRoot, sessionId, roundNumber), 'draft.json'),
-    draft,
-  );
-  return draft;
 }
 
 export async function submitAnswers(dataRoot, sessionId, roundNumber, payload) {
@@ -510,7 +492,7 @@ export async function submitAnswers(dataRoot, sessionId, roundNumber, payload) {
   if (round.status !== 'waiting_for_user') throw new Error('Round is not accepting answers');
 
   const questions = await readJson(path.join(directory, 'questions.json'));
-  const validated = validateAnswers(questions, payload.answers, { partial: false });
+  const validated = validateAnswers(questions, payload.answers);
   if (validated.errors.length) {
     const error = new Error(validated.errors.join('; '));
     error.statusCode = 422;
@@ -768,7 +750,7 @@ export async function startHttpServer({
       }
 
       const apiMatch = requestUrl.pathname.match(
-        /^\/api\/sessions\/([^/]+)(?:\/rounds\/(\d+)\/(draft|answers)|\/(status))?$/,
+        /^\/api\/sessions\/([^/]+)(?:\/rounds\/(\d+)\/(answers)|\/(status))?$/,
       );
       if (!apiMatch) {
         sendJson(response, 404, { error: 'Not found' });
@@ -785,14 +767,6 @@ export async function startHttpServer({
       }
       if (request.method === 'GET' && operation === null) {
         sendJson(response, 200, await loadSessionBundle(dataRoot, sessionId));
-        return;
-      }
-      if (request.method === 'POST' && operation === 'draft') {
-        sendJson(
-          response,
-          200,
-          await saveDraft(dataRoot, sessionId, roundNumber, await readRequestJson(request)),
-        );
         return;
       }
       if (request.method === 'POST' && operation === 'answers') {
