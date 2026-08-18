@@ -28,9 +28,21 @@ description: 把 Agent 工作流中彼此独立的问题渲染成本地交互式
    node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs ask --input <questions.json>
    ```
 
-5. 该命令把就绪信息和本地 URL 写入 stderr，打开表单并等待。不要结束 Agent 轮次，也不要让用户回复「已提交」。
+5. 该命令把就绪信息、`ask-ui-session: <id>` 标记和本地 URL 写入 stderr，打开表单并等待。不要结束 Agent 轮次，也不要让用户回复「已提交」。
 6. 用户提交后，解析 stdout 输出的那一个 JSON 结果，立即继续原工作流。
 7. 若还需要更多独立问题，用同一个 `sessionId` 再次调用 `ask`，并把 `basedOnRound` 设为返回的轮次号。没有更多问题时，结束该 Session。
+
+### 命令被放到后台或中断时
+
+`ask` 会一直阻塞到用户提交，容易被 harness 转到后台。转后台之后 stdout 和 stderr 混在同一个任务输出文件里，**直接解析那个文件必然失败**。
+
+此时唯一正确的取结果方式是拿 stderr 里的 `ask-ui-session: <id>` 跑：
+
+```text
+node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs resume --session <sessionId>
+```
+
+返回 `{"status":"waiting"}` 表示用户还没提交，等着再查；返回 `status: "submitted"` 时其中就是完整答案。不要去 `tail` 任务输出、不要手动拼 `.ask-ui/` 下的文件路径。
 
 每一轮都会打开浏览器：页面在提交后自行关闭，所以下一轮必须重新打开。同一 Session 的各轮复用常驻服务和稳定 URL。
 

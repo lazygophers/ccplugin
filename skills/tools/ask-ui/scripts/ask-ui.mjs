@@ -83,7 +83,8 @@ async function readJson(file, fallback = undefined) {
   } catch (error) {
     if (error.code === 'ENOENT' && fallback !== undefined) return fallback;
     if (error instanceof SyntaxError) {
-      throw new Error(`Invalid JSON: ${file}`);
+      // 带上原始报错的位置信息，写坏 JSON 的调用方才能一次改对，不用二分找。
+      throw new Error(`Invalid JSON in ${file}: ${error.message}`);
     }
     throw error;
   }
@@ -956,7 +957,11 @@ export async function main(argv = process.argv.slice(2)) {
     process.once('SIGINT', onSigint);
     process.once('SIGTERM', onSigterm);
     process.stderr.write(`Ask UI ready at ${url}\n`);
+    process.stderr.write(`ask-ui-session: ${created.sessionId}\n`);
     process.stderr.write(`Waiting for round ${created.roundNumber} submission; data is saved under ${dataRoot}\n`);
+    // 这条命令会阻塞到用户提交为止，很容易被 harness 转到后台。一旦转后台，
+    // 任务输出里 stdout 和 stderr 是混在一起的，直接 JSON.parse 必然失败。
+    process.stderr.write(`If this command is backgrounded or interrupted, do not parse the task output; run: ask-ui.mjs resume --session ${created.sessionId}\n`);
     // 页面在提交后自行关闭，所以每一轮都要重新打开浏览器。
     if (!args['no-open']) openBrowser(url);
     try {
