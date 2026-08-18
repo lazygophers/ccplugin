@@ -355,7 +355,7 @@ function scheduleDraftSave() {
 
 function renderChoiceQuestion(card, question, answer, editable) {
   const list = element('div', 'option-list');
-  for (const option of question.options) {
+  question.options.forEach((option, optionIndex) => {
     const optionCard = element('label', 'option-card');
     const input = document.createElement('input');
     input.className = 'option-selector';
@@ -384,9 +384,10 @@ function renderChoiceQuestion(card, question, answer, editable) {
     if (option.description) {
       content.append(element('span', 'option-description', option.description));
     }
-    optionCard.append(input, content);
+    // 序号由渲染顺序自动生成，QuestionSet 不需要也不应该传。
+    optionCard.append(input, element('span', 'option-number', String(optionIndex + 1)), content);
     list.append(optionCard);
-  }
+  });
 
   card.append(list);
 }
