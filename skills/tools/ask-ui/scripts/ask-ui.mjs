@@ -58,9 +58,18 @@ function parseArgs(argv) {
   return result;
 }
 
+// sessionId 会成为文件系统路径的一段，必须挡住 . / .. / 分隔符。
 function assertSafeId(value, label = 'id') {
   if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]{2,127}$/.test(value || '')) {
     throw new Error(`${label} must contain 3-128 safe characters`);
+  }
+  return value;
+}
+
+// 问题和选项的 id 只是 JSON 内部的引用键，不进路径，所以 q1、mr 这种短名合法。
+function assertReferenceId(value, label = 'id') {
+  if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/.test(value || '')) {
+    throw new Error(`${label} 只能用字母或数字开头、由字母数字和 . _ - 组成，最长 128 个字符（收到 ${JSON.stringify(value)}）`);
   }
   return value;
 }
@@ -178,8 +187,18 @@ function normalizeQuestion(question, index) {
     throw new Error(`Question ${question.id || index + 1} has unsupported type`);
   }
 
+  // 题 id 和选项 id 的问题一起报，别让调用方修完 id 再来一轮才发现选项也不合法。
+  const issues = [];
+  const collect = (check) => {
+    try {
+      check();
+    } catch (error) {
+      issues.push(error.message);
+    }
+  };
+
   const id = String(question.id || `q${index + 1}`);
-  assertSafeId(id, `question ${index + 1} id`);
+  collect(() => assertReferenceId(id, `第 ${index + 1} 题的 id`));
   const normalized = {
     id,
     type,
@@ -191,6 +210,7 @@ function normalizeQuestion(question, index) {
   };
 
   if (type === 'text') {
+    if (issues.length) throw new Error(issues.join('；'));
     normalized.recommendedDraft = String(question.recommendedDraft || '');
     normalized.multiline = question.multiline !== false;
     normalized.maxLength = Number.isInteger(question.maxLength)
@@ -200,17 +220,19 @@ function normalizeQuestion(question, index) {
   }
 
   if (!Array.isArray(question.options) || question.options.length < 2) {
-    throw new Error(`Choice question ${id} requires at least two options`);
+    issues.push(`第 ${id} 题是选择题，至少要有两个选项`);
+    throw new Error(issues.join('；'));
   }
   normalized.options = question.options.map((option, optionIndex) => {
     const optionId = String(option.id || `option-${optionIndex + 1}`);
-    assertSafeId(optionId, `option id in ${id}`);
+    collect(() => assertReferenceId(optionId, `第 ${id} 题第 ${optionIndex + 1} 个选项的 id`));
     return {
       id: optionId,
       label: String(option.label || optionId),
       description: String(option.description || ''),
     };
   });
+  if (issues.length) throw new Error(issues.join('；'));
   const optionIds = new Set(normalized.options.map((option) => option.id));
   normalized.recommendedOptionIds = [
     ...new Set(
@@ -239,6 +261,18 @@ function normalizeQuestionSet(input, { cwd = process.cwd() } = {}) {
   }
   if (input.questions.length === 0) throw new Error('QuestionSet cannot be empty');
 
+  // 逐题 fail-fast 会让调用方每修一个 id 就重跑一次。一次把所有题的问题报全，改一遍就能过。
+  const questions = [];
+  const errors = [];
+  input.questions.forEach((question, index) => {
+    try {
+      questions.push(normalizeQuestion(question, index));
+    } catch (error) {
+      errors.push(error.message);
+    }
+  });
+  if (errors.length) throw new Error(errors.join('；'));
+
   return {
     schemaVersion: SCHEMA_VERSION,
     sessionId: input.sessionId ? assertSafeId(String(input.sessionId), 'sessionId') : null,
@@ -251,7 +285,7 @@ function normalizeQuestionSet(input, { cwd = process.cwd() } = {}) {
     purpose: String(input.purpose || ''),
     basedOnRound: Number.isInteger(input.basedOnRound) ? input.basedOnRound : null,
     wake: normalizeWake(input.wake, cwd),
-    questions: input.questions.map(normalizeQuestion),
+    questions,
   };
 }
 

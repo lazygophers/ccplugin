@@ -239,6 +239,53 @@ try {
     'Content-Type': 'application/json',
   };
 
+  // q1、mr 这类短 id 只是 JSON 内部的引用键，不进文件路径，必须放行。
+  const shortIds = await createRound({
+    sessionTitle: '短 id 合法',
+    title: '第一轮',
+    questions: [
+      {
+        id: 'q1',
+        type: 'single',
+        title: '交付到哪一步',
+        required: true,
+        options: [{ id: 'mr', label: '开 MR' }, { id: 'commit', label: '只 commit' }],
+      },
+    ],
+  }, { dataDir: dataRoot, cwd: temporaryRoot });
+  assert.equal(shortIds.roundNumber, 1);
+
+  // 非法 id 必须一次报全：逐个报会让调用方每修一处就重跑一次。
+  await assert.rejects(
+    () => createRound({
+      sessionTitle: '非法 id 一次报全',
+      title: '第一轮',
+      questions: [
+        { id: 'q/1', type: 'single', title: '甲', options: [{ id: 'ok-1', label: 'x' }, { id: 'bad opt', label: 'y' }] },
+        { id: '..', type: 'single', title: '乙', options: [{ id: 'a/b', label: 'x' }, { id: 'c d', label: 'y' }] },
+      ],
+    }, { dataDir: dataRoot, cwd: temporaryRoot }),
+    (error) => {
+      const reported = error.message.split('；');
+      assert.equal(reported.length, 5, `期望一次报 5 处，实际 ${reported.length}：${error.message}`);
+      for (const bad of ['q/1', 'bad opt', '..', 'a/b', 'c d']) {
+        assert.ok(error.message.includes(bad), `缺少对 ${bad} 的报错`);
+      }
+      return true;
+    },
+  );
+
+  // sessionId 会拼进文件路径，路径穿越必须继续挡住。
+  await assert.rejects(
+    () => createRound({
+      sessionId: '../escape',
+      sessionTitle: '路径穿越',
+      title: '第一轮',
+      questions: [{ id: 'q1', type: 'text', title: '甲' }],
+    }, { dataDir: dataRoot, cwd: temporaryRoot }),
+    /sessionId must contain 3-128 safe characters/,
+  );
+
   // 图表组件命中缓存时必须直接回文件，绝不联网：这是离线可用的前提。
   const vendorDir = path.join(temporaryRoot, 'vendor');
   await fs.mkdir(vendorDir, { recursive: true });
