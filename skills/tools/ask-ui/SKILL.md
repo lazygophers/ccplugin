@@ -61,6 +61,8 @@ stderr 文件里还有一行 `ask-ui-submitted: <id> round <n>`，是提交完�
 
 每一轮都会打开浏览器：页面在提交后自行关闭，所以下一轮必须重新打开。同一 Session 的各轮复用常驻服务和稳定 URL。
 
+常驻服务不需要手动清理：只要还有轮次等着人回答就一直跑，全部答完且 30 分钟无人访问后自行退出，数据目录被删则立即退出。`complete` 或 `cancel` 结束最后一个会话时会当场停掉它。`ASK_UI_IDLE_TIMEOUT_MINUTES` 可改这个空闲时长。
+
 仅当浏览器打开由外部单独管理时才用 `--no-open`。仅当必须固定 localhost 端口时才用 `--port <number>`。
 
 ## 手动回退与恢复

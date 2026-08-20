@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import {
   completeSession,
   createRound,
+  hasPendingRound,
   loadSessionBundle,
   resumeRound,
   startHttpServer,
@@ -238,6 +239,29 @@ try {
     Authorization: 'Bearer self-test-token',
     'Content-Type': 'application/json',
   };
+
+  // 常驻服务必须有终点：还有人没答完就继续跑，最后一个会话结束就收摊。
+  {
+    const idleRoot = path.join(temporaryRoot, 'idle-data');
+    const first = await createRound({
+      sessionTitle: '甲会话',
+      title: '第一轮',
+      questions: [{ id: 'q1', type: 'text', title: '甲' }],
+    }, { dataDir: idleRoot, cwd: temporaryRoot });
+    const second = await createRound({
+      sessionTitle: '乙会话',
+      title: '第一轮',
+      questions: [{ id: 'q1', type: 'text', title: '乙' }],
+    }, { dataDir: idleRoot, cwd: temporaryRoot });
+
+    assert.equal(await hasPendingRound(idleRoot), true, '两个会话都在等答，应判定为有人未答');
+
+    await completeSession(idleRoot, first.sessionId, 'completed');
+    assert.equal(await hasPendingRound(idleRoot), true, '乙会话还在等，服务不该收摊');
+
+    await completeSession(idleRoot, second.sessionId, 'completed');
+    assert.equal(await hasPendingRound(idleRoot), false, '会话都结束了，服务该收摊');
+  }
 
   // q1、mr 这类短 id 只是 JSON 内部的引用键，不进文件路径，必须放行。
   const shortIds = await createRound({

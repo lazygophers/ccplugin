@@ -25,6 +25,15 @@ const SUPPLEMENTARY_TEXT_MAX_LENGTH = 2000;
 const MERMAID_VERSION = '11.16.1';
 const MERMAID_URL = `https://cdn.jsdelivr.net/npm/mermaid@${MERMAID_VERSION}/dist/mermaid.min.js`;
 
+// 太短会在多轮提问之间反复重启服务、换掉用户手上的链接；太长又留垃圾进程。
+const DEFAULT_IDLE_TIMEOUT_MS = 30 * 60 * 1000;
+
+function idleTimeoutMs(value) {
+  const minutes = Number(value ?? process.env.ASK_UI_IDLE_TIMEOUT_MINUTES);
+  if (!Number.isFinite(minutes) || minutes <= 0) return DEFAULT_IDLE_TIMEOUT_MS;
+  return minutes * 60 * 1000;
+}
+
 function vendorCacheRoot() {
   return process.env.ASK_UI_VENDOR_DIR || path.join(os.homedir(), '.agents', 'ask-ui', 'vendor');
 }
@@ -898,6 +907,50 @@ export async function startHttpServer({
   return { server, info };
 }
 
+// 常驻服务此前没有任何终点：每轮提问都会留下一个永不退出的进程。
+// 只要还有人可能来答题就继续跑，否则收摊。
+export async function hasPendingRound(dataRoot) {
+  const index = await readJson(path.join(dataRoot, 'index.json'), null);
+  if (!index?.sessions?.length) return false;
+  for (const entry of index.sessions) {
+    const session = await readJson(
+      path.join(dataRoot, 'sessions', entry.sessionId, 'session.json'),
+      null,
+    );
+    if (session?.status !== 'active') continue;
+    if (session.rounds.some((round) => round.status === 'waiting_for_user')) return true;
+  }
+  return false;
+}
+
+function watchForIdle(server, dataRoot, { idleMs, onExit }) {
+  let lastRequestAt = Date.now();
+  server.on('request', () => { lastRequestAt = Date.now(); });
+
+  const timer = setInterval(async () => {
+    // 数据目录被删掉，服务再挂着也没有意义——测试和临时会话都是这样留下垃圾进程的。
+    if (!existsSync(dataRoot)) {
+      onExit('data directory is gone');
+      return;
+    }
+    if (Date.now() - lastRequestAt < idleMs) return;
+    if (await hasPendingRound(dataRoot)) return;
+    onExit(`idle for ${Math.round(idleMs / 60000)} minutes with no unanswered round`);
+  }, Math.min(idleMs, 30_000));
+  timer.unref();
+  return timer;
+}
+
+// 只在没有任何一轮还等着人回答时才停，且只按 server.json 里记的 pid 精确停。
+async function stopIdleServer(dataRoot) {
+  if (await hasPendingRound(dataRoot)) return false;
+  const info = await readJson(path.join(dataRoot, 'server.json'), null);
+  if (!info?.pid || !await serverIsAlive(info)) return false;
+  process.kill(info.pid, 'SIGTERM');
+  await fs.rm(path.join(dataRoot, 'server.json'), { force: true });
+  return true;
+}
+
 async function serverIsAlive(info) {
   if (!info?.port || !info?.token) return false;
   try {
@@ -1064,7 +1117,17 @@ export async function main(argv = process.argv.slice(2)) {
       token: args.token || randomBytes(24).toString('hex'),
     });
     print(started.info);
-    return new Promise(() => {});
+    return new Promise((resolve) => {
+      watchForIdle(started.server, dataRoot, {
+        idleMs: idleTimeoutMs(args['idle-timeout']),
+        onExit: (reason) => {
+          process.stderr.write(`Ask UI server exiting: ${reason}\n`);
+          started.server.close(() => resolve());
+          // 已建立的 keep-alive 连接会拖住 close，直接断掉。
+          started.server.closeAllConnections?.();
+        },
+      });
+    });
   }
 
   if (command === 'resume') {
@@ -1080,11 +1143,13 @@ export async function main(argv = process.argv.slice(2)) {
 
   if (command === 'complete' || command === 'cancel') {
     if (!args.session) throw new Error('--session is required');
-    print(await completeSession(
+    const completed = await completeSession(
       dataRoot,
       args.session,
       command === 'cancel' ? 'cancelled' : 'completed',
-    ));
+    );
+    // 收尾时顺手关掉常驻服务，不必等它自己 idle 超时。
+    print({ ...completed, serverStopped: await stopIdleServer(dataRoot) });
     return;
   }
 
