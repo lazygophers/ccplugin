@@ -844,6 +844,45 @@ async function loadBundle(force = false) {
   if (changed) render();
 }
 
+// macOS 上 Home/End 在文本框里不移动光标，而是滚动页面。这里把它们接管成
+// 行首/行尾，配合 Shift 扩选、配合 Cmd/Ctrl 跳到全文首尾。
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Home' && event.key !== 'End') return;
+  if (event.altKey) return;
+  const field = event.target;
+  // radio 和 checkbox 也是 input，但没有文本光标，selectionStart 为 null。
+  if (!field || field.selectionStart === null || field.selectionStart === undefined) return;
+
+  const value = field.value;
+  const toStart = event.key === 'Home';
+  const backward = field.selectionDirection === 'backward';
+  const caret = event.shiftKey
+    ? (backward ? field.selectionStart : field.selectionEnd)
+    : (toStart ? field.selectionStart : field.selectionEnd);
+
+  let target;
+  if (event.metaKey || event.ctrlKey) {
+    target = toStart ? 0 : value.length;
+  } else if (toStart) {
+    target = value.lastIndexOf('\n', caret - 1) + 1;
+  } else {
+    const lineEnd = value.indexOf('\n', caret);
+    target = lineEnd === -1 ? value.length : lineEnd;
+  }
+
+  event.preventDefault();
+  if (event.shiftKey) {
+    const anchor = backward ? field.selectionEnd : field.selectionStart;
+    field.setSelectionRange(
+      Math.min(anchor, target),
+      Math.max(anchor, target),
+      target < anchor ? 'backward' : 'forward',
+    );
+  } else {
+    field.setSelectionRange(target, target);
+  }
+});
+
 if (!sessionId || !token) {
   renderError(new Error('页面链接缺少 Session 或访问令牌。请使用 Agent 返回的完整链接。'));
 } else {
