@@ -55,17 +55,19 @@ description: 把 Agent 工作流中彼此独立的问题渲染成本地交互式
 node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs resume --session <sessionId>
 ```
 
+🔴 只有下表列出的情况才需要 `resume`。正常路径永远是读 `<run>.stdout.json`，不要把 `resume` 当常规动作。
+
 `sessionId` 从 stderr 文件里的 `ask-ui-session: <id>` 标记取；stderr 里还有一行 `ask-ui-submitted: <id> round <n>`，是提交完成的备用信号。`resume` 返回 `status: "submitted"` 时其中就是完整答案。
 
 | 触发条件 | 一线修复 | 仍失败的兜底 |
 |---|---|---|
 | 后台任务被杀、崩溃，或退出码非 0 | 取 `sessionId` 后跑 `resume` | 跑不带 `--session` 的 `resume`，按话题、工作区和提交时间选会话 |
-| `<run>.stdout.json` 为空或不是合法 JSON | 同上，用 `resume` 重取结果 | 会话确实不存在时据实说明，用同一 `sessionId` 重开一轮 |
+| `<run>.stdout.json` 为空或不是合法 JSON | 同上，用 `resume` 重取结果 | 会话确实不存在时据实说明答案已丢，用同一批问题开新 Session |
 | 换了新的 Agent 会话，拿不到原来的后台任务 | 从对话里最近的 `ask-ui-session` 标记取 id 后 `resume` | 标记也丢了就跑不带 `--session` 的 `resume` 列候选 |
 | `resume` 返回 `{"status":"waiting"}` | 用户还没提交：什么都不做，结束本轮等通知 | 🔴 不重开表单、不重发问题、不催用户 |
 | 本地浏览器连不上临时服务 | 走 `create` 分离式流程（见「手动回退与恢复」） | 仍连不上才退到 `AskUserQuestion` |
 | harness 没有 Bash 或等价的执行工具 | 用 `ToolSearch` 确认工具确实不存在，退到 `AskUserQuestion` | `AskUserQuestion` 也拿不到时才用对话里的编号文本问题 |
-| 唤醒适配器失败 | 保住答案，回到手动「已提交」流程 | 答案已落在 `answers.json`，用 `resume` 重取 |
+| 唤醒适配器失败 | 保住答案，回到手动「已提交」流程 | 答案已落盘，用 `resume` 重取 |
 
 🔴 不要去 `tail` harness 的任务输出，不要手动拼 `.ask-ui/` 下的文件路径。
 
@@ -143,7 +145,7 @@ Ask UI 为 Claude Code 和 Codex App Server 支持可选的唤醒元数据。把
 | stdout 和 stderr 合并重定向 | 两股输出混在一起，`JSON.parse` 必然失败 | `> <run>.stdout.json 2> <run>.stderr.log` |
 | `sleep` 轮询、催用户、让用户回复「已提交」 | 后台任务的完成通知就是唤醒信号，等它即可 | 启动后立刻结束本轮 |
 | `tail` harness 任务输出，或手拼 `.ask-ui/` 路径 | 绕过了协议，拿到的可能是半截文件 | 读 `<run>.stdout.json`，或跑 `resume` |
-| 给选择题加「其他」选项 | 预设外的答案由每题的 `supplementaryText` 承载 | 选项只列真正互斥的几种 |
+| 给选择题加「其他」选项 | 预设外的答案由每题的补充说明承载 | 选项只列真正互斥的几种 |
 | 覆盖已提交的问题或答案 | `answers.json` 提交后不可变 | 更正和补充一律开新 Round |
 | 把「没有 Bash 工具」说成「服务起不来」 | 归因错了，用户会去修一个不存在的环境问题 | 说清是工具缺失还是服务故障 |
 | 猜 Codex thread id | 猜错会把唤醒发给别的会话 | thread id 只能由宿主提供，拿不到就走手动流程 |
