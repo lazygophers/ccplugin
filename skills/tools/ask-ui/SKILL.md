@@ -66,8 +66,8 @@ node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs resume --session <sessionId>
 | 换了新的 Agent 会话，拿不到原来的后台任务 | 从对话里最近的 `ask-ui-session` 标记取 id 后 `resume` | 标记也丢了就跑不带 `--session` 的 `resume` 列候选 |
 | `resume` 返回 `{"status":"waiting"}` | 用户还没提交：什么都不做，结束本轮等通知 | 🔴 不重开表单、不重发问题、不催用户 |
 | 本地浏览器连不上临时服务 | 走 `create` 分离式流程（见「手动回退与恢复」） | 仍连不上才退到 `AskUserQuestion` |
-| harness 没有 Bash 或等价的执行工具 | 用 `ToolSearch` 确认工具确实不存在，退到 `AskUserQuestion` | `AskUserQuestion` 也拿不到时才用对话里的编号文本问题 |
-| 唤醒适配器失败 | 保住答案，回到手动「已提交」流程 | 答案已落盘，用 `resume` 重取 |
+| harness 没有 Bash 或等价的执行工具 | 用 `ToolSearch` 确认工具确实不存在，按「回退顺序」逐档下退 | 同上，退档时说清真实原因 |
+| 唤醒适配器失败 | 见「可选的主动唤醒」 | 答案已落盘，用 `resume` 重取 |
 
 🔴 不要去 `tail` harness 的任务输出，不要手动拼 `.ask-ui/` 下的文件路径。
 
@@ -142,7 +142,7 @@ Ask UI 为 Claude Code 和 Codex App Server 支持可选的唤醒元数据。把
 | 🔴 不要做 | 为什么 | 改成 |
 |---|---|---|
 | 用 `nohup ... &` 之类手写后台 | harness 收不到退出事件，整条链路退回人工追问 | 用 harness 自己的后台机制 |
-| stdout 和 stderr 合并重定向 | 两股输出混在一起，`JSON.parse` 必然失败 | `> <run>.stdout.json 2> <run>.stderr.log` |
+| stdout 和 stderr 合并重定向 | 两股输出混在一起，`JSON.parse` 必然失败 | 见「提问并等待回答」第 4 步的命令 |
 | `sleep` 轮询、催用户、让用户回复「已提交」 | 后台任务的完成通知就是唤醒信号，等它即可 | 启动后立刻结束本轮 |
 | `tail` harness 任务输出，或手拼 `.ask-ui/` 路径 | 绕过了协议，拿到的可能是半截文件 | 读 `<run>.stdout.json`，或跑 `resume` |
 | 给选择题加「其他」选项 | 预设外的答案由每题的补充说明承载 | 选项只列真正互斥的几种 |
