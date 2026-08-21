@@ -123,7 +123,7 @@ node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs create --input <questions.json>
 - 同一任务的所有轮次复用同一个 `sessionId`。
 - 🔴 绝不覆盖已提交的问题或答案。
 - 更正和补充确认放进新的 Round。
-- 只有新任务、任务已完成、或用户明确要求重启时，才开新 Session。
+- 只有新任务、任务已完成、原 Session 已不可恢复、或用户明确要求重启时，才开新 Session。
 
 ## 可选的主动唤醒
 
