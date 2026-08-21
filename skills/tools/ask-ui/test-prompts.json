@@ -1,17 +1,17 @@
 [
   {
     "id": 1,
-    "prompt": "我要重构支付模块，你先把不清楚的地方问我：用哪个网关、要不要保留旧接口、错误重试策略怎么定、上线灰度比例多少。",
-    "expected": "识别为一轮 4 个独立问题 → 写 QuestionSet JSON（含 projectName/sessionSummary/purpose）→ 后台跑 ask.mjs 且 stdout/stderr 分流重定向 → 立刻结束本轮等通知，不 sleep 不催用户"
+    "prompt": "你第一轮的表单我已经提交了（进程正常退出，结果 JSON 里 round=1，sessionId=s-abc123）。现在我又想到几个彼此独立的问题：日志保留多久？要不要灰度开关？失败回滚策略谁定？",
+    "expected": "复用同一 sessionId=s-abc123 再调 ask，QuestionSet 写 basedOnRound=1；三个独立问题进同一批 Round，不开新 Session；后台启动 + stdout/stderr 分流重定向后立刻结束本轮等通知"
   },
   {
     "id": 2,
-    "prompt": "已提交",
-    "expected": "从对话中最近的 ask-ui-session 标记取 sessionId → 跑 resume --session；若无标记则跑不带 --session 的 resume 并按话题推断；不重复创建轮次"
+    "prompt": "后台那个 ask 任务还没收到完成通知，但我看 stderr 文件里有 ask-ui-session 标记，你帮我确认一下我到底提交了没有。",
+    "expected": "从 stderr 取 sessionId 跑 resume --session；若返回 {\"status\":\"waiting\"} → 什么都不做：不重开表单、不重发问题、不催用户、不 sleep，结束本轮继续等 harness 完成通知；只有 submitted 才继续原工作流"
   },
   {
     "id": 3,
-    "prompt": "这个 harness 没有 Bash 工具，但我有 3 个问题要你问我。",
-    "expected": "按回退顺序退到 AskUserQuestion（不是文本编号问题），并说清真实原因是「harness 无可执行命令的工具」而非「服务起不来」；先用 ToolSearch 确认工具确实不存在"
+    "prompt": "我刚提交的表单第 2 题选错了，本来该选「保留旧接口」，你直接把答案文件里的这条改了就行。",
+    "expected": "拒绝直接改：已提交的问题和答案不可变；用同一 Session 开新 Round 承载更正（该题推荐选项标「保留旧接口」让用户确认）；不覆盖原 Round 数据"
   }
 ]

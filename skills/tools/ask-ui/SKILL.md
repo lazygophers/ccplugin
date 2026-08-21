@@ -1,11 +1,31 @@
 ---
 name: ask-ui
-description: 把 Agent 工作流中彼此独立的问题渲染成本地交互式表单，标注推荐答案，为每个问题收集可选补充说明，将回答保存为可移植 JSON，并把提交结果直接返回给等待中的 Agent 命令。适用于 grill-me、grill-with-docs、头脑风暴、需求澄清、配置、规划，以及任何需要用户确认或问题收集的工作流；当一轮包含超过两个问题时，必须显式调用 Ask UI。用户在一轮 Ask UI 进行中说「已提交」「提交好了」「答完了」时，也走本 skill 的手动恢复路径。
+description: 把 Agent 工作流中彼此独立的问题渲染成本地交互式表单，标注推荐答案，为每个问题收集可选补充说明，将回答保存为可移植 JSON，并把提交结果直接返回给等待中的 Agent 命令。适用于 grill-me、grill-with-docs、头脑风暴、需求澄清、配置、规划，以及任何需要用户确认或问题收集的工作流；当一轮包含超过两个问题时，必须显式调用 Ask UI。用户在一轮 Ask UI 进行中说「已提交」「提交好了」「答完了」时，也走本 skill 的手动恢复路径。English triggers: "ask user form", "interactive questions", "question form".
 ---
 
 # Ask UI
 
 把 Ask UI 当作展示与持久化适配器使用。问题的生成和推理仍留在调用方工作流里。
+
+## 总览：三条路径，只走一条
+
+| 路径 | 何时走 | 答案怎么回来 |
+|---|---|---|
+| **标准路径 `ask`** | 默认。后台运行，阻塞到用户提交 | 进程退出，harness 推完成通知，读 stdout 文件 |
+| **故障恢复 `resume`** | 仅「故障速查」表列出的情况 | `status: "submitted"` 里就是完整答案 |
+| **手动回退 `create`** | `ask` 确实用不了的最后手段 | 用户回复「已提交」后跑 `resume` |
+
+选错路径的代价都在后文用 🔴 标出。先读总览再往下走，不要跳进某条路径的细节里出不来。
+
+## 永不变量
+
+无论走到哪条路径，以下红线一次都不能破：
+
+- 🔴 绝不要求用户回复「已提交」来推进 `ask`——后台任务的完成通知就是唤醒信号。
+- 🔴 绝不覆盖已提交的问题或答案——更正和补充一律开新 Round。
+- 🔴 绝不用 `nohup ... &` 之类手写后台——用 harness 自己的后台机制。
+- 🔴 绝不 `sleep` 轮询、催用户。
+- 🔴 绝不 `tail` harness 任务输出或手拼 `.ask-ui/` 下的文件路径——读 `<run>.stdout.json`，或跑 `resume`。
 
 ## 判断是否使用 UI
 
@@ -23,12 +43,12 @@ description: 把 Agent 工作流中彼此独立的问题渲染成本地交互式
 
 退档时说清真实原因，别把「没有 Bash 工具」写成「服务起不来」——前者换任何语言重写都没用，后者才是环境问题。用 `ToolSearch` 确认过工具确实不存在，再下结论。
 
-## 提问并等待回答
+## 标准路径：`ask` 七步
 
 1. 把包含本 `SKILL.md` 的目录解析为 `ASK_UI_SKILL_DIR`。
 2. 创建 JSON 前先读 [references/schema.md](references/schema.md)。
 3. 创建 QuestionSet JSON 文件。新任务省略 `sessionId`；后续轮次复用当前活跃的 `sessionId` 并设置 `basedOnRound`。
-   一并写上上下文字段，让用户不看对话也能判断在问什么：Session 级 `projectName` / `sessionSummary` / `sessionBackground`，Round 级 `purpose`，需要单独交代前情的题写 `background`。
+   一并写上上下文字段，让用户不看对话就能判断在问什么：Session 级 `projectName` / `sessionSummary` / `sessionBackground`，Round 级 `purpose`，需要单独交代前情的题写 `background`。
    选择题没有「其他」选项。预设选项之外的答案由每题的补充说明承载，所以选项只列真正互斥的几种，不要凑「其他」。
    流程、时序、架构这类讲不清的东西，在 `sessionBackground` 或问题的 `description` / `background` 里写 ` ```mermaid ` 代码块，会渲染成跟随主题的图。
 4. **在后台运行命令，并把 stdout 和 stderr 分开重定向到两个文件**：
@@ -37,9 +57,9 @@ description: 把 Agent 工作流中彼此独立的问题渲染成本地交互式
    node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs ask --input <questions.json> > <run>.stdout.json 2> <run>.stderr.log
    ```
 
-   用 harness 的后台机制启动（Claude Code 里是 Bash 工具的 `run_in_background: true`），**不要**用 `nohup ... &` 之类的手写方式——那样 harness 收不到退出事件，就退回到要人工追问的老路。
+   用 harness 的后台机制启动（Claude Code 里是 Bash 工具的 `run_in_background: true`）。
 
-5. 🛑 **STOP：启动后立刻结束本轮，什么都不用等。**`ask` 没有超时，会一直阻塞到用户提交；用户提交后进程退出，harness 主动把任务完成通知推给你，那就是唤醒信号。禁止 `sleep` 轮询，禁止催用户，禁止让用户回复「已提交」。
+5. 🛑 **STOP：启动后立刻结束本轮，什么都不用等。**`ask` 没有超时，会一直阻塞到用户提交；用户提交后进程退出，harness 主动把任务完成通知推给你，那就是唤醒信号。
 6. 收到完成通知后，直接读 `<run>.stdout.json`——它是一整行 JSON，解析后继续原工作流。stderr 文件只用于排查，正常路径不必看。
 7. 若还需要更多独立问题，用同一个 `sessionId` 再次调用 `ask`，并把 `basedOnRound` 设为返回的轮次号。没有更多问题时，结束该 Session。
 
@@ -47,9 +67,13 @@ description: 把 Agent 工作流中彼此独立的问题渲染成本地交互式
 
 后台任务的 stdout 和 stderr 会混进 harness 的同一个任务输出文件，混在一起的内容 `JSON.parse` 必然失败——这是过去要人工 `resume` 兜底的唯一原因。用 `>` 和 `2>` 分开写到两个文件后，stdout 文件就是纯净的结果 JSON，任务输出文件里只剩 `[exited with code 0]`，整条链路不再需要任何人工确认。
 
-🔴 **绝不要求用户回复「已提交」来推进 `ask`。** 用户被要求汇报自己刚做完的事，是这条流程唯一不该出现的状态。
+### 服务与浏览器生命周期
 
-### 故障速查：出什么事，做什么
+- 每一轮都会打开浏览器：页面在提交后自行关闭，所以下一轮必须重新打开。同一 Session 的各轮复用常驻服务和稳定 URL。
+- 常驻服务不需要手动清理：只要还有轮次等着人回答就一直跑，全部答完且 30 分钟无人访问后自行退出，数据目录被删则立即退出。`complete` 或 `cancel` 结束最后一个会话时会当场停掉它。`ASK_UI_IDLE_TIMEOUT_MINUTES` 可改这个空闲时长。
+- 仅当浏览器打开由外部单独管理时才用 `--no-open`。仅当必须固定 localhost 端口时才用 `--port <number>`。
+
+## 故障速查：出什么事，做什么
 
 ```text
 node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs resume --session <sessionId>
@@ -68,14 +92,6 @@ node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs resume --session <sessionId>
 | 本地浏览器连不上临时服务 | 走 `create` 分离式流程（见「手动回退与恢复」） | 仍连不上才退到 `AskUserQuestion` |
 | harness 没有 Bash 或等价的执行工具 | 用 `ToolSearch` 确认工具确实不存在，退到 `AskUserQuestion` | `AskUserQuestion` 也拿不到时才用对话里的编号文本问题 |
 | 唤醒适配器失败 | 保住答案，回到手动「已提交」流程 | 答案已落盘，用 `resume` 重取 |
-
-🔴 不要去 `tail` harness 的任务输出，不要手动拼 `.ask-ui/` 下的文件路径。
-
-每一轮都会打开浏览器：页面在提交后自行关闭，所以下一轮必须重新打开。同一 Session 的各轮复用常驻服务和稳定 URL。
-
-常驻服务不需要手动清理：只要还有轮次等着人回答就一直跑，全部答完且 30 分钟无人访问后自行退出，数据目录被删则立即退出。`complete` 或 `cancel` 结束最后一个会话时会当场停掉它。`ASK_UI_IDLE_TIMEOUT_MINUTES` 可改这个空闲时长。
-
-仅当浏览器打开由外部单独管理时才用 `--no-open`。仅当必须固定 localhost 端口时才用 `--port <number>`。
 
 ## 手动回退与恢复
 
@@ -121,7 +137,6 @@ node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs create --input <questions.json>
 - 一个任务对应一个 Session。
 - 每批问题对应一个 Round。
 - 同一任务的所有轮次复用同一个 `sessionId`。
-- 🔴 绝不覆盖已提交的问题或答案。
 - 更正和补充确认放进新的 Round。
 - 只有新任务、任务已完成、原 Session 已不可恢复、或用户明确要求重启时，才开新 Session。
 
@@ -153,10 +168,11 @@ Ask UI 为 Claude Code 和 Codex App Server 支持可选的唤醒元数据。把
 ## 常用命令
 
 ```text
-node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs ask --input <questions.json>
-node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs create --input <questions.json>
-node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs status --session <sessionId>
-node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs serve
-node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs complete --session <sessionId>
+node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs ask --input <questions.json>    # 标准路径
+node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs create --input <questions.json> # 手动回退
+node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs resume --session <sessionId>    # 故障恢复
+node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs status --session <sessionId>    # 查会话状态
+node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs serve                           # 常驻服务（ask/create 自动管理，一般不单跑）
+node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs complete --session <sessionId>  # 结束 Session
 node <ASK_UI_SKILL_DIR>/scripts/self-test.mjs
 ```
