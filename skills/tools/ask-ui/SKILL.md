@@ -49,7 +49,7 @@ description: 把 Agent 工作流中彼此独立的问题渲染成本地交互式
 2. 创建 JSON 前先读 [references/schema.md](references/schema.md)。
 3. 创建 QuestionSet JSON 文件。新任务省略 `sessionId`；后续轮次复用当前活跃的 `sessionId` 并设置 `basedOnRound`。
    一并写上上下文字段，让用户不看对话就能判断在问什么：Session 级 `projectName` / `sessionSummary` / `sessionBackground`，Round 级 `purpose`，需要单独交代前情的题写 `background`。
-   选择题没有「其他」选项。预设选项之外的答案由每题的补充说明承载，所以选项只列真正互斥的几种，不要凑「其他」。
+   选择题没有「其他」选项。预设选项之外的答案由每题的补充说明承载，所以选项只列真正互斥的几种，不要凑「其他」。选择题至少要 2 个选项，脚本会直接报错 `第 X 题是选择题，至少要有两个选项` 并退出——只有一个候选的确认题改成 `type: "text"`，或者干脆在对话里问。
    流程、时序、架构这类讲不清的东西，在 `sessionBackground` 或问题的 `description` / `background` 里写 ` ```mermaid ` 代码块，会渲染成跟随主题的图。
 4. **在后台运行命令，并把 stdout 和 stderr 分开重定向到两个文件**：
 
@@ -173,6 +173,7 @@ node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs create --input <questions.json> # 手
 node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs resume --session <sessionId>    # 故障恢复
 node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs status --session <sessionId>    # 查会话状态
 node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs serve                           # 常驻服务（ask/create 自动管理，一般不单跑）
-node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs complete --session <sessionId>  # 结束 Session
-node <ASK_UI_SKILL_DIR>/scripts/self-test.mjs
+node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs complete --session <sessionId>  # 正常结束 Session
+node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs cancel --session <sessionId>    # 作废 Session（问题问错了、任务取消）
+node <ASK_UI_SKILL_DIR>/scripts/self-test.mjs                              # 自检，改完 skill 或排查环境时跑
 ```
