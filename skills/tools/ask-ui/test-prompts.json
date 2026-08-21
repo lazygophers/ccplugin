@@ -1,0 +1,17 @@
+[
+  {
+    "id": 1,
+    "prompt": "我要重构支付模块，你先把不清楚的地方问我：用哪个网关、要不要保留旧接口、错误重试策略怎么定、上线灰度比例多少。",
+    "expected": "识别为一轮 4 个独立问题 → 写 QuestionSet JSON（含 projectName/sessionSummary/purpose）→ 后台跑 ask.mjs 且 stdout/stderr 分流重定向 → 立刻结束本轮等通知，不 sleep 不催用户"
+  },
+  {
+    "id": 2,
+    "prompt": "已提交",
+    "expected": "从对话中最近的 ask-ui-session 标记取 sessionId → 跑 resume --session；若无标记则跑不带 --session 的 resume 并按话题推断；不重复创建轮次"
+  },
+  {
+    "id": 3,
+    "prompt": "这个 harness 没有 Bash 工具，但我有 3 个问题要你问我。",
+    "expected": "按回退顺序退到 AskUserQuestion（不是文本编号问题），并说清真实原因是「harness 无可执行命令的工具」而非「服务起不来」；先用 ToolSearch 确认工具确实不存在"
+  }
+]
