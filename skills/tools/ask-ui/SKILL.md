@@ -129,12 +129,11 @@ node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs create --input <questions.json>
    node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs complete --session <sessionId>
    ```
 
-若对话中拿不到该标记，运行不带 `--session` 的 `resume`。多个候选时它返回 `status: "ambiguous"` 和一份 `candidates` 列表（含 `sessionId` / `title` / `summary` / `workspace` / `roundNumber` / `submittedAt`）。按这个顺序筛，筛到只剩一条为止：
+若对话中拿不到该标记，运行不带 `--session` 的 `resume`。多个候选时它返回 `status: "ambiguous"` 和一份 `candidates` 列表（含 `sessionId` / `title` / `summary` / `workspace` / `roundNumber` / `submittedAt`）。数据目录默认就是当前工作目录下的 `.ask-ui`，所以候选都来自本工作区。按这个顺序筛：
 
-1. 只保留 `workspace` 等于当前工作目录的候选。筛完一条不剩，说明答案不在本工作区——据实说明，别去动别的工作区的会话。
-2. 还剩多条时，只保留 `title` 或 `summary` 与当前任务对得上的。
-3. 仍剩多条时，取 `submittedAt` 最新的一条。
-4. 只有当第 3 步里最新的两条提交时间相差不到 1 分钟时，才停下来把这几条的 `sessionId`、`title`、`submittedAt` 列给用户选。
+1. 先按 `title` 和 `summary` 筛，只保留讲的是当前任务的候选。
+2. 只剩一条就用它；剩多条时取 `submittedAt` 最新的那条。
+3. 一条都对不上当前任务时，把各候选的 `sessionId`、`title`、`submittedAt` 列出来让用户选，不要挑一个最近的凑合用。
 
 🔴 重复的「已提交」消息不得创建重复轮次。只有在成功读到一个 `submitted` 轮次之后，才可以创建新轮次。
 
