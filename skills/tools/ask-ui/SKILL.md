@@ -46,7 +46,7 @@ description: 把 Agent 工作流中彼此独立的问题渲染成本地交互式
 ## 标准路径：`ask` 七步
 
 1. 把包含本 `SKILL.md` 的目录解析为 `ASK_UI_SKILL_DIR`。
-2. 创建 JSON 前先读 [references/schema.md](references/schema.md)。
+2. 创建 JSON 前先读 [references/schema.md](references/schema.md)：字段语义和三种题型的写法都在里面。[references/example-question-set.json](references/example-question-set.json) 是一份可直接复制改字段的完整起手模板（单选 / 多选 / 自由文本各一题，带推荐答案和上下文字段）。
 3. 创建 QuestionSet JSON 文件。新任务省略 `sessionId`；后续轮次复用当前活跃的 `sessionId` 并设置 `basedOnRound`。
    一并写上上下文字段，让用户不看对话就能判断在问什么：Session 级 `projectName` / `sessionSummary` / `sessionBackground`，Round 级 `purpose`，需要单独交代前情的题写 `background`。
    选择题没有「其他」选项。预设选项之外的答案由每题的补充说明承载，所以选项只列真正互斥的几种，不要凑「其他」。选择题至少要 2 个选项，脚本会直接报错 `第 X 题是选择题，至少要有两个选项` 并退出——只有一个候选的确认题改成 `type: "text"`，或者干脆在对话里问。
