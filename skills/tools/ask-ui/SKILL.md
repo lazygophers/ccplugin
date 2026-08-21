@@ -85,7 +85,8 @@ node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs resume --session <sessionId>
 
 | 触发条件 | 一线修复 | 仍失败的兜底 |
 |---|---|---|
-| 后台任务被杀、崩溃，或退出码非 0 | 取 `sessionId` 后跑 `resume` | 跑不带 `--session` 的 `resume`，按话题、工作区和提交时间选会话 |
+| 任务秒退，stderr 里连 `ask-ui-session` 标记都没有 | QuestionSet JSON 非法，会话根本没建起来：读 stderr 的报错（一次列出全部问题）改 JSON 重跑 `ask` | 🔴 不要跑 `resume`——没有会话可恢复，不带 `--session` 的 `resume` 只会捞出别的任务的旧会话 |
+| 后台任务被杀、崩溃，或退出码非 0（stderr 有 `ask-ui-session`） | 取 `sessionId` 后跑 `resume` | 跑不带 `--session` 的 `resume`，按话题、工作区和提交时间选会话 |
 | `<run>.stdout.json` 为空或不是合法 JSON | 同上，用 `resume` 重取结果 | 会话确实不存在时据实说明答案已丢，用同一批问题开新 Session |
 | 换了新的 Agent 会话，拿不到原来的后台任务 | 从对话里最近的 `ask-ui-session` 标记取 id 后 `resume` | 标记也丢了就跑不带 `--session` 的 `resume` 列候选 |
 | `resume` 返回 `{"status":"waiting"}` | 用户还没提交：什么都不做，结束本轮等通知 | 🔴 不重开表单、不重发问题、不催用户 |
