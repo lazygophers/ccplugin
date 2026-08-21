@@ -49,23 +49,25 @@ description: 把 Agent 工作流中彼此独立的问题渲染成本地交互式
 
 🔴 **绝不要求用户回复「已提交」来推进 `ask`。** 用户被要求汇报自己刚做完的事，是这条流程唯一不该出现的状态。
 
-### 结果回收的兜底
-
-只有在下面这些情况才需要 `resume`：
-
-- 后台任务被杀、崩溃，或退出码非 0
-- `<run>.stdout.json` 为空或不是合法 JSON
-- 换了新的 Agent 会话，拿不到原来的后台任务
-
-从 stderr 文件里的 `ask-ui-session: <id>` 标记取 `sessionId`，然后：
+### 故障速查：出什么事，做什么
 
 ```text
 node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs resume --session <sessionId>
 ```
 
-`resume` 返回 `status: "submitted"` 时其中就是完整答案；返回 `{"status":"waiting"}` 说明用户还没提交，继续等通知。不要去 `tail` harness 的任务输出、不要手动拼 `.ask-ui/` 下的文件路径。
+`sessionId` 从 stderr 文件里的 `ask-ui-session: <id>` 标记取；stderr 里还有一行 `ask-ui-submitted: <id> round <n>`，是提交完成的备用信号。`resume` 返回 `status: "submitted"` 时其中就是完整答案。
 
-stderr 文件里还有一行 `ask-ui-submitted: <id> round <n>`，是提交完成的备用信号。
+| 触发条件 | 一线修复 | 仍失败的兜底 |
+|---|---|---|
+| 后台任务被杀、崩溃，或退出码非 0 | 取 `sessionId` 后跑 `resume` | 跑不带 `--session` 的 `resume`，按话题、工作区和提交时间选会话 |
+| `<run>.stdout.json` 为空或不是合法 JSON | 同上，用 `resume` 重取结果 | 会话确实不存在时据实说明，用同一 `sessionId` 重开一轮 |
+| 换了新的 Agent 会话，拿不到原来的后台任务 | 从对话里最近的 `ask-ui-session` 标记取 id 后 `resume` | 标记也丢了就跑不带 `--session` 的 `resume` 列候选 |
+| `resume` 返回 `{"status":"waiting"}` | 用户还没提交：什么都不做，结束本轮等通知 | 🔴 不重开表单、不重发问题、不催用户 |
+| 本地浏览器连不上临时服务 | 走 `create` 分离式流程（见「手动回退与恢复」） | 仍连不上才退到 `AskUserQuestion` |
+| harness 没有 Bash 或等价的执行工具 | 用 `ToolSearch` 确认工具确实不存在，退到 `AskUserQuestion` | `AskUserQuestion` 也拿不到时才用对话里的编号文本问题 |
+| 唤醒适配器失败 | 保住答案，回到手动「已提交」流程 | 答案已落在 `answers.json`，用 `resume` 重取 |
+
+🔴 不要去 `tail` harness 的任务输出，不要手动拼 `.ask-ui/` 下的文件路径。
 
 每一轮都会打开浏览器：页面在提交后自行关闭，所以下一轮必须重新打开。同一 Session 的各轮复用常驻服务和稳定 URL。
 
