@@ -282,6 +282,29 @@ function openPreview(host, label) {
     canvas.append(node);
   }
 
+  // mermaid 的 svg 带 width="100%"，脱离原容器后量不出宽度。按 viewBox 写死尺寸，
+  // 舞台才有东西可以量、可以缩放。
+  for (const svg of canvas.querySelectorAll('svg')) {
+    const box = svg.viewBox?.baseVal;
+    if (!box?.width) continue;
+    svg.style.width = `${box.width}px`;
+    svg.style.height = `${box.height}px`;
+  }
+
+  // 图表按原始尺寸渲染，多半比屏幕小得多。打开预览时先缩放到铺满舞台，
+  // 留一圈边距，再由用户滚轮微调。
+  const fitScale = () => {
+    const margin = 48;
+    const width = canvas.offsetWidth;
+    const height = canvas.offsetHeight;
+    if (!width || !height) return 1;
+    const ratio = Math.min(
+      (stage.clientWidth - margin) / width,
+      (stage.clientHeight - margin) / height,
+    );
+    return Math.min(8, Math.max(0.2, ratio));
+  };
+
   let scale = 1;
   let offsetX = 0;
   let offsetY = 0;
@@ -321,7 +344,7 @@ function openPreview(host, label) {
     button('－', () => zoomTo(scale / 1.25), '缩小'),
     readout,
     button('＋', () => zoomTo(scale * 1.25), '放大'),
-    button('重置', () => { scale = 1; offsetX = 0; offsetY = 0; apply(); }, '重置缩放'),
+    button('重置', () => { scale = fitScale(); offsetX = 0; offsetY = 0; apply(); }, '重置缩放'),
     button('关闭', close, '关闭预览'),
   );
 
@@ -363,6 +386,7 @@ function openPreview(host, label) {
   stage.append(canvas);
   overlay.append(stage, toolbar);
   document.body.append(overlay);
+  scale = fitScale();
   apply();
   toolbar.querySelector('.preview-button')?.focus();
 }

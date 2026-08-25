@@ -1326,12 +1326,13 @@ textarea {
   color: var(--rich-fg);
   transform-origin: center center;
   will-change: transform;
-  max-width: 92vw;
 }
 
+/* mermaid 在 svg 上写死了 inline 的 max-width，留着预览里只有巴掌大。宽度由
+   openPreview 按 viewBox 显式写死，缩放交给舞台的 transform。 */
 .preview-canvas svg {
   display: block;
-  max-width: none;
+  max-width: none !important;
   height: auto;
 }
 
