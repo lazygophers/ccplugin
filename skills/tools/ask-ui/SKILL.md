@@ -71,7 +71,7 @@ description: 向用户提问的时候、调用 `AskUserQuestion` 时都使用本
 ### 服务与浏览器生命周期
 
 - 每一轮都会打开浏览器：页面在提交后自行关闭，所以下一轮必须重新打开。同一 Session 的各轮复用常驻服务和稳定 URL。
-- 常驻服务不需要手动清理：只要还有轮次等着人回答就一直跑，全部答完且 30 分钟无人访问后自行退出，数据目录被删则立即退出。`complete` 或 `cancel` 结束最后一个会话时会当场停掉它。`ASK_UI_IDLE_TIMEOUT_MINUTES` 可改这个空闲时长。
+- 常驻服务不需要手动清理，它自己管进退——四条退出规则见「故障速查」表里「表单挂了很久没人答」那一行。
 - 仅当浏览器打开由外部单独管理时才用 `--no-open`。仅当必须固定 localhost 端口时才用 `--port <number>`。
 
 ## 故障速查：出什么事，做什么
@@ -90,7 +90,8 @@ node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs resume --session <sessionId>
 | 后台任务被杀、崩溃，或退出码非 0（stderr 有 `ask-ui-session`） | 取 `sessionId` 后跑 `resume` | 跑不带 `--session` 的 `resume`，按 `title` / `summary` 筛出讲当前任务的候选，取 `submittedAt` 最新的一条 |
 | `<run>.stdout.json` 为空或不是合法 JSON | 同上，用 `resume` 重取结果 | 会话确实不存在时据实说明答案已丢，用同一批问题开新 Session |
 | 换了新的 Agent 会话，拿不到原来的后台任务 | 从对话里最近的 `ask-ui-session` 标记取 id 后 `resume` | 标记也丢了就跑不带 `--session` 的 `resume` 列候选 |
-| `resume` 返回 `{"status":"waiting"}` | 用户还没提交：什么都不做，结束本轮等通知 | 🔴 不重开表单、不重发问题、不催用户 |
+| `resume` 返回 `{"status":"waiting"}` | 用户还没提交：什么都不做，当场结束本轮，继续等 harness 的完成通知 | 🔴 不重开表单、不重发问题、不催用户、不 `sleep` |
+| 表单挂了很久没人答，担心服务一直占着 | 什么都不做：有轮次等着答服务就该一直跑，全部答完后 30 分钟无访问自行退出，数据目录被删立即退出，`complete` / `cancel` 结束最后一个会话时当场停掉 | 🔴 不要手动 kill 进程；空闲时长要改就用 `ASK_UI_IDLE_TIMEOUT_MINUTES` |
 | 本地浏览器连不上临时服务 | 走 `create` 分离式流程（见「手动回退与恢复」） | 仍连不上才退到 `AskUserQuestion` |
 | harness 没有 Bash 或等价的执行工具 | 用 `ToolSearch` 确认工具确实不存在，退到 `AskUserQuestion` | `AskUserQuestion` 也拿不到时才用对话里的编号文本问题 |
 | 唤醒适配器失败 | 保住答案，回到手动「已提交」流程 | 答案已落盘，用 `resume` 重取 |
