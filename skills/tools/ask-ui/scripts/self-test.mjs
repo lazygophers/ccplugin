@@ -138,41 +138,51 @@ try {
         id: 'scope',
         type: 'single',
         title: '优先范围',
+        text: '## 优先范围\n\n先做**个人**还是**团队**？',
         options: [
-          { id: 'personal', label: '个人工作台' },
-          { id: 'team', label: '团队工作台' },
+          { id: 'personal', text: '个人工作台', recommended: true, reason: '先覆盖高频场景。' },
+          { id: 'team', text: '团队工作台' },
         ],
-        recommendedOptionIds: ['personal'],
       },
       {
         id: 'modules',
         type: 'multiple',
-        title: '首批模块',
+        text: '首批模块',
         options: [
-          { id: 'tasks', label: '任务' },
-          { id: 'notes', label: '笔记' },
-          { id: 'calendar', label: '日历' },
+          { id: 'tasks', text: '任务', recommended: true, reason: '主入口。' },
+          { id: 'notes', text: '笔记', recommended: true, reason: '沉淀上下文。' },
+          { id: 'calendar', text: '日历' },
         ],
-        recommendedOptionIds: ['tasks', 'notes'],
       },
       {
         id: 'context',
         type: 'text',
-        title: '补充背景',
+        text: '补充背景',
         required: false,
         recommendedDraft: '先做本地 Demo。',
       },
       {
         id: 'channel',
         type: 'single',
-        title: '提醒渠道',
+        text: '提醒渠道',
         options: [
-          { id: 'email', label: '邮件' },
-          { id: 'chat', label: '即时消息' },
+          { id: 'email', text: '邮件' },
+          { id: 'chat', text: '即时消息' },
         ],
       },
     ],
   }, { dataDir: dataRoot, cwd: temporaryRoot });
+
+  // title 缺省时取正文首个非空行，左栏导航才有短标签可用。
+  {
+    const storedFirst = await loadSessionBundle(dataRoot, first.sessionId);
+    const stored = storedFirst.rounds[0].questions.questions;
+    assert.equal(stored[0].title, '优先范围', '显式 title 必须原样保留');
+    assert.equal(stored[1].title, '首批模块', 'title 缺省应取 text 首个非空行');
+    // 单选最多一个推荐项：两个「推荐」徽标会让用户不知道照哪个。
+    assert.equal(stored[0].options.filter((option) => option.recommended).length, 1);
+    assert.equal(stored[1].options.filter((option) => option.recommended).length, 2);
+  }
 
   const invalidOther = await createRound({
     sessionTitle: '非法选项验证',
@@ -181,10 +191,10 @@ try {
       {
         id: 'restricted',
         type: 'single',
-        title: '固定选项',
+        text: '固定选项',
         options: [
-          { id: 'one', label: '选项一' },
-          { id: 'two', label: '选项二' },
+          { id: 'one', text: '选项一' },
+          { id: 'two', text: '选项二' },
         ],
       },
     ],
@@ -197,13 +207,13 @@ try {
       {
         id: 'must-pick',
         type: 'multiple',
-        title: '必填多选',
+        text: '必填多选',
         required: true,
         minSelections: 2,
         options: [
-          { id: 'alpha', label: '甲' },
-          { id: 'beta', label: '乙' },
-          { id: 'gamma', label: '丙' },
+          { id: 'alpha', text: '甲' },
+          { id: 'beta', text: '乙' },
+          { id: 'gamma', text: '丙' },
         ],
       },
     ],
@@ -216,17 +226,75 @@ try {
       {
         id: 'must-pick',
         type: 'multiple',
-        title: '必填多选',
+        text: '必填多选',
         required: true,
         minSelections: 2,
         options: [
-          { id: 'alpha', label: '甲' },
-          { id: 'beta', label: '乙' },
-          { id: 'gamma', label: '丙' },
+          { id: 'alpha', text: '甲' },
+          { id: 'beta', text: '乙' },
+          { id: 'gamma', text: '丙' },
         ],
       },
     ],
   }, { dataDir: dataRoot, cwd: temporaryRoot });
+
+  // 旧格式必须当场报错，不能静默丢掉推荐徽标或把 label 当成空文本。
+  await assert.rejects(
+    () => createRound({
+      sessionTitle: '旧格式必须报错',
+      title: '第一轮',
+      questions: [
+        {
+          id: 'legacy',
+          type: 'single',
+          title: '旧写法',
+          description: '旧的题级描述',
+          options: [{ id: 'a', label: '甲' }, { id: 'b', label: '乙' }],
+          recommendedOptionIds: ['a'],
+        },
+      ],
+    }, { dataDir: dataRoot, cwd: temporaryRoot }),
+    (error) => {
+      assert.match(error.message, /缺少 text/);
+      assert.match(error.message, /recommendedOptionIds/);
+      return true;
+    },
+  );
+
+  // type 不再有默认值：漏写必须报错，而不是猜成文本题。
+  await assert.rejects(
+    () => createRound({
+      sessionTitle: 'type 必填',
+      title: '第一轮',
+      questions: [{ id: 'q1', text: '没写 type' }],
+    }, { dataDir: dataRoot, cwd: temporaryRoot }),
+    /必须写明 type/,
+  );
+
+  // 选项一律是 JSON 对象，字符串写法不收。
+  await assert.rejects(
+    () => createRound({
+      sessionTitle: '选项必须是对象',
+      title: '第一轮',
+      questions: [{ id: 'q1', type: 'single', text: '甲', options: ['乙', '丙'] }],
+    }, { dataDir: dataRoot, cwd: temporaryRoot }),
+    /必须是 JSON 对象/,
+  );
+
+  // reason 只属于推荐项，写了 reason 却没标 recommended 是写漏了。
+  await assert.rejects(
+    () => createRound({
+      sessionTitle: 'reason 依赖 recommended',
+      title: '第一轮',
+      questions: [{
+        id: 'q1',
+        type: 'single',
+        text: '甲',
+        options: [{ id: 'a', text: '乙', reason: '因为' }, { id: 'b', text: '丙' }],
+      }],
+    }, { dataDir: dataRoot, cwd: temporaryRoot }),
+    /没有 recommended: true/,
+  );
 
   const started = await startHttpServer({
     dataRoot,
@@ -246,12 +314,12 @@ try {
     const first = await createRound({
       sessionTitle: '甲会话',
       title: '第一轮',
-      questions: [{ id: 'q1', type: 'text', title: '甲' }],
+      questions: [{ id: 'q1', type: 'text', text: '甲' }],
     }, { dataDir: idleRoot, cwd: temporaryRoot });
     const second = await createRound({
       sessionTitle: '乙会话',
       title: '第一轮',
-      questions: [{ id: 'q1', type: 'text', title: '乙' }],
+      questions: [{ id: 'q1', type: 'text', text: '乙' }],
     }, { dataDir: idleRoot, cwd: temporaryRoot });
 
     assert.equal(await hasPendingRound(idleRoot), true, '两个会话都在等答，应判定为有人未答');
@@ -271,9 +339,9 @@ try {
       {
         id: 'q1',
         type: 'single',
-        title: '交付到哪一步',
+        text: '交付到哪一步',
         required: true,
-        options: [{ id: 'mr', label: '开 MR' }, { id: 'commit', label: '只 commit' }],
+        options: [{ id: 'mr', text: '开 MR' }, { id: 'commit', text: '只 commit' }],
       },
     ],
   }, { dataDir: dataRoot, cwd: temporaryRoot });
@@ -285,8 +353,8 @@ try {
       sessionTitle: '非法 id 一次报全',
       title: '第一轮',
       questions: [
-        { id: 'q/1', type: 'single', title: '甲', options: [{ id: 'ok-1', label: 'x' }, { id: 'bad opt', label: 'y' }] },
-        { id: '..', type: 'single', title: '乙', options: [{ id: 'a/b', label: 'x' }, { id: 'c d', label: 'y' }] },
+        { id: 'q/1', type: 'single', text: '甲', options: [{ id: 'ok-1', text: 'x' }, { id: 'bad opt', text: 'y' }] },
+        { id: '..', type: 'single', text: '乙', options: [{ id: 'a/b', text: 'x' }, { id: 'c d', text: 'y' }] },
       ],
     }, { dataDir: dataRoot, cwd: temporaryRoot }),
     (error) => {
@@ -305,20 +373,32 @@ try {
       sessionId: '../escape',
       sessionTitle: '路径穿越',
       title: '第一轮',
-      questions: [{ id: 'q1', type: 'text', title: '甲' }],
+      questions: [{ id: 'q1', type: 'text', text: '甲' }],
     }, { dataDir: dataRoot, cwd: temporaryRoot }),
     /sessionId must contain 3-128 safe characters/,
   );
 
-  // 图表组件命中缓存时必须直接回文件，绝不联网：这是离线可用的前提。
+  // 渲染组件命中缓存时必须直接回文件，绝不联网：这是离线可用的前提。
   const vendorDir = path.join(temporaryRoot, 'vendor');
   await fs.mkdir(vendorDir, { recursive: true });
-  await fs.writeFile(path.join(vendorDir, 'mermaid-11.16.1.min.js'), 'globalThis.mermaid = "cached";');
+  const cachedVendors = {
+    mermaid: 'mermaid-11.16.1.min.js',
+    marked: 'marked-15.0.7.min.js',
+    purify: 'purify-3.2.4.min.js',
+    highlight: 'highlight-11.11.1.min.js',
+  };
+  for (const [name, file] of Object.entries(cachedVendors)) {
+    await fs.writeFile(path.join(vendorDir, file), `globalThis.${name} = "cached";`);
+  }
   process.env.ASK_UI_VENDOR_DIR = vendorDir;
-  const mermaidResponse = await fetch(`${base}/vendor/mermaid.min.js`);
-  assert.equal(mermaidResponse.status, 200);
-  assert.equal(mermaidResponse.headers.get('content-type'), 'text/javascript; charset=utf-8');
-  assert.equal(await mermaidResponse.text(), 'globalThis.mermaid = "cached";');
+  for (const name of Object.keys(cachedVendors)) {
+    const vendorResponse = await fetch(`${base}/vendor/${name}.min.js`);
+    assert.equal(vendorResponse.status, 200, `${name} 应命中缓存`);
+    assert.equal(vendorResponse.headers.get('content-type'), 'text/javascript; charset=utf-8');
+    assert.equal(await vendorResponse.text(), `globalThis.${name} = "cached";`);
+  }
+  // 未登记的组件名不得变成任意文件读取。
+  assert.equal((await fetch(`${base}/vendor/unknown.min.js`)).status, 401);
   delete process.env.ASK_UI_VENDOR_DIR;
 
   // 必填多选：一个选项都不选，只写补充说明，也应当通过，且不触发 minSelections。
@@ -466,12 +546,11 @@ try {
       {
         id: 'layout',
         type: 'single',
-        title: '布局方式',
+        text: '布局方式',
         options: [
-          { id: 'tabs', label: 'Tab 切换' },
-          { id: 'board', label: '看板' },
+          { id: 'tabs', text: 'Tab 切换', recommended: true, reason: '切换成本最低。' },
+          { id: 'board', text: '看板' },
         ],
-        recommendedOptionIds: ['tabs'],
       },
     ],
   }, { dataDir: dataRoot, cwd: temporaryRoot });
@@ -500,14 +579,13 @@ try {
         {
           id: 'scope',
           type: 'single',
-          title: '范围',
-          options: [{ id: 'opt-a', label: 'A' }, { id: 'opt-b', label: 'B' }],
-          recommendedOptionIds: ['opt-a'],
+          text: '范围',
+          options: [{ id: 'opt-a', text: 'A', recommended: true, reason: '先做小的。' }, { id: 'opt-b', text: 'B' }],
         },
         {
           id: 'detail',
           type: 'text',
-          title: '补充',
+          text: '补充',
           required: false,
         },
       ],
@@ -532,14 +610,13 @@ try {
         {
           id: 'confirm',
           type: 'single',
-          title: '确认结果',
-          options: [{ id: 'yes', label: '确认' }, { id: 'adjust', label: '调整' }],
-          recommendedOptionIds: ['yes'],
+          text: '确认结果',
+          options: [{ id: 'yes', text: '确认', recommended: true, reason: '默认继续。' }, { id: 'adjust', text: '调整' }],
         },
         {
           id: 'note',
           type: 'text',
-          title: '备注',
+          text: '备注',
           required: false,
         },
       ],

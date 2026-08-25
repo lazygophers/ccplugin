@@ -2,49 +2,59 @@
   "projectName": "personal-workbench",
   "sessionTitle": "个人工作台需求确认收集",
   "sessionSummary": "验证多轮需求收集、推荐答案和本地提交。",
-  "sessionBackground": "现有工具是命令行版本，只有一个扁平列表。这次要把它做成可视化工作台，先定方向再动手。",
+  "sessionBackground": "现有工具是命令行版本，只有一个扁平列表。这次要把它做成可视化工作台，先定方向再动手。\n\n| 版本 | 形态 | 主要抱怨 |\n|---|---|---|\n| v1 | 命令行 | 打开后不知道今天该做什么 |\n| v2 | 可视化工作台 | 待定 |",
   "title": "第一轮：方向确认",
   "purpose": "确认个人工作台首版的范围与交互偏好。",
   "questions": [
     {
       "id": "primary_goal",
       "type": "single",
-      "title": "首版最重要的目标是什么？",
-      "description": "请选择一个最优先验证的方向。",
+      "title": "首版最重要的目标",
+      "text": "## 首版最重要的目标是什么？\n\n请选择一个**最优先验证**的方向。",
       "background": "用户反馈最集中的一条是「打开之后不知道今天该做什么」，两个方向解决的是不同问题。",
       "options": [
         {
           "id": "daily_focus",
-          "label": "每日聚焦",
-          "description": "集中展示今天最该处理的事项。"
+          "text": "每日聚焦",
+          "description": "集中展示今天最该处理的事项。",
+          "recommended": true,
+          "reason": "首版先解决高频、明确的每日决策问题。"
         },
         {
           "id": "knowledge_hub",
-          "label": "知识聚合",
+          "text": "知识聚合",
           "description": "统一查找笔记、文档与上下文。"
         }
-      ],
-      "recommendedOptionIds": ["daily_focus"],
-      "recommendationReason": "首版先解决高频、明确的每日决策问题。"
+      ]
     },
     {
       "id": "first_modules",
       "type": "multiple",
-      "title": "首批包含哪些模块？",
-      "description": "可以多选，推荐项已默认选中。",
-      "options": [
-        { "id": "tasks", "label": "任务", "description": "待办与优先级。" },
-        { "id": "calendar", "label": "日历", "description": "会议与时间块。" },
-        { "id": "notes", "label": "笔记", "description": "快速记录与检索。" }
-      ],
-      "recommendedOptionIds": ["tasks", "calendar"],
+      "text": "首批包含哪些模块？\n\n可以多选。",
       "minSelections": 1,
-      "maxSelections": 3
+      "maxSelections": 3,
+      "options": [
+        {
+          "id": "tasks",
+          "text": "任务",
+          "description": "待办与优先级。",
+          "recommended": true,
+          "reason": "任务是工作台的主入口。"
+        },
+        {
+          "id": "calendar",
+          "text": "日历",
+          "description": "会议与时间块。",
+          "recommended": true,
+          "reason": "和任务合起来才能回答「今天做什么」。"
+        },
+        { "id": "notes", "text": "笔记", "description": "快速记录与检索。" }
+      ]
     },
     {
       "id": "extra_context",
       "type": "text",
-      "title": "还有什么必须考虑的背景？",
+      "text": "还有什么必须考虑的背景？",
       "required": false,
       "recommendedDraft": "先以本地单人使用为主，后续再考虑团队协作。"
     }

@@ -27,70 +27,98 @@ function element(tag, className = '', text = '') {
 
 const MERMAID_BLOCK = /^[ \t]*```mermaid[ \t]*\r?\n([\s\S]*?)^[ \t]*```[ \t]*$/gm;
 
-let mermaidLoader = null;
+// 富文本的一组底板配色 token，定义见 fallback.css 的 .rich-text。
+const RICH_TOKENS = [
+  '--rich-bg',
+  '--rich-fg',
+  '--rich-muted',
+  '--rich-accent',
+  '--rich-accent-fg',
+  '--rich-accent-2',
+  '--rich-accent-2-fg',
+];
+
+const vendorLoaders = new Map();
 let diagramSequence = 0;
 
-function hasDiagram(text) {
-  MERMAID_BLOCK.lastIndex = 0;
-  return MERMAID_BLOCK.test(text || '');
+function loadVendor(name, globalName) {
+  if (!vendorLoaders.has(name)) {
+    vendorLoaders.set(name, new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = `/vendor/${name}.min.js`;
+      script.onload = () => resolve(globalThis[globalName]);
+      script.onerror = () => {
+        script.remove();
+        reject(new Error(`${name} 组件加载失败，刷新页面可重试`));
+      };
+      document.head.append(script);
+    // 失败的 promise 不能留下来，否则一次网络抖动会让这一页永远加载不出。
+    }).catch((error) => {
+      vendorLoaders.delete(name);
+      throw error;
+    }));
+  }
+  return vendorLoaders.get(name);
 }
 
 function loadMermaid() {
-  mermaidLoader ||= new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.src = '/vendor/mermaid.min.js';
-    script.onload = () => resolve(globalThis.mermaid);
-    script.onerror = () => {
-      script.remove();
-      reject(new Error('图表组件加载失败，切换主题或刷新页面可重试'));
-    };
-    document.head.append(script);
-  // 失败的 promise 不能留下来，否则一次网络抖动会让这一页所有图表永远渲染不出。
-  }).catch((error) => {
-    mermaidLoader = null;
-    throw error;
-  });
-  return mermaidLoader;
+  return loadVendor('mermaid', 'mermaid');
 }
 
-// 把 Memphis 的语义 token 喂给 mermaid，这样切换明暗主题时图表跟着换。
-function mermaidTheme() {
-  const styles = getComputedStyle(document.documentElement);
+async function loadMarkdown() {
+  const [marked, purify] = await Promise.all([
+    loadVendor('marked', 'marked'),
+    loadVendor('purify', 'DOMPurify'),
+  ]);
+  return { marked, purify };
+}
+
+// 图表用它所在底板的配色，不用全局 token：黄色左栏里的图必须是黄色系的，
+// 否则一块 surface 色的图钉在黄底上，整页就散了。明暗主题同样跟着换。
+function mermaidTheme(host) {
+  const styles = getComputedStyle(host);
   const read = (name) => styles.getPropertyValue(name).trim();
-  const line = read('--line');
+  const background = read('--rich-bg');
+  const line = read('--rich-fg');
+  const muted = read('--rich-muted');
+  const mutedText = read('--ink');
+  const accent = read('--rich-accent');
+  const accentText = read('--rich-accent-fg');
+  const accent2 = read('--rich-accent-2');
+  const accent2Text = read('--rich-accent-2-fg');
   return {
     theme: 'base',
     fontFamily: styles.fontFamily,
     themeVariables: {
-      background: read('--surface'),
-      primaryColor: read('--mustard'),
-      primaryTextColor: read('--on-mustard'),
+      background,
+      primaryColor: accent,
+      primaryTextColor: accentText,
       primaryBorderColor: line,
-      secondaryColor: read('--blue'),
-      secondaryTextColor: read('--on-blue'),
+      secondaryColor: accent2,
+      secondaryTextColor: accent2Text,
       secondaryBorderColor: line,
-      tertiaryColor: read('--surface-2'),
-      tertiaryTextColor: read('--ink'),
+      tertiaryColor: muted,
+      tertiaryTextColor: mutedText,
       tertiaryBorderColor: line,
       lineColor: line,
-      textColor: read('--ink'),
-      mainBkg: read('--mustard'),
+      textColor: line,
+      mainBkg: accent,
       nodeBorder: line,
-      clusterBkg: read('--surface-2'),
+      clusterBkg: muted,
       clusterBorder: line,
-      titleColor: read('--ink'),
-      edgeLabelBackground: read('--surface'),
-      actorBkg: read('--mustard'),
+      titleColor: line,
+      edgeLabelBackground: background,
+      actorBkg: accent,
       actorBorder: line,
-      actorTextColor: read('--on-mustard'),
-      signalColor: read('--ink'),
-      signalTextColor: read('--ink'),
-      labelBoxBkgColor: read('--blue'),
+      actorTextColor: accentText,
+      signalColor: line,
+      signalTextColor: line,
+      labelBoxBkgColor: accent2,
       labelBoxBorderColor: line,
-      labelTextColor: read('--on-blue'),
-      noteBkgColor: read('--surface-2'),
+      labelTextColor: accent2Text,
+      noteBkgColor: muted,
       noteBorderColor: line,
-      noteTextColor: read('--ink'),
+      noteTextColor: mutedText,
     },
     // themeVariables 管不到线宽，也管不到连线标签的文字色——后者在暗色主题下
     // 会留在默认深色上，压在深色背景里看不见。
@@ -103,11 +131,11 @@ function mermaidTheme() {
         stroke-width: 2.5px;
       }
       .edgeLabel, .edgeLabel p, .edgeLabel span, .edgeLabel foreignObject div {
-        color: ${read('--ink')};
-        background: ${read('--surface')};
+        color: ${line};
+        background: ${background};
       }
       .edgeLabel rect {
-        fill: ${read('--surface')};
+        fill: ${background};
       }
     `,
   };
@@ -118,10 +146,11 @@ async function renderDiagram(host, code) {
   const id = `ask-ui-diagram-${diagramSequence}`;
   try {
     const mermaid = await loadMermaid();
-    mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', ...mermaidTheme() });
+    mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', ...mermaidTheme(host) });
     const { svg } = await mermaid.render(id, code);
     host.innerHTML = svg;
     host.dataset.state = 'ready';
+    makePreviewable(host, '图表');
   } catch (error) {
     // 渲染不出来时把原始图表源码亮出来，比留一个空框有用。
     host.replaceChildren();
@@ -131,33 +160,211 @@ async function renderDiagram(host, code) {
   }
 }
 
-// 文本里的 ```mermaid 块渲染成图，其余部分保持纯文本，绝不当 HTML 解析。
-// 返回第一个文字段落，调用方可以往它前面插标签，保持标签与正文同行。
-function appendRichText(container, text) {
+let markdownWarned = false;
+let highlightWarned = false;
+
+// 代码块按 ```lang 标注的语言上色。hljs 只认自己注册过的语言，标注是别名或
+// 没标注的就保持素色，不猜。
+async function highlightCode(host) {
+  const blocks = [...host.querySelectorAll('pre code[class*="language-"]')];
+  if (!blocks.length) return;
+  try {
+    const hljs = await loadVendor('highlight', 'hljs');
+    for (const block of blocks) {
+      const language = block.className.match(/language-([\w+#.-]+)/)[1];
+      if (!hljs.getLanguage(language)) continue;
+      block.innerHTML = hljs.highlight(block.textContent, { language }).value;
+      block.classList.add('hljs');
+    }
+  } catch {
+    // 高亮组件下载不到时代码块保持素色，正文和答题都不受影响。
+    if (highlightWarned) return;
+    highlightWarned = true;
+    showToast('代码高亮组件加载失败，代码块按素色显示');
+  }
+}
+
+async function renderProse(host, source) {
+  try {
+    const { marked, purify } = await loadMarkdown();
+    // marked 只负责结构，DOMPurify 负责把脚本和事件属性剥干净，两步都不能省。
+    host.innerHTML = purify.sanitize(marked.parse(source, { gfm: true, breaks: true }));
+    host.dataset.state = 'ready';
+    for (const table of host.querySelectorAll('table')) {
+      const frame = element('div', 'table-frame');
+      table.replaceWith(frame);
+      frame.append(table);
+      makePreviewable(frame, '表格');
+    }
+    highlightCode(host);
+  } catch {
+    // 组件下载不到时保持纯文本：内容照样读得懂，答题不受影响。
+    host.dataset.state = 'plain';
+    if (markdownWarned) return;
+    markdownWarned = true;
+    showToast('Markdown 组件加载失败，正文按纯文本显示');
+  }
+}
+
+// 文本里的 ```mermaid 块渲染成图，其余部分按 Markdown 渲染再净化，绝不直出原始 HTML。
+// diagrams 为 false 时整段只走 Markdown——选项卡片一人一张图会挤得没法比较。
+function appendRichText(container, text, { diagrams = true } = {}) {
   const value = text || '';
-  MERMAID_BLOCK.lastIndex = 0;
-  let firstProse = null;
+  const host = element('div', 'rich-text');
+  container.append(host);
+
   const addProse = (prose) => {
-    if (!prose) return;
-    const paragraph = element('p', 'rich-text', prose);
-    firstProse ||= paragraph;
-    container.append(paragraph);
+    const trimmed = prose.trim();
+    if (!trimmed) return;
+    // Markdown 组件到位前先按纯文本显示，加载完再整体替换。
+    const block = element('div', 'prose', trimmed);
+    block.dataset.state = 'plain';
+    host.append(block);
+    renderProse(block, trimmed);
   };
 
+  if (!diagrams) {
+    addProse(value);
+    return host;
+  }
+
+  MERMAID_BLOCK.lastIndex = 0;
   let cursor = 0;
   let match = MERMAID_BLOCK.exec(value);
   while (match) {
-    addProse(value.slice(cursor, match.index).trim());
-    const host = element('div', 'diagram');
-    host.dataset.state = 'loading';
-    host.append(element('p', 'diagram-loading', '图表加载中…'));
-    container.append(host);
-    renderDiagram(host, match[1].trim());
+    addProse(value.slice(cursor, match.index));
+    const diagram = element('div', 'diagram');
+    diagram.dataset.state = 'loading';
+    diagram.append(element('p', 'diagram-loading', '图表加载中…'));
+    host.append(diagram);
+    renderDiagram(diagram, match[1].trim());
     cursor = match.index + match[0].length;
     match = MERMAID_BLOCK.exec(value);
   }
-  addProse(value.slice(cursor).trim());
-  return firstProse;
+  addProse(value.slice(cursor));
+  return host;
+}
+
+// 图表和表格常常比题卡宽。点开进全屏预览，滚轮缩放、拖拽平移。
+function makePreviewable(host, label) {
+  host.classList.add('previewable');
+  host.tabIndex = 0;
+  host.setAttribute('role', 'button');
+  host.setAttribute('aria-label', `放大查看${label}`);
+  host.title = `点击放大查看${label}`;
+  host.append(element('span', 'preview-hint', '点击放大'));
+  host.addEventListener('click', () => openPreview(host, label));
+  host.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    openPreview(host, label);
+  });
+}
+
+function openPreview(host, label) {
+  const overlay = element('div', 'preview-overlay');
+  const stage = element('div', 'preview-stage');
+  const canvas = element('div', 'preview-canvas');
+  const toolbar = element('div', 'preview-toolbar');
+  const readout = element('span', 'preview-readout');
+
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-label', `${label}预览`);
+  // 克隆体离开了原来的底板，配色 token 一并带过来，预览里的图表表格才不变色。
+  const hostStyles = getComputedStyle(host);
+  for (const token of RICH_TOKENS) {
+    canvas.style.setProperty(token, hostStyles.getPropertyValue(token));
+  }
+  // append 会把节点从克隆体上摘走，先固化成数组再遍历，否则会漏掉一半。
+  for (const node of [...host.cloneNode(true).childNodes]) {
+    if (node.classList?.contains('preview-hint')) continue;
+    canvas.append(node);
+  }
+
+  let scale = 1;
+  let offsetX = 0;
+  let offsetY = 0;
+  const apply = () => {
+    canvas.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+    readout.textContent = `${Math.round(scale * 100)}%`;
+  };
+  const zoomTo = (next, anchorX = 0, anchorY = 0) => {
+    const clamped = Math.min(8, Math.max(0.2, next));
+    const ratio = clamped / scale;
+    offsetX = anchorX - (anchorX - offsetX) * ratio;
+    offsetY = anchorY - (anchorY - offsetY) * ratio;
+    scale = clamped;
+    apply();
+  };
+
+  const close = () => {
+    overlay.remove();
+    document.removeEventListener('keydown', onKeydown);
+    host.focus();
+  };
+  function onKeydown(event) {
+    if (event.key === 'Escape') close();
+  }
+
+  const button = (text, onClick, buttonLabel) => {
+    const control = element('button', 'preview-button', text);
+    control.type = 'button';
+    control.setAttribute('aria-label', buttonLabel);
+    control.addEventListener('click', (event) => {
+      event.stopPropagation();
+      onClick();
+    });
+    return control;
+  };
+  toolbar.append(
+    button('－', () => zoomTo(scale / 1.25), '缩小'),
+    readout,
+    button('＋', () => zoomTo(scale * 1.25), '放大'),
+    button('重置', () => { scale = 1; offsetX = 0; offsetY = 0; apply(); }, '重置缩放'),
+    button('关闭', close, '关闭预览'),
+  );
+
+  stage.addEventListener('wheel', (event) => {
+    event.preventDefault();
+    const rect = stage.getBoundingClientRect();
+    zoomTo(
+      scale * (event.deltaY < 0 ? 1.12 : 1 / 1.12),
+      event.clientX - rect.left - rect.width / 2,
+      event.clientY - rect.top - rect.height / 2,
+    );
+  }, { passive: false });
+
+  let dragging = null;
+  stage.addEventListener('pointerdown', (event) => {
+    dragging = { pointerId: event.pointerId, x: event.clientX - offsetX, y: event.clientY - offsetY };
+    stage.setPointerCapture(event.pointerId);
+    stage.classList.add('dragging');
+  });
+  stage.addEventListener('pointermove', (event) => {
+    if (dragging?.pointerId !== event.pointerId) return;
+    offsetX = event.clientX - dragging.x;
+    offsetY = event.clientY - dragging.y;
+    apply();
+  });
+  const endDrag = (event) => {
+    if (dragging?.pointerId !== event.pointerId) return;
+    dragging = null;
+    stage.classList.remove('dragging');
+  };
+  stage.addEventListener('pointerup', endDrag);
+  stage.addEventListener('pointercancel', endDrag);
+
+  overlay.addEventListener('click', (event) => {
+    if (event.target === overlay) close();
+  });
+  document.addEventListener('keydown', onKeydown);
+
+  stage.append(canvas);
+  overlay.append(stage, toolbar);
+  document.body.append(overlay);
+  apply();
+  toolbar.querySelector('.preview-button')?.focus();
 }
 
 async function api(path, options = {}) {
@@ -240,7 +447,7 @@ function answerFor(questionId) {
 }
 
 function optionLabel(question, optionId) {
-  return question.options?.find((option) => option.id === optionId)?.label || optionId;
+  return question.options?.find((option) => option.id === optionId)?.text || optionId;
 }
 
 function displayAnswer(question, answer) {
@@ -481,9 +688,24 @@ function renderChoiceQuestion(card, question, answer, editable) {
     input.value = option.id;
     input.checked = answer.selectedOptionIds.includes(option.id);
     input.disabled = !editable;
+
+    // 单选也要能反悔：再点一次选中项就清空。radio 点自己不触发 change，
+    // 所以按下时先记住原状态，click 里据此撤销。
+    let checkedBeforeClick = false;
+    const rememberState = () => { checkedBeforeClick = input.checked; };
+    input.addEventListener('pointerdown', rememberState);
+    input.addEventListener('keydown', rememberState);
+    optionCard.addEventListener('pointerdown', rememberState);
+    input.addEventListener('click', () => {
+      if (question.type !== 'single' || !checkedBeforeClick) return;
+      input.checked = false;
+      answer.selectedOptionIds = [];
+      refreshProgress();
+    });
+
     input.addEventListener('change', () => {
       if (question.type === 'single') {
-        answer.selectedOptionIds = [option.id];
+        answer.selectedOptionIds = input.checked ? [option.id] : [];
       } else if (input.checked) {
         answer.selectedOptionIds = [...new Set([...answer.selectedOptionIds, option.id])];
       } else {
@@ -491,15 +713,19 @@ function renderChoiceQuestion(card, question, answer, editable) {
       }
       refreshProgress();
     });
+
     const content = element('span', 'option-content');
     const title = element('span', 'option-label');
-    title.append(element('span', '', option.label));
-    if (question.recommendedOptionIds?.includes(option.id)) {
-      title.append(badge('推荐', 'recommended'));
-    }
+    title.append(element('span', '', option.text));
+    if (option.recommended) title.append(badge('推荐', 'recommended'));
     content.append(title);
     if (option.description) {
-      content.append(element('span', 'option-description', option.description));
+      const description = element('span', 'option-description');
+      appendRichText(description, option.description, { diagrams: false });
+      content.append(description);
+    }
+    if (option.recommended && option.reason) {
+      content.append(element('span', 'option-reason', `推荐理由：${option.reason}`));
     }
     // 序号由渲染顺序自动生成，QuestionSet 不需要也不应该传。
     optionCard.append(input, element('span', 'option-number', String(optionIndex + 1)), content);
@@ -651,27 +877,17 @@ function renderQuestion(question, index, editable, submittedAnswers) {
   const header = element('div', 'question-header');
   header.append(element('span', 'question-number', String(index + 1).padStart(2, '0')));
   const copy = element('div', 'question-copy');
-  copy.append(element('h3', 'question-title', question.title));
-  if (question.description) {
-    const description = element('div', 'question-description');
-    appendRichText(description, question.description);
-    copy.append(description);
-  }
+  const body = element('div', 'question-body');
+  appendRichText(body, question.text);
+  copy.append(body);
   header.append(copy, questionFlags(question));
   card.append(header);
 
   if (question.background) {
     const background = element('div', 'question-background');
-    const firstProse = appendRichText(background, question.background);
-    const lead = element('b', '', '背景 · ');
-    if (firstProse) {
-      firstProse.prepend(lead);
-    } else {
-      // 背景整段只有一张图时，标签自成一行落在图前面。
-      const label = element('p', 'rich-text');
-      label.append(lead);
-      background.prepend(label);
-    }
+    // 正文可能以表格或图表开头，标签独立成块，不再往第一段里插。
+    background.append(element('b', 'background-lead', '背景 ·'));
+    appendRichText(background, question.background);
     card.append(background);
   }
 
@@ -679,10 +895,13 @@ function renderQuestion(question, index, editable, submittedAnswers) {
     ? answerFor(question.id)
     : submittedAnswers?.find((item) => item.questionId === question.id);
   if (editable) {
-    if (question.type === 'text') renderTextQuestion(card, question, answer, true);
-    else renderChoiceQuestion(card, question, answer, true);
-    if (question.recommendationReason) {
-      card.append(element('p', 'recommendation', `推荐理由：${question.recommendationReason}`));
+    if (question.type === 'text') {
+      renderTextQuestion(card, question, answer, true);
+      if (question.recommendationReason) {
+        card.append(element('p', 'recommendation', `推荐理由：${question.recommendationReason}`));
+      }
+    } else {
+      renderChoiceQuestion(card, question, answer, true);
     }
     renderSupplementaryInput(card, question, answer);
   } else {

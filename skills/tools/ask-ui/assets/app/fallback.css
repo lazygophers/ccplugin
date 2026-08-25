@@ -74,15 +74,20 @@ body {
 /* QuestionSet 里的文本按原样保留换行：\n 直接换行，不折成空格。 */
 .session-summary,
 .rail-block p,
-.question-title,
-.question-description,
 .question-background,
+.question-body,
 .option-label,
 .option-description,
+.option-reason,
 .recommendation,
 .history-answer,
 .submit-readme {
   white-space: pre-wrap;
+}
+
+/* Markdown 渲染出的结构自带排版，pre-wrap 会把缩进也画出来。 */
+.prose[data-state="ready"] {
+  white-space: normal;
 }
 
 button,
@@ -511,17 +516,19 @@ button {
   min-width: 0;
 }
 
-.question-title {
-  margin: 0;
+/* 题干正文：第一块是标题量级，其余退回正文灰度。 */
+.question-body {
+  color: var(--ink-2);
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+.question-body > .rich-text > .prose:first-child > :first-child,
+.question-body > .rich-text > .prose[data-state="plain"]:first-child {
+  color: var(--ink);
   font-size: 21px;
   font-weight: 700;
   line-height: 1.35;
-}
-
-.question-description {
-  margin: 3px 0 0;
-  color: var(--ink-2);
-  font-size: 17px;
 }
 
 .question-flags {
@@ -574,7 +581,9 @@ button {
   line-height: 1.65;
 }
 
-.question-background b {
+.background-lead {
+  float: left;
+  margin-right: 8px;
   color: var(--purple);
 }
 
@@ -649,6 +658,19 @@ button {
 }
 
 .option-card:has(.option-selector:checked) .option-description {
+  color: var(--on-mustard);
+}
+
+.option-reason {
+  display: block;
+  margin-top: 6px;
+  border-left: 6px solid var(--blue);
+  padding-left: 9px;
+  color: var(--ink-2);
+  font-size: 16px;
+}
+
+.option-card:has(.option-selector:checked) .option-reason {
   color: var(--on-mustard);
 }
 
@@ -1032,33 +1054,347 @@ textarea {
 }
 
 /* ============================================================
-   Mermaid 图表
+   Markdown 正文与 Mermaid 图表
    文字段落完全继承所在容器，纯文本场景与改版前视觉一致
    ============================================================ */
 
+/* 富文本会落在黄、紫、深棕等各色底板上。这里按所在底板定一组配色 token，
+   Markdown 的表格代码块和 Mermaid 图表都从中取色，才不会在有色底板上糊成一片。 */
 .rich-text {
+  --rich-bg: var(--surface);
+  --rich-fg: var(--ink);
+  --rich-muted: var(--surface-2);
+  --rich-accent: var(--mustard);
+  --rich-accent-fg: var(--on-mustard);
+  --rich-accent-2: var(--blue);
+  --rich-accent-2-fg: var(--on-blue);
   margin: 0;
   font: inherit;
   line-height: inherit;
 }
 
-.rich-text + .rich-text {
+.rail-block.context .rich-text,
+.option-card:has(.option-selector:checked) .rich-text {
+  --rich-bg: var(--mustard);
+  --rich-fg: var(--on-mustard);
+  --rich-muted: var(--surface);
+  --rich-accent: var(--surface);
+  --rich-accent-fg: var(--ink);
+}
+
+.question-background .rich-text {
+  --rich-bg: var(--surface-2);
+  --rich-muted: var(--surface);
+  --rich-accent: var(--purple);
+  --rich-accent-fg: var(--on-purple);
+}
+
+.prose {
+  margin: 0;
+  font: inherit;
+  line-height: inherit;
+}
+
+.prose + .prose,
+.prose + .diagram,
+.diagram + .prose {
   margin-top: 10px;
+}
+
+.prose > :first-child {
+  margin-top: 0;
+}
+
+.prose > :last-child {
+  margin-bottom: 0;
+}
+
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4 {
+  margin: 14px 0 6px;
+  font-size: 1.06em;
+  line-height: 1.35;
+}
+
+.prose p {
+  margin: 8px 0;
+}
+
+.prose ul,
+.prose ol {
+  margin: 8px 0;
+  padding-left: 22px;
+}
+
+.prose li {
+  margin: 3px 0;
+}
+
+.prose a {
+  color: inherit;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.prose strong {
+  font-weight: 800;
+}
+
+/* 富文本会落在黄、紫、深棕等各色底板上，边框和底纹一律从当前文字色推导，
+   写死 --line / --surface-2 会在有色底板上糊成一片。 */
+.prose code {
+  border: 2px solid currentColor;
+  padding: 0 5px;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  font-family: "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  font-size: 0.94em;
+}
+
+.prose pre {
+  margin: 10px 0;
+  border: 3px solid currentColor;
+  padding: 12px;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+  overflow-x: auto;
+}
+
+.prose pre code {
+  border: 0;
+  padding: 0;
+  background: none;
+}
+
+/* 代码高亮的每种色都往当前文字色里掺一半：黄底、紫底、深棕底上都还读得清，
+   同时保住关键字/字符串/注释之间的色相差别。 */
+.prose .hljs-keyword,
+.prose .hljs-selector-tag,
+.prose .hljs-literal,
+.prose .hljs-doctag {
+  color: color-mix(in srgb, var(--purple) 55%, currentColor);
+  font-weight: 700;
+}
+
+.prose .hljs-string,
+.prose .hljs-regexp,
+.prose .hljs-symbol,
+.prose .hljs-addition {
+  color: color-mix(in srgb, var(--olive) 60%, currentColor);
+}
+
+.prose .hljs-number,
+.prose .hljs-built_in,
+.prose .hljs-type,
+.prose .hljs-attr,
+.prose .hljs-attribute,
+.prose .hljs-variable,
+.prose .hljs-template-variable {
+  color: color-mix(in srgb, var(--blue) 55%, currentColor);
+}
+
+.prose .hljs-title,
+.prose .hljs-section,
+.prose .hljs-name,
+.prose .hljs-selector-id,
+.prose .hljs-selector-class,
+.prose .hljs-deletion {
+  color: color-mix(in srgb, var(--red) 55%, currentColor);
+}
+
+.prose .hljs-comment,
+.prose .hljs-quote,
+.prose .hljs-meta {
+  color: color-mix(in srgb, currentColor 62%, transparent);
+  font-style: italic;
+}
+
+.prose .hljs-emphasis {
+  font-style: italic;
+}
+
+.prose .hljs-strong {
+  font-weight: 800;
+}
+
+.prose blockquote {
+  margin: 10px 0;
+  border-left: 8px solid currentColor;
+  padding: 2px 0 2px 12px;
+  opacity: 0.85;
+}
+
+.prose hr {
+  margin: 14px 0;
+  border: 0;
+  border-top: 3px solid currentColor;
+}
+
+.prose img {
+  max-width: 100%;
+  height: auto;
+}
+
+.table-frame {
+  position: relative;
+  margin: 12px 0;
+  border: 3px solid currentColor;
+  box-shadow: 6px 6px 0 var(--shadow);
+  background: var(--rich-bg);
+  color: var(--rich-fg);
+  overflow-x: auto;
+}
+
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95em;
+}
+
+.prose th,
+.prose td {
+  border: 2px solid currentColor;
+  padding: 6px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.prose th {
+  background: var(--rich-muted);
+  color: var(--ink);
+  font-weight: 800;
+}
+
+/* ---------- 点击放大预览 ---------- */
+
+.previewable {
+  position: relative;
+  cursor: zoom-in;
+}
+
+.preview-hint {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  border: 2px solid var(--line);
+  border-right: 0;
+  border-bottom: 0;
+  padding: 1px 8px;
+  background: var(--blue);
+  color: var(--on-blue);
+  font-size: 14px;
+  font-weight: 700;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+.previewable:hover .preview-hint,
+.previewable:focus-visible .preview-hint {
+  opacity: 1;
+}
+
+.preview-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  /* 遮罩固定压暗。暗色主题下 --ink 是浅色，跟着走会把页面冲成白雾。 */
+  background: rgb(0 0 0 / 0.72);
+}
+
+.preview-stage {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+}
+
+.preview-stage.dragging {
+  cursor: grabbing;
+}
+
+.preview-canvas {
+  border: 3px solid currentColor;
+  box-shadow: 8px 8px 0 var(--shadow);
+  padding: 20px;
+  background: var(--rich-bg);
+  color: var(--rich-fg);
+  transform-origin: center center;
+  will-change: transform;
+  max-width: 92vw;
+}
+
+.preview-canvas svg {
+  display: block;
+  max-width: none;
+  height: auto;
+}
+
+.preview-canvas table {
+  border-collapse: collapse;
+  font-size: 17px;
+}
+
+.preview-canvas th,
+.preview-canvas td {
+  border: 2px solid currentColor;
+  padding: 7px 12px;
+  text-align: left;
+}
+
+.preview-canvas th {
+  background: var(--rich-muted);
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.preview-toolbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  border-top: 3px solid var(--line);
+  padding: 10px;
+  background: var(--surface);
+}
+
+.preview-button {
+  border: 3px solid var(--line);
+  padding: 5px 14px;
+  background: var(--base);
+  color: var(--ink);
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.preview-button:hover {
+  background: var(--mustard);
+  color: var(--on-mustard);
+}
+
+.preview-readout {
+  min-width: 62px;
+  color: var(--ink);
+  font-size: 17px;
+  font-weight: 700;
+  text-align: center;
 }
 
 .diagram {
   margin: 14px 0 0;
-  border: 3px solid var(--line);
+  border: 3px solid currentColor;
   box-shadow: 6px 6px 0 var(--shadow);
   padding: 16px;
-  background: var(--surface);
+  background: var(--rich-bg);
+  color: var(--rich-fg);
   overflow-x: auto;
   /* 图表是块级排版，不跟随外层容器的 pre-wrap。 */
   white-space: normal;
-}
-
-.rich-text + .diagram {
-  margin-top: 12px;
 }
 
 .diagram svg {

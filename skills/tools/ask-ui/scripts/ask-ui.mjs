@@ -20,10 +20,26 @@ const SCHEMA_VERSION = '1.0';
 const MAX_BODY_BYTES = 1_048_576;
 const SUPPLEMENTARY_TEXT_MAX_LENGTH = 2000;
 
-// Mermaid 有 3.4MB，不进仓库。首次遇到含图的问题时下载到公共缓存，
+// 页面用到的第三方渲染组件都不进仓库：首次用到时下载到公共缓存，
 // 之后所有项目、所有 Session 共用同一份，离线也能渲染。
-const MERMAID_VERSION = '11.16.1';
-const MERMAID_URL = `https://cdn.jsdelivr.net/npm/mermaid@${MERMAID_VERSION}/dist/mermaid.min.js`;
+const VENDOR = {
+  mermaid: {
+    version: '11.16.1',
+    url: (version) => `https://cdn.jsdelivr.net/npm/mermaid@${version}/dist/mermaid.min.js`,
+  },
+  marked: {
+    version: '15.0.7',
+    url: (version) => `https://cdn.jsdelivr.net/npm/marked@${version}/marked.min.js`,
+  },
+  purify: {
+    version: '3.2.4',
+    url: (version) => `https://cdn.jsdelivr.net/npm/dompurify@${version}/dist/purify.min.js`,
+  },
+  highlight: {
+    version: '11.11.1',
+    url: (version) => `https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@${version}/highlight.min.js`,
+  },
+};
 
 // 太短会在多轮提问之间反复重启服务、换掉用户手上的链接；太长又留垃圾进程。
 const DEFAULT_IDLE_TIMEOUT_MS = 30 * 60 * 1000;
@@ -38,8 +54,8 @@ function vendorCacheRoot() {
   return process.env.ASK_UI_VENDOR_DIR || path.join(os.homedir(), '.agents', 'ask-ui', 'vendor');
 }
 
-function mermaidCacheFile() {
-  return path.join(vendorCacheRoot(), `mermaid-${MERMAID_VERSION}.min.js`);
+function vendorCacheFile(name) {
+  return path.join(vendorCacheRoot(), `${name}-${VENDOR[name].version}.min.js`);
 }
 
 function now() {
@@ -186,17 +202,17 @@ function normalizeWake(rawWake, cwd) {
   };
 }
 
+// 左栏导航要的是一行短标题，作者没写 title 时从正文首个非空行取。
+function firstLine(text) {
+  return text.split('\n').map((line) => line.trim()).find(Boolean) || '';
+}
+
 function normalizeQuestion(question, index) {
-  if (!question || typeof question !== 'object') {
-    throw new Error(`Question ${index + 1} must be an object`);
+  if (!question || typeof question !== 'object' || Array.isArray(question)) {
+    throw new Error(`第 ${index + 1} 题必须是 JSON 对象`);
   }
 
-  const type = question.type === 'multi' ? 'multiple' : question.type;
-  if (!['single', 'multiple', 'text'].includes(type)) {
-    throw new Error(`Question ${question.id || index + 1} has unsupported type`);
-  }
-
-  // 题 id 和选项 id 的问题一起报，别让调用方修完 id 再来一轮才发现选项也不合法。
+  // 一道题里所有的问题一起报，别让调用方修完 id 再来一轮才发现选项也不合法。
   const issues = [];
   const collect = (check) => {
     try {
@@ -208,23 +224,36 @@ function normalizeQuestion(question, index) {
 
   const id = String(question.id || `q${index + 1}`);
   collect(() => assertReferenceId(id, `第 ${index + 1} 题的 id`));
+
+  const type = question.type;
+  if (!['single', 'multiple', 'text'].includes(type)) {
+    issues.push(`第 ${id} 题必须写明 type：single（单选）、multiple（多选）或 text（文本），收到 ${JSON.stringify(question.type)}`);
+    throw new Error(issues.join('；'));
+  }
+
+  const text = String(question.text || '');
+  if (!text.trim()) issues.push(`第 ${id} 题缺少 text（问题正文，支持 Markdown 与 Mermaid）`);
+  if (question.recommendedOptionIds !== undefined) {
+    issues.push(`第 ${id} 题不再支持题级 recommendedOptionIds：把 recommended 和 reason 写进对应选项里`);
+  }
+
   const normalized = {
     id,
     type,
-    title: String(question.title || `问题 ${index + 1}`),
-    description: String(question.description || ''),
+    text,
+    title: String(question.title || '') || firstLine(text) || `问题 ${index + 1}`,
     background: String(question.background || ''),
     required: question.required !== false,
-    recommendationReason: String(question.recommendationReason || ''),
   };
 
   if (type === 'text') {
-    if (issues.length) throw new Error(issues.join('；'));
     normalized.recommendedDraft = String(question.recommendedDraft || '');
+    normalized.recommendationReason = String(question.recommendationReason || '');
     normalized.multiline = question.multiline !== false;
     normalized.maxLength = Number.isInteger(question.maxLength)
       ? Math.max(1, question.maxLength)
       : 4000;
+    if (issues.length) throw new Error(issues.join('；'));
     return normalized;
   }
 
@@ -233,26 +262,41 @@ function normalizeQuestion(question, index) {
     throw new Error(issues.join('；'));
   }
   normalized.options = question.options.map((option, optionIndex) => {
+    const label = `第 ${id} 题第 ${optionIndex + 1} 个选项`;
+    if (!option || typeof option !== 'object' || Array.isArray(option)) {
+      issues.push(`${label}必须是 JSON 对象，形如 {"text":"甲","recommended":true,"reason":"..."}`);
+      return { id: `option-${optionIndex + 1}`, text: '', description: '', recommended: false, reason: '' };
+    }
     const optionId = String(option.id || `option-${optionIndex + 1}`);
-    collect(() => assertReferenceId(optionId, `第 ${id} 题第 ${optionIndex + 1} 个选项的 id`));
+    collect(() => assertReferenceId(optionId, `${label}的 id`));
+    const optionText = String(option.text || '');
+    if (!optionText.trim()) issues.push(`${label}缺少 text`);
+    const recommended = option.recommended === true;
+    const reason = String(option.reason || '');
+    if (reason && !recommended) {
+      issues.push(`${label}写了 reason 却没有 recommended: true——推荐原因只属于推荐项`);
+    }
     return {
       id: optionId,
-      label: String(option.label || optionId),
+      text: optionText,
       description: String(option.description || ''),
+      recommended,
+      reason,
     };
   });
   if (issues.length) throw new Error(issues.join('；'));
-  const optionIds = new Set(normalized.options.map((option) => option.id));
-  normalized.recommendedOptionIds = [
-    ...new Set(
-      (Array.isArray(question.recommendedOptionIds)
-        ? question.recommendedOptionIds
-        : [])
-        .map(String)
-        .filter((optionId) => optionIds.has(optionId)),
-    ),
-  ];
-  if (type === 'single') normalized.recommendedOptionIds = normalized.recommendedOptionIds.slice(0, 1);
+  // 单选只认第一个推荐项：两个「推荐」徽标会让用户不知道该照哪个。
+  if (type === 'single') {
+    let seen = false;
+    for (const option of normalized.options) {
+      if (!option.recommended) continue;
+      if (seen) {
+        option.recommended = false;
+        option.reason = '';
+      }
+      seen = true;
+    }
+  }
   if (type === 'multiple') {
     normalized.minSelections = Number.isInteger(question.minSelections)
       ? Math.max(0, question.minSelections)
@@ -675,25 +719,28 @@ function sendFile(response, file) {
   createReadStream(file).pipe(response);
 }
 
-// 并发的图表请求只应触发一次下载，后到的请求等同一个 promise。
-let mermaidDownload = null;
+// 并发的同名组件请求只应触发一次下载，后到的请求等同一个 promise。
+const vendorDownloads = new Map();
 
-async function ensureMermaid() {
-  const cacheFile = mermaidCacheFile();
+async function ensureVendor(name) {
+  const cacheFile = vendorCacheFile(name);
   if (existsSync(cacheFile)) return cacheFile;
-  mermaidDownload ||= (async () => {
-    const response = await fetch(MERMAID_URL);
-    if (!response.ok) {
-      throw new Error(`Failed to download mermaid: ${response.status} ${MERMAID_URL}`);
-    }
-    const body = Buffer.from(await response.arrayBuffer());
-    await fs.mkdir(vendorCacheRoot(), { recursive: true });
-    const temporary = `${cacheFile}.${process.pid}.tmp`;
-    await fs.writeFile(temporary, body);
-    await fs.rename(temporary, cacheFile);
-    return cacheFile;
-  })().finally(() => { mermaidDownload = null; });
-  return mermaidDownload;
+  if (!vendorDownloads.has(name)) {
+    const url = VENDOR[name].url(VENDOR[name].version);
+    vendorDownloads.set(name, (async () => {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to download ${name}: ${response.status} ${url}`);
+      }
+      const body = Buffer.from(await response.arrayBuffer());
+      await fs.mkdir(vendorCacheRoot(), { recursive: true });
+      const temporary = `${cacheFile}.${process.pid}.tmp`;
+      await fs.writeFile(temporary, body);
+      await fs.rename(temporary, cacheFile);
+      return cacheFile;
+    })().finally(() => { vendorDownloads.delete(name); }));
+  }
+  return vendorDownloads.get(name);
 }
 
 async function readRequestJson(request) {
@@ -804,10 +851,11 @@ export async function startHttpServer({
       sendFile(response, path.join(APP_ROOT, 'fallback.css'));
       return;
     }
-    if (request.method === 'GET' && requestUrl.pathname === '/vendor/mermaid.min.js') {
-      // 只在页面真的出现图表时才被请求，所以下载成本不会落到没有图的轮次上。
+    const vendorMatch = requestUrl.pathname.match(/^\/vendor\/([a-z]+)\.min\.js$/);
+    if (request.method === 'GET' && vendorMatch && VENDOR[vendorMatch[1]]) {
+      // 只在页面真的用到该组件时才被请求，下载成本不会落到用不上的轮次上。
       try {
-        sendFile(response, await ensureMermaid());
+        sendFile(response, await ensureVendor(vendorMatch[1]));
       } catch (error) {
         sendJson(response, 502, { error: error.message });
       }

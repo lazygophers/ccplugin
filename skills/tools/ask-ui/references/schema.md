@@ -16,45 +16,92 @@
 |---|---|---|---|
 | `projectName` | Session | 取工作目录名 | 页头徽标 |
 | `sessionSummary` | Session | 显示默认提示语 | 页头副标题 |
-| `sessionBackground` | Session | 整块不渲染 | 左栏「本次背景」，支持 Mermaid |
+| `sessionBackground` | Session | 整块不渲染 | 左栏「本次背景」，支持 Markdown + Mermaid |
 | `purpose` | Round | 不渲染 | 左栏「第 N 轮」块 |
-| `background` | Question | 不渲染 | 题卡内「背景 ·」行，支持 Mermaid |
+| `background` | Question | 不渲染 | 题卡内「背景 ·」块，支持 Markdown + Mermaid |
 
 同一 Session 的后续轮次可以省略 Session 级字段，首轮写入的值会保留。
 
-问题和选项的 `id`：字母或数字开头，其余可用字母、数字和 `.` `_` `-`，最长 128 个字符。`q1`、`mr` 这种短名合法。省略时自动生成。`sessionId` 会拼进文件路径，额外要求至少 3 个字符。一次提交里所有不合法的 id 会一起报出来，不用逐个试。
+`sessionId` 会拼进文件路径，要求至少 3 个字符。问题和选项的 `id` 只是 JSON 内部引用键：字母或数字开头，其余可用字母、数字和 `.` `_` `-`，最长 128 个字符，`q1`、`mr` 这种短名合法；省略时自动生成。一次提交里所有不合法的 id 会一起报出来，不用逐个试。
 
-### 画图
+## Question（问题）
 
-`sessionBackground`、问题的 `description` 和 `background` 支持 Mermaid。把图写成 ` ```mermaid ` 代码块嵌在文本里，其余文字照常显示：
+每道题三件事：**问什么**（`text`）、**给哪些选项**（`options`）、**怎么答**（`type`）。
 
 ```json
-{"id":"q-flow","type":"single","title":"选哪条链路","description":"两条路线的差异：\n\n```mermaid\nflowchart TD\n  S[启动] --> D{有缓存?}\n  D -->|有| H[直接渲染]\n  D -->|无| N[下载后渲染]\n```\n\n右边那条首次会慢。","options":[{"id":"opt-a","label":"方案甲"},{"id":"opt-b","label":"方案乙"}]}
+{"id":"primary_goal","type":"single","title":"首版目标","text":"## 首版最重要的目标是什么？\n\n请选择一个**最优先验证**的方向。","background":"用户反馈最集中的一条是「打开之后不知道今天该做什么」。","required":true,"options":[{"id":"daily_focus","text":"每日聚焦","description":"集中展示今天最该处理的事项。","recommended":true,"reason":"首版先解决高频、明确的每日决策问题。"},{"id":"knowledge_hub","text":"知识聚合","description":"统一查找笔记、文档与上下文。"}]}
 ```
 
-图表配色跟随界面的明暗主题。选项的 `description` 不渲染图表——每个选项一张图会把卡片撑得没法比较。
+| 字段 | 必填 | 说明 |
+|---|---|---|
+| `type` | 是 | `single`（单选）/ `multiple`（多选）/ `text`（自由文本）。**没有默认值，漏写直接报错。** |
+| `text` | 是 | 问题正文，问题本身和它的描述都写在这里。支持 Markdown + Mermaid。 |
+| `title` | 否 | 左栏导航用的短标题。省略时取 `text` 的首个非空行——正文以 Markdown 标题或表格开头时，请显式写 `title`。 |
+| `background` | 否 | 单独交代这题的前情。支持 Markdown + Mermaid。 |
+| `required` | 否 | 默认 `true`。 |
+| `options` | 选择题必填 | 见下。至少 2 个，`text` 类型不写。 |
 
-Mermaid 有 3.4MB，不进仓库：只有页面上真的出现图表时才下载，缓存在 `~/.agents/ask-ui/vendor/`，此后所有项目共用同一份，离线可用（`ASK_UI_VENDOR_DIR` 可改缓存位置）。首次下载期间图表位置显示「图表加载中…」；下载不到或图表语法有错时，显示错误原因和原始图表源码，不影响答题和提交。
+### 选项
 
-`recommendedOptionIds`、`recommendedDraft`、`recommendationReason` 只做视觉提示——选项上加「推荐」徽标、文本题填成 placeholder、附一条推荐理由横幅。**它们不会预选任何答案**：一道题只有在用户真的点过、选过或输入过之后才算已答，未作答的必填题会挡住提交。
+**每个选项都必须是 JSON 对象，不接受字符串。**
+
+| 字段 | 必填 | 说明 |
+|---|---|---|
+| `text` | 是 | 选项文本。 |
+| `id` | 否 | 省略时按序号自动生成。 |
+| `description` | 否 | 选项下方的说明行，支持 Markdown（不渲染 Mermaid：一选项一张图会挤得没法比较）。 |
+| `recommended` | 否 | `true` 时挂「推荐」徽标。 |
+| `reason` | 否 | 推荐原因，显示在该选项下方。**只有 `recommended: true` 才能写，否则报错。** |
+
+选择题至少要 2 个选项，脚本会直接报错 `第 X 题是选择题，至少要有两个选项` 并退出——只有一个候选的确认题改成 `type: "text"`，或者干脆在对话里问。
+
+单选题最多认一个推荐项，多写的会被丢掉徽标。
+
+选择题没有「其他」选项。预设之外的答案由每题的补充说明承载，所以选项只列真正互斥的几种，不要凑「其他」。
+
+推荐标记只做视觉提示：加徽标、附一条推荐原因。**它们不会预选任何答案**——一道题只有在用户真的点过、选过或输入过之后才算已答，未作答的必填题会挡住提交。
 
 ### 单选
 
 ```json
-{"id":"q1","type":"single","title":"首页结构","description":"选择一种主要组织方式。","background":"现在的命令行版本只有一个列表视图，用户反馈找不到当天该做什么。","required":true,"options":[{"id":"dashboard","label":"仪表盘","description":"集中展示核心状态"}],"recommendedOptionIds":["dashboard"],"recommendationReason":"更适合快速查看整体状态"}
+{"id":"q1","type":"single","text":"首页结构\n\n选择一种主要组织方式。","options":[{"id":"dashboard","text":"仪表盘","description":"集中展示核心状态","recommended":true,"reason":"更适合快速查看整体状态"},{"id":"list","text":"列表","description":"按时间排下来"}]}
 ```
+
+单选可以反悔：再点一次已选中的选项就清空，回到未作答状态。
 
 ### 多选
 
 ```json
-{"id":"q2","type":"multiple","title":"首期模块","description":"选择首期必须具备的模块。","required":true,"minSelections":1,"maxSelections":3,"options":[{"id":"tasks","label":"任务","description":"待办与进度"},{"id":"notes","label":"笔记","description":"知识沉淀"}],"recommendedOptionIds":["tasks"],"recommendationReason":"任务是工作台的主入口"}
+{"id":"q2","type":"multiple","text":"首期模块\n\n选择首期必须具备的模块。","required":true,"minSelections":1,"maxSelections":3,"options":[{"id":"tasks","text":"任务","description":"待办与进度","recommended":true,"reason":"任务是工作台的主入口"},{"id":"notes","text":"笔记","description":"知识沉淀"}]}
 ```
+
+`minSelections` 默认为 `required ? 1 : 0`，`maxSelections` 默认为选项总数。
 
 ### 自由文本
 
 ```json
-{"id":"q3","type":"text","title":"成功标准","description":"描述上线后的成功标准。","required":true,"recommendedDraft":"每天可以在一个页面完成工作安排和回顾。","recommendationReason":"可直接观察和验证","multiline":true,"maxLength":2000}
+{"id":"q3","type":"text","text":"成功标准\n\n描述上线后的成功标准。","required":true,"recommendedDraft":"每天可以在一个页面完成工作安排和回顾。","recommendationReason":"可直接观察和验证","multiline":true,"maxLength":2000}
 ```
+
+`recommendedDraft` 填成输入框的 placeholder，`recommendationReason` 显示为一条推荐理由横幅。两者同样不会预填答案。
+
+## 富文本：Markdown 与 Mermaid
+
+`sessionBackground`、问题的 `text` 和 `background` 同时支持 Markdown 和 Mermaid；选项的 `description` 只支持 Markdown。
+
+Markdown 按 GFM 渲染：标题、粗体、斜体、行内代码、代码块、有序/无序列表、链接、引用、分隔线、表格。换行按原样换行（`breaks: true`），不用为了断行补两个空格。渲染结果经 DOMPurify 净化，脚本和事件属性会被剥掉。
+
+代码块按围栏上标注的语言高亮（` ```ts `、` ```python `、` ```sql ` 等，highlight.js 的语言名）。不标语言、或标了它不认识的名字，就保持素色。配色跟随所在底板，不会在黄色左栏里蹦出一块深色代码。
+
+图表写成 ` ```mermaid ` 代码块嵌在文本里，其余文字照常显示：
+
+```json
+{"id":"q-flow","type":"single","text":"选哪条链路\n\n两条路线的差异：\n\n```mermaid\nflowchart TD\n  S[启动] --> D{有缓存?}\n  D -->|有| H[直接渲染]\n  D -->|无| N[下载后渲染]\n```\n\n右边那条首次会慢。","options":[{"id":"opt-a","text":"方案甲"},{"id":"opt-b","text":"方案乙"}]}
+```
+
+图表配色跟随界面的明暗主题。**渲染出来的图表和表格都可以点击放大**，进入全屏预览后可滚轮缩放、拖拽平移，`Esc` 或点击空白处关闭。
+
+渲染组件（Mermaid 3.4MB、marked、DOMPurify、highlight.js）不进仓库：只有页面真的用到时才下载，缓存在 `~/.agents/ask-ui/vendor/`，此后所有项目共用同一份，离线可用（`ASK_UI_VENDOR_DIR` 可改缓存位置）。下载不到时正文退回纯文本显示、图表位置显示错误原因和原始图表源码，都不影响答题和提交。
 
 ## AnswerSet（答案集）
 

@@ -1,6 +1,6 @@
 ---
 name: ask-ui
-description: 把 Agent 工作流中彼此独立的问题渲染成本地交互式表单，标注推荐答案，为每个问题收集可选补充说明，将回答保存为可移植 JSON，并把提交结果直接返回给等待中的 Agent 命令。适用于 grill-me、grill-with-docs、头脑风暴、需求澄清、配置、规划，以及任何需要用户确认或问题收集的工作流；当一轮包含超过两个问题时，必须显式调用 Ask UI。用户在一轮 Ask UI 进行中说「已提交」「提交好了」「答完了」时，也走本 skill 的手动恢复路径。English triggers: "ask user form", "interactive questions", "question form".
+description: 向用户提问的时候、调用 `AskUserQuestion` 时都使用本 skill 来替换提问方式
 ---
 
 # Ask UI
@@ -48,9 +48,10 @@ description: 把 Agent 工作流中彼此独立的问题渲染成本地交互式
 1. 把包含本 `SKILL.md` 的目录解析为 `ASK_UI_SKILL_DIR`。
 2. 创建 JSON 前先读 [references/schema.md](references/schema.md)：字段语义和三种题型的写法都在里面。[references/example-question-set.json](references/example-question-set.json) 是一份可直接复制改字段的完整起手模板（单选 / 多选 / 自由文本各一题，带推荐答案和上下文字段）。
 3. 创建 QuestionSet JSON 文件。新任务省略 `sessionId`；后续轮次复用当前活跃的 `sessionId` 并设置 `basedOnRound`。
+   每道题必写两个字段：`type`（`single` / `multiple` / `text`，**没有默认值，漏写报错**）和 `text`（问题正文，问题本身和描述都写在这里）。选项一律是 JSON 对象 `{"text":"…","description":"…","recommended":true,"reason":"…"}`，**不接受字符串**；`reason` 只能写在 `recommended: true` 的选项上。
    一并写上上下文字段，让用户不看对话就能判断在问什么：Session 级 `projectName` / `sessionSummary` / `sessionBackground`，Round 级 `purpose`，需要单独交代前情的题写 `background`。
    选择题没有「其他」选项。预设选项之外的答案由每题的补充说明承载，所以选项只列真正互斥的几种，不要凑「其他」。选择题至少要 2 个选项，脚本会直接报错 `第 X 题是选择题，至少要有两个选项` 并退出——只有一个候选的确认题改成 `type: "text"`，或者干脆在对话里问。
-   流程、时序、架构这类讲不清的东西，在 `sessionBackground` 或问题的 `description` / `background` 里写 ` ```mermaid ` 代码块，会渲染成跟随主题的图。
+   `sessionBackground`、题目的 `text` 和 `background` 支持 **Markdown（GFM：标题、粗体、行内代码、代码块、列表、链接、引用、表格）+ Mermaid**；选项的 `description` 只支持 Markdown。流程、时序、架构这类讲不清的东西写成 ` ```mermaid ` 代码块，会渲染成跟随主题的图。表格和图表在页面上都能点击放大、缩放拖拽。代码块在围栏上标语言（` ```ts `、` ```sql `）就会按语言高亮。
 4. **在后台运行命令，并把 stdout 和 stderr 分开重定向到两个文件**：
 
    ```text
@@ -167,6 +168,8 @@ Ask UI 为 Claude Code 和 Codex App Server 支持可选的唤醒元数据。把
 | `tail` harness 任务输出，或手拼 `.ask-ui/` 路径 | 绕过了协议，拿到的可能是半截文件 | 读 `<run>.stdout.json`，或跑 `resume` |
 | 给选择题加「其他」选项 | 预设外的答案由每题的补充说明承载 | 选项只列真正互斥的几种 |
 | 写只有一个选项的选择题 | 脚本硬拒收，整批问题连会话都建不起来 | 补足第二个真实互斥的选项，或改成 `type: "text"` |
+| 漏写 `type`，或把选项写成字符串 | 两者都硬拒收，整批问题连会话都建不起来 | `type` 三选一必写；选项一律写成带 `text` 的 JSON 对象 |
+| 用题级 `recommendedOptionIds` 标推荐 | 已经不认这个字段，脚本会报错 | 推荐写在选项里：`"recommended": true` 配 `"reason"` |
 | 覆盖已提交的问题或答案 | `answers.json` 提交后不可变 | 更正和补充一律开新 Round |
 | 把「没有 Bash 工具」说成「服务起不来」 | 归因错了，用户会去修一个不存在的环境问题 | 说清是工具缺失还是服务故障 |
 | 猜 Codex thread id | 猜错会把唤醒发给别的会话 | thread id 只能由宿主提供，拿不到就走手动流程 |
