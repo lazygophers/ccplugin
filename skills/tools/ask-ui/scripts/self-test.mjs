@@ -296,6 +296,127 @@ try {
     /没有 recommended: true/,
   );
 
+  // 条件题：showWhen 只能指向前面的题，匹配方式必须配得上那道题的类型。
+  const branchingQuestions = () => [
+    {
+      id: 'entry',
+      type: 'single',
+      text: '入口选择',
+      options: [
+        { id: 'a', text: '甲' },
+        { id: 'b', text: '乙' },
+        { id: 'c', text: '丙' },
+        { id: 'd', text: '丁' },
+      ],
+    },
+    { id: 'only-a', type: 'text', text: '仅甲追问', showWhen: { questionId: 'entry', optionIds: ['a'] } },
+    {
+      id: 'a-or-b',
+      type: 'single',
+      text: '甲乙共有追问',
+      showWhen: { questionId: 'entry', optionIds: ['a', 'b'] },
+      options: [{ id: 'yes', text: '是' }, { id: 'no', text: '否' }],
+    },
+    { id: 'only-c', type: 'text', text: '仅丙追问', showWhen: { questionId: 'entry', optionIds: ['c'] } },
+    {
+      id: 'c-timeout',
+      type: 'text',
+      text: '丙提到超时才追问',
+      showWhen: { questionId: 'only-c', contains: ['超时', 'timeout'] },
+    },
+  ];
+  const createBranching = (sessionTitle) => createRound({
+    sessionTitle,
+    title: '第一轮',
+    questions: branchingQuestions(),
+  }, { dataDir: dataRoot, cwd: temporaryRoot });
+
+  const branchA = await createBranching('分支甲');
+  const branchD = await createBranching('分支丁');
+  const branchMissing = await createBranching('分支必填未答');
+  const branchChain = await createBranching('分支链式');
+  const branchChainFull = await createBranching('分支链式补全');
+
+  {
+    const stored = (await loadSessionBundle(dataRoot, branchA.sessionId)).rounds[0].questions.questions;
+    assert.deepEqual(stored[1].showWhen, { questionId: 'entry', optionIds: ['a'] });
+    assert.equal(stored[0].showWhen, null, '没写 showWhen 的题必须显式落成 null');
+    assert.deepEqual(stored[4].showWhen, { questionId: 'only-c', contains: ['超时', 'timeout'] });
+  }
+
+  // 只能依赖排在前面的题：顺序即依赖序，环在这里就被挡住。
+  await assert.rejects(
+    () => createRound({
+      sessionTitle: '条件不能向后引用',
+      title: '第一轮',
+      questions: [
+        { id: 'q1', type: 'text', text: '甲', showWhen: { questionId: 'q2', optionIds: ['x'] } },
+        { id: 'q2', type: 'single', text: '乙', options: [{ id: 'x', text: 'X' }, { id: 'y', text: 'Y' }] },
+      ],
+    }, { dataDir: dataRoot, cwd: temporaryRoot }),
+    /只能依赖排在它前面的题/,
+  );
+
+  await assert.rejects(
+    () => createRound({
+      sessionTitle: '条件引用不存在的选项',
+      title: '第一轮',
+      questions: [
+        { id: 'q1', type: 'single', text: '甲', options: [{ id: 'x', text: 'X' }, { id: 'y', text: 'Y' }] },
+        { id: 'q2', type: 'text', text: '乙', showWhen: { questionId: 'q1', optionIds: ['z'] } },
+      ],
+    }, { dataDir: dataRoot, cwd: temporaryRoot }),
+    /不存在的选项：z/,
+  );
+
+  await assert.rejects(
+    () => createRound({
+      sessionTitle: '选择题只能用 optionIds',
+      title: '第一轮',
+      questions: [
+        { id: 'q1', type: 'single', text: '甲', options: [{ id: 'x', text: 'X' }, { id: 'y', text: 'Y' }] },
+        { id: 'q2', type: 'text', text: '乙', showWhen: { questionId: 'q1', answered: true } },
+      ],
+    }, { dataDir: dataRoot, cwd: temporaryRoot }),
+    /只能用 optionIds 匹配/,
+  );
+
+  await assert.rejects(
+    () => createRound({
+      sessionTitle: '文本题不能用 optionIds',
+      title: '第一轮',
+      questions: [
+        { id: 'q1', type: 'text', text: '甲' },
+        { id: 'q2', type: 'text', text: '乙', showWhen: { questionId: 'q1', optionIds: ['x'] } },
+      ],
+    }, { dataDir: dataRoot, cwd: temporaryRoot }),
+    /只能用 answered \/ contains \/ matches 匹配/,
+  );
+
+  await assert.rejects(
+    () => createRound({
+      sessionTitle: '匹配方式只能写一种',
+      title: '第一轮',
+      questions: [
+        { id: 'q1', type: 'text', text: '甲' },
+        { id: 'q2', type: 'text', text: '乙', showWhen: { questionId: 'q1', answered: true, contains: ['x'] } },
+      ],
+    }, { dataDir: dataRoot, cwd: temporaryRoot }),
+    /必须且只能写一种匹配方式/,
+  );
+
+  await assert.rejects(
+    () => createRound({
+      sessionTitle: '正则必须能编译',
+      title: '第一轮',
+      questions: [
+        { id: 'q1', type: 'text', text: '甲' },
+        { id: 'q2', type: 'text', text: '乙', showWhen: { questionId: 'q1', matches: '([' } },
+      ],
+    }, { dataDir: dataRoot, cwd: temporaryRoot }),
+    /不是合法正则/,
+  );
+
   const started = await startHttpServer({
     dataRoot,
     token: 'self-test-token',
@@ -441,6 +562,72 @@ try {
     },
   );
   assert.equal(belowMinimumResponse.status, 422);
+
+  // 条件题的提交语义：隐藏题不校验、不落盘，可见题该必填还是必填。
+  {
+    const submitBranch = (sessionId, answers) => fetch(
+      `${base}/api/sessions/${sessionId}/rounds/1/answers`,
+      { method: 'POST', headers, body: JSON.stringify({ answers }) },
+    );
+    const readAnswers = async (sessionId) => (
+      await loadSessionBundle(dataRoot, sessionId)
+    ).rounds[0].answers;
+
+    assert.equal((await submitBranch(branchA.sessionId, [
+      { questionId: 'entry', selectedOptionIds: ['a'] },
+      { questionId: 'only-a', customText: '甲路径的补充' },
+      { questionId: 'a-or-b', selectedOptionIds: ['yes'] },
+      // 用户选甲之前在丙分支留下的草稿：屏幕上已经不存在，不该进答案集。
+      { questionId: 'only-c', customText: '丙路径的旧草稿' },
+    ])).status, 200);
+    const branchAAnswers = await readAnswers(branchA.sessionId);
+    assert.deepEqual(
+      branchAAnswers.answers.map((answer) => answer.questionId),
+      ['entry', 'only-a', 'a-or-b'],
+      '隐藏题不得进答案集',
+    );
+    assert.deepEqual(branchAAnswers.hiddenQuestionIds, ['only-c', 'c-timeout']);
+
+    // 选丁：后面所有条件题都不出现，只答一题也能提交。
+    assert.equal((await submitBranch(branchD.sessionId, [
+      { questionId: 'entry', selectedOptionIds: ['d'] },
+    ])).status, 200);
+    assert.deepEqual(
+      (await readAnswers(branchD.sessionId)).answers.map((answer) => answer.questionId),
+      ['entry'],
+    );
+
+    // 可见的必填题仍然挡提交。
+    assert.equal((await submitBranch(branchMissing.sessionId, [
+      { questionId: 'entry', selectedOptionIds: ['a'] },
+      { questionId: 'a-or-b', selectedOptionIds: ['yes'] },
+    ])).status, 422);
+
+    // 链式：丙的回答里没有关键词，第三层不出现。
+    assert.equal((await submitBranch(branchChain.sessionId, [
+      { questionId: 'entry', selectedOptionIds: ['c'] },
+      { questionId: 'only-c', customText: '一切正常' },
+    ])).status, 200);
+    assert.deepEqual(
+      (await readAnswers(branchChain.sessionId)).answers.map((answer) => answer.questionId),
+      ['entry', 'only-c'],
+    );
+
+    // 命中关键词后第三层出现，且必填生效。
+    assert.equal((await submitBranch(branchChainFull.sessionId, [
+      { questionId: 'entry', selectedOptionIds: ['c'] },
+      { questionId: 'only-c', customText: '接口超时了' },
+    ])).status, 422);
+    assert.equal((await submitBranch(branchChainFull.sessionId, [
+      { questionId: 'entry', selectedOptionIds: ['c'] },
+      { questionId: 'only-c', customText: '接口超时了' },
+      { questionId: 'c-timeout', customText: '重试两次仍然超时' },
+    ])).status, 200);
+    assert.deepEqual(
+      (await readAnswers(branchChainFull.sessionId)).answers.map((answer) => answer.questionId),
+      ['entry', 'only-c', 'c-timeout'],
+    );
+  }
 
   const bundleResponse = await fetch(`${base}/api/sessions/${first.sessionId}`, { headers });
   assert.equal(bundleResponse.status, 200);

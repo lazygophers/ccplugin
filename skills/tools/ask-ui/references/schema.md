@@ -39,6 +39,7 @@
 | `title` | 否 | 左栏导航用的短标题。省略时取 `text` 的首个非空行——正文以 Markdown 标题或表格开头时，请显式写 `title`。 |
 | `background` | 否 | 单独交代这题的前情。支持 Markdown + Mermaid。 |
 | `required` | 否 | 默认 `true`。 |
+| `showWhen` | 否 | 条件题：只有前面某题答成指定样子，这题才出现。见「条件题」。 |
 | `options` | 选择题必填 | 见下。至少 2 个，`text` 类型不写。 |
 
 ### 选项
@@ -85,6 +86,38 @@
 
 `recommendedDraft` 填成输入框的 placeholder，`recommendationReason` 显示为一条推荐理由横幅。两者同样不会预填答案。
 
+## 条件题（分支）
+
+`showWhen` 让一道题只在前面某题答成指定样子时才出现。用户在页面上选完，后续题**当场出现或消失**，不用另开一轮。
+
+```json
+{"id":"q2","type":"text","text":"迁移窗口","showWhen":{"questionId":"q1","optionIds":["migrate"]}}
+```
+
+一个 `showWhen` 只盯**一道**题，命中任一 `optionIds` 即显示。分支树靠链式依赖搭：`q3` 依赖 `q2`、`q2` 依赖 `q1`；父题不可见时子题一并不可见。
+
+| 触发源题型 | 可用的匹配方式 | 写法 |
+|---|---|---|
+| `single` / `multiple` | `optionIds` | `{"questionId":"q1","optionIds":["a","b"]}`——多选题取交集，勾中任一即命中 |
+| `text` | `answered` | `{"questionId":"q1","answered":true}`——输入框非空 |
+| `text` | `contains` | `{"questionId":"q1","contains":["超时","timeout"]}`——命中任一关键词，忽略大小写 |
+| `text` | `matches` | `{"questionId":"q1","matches":"^ERR-\\d+$"}`——JS 正则，无 flags，要忽略大小写就写 `[Tt]` 或改用 `contains` |
+
+硬规则，违反会在建 Session 时一次报全：
+
+- `questionId` 只能指向**排在它前面**的题。顺序即依赖序，所以不存在环。
+- 四种匹配方式**只能写一种**。
+- 匹配方式要配得上被指向那道题的类型（选择题只能 `optionIds`，文本题只能另外三种）。
+- `optionIds` 里的选项 id 必须真实存在。
+
+匹配只看主回答：选择题看选中的选项，文本题看输入框。**补充说明不触发分支**——否则用户写完一句备注会突然冒出新题。
+
+隐藏题的语义：
+
+- 不校验 `required` / `minSelections`，隐藏的必填题挡不住提交。
+- 不进 `answers.json`；它们的 id 集中列在 `hiddenQuestionIds` 里。
+- 用户来回切分支时，已填的内容留在页面上，切回来不用重答，但只要提交时是隐藏的就不会提交。
+
 ## 富文本：Markdown 与 Mermaid
 
 `sessionBackground`、问题的 `text` 和 `background` 同时支持 Markdown 和 Mermaid；选项的 `description` 只支持 Markdown。
@@ -106,10 +139,12 @@ Markdown 按 GFM 渲染：标题、粗体、斜体、行内代码、代码块、
 ## AnswerSet（答案集）
 
 ```json
-{"schemaVersion":"1.0","submissionId":"submit-generated-id","sessionId":"personal-workbench-a7k2","roundNumber":1,"submittedAt":"2026-08-10T15:30:00.000Z","answers":[{"questionId":"q1","selectedOptionIds":["dashboard"],"customText":"","supplementaryText":"希望首页优先展示今天的任务。"},{"questionId":"q3","selectedOptionIds":[],"customText":"每天使用至少两次。","supplementaryText":""}]}
+{"schemaVersion":"1.0","submissionId":"submit-generated-id","sessionId":"personal-workbench-a7k2","roundNumber":1,"submittedAt":"2026-08-10T15:30:00.000Z","hiddenQuestionIds":[],"answers":[{"questionId":"q1","selectedOptionIds":["dashboard"],"customText":"","supplementaryText":"希望首页优先展示今天的任务。"},{"questionId":"q3","selectedOptionIds":[],"customText":"每天使用至少两次。","supplementaryText":""}]}
 ```
 
 `answers.json` 提交后即不可变。需要更正时创建新的 Round。
+
+`answers` 只包含提交时可见的题，条件没满足的题的 id 列在 `hiddenQuestionIds` 里——少了几条答案是分支没走到，不是用户漏答。
 
 每个答案都包含一个可选的 `supplementaryText` 字符串，长度上限 2000 字符。它同时承担两个作用：补充上下文，以及在预设选项都不合适时直接写自由答案——所以选择题不再提供「其他」选项。
 

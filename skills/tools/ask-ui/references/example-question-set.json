@@ -52,11 +52,34 @@
       ]
     },
     {
+      "id": "focus_source",
+      "type": "single",
+      "title": "每日聚焦的数据来源",
+      "text": "「每日聚焦」优先读哪一份数据？",
+      "showWhen": { "questionId": "primary_goal", "optionIds": ["daily_focus"] },
+      "options": [
+        {
+          "id": "tasks_only",
+          "text": "只读任务",
+          "description": "实现最快，首版就能跑通。",
+          "recommended": true,
+          "reason": "先跑通一条链路，再决定要不要合并日历。"
+        },
+        { "id": "tasks_calendar", "text": "任务 + 日历", "description": "更完整，但要先解决时间块冲突。" }
+      ]
+    },
+    {
       "id": "extra_context",
       "type": "text",
       "text": "还有什么必须考虑的背景？",
       "required": false,
       "recommendedDraft": "先以本地单人使用为主，后续再考虑团队协作。"
+    },
+    {
+      "id": "context_followup",
+      "type": "text",
+      "text": "上面提到的限制，具体卡在哪一步？",
+      "showWhen": { "questionId": "extra_context", "answered": true }
     }
   ]
 }

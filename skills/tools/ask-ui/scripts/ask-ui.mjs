@@ -12,6 +12,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { wakeClaudeCode } from './adapters/claude-code.mjs';
 import { wakeCodexAppServer } from './adapters/codex-app-server.mjs';
+import { visibleQuestionIds } from '../assets/app/conditions.js';
 
 const SCRIPT_FILE = fileURLToPath(import.meta.url);
 const SKILL_ROOT = path.resolve(path.dirname(SCRIPT_FILE), '..');
@@ -244,6 +245,9 @@ function normalizeQuestion(question, index) {
     title: String(question.title || '') || firstLine(text) || `问题 ${index + 1}`,
     background: String(question.background || ''),
     required: question.required !== false,
+    // 跨题引用要等所有题都规范化完才能校验，这里先原样带着，第二趟在
+    // normalizeConditions 里定形。
+    showWhen: question.showWhen ?? null,
   };
 
   if (type === 'text') {
@@ -308,6 +312,117 @@ function normalizeQuestion(question, index) {
   return normalized;
 }
 
+const CONDITION_MATCHERS = ['optionIds', 'answered', 'contains', 'matches'];
+
+// showWhen 指向别的题，只有拿到全部题目才校验得了：题必须排在前面（顺序即依赖序，
+// 天然排除环），匹配方式必须配得上被指向那道题的类型。
+function normalizeConditions(questions) {
+  const errors = [];
+  const byId = new Map();
+  questions.forEach((question, index) => {
+    byId.set(question.id, { question, index });
+  });
+
+  questions.forEach((question, index) => {
+    const raw = question.showWhen;
+    if (raw === null || raw === undefined) {
+      question.showWhen = null;
+      return;
+    }
+    const label = `第 ${question.id} 题的 showWhen`;
+    if (typeof raw !== 'object' || Array.isArray(raw)) {
+      errors.push(`${label}必须是 JSON 对象，形如 {"questionId":"q1","optionIds":["a"]}`);
+      question.showWhen = null;
+      return;
+    }
+
+    const sourceId = String(raw.questionId || '');
+    const source = byId.get(sourceId);
+    if (!source) {
+      errors.push(`${label}引用了不存在的题 ${JSON.stringify(raw.questionId)}`);
+      question.showWhen = null;
+      return;
+    }
+    if (source.index >= index) {
+      errors.push(`${label}只能依赖排在它前面的题，${sourceId} 排在第 ${source.index + 1} 位`);
+      question.showWhen = null;
+      return;
+    }
+
+    const used = CONDITION_MATCHERS.filter((key) => raw[key] !== undefined);
+    if (used.length !== 1) {
+      errors.push(`${label}必须且只能写一种匹配方式（${CONDITION_MATCHERS.join(' / ')}），收到 ${used.length} 种`);
+      question.showWhen = null;
+      return;
+    }
+    const matcher = used[0];
+    const isChoice = source.question.type !== 'text';
+    if (isChoice && matcher !== 'optionIds') {
+      errors.push(`${label}指向的是选择题 ${sourceId}，只能用 optionIds 匹配`);
+      question.showWhen = null;
+      return;
+    }
+    if (!isChoice && matcher === 'optionIds') {
+      errors.push(`${label}指向的是文本题 ${sourceId}，只能用 answered / contains / matches 匹配`);
+      question.showWhen = null;
+      return;
+    }
+
+    if (matcher === 'optionIds') {
+      const optionIds = Array.isArray(raw.optionIds) ? raw.optionIds.map(String) : [];
+      if (!optionIds.length) {
+        errors.push(`${label}的 optionIds 至少要写一个选项 id`);
+        question.showWhen = null;
+        return;
+      }
+      const known = new Set(source.question.options.map((option) => option.id));
+      const unknown = optionIds.filter((optionId) => !known.has(optionId));
+      if (unknown.length) {
+        errors.push(`${label}引用了 ${sourceId} 里不存在的选项：${unknown.join('、')}`);
+        question.showWhen = null;
+        return;
+      }
+      question.showWhen = { questionId: sourceId, optionIds };
+      return;
+    }
+
+    if (matcher === 'answered') {
+      if (raw.answered !== true) {
+        errors.push(`${label}的 answered 只接受 true——不需要条件就整个删掉 showWhen`);
+        question.showWhen = null;
+        return;
+      }
+      question.showWhen = { questionId: sourceId, answered: true };
+      return;
+    }
+
+    if (matcher === 'contains') {
+      const keywords = (Array.isArray(raw.contains) ? raw.contains : [])
+        .map(String)
+        .filter((keyword) => keyword.trim());
+      if (!keywords.length) {
+        errors.push(`${label}的 contains 至少要写一个非空关键词`);
+        question.showWhen = null;
+        return;
+      }
+      question.showWhen = { questionId: sourceId, contains: keywords };
+      return;
+    }
+
+    const pattern = String(raw.matches || '');
+    try {
+      new RegExp(pattern);
+    } catch (error) {
+      errors.push(`${label}的 matches 不是合法正则：${error.message}`);
+      question.showWhen = null;
+      return;
+    }
+    question.showWhen = { questionId: sourceId, matches: pattern };
+  });
+
+  if (errors.length) throw new Error(errors.join('；'));
+}
+
 function normalizeQuestionSet(input, { cwd = process.cwd() } = {}) {
   if (!input || typeof input !== 'object' || !Array.isArray(input.questions)) {
     throw new Error('QuestionSet requires a questions array');
@@ -325,6 +440,7 @@ function normalizeQuestionSet(input, { cwd = process.cwd() } = {}) {
     }
   });
   if (errors.length) throw new Error(errors.join('；'));
+  normalizeConditions(questions);
 
   return {
     schemaVersion: SCHEMA_VERSION,
@@ -519,8 +635,17 @@ function validateAnswers(questionSet, rawAnswers) {
   const answerMap = new Map(
     (Array.isArray(rawAnswers) ? rawAnswers : []).map((answer) => [String(answer.questionId), answer]),
   );
+  // 条件没满足的题在屏幕上根本不存在：先按提交上来的答案算出可见集，隐藏题既不校验
+  // 也不落盘，Agent 读到的答案集与用户看到的表单一一对应。
+  const normalizedForVisibility = questionSet.questions.map(
+    (question) => normalizeAnswer(answerMap.get(question.id), question),
+  );
+  const visible = visibleQuestionIds(questionSet.questions, normalizedForVisibility);
+  const hiddenQuestionIds = questionSet.questions
+    .filter((question) => !visible.has(question.id))
+    .map((question) => question.id);
   const errors = [];
-  const answers = questionSet.questions.map((question) => {
+  const answers = questionSet.questions.filter((question) => visible.has(question.id)).map((question) => {
     const answer = normalizeAnswer(answerMap.get(question.id), question);
     if (answer.supplementaryText.length > SUPPLEMENTARY_TEXT_MAX_LENGTH) {
       errors.push(`${question.title} supplement exceeds ${SUPPLEMENTARY_TEXT_MAX_LENGTH} characters`);
@@ -563,7 +688,7 @@ function validateAnswers(questionSet, rawAnswers) {
     }
     return answer;
   });
-  return { answers, errors };
+  return { answers, errors, hiddenQuestionIds };
 }
 
 export async function loadSessionBundle(dataRoot, sessionId) {
@@ -605,6 +730,7 @@ export async function submitAnswers(dataRoot, sessionId, roundNumber, payload) {
     roundNumber,
     submittedAt: now(),
     answers: validated.answers,
+    hiddenQuestionIds: validated.hiddenQuestionIds,
   };
   await atomicWriteJson(path.join(directory, 'answers.json'), answerSet);
   round.status = 'submitted';
@@ -845,6 +971,10 @@ export async function startHttpServer({
     const requestUrl = new URL(request.url, 'http://127.0.0.1');
     if (request.method === 'GET' && requestUrl.pathname === '/app.js') {
       sendFile(response, path.join(APP_ROOT, 'app.js'));
+      return;
+    }
+    if (request.method === 'GET' && requestUrl.pathname === '/conditions.js') {
+      sendFile(response, path.join(APP_ROOT, 'conditions.js'));
       return;
     }
     if (request.method === 'GET' && requestUrl.pathname === '/fallback.css') {

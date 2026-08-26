@@ -29,7 +29,7 @@ description: 向用户提问的时候、调用 `AskUserQuestion` 时都使用本
 
 ## 判断是否使用 UI
 
-🔴 **CHECKPOINT**：当前一轮包含至少两个用户当下就能回答的独立问题时，必须使用 UI。有依赖关系的问题留到后续轮次。只有一个问题时直接在对话里问；唯一的例外是更正或补充已提交的答案——哪怕只有一题也走新 Round 表单，因为对话里口头确认不落盘、不进 Round 链，后续 `basedOnRound` 轮次读不到它。
+🔴 **CHECKPOINT**：当前一轮包含至少两个用户当下就能回答的独立问题时，必须使用 UI。答案依赖前一题的问题写成同一轮里的条件题（`showWhen`，见第 3 步）；只有需要 Agent 拿到答案后重新推理才能提出的问题，才留到后续轮次。只有一个问题时直接在对话里问；唯一的例外是更正或补充已提交的答案——哪怕只有一题也走新 Round 表单，因为对话里口头确认不落盘、不进 Round 链，后续 `basedOnRound` 轮次读不到它。
 
 对 `grill-me`、`grill-with-docs`、头脑风暴，或其他确认与问题收集类工作流，只要一轮超过两个问题，一律使用 UI。
 
@@ -51,6 +51,7 @@ description: 向用户提问的时候、调用 `AskUserQuestion` 时都使用本
    每道题必写两个字段：`type`（`single` / `multiple` / `text`，**没有默认值，漏写报错**）和 `text`（问题正文，问题本身和描述都写在这里）。选项一律是 JSON 对象 `{"text":"…","description":"…","recommended":true,"reason":"…"}`，**不接受字符串**；`reason` 只能写在 `recommended: true` 的选项上。
    一并写上上下文字段，让用户不看对话就能判断在问什么：Session 级 `projectName` / `sessionSummary` / `sessionBackground`，Round 级 `purpose`，需要单独交代前情的题写 `background`。
    选择题没有「其他」选项。预设选项之外的答案由每题的补充说明承载，所以选项只列真正互斥的几种，不要凑「其他」。选择题至少要 2 个选项，脚本会直接报错 `第 X 题是选择题，至少要有两个选项` 并退出——只有一个候选的确认题改成 `type: "text"`，或者干脆在对话里问。
+   有依赖关系的问题写成同一轮里的**条件题**：`"showWhen": {"questionId":"q1","optionIds":["a"]}` 让这题只在 `q1` 选了 `a` 时才出现，用户选完当场出现或消失。`showWhen` 只能指向排在前面的题，分支树靠链式依赖搭；文本题作触发源时用 `answered` / `contains` / `matches`。隐藏题不校验必填、也不进 `answers.json`（id 列在 `hiddenQuestionIds`）。完整规则见 [references/schema.md](references/schema.md) 的「条件题（分支）」。
    `sessionBackground`、题目的 `text` 和 `background` 支持 **Markdown（GFM：标题、粗体、行内代码、代码块、列表、链接、引用、表格）+ Mermaid**；选项的 `description` 只支持 Markdown。流程、时序、架构这类讲不清的东西写成 ` ```mermaid ` 代码块，会渲染成跟随主题的图。表格和图表在页面上都能点击放大、缩放拖拽。代码块在围栏上标语言（` ```ts `、` ```sql `）就会按语言高亮。
 4. **在后台运行命令，并把 stdout 和 stderr 分开重定向到两个文件**：
 
@@ -171,6 +172,8 @@ Ask UI 为 Claude Code 和 Codex App Server 支持可选的唤醒元数据。把
 | 写只有一个选项的选择题 | 脚本硬拒收，整批问题连会话都建不起来 | 补足第二个真实互斥的选项，或改成 `type: "text"` |
 | 漏写 `type`，或把选项写成字符串 | 两者都硬拒收，整批问题连会话都建不起来 | `type` 三选一必写；选项一律写成带 `text` 的 JSON 对象 |
 | 用题级 `recommendedOptionIds` 标推荐 | 已经不认这个字段，脚本会报错 | 推荐写在选项里：`"recommended": true` 配 `"reason"` |
+| 让 `showWhen` 指向排在后面的题 | 顺序即依赖序，向后引用会被硬拒收 | 把触发题排到前面 |
+| 因为「问题有依赖」就拆成多轮 | 每轮都要重开浏览器、Agent 也要多醒一次 | 同一轮里用 `showWhen` 做分支 |
 | 覆盖已提交的问题或答案 | `answers.json` 提交后不可变 | 更正和补充一律开新 Round |
 | 把「没有 Bash 工具」说成「服务起不来」 | 归因错了，用户会去修一个不存在的环境问题 | 说清是工具缺失还是服务故障 |
 | 猜 Codex thread id | 猜错会把唤醒发给别的会话 | thread id 只能由宿主提供，拿不到就走手动流程 |
