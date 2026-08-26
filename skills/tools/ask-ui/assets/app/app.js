@@ -43,6 +43,21 @@ const RICH_TOKENS = [
 
 const vendorLoaders = new Map();
 let diagramSequence = 0;
+const pendingRichText = new Set();
+
+// 首屏要滚到第一道未答题，而正文和图表是异步渲染的：不等它们渲染完，卡片高度
+// 还在变，刚滚到的位置立刻就偏掉了。
+function trackRichText(promise) {
+  pendingRichText.add(promise);
+  promise.finally(() => pendingRichText.delete(promise));
+  return promise;
+}
+
+async function richTextSettled() {
+  while (pendingRichText.size) {
+    await Promise.allSettled([...pendingRichText]);
+  }
+}
 
 function loadVendor(name, globalName) {
   if (!vendorLoaders.has(name)) {
@@ -223,7 +238,7 @@ function appendRichText(container, text, { diagrams = true } = {}) {
     const block = element('div', 'prose', trimmed);
     block.dataset.state = 'plain';
     host.append(block);
-    renderProse(block, trimmed);
+    trackRichText(renderProse(block, trimmed));
   };
 
   if (!diagrams) {
@@ -240,7 +255,7 @@ function appendRichText(container, text, { diagrams = true } = {}) {
     diagram.dataset.state = 'loading';
     diagram.append(element('p', 'diagram-loading', '图表加载中…'));
     host.append(diagram);
-    renderDiagram(diagram, match[1].trim());
+    trackRichText(renderDiagram(diagram, match[1].trim()));
     cursor = match.index + match[0].length;
     match = MERMAID_BLOCK.exec(value);
   }
@@ -451,6 +466,16 @@ function normalizeAnswer(answer) {
   return normalized;
 }
 
+// 草稿按轮次留在内存里：切去看上一轮再切回来，这一轮已经填的东西必须还在。
+const draftsByRound = new Map();
+
+function draftsFor(round) {
+  if (!draftsByRound.has(round.roundNumber)) {
+    draftsByRound.set(round.roundNumber, answersForRound(round));
+  }
+  return draftsByRound.get(round.roundNumber);
+}
+
 function answersForRound(round) {
   const source = round.answers?.answers || round.questions.questions.map(defaultAnswer);
   const byId = new Map(source.map((answer) => [answer.questionId, answer]));
@@ -538,38 +563,74 @@ function roundEditable(round) {
   return round.status === 'waiting_for_user' && bundle.session.status === 'active';
 }
 
-// 答案变化可能让条件题出现或消失，题卡和左栏都要重建。输入框正在打字时
-// 记住光标，重建完放回原处，否则写关键词触发的分支会把这一行打断。
-function captureFocus() {
-  const field = document.activeElement;
-  if (!field?.dataset?.answerField) return null;
-  return {
-    questionId: field.dataset.questionId,
-    field: field.dataset.answerField,
-    caret: field.selectionStart,
-  };
+function scrollToQuestion(questionId, behavior = 'smooth') {
+  document
+    .querySelector(`.question-card[data-question-id="${CSS.escape(questionId)}"]`)
+    ?.scrollIntoView({ block: 'center', behavior });
 }
 
-function restoreFocus(snapshot) {
-  if (!snapshot) return;
-  const field = document.querySelector(
-    `[data-answer-field="${snapshot.field}"][data-question-id="${CSS.escape(snapshot.questionId)}"]`,
-  );
-  if (!field) return;
-  field.focus();
-  if (Number.isInteger(snapshot.caret)) field.setSelectionRange(snapshot.caret, snapshot.caret);
+// 条件题出现或消失时只增删这几张卡，不重建整页：整页重建会打断正在输入的
+// 那一行、丢掉滚动位置，还要把已经渲染好的图表和代码高亮全部重做一遍。
+function syncVisibleQuestions(round, editable) {
+  lastVisibilitySignature = visibilitySignature(round, editable);
+  const visible = visibleQuestionsOf(round, editable);
+  const visibleIds = new Set(visible.map((question) => question.id));
+  const scroll = document.querySelector('.question-scroll');
+  if (!scroll) return;
+  for (const card of [...scroll.children]) {
+    if (!visibleIds.has(card.dataset.questionId)) card.remove();
+  }
+  const cards = new Map([...scroll.children].map((card) => [card.dataset.questionId, card]));
+  visible.forEach((question, index) => {
+    const card = cards.get(question.id)
+      || renderQuestion(question, index, editable, round.answers?.answers);
+    // 序号是按可见顺序排的，分支一变就得跟着改。
+    const number = card.querySelector('.question-number');
+    if (number) number.textContent = String(index + 1).padStart(2, '0');
+    if (scroll.children[index] !== card) scroll.insertBefore(card, scroll.children[index] || null);
+  });
+  if (railNavElement) fillRailNav(railNavElement, round, editable, visible);
+  if (progressCellsElement) {
+    while (progressCellsElement.children.length > visible.length) {
+      progressCellsElement.lastElementChild.remove();
+    }
+    while (progressCellsElement.children.length < visible.length) {
+      progressCellsElement.append(element('span', 'progress-cell'));
+    }
+  }
+}
+
+// 单选选完就把用户送到下一道没答的题，不用自己回去找。
+function advanceFrom(questionId) {
+  const round = currentRound();
+  const editable = roundEditable(round);
+  const visible = visibleQuestionsOf(round, editable);
+  const from = visible.findIndex((question) => question.id === questionId);
+  const pending = [...visible.slice(from + 1), ...visible.slice(0, from + 1)]
+    .find((question) => !isAnswered(question, editable, round.answers?.answers));
+  if (!pending) return;
+  focusedQuestionId = pending.id;
+  if (railNavElement) refreshRailStates(round, editable);
+  refreshCardStates(round, editable);
+  scrollToQuestion(pending.id);
+}
+
+async function alignToFocusedQuestion() {
+  const round = currentRound();
+  if (!round || !focusedQuestionId || !roundEditable(round)) return;
+  const visible = visibleQuestionsOf(round, true);
+  // 第一题就是待答题时不动，页面本来就从它开始。
+  if (visible[0]?.id === focusedQuestionId) return;
+  await richTextSettled();
+  scrollToQuestion(focusedQuestionId, 'auto');
 }
 
 function refreshProgress() {
   const round = currentRound();
   if (!round) return;
   const editable = roundEditable(round);
-  const signature = visibilitySignature(round, editable);
-  if (signature !== lastVisibilitySignature) {
-    const snapshot = captureFocus();
-    render();
-    restoreFocus(snapshot);
-    return;
+  if (visibilitySignature(round, editable) !== lastVisibilitySignature) {
+    syncVisibleQuestions(round, editable);
   }
   const visible = visibleQuestionsOf(round, editable);
   const answered = answeredQuestionCount(round, editable);
@@ -683,9 +744,10 @@ function renderTabs() {
     button.dataset.locked = String(completed);
     button.addEventListener('click', () => {
       activeRoundNumber = round.roundNumber;
-      pendingAnswers = answersForRound(round);
+      pendingAnswers = draftsFor(round);
       focusedQuestionId = firstUnansweredId(round, roundEditable(round));
       render();
+      alignToFocusedQuestion();
     });
     tabs.append(button);
   }
@@ -724,6 +786,13 @@ function renderRail(container) {
 
   const nav = element('ul', 'rail-nav');
   railNavElement = nav;
+  fillRailNav(nav, round, editable, visible);
+  rail.append(nav);
+  container.append(rail);
+}
+
+function fillRailNav(nav, round, editable, visible) {
+  nav.replaceChildren();
   visible.forEach((question, index) => {
     const item = element('li');
     const state = questionState(question, editable, round.answers?.answers);
@@ -737,17 +806,13 @@ function renderRail(container) {
     button.append(element('span', 'st', { done: '已答', current: '当前', todo: '未答' }[state]));
     button.addEventListener('click', () => {
       if (editable) focusedQuestionId = question.id;
-      document
-        .querySelector(`.question-card[data-question-id="${CSS.escape(question.id)}"]`)
-        ?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      scrollToQuestion(question.id);
       refreshRailStates(round, editable);
       refreshCardStates(round, editable);
     });
     item.append(button);
     nav.append(item);
   });
-  rail.append(nav);
-  container.append(rail);
 }
 
 function renderChoiceQuestion(card, question, answer, editable) {
@@ -785,6 +850,8 @@ function renderChoiceQuestion(card, question, answer, editable) {
         answer.selectedOptionIds = answer.selectedOptionIds.filter((id) => id !== option.id);
       }
       refreshProgress();
+      // 多选和文本题不自动前进：用户还要继续选、继续写。
+      if (question.type === 'single' && input.checked) advanceFrom(question.id);
     });
 
     const content = element('span', 'option-content');
@@ -1034,6 +1101,8 @@ async function submitRound(round, submitButton) {
       },
     );
     showSubmissionConfirmation();
+    // 提交后这一轮的答案以服务端存下的为准，草稿缓存留着会盖掉它。
+    draftsByRound.delete(round.roundNumber);
     await loadBundle(true);
   } catch (error) {
     showToast(error.message);
@@ -1143,10 +1212,13 @@ async function loadBundle(force = false) {
   if (!activeStillExists || force || hasNewWaitingRound) {
     activeRoundNumber = waiting?.roundNumber || bundle.rounds.at(-1)?.roundNumber || null;
     const round = currentRound();
-    pendingAnswers = round ? answersForRound(round) : [];
+    pendingAnswers = round ? draftsFor(round) : [];
     focusedQuestionId = round ? firstUnansweredId(round, roundEditable(round)) : null;
   }
   if (changed) render();
+  // 首次打开和新一轮到达时把视口停在第一道待答题上；轮询中的普通刷新不动视口，
+  // 那会把正在答题的人推走。
+  if (force || hasNewWaitingRound) alignToFocusedQuestion();
 }
 
 // macOS 上 Home/End 在文本框里不移动光标，而是滚动页面。这里把它们接管成
