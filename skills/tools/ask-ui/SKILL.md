@@ -49,6 +49,7 @@ description: 向用户提问的时候、调用 `AskUserQuestion` 时都使用本
 2. 创建 JSON 前先读 [references/schema.md](references/schema.md)：字段语义和三种题型的写法都在里面。[references/example-question-set.json](references/example-question-set.json) 是一份可直接复制改字段的完整起手模板（单选 / 多选 / 自由文本各一题，带推荐答案和上下文字段）。
 3. 创建 QuestionSet JSON 文件。新任务省略 `sessionId`；后续轮次复用当前活跃的 `sessionId` 并设置 `basedOnRound`。
    每道题必写两个字段：`type`（`single` / `multiple` / `text`，**没有默认值，漏写报错**）和 `text`（问题正文，问题本身和描述都写在这里）。选项一律是 JSON 对象 `{"text":"…","description":"…","recommended":true,"reason":"…"}`，**不接受字符串**；`reason` 只能写在 `recommended: true` 的选项上。
+   允许留空的题必须显式写 `"required": false`——`required` 默认 `true`，漏写就是必填，页面挂「必填」徽标、留空挡提交。**别在 `text` 里写「（可留空）」代替这个字段**：文案和徽标对不上，用户只能被迫编一句。「还有别的补充吗」「其他备注」「可选参数」这类题一律 `type: "text"` + `"required": false`。
    一并写上上下文字段，让用户不看对话就能判断在问什么：Session 级 `projectName` / `sessionSummary` / `sessionBackground`，Round 级 `purpose`，需要单独交代前情的题写 `background`。
    选择题没有「其他」选项。预设选项之外的答案由每题的补充说明承载，所以选项只列真正互斥的几种，不要凑「其他」。选择题至少要 2 个选项，脚本会直接报错 `第 X 题是选择题，至少要有两个选项` 并退出——只有一个候选的确认题改成 `type: "text"`，或者干脆在对话里问。
    有依赖关系的问题写成同一轮里的**条件题**：`"showWhen": {"questionId":"q1","optionIds":["a"]}` 让这题只在 `q1` 选了 `a` 时才出现，用户选完当场出现或消失。`showWhen` 只能指向排在前面的题，分支树靠链式依赖搭；文本题作触发源时用 `answered` / `contains` / `matches`。隐藏题不校验必填、也不进 `answers.json`（id 列在 `hiddenQuestionIds`）。完整规则见 [references/schema.md](references/schema.md) 的「条件题（分支）」。
@@ -170,6 +171,7 @@ Ask UI 为 Claude Code 和 Codex App Server 支持可选的唤醒元数据。把
 | `tail` harness 任务输出，或手拼 `.ask-ui/` 路径 | 绕过了协议，拿到的可能是半截文件 | 读 `<run>.stdout.json`，或跑 `resume` |
 | 给选择题加「其他」选项 | 预设外的答案由每题的补充说明承载 | 选项只列真正互斥的几种 |
 | 写只有一个选项的选择题 | 脚本硬拒收，整批问题连会话都建不起来 | 补足第二个真实互斥的选项，或改成 `type: "text"` |
+| 在 `text` 里写「（可留空）」却不写 `"required": false` | `required` 默认 `true`，页面照挂「必填」徽标、留空挡提交，文案和校验对不上 | 选填题显式写 `"required": false` |
 | 漏写 `type`，或把选项写成字符串 | 两者都硬拒收，整批问题连会话都建不起来 | `type` 三选一必写；选项一律写成带 `text` 的 JSON 对象 |
 | 用题级 `recommendedOptionIds` 标推荐 | 已经不认这个字段，脚本会报错 | 推荐写在选项里：`"recommended": true` 配 `"reason"` |
 | 让 `showWhen` 指向排在后面的题 | 顺序即依赖序，向后引用会被硬拒收 | 把触发题排到前面 |
