@@ -1,4 +1,5 @@
-import { visibleQuestionIds } from '/conditions.js';
+import * as viewState from '/view-state.js';
+import { answersForRound, displayAnswer, selectionCount } from '/view-state.js';
 
 const app = document.querySelector('#app');
 const toast = document.querySelector('#toast');
@@ -448,24 +449,6 @@ function setTheme(theme) {
   if (bundle) render();
 }
 
-// 推荐值只做视觉提示，绝不预填答案：只有用户点过、选过、输入过才算已答。
-function defaultAnswer(question) {
-  return {
-    questionId: question.id,
-    selectedOptionIds: [],
-    customText: '',
-    supplementaryText: '',
-  };
-}
-
-function normalizeAnswer(answer) {
-  const normalized = structuredClone(answer);
-  normalized.selectedOptionIds ||= [];
-  normalized.customText ||= '';
-  normalized.supplementaryText ||= '';
-  return normalized;
-}
-
 // 草稿按轮次留在内存里：切去看上一轮再切回来，这一轮已经填的东西必须还在。
 const draftsByRound = new Map();
 
@@ -474,14 +457,6 @@ function draftsFor(round) {
     draftsByRound.set(round.roundNumber, answersForRound(round));
   }
   return draftsByRound.get(round.roundNumber);
-}
-
-function answersForRound(round) {
-  const source = round.answers?.answers || round.questions.questions.map(defaultAnswer);
-  const byId = new Map(source.map((answer) => [answer.questionId, answer]));
-  return round.questions.questions.map((question) => normalizeAnswer(
-    byId.get(question.id) || defaultAnswer(question),
-  ));
 }
 
 function answerFor(questionId) {
@@ -498,65 +473,30 @@ function answerFor(questionId) {
   return answer;
 }
 
-// 条件题：正在编辑时按手里这份草稿算可见性，只读轮次按已提交的答案算。
-function answersInPlay(round, editable) {
-  return editable ? pendingAnswers : (round.answers?.answers || []);
-}
-
+// 下面几个只是把模块级的草稿与当前题绑上去，推导本身在 view-state.js 里，
+// 页面这一侧不再重复实现一遍。
 function visibleQuestionsOf(round, editable) {
-  const questions = round.questions.questions;
-  const visible = visibleQuestionIds(questions, answersInPlay(round, editable));
-  return questions.filter((question) => visible.has(question.id));
+  return viewState.visibleQuestionsOf(round, editable, pendingAnswers);
 }
 
 function visibilitySignature(round, editable) {
-  return visibleQuestionsOf(round, editable).map((question) => question.id).join('|');
+  return viewState.visibilitySignature(round, editable, pendingAnswers);
 }
 
-function optionLabel(question, optionId) {
-  return question.options?.find((option) => option.id === optionId)?.text || optionId;
-}
-
-function displayAnswer(question, answer) {
-  if (!answer) return '未填写';
-  const parts = question.type === 'text'
-    ? [answer.customText?.trim()].filter(Boolean)
-    : (answer.selectedOptionIds || []).map((id) => optionLabel(question, id));
-  const primary = parts.length ? parts.join('、') : '未填写';
-  const supplement = answer.supplementaryText?.trim();
-  return supplement ? `${primary}；补充：${supplement}` : primary;
-}
-
-function selectionCount(question, answer) {
-  if (question.type === 'text') return answer.customText.trim() ? 1 : 0;
-  return (answer.selectedOptionIds || []).length;
-}
-
-// 只写补充说明、一个选项都不选，同样算这一题已经回答。
 function isAnswered(question, editable, submittedAnswers) {
-  const answer = editable
-    ? answerFor(question.id)
-    : submittedAnswers?.find((item) => item.questionId === question.id);
-  if (!answer) return false;
-  return selectionCount(question, answer) > 0 || Boolean(answer.supplementaryText?.trim());
+  return viewState.isAnswered(question, editable, submittedAnswers, pendingAnswers);
 }
 
 function answeredQuestionCount(round, editable) {
-  return visibleQuestionsOf(round, editable).reduce((count, question) => (
-    count + (isAnswered(question, editable, round.answers?.answers) ? 1 : 0)
-  ), 0);
+  return viewState.answeredQuestionCount(round, editable, pendingAnswers);
 }
 
 function questionState(question, editable, submittedAnswers) {
-  if (editable && question.id === focusedQuestionId) return 'current';
-  return isAnswered(question, editable, submittedAnswers) ? 'done' : 'todo';
+  return viewState.questionState(question, editable, submittedAnswers, pendingAnswers, focusedQuestionId);
 }
 
 function firstUnansweredId(round, editable) {
-  const pending = visibleQuestionsOf(round, editable).find(
-    (question) => !isAnswered(question, editable, round.answers?.answers),
-  );
-  return pending?.id || null;
+  return viewState.firstUnansweredId(round, editable, pendingAnswers);
 }
 
 function roundEditable(round) {
@@ -604,15 +544,12 @@ function syncVisibleQuestions(round, editable) {
 function advanceFrom(questionId) {
   const round = currentRound();
   const editable = roundEditable(round);
-  const visible = visibleQuestionsOf(round, editable);
-  const from = visible.findIndex((question) => question.id === questionId);
-  const pending = [...visible.slice(from + 1), ...visible.slice(0, from + 1)]
-    .find((question) => !isAnswered(question, editable, round.answers?.answers));
+  const pending = viewState.nextUnansweredIdFrom(round, editable, pendingAnswers, questionId);
   if (!pending) return;
-  focusedQuestionId = pending.id;
+  focusedQuestionId = pending;
   if (railNavElement) refreshRailStates(round, editable);
   refreshCardStates(round, editable);
-  scrollToQuestion(pending.id);
+  scrollToQuestion(pending);
 }
 
 async function alignToFocusedQuestion() {
