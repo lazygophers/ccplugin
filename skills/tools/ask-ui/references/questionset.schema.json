@@ -1,0 +1,306 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ask-ui.local/schemas/questionset.schema.json",
+  "title": "Ask UI QuestionSet",
+  "description": "传给 Ask UI 的问题集：一个 Session 的一轮（Round）问题。用 UTF-8 编码的 JSON 写成一个文件，作为 `ask-ui.mjs ask --input` 的输入。字段语义之外的「为什么这样写」见同目录 schema.md。",
+  "type": "object",
+  "required": ["questions"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "description": "协议版本，固定 \"1.0\"。省略时由 CLI 填入。",
+      "const": "1.0"
+    },
+    "sessionId": {
+      "description": "会话 id。首轮省略，由 CLI 生成；后续轮次复用同一个值。它会拼进文件路径，所以字符受限、至少 3 个字符。",
+      "$ref": "#/$defs/pathSafeId"
+    },
+    "roundNumber": {
+      "description": "轮次号。省略时由 CLI 自动递增。",
+      "type": "integer",
+      "minimum": 1
+    },
+    "basedOnRound": {
+      "description": "本轮基于哪一轮的答案提出。首轮写 null 或省略。",
+      "type": ["integer", "null"],
+      "minimum": 1
+    },
+    "projectName": {
+      "description": "Session 级。显示在页头徽标。省略时取工作目录名。",
+      "type": "string"
+    },
+    "sessionTitle": {
+      "description": "Session 级。整个会话的标题。",
+      "type": "string"
+    },
+    "sessionSummary": {
+      "description": "Session 级。页头副标题，一句话说明这个会话在收集什么。省略时显示默认提示语。",
+      "type": "string"
+    },
+    "sessionBackground": {
+      "description": "Session 级。左栏「本次背景」，支持 Markdown + Mermaid。省略时整块不渲染。同一 Session 的后续轮次可省略，首轮写入的值会保留。",
+      "type": "string"
+    },
+    "title": {
+      "description": "Round 级。本轮标题。",
+      "type": "string"
+    },
+    "purpose": {
+      "description": "Round 级。左栏「第 N 轮」块里的一句话目的。省略时不渲染。",
+      "type": "string"
+    },
+    "wake": {
+      "description": "可选的主动唤醒元数据。默认手动，不需要唤醒时整个省略。",
+      "$ref": "#/$defs/wake"
+    },
+    "questions": {
+      "description": "本轮的问题，按数组顺序渲染。顺序即依赖序：showWhen 只能指向排在前面的题。",
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/question" }
+    }
+  },
+  "$defs": {
+    "pathSafeId": {
+      "description": "会进入文件系统路径的 id：字母或数字开头，其余可用字母、数字和 . _ -，长度 3–128。",
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{2,127}$"
+    },
+    "referenceId": {
+      "description": "只在 JSON 内部做引用键的 id：字母或数字开头，其余可用字母、数字和 . _ -，最长 128 个字符。`q1`、`mr` 这种短名合法。省略时自动生成。",
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$"
+    },
+    "wake": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "description": "auto 需要同时给出 provider，否则降级为 unavailable。",
+          "enum": ["auto", "manual", "unavailable"]
+        },
+        "provider": {
+          "enum": ["claude-code", "codex-app-server", null]
+        },
+        "sessionRef": {
+          "description": "Claude Code 的 session id，或宿主提供的 Codex thread id。绝不猜测。",
+          "type": ["string", "null"]
+        },
+        "cwd": { "type": ["string", "null"] }
+      }
+    },
+    "option": {
+      "description": "选择题的一个选项。必须是 JSON 对象，不接受字符串。",
+      "type": "object",
+      "required": ["text"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/referenceId" },
+        "text": {
+          "description": "选项文本。",
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "description": "选项下方的说明行。支持 Markdown，不渲染 Mermaid。",
+          "type": "string"
+        },
+        "recommended": {
+          "description": "true 时挂「推荐」徽标。徽标只是视觉提示，不会预选答案。单选题最多认一个推荐项，多写的会被丢掉徽标。",
+          "type": "boolean"
+        },
+        "reason": {
+          "description": "推荐原因，显示在该选项下方。只有 recommended: true 才能写。",
+          "type": "string"
+        }
+      },
+      "allOf": [
+        {
+          "$comment": "reason 非空时必须同时写 recommended: true。",
+          "if": {
+            "required": ["reason"],
+            "properties": { "reason": { "type": "string", "minLength": 1 } }
+          },
+          "then": {
+            "required": ["recommended"],
+            "properties": { "recommended": { "const": true } }
+          }
+        }
+      ]
+    },
+    "question": {
+      "description": "一道题。type 决定其余字段：single / multiple 要 options，text 要输入框参数。",
+      "oneOf": [
+        { "$ref": "#/$defs/singleQuestion" },
+        { "$ref": "#/$defs/multipleQuestion" },
+        { "$ref": "#/$defs/textQuestion" }
+      ]
+    },
+    "singleQuestion": {
+      "title": "单选题",
+      "description": "只能选一个选项。再点一次已选中的选项会清空，回到未作答状态。答完会自动滚到下一道未答题。",
+      "type": "object",
+      "required": ["type", "text", "options"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "single" },
+        "id": { "$ref": "#/$defs/referenceId" },
+        "text": { "$ref": "#/$defs/questionText" },
+        "title": { "$ref": "#/$defs/questionTitle" },
+        "background": { "$ref": "#/$defs/questionBackground" },
+        "required": { "$ref": "#/$defs/questionRequired" },
+        "showWhen": { "$ref": "#/$defs/showWhen" },
+        "options": {
+          "description": "至少 2 个。只有一个候选的确认题改成 type: \"text\"。没有「其他」选项——预设之外的答案由每题的补充说明承载。",
+          "type": "array",
+          "minItems": 2,
+          "items": { "$ref": "#/$defs/option" }
+        }
+      }
+    },
+    "multipleQuestion": {
+      "title": "多选题",
+      "description": "可以选多个选项，数量由 minSelections / maxSelections 约束。",
+      "type": "object",
+      "required": ["type", "text", "options"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "multiple" },
+        "id": { "$ref": "#/$defs/referenceId" },
+        "text": { "$ref": "#/$defs/questionText" },
+        "title": { "$ref": "#/$defs/questionTitle" },
+        "background": { "$ref": "#/$defs/questionBackground" },
+        "required": { "$ref": "#/$defs/questionRequired" },
+        "showWhen": { "$ref": "#/$defs/showWhen" },
+        "options": {
+          "description": "至少 2 个。没有「其他」选项。",
+          "type": "array",
+          "minItems": 2,
+          "items": { "$ref": "#/$defs/option" }
+        },
+        "minSelections": {
+          "description": "至少选几个。省略时为 required ? 1 : 0。",
+          "type": "integer",
+          "minimum": 0
+        },
+        "maxSelections": {
+          "description": "最多选几个。省略时为选项总数。",
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "textQuestion": {
+      "title": "自由文本题",
+      "description": "一个输入框。不写 options。「还有别的补充吗」这类题一律用它 + required: false。",
+      "type": "object",
+      "required": ["type", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "text" },
+        "id": { "$ref": "#/$defs/referenceId" },
+        "text": { "$ref": "#/$defs/questionText" },
+        "title": { "$ref": "#/$defs/questionTitle" },
+        "background": { "$ref": "#/$defs/questionBackground" },
+        "required": { "$ref": "#/$defs/questionRequired" },
+        "showWhen": { "$ref": "#/$defs/showWhen" },
+        "recommendedDraft": {
+          "description": "填成输入框的 placeholder。不会预填答案。",
+          "type": "string"
+        },
+        "recommendationReason": {
+          "description": "显示为一条推荐理由横幅。",
+          "type": "string"
+        },
+        "multiline": {
+          "description": "是否多行输入框。省略时为 true。",
+          "type": "boolean"
+        },
+        "maxLength": {
+          "description": "主回答的字符上限。省略时为 4000。",
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "questionText": {
+      "description": "问题正文：问题本身和它的描述都写在这里，不要拆成两个字段。支持 Markdown（GFM）+ Mermaid。",
+      "type": "string",
+      "minLength": 1
+    },
+    "questionTitle": {
+      "description": "左栏导航用的短标题。省略时取 text 的首个非空行——正文以 Markdown 标题或表格开头时请显式写。",
+      "type": "string"
+    },
+    "questionBackground": {
+      "description": "单独交代这题的前情，渲染在题卡内「背景 ·」块。支持 Markdown + Mermaid。省略时不渲染。",
+      "type": "string"
+    },
+    "questionRequired": {
+      "description": "省略即 true（必填）。允许留空的题必须显式写 false，页面据此把「必填」徽标换成「选填」。不要用 text 里的「（可留空）」代替它——徽标和校验只认这个字段。",
+      "type": "boolean"
+    },
+    "showWhen": {
+      "description": "条件题：只有 questionId 指向的那道题答成指定样子，本题才出现。用户在页面上选完，后续题当场增量出现或消失。硬规则见 schema.md：questionId 只能指向排在本题前面的题，匹配方式要配得上那道题的类型，optionIds 里的 id 必须真实存在——这三条是跨字段规则，本 schema 表达不了，由 ask-ui.mjs 校验并报中文错误。",
+      "oneOf": [
+        {
+          "title": "按选项匹配（触发源是 single / multiple）",
+          "type": "object",
+          "required": ["questionId", "optionIds"],
+          "additionalProperties": false,
+          "properties": {
+            "questionId": { "$ref": "#/$defs/referenceId" },
+            "optionIds": {
+              "description": "命中任一即显示；多选题取交集，勾中任一即命中。",
+              "type": "array",
+              "minItems": 1,
+              "items": { "$ref": "#/$defs/referenceId" }
+            }
+          }
+        },
+        {
+          "title": "按「已作答」匹配（触发源是 text）",
+          "type": "object",
+          "required": ["questionId", "answered"],
+          "additionalProperties": false,
+          "properties": {
+            "questionId": { "$ref": "#/$defs/referenceId" },
+            "answered": {
+              "description": "只接受 true——不需要条件就整个删掉 showWhen。",
+              "const": true
+            }
+          }
+        },
+        {
+          "title": "按关键词匹配（触发源是 text）",
+          "type": "object",
+          "required": ["questionId", "contains"],
+          "additionalProperties": false,
+          "properties": {
+            "questionId": { "$ref": "#/$defs/referenceId" },
+            "contains": {
+              "description": "命中任一关键词即显示，忽略大小写。",
+              "type": "array",
+              "minItems": 1,
+              "items": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        {
+          "title": "按正则匹配（触发源是 text）",
+          "type": "object",
+          "required": ["questionId", "matches"],
+          "additionalProperties": false,
+          "properties": {
+            "questionId": { "$ref": "#/$defs/referenceId" },
+            "matches": {
+              "description": "JS 正则，无 flags。要忽略大小写就写 [Tt] 或改用 contains。",
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      ]
+    }
+  }
+}

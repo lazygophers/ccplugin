@@ -46,13 +46,13 @@ description: 向用户提问的时候、调用 `AskUserQuestion` 时都使用本
 ## 标准路径：`ask` 七步
 
 1. 把包含本 `SKILL.md` 的目录解析为 `ASK_UI_SKILL_DIR`。
-2. 创建 JSON 前先读 [references/schema.md](references/schema.md)：字段语义和三种题型的写法都在里面。[references/example-question-set.json](references/example-question-set.json) 是一份可直接复制改字段的完整起手模板（单选 / 多选 / 自由文本各一题，带推荐答案和上下文字段）。
+2. 创建 JSON 前先读两份文件：[references/questionset.schema.json](references/questionset.schema.json) 是字段清单本身（JSON Schema 2020-12，每个字段带中文说明），[references/schema.md](references/schema.md) 讲 schema 表达不了的部分——跨字段硬规则、页面实际行为、为什么这样写。[references/example-question-set.json](references/example-question-set.json) 是一份可直接复制改字段的完整起手模板（单选 / 多选 / 自由文本各一题，带推荐答案和上下文字段）。答案的结构见 [references/answerset.schema.json](references/answerset.schema.json)。
 3. 创建 QuestionSet JSON 文件。新任务省略 `sessionId`；后续轮次复用当前活跃的 `sessionId` 并设置 `basedOnRound`。
    每道题必写两个字段：`type`（`single` / `multiple` / `text`，**没有默认值，漏写报错**）和 `text`（问题正文，问题本身和描述都写在这里）。选项一律是 JSON 对象 `{"text":"…","description":"…","recommended":true,"reason":"…"}`，**不接受字符串**；`reason` 只能写在 `recommended: true` 的选项上。
    允许留空的题必须显式写 `"required": false`——`required` 默认 `true`，漏写就是必填，页面挂「必填」徽标、留空挡提交。**别在 `text` 里写「（可留空）」代替这个字段**：文案和徽标对不上，用户只能被迫编一句。「还有别的补充吗」「其他备注」「可选参数」这类题一律 `type: "text"` + `"required": false`。
    一并写上上下文字段，让用户不看对话就能判断在问什么：Session 级 `projectName` / `sessionSummary` / `sessionBackground`，Round 级 `purpose`，需要单独交代前情的题写 `background`。
    选择题没有「其他」选项。预设选项之外的答案由每题的补充说明承载，所以选项只列真正互斥的几种，不要凑「其他」。选择题至少要 2 个选项，脚本会直接报错 `第 X 题是选择题，至少要有两个选项` 并退出——只有一个候选的确认题改成 `type: "text"`，或者干脆在对话里问。
-   有依赖关系的问题写成同一轮里的**条件题**：`"showWhen": {"questionId":"q1","optionIds":["a"]}` 让这题只在 `q1` 选了 `a` 时才出现，用户选完当场出现或消失。`showWhen` 只能指向排在前面的题，分支树靠链式依赖搭；文本题作触发源时用 `answered` / `contains` / `matches`。隐藏题不校验必填、也不进 `answers.json`（id 列在 `hiddenQuestionIds`）。完整规则见 [references/schema.md](references/schema.md) 的「条件题（分支）」。
+   有依赖关系的问题写成同一轮里的**条件题**：`"showWhen": {"questionId":"q1","optionIds":["a"]}` 让这题只在 `q1` 选了 `a` 时才出现，用户选完当场出现或消失。`showWhen` 只能指向排在前面的题，分支树靠链式依赖搭；文本题作触发源时用 `answered` / `contains` / `matches`。隐藏题不校验必填、也不进 `answers.json`（id 列在 `hiddenQuestionIds`）。完整规则见 [references/schema.md](references/schema.md) 的「条件题（分支）」——`showWhen` 的三条跨字段硬规则（指向前面的题、匹配方式配得上题型、选项 id 真实存在）schema 拦不住，只有运行时会报错。
    `sessionBackground`、题目的 `text` 和 `background` 支持 **Markdown（GFM：标题、粗体、行内代码、代码块、列表、链接、引用、表格）+ Mermaid**；选项的 `description` 只支持 Markdown。流程、时序、架构这类讲不清的东西写成 ` ```mermaid ` 代码块，会渲染成跟随主题的图。表格和图表在页面上都能点击放大、缩放拖拽。代码块在围栏上标语言（` ```ts `、` ```sql `）就会按语言高亮。
 4. **在后台运行命令，并把 stdout 和 stderr 分开重定向到两个文件**：
 

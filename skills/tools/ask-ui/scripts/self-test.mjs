@@ -12,11 +12,20 @@ import {
   createRound,
   hasPendingRound,
   loadSessionBundle,
+  normalizeQuestionSet,
   resumeRound,
   startHttpServer,
 } from './ask-ui.mjs';
+import { formatSchemaErrors, validateAgainstSchema } from './schema-validator.mjs';
 
 const ASK_UI_SCRIPT = fileURLToPath(new URL('./ask-ui.mjs', import.meta.url));
+
+const questionSetSchema = JSON.parse(
+  await fs.readFile(fileURLToPath(new URL('../references/questionset.schema.json', import.meta.url)), 'utf8'),
+);
+const answerSetSchema = JSON.parse(
+  await fs.readFile(fileURLToPath(new URL('../references/answerset.schema.json', import.meta.url)), 'utf8'),
+);
 
 async function runDirectAsk({ questionSet, answers, dataRoot, cwd, testDuplicate = false }) {
   const inputFile = path.join(cwd, `direct-${Date.now()}-${Math.random()}.json`);
@@ -129,6 +138,92 @@ try {
     child.on('close', () => resolve(output));
   });
   assert.match(linkedHelp, /Ask UI/);
+
+  // ---- references/*.schema.json 与手写校验的对齐 ----
+  //
+  // schema 是写给人和 Agent 看的 DSL 定义，运行时把关的仍是 ask-ui.mjs 里的中文校验。
+  // 两边必须说同一件事，否则 Agent 照 schema 写出来的 JSON 会在运行时被拒。断言的
+  // 关系有两条：schema 判合法的必须能通过 normalizeQuestionSet（schema ⊆ 校验器），
+  // 且下面列出的每种典型错误两边都要拒。
+  const runtimeVerdict = (doc) => {
+    try {
+      normalizeQuestionSet(doc, { cwd: temporaryRoot });
+      return { valid: true, message: '' };
+    } catch (error) {
+      return { valid: false, message: error.message };
+    }
+  };
+
+  const exampleQuestionSet = JSON.parse(
+    await fs.readFile(fileURLToPath(new URL('../references/example-question-set.json', import.meta.url)), 'utf8'),
+  );
+  const baseQuestion = { id: 'q1', type: 'single', text: '选一个', options: [{ text: '甲' }, { text: '乙' }] };
+  const wrap = (...questions) => ({ sessionTitle: '对齐用例', questions });
+
+  const schemaValidCases = [
+    ['references 里的起手模板', exampleQuestionSet],
+    ['三种题型齐全', wrap(
+      baseQuestion,
+      { id: 'q2', type: 'multiple', text: '选多个', minSelections: 1, maxSelections: 2, options: [{ text: '甲', recommended: true, reason: '默认项' }, { text: '乙' }] },
+      { id: 'q3', type: 'text', text: '补充', required: false, multiline: true, maxLength: 200 },
+    )],
+    ['四种 showWhen 匹配方式', wrap(
+      baseQuestion,
+      { id: 'q2', type: 'text', text: '细节', showWhen: { questionId: 'q1', optionIds: ['option-1'] } },
+      { id: 'q3', type: 'text', text: '再问', showWhen: { questionId: 'q2', answered: true } },
+      { id: 'q4', type: 'text', text: '关键词', showWhen: { questionId: 'q2', contains: ['超时'] } },
+      { id: 'q5', type: 'text', text: '正则', showWhen: { questionId: 'q2', matches: '^ERR-\\d+$' } },
+    )],
+  ];
+
+  for (const [name, doc] of schemaValidCases) {
+    const bySchema = validateAgainstSchema(doc, questionSetSchema);
+    assert.ok(bySchema.valid, `${name} 应通过 schema：\n${formatSchemaErrors(bySchema.errors)}`);
+    const byRuntime = runtimeVerdict(doc);
+    assert.ok(byRuntime.valid, `${name} 通过了 schema 却被运行时校验拒收：${byRuntime.message}`);
+  }
+
+  // 两边都必须拒的典型写错。左边是 schema 能表达的结构错误。
+  const rejectedByBoth = [
+    ['漏写 type', wrap({ id: 'q1', text: '选一个', options: [{ text: '甲' }, { text: '乙' }] })],
+    ['选项写成字符串', wrap({ id: 'q1', type: 'single', text: '选一个', options: ['甲', '乙'] })],
+    ['选择题只有一个选项', wrap({ id: 'q1', type: 'single', text: '选一个', options: [{ text: '甲' }] })],
+    ['reason 没配 recommended', wrap({ id: 'q1', type: 'single', text: '选一个', options: [{ text: '甲', reason: '就它' }, { text: '乙' }] })],
+    ['text 为空', wrap({ id: 'q1', type: 'single', text: '', options: [{ text: '甲' }, { text: '乙' }] })],
+    ['题级 recommendedOptionIds', wrap({ ...baseQuestion, recommendedOptionIds: ['option-1'] })],
+    ['showWhen 同时写两种匹配', wrap(
+      baseQuestion,
+      { id: 'q2', type: 'text', text: '细节', showWhen: { questionId: 'q1', optionIds: ['option-1'], answered: true } },
+    )],
+    ['questions 为空', { sessionTitle: '空', questions: [] }],
+  ];
+
+  for (const [name, doc] of rejectedByBoth) {
+    assert.ok(!validateAgainstSchema(doc, questionSetSchema).valid, `${name} 应被 schema 拒收`);
+    assert.ok(!runtimeVerdict(doc).valid, `${name} 应被运行时校验拒收`);
+  }
+
+  // 跨字段规则 JSON Schema 表达不了，schema.md 里已写明由运行时把关。这里钉住这个分工：
+  // 一旦哪天 schema 也能拦，说明分工变了，得回去更新文档。
+  const runtimeOnly = [
+    ['showWhen 指向排在后面的题', wrap(
+      { id: 'q1', type: 'text', text: '先问', showWhen: { questionId: 'q2', optionIds: ['option-1'] } },
+      { id: 'q2', type: 'single', text: '选一个', options: [{ text: '甲' }, { text: '乙' }] },
+    )],
+    ['showWhen 引用不存在的选项', wrap(
+      baseQuestion,
+      { id: 'q2', type: 'text', text: '细节', showWhen: { questionId: 'q1', optionIds: ['option-9'] } },
+    )],
+    ['文本题却用 optionIds 匹配', wrap(
+      { id: 'q1', type: 'text', text: '先问' },
+      { id: 'q2', type: 'text', text: '细节', showWhen: { questionId: 'q1', optionIds: ['option-1'] } },
+    )],
+  ];
+
+  for (const [name, doc] of runtimeOnly) {
+    assert.ok(validateAgainstSchema(doc, questionSetSchema).valid, `${name} 属跨字段规则，schema 不该拦`);
+    assert.ok(!runtimeVerdict(doc).valid, `${name} 应被运行时校验拒收`);
+  }
 
   const first = await createRound({
     sessionTitle: '个人工作台需求确认收集',
@@ -820,6 +915,15 @@ try {
   assert.equal(directBundle.rounds[0].deliveryMode, 'direct');
   assert.equal(directBundle.rounds[1].status, 'submitted');
   assert.equal(directBundle.session.wakeState, undefined);
+
+  // 真跑出来的 answers.json 必须符合 references/answerset.schema.json——Agent 是照那份
+  // 契约读答案的，落盘结构一旦偏离，读答案的一侧会静默拿错字段。
+  for (const round of directBundle.rounds) {
+    if (!round.answers) continue;
+    const verdict = validateAgainstSchema(round.answers, answerSetSchema);
+    assert.ok(verdict.valid, `第 ${round.roundNumber} 轮的 answers.json 不符合 AnswerSet schema：\n${formatSchemaErrors(verdict.errors)}`);
+  }
+
   process.stdout.write('ask-ui self-test passed\n');
 } finally {
   if (server) await new Promise((resolve) => server.close(resolve));

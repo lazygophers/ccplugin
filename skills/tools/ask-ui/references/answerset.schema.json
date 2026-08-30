@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ask-ui.local/schemas/answerset.schema.json",
+  "title": "Ask UI AnswerSet",
+  "description": "用户提交回来的答案，落盘为该轮目录下的 answers.json，也原样出现在 `ask` / `resume` 返回值的 answers 字段里。提交后不可变——更正和补充一律开新 Round。",
+  "type": "object",
+  "required": ["schemaVersion", "submissionId", "sessionId", "roundNumber", "submittedAt", "answers", "hiddenQuestionIds"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "description": "协议版本，固定 \"1.0\"。",
+      "const": "1.0"
+    },
+    "submissionId": {
+      "description": "本次提交的唯一 id。重复提交同一轮不会产生第二个 AnswerSet。",
+      "type": "string",
+      "minLength": 1
+    },
+    "sessionId": {
+      "description": "所属会话，与 QuestionSet 的 sessionId 一致。",
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{2,127}$"
+    },
+    "roundNumber": {
+      "description": "所属轮次。",
+      "type": "integer",
+      "minimum": 1
+    },
+    "submittedAt": {
+      "description": "提交时刻，ISO 8601 UTC。",
+      "type": "string",
+      "format": "date-time"
+    },
+    "answers": {
+      "description": "只包含提交时可见的题，顺序与 QuestionSet 的 questions 一致。少了几条不是用户漏答，是分支没走到——被跳过的题的 id 在 hiddenQuestionIds 里。",
+      "type": "array",
+      "items": { "$ref": "#/$defs/answer" }
+    },
+    "hiddenQuestionIds": {
+      "description": "提交时因 showWhen 条件未满足而隐藏的题的 id。隐藏题不校验 required / minSelections，也不进 answers。",
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "$defs": {
+    "answer": {
+      "description": "一道题的回答。主回答按题型分流：选择题看 selectedOptionIds，文本题看 customText。supplementaryText 两种题型都有。",
+      "type": "object",
+      "required": ["questionId", "selectedOptionIds", "customText", "supplementaryText"],
+      "additionalProperties": false,
+      "properties": {
+        "questionId": {
+          "description": "对应 QuestionSet 里那道题的 id。",
+          "type": "string",
+          "minLength": 1
+        },
+        "selectedOptionIds": {
+          "description": "选中的选项 id，去重。单选题最多 1 个；文本题恒为空数组。",
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "customText": {
+          "description": "文本题的主回答，即输入框内容。选择题的 customText 恒为空字符串，非空会被判为非法。",
+          "type": "string"
+        },
+        "supplementaryText": {
+          "description": "补充说明，上限 2000 字符。它同时承担两个作用：补充上下文，以及在预设选项都不合适时直接写自由答案——所以选择题不再提供「其他」选项。只写补充说明、一个选项都不选，也算一个有效回答。补充说明不触发 showWhen 分支。",
+          "type": "string",
+          "maxLength": 2000
+        }
+      }
+    }
+  }
+}

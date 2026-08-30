@@ -423,7 +423,7 @@ function normalizeConditions(questions) {
   if (errors.length) throw new Error(errors.join('；'));
 }
 
-function normalizeQuestionSet(input, { cwd = process.cwd() } = {}) {
+export function normalizeQuestionSet(input, { cwd = process.cwd() } = {}) {
   if (!input || typeof input !== 'object' || !Array.isArray(input.questions)) {
     throw new Error('QuestionSet requires a questions array');
   }

@@ -1,66 +1,60 @@
 # Ask UI JSON 协议
 
-## QuestionSet（问题集）
+字段清单、类型、必填与否**看 schema，不看本文**：
 
-使用 UTF-8 编码的 JSON。除非另有说明，此处未列出的字段一律忽略。
+- [questionset.schema.json](questionset.schema.json) —— 传给 UI 的问题集（你要写的那个文件）
+- [answerset.schema.json](answerset.schema.json) —— 用户提交回来的答案
+- [example-question-set.json](example-question-set.json) —— 可直接复制改字段的起手模板（单选 / 多选 / 自由文本各一题）
+
+两份 schema 是 JSON Schema 2020-12，每个字段带中文 `description`，直接读就是字段说明。本文只讲 schema 表达不了的部分：**为什么这样写**、跨字段的硬规则、页面上的实际行为。
+
+`scripts/self-test.mjs` 会拿同一批样例同时喂给 schema 和运行时校验，比对判定是否一致——照 schema 写出来的 JSON 不会在运行时被拒。
+
+## 两层校验的分工
+
+结构错误（漏字段、类型不对、选项不足两个、`reason` 没配 `recommended`）schema 拦得住。下面这些是**跨字段规则**，schema 表达不了，由 `ask-ui.mjs` 在建 Session 时校验，报中文错误、一次列全：
+
+- `showWhen.questionId` 只能指向**排在它前面**的题。
+- `showWhen` 的匹配方式要配得上被指向那道题的类型。
+- `showWhen.optionIds` 里的选项 id 必须真实存在于被指向的题里。
+- `showWhen.matches` 必须是合法 JS 正则。
+- 单选题最多认一个推荐项，多写的会被静默丢掉徽标（不报错）。
+
+运行时还会对缺省值做归一：`title` 省略时取 `text` 首个非空行，多选题的 `minSelections` 省略时为 `required ? 1 : 0`，`maxSelections` 省略时为选项总数，文本题 `maxLength` 省略时为 4000。
+
+## Session / Round / Question 三层
 
 ```json
 {"schemaVersion":"1.0","sessionId":"optional-existing-session-id","projectName":"personal-workbench","sessionTitle":"个人工作台需求确认收集","sessionSummary":"收集个人工作台的目标、模块和交互需求","sessionBackground":"已有一版命令行工具，这次要把它做成可视化工作台，先定首页与首期模块。","roundNumber":1,"title":"基础需求确认","purpose":"确认工作台的核心目标","basedOnRound":null,"wake":{"mode":"manual","provider":null,"sessionRef":null,"cwd":null},"questions":[]}
 ```
 
-省略时，CLI 会自动生成 `sessionId` 和 `roundNumber`。后续轮次复用同一个 `sessionId`。
+省略时，CLI 会自动生成 `sessionId` 和 `roundNumber`。后续轮次复用同一个 `sessionId`，Session 级字段（`projectName` / `sessionSummary` / `sessionBackground`）可以省略，首轮写入的值会保留。
 
-上下文字段（都是选填，用于让用户理解「这是在问什么项目、为什么问」）：
+上下文字段的作用是让用户**不看对话就知道这是在问什么项目、为什么问**。`sessionBackground` 尤其要写：它是左栏「本次背景」，用户全程都能看到。但也别把整份方案倒进去——左栏太长会把答题区挤走，用户要滚动才能对照，写三五句能定位问题的就够，细节放到对应那道题的 `background` 里。
 
-| 字段 | 层级 | 省略时的行为 | 界面位置 |
-|---|---|---|---|
-| `projectName` | Session | 取工作目录名 | 页头徽标 |
-| `sessionSummary` | Session | 显示默认提示语 | 页头副标题 |
-| `sessionBackground` | Session | 整块不渲染 | 左栏「本次背景」，支持 Markdown + Mermaid |
-| `purpose` | Round | 不渲染 | 左栏「第 N 轮」块 |
-| `background` | Question | 不渲染 | 题卡内「背景 ·」块，支持 Markdown + Mermaid |
-
-同一 Session 的后续轮次可以省略 Session 级字段，首轮写入的值会保留。
-
-`sessionId` 会拼进文件路径，要求至少 3 个字符。问题和选项的 `id` 只是 JSON 内部引用键：字母或数字开头，其余可用字母、数字和 `.` `_` `-`，最长 128 个字符，`q1`、`mr` 这种短名合法；省略时自动生成。一次提交里所有不合法的 id 会一起报出来，不用逐个试。
-
-## Question（问题）
+## Question：三件事
 
 每道题三件事：**问什么**（`text`）、**给哪些选项**（`options`）、**怎么答**（`type`）。
 
 ```json
-{"id":"primary_goal","type":"single","title":"首版目标","text":"## 首版最重要的目标是什么？\n\n请选择一个**最优先验证**的方向。","background":"用户反馈最集中的一条是「打开之后不知道今天该做什么」。","required":true,"options":[{"id":"daily_focus","text":"每日聚焦","description":"集中展示今天最该处理的事项。","recommended":true,"reason":"首版先解决高频、明确的每日决策问题。"},{"id":"knowledge_hub","text":"知识聚合","description":"统一查找笔记、文档与上下文。"}]}
+{"id":"primary_goal","type":"single","title":"首版目标","text":"## 首版最重要的目标是什么？\n\n请选择一个**最优先验证**的方向。","background":"用户反馈最集中的一条是「打开之后不知道今天该做什么」。","required":true,"options":[{"id":"daily_goal","text":"每日聚焦","description":"集中展示今天最该处理的事项。","recommended":true,"reason":"首版先解决高频、明确的每日决策问题。"},{"id":"knowledge_hub","text":"知识聚合","description":"统一查找笔记、文档与上下文。"}]}
 ```
 
-| 字段 | 必填 | 说明 |
-|---|---|---|
-| `type` | 是 | `single`（单选）/ `multiple`（多选）/ `text`（自由文本）。**没有默认值，漏写直接报错。** |
-| `text` | 是 | 问题正文，问题本身和它的描述都写在这里。支持 Markdown + Mermaid。 |
-| `title` | 否 | 左栏导航用的短标题。省略时取 `text` 的首个非空行——正文以 Markdown 标题或表格开头时，请显式写 `title`。 |
-| `background` | 否 | 单独交代这题的前情。支持 Markdown + Mermaid。 |
-| `required` | 否 | 默认 `true`（漏写即必填）。允许留空的题必须显式写 `false`，页面据此把「必填」徽标换成「选填」。**不要用 `text` 里的「（可留空）」代替它**——徽标和校验只认这个字段。 |
-| `showWhen` | 否 | 条件题：只有前面某题答成指定样子，这题才出现。见「条件题」。 |
-| `options` | 选择题必填 | 见下。至少 2 个，`text` 类型不写。 |
+`text` 一个字段装下问题本身和它的描述，不要拆。`title` 只是左栏导航用的短标题——正文以 Markdown 标题或表格开头时必须显式写，否则左栏会显示 `## 首版最重要的目标是什么？` 这种带井号的原文。
+
+### 必填与选填
+
+`required` 省略即 `true`。允许留空的题**必须显式写 `false`**，页面据此把「必填」徽标换成「选填」。
+
+**不要在 `text` 里写「（可留空）」代替它**——那行字不影响校验，徽标还是「必填」，留空照样挡提交，用户只能被迫编一句。「还有别的补充吗」「其他备注」「可选参数」这类问题一律 `type: "text"` + `"required": false`。选择题同样吃 `required: false`：不选任何选项也能提交。
 
 ### 选项
 
-**每个选项都必须是 JSON 对象，不接受字符串。**
+选择题至少要 2 个选项，只有一个候选的确认题改成 `type: "text"`，或者干脆在对话里问。
 
-| 字段 | 必填 | 说明 |
-|---|---|---|
-| `text` | 是 | 选项文本。 |
-| `id` | 否 | 省略时按序号自动生成。 |
-| `description` | 否 | 选项下方的说明行，支持 Markdown（不渲染 Mermaid：一选项一张图会挤得没法比较）。 |
-| `recommended` | 否 | `true` 时挂「推荐」徽标。 |
-| `reason` | 否 | 推荐原因，显示在该选项下方。**只有 `recommended: true` 才能写，否则报错。** |
+**选择题没有「其他」选项。** 预设之外的答案由每题的补充说明承载，所以选项只列真正互斥的几种，不要凑「其他」。
 
-选择题至少要 2 个选项，脚本会直接报错 `第 X 题是选择题，至少要有两个选项` 并退出——只有一个候选的确认题改成 `type: "text"`，或者干脆在对话里问。
-
-单选题最多认一个推荐项，多写的会被丢掉徽标。
-
-选择题没有「其他」选项。预设之外的答案由每题的补充说明承载，所以选项只列真正互斥的几种，不要凑「其他」。
-
-推荐标记只做视觉提示：加徽标、附一条推荐原因。**它们不会预选任何答案**——一道题只有在用户真的点过、选过或输入过之后才算已答，未作答的必填题会挡住提交。
+推荐标记（`recommended` + `reason`）只做视觉提示：加徽标、附一条推荐原因。**它们不会预选任何答案**——一道题只有在用户真的点过、选过或输入过之后才算已答，未作答的必填题会挡住提交。
 
 ### 单选
 
@@ -76,8 +70,6 @@
 {"id":"q2","type":"multiple","text":"首期模块\n\n选择首期必须具备的模块。","required":true,"minSelections":1,"maxSelections":3,"options":[{"id":"tasks","text":"任务","description":"待办与进度","recommended":true,"reason":"任务是工作台的主入口"},{"id":"notes","text":"笔记","description":"知识沉淀"}]}
 ```
 
-`minSelections` 默认为 `required ? 1 : 0`，`maxSelections` 默认为选项总数。
-
 ### 自由文本
 
 ```json
@@ -85,10 +77,6 @@
 ```
 
 `recommendedDraft` 填成输入框的 placeholder，`recommendationReason` 显示为一条推荐理由横幅。两者同样不会预填答案。
-
-文本题写 `"required": false` 就是选填：题卡挂「选填」徽标，留空也能提交，答案里是空字符串。「还有别的补充吗」「其他备注」「可选参数」这类问题一律这样写，别用必填逼用户编内容，也别只在 `text` 里写「（可留空）」——那行字不影响校验，徽标还是「必填」。
-
-选择题同样吃 `required: false`：不选任何选项也能提交。
 
 ## 条件题（分支）
 
@@ -98,7 +86,7 @@
 {"id":"q2","type":"text","text":"迁移窗口","showWhen":{"questionId":"q1","optionIds":["migrate"]}}
 ```
 
-一个 `showWhen` 只盯**一道**题，命中任一 `optionIds` 即显示。分支树靠链式依赖搭：`q3` 依赖 `q2`、`q2` 依赖 `q1`；父题不可见时子题一并不可见。
+一个 `showWhen` 只盯**一道**题，命中任一条件即显示。分支树靠链式依赖搭：`q3` 依赖 `q2`、`q2` 依赖 `q1`；父题不可见时子题一并不可见。顺序即依赖序，所以不存在环。
 
 | 触发源题型 | 可用的匹配方式 | 写法 |
 |---|---|---|
@@ -107,12 +95,7 @@
 | `text` | `contains` | `{"questionId":"q1","contains":["超时","timeout"]}`——命中任一关键词，忽略大小写 |
 | `text` | `matches` | `{"questionId":"q1","matches":"^ERR-\\d+$"}`——JS 正则，无 flags，要忽略大小写就写 `[Tt]` 或改用 `contains` |
 
-硬规则，违反会在建 Session 时一次报全：
-
-- `questionId` 只能指向**排在它前面**的题。顺序即依赖序，所以不存在环。
-- 四种匹配方式**只能写一种**。
-- 匹配方式要配得上被指向那道题的类型（选择题只能 `optionIds`，文本题只能另外三种）。
-- `optionIds` 里的选项 id 必须真实存在。
+四种匹配方式**只能写一种**，多写会被拒收。
 
 匹配只看主回答：选择题看选中的选项，文本题看输入框。**补充说明不触发分支**——否则用户写完一句备注会突然冒出新题。
 
@@ -130,7 +113,7 @@
 
 ## 富文本：Markdown 与 Mermaid
 
-`sessionBackground`、问题的 `text` 和 `background` 同时支持 Markdown 和 Mermaid；选项的 `description` 只支持 Markdown。
+`sessionBackground`、问题的 `text` 和 `background` 同时支持 Markdown 和 Mermaid；选项的 `description` 只支持 Markdown（不渲染 Mermaid：一选项一张图会挤得没法比较）。
 
 Markdown 按 GFM 渲染：标题、粗体、斜体、行内代码、代码块、有序/无序列表、链接、引用、分隔线、表格。换行按原样换行（`breaks: true`），不用为了断行补两个空格。渲染结果经 DOMPurify 净化，脚本和事件属性会被剥掉。
 
@@ -148,17 +131,19 @@ Markdown 按 GFM 渲染：标题、粗体、斜体、行内代码、代码块、
 
 ## AnswerSet（答案集）
 
+结构见 [answerset.schema.json](answerset.schema.json)。
+
 ```json
 {"schemaVersion":"1.0","submissionId":"submit-generated-id","sessionId":"personal-workbench-a7k2","roundNumber":1,"submittedAt":"2026-08-10T15:30:00.000Z","hiddenQuestionIds":[],"answers":[{"questionId":"q1","selectedOptionIds":["dashboard"],"customText":"","supplementaryText":"希望首页优先展示今天的任务。"},{"questionId":"q3","selectedOptionIds":[],"customText":"每天使用至少两次。","supplementaryText":""}]}
 ```
 
+读答案时要知道的三件事：
+
+- `answers` 只包含提交时可见的题。少了几条是分支没走到，不是用户漏答——被跳过的题的 id 在 `hiddenQuestionIds` 里。
+- `customText` 只对文本题有效，是该题的主回答。选择题的 `customText` 恒为空。
+- `supplementaryText` 每道题都可能有，上限 2000 字符。它既是补充上下文，也是「预设选项都不合适」时的自由答案——所以别只看 `selectedOptionIds` 就下结论。
+
 `answers.json` 提交后即不可变。需要更正时创建新的 Round。
-
-`answers` 只包含提交时可见的题，条件没满足的题的 id 列在 `hiddenQuestionIds` 里——少了几条答案是分支没走到，不是用户漏答。
-
-每个答案都包含一个可选的 `supplementaryText` 字符串，长度上限 2000 字符。它同时承担两个作用：补充上下文，以及在预设选项都不合适时直接写自由答案——所以选择题不再提供「其他」选项。
-
-`customText` 只对文本题有效，是该题的主回答。选择题的 `customText` 非空会被判为非法。
 
 ## 状态
 
