@@ -17,6 +17,8 @@ import {
   startHttpServer,
 } from './ask-ui.mjs';
 import { formatSchemaErrors, validateAgainstSchema } from './schema-validator.mjs';
+import { visibleQuestionIds } from '../assets/app/conditions.js';
+import * as viewState from '../assets/app/view-state.js';
 
 const ASK_UI_SCRIPT = fileURLToPath(new URL('./ask-ui.mjs', import.meta.url));
 
@@ -224,6 +226,75 @@ try {
     assert.ok(validateAgainstSchema(doc, questionSetSchema).valid, `${name} 属跨字段规则，schema 不该拦`);
     assert.ok(!runtimeVerdict(doc).valid, `${name} 应被运行时校验拒收`);
   }
+
+  // ---- 视图状态模块（assets/app/view-state.js）----
+  //
+  // 页面「第几题该高亮、已答几道、下一道待答题是谁」从 app.js 搬进这个不碰 DOM 的模块，
+  // 这里直接喂问题集与答案断言返回值。可见题序列还要和 conditions.js 判定逐条对齐：
+  // 两边一旦漂移，用户屏幕上看到的题和服务端校验的题就不是同一批。
+  const viewSet = normalizeQuestionSet({
+    sessionTitle: '视图状态用例',
+    questions: [
+      { id: 'entry', type: 'single', text: '选一个方向', options: [{ text: '迁移' }, { text: '回滚' }] },
+      { id: 'background', type: 'text', text: '背景说明' },
+      { id: 'window', type: 'text', text: '迁移窗口', showWhen: { questionId: 'entry', optionIds: ['option-1'] } },
+      { id: 'plan', type: 'text', text: '迁移方案', showWhen: { questionId: 'window', answered: true } },
+      { id: 'owner', type: 'text', text: '负责人' },
+      { id: 'rollback', type: 'text', text: '回滚原因', showWhen: { questionId: 'entry', optionIds: ['option-2'] } },
+    ],
+  }, { cwd: temporaryRoot });
+  const viewRound = { roundNumber: 1, questions: viewSet, answers: null };
+  const draft = viewState.answersForRound(viewRound);
+  const draftOf = (id) => draft.find((answer) => answer.questionId === id);
+  const visibleIdsNow = () => {
+    const sequence = viewState.visibleQuestionsOf(viewRound, true, draft).map((question) => question.id);
+    assert.deepEqual(
+      sequence,
+      [...visibleQuestionIds(viewSet.questions, draft)],
+      '视图状态模块与 conditions.js 对同一份答案给出的可见题必须一致',
+    );
+    return sequence;
+  };
+
+  const untouched = viewState.visibleQuestionsOf(viewRound, true, draft);
+  assert.deepEqual(visibleIdsNow(), ['entry', 'background', 'owner']);
+
+  draftOf('entry').selectedOptionIds = ['option-1'];
+  const migrating = viewState.visibleQuestionsOf(viewRound, true, draft);
+  assert.deepEqual(visibleIdsNow(), ['entry', 'background', 'window', 'owner']);
+
+  draftOf('window').customText = '周六 02:00-04:00';
+  assert.deepEqual(visibleIdsNow(), ['entry', 'background', 'window', 'plan', 'owner']);
+
+  draftOf('entry').selectedOptionIds = ['option-2'];
+  assert.deepEqual(visibleIdsNow(), ['entry', 'background', 'owner', 'rollback']);
+
+  // 序号按可见顺序重排：第 3 题「迁移窗口」隐藏后，原第 4 题「负责人」变成第 3 题。
+  // 页面上题卡的 .question-number 和左栏序号都靠这个位置算，错一位就全错。
+  assert.equal(migrating.findIndex((question) => question.id === 'owner'), 3);
+  assert.equal(untouched.findIndex((question) => question.id === 'owner'), 2);
+
+  // 已答计数与「下一道待答题」。跳答（先答后面的题）后仍要指回真正没答的那一道。
+  draftOf('entry').selectedOptionIds = ['option-1'];
+  draftOf('window').customText = '';
+  draftOf('background').customText = '上一轮遗留';
+  draftOf('rollback').customText = '这题此刻不可见，不该计入';
+  assert.deepEqual(visibleIdsNow(), ['entry', 'background', 'window', 'owner']);
+  assert.equal(viewState.answeredQuestionCount(viewRound, true, draft), 2);
+  assert.equal(viewState.firstUnansweredId(viewRound, true, draft), 'window');
+  assert.equal(viewState.questionState(viewSet.questions[1], true, null, draft, null), 'done');
+  assert.equal(viewState.questionState(viewSet.questions[2], true, null, draft, null), 'todo');
+  assert.equal(viewState.questionState(viewSet.questions[2], true, null, draft, 'window'), 'current');
+
+  draftOf('owner').customText = '张三';
+  // 从已答的 owner（最后一题）往后找不到，绕回开头才是那道跳过的 window。
+  assert.equal(viewState.nextUnansweredIdFrom(viewRound, true, draft, 'owner'), 'window');
+  draftOf('window').customText = '周六 02:00-04:00';
+  draftOf('plan').customText = '灰度切流';
+  assert.deepEqual(visibleIdsNow(), ['entry', 'background', 'window', 'plan', 'owner']);
+  assert.equal(viewState.answeredQuestionCount(viewRound, true, draft), 5);
+  assert.equal(viewState.firstUnansweredId(viewRound, true, draft), null);
+  assert.equal(viewState.nextUnansweredIdFrom(viewRound, true, draft, 'entry'), null);
 
   const first = await createRound({
     sessionTitle: '个人工作台需求确认收集',
@@ -615,6 +686,25 @@ try {
   }
   // 未登记的组件名不得变成任意文件读取。
   assert.equal((await fetch(`${base}/vendor/unknown.min.js`)).status, 401);
+
+  // 缓存文件读不出来（权限不对、被别的东西占了名字）时，服务必须回一个错误状态码
+  // 并继续跑。读文件的错误是异步从流里冒出来的，漏挂监听会让整个进程连同全部活跃
+  // 会话一起退出——页面那边看到的是所有请求突然全部连不上，不只是这一个组件挂了。
+  const brokenVendorDir = path.join(temporaryRoot, 'vendor-broken');
+  await fs.mkdir(path.join(brokenVendorDir, cachedVendors.mermaid), { recursive: true });
+  process.env.ASK_UI_VENDOR_DIR = brokenVendorDir;
+  // 读到一半才失败时头已经发出去了，只能断开连接，所以这里既可能拿到错误状态码，
+  // 也可能是 fetch 直接抛错——两种都算「这一个请求没成」，不影响下面的判据。
+  let brokenVendorOk = false;
+  try {
+    brokenVendorOk = (await fetch(`${base}/vendor/mermaid.min.js`)).ok;
+  } catch {
+    brokenVendorOk = false;
+  }
+  assert.equal(brokenVendorOk, false, '读不出来的组件文件不该当成功返回');
+  process.env.ASK_UI_VENDOR_DIR = vendorDir;
+  // 服务还活着：同一个端口上别的请求照常。
+  assert.equal((await fetch(`${base}/vendor/marked.min.js`)).status, 200, '一个组件读失败不该拖垮整个服务');
   delete process.env.ASK_UI_VENDOR_DIR;
 
   // 必填多选：一个选项都不选，只写补充说明，也应当通过，且不触发 minSelections。

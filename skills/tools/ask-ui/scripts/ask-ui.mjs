@@ -840,9 +840,22 @@ function sendJson(response, statusCode, value) {
 }
 
 function sendFile(response, file) {
-  addSecurityHeaders(response);
-  response.writeHead(200, { 'Content-Type': contentType(file) });
-  createReadStream(file).pipe(response);
+  const stream = createReadStream(file);
+  // 读文件的错误是异步从流里冒出来的，路由里的 try/catch 接不住。不挂这个监听，
+  // 一个权限不对的组件文件就会让整个服务连同全部活跃会话一起退出。
+  stream.on('error', (error) => {
+    if (response.headersSent) {
+      response.destroy();
+      return;
+    }
+    sendJson(response, 500, { error: error.message });
+  });
+  // 头留到确认打得开文件之后再发，否则失败时已经发出去 200，改不回错误状态码。
+  stream.on('open', () => {
+    addSecurityHeaders(response);
+    response.writeHead(200, { 'Content-Type': contentType(file) });
+    stream.pipe(response);
+  });
 }
 
 // 并发的同名组件请求只应触发一次下载，后到的请求等同一个 promise。
@@ -975,6 +988,10 @@ export async function startHttpServer({
     }
     if (request.method === 'GET' && requestUrl.pathname === '/conditions.js') {
       sendFile(response, path.join(APP_ROOT, 'conditions.js'));
+      return;
+    }
+    if (request.method === 'GET' && requestUrl.pathname === '/view-state.js') {
+      sendFile(response, path.join(APP_ROOT, 'view-state.js'));
       return;
     }
     if (request.method === 'GET' && requestUrl.pathname === '/fallback.css') {

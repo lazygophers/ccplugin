@@ -457,6 +457,25 @@ button {
   box-shadow: 6px 6px 0 var(--shadow);
 }
 
+/* 刚因为分支才出现的题卡。只用 outline —— 它不占布局，不会把下面的卡片顶下去，
+   卡片自己的 border / padding / margin 一律不碰。 */
+.question-card.is-new {
+  outline: 4px solid var(--red);
+  outline-offset: 6px;
+  animation: question-card-in 1.8s ease-out 1 both;
+}
+
+@keyframes question-card-in {
+  0%,
+  60% {
+    outline-color: var(--red);
+  }
+
+  100% {
+    outline-color: transparent;
+  }
+}
+
 .question-card[data-state="done"] {
   transform: rotate(-0.35deg);
 }
@@ -620,6 +639,12 @@ button {
 .option-card:has(.option-selector:checked) .option-number {
   background: var(--line);
   color: var(--mustard);
+}
+
+:root[data-theme="dark"]
+  .option-card:has(.option-selector:checked)
+  .option-number {
+  color: var(--on-mustard);
 }
 
 .option-selector {
@@ -845,8 +870,8 @@ textarea {
 }
 
 .progress-cell.on {
-  border-color: var(--mustard);
-  background: var(--mustard);
+  border-color: var(--on-red);
+  background: var(--on-red);
 }
 
 .answered-count {
@@ -1416,6 +1441,30 @@ textarea {
   color: var(--red);
   font-size: 16px;
   font-weight: 700;
+}
+
+/* 组件下载不到时正文里的重试出口，见 app.js 的 appendRetry。 */
+.rich-retry {
+  display: block;
+  margin: 10px 0;
+  border: 3px solid var(--line);
+  padding: 6px 16px;
+  background: var(--base);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.rich-retry:hover:not(:disabled) {
+  background: var(--mustard);
+  color: var(--on-mustard);
+}
+
+.rich-retry:disabled {
+  cursor: progress;
+  opacity: 0.6;
 }
 
 .diagram-source {

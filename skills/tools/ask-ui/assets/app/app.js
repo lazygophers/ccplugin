@@ -1,10 +1,13 @@
-import { visibleQuestionIds } from '/conditions.js';
+import * as viewState from '/view-state.js';
+import { answersForRound, displayAnswer, selectionCount } from '/view-state.js';
 
 const app = document.querySelector('#app');
 const toast = document.querySelector('#toast');
 
 const SUPPLEMENTARY_TEXT_MAX_LENGTH = 2000;
 const THEME_STORAGE_KEY = 'ask-ui-theme';
+// 新题高亮的存活时长，和 fallback.css 里 .question-card.is-new 的动画时长保持一致。
+const QUESTION_HIGHLIGHT_MS = 1800;
 const sessionId = decodeURIComponent(location.pathname.split('/').filter(Boolean).at(-1) || '');
 const token = new URLSearchParams(location.search).get('token') || '';
 
@@ -42,6 +45,8 @@ const RICH_TOKENS = [
 ];
 
 const vendorLoaders = new Map();
+// 两次重试的退避间隔，毫秒。
+const VENDOR_RETRY_DELAYS = [300, 900];
 let diagramSequence = 0;
 const pendingRichText = new Set();
 
@@ -59,24 +64,63 @@ async function richTextSettled() {
   }
 }
 
+function injectVendorScript(name, globalName) {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = `/vendor/${name}.min.js`;
+    script.onload = () => resolve(globalThis[globalName]);
+    script.onerror = () => {
+      script.remove();
+      reject(new Error(`${name} 组件加载失败`));
+    };
+    document.head.append(script);
+  });
+}
+
+function delay(ms) {
+  return new Promise((resolve) => { setTimeout(resolve, ms); });
+}
+
+// 一次网络抖动不该让这一页的图表和正文全部消失：退避重试两次再认输。
+async function fetchVendor(name, globalName) {
+  for (let attempt = 0; attempt <= VENDOR_RETRY_DELAYS.length; attempt += 1) {
+    if (attempt) await delay(VENDOR_RETRY_DELAYS[attempt - 1]);
+    try {
+      return await injectVendorScript(name, globalName);
+    } catch {
+      // 继续退避重试；全部用完后统一抛下面那个带 vendorName 的错误。
+    }
+  }
+  const error = new Error(`${name} 组件加载失败，点正文里的「重试」可重新加载`);
+  // 有这个字段才说明是「下载不到」，值得给重试按钮；图表语法错误不是。
+  error.vendorName = name;
+  throw error;
+}
+
 function loadVendor(name, globalName) {
+  // 缓存这一个 promise，重试期间并发的调用共享它，不重复发请求。
   if (!vendorLoaders.has(name)) {
-    vendorLoaders.set(name, new Promise((resolve, reject) => {
-      const script = document.createElement('script');
-      script.src = `/vendor/${name}.min.js`;
-      script.onload = () => resolve(globalThis[globalName]);
-      script.onerror = () => {
-        script.remove();
-        reject(new Error(`${name} 组件加载失败，刷新页面可重试`));
-      };
-      document.head.append(script);
     // 失败的 promise 不能留下来，否则一次网络抖动会让这一页永远加载不出。
-    }).catch((error) => {
+    vendorLoaders.set(name, fetchVendor(name, globalName).catch((error) => {
       vendorLoaders.delete(name);
       throw error;
     }));
   }
   return vendorLoaders.get(name);
+}
+
+// 组件彻底下载不到时，除 toast 外在受影响的那段正文里留一个可点的出口。点它只
+// 重跑这一段的渲染，页面不重新加载，用户已填的答案与草稿都留在原处。
+function appendRetry(host, label, rerender) {
+  const button = element('button', 'rich-retry', `重试加载${label}`);
+  button.type = 'button';
+  button.addEventListener('click', (event) => {
+    event.stopPropagation();
+    button.disabled = true;
+    button.textContent = `重新加载${label}…`;
+    trackRichText(rerender());
+  });
+  host.append(button);
 }
 
 function loadMermaid() {
@@ -159,12 +203,34 @@ function mermaidTheme(host) {
   };
 }
 
-async function renderDiagram(host, code) {
+// mermaid 11.16.1 的 render(id, text, container) 没有配置参数，主题只能写进全局
+// initialize，所以按底板算配色的行为必须留在 initialize 上。于是改成两件事：
+// 配色签名没变就不再 initialize，以及把「initialize + render」排成一条队列——
+// 否则同一页两张不同底板的图会在 await 之间互相覆盖对方的全局配置。
+let mermaidThemeSignature = null;
+let diagramQueue = Promise.resolve();
+
+function renderDiagram(host, code) {
+  // 组件下载仍然并发（并发调用共享同一个 promise），排队的只是改全局配置那一段。
+  const loading = loadMermaid();
+  // 排队等待期间先接住失败，真正的处理在 renderDiagramNow 的 try 里。
+  loading.catch(() => {});
+  const task = diagramQueue.then(() => renderDiagramNow(host, code, loading));
+  diagramQueue = task.catch(() => {});
+  return task;
+}
+
+async function renderDiagramNow(host, code, loading) {
   diagramSequence += 1;
   const id = `ask-ui-diagram-${diagramSequence}`;
   try {
-    const mermaid = await loadMermaid();
-    mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', ...mermaidTheme(host) });
+    const mermaid = await loading;
+    const theme = mermaidTheme(host);
+    const signature = JSON.stringify(theme);
+    if (signature !== mermaidThemeSignature) {
+      mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', ...theme });
+      mermaidThemeSignature = signature;
+    }
     const { svg } = await mermaid.render(id, code);
     host.innerHTML = svg;
     host.dataset.state = 'ready';
@@ -174,6 +240,8 @@ async function renderDiagram(host, code) {
     host.replaceChildren();
     host.dataset.state = 'failed';
     host.append(element('p', 'diagram-error', `图表无法渲染：${error.message}`));
+    // 只有「组件下载不到」才值得重试；图表语法错误重试多少次都是同一个结果。
+    if (error.vendorName) appendRetry(host, '图表', () => renderDiagram(host, code));
     host.append(element('pre', 'diagram-source', code));
   }
 }
@@ -215,9 +283,12 @@ async function renderProse(host, source) {
       makePreviewable(frame, '表格');
     }
     highlightCode(host);
-  } catch {
-    // 组件下载不到时保持纯文本：内容照样读得懂，答题不受影响。
+  } catch (error) {
+    // 组件下载不到时保持纯文本：内容照样读得懂，答题不受影响。重试按钮是它的
+    // 补充，不是替代——按钮没被点之前，正文照样读得到、表单照样能提交。
     host.dataset.state = 'plain';
+    host.textContent = source;
+    if (error.vendorName) appendRetry(host, '正文排版', () => renderProse(host, source));
     if (markdownWarned) return;
     markdownWarned = true;
     showToast('Markdown 组件加载失败，正文按纯文本显示');
@@ -277,6 +348,29 @@ function makePreviewable(host, label) {
     event.preventDefault();
     openPreview(host, label);
   });
+}
+
+const FOCUSABLE_SELECTOR = [
+  'a[href]',
+  'button',
+  'input',
+  'select',
+  'textarea',
+  'summary',
+  'audio[controls]',
+  'video[controls]',
+  '[contenteditable]',
+  '[tabindex]',
+].join(',');
+
+// 按 DOM 顺序取出真正能被 Tab 停留的元素：禁用的、tabindex="-1" 的、
+// 以及没有盒子（display:none 之类）的都不算。
+function focusableWithin(root) {
+  return [...root.querySelectorAll(FOCUSABLE_SELECTOR)].filter(
+    (node) => !node.disabled
+      && node.tabIndex >= 0
+      && (node.offsetWidth || node.offsetHeight || node.getClientRects().length),
+  );
 }
 
 function openPreview(host, label) {
@@ -344,8 +438,41 @@ function openPreview(host, label) {
     document.removeEventListener('keydown', onKeydown);
     host.focus();
   };
+
+  let focusables = [];
+  // 弹层是模态的，Tab 必须留在里面：走到尾就回到头，Shift+Tab 走到头就回到尾。
+  // 焦点若因任何原因落到弹层外（或落在弹层内不可聚焦的地方），下一次 Tab 直接拉回来。
+  const trapTab = (event) => {
+    // 弹层里一个可聚焦元素都没有时，焦点原地不动。放 Tab 出去等于取消焦点陷阱，
+    // 用户会在看不见的情况下操作背后的表单；这里的退路是 Esc，它照常关得掉弹层。
+    // 工具栏的四个按钮都不会被禁用，所以这一支实际走不到，留着是防御。
+    if (!focusables.length) {
+      event.preventDefault();
+      return;
+    }
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    const index = focusables.indexOf(document.activeElement);
+    if (index === -1) {
+      event.preventDefault();
+      (event.shiftKey ? last : first).focus();
+      return;
+    }
+    if (event.shiftKey && index === 0) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && index === focusables.length - 1) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
+
   function onKeydown(event) {
-    if (event.key === 'Escape') close();
+    if (event.key === 'Escape') {
+      close();
+      return;
+    }
+    if (event.key === 'Tab') trapTab(event);
   }
 
   const button = (text, onClick, buttonLabel) => {
@@ -399,11 +526,12 @@ function openPreview(host, label) {
   overlay.addEventListener('click', (event) => {
     if (event.target === overlay) close();
   });
-  document.addEventListener('keydown', onKeydown);
-
   stage.append(canvas);
   overlay.append(stage, toolbar);
   document.body.append(overlay);
+  // 内容是打开时的静态克隆，之后不会变，可聚焦元素收集一次就够，不用监听 DOM 变化。
+  focusables = focusableWithin(overlay);
+  document.addEventListener('keydown', onKeydown);
   scale = fitScale();
   apply();
   toolbar.querySelector('.preview-button')?.focus();
@@ -448,24 +576,6 @@ function setTheme(theme) {
   if (bundle) render();
 }
 
-// 推荐值只做视觉提示，绝不预填答案：只有用户点过、选过、输入过才算已答。
-function defaultAnswer(question) {
-  return {
-    questionId: question.id,
-    selectedOptionIds: [],
-    customText: '',
-    supplementaryText: '',
-  };
-}
-
-function normalizeAnswer(answer) {
-  const normalized = structuredClone(answer);
-  normalized.selectedOptionIds ||= [];
-  normalized.customText ||= '';
-  normalized.supplementaryText ||= '';
-  return normalized;
-}
-
 // 草稿按轮次留在内存里：切去看上一轮再切回来，这一轮已经填的东西必须还在。
 const draftsByRound = new Map();
 
@@ -474,14 +584,6 @@ function draftsFor(round) {
     draftsByRound.set(round.roundNumber, answersForRound(round));
   }
   return draftsByRound.get(round.roundNumber);
-}
-
-function answersForRound(round) {
-  const source = round.answers?.answers || round.questions.questions.map(defaultAnswer);
-  const byId = new Map(source.map((answer) => [answer.questionId, answer]));
-  return round.questions.questions.map((question) => normalizeAnswer(
-    byId.get(question.id) || defaultAnswer(question),
-  ));
 }
 
 function answerFor(questionId) {
@@ -498,65 +600,30 @@ function answerFor(questionId) {
   return answer;
 }
 
-// 条件题：正在编辑时按手里这份草稿算可见性，只读轮次按已提交的答案算。
-function answersInPlay(round, editable) {
-  return editable ? pendingAnswers : (round.answers?.answers || []);
-}
-
+// 下面几个只是把模块级的草稿与当前题绑上去，推导本身在 view-state.js 里，
+// 页面这一侧不再重复实现一遍。
 function visibleQuestionsOf(round, editable) {
-  const questions = round.questions.questions;
-  const visible = visibleQuestionIds(questions, answersInPlay(round, editable));
-  return questions.filter((question) => visible.has(question.id));
+  return viewState.visibleQuestionsOf(round, editable, pendingAnswers);
 }
 
 function visibilitySignature(round, editable) {
-  return visibleQuestionsOf(round, editable).map((question) => question.id).join('|');
+  return viewState.visibilitySignature(round, editable, pendingAnswers);
 }
 
-function optionLabel(question, optionId) {
-  return question.options?.find((option) => option.id === optionId)?.text || optionId;
-}
-
-function displayAnswer(question, answer) {
-  if (!answer) return '未填写';
-  const parts = question.type === 'text'
-    ? [answer.customText?.trim()].filter(Boolean)
-    : (answer.selectedOptionIds || []).map((id) => optionLabel(question, id));
-  const primary = parts.length ? parts.join('、') : '未填写';
-  const supplement = answer.supplementaryText?.trim();
-  return supplement ? `${primary}；补充：${supplement}` : primary;
-}
-
-function selectionCount(question, answer) {
-  if (question.type === 'text') return answer.customText.trim() ? 1 : 0;
-  return (answer.selectedOptionIds || []).length;
-}
-
-// 只写补充说明、一个选项都不选，同样算这一题已经回答。
 function isAnswered(question, editable, submittedAnswers) {
-  const answer = editable
-    ? answerFor(question.id)
-    : submittedAnswers?.find((item) => item.questionId === question.id);
-  if (!answer) return false;
-  return selectionCount(question, answer) > 0 || Boolean(answer.supplementaryText?.trim());
+  return viewState.isAnswered(question, editable, submittedAnswers, pendingAnswers);
 }
 
 function answeredQuestionCount(round, editable) {
-  return visibleQuestionsOf(round, editable).reduce((count, question) => (
-    count + (isAnswered(question, editable, round.answers?.answers) ? 1 : 0)
-  ), 0);
+  return viewState.answeredQuestionCount(round, editable, pendingAnswers);
 }
 
 function questionState(question, editable, submittedAnswers) {
-  if (editable && question.id === focusedQuestionId) return 'current';
-  return isAnswered(question, editable, submittedAnswers) ? 'done' : 'todo';
+  return viewState.questionState(question, editable, submittedAnswers, pendingAnswers, focusedQuestionId);
 }
 
 function firstUnansweredId(round, editable) {
-  const pending = visibleQuestionsOf(round, editable).find(
-    (question) => !isAnswered(question, editable, round.answers?.answers),
-  );
-  return pending?.id || null;
+  return viewState.firstUnansweredId(round, editable, pendingAnswers);
 }
 
 function roundEditable(round) {
@@ -567,6 +634,16 @@ function scrollToQuestion(questionId, behavior = 'smooth') {
   document
     .querySelector(`.question-card[data-question-id="${CSS.escape(questionId)}"]`)
     ?.scrollIntoView({ block: 'center', behavior });
+}
+
+// 新出现的卡片挂一段短暂的高亮，眼睛能定位到「刚才多了这一题」。
+// 开了「减少动态效果」时 animationend 不会触发（样式表里动画被整体关掉），
+// 所以另外用计时器兜底，否则高亮会一直挂着不摘。
+function markAsNew(card) {
+  const clear = () => card.classList.remove('is-new');
+  card.classList.add('is-new');
+  card.addEventListener('animationend', clear, { once: true });
+  setTimeout(clear, QUESTION_HIGHLIGHT_MS);
 }
 
 // 条件题出现或消失时只增删这几张卡，不重建整页：整页重建会打断正在输入的
@@ -582,8 +659,11 @@ function syncVisibleQuestions(round, editable) {
   }
   const cards = new Map([...scroll.children].map((card) => [card.dataset.questionId, card]));
   visible.forEach((question, index) => {
-    const card = cards.get(question.id)
-      || renderQuestion(question, index, editable, round.answers?.answers);
+    let card = cards.get(question.id);
+    if (!card) {
+      card = renderQuestion(question, index, editable, round.answers?.answers);
+      markAsNew(card);
+    }
     // 序号是按可见顺序排的，分支一变就得跟着改。
     const number = card.querySelector('.question-number');
     if (number) number.textContent = String(index + 1).padStart(2, '0');
@@ -604,15 +684,12 @@ function syncVisibleQuestions(round, editable) {
 function advanceFrom(questionId) {
   const round = currentRound();
   const editable = roundEditable(round);
-  const visible = visibleQuestionsOf(round, editable);
-  const from = visible.findIndex((question) => question.id === questionId);
-  const pending = [...visible.slice(from + 1), ...visible.slice(0, from + 1)]
-    .find((question) => !isAnswered(question, editable, round.answers?.answers));
+  const pending = viewState.nextUnansweredIdFrom(round, editable, pendingAnswers, questionId);
   if (!pending) return;
-  focusedQuestionId = pending.id;
+  focusedQuestionId = pending;
   if (railNavElement) refreshRailStates(round, editable);
   refreshCardStates(round, editable);
-  scrollToQuestion(pending.id);
+  scrollToQuestion(pending);
 }
 
 async function alignToFocusedQuestion() {
