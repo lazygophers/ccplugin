@@ -443,6 +443,9 @@ function openPreview(host, label) {
   // 弹层是模态的，Tab 必须留在里面：走到尾就回到头，Shift+Tab 走到头就回到尾。
   // 焦点若因任何原因落到弹层外（或落在弹层内不可聚焦的地方），下一次 Tab 直接拉回来。
   const trapTab = (event) => {
+    // 弹层里一个可聚焦元素都没有时，焦点原地不动。放 Tab 出去等于取消焦点陷阱，
+    // 用户会在看不见的情况下操作背后的表单；这里的退路是 Esc，它照常关得掉弹层。
+    // 工具栏的四个按钮都不会被禁用，所以这一支实际走不到，留着是防御。
     if (!focusables.length) {
       event.preventDefault();
       return;
