@@ -17,6 +17,8 @@ import {
   startHttpServer,
 } from './ask-ui.mjs';
 import { formatSchemaErrors, validateAgainstSchema } from './schema-validator.mjs';
+import { visibleQuestionIds } from '../assets/app/conditions.js';
+import * as viewState from '../assets/app/view-state.js';
 
 const ASK_UI_SCRIPT = fileURLToPath(new URL('./ask-ui.mjs', import.meta.url));
 
@@ -224,6 +226,104 @@ try {
     assert.ok(validateAgainstSchema(doc, questionSetSchema).valid, `${name} 属跨字段规则，schema 不该拦`);
     assert.ok(!runtimeVerdict(doc).valid, `${name} 应被运行时校验拒收`);
   }
+
+  // ---- 视图状态模块（assets/app/view-state.js）----
+  //
+  // 页面「第几题该高亮、已答几道、下一道待答题是谁」从 app.js 搬进这个不碰 DOM 的模块，
+  // 这里直接喂问题集与答案断言返回值。可见题序列还要和 conditions.js 判定逐条对齐：
+  // 两边一旦漂移，用户屏幕上看到的题和服务端校验的题就不是同一批。
+  const viewSet = normalizeQuestionSet({
+    sessionTitle: '视图状态用例',
+    questions: [
+      { id: 'entry', type: 'single', text: '选一个方向', options: [{ text: '迁移' }, { text: '回滚' }] },
+      { id: 'background', type: 'text', text: '背景说明' },
+      { id: 'window', type: 'text', text: '迁移窗口', showWhen: { questionId: 'entry', optionIds: ['option-1'] } },
+      { id: 'plan', type: 'text', text: '迁移方案', showWhen: { questionId: 'window', answered: true } },
+      { id: 'owner', type: 'text', text: '负责人' },
+      { id: 'rollback', type: 'text', text: '回滚原因', showWhen: { questionId: 'entry', optionIds: ['option-2'] } },
+    ],
+  }, { cwd: temporaryRoot });
+  const viewRound = { roundNumber: 1, questions: viewSet, answers: null };
+  const draft = viewState.answersForRound(viewRound);
+  const draftOf = (id) => draft.find((answer) => answer.questionId === id);
+  const visibleIdsNow = () => {
+    const sequence = viewState.visibleQuestionsOf(viewRound, true, draft).map((question) => question.id);
+    assert.deepEqual(
+      sequence,
+      [...visibleQuestionIds(viewSet.questions, draft)],
+      '视图状态模块与 conditions.js 对同一份答案给出的可见题必须一致',
+    );
+    return sequence;
+  };
+
+  const untouched = viewState.visibleQuestionsOf(viewRound, true, draft);
+  assert.deepEqual(visibleIdsNow(), ['entry', 'background', 'owner']);
+
+  draftOf('entry').selectedOptionIds = ['option-1'];
+  const migrating = viewState.visibleQuestionsOf(viewRound, true, draft);
+  assert.deepEqual(visibleIdsNow(), ['entry', 'background', 'window', 'owner']);
+
+  draftOf('window').customText = '周六 02:00-04:00';
+  const withPlan = viewState.visibleQuestionsOf(viewRound, true, draft);
+  assert.deepEqual(visibleIdsNow(), ['entry', 'background', 'window', 'plan', 'owner']);
+
+  draftOf('entry').selectedOptionIds = ['option-2'];
+  const rollingBack = viewState.visibleQuestionsOf(viewRound, true, draft);
+  assert.deepEqual(visibleIdsNow(), ['entry', 'background', 'owner', 'rollback']);
+
+  // 新增多题：序号按变化后的可见顺序算。
+  const grown = viewState.visibilityDiff(untouched, withPlan);
+  assert.deepEqual(grown.added, [
+    { id: 'window', title: '迁移窗口', position: 3 },
+    { id: 'plan', title: '迁移方案', position: 4 },
+  ]);
+  assert.deepEqual(grown.removed, []);
+  assert.equal(viewState.visibilityAnnouncement(grown), '新增 2 题：第 3 题 迁移窗口、第 4 题 迁移方案');
+
+  // 新增一题。
+  const oneMore = viewState.visibilityDiff(untouched, rollingBack);
+  assert.deepEqual(oneMore.added, [{ id: 'rollback', title: '回滚原因', position: 4 }]);
+  assert.equal(viewState.visibilityAnnouncement(oneMore), '新增第 4 题：回滚原因');
+
+  // 隐藏一题，且序号重排：第 3 题 window 隐藏后，原第 4 题 owner 变成第 3 题。
+  const shrunk = viewState.visibilityDiff(migrating, untouched);
+  assert.deepEqual(shrunk.added, []);
+  assert.deepEqual(shrunk.removed, [{ id: 'window', title: '迁移窗口', previousPosition: 3 }]);
+  assert.equal(migrating.findIndex((question) => question.id === 'owner'), 3);
+  assert.equal(untouched.findIndex((question) => question.id === 'owner'), 2);
+  assert.equal(viewState.visibilityAnnouncement(shrunk), '隐藏第 3 题：迁移窗口');
+
+  // 同时增删：切分支时一批题换成另一批。
+  const swapped = viewState.visibilityDiff(withPlan, rollingBack);
+  assert.deepEqual(swapped.added, [{ id: 'rollback', title: '回滚原因', position: 4 }]);
+  assert.deepEqual(swapped.removed.map((item) => item.id), ['window', 'plan']);
+  assert.equal(
+    viewState.visibilityAnnouncement(swapped),
+    '新增第 4 题：回滚原因；隐藏 2 题：迁移窗口、迁移方案',
+  );
+  assert.equal(viewState.visibilityAnnouncement(viewState.visibilityDiff(withPlan, withPlan)), '');
+
+  // 已答计数与「下一道待答题」。跳答（先答后面的题）后仍要指回真正没答的那一道。
+  draftOf('entry').selectedOptionIds = ['option-1'];
+  draftOf('window').customText = '';
+  draftOf('background').customText = '上一轮遗留';
+  draftOf('rollback').customText = '这题此刻不可见，不该计入';
+  assert.deepEqual(visibleIdsNow(), ['entry', 'background', 'window', 'owner']);
+  assert.equal(viewState.answeredQuestionCount(viewRound, true, draft), 2);
+  assert.equal(viewState.firstUnansweredId(viewRound, true, draft), 'window');
+  assert.equal(viewState.questionState(viewSet.questions[1], true, null, draft, null), 'done');
+  assert.equal(viewState.questionState(viewSet.questions[2], true, null, draft, null), 'todo');
+  assert.equal(viewState.questionState(viewSet.questions[2], true, null, draft, 'window'), 'current');
+
+  draftOf('owner').customText = '张三';
+  // 从已答的 owner（最后一题）往后找不到，绕回开头才是那道跳过的 window。
+  assert.equal(viewState.nextUnansweredIdFrom(viewRound, true, draft, 'owner'), 'window');
+  draftOf('window').customText = '周六 02:00-04:00';
+  draftOf('plan').customText = '灰度切流';
+  assert.deepEqual(visibleIdsNow(), ['entry', 'background', 'window', 'plan', 'owner']);
+  assert.equal(viewState.answeredQuestionCount(viewRound, true, draft), 5);
+  assert.equal(viewState.firstUnansweredId(viewRound, true, draft), null);
+  assert.equal(viewState.nextUnansweredIdFrom(viewRound, true, draft, 'entry'), null);
 
   const first = await createRound({
     sessionTitle: '个人工作台需求确认收集',

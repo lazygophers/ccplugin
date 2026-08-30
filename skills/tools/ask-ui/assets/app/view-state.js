@@ -1,4 +1,4 @@
-// 答题页的状态推导：可见题序列、每题状态、已答计数、下一道待答题。
+// 答题页的状态推导：可见题序列、每题状态、已答计数、下一道待答题、可见性差异与播报文案。
 // 和 conditions.js 一样只有这一份实现，不碰 document —— app.js 只负责把这里返回的
 // 纯数据映射到 DOM，Node 直接 import 就能测，页面「第几题该高亮」不再是一段没有测试的逻辑。
 //
@@ -101,4 +101,45 @@ export function nextUnansweredIdFrom(round, editable, pendingAnswers, questionId
   const pending = [...visible.slice(from + 1), ...visible.slice(0, from + 1)]
     .find((question) => !isAnswered(question, editable, round.answers?.answers, pendingAnswers));
   return pending?.id || null;
+}
+
+// ---- 可见性变化 ----
+
+function titleOf(question) {
+  return question.title || question.text || question.id;
+}
+
+// 序号按变化后的可见顺序算：第 3 题隐藏后，原第 4 题就是新的第 3 题。隐藏掉的题在
+// 变化后没有位置，只留它变化前的序号，播报时才好说清是从哪儿消失的。
+export function visibilityDiff(before = [], after = []) {
+  const beforeIds = new Set(before.map((question) => question.id));
+  const afterIds = new Set(after.map((question) => question.id));
+  return {
+    added: after
+      .map((question, index) => ({ id: question.id, title: titleOf(question), position: index + 1 }))
+      .filter((item) => !beforeIds.has(item.id)),
+    removed: before
+      .map((question, index) => ({ id: question.id, title: titleOf(question), previousPosition: index + 1 }))
+      .filter((item) => !afterIds.has(item.id)),
+  };
+}
+
+// 播报给读屏软件的一句话。只报「哪几题出现/消失了」，不报用户自己的每一次勾选——
+// 每点一下念一遍比不播报更糟。没有变化时返回空串，调用方据此跳过写入。
+export function visibilityAnnouncement(diff) {
+  const added = diff?.added || [];
+  const removed = diff?.removed || [];
+  const parts = [];
+  if (added.length === 1) {
+    parts.push(`新增第 ${added[0].position} 题：${added[0].title}`);
+  } else if (added.length > 1) {
+    const list = added.map((item) => `第 ${item.position} 题 ${item.title}`).join('、');
+    parts.push(`新增 ${added.length} 题：${list}`);
+  }
+  if (removed.length === 1) {
+    parts.push(`隐藏第 ${removed[0].previousPosition} 题：${removed[0].title}`);
+  } else if (removed.length > 1) {
+    parts.push(`隐藏 ${removed.length} 题：${removed.map((item) => item.title).join('、')}`);
+  }
+  return parts.join('；');
 }
