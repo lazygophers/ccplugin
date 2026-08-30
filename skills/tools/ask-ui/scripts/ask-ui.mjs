@@ -977,6 +977,10 @@ export async function startHttpServer({
       sendFile(response, path.join(APP_ROOT, 'conditions.js'));
       return;
     }
+    if (request.method === 'GET' && requestUrl.pathname === '/view-state.js') {
+      sendFile(response, path.join(APP_ROOT, 'view-state.js'));
+      return;
+    }
     if (request.method === 'GET' && requestUrl.pathname === '/fallback.css') {
       sendFile(response, path.join(APP_ROOT, 'fallback.css'));
       return;
