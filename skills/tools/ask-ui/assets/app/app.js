@@ -280,6 +280,29 @@ function makePreviewable(host, label) {
   });
 }
 
+const FOCUSABLE_SELECTOR = [
+  'a[href]',
+  'button',
+  'input',
+  'select',
+  'textarea',
+  'summary',
+  'audio[controls]',
+  'video[controls]',
+  '[contenteditable]',
+  '[tabindex]',
+].join(',');
+
+// 按 DOM 顺序取出真正能被 Tab 停留的元素：禁用的、tabindex="-1" 的、
+// 以及没有盒子（display:none 之类）的都不算。
+function focusableWithin(root) {
+  return [...root.querySelectorAll(FOCUSABLE_SELECTOR)].filter(
+    (node) => !node.disabled
+      && node.tabIndex >= 0
+      && (node.offsetWidth || node.offsetHeight || node.getClientRects().length),
+  );
+}
+
 function openPreview(host, label) {
   const overlay = element('div', 'preview-overlay');
   const stage = element('div', 'preview-stage');
@@ -345,8 +368,38 @@ function openPreview(host, label) {
     document.removeEventListener('keydown', onKeydown);
     host.focus();
   };
+
+  let focusables = [];
+  // 弹层是模态的，Tab 必须留在里面：走到尾就回到头，Shift+Tab 走到头就回到尾。
+  // 焦点若因任何原因落到弹层外（或落在弹层内不可聚焦的地方），下一次 Tab 直接拉回来。
+  const trapTab = (event) => {
+    if (!focusables.length) {
+      event.preventDefault();
+      return;
+    }
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    const index = focusables.indexOf(document.activeElement);
+    if (index === -1) {
+      event.preventDefault();
+      (event.shiftKey ? last : first).focus();
+      return;
+    }
+    if (event.shiftKey && index === 0) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && index === focusables.length - 1) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
+
   function onKeydown(event) {
-    if (event.key === 'Escape') close();
+    if (event.key === 'Escape') {
+      close();
+      return;
+    }
+    if (event.key === 'Tab') trapTab(event);
   }
 
   const button = (text, onClick, buttonLabel) => {
@@ -400,11 +453,12 @@ function openPreview(host, label) {
   overlay.addEventListener('click', (event) => {
     if (event.target === overlay) close();
   });
-  document.addEventListener('keydown', onKeydown);
-
   stage.append(canvas);
   overlay.append(stage, toolbar);
   document.body.append(overlay);
+  // 内容是打开时的静态克隆，之后不会变，可聚焦元素收集一次就够，不用监听 DOM 变化。
+  focusables = focusableWithin(overlay);
+  document.addEventListener('keydown', onKeydown);
   scale = fitScale();
   apply();
   toolbar.querySelector('.preview-button')?.focus();
