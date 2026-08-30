@@ -43,6 +43,8 @@ const RICH_TOKENS = [
 ];
 
 const vendorLoaders = new Map();
+// 两次重试的退避间隔，毫秒。
+const VENDOR_RETRY_DELAYS = [300, 900];
 let diagramSequence = 0;
 const pendingRichText = new Set();
 
@@ -60,24 +62,63 @@ async function richTextSettled() {
   }
 }
 
+function injectVendorScript(name, globalName) {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = `/vendor/${name}.min.js`;
+    script.onload = () => resolve(globalThis[globalName]);
+    script.onerror = () => {
+      script.remove();
+      reject(new Error(`${name} 组件加载失败`));
+    };
+    document.head.append(script);
+  });
+}
+
+function delay(ms) {
+  return new Promise((resolve) => { setTimeout(resolve, ms); });
+}
+
+// 一次网络抖动不该让这一页的图表和正文全部消失：退避重试两次再认输。
+async function fetchVendor(name, globalName) {
+  for (let attempt = 0; attempt <= VENDOR_RETRY_DELAYS.length; attempt += 1) {
+    if (attempt) await delay(VENDOR_RETRY_DELAYS[attempt - 1]);
+    try {
+      return await injectVendorScript(name, globalName);
+    } catch {
+      // 继续退避重试；全部用完后统一抛下面那个带 vendorName 的错误。
+    }
+  }
+  const error = new Error(`${name} 组件加载失败，点正文里的「重试」可重新加载`);
+  // 有这个字段才说明是「下载不到」，值得给重试按钮；图表语法错误不是。
+  error.vendorName = name;
+  throw error;
+}
+
 function loadVendor(name, globalName) {
+  // 缓存这一个 promise，重试期间并发的调用共享它，不重复发请求。
   if (!vendorLoaders.has(name)) {
-    vendorLoaders.set(name, new Promise((resolve, reject) => {
-      const script = document.createElement('script');
-      script.src = `/vendor/${name}.min.js`;
-      script.onload = () => resolve(globalThis[globalName]);
-      script.onerror = () => {
-        script.remove();
-        reject(new Error(`${name} 组件加载失败，刷新页面可重试`));
-      };
-      document.head.append(script);
     // 失败的 promise 不能留下来，否则一次网络抖动会让这一页永远加载不出。
-    }).catch((error) => {
+    vendorLoaders.set(name, fetchVendor(name, globalName).catch((error) => {
       vendorLoaders.delete(name);
       throw error;
     }));
   }
   return vendorLoaders.get(name);
+}
+
+// 组件彻底下载不到时，除 toast 外在受影响的那段正文里留一个可点的出口。点它只
+// 重跑这一段的渲染，页面不重新加载，用户已填的答案与草稿都留在原处。
+function appendRetry(host, label, rerender) {
+  const button = element('button', 'rich-retry', `重试加载${label}`);
+  button.type = 'button';
+  button.addEventListener('click', (event) => {
+    event.stopPropagation();
+    button.disabled = true;
+    button.textContent = `重新加载${label}…`;
+    trackRichText(rerender());
+  });
+  host.append(button);
 }
 
 function loadMermaid() {
@@ -160,12 +201,34 @@ function mermaidTheme(host) {
   };
 }
 
-async function renderDiagram(host, code) {
+// mermaid 11.16.1 的 render(id, text, container) 没有配置参数，主题只能写进全局
+// initialize，所以按底板算配色的行为必须留在 initialize 上。于是改成两件事：
+// 配色签名没变就不再 initialize，以及把「initialize + render」排成一条队列——
+// 否则同一页两张不同底板的图会在 await 之间互相覆盖对方的全局配置。
+let mermaidThemeSignature = null;
+let diagramQueue = Promise.resolve();
+
+function renderDiagram(host, code) {
+  // 组件下载仍然并发（并发调用共享同一个 promise），排队的只是改全局配置那一段。
+  const loading = loadMermaid();
+  // 排队等待期间先接住失败，真正的处理在 renderDiagramNow 的 try 里。
+  loading.catch(() => {});
+  const task = diagramQueue.then(() => renderDiagramNow(host, code, loading));
+  diagramQueue = task.catch(() => {});
+  return task;
+}
+
+async function renderDiagramNow(host, code, loading) {
   diagramSequence += 1;
   const id = `ask-ui-diagram-${diagramSequence}`;
   try {
-    const mermaid = await loadMermaid();
-    mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', ...mermaidTheme(host) });
+    const mermaid = await loading;
+    const theme = mermaidTheme(host);
+    const signature = JSON.stringify(theme);
+    if (signature !== mermaidThemeSignature) {
+      mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', ...theme });
+      mermaidThemeSignature = signature;
+    }
     const { svg } = await mermaid.render(id, code);
     host.innerHTML = svg;
     host.dataset.state = 'ready';
@@ -175,6 +238,8 @@ async function renderDiagram(host, code) {
     host.replaceChildren();
     host.dataset.state = 'failed';
     host.append(element('p', 'diagram-error', `图表无法渲染：${error.message}`));
+    // 只有「组件下载不到」才值得重试；图表语法错误重试多少次都是同一个结果。
+    if (error.vendorName) appendRetry(host, '图表', () => renderDiagram(host, code));
     host.append(element('pre', 'diagram-source', code));
   }
 }
@@ -216,9 +281,12 @@ async function renderProse(host, source) {
       makePreviewable(frame, '表格');
     }
     highlightCode(host);
-  } catch {
-    // 组件下载不到时保持纯文本：内容照样读得懂，答题不受影响。
+  } catch (error) {
+    // 组件下载不到时保持纯文本：内容照样读得懂，答题不受影响。重试按钮是它的
+    // 补充，不是替代——按钮没被点之前，正文照样读得到、表单照样能提交。
     host.dataset.state = 'plain';
+    host.textContent = source;
+    if (error.vendorName) appendRetry(host, '正文排版', () => renderProse(host, source));
     if (markdownWarned) return;
     markdownWarned = true;
     showToast('Markdown 组件加载失败，正文按纯文本显示');
