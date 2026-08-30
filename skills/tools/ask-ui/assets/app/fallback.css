@@ -71,6 +71,20 @@ body {
   line-height: 1.6;
 }
 
+/* 屏幕上看不见、读屏软件仍读得到。不能用 display: none 或 visibility: hidden，
+   那两种连读屏软件也一起挡掉了。 */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 /* QuestionSet 里的文本按原样保留换行：\n 直接换行，不折成空格。 */
 .session-summary,
 .rail-block p,
@@ -455,6 +469,25 @@ button {
   margin: 0 0 24px;
   background: var(--surface);
   box-shadow: 6px 6px 0 var(--shadow);
+}
+
+/* 刚因为分支才出现的题卡。只用 outline —— 它不占布局，不会把下面的卡片顶下去，
+   卡片自己的 border / padding / margin 一律不碰。 */
+.question-card.is-new {
+  outline: 4px solid var(--red);
+  outline-offset: 6px;
+  animation: question-card-in 1.8s ease-out 1 both;
+}
+
+@keyframes question-card-in {
+  0%,
+  60% {
+    outline-color: var(--red);
+  }
+
+  100% {
+    outline-color: transparent;
+  }
 }
 
 .question-card[data-state="done"] {
