@@ -622,6 +622,12 @@ button {
   color: var(--mustard);
 }
 
+:root[data-theme="dark"]
+  .option-card:has(.option-selector:checked)
+  .option-number {
+  color: var(--on-mustard);
+}
+
 .option-selector {
   width: 23px;
   height: 23px;
@@ -845,8 +851,8 @@ textarea {
 }
 
 .progress-cell.on {
-  border-color: var(--mustard);
-  background: var(--mustard);
+  border-color: var(--on-red);
+  background: var(--on-red);
 }
 
 .answered-count {
