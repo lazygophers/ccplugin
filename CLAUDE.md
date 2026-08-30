@@ -55,6 +55,20 @@ cat <待测文件> | claude -p --bare "<问题>" --output-format stream-json 2>/
 - Agents 文件的优化
 - agent.md 文件的优化和简化
 
+## Agent skills
+
+### Issue tracker
+
+Issues live as markdown files under `.scratch/<feature>/` in this repo; GitHub Issues is not used. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five canonical triage roles keep their default names, recorded as a `Status:` line in each issue file. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `CONTEXT.md` at the root plus `docs/adr/`. See `docs/agents/domain.md`.
+
 ## 相关文档
 
 项目的详细开发规范和指导已分散到更合适的位置：
