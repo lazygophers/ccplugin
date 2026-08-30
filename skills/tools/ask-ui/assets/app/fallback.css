@@ -1424,6 +1424,30 @@ textarea {
   font-weight: 700;
 }
 
+/* 组件下载不到时正文里的重试出口，见 app.js 的 appendRetry。 */
+.rich-retry {
+  display: block;
+  margin: 10px 0;
+  border: 3px solid var(--line);
+  padding: 6px 16px;
+  background: var(--base);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.rich-retry:hover:not(:disabled) {
+  background: var(--mustard);
+  color: var(--on-mustard);
+}
+
+.rich-retry:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
 .diagram-source {
   margin: 0;
   border: 2px dashed var(--line);
