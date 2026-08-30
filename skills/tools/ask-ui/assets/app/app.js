@@ -18,7 +18,6 @@ let pendingAnswers = [];
 let answeredCountElement = null;
 let progressCellsElement = null;
 let railNavElement = null;
-let liveRegionElement = null;
 let lastUpdatedAt = null;
 let submitting = false;
 let submissionConfirmationTimer = null;
@@ -644,37 +643,18 @@ function markAsNew(card) {
   setTimeout(clear, QUESTION_HIGHLIGHT_MS);
 }
 
-// 只播报可见集本身的变化，不播报用户的每一次勾选——每点一下念一遍比不播报更糟。
-function announceVisibilityChange(before, after) {
-  if (!liveRegionElement) return;
-  const message = viewState.visibilityAnnouncement(viewState.visibilityDiff(before, after));
-  if (message) liveRegionElement.textContent = message;
-}
-
 // 条件题出现或消失时只增删这几张卡，不重建整页：整页重建会打断正在输入的
 // 那一行、丢掉滚动位置，还要把已经渲染好的图表和代码高亮全部重做一遍。
 function syncVisibleQuestions(round, editable) {
-  // 旧的可见序列只剩这一份签名，下一行就被覆盖掉了，先还原出来才算得了差异。
-  const previous = viewState.questionsFromSignature(round.questions.questions, lastVisibilitySignature);
   lastVisibilitySignature = visibilitySignature(round, editable);
   const visible = visibleQuestionsOf(round, editable);
   const visibleIds = new Set(visible.map((question) => question.id));
   const scroll = document.querySelector('.question-scroll');
   if (!scroll) return;
   for (const card of [...scroll.children]) {
-    // 常驻的 live region 也是滚动区的子节点，只按题卡这一类节点做增删。
-    if (!card.classList.contains('question-card')) continue;
     if (!visibleIds.has(card.dataset.questionId)) card.remove();
   }
-  const cards = new Map(
-    [...scroll.children]
-      .filter((card) => card.classList.contains('question-card'))
-      .map((card) => [card.dataset.questionId, card]),
-  );
-  // 题卡从 live region 后面开始排，用游标而不是下标定位，滚动区里多几个非题卡节点也不会错位。
-  let anchor = liveRegionElement?.parentElement === scroll
-    ? liveRegionElement.nextSibling
-    : scroll.firstChild;
+  const cards = new Map([...scroll.children].map((card) => [card.dataset.questionId, card]));
   visible.forEach((question, index) => {
     let card = cards.get(question.id);
     if (!card) {
@@ -684,10 +664,8 @@ function syncVisibleQuestions(round, editable) {
     // 序号是按可见顺序排的，分支一变就得跟着改。
     const number = card.querySelector('.question-number');
     if (number) number.textContent = String(index + 1).padStart(2, '0');
-    if (anchor === card) anchor = card.nextSibling;
-    else scroll.insertBefore(card, anchor);
+    if (scroll.children[index] !== card) scroll.insertBefore(card, scroll.children[index] || null);
   });
-  announceVisibilityChange(previous, visible);
   if (railNavElement) fillRailNav(railNavElement, round, editable, visible);
   if (progressCellsElement) {
     while (progressCellsElement.children.length > visible.length) {
@@ -1214,12 +1192,6 @@ function renderQuestions(container) {
   if (!round) return;
   const scroll = element('main', 'question-scroll');
   scroll.setAttribute('role', 'tabpanel');
-  // 条件题增删的播报口，随页面骨架一起建、常驻不重建：live region 要先在 DOM 里待着，
-  // 后来写进去的字读屏软件才会念。边插入容器边写内容是听不见的。
-  liveRegionElement = element('div', 'visually-hidden');
-  liveRegionElement.setAttribute('aria-live', 'polite');
-  liveRegionElement.setAttribute('aria-atomic', 'true');
-  scroll.append(liveRegionElement);
   const editable = roundEditable(round);
   visibleQuestionsOf(round, editable).forEach((question, index) => {
     scroll.append(renderQuestion(question, index, editable, round.answers?.answers));
@@ -1291,7 +1263,6 @@ function render() {
   answeredCountElement = null;
   progressCellsElement = null;
   railNavElement = null;
-  liveRegionElement = null;
   app.replaceChildren();
   renderHeader(app);
   const workspace = element('div', 'workspace');

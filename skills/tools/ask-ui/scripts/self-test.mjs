@@ -264,66 +264,15 @@ try {
   assert.deepEqual(visibleIdsNow(), ['entry', 'background', 'window', 'owner']);
 
   draftOf('window').customText = '周六 02:00-04:00';
-  const withPlan = viewState.visibleQuestionsOf(viewRound, true, draft);
   assert.deepEqual(visibleIdsNow(), ['entry', 'background', 'window', 'plan', 'owner']);
 
   draftOf('entry').selectedOptionIds = ['option-2'];
-  const rollingBack = viewState.visibleQuestionsOf(viewRound, true, draft);
   assert.deepEqual(visibleIdsNow(), ['entry', 'background', 'owner', 'rollback']);
 
-  // 新增多题：序号按变化后的可见顺序算。
-  const grown = viewState.visibilityDiff(untouched, withPlan);
-  assert.deepEqual(grown.added, [
-    { id: 'window', title: '迁移窗口', position: 3 },
-    { id: 'plan', title: '迁移方案', position: 4 },
-  ]);
-  assert.deepEqual(grown.removed, []);
-  assert.equal(viewState.visibilityAnnouncement(grown), '新增 2 题：第 3 题 迁移窗口、第 4 题 迁移方案');
-
-  // 新增一题。
-  const oneMore = viewState.visibilityDiff(untouched, rollingBack);
-  assert.deepEqual(oneMore.added, [{ id: 'rollback', title: '回滚原因', position: 4 }]);
-  assert.equal(viewState.visibilityAnnouncement(oneMore), '新增第 4 题：回滚原因');
-
-  // 隐藏一题，且序号重排：第 3 题 window 隐藏后，原第 4 题 owner 变成第 3 题。
-  const shrunk = viewState.visibilityDiff(migrating, untouched);
-  assert.deepEqual(shrunk.added, []);
-  assert.deepEqual(shrunk.removed, [{ id: 'window', title: '迁移窗口', previousPosition: 3 }]);
+  // 序号按可见顺序重排：第 3 题「迁移窗口」隐藏后，原第 4 题「负责人」变成第 3 题。
+  // 页面上题卡的 .question-number 和左栏序号都靠这个位置算，错一位就全错。
   assert.equal(migrating.findIndex((question) => question.id === 'owner'), 3);
   assert.equal(untouched.findIndex((question) => question.id === 'owner'), 2);
-  assert.equal(viewState.visibilityAnnouncement(shrunk), '隐藏第 3 题：迁移窗口');
-
-  // 同时增删：切分支时一批题换成另一批。
-  const swapped = viewState.visibilityDiff(withPlan, rollingBack);
-  assert.deepEqual(swapped.added, [{ id: 'rollback', title: '回滚原因', position: 4 }]);
-  assert.deepEqual(swapped.removed.map((item) => item.id), ['window', 'plan']);
-  assert.equal(
-    viewState.visibilityAnnouncement(swapped),
-    '新增第 4 题：回滚原因；隐藏 2 题：迁移窗口、迁移方案',
-  );
-  assert.equal(viewState.visibilityAnnouncement(viewState.visibilityDiff(withPlan, withPlan)), '');
-
-  // 页面手里只留着上一次的可见性签名，播报的「变化前」序列是从签名还原出来的：
-  // 还原结果必须和当初那份可见题序列逐个对得上，否则序号会算错、还会平白多播报几题。
-  const allQuestions = viewRound.questions.questions;
-  const signatureOf = (visible) => visible.map((question) => question.id).join('|');
-  assert.deepEqual(
-    viewState.questionsFromSignature(allQuestions, signatureOf(withPlan)),
-    withPlan,
-  );
-  assert.deepEqual(viewState.questionsFromSignature(allQuestions, ''), []);
-  // 轮次切换后拿旧签名来问，认不出的 id 直接丢掉，不凭空造题。
-  assert.deepEqual(
-    viewState.questionsFromSignature(allQuestions, 'entry|gone-in-this-round'),
-    [allQuestions.find((question) => question.id === 'entry')],
-  );
-  assert.equal(
-    viewState.visibilityAnnouncement(viewState.visibilityDiff(
-      viewState.questionsFromSignature(allQuestions, signatureOf(migrating)),
-      untouched,
-    )),
-    '隐藏第 3 题：迁移窗口',
-  );
 
   // 已答计数与「下一道待答题」。跳答（先答后面的题）后仍要指回真正没答的那一道。
   draftOf('entry').selectedOptionIds = ['option-1'];
@@ -737,6 +686,25 @@ try {
   }
   // 未登记的组件名不得变成任意文件读取。
   assert.equal((await fetch(`${base}/vendor/unknown.min.js`)).status, 401);
+
+  // 缓存文件读不出来（权限不对、被别的东西占了名字）时，服务必须回一个错误状态码
+  // 并继续跑。读文件的错误是异步从流里冒出来的，漏挂监听会让整个进程连同全部活跃
+  // 会话一起退出——页面那边看到的是所有请求突然全部连不上，不只是这一个组件挂了。
+  const brokenVendorDir = path.join(temporaryRoot, 'vendor-broken');
+  await fs.mkdir(path.join(brokenVendorDir, cachedVendors.mermaid), { recursive: true });
+  process.env.ASK_UI_VENDOR_DIR = brokenVendorDir;
+  // 读到一半才失败时头已经发出去了，只能断开连接，所以这里既可能拿到错误状态码，
+  // 也可能是 fetch 直接抛错——两种都算「这一个请求没成」，不影响下面的判据。
+  let brokenVendorOk = false;
+  try {
+    brokenVendorOk = (await fetch(`${base}/vendor/mermaid.min.js`)).ok;
+  } catch {
+    brokenVendorOk = false;
+  }
+  assert.equal(brokenVendorOk, false, '读不出来的组件文件不该当成功返回');
+  process.env.ASK_UI_VENDOR_DIR = vendorDir;
+  // 服务还活着：同一个端口上别的请求照常。
+  assert.equal((await fetch(`${base}/vendor/marked.min.js`)).status, 200, '一个组件读失败不该拖垮整个服务');
   delete process.env.ASK_UI_VENDOR_DIR;
 
   // 必填多选：一个选项都不选，只写补充说明，也应当通过，且不触发 minSelections。
