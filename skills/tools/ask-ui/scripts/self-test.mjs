@@ -303,6 +303,28 @@ try {
   );
   assert.equal(viewState.visibilityAnnouncement(viewState.visibilityDiff(withPlan, withPlan)), '');
 
+  // 页面手里只留着上一次的可见性签名，播报的「变化前」序列是从签名还原出来的：
+  // 还原结果必须和当初那份可见题序列逐个对得上，否则序号会算错、还会平白多播报几题。
+  const allQuestions = viewRound.questions.questions;
+  const signatureOf = (visible) => visible.map((question) => question.id).join('|');
+  assert.deepEqual(
+    viewState.questionsFromSignature(allQuestions, signatureOf(withPlan)),
+    withPlan,
+  );
+  assert.deepEqual(viewState.questionsFromSignature(allQuestions, ''), []);
+  // 轮次切换后拿旧签名来问，认不出的 id 直接丢掉，不凭空造题。
+  assert.deepEqual(
+    viewState.questionsFromSignature(allQuestions, 'entry|gone-in-this-round'),
+    [allQuestions.find((question) => question.id === 'entry')],
+  );
+  assert.equal(
+    viewState.visibilityAnnouncement(viewState.visibilityDiff(
+      viewState.questionsFromSignature(allQuestions, signatureOf(migrating)),
+      untouched,
+    )),
+    '隐藏第 3 题：迁移窗口',
+  );
+
   // 已答计数与「下一道待答题」。跳答（先答后面的题）后仍要指回真正没答的那一道。
   draftOf('entry').selectedOptionIds = ['option-1'];
   draftOf('window').customText = '';

@@ -48,6 +48,14 @@ export function visibilitySignature(round, editable, pendingAnswers) {
   return visibleQuestionsOf(round, editable, pendingAnswers).map((question) => question.id).join('|');
 }
 
+// 签名的逆运算：把上一次的可见性签名还原成题目序列，用来和新的可见序列做差异。
+// 已经不在题目集里的 id 直接丢掉——轮次切换后拿旧签名来问，不该凭空造出题目。
+export function questionsFromSignature(questions, signature) {
+  if (!signature) return [];
+  const byId = new Map(questions.map((question) => [question.id, question]));
+  return signature.split('|').map((id) => byId.get(id)).filter(Boolean);
+}
+
 export function optionLabel(question, optionId) {
   return question.options?.find((option) => option.id === optionId)?.text || optionId;
 }
