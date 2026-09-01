@@ -282,6 +282,14 @@ async function renderProse(host, source) {
       frame.append(table);
       makePreviewable(frame, '表格');
     }
+    // 代码块窄栏（左侧背景、题卡）里横向滚动看不出结构，和表格一样包一层框，
+    // 框上挂放大预览——预览克隆时只搬子节点，外壳留在原地，所以框必须是外层。
+    for (const code of host.querySelectorAll('pre')) {
+      const frame = element('div', 'code-frame');
+      code.replaceWith(frame);
+      frame.append(code);
+      makePreviewable(frame, '代码块');
+    }
     highlightCode(host);
   } catch (error) {
     // 组件下载不到时保持纯文本：内容照样读得懂，答题不受影响。重试按钮是它的

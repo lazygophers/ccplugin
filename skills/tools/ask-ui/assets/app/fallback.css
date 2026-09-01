@@ -1193,52 +1193,52 @@ textarea {
 
 /* 代码高亮的每种色都往当前文字色里掺一半：黄底、紫底、深棕底上都还读得清，
    同时保住关键字/字符串/注释之间的色相差别。 */
-.prose .hljs-keyword,
-.prose .hljs-selector-tag,
-.prose .hljs-literal,
-.prose .hljs-doctag {
+:is(.prose, .preview-canvas) .hljs-keyword,
+:is(.prose, .preview-canvas) .hljs-selector-tag,
+:is(.prose, .preview-canvas) .hljs-literal,
+:is(.prose, .preview-canvas) .hljs-doctag {
   color: color-mix(in srgb, var(--purple) 55%, currentColor);
   font-weight: 700;
 }
 
-.prose .hljs-string,
-.prose .hljs-regexp,
-.prose .hljs-symbol,
-.prose .hljs-addition {
+:is(.prose, .preview-canvas) .hljs-string,
+:is(.prose, .preview-canvas) .hljs-regexp,
+:is(.prose, .preview-canvas) .hljs-symbol,
+:is(.prose, .preview-canvas) .hljs-addition {
   color: color-mix(in srgb, var(--olive) 60%, currentColor);
 }
 
-.prose .hljs-number,
-.prose .hljs-built_in,
-.prose .hljs-type,
-.prose .hljs-attr,
-.prose .hljs-attribute,
-.prose .hljs-variable,
-.prose .hljs-template-variable {
+:is(.prose, .preview-canvas) .hljs-number,
+:is(.prose, .preview-canvas) .hljs-built_in,
+:is(.prose, .preview-canvas) .hljs-type,
+:is(.prose, .preview-canvas) .hljs-attr,
+:is(.prose, .preview-canvas) .hljs-attribute,
+:is(.prose, .preview-canvas) .hljs-variable,
+:is(.prose, .preview-canvas) .hljs-template-variable {
   color: color-mix(in srgb, var(--blue) 55%, currentColor);
 }
 
-.prose .hljs-title,
-.prose .hljs-section,
-.prose .hljs-name,
-.prose .hljs-selector-id,
-.prose .hljs-selector-class,
-.prose .hljs-deletion {
+:is(.prose, .preview-canvas) .hljs-title,
+:is(.prose, .preview-canvas) .hljs-section,
+:is(.prose, .preview-canvas) .hljs-name,
+:is(.prose, .preview-canvas) .hljs-selector-id,
+:is(.prose, .preview-canvas) .hljs-selector-class,
+:is(.prose, .preview-canvas) .hljs-deletion {
   color: color-mix(in srgb, var(--red) 55%, currentColor);
 }
 
-.prose .hljs-comment,
-.prose .hljs-quote,
-.prose .hljs-meta {
+:is(.prose, .preview-canvas) .hljs-comment,
+:is(.prose, .preview-canvas) .hljs-quote,
+:is(.prose, .preview-canvas) .hljs-meta {
   color: color-mix(in srgb, currentColor 62%, transparent);
   font-style: italic;
 }
 
-.prose .hljs-emphasis {
+:is(.prose, .preview-canvas) .hljs-emphasis {
   font-style: italic;
 }
 
-.prose .hljs-strong {
+:is(.prose, .preview-canvas) .hljs-strong {
   font-weight: 800;
 }
 
@@ -1364,6 +1364,26 @@ textarea {
 .preview-canvas table {
   border-collapse: collapse;
   font-size: 17px;
+}
+
+.code-frame {
+  position: relative;
+  margin: 10px 0;
+}
+
+.code-frame pre {
+  margin: 0;
+}
+
+/* pre 从 .prose 克隆过来后样式失效（选择器带 .prose 前缀），在预览里重新排版。 */
+.preview-canvas pre {
+  margin: 0;
+  padding: 16px;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+  font-family: "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  font-size: 17px;
+  line-height: 1.5;
+  white-space: pre;
 }
 
 .preview-canvas th,
