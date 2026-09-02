@@ -1329,6 +1329,19 @@ textarea {
   cursor: grabbing;
 }
 
+/* 阅读模式（整段正文的预览）：不缩放不平移，舞台交给原生滚动，
+   拖动留给文字选区——用户要能复制，不是看一张截图。 */
+.preview-stage.readable {
+  overflow: auto;
+  cursor: auto;
+  touch-action: auto;
+}
+
+.preview-stage.readable .preview-canvas {
+  margin: auto;
+  user-select: text;
+}
+
 .preview-canvas {
   border: 3px solid currentColor;
   box-shadow: 8px 8px 0 var(--shadow);

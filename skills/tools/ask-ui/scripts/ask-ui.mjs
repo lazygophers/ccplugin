@@ -470,10 +470,9 @@ async function writeAsk(dataRoot, ask) {
 
 async function updateIndex(dataRoot, ask, extra = {}) {
   const indexFile = path.join(dataRoot, 'index.json');
-  const index = await readJson(indexFile, {
-    schemaVersion: SCHEMA_VERSION,
-    asks: [],
-  });
+  // 旧版 index.json 里只有 sessions 数组；asks 缺失时补一个空数组，旧条目原样保留。
+  const index = await readJson(indexFile, null) || { schemaVersion: SCHEMA_VERSION };
+  if (!Array.isArray(index.asks)) index.asks = [];
   const summary = {
     askId: ask.askId,
     title: ask.title,

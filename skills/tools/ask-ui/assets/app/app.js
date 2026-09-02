@@ -380,12 +380,16 @@ function focusableWithin(root) {
   );
 }
 
-function openPreview(host, label) {
+function openPreview(host, label, { readable = false } = {}) {
   const overlay = element('div', 'preview-overlay');
   const stage = element('div', 'preview-stage');
   const canvas = element('div', 'preview-canvas');
   const toolbar = element('div', 'preview-toolbar');
   const readout = element('span', 'preview-readout');
+
+  // 阅读模式给整段正文（如「本次背景」）用：文字保持原尺寸、可选中复制，
+  // 舞台改为滚动而不是缩放平移——transform 一缩放，选中文字就成了拖拽的牺牲品。
+  if (readable) stage.classList.add('readable');
 
   overlay.setAttribute('role', 'dialog');
   overlay.setAttribute('aria-modal', 'true');
@@ -403,14 +407,27 @@ function openPreview(host, label) {
     if (node.classList?.contains('preview-hint')) continue;
     canvas.append(node);
   }
-  // 宿主是整段正文（如「本次背景」）时，克隆体里还嵌着表格、代码块的
-  // 预览框：监听器不会跟过来，但角标和可聚焦残留会，剥掉以免出现点了没反应的假按钮。
-  for (const hint of canvas.querySelectorAll('.preview-hint')) hint.remove();
+  // 宿主是整段正文（如「本次背景」）时，克隆体里还嵌着表格、代码块的预览框：
+  // 克隆不带走监听器，点了没反应。阅读模式下把它们重新接上，表格在阅读层里还能
+  // 二次点开自己的缩放预览；缩放模式下没有拖选文字的需求，剥掉角标和残留属性即可。
   for (const nested of canvas.querySelectorAll('.previewable')) {
-    nested.classList.remove('previewable');
-    nested.removeAttribute('tabindex');
-    nested.removeAttribute('role');
-    nested.removeAttribute('aria-label');
+    if (readable) {
+      const nestedLabel = nested.classList.contains('table-frame') ? '表格' : '代码块';
+      nested.addEventListener('click', () => openPreview(nested, nestedLabel));
+      nested.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        openPreview(nested, nestedLabel);
+      });
+    } else {
+      nested.classList.remove('previewable');
+      nested.removeAttribute('tabindex');
+      nested.removeAttribute('role');
+      nested.removeAttribute('aria-label');
+    }
+  }
+  if (!readable) {
+    for (const hint of canvas.querySelectorAll('.preview-hint')) hint.remove();
   }
 
   // mermaid 的 svg 带 width="100%"，脱离原容器后量不出宽度。按 viewBox 写死尺寸，
@@ -505,42 +522,47 @@ function openPreview(host, label) {
     return control;
   };
   toolbar.append(
-    button('－', () => zoomTo(scale / 1.25), '缩小'),
-    readout,
-    button('＋', () => zoomTo(scale * 1.25), '放大'),
-    button('重置', () => { scale = fitScale(); offsetX = 0; offsetY = 0; apply(); }, '重置缩放'),
+    ...(readable ? [] : [
+      button('－', () => zoomTo(scale / 1.25), '缩小'),
+      readout,
+      button('＋', () => zoomTo(scale * 1.25), '放大'),
+      button('重置', () => { scale = fitScale(); offsetX = 0; offsetY = 0; apply(); }, '重置缩放'),
+    ]),
     button('关闭', close, '关闭预览'),
   );
 
-  stage.addEventListener('wheel', (event) => {
-    event.preventDefault();
-    const rect = stage.getBoundingClientRect();
-    zoomTo(
-      scale * (event.deltaY < 0 ? 1.12 : 1 / 1.12),
-      event.clientX - rect.left - rect.width / 2,
-      event.clientY - rect.top - rect.height / 2,
-    );
-  }, { passive: false });
+  // 阅读模式下滚轮和拖拽都让给原生行为：滚轮滚内容，拖动选中文字。
+  if (!readable) {
+    stage.addEventListener('wheel', (event) => {
+      event.preventDefault();
+      const rect = stage.getBoundingClientRect();
+      zoomTo(
+        scale * (event.deltaY < 0 ? 1.12 : 1 / 1.12),
+        event.clientX - rect.left - rect.width / 2,
+        event.clientY - rect.top - rect.height / 2,
+      );
+    }, { passive: false });
 
-  let dragging = null;
-  stage.addEventListener('pointerdown', (event) => {
-    dragging = { pointerId: event.pointerId, x: event.clientX - offsetX, y: event.clientY - offsetY };
-    stage.setPointerCapture(event.pointerId);
-    stage.classList.add('dragging');
-  });
-  stage.addEventListener('pointermove', (event) => {
-    if (dragging?.pointerId !== event.pointerId) return;
-    offsetX = event.clientX - dragging.x;
-    offsetY = event.clientY - dragging.y;
-    apply();
-  });
-  const endDrag = (event) => {
-    if (dragging?.pointerId !== event.pointerId) return;
-    dragging = null;
-    stage.classList.remove('dragging');
-  };
-  stage.addEventListener('pointerup', endDrag);
-  stage.addEventListener('pointercancel', endDrag);
+    let dragging = null;
+    stage.addEventListener('pointerdown', (event) => {
+      dragging = { pointerId: event.pointerId, x: event.clientX - offsetX, y: event.clientY - offsetY };
+      stage.setPointerCapture(event.pointerId);
+      stage.classList.add('dragging');
+    });
+    stage.addEventListener('pointermove', (event) => {
+      if (dragging?.pointerId !== event.pointerId) return;
+      offsetX = event.clientX - dragging.x;
+      offsetY = event.clientY - dragging.y;
+      apply();
+    });
+    const endDrag = (event) => {
+      if (dragging?.pointerId !== event.pointerId) return;
+      dragging = null;
+      stage.classList.remove('dragging');
+    };
+    stage.addEventListener('pointerup', endDrag);
+    stage.addEventListener('pointercancel', endDrag);
+  }
 
   overlay.addEventListener('click', (event) => {
     if (event.target === overlay) close();
@@ -551,8 +573,10 @@ function openPreview(host, label) {
   // 内容是打开时的静态克隆，之后不会变，可聚焦元素收集一次就够，不用监听 DOM 变化。
   focusables = focusableWithin(overlay);
   document.addEventListener('keydown', onKeydown);
-  scale = fitScale();
-  apply();
+  if (!readable) {
+    scale = fitScale();
+    apply();
+  }
   toolbar.querySelector('.preview-button')?.focus();
 }
 
@@ -833,7 +857,8 @@ function renderRail(container) {
     expand.type = 'button';
     expand.setAttribute('aria-label', '放大查看本次背景');
     expand.title = '放大查看本次背景';
-    expand.addEventListener('click', () => openPreview(body, '本次背景'));
+    // 阅读模式：文字原尺寸可复制，嵌在里面的表格还能二次点开自己的缩放预览。
+    expand.addEventListener('click', () => openPreview(body, '本次背景', { readable: true }));
     context.append(expand);
     rail.append(context);
   }
