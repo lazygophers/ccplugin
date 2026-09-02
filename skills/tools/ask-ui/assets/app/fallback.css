@@ -281,10 +281,11 @@ button {
   line-height: 1.6;
 }
 
+/* 「本次背景」不旋转：transform 的旋转不改变布局尺寸，长背景一转，
+   左缘就甩到滚动区外——负方向溢出滚不到，左侧内容永远被裁。 */
 .rail-block.context {
   background: var(--mustard);
   color: var(--on-mustard);
-  transform: rotate(-0.8deg);
   position: relative;
 }
 

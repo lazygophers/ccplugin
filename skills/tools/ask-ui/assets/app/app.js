@@ -342,6 +342,11 @@ function appendRichText(container, text, { diagrams = true } = {}) {
 }
 
 // 图表和表格常常比题卡宽。点开进全屏预览，滚轮缩放、拖拽平移。
+
+// 打开中的预览层，后开在上。预览可以嵌套（背景阅读层里再点开表格），每层都在
+// document 上挂了键盘监听，不区分层级的话一次 Esc 会把所有层一起关掉。
+const previewStack = [];
+
 function makePreviewable(host, label) {
   host.classList.add('previewable');
   host.tabIndex = 0;
@@ -472,6 +477,7 @@ function openPreview(host, label, { readable = false } = {}) {
   const close = () => {
     overlay.remove();
     document.removeEventListener('keydown', onKeydown);
+    previewStack.splice(previewStack.indexOf(overlay), 1);
     host.focus();
   };
 
@@ -504,6 +510,8 @@ function openPreview(host, label, { readable = false } = {}) {
   };
 
   function onKeydown(event) {
+    // 嵌套时键盘只归最上层：下层的 Esc/Tab 都让开，否则一次 Esc 关掉整串。
+    if (previewStack[previewStack.length - 1] !== overlay) return;
     if (event.key === 'Escape') {
       close();
       return;
@@ -572,6 +580,7 @@ function openPreview(host, label, { readable = false } = {}) {
   document.body.append(overlay);
   // 内容是打开时的静态克隆，之后不会变，可聚焦元素收集一次就够，不用监听 DOM 变化。
   focusables = focusableWithin(overlay);
+  previewStack.push(overlay);
   document.addEventListener('keydown', onKeydown);
   if (!readable) {
     scale = fitScale();
