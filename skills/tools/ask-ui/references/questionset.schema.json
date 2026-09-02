@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://ask-ui.local/schemas/questionset.schema.json",
   "title": "Ask UI QuestionSet",
-  "description": "传给 Ask UI 的问题集：一个 Session 的一轮（Round）问题。用 UTF-8 编码的 JSON 写成一个文件，作为 `ask-ui.mjs ask --input` 的输入。字段语义之外的「为什么这样写」见同目录 schema.md。",
+  "description": "传给 Ask UI 的问题集：一次提问的全部内容。用 UTF-8 编码的 JSON 写成一个文件，作为 `ask-ui.mjs ask --input` 的输入。字段语义之外的「为什么这样写」见同目录 schema.md。",
   "type": "object",
   "required": ["questions"],
   "additionalProperties": false,
@@ -11,42 +11,24 @@
       "description": "协议版本，固定 \"1.0\"。省略时由 CLI 填入。",
       "const": "1.0"
     },
-    "sessionId": {
-      "description": "会话 id。首轮省略，由 CLI 生成；后续轮次复用同一个值。它会拼进文件路径，所以字符受限、至少 3 个字符。",
-      "$ref": "#/$defs/pathSafeId"
-    },
-    "roundNumber": {
-      "description": "轮次号。省略时由 CLI 自动递增。",
-      "type": "integer",
-      "minimum": 1
-    },
-    "basedOnRound": {
-      "description": "本轮基于哪一轮的答案提出。首轮写 null 或省略。",
-      "type": ["integer", "null"],
-      "minimum": 1
-    },
     "projectName": {
-      "description": "Session 级。显示在页头徽标。省略时取工作目录名。",
-      "type": "string"
-    },
-    "sessionTitle": {
-      "description": "Session 级。整个会话的标题。",
-      "type": "string"
-    },
-    "sessionSummary": {
-      "description": "Session 级。页头副标题，一句话说明这个会话在收集什么。省略时显示默认提示语。",
-      "type": "string"
-    },
-    "sessionBackground": {
-      "description": "Session 级。左栏「本次背景」，支持 Markdown + Mermaid。省略时整块不渲染。同一 Session 的后续轮次可省略，首轮写入的值会保留。",
+      "description": "显示在页头。省略时取工作目录名。",
       "type": "string"
     },
     "title": {
-      "description": "Round 级。本轮标题。",
+      "description": "本次提问的标题，显示在页头徽标和左栏标题块。",
+      "type": "string"
+    },
+    "summary": {
+      "description": "页头副标题，一句话说明这次在收集什么。省略时显示默认提示语。",
+      "type": "string"
+    },
+    "background": {
+      "description": "左栏「本次背景」，支持 Markdown + Mermaid。省略时整块不渲染。",
       "type": "string"
     },
     "purpose": {
-      "description": "Round 级。左栏「第 N 轮」块里的一句话目的。省略时不渲染。",
+      "description": "左栏标题块里的一句话目的。省略时不渲染。",
       "type": "string"
     },
     "wake": {
@@ -54,18 +36,13 @@
       "$ref": "#/$defs/wake"
     },
     "questions": {
-      "description": "本轮的问题，按数组顺序渲染。顺序即依赖序：showWhen 只能指向排在前面的题。",
+      "description": "本次的问题，按数组顺序渲染。顺序即依赖序：showWhen 只能指向排在前面的题。",
       "type": "array",
       "minItems": 1,
       "items": { "$ref": "#/$defs/question" }
     }
   },
   "$defs": {
-    "pathSafeId": {
-      "description": "会进入文件系统路径的 id：字母或数字开头，其余可用字母、数字和 . _ -，长度 3–128。",
-      "type": "string",
-      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{2,127}$"
-    },
     "referenceId": {
       "description": "只在 JSON 内部做引用键的 id：字母或数字开头，其余可用字母、数字和 . _ -，最长 128 个字符。`q1`、`mr` 这种短名合法。省略时自动生成。",
       "type": "string",

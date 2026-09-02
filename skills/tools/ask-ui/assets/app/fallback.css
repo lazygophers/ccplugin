@@ -72,7 +72,7 @@ body {
 }
 
 /* QuestionSet 里的文本按原样保留换行：\n 直接换行，不折成空格。 */
-.session-summary,
+.ask-summary,
 .rail-block p,
 .question-background,
 .question-body,
@@ -127,7 +127,7 @@ button {
 
 /* ---------- 顶部 ---------- */
 
-.session-header {
+.ask-header {
   position: relative;
   overflow: hidden;
   border-bottom: 3px solid var(--line);
@@ -199,14 +199,14 @@ button {
   transform: rotate(-1.6deg);
 }
 
-.session-title {
+.ask-title {
   margin: 6px 0 2px;
   font-size: 29px;
   font-weight: 700;
   line-height: 1.2;
 }
 
-.session-summary {
+.ask-summary {
   margin: 0;
   color: var(--ink-2);
   font-size: 16px;
@@ -219,36 +219,6 @@ button {
   align-items: flex-end;
   flex-wrap: wrap;
   justify-content: flex-end;
-}
-
-.round-tabs {
-  display: flex;
-  gap: 10px;
-  align-items: flex-end;
-  flex-wrap: wrap;
-}
-
-.round-tab {
-  border: 3px solid var(--line);
-  padding: 7px 15px;
-  background: var(--surface);
-  color: var(--ink);
-  font-size: 17px;
-  font-weight: 700;
-  transform: rotate(1deg);
-}
-
-.round-tab[aria-selected="true"] {
-  background: var(--blue);
-  color: var(--on-blue);
-  box-shadow: 5px 5px 0 var(--shadow);
-  transform: rotate(-1.4deg);
-}
-
-.round-tab[data-locked="true"] {
-  opacity: 0.55;
-  background: var(--surface-2);
-  box-shadow: none;
 }
 
 .theme-toggle {
@@ -315,9 +285,25 @@ button {
   background: var(--mustard);
   color: var(--on-mustard);
   transform: rotate(-0.8deg);
+  position: relative;
 }
 
-.rail-block.round {
+/* 「本次背景」的放大按钮：整块可点会吞掉正文里链接和表格的交互，
+   所以预览入口收敛到右上角一个独立按钮。 */
+.context-expand {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  border: 2px solid currentColor;
+  padding: 1px 8px;
+  background: transparent;
+  color: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: zoom-in;
+}
+
+.rail-block.title {
   background: var(--purple);
   color: var(--on-purple);
   transform: rotate(0.9deg);
@@ -1035,7 +1021,7 @@ textarea {
     max-width: 170px;
   }
 
-  .session-header {
+  .ask-header {
     padding: 12px 16px;
   }
 
@@ -1043,7 +1029,7 @@ textarea {
     margin-left: 0;
   }
 
-  .session-title {
+  .ask-title {
     font-size: 24px;
   }
 

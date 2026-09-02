@@ -100,7 +100,7 @@ function assertReferenceId(value, label = 'id') {
   return value;
 }
 
-function makeSessionId(title = 'ask-ui') {
+function makeAskId(title = 'ask-ui') {
   const slug = String(title)
     .normalize('NFKD')
     .replace(/[^a-zA-Z0-9]+/g, '-')
@@ -111,18 +111,8 @@ function makeSessionId(title = 'ask-ui') {
   return `${slug}-${stamp}-${randomBytes(2).toString('hex')}`;
 }
 
-function roundDirectory(dataRoot, sessionId, roundNumber) {
-  return path.join(
-    dataRoot,
-    'sessions',
-    assertSafeId(sessionId, 'sessionId'),
-    'rounds',
-    String(roundNumber).padStart(3, '0'),
-  );
-}
-
-function sessionDirectory(dataRoot, sessionId) {
-  return path.join(dataRoot, 'sessions', assertSafeId(sessionId, 'sessionId'));
+function askDirectory(dataRoot, askId) {
+  return path.join(dataRoot, 'asks', assertSafeId(askId, 'askId'));
 }
 
 async function readJson(file, fallback = undefined) {
@@ -423,6 +413,17 @@ function normalizeConditions(questions) {
   if (errors.length) throw new Error(errors.join('；'));
 }
 
+// 轮次与 Session 的双层概念已合并成「一次提问」。旧字段当场报错并指路，
+// 不做静默映射——调用方照旧文档写出来的 JSON 必须在入口就被拦下。
+const REMOVED_INPUT_FIELDS = {
+  sessionId: 'sessionId 已移除：每次 ask 都是一次独立提问，id 由 CLI 生成',
+  roundNumber: 'roundNumber 已移除：轮次概念已删除，每次 ask 都是一次独立提问',
+  basedOnRound: 'basedOnRound 已移除：轮次概念已删除，追问直接再发起一次 ask',
+  sessionTitle: 'sessionTitle 已改名：直接写 title',
+  sessionSummary: 'sessionSummary 已改名：直接写 summary',
+  sessionBackground: 'sessionBackground 已改名：直接写 background',
+};
+
 export function normalizeQuestionSet(input, { cwd = process.cwd() } = {}) {
   if (!input || typeof input !== 'object' || !Array.isArray(input.questions)) {
     throw new Error('QuestionSet requires a questions array');
@@ -432,6 +433,9 @@ export function normalizeQuestionSet(input, { cwd = process.cwd() } = {}) {
   // 逐题 fail-fast 会让调用方每修一个 id 就重跑一次。一次把所有题的问题报全，改一遍就能过。
   const questions = [];
   const errors = [];
+  for (const [field, message] of Object.entries(REMOVED_INPUT_FIELDS)) {
+    if (input[field] !== undefined && input[field] !== null) errors.push(message);
+  }
   input.questions.forEach((question, index) => {
     try {
       questions.push(normalizeQuestion(question, index));
@@ -444,63 +448,47 @@ export function normalizeQuestionSet(input, { cwd = process.cwd() } = {}) {
 
   return {
     schemaVersion: SCHEMA_VERSION,
-    sessionId: input.sessionId ? assertSafeId(String(input.sessionId), 'sessionId') : null,
     projectName: String(input.projectName || path.basename(path.resolve(cwd))),
-    sessionTitle: String(input.sessionTitle || input.title || 'Ask UI 问题收集'),
-    sessionSummary: String(input.sessionSummary || ''),
-    sessionBackground: String(input.sessionBackground || ''),
-    roundNumber: Number.isInteger(input.roundNumber) ? input.roundNumber : null,
-    title: String(input.title || '需求确认'),
+    title: String(input.title || 'Ask UI 问题收集'),
+    summary: String(input.summary || ''),
+    background: String(input.background || ''),
     purpose: String(input.purpose || ''),
-    basedOnRound: Number.isInteger(input.basedOnRound) ? input.basedOnRound : null,
     wake: normalizeWake(input.wake, cwd),
     questions,
   };
 }
 
-async function readSession(dataRoot, sessionId) {
-  return readJson(path.join(sessionDirectory(dataRoot, sessionId), 'session.json'));
+async function readAsk(dataRoot, askId) {
+  return readJson(path.join(askDirectory(dataRoot, askId), 'ask.json'));
 }
 
-async function writeSession(dataRoot, session) {
-  session.updatedAt = now();
-  session.roundCount = session.rounds.length;
-  session.totalQuestionCount = session.rounds.reduce(
-    (sum, round) => sum + round.questionCount,
-    0,
-  );
-  session.currentRound = session.rounds.length
-    ? Math.max(...session.rounds.map((round) => round.roundNumber))
-    : 0;
-  await atomicWriteJson(
-    path.join(sessionDirectory(dataRoot, session.sessionId), 'session.json'),
-    session,
-  );
-  return session;
+async function writeAsk(dataRoot, ask) {
+  ask.updatedAt = now();
+  await atomicWriteJson(path.join(askDirectory(dataRoot, ask.askId), 'ask.json'), ask);
+  return ask;
 }
 
-async function updateIndex(dataRoot, session, extra = {}) {
+async function updateIndex(dataRoot, ask, extra = {}) {
   const indexFile = path.join(dataRoot, 'index.json');
   const index = await readJson(indexFile, {
     schemaVersion: SCHEMA_VERSION,
-    sessions: [],
+    asks: [],
   });
   const summary = {
-    sessionId: session.sessionId,
-    title: session.title,
-    status: session.status,
-    currentRound: session.currentRound,
-    updatedAt: session.updatedAt,
+    askId: ask.askId,
+    title: ask.title,
+    status: ask.status,
+    updatedAt: ask.updatedAt,
   };
-  const existing = index.sessions.findIndex((item) => item.sessionId === session.sessionId);
-  if (existing >= 0) index.sessions[existing] = summary;
-  else index.sessions.push(summary);
-  index.sessions.sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
+  const existing = index.asks.findIndex((item) => item.askId === ask.askId);
+  if (existing >= 0) index.asks[existing] = summary;
+  else index.asks.push(summary);
+  index.asks.sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
   Object.assign(index, extra, { updatedAt: now() });
   await atomicWriteJson(indexFile, index);
 }
 
-export async function createRound(input, options = {}) {
+export async function createAsk(input, options = {}) {
   const cwd = options.cwd || process.cwd();
   const dataRoot = await ensureDataRoot(options.dataDir, cwd);
   const deliveryMode = options.deliveryMode || 'manual';
@@ -508,108 +496,58 @@ export async function createRound(input, options = {}) {
     throw new Error('deliveryMode must be direct or manual');
   }
   const questionSet = normalizeQuestionSet(input, { cwd });
-  const sessionId = questionSet.sessionId || makeSessionId(questionSet.sessionTitle);
-  const sessionFile = path.join(sessionDirectory(dataRoot, sessionId), 'session.json');
-  const existingSession = await readJson(sessionFile, null);
-  const session = existingSession || {
-    schemaVersion: SCHEMA_VERSION,
-    sessionId,
-    projectName: questionSet.projectName,
-    title: questionSet.sessionTitle,
-    summary: questionSet.sessionSummary,
-    background: questionSet.sessionBackground,
-    status: 'active',
-    workspace: path.resolve(cwd),
-    wake: questionSet.wake,
-    createdAt: now(),
-    updatedAt: now(),
-    currentRound: 0,
-    roundCount: 0,
-    totalQuestionCount: 0,
-    rounds: [],
-  };
-
-  if (session.status === 'completed' || session.status === 'cancelled') {
-    throw new Error(`Session ${sessionId} is ${session.status}; create a new session`);
-  }
-
-  const roundNumber = questionSet.roundNumber
-    || (session.rounds.length ? Math.max(...session.rounds.map((item) => item.roundNumber)) + 1 : 1);
-  if (!Number.isInteger(roundNumber) || roundNumber < 1) {
-    throw new Error('roundNumber must be a positive integer');
-  }
-  if (session.rounds.some((item) => item.roundNumber === roundNumber)) {
-    throw new Error(`Round ${roundNumber} already exists in ${sessionId}`);
-  }
-
-  const basedOnRound = questionSet.basedOnRound
-    ?? (roundNumber > 1 ? roundNumber - 1 : null);
-  if (basedOnRound !== null && !session.rounds.some((item) => item.roundNumber === basedOnRound)) {
-    throw new Error(`basedOnRound ${basedOnRound} does not exist`);
-  }
+  const askId = makeAskId(questionSet.title);
+  const directory = askDirectory(dataRoot, askId);
+  await fs.mkdir(directory, { recursive: true });
 
   const storedQuestionSet = {
     schemaVersion: SCHEMA_VERSION,
-    sessionId,
-    roundNumber,
+    askId,
     title: questionSet.title,
     purpose: questionSet.purpose,
-    basedOnRound,
     createdAt: now(),
     questions: questionSet.questions,
   };
-  const roundDir = roundDirectory(dataRoot, sessionId, roundNumber);
-  await fs.mkdir(roundDir, { recursive: true });
-  await atomicWriteJson(path.join(roundDir, 'questions.json'), storedQuestionSet);
+  await atomicWriteJson(path.join(directory, 'questions.json'), storedQuestionSet);
 
-  if (basedOnRound !== null) {
-    const previous = session.rounds.find((item) => item.roundNumber === basedOnRound);
-    if (previous?.status === 'submitted') {
-      previous.status = 'processed';
-      previous.processedAt = now();
-    }
-  }
-  session.title = session.title || questionSet.sessionTitle;
-  session.summary = session.summary || questionSet.sessionSummary;
-  session.projectName = session.projectName || questionSet.projectName;
-  session.background = session.background || questionSet.sessionBackground;
-  if (questionSet.wake.mode !== 'manual' || !existingSession) session.wake = questionSet.wake;
-  session.rounds.push({
-    roundNumber,
-    title: storedQuestionSet.title,
-    purpose: storedQuestionSet.purpose,
-    basedOnRound,
+  const ask = {
+    schemaVersion: SCHEMA_VERSION,
+    askId,
+    projectName: questionSet.projectName,
+    title: questionSet.title,
+    summary: questionSet.summary,
+    background: questionSet.background,
+    purpose: questionSet.purpose,
     status: 'waiting_for_user',
     deliveryMode,
-    questionCount: storedQuestionSet.questions.length,
+    workspace: path.resolve(cwd),
+    wake: questionSet.wake,
     createdAt: storedQuestionSet.createdAt,
-  });
-  await writeSession(dataRoot, session);
-  await updateIndex(dataRoot, session, { activeSessionId: sessionId });
+    updatedAt: storedQuestionSet.createdAt,
+    questionCount: storedQuestionSet.questions.length,
+  };
+  await writeAsk(dataRoot, ask);
+  await updateIndex(dataRoot, ask, { activeAskId: askId });
 
   return {
     status: 'created',
     dataRoot,
-    sessionId,
-    roundNumber,
-    questionsPath: path.join(roundDir, 'questions.json'),
-    session,
+    askId,
+    questionsPath: path.join(directory, 'questions.json'),
+    ask,
   };
 }
 
-export async function submittedRoundResult(dataRoot, sessionId, roundNumber) {
-  const session = await readSession(dataRoot, sessionId);
-  const round = session.rounds.find((item) => item.roundNumber === roundNumber);
-  if (!round) throw new Error(`Round ${roundNumber} not found`);
-  if (!['submitted', 'processed'].includes(round.status)) {
-    throw new Error(`Round ${roundNumber} has not been submitted`);
+export async function submittedAskResult(dataRoot, askId) {
+  const directory = askDirectory(dataRoot, askId);
+  const ask = await readAsk(dataRoot, askId);
+  if (ask.status !== 'submitted') {
+    throw new Error(`Ask ${askId} has not been submitted`);
   }
-  const directory = roundDirectory(dataRoot, sessionId, roundNumber);
   return {
     status: 'submitted',
-    sessionId,
-    sessionTitle: session.title,
-    roundNumber,
+    askId,
+    title: ask.title,
     questionsPath: path.join(directory, 'questions.json'),
     answersPath: path.join(directory, 'answers.json'),
     questions: await readJson(path.join(directory, 'questions.json')),
@@ -691,30 +629,25 @@ function validateAnswers(questionSet, rawAnswers) {
   return { answers, errors, hiddenQuestionIds };
 }
 
-export async function loadSessionBundle(dataRoot, sessionId) {
-  const session = await readSession(dataRoot, sessionId);
-  const rounds = [];
-  for (const roundSummary of [...session.rounds].sort((a, b) => a.roundNumber - b.roundNumber)) {
-    const directory = roundDirectory(dataRoot, sessionId, roundSummary.roundNumber);
-    rounds.push({
-      ...roundSummary,
-      questions: await readJson(path.join(directory, 'questions.json')),
-      answers: await readJson(path.join(directory, 'answers.json'), null),
-    });
-  }
-  return { schemaVersion: SCHEMA_VERSION, session, rounds };
+export async function loadAskBundle(dataRoot, askId) {
+  const directory = askDirectory(dataRoot, askId);
+  const ask = await readAsk(dataRoot, askId);
+  return {
+    schemaVersion: SCHEMA_VERSION,
+    ask,
+    questions: await readJson(path.join(directory, 'questions.json')),
+    answers: await readJson(path.join(directory, 'answers.json'), null),
+  };
 }
 
-export async function submitAnswers(dataRoot, sessionId, roundNumber, payload) {
-  const session = await readSession(dataRoot, sessionId);
-  const round = session.rounds.find((item) => item.roundNumber === roundNumber);
-  if (!round) throw new Error(`Round ${roundNumber} not found`);
-  const directory = roundDirectory(dataRoot, sessionId, roundNumber);
+export async function submitAnswers(dataRoot, askId, payload) {
+  const directory = askDirectory(dataRoot, askId);
+  const ask = await readAsk(dataRoot, askId);
   const existing = await readJson(path.join(directory, 'answers.json'), null);
   if (existing) {
-    return { duplicate: true, answerSet: existing, session };
+    return { duplicate: true, answerSet: existing, ask };
   }
-  if (round.status !== 'waiting_for_user') throw new Error('Round is not accepting answers');
+  if (ask.status !== 'waiting_for_user') throw new Error('Ask is not accepting answers');
 
   const questions = await readJson(path.join(directory, 'questions.json'));
   const validated = validateAnswers(questions, payload.answers);
@@ -726,94 +659,83 @@ export async function submitAnswers(dataRoot, sessionId, roundNumber, payload) {
   const answerSet = {
     schemaVersion: SCHEMA_VERSION,
     submissionId: String(payload.submissionId || `submit-${randomUUID()}`),
-    sessionId,
-    roundNumber,
+    askId,
     submittedAt: now(),
     answers: validated.answers,
     hiddenQuestionIds: validated.hiddenQuestionIds,
   };
   await atomicWriteJson(path.join(directory, 'answers.json'), answerSet);
-  round.status = 'submitted';
-  round.submittedAt = answerSet.submittedAt;
-  await writeSession(dataRoot, session);
-  await updateIndex(dataRoot, session, {
-    activeSessionId: sessionId,
-    lastSubmittedSessionId: sessionId,
+  ask.status = 'submitted';
+  ask.submittedAt = answerSet.submittedAt;
+  await writeAsk(dataRoot, ask);
+  await updateIndex(dataRoot, ask, {
+    activeAskId: askId,
+    lastSubmittedAskId: askId,
   });
-  return { duplicate: false, answerSet, session };
+  return { duplicate: false, answerSet, ask };
 }
 
-async function listSessions(dataRoot) {
-  const sessionsRoot = path.join(dataRoot, 'sessions');
+async function listAsks(dataRoot) {
+  const asksRoot = path.join(dataRoot, 'asks');
   let entries = [];
   try {
-    entries = await fs.readdir(sessionsRoot, { withFileTypes: true });
+    entries = await fs.readdir(asksRoot, { withFileTypes: true });
   } catch (error) {
     if (error.code === 'ENOENT') return [];
     throw error;
   }
-  const sessions = [];
+  const asks = [];
   for (const entry of entries) {
     if (!entry.isDirectory()) continue;
     try {
-      sessions.push(await readSession(dataRoot, entry.name));
+      asks.push(await readAsk(dataRoot, entry.name));
     } catch {
-      // A damaged session is reported by status when addressed explicitly.
+      // A damaged ask is reported by status when addressed explicitly.
     }
   }
-  return sessions;
+  return asks;
 }
 
-export async function resumeRound(dataRoot, requestedSessionId = null) {
+export async function resumeAsk(dataRoot, requestedAskId = null) {
   let candidates = [];
-  if (requestedSessionId) {
-    candidates = [await readSession(dataRoot, requestedSessionId)];
+  if (requestedAskId) {
+    candidates = [await readAsk(dataRoot, requestedAskId)];
   } else {
-    candidates = (await listSessions(dataRoot)).filter((session) =>
-      session.rounds.some((round) => round.status === 'submitted'));
+    candidates = (await listAsks(dataRoot)).filter((ask) => ask.status === 'submitted');
   }
 
-  const submitted = candidates.flatMap((session) =>
-    session.rounds
-      .filter((round) => round.status === 'submitted')
-      .map((round) => ({ session, round })));
+  const submitted = candidates.filter((ask) => ask.status === 'submitted');
 
   if (submitted.length === 0) {
-    return { status: 'waiting', sessionId: requestedSessionId };
+    return { status: 'waiting', askId: requestedAskId };
   }
-  if (!requestedSessionId && submitted.length > 1) {
+  if (!requestedAskId && submitted.length > 1) {
     return {
       status: 'ambiguous',
-      candidates: submitted.map(({ session, round }) => ({
-        sessionId: session.sessionId,
-        title: session.title,
-        summary: session.summary,
-        workspace: session.workspace,
-        roundNumber: round.roundNumber,
-        submittedAt: round.submittedAt,
+      candidates: submitted.map((ask) => ({
+        askId: ask.askId,
+        title: ask.title,
+        summary: ask.summary,
+        workspace: ask.workspace,
+        submittedAt: ask.submittedAt,
       })),
     };
   }
 
-  const { session, round } = submitted.sort((left, right) =>
-    right.round.submittedAt.localeCompare(left.round.submittedAt))[0];
-  return submittedRoundResult(dataRoot, session.sessionId, round.roundNumber);
+  const latest = submitted.sort((left, right) =>
+    right.submittedAt.localeCompare(left.submittedAt))[0];
+  return submittedAskResult(dataRoot, latest.askId);
 }
 
-export async function completeSession(dataRoot, sessionId, status = 'completed') {
-  const session = await readSession(dataRoot, sessionId);
+export async function completeAsk(dataRoot, askId, status = 'completed') {
+  const ask = await readAsk(dataRoot, askId);
   if (!['completed', 'cancelled'].includes(status)) throw new Error('Invalid final status');
-  for (const round of session.rounds) {
-    if (round.status === 'submitted') {
-      round.status = 'processed';
-      round.processedAt = now();
-    }
-  }
-  session.status = status;
-  session.completedAt = now();
-  await writeSession(dataRoot, session);
-  await updateIndex(dataRoot, session, { activeSessionId: null });
-  return session;
+  // waiting_for_user 也允许收尾：问错了、任务取消时，没人答的表单同样要作废。
+  ask.status = status;
+  ask.completedAt = now();
+  await writeAsk(dataRoot, ask);
+  await updateIndex(dataRoot, ask, { activeAskId: null });
+  return ask;
 }
 
 function contentType(file) {
@@ -903,65 +825,62 @@ async function readRequestJson(request) {
   }
 }
 
-async function recordWakeState(dataRoot, sessionId, value) {
-  const session = await readSession(dataRoot, sessionId);
-  session.wakeState = { ...(session.wakeState || {}), ...value, updatedAt: now() };
-  await writeSession(dataRoot, session);
-  await updateIndex(dataRoot, session);
+async function recordWakeState(dataRoot, askId, value) {
+  const ask = await readAsk(dataRoot, askId);
+  ask.wakeState = { ...(ask.wakeState || {}), ...value, updatedAt: now() };
+  await writeAsk(dataRoot, ask);
+  await updateIndex(dataRoot, ask);
 }
 
-async function triggerWake(dataRoot, sessionId, roundNumber) {
-  const session = await readSession(dataRoot, sessionId);
-  const binding = session.wake;
+async function triggerWake(dataRoot, askId) {
+  const ask = await readAsk(dataRoot, askId);
+  const binding = ask.wake;
   if (binding?.mode !== 'auto') return { status: 'manual' };
   if (!binding.provider || !binding.sessionRef) {
-    await recordWakeState(dataRoot, sessionId, {
+    await recordWakeState(dataRoot, askId, {
       status: 'unavailable',
       error: 'Missing provider session reference',
     });
     return { status: 'unavailable' };
   }
 
-  const directory = roundDirectory(dataRoot, sessionId, roundNumber);
+  const directory = askDirectory(dataRoot, askId);
   const answersPath = path.join(directory, 'answers.json');
   const questionsPath = path.join(directory, 'questions.json');
   const prompt = [
-    `Ask UI session "${session.title}" round ${roundNumber} has been submitted.`,
+    `Ask UI "${ask.title}" has been submitted.`,
     `Read questions from: ${questionsPath}`,
     `Read answers from: ${answersPath}`,
     'Continue the original workflow using these answers.',
-    'If two or more independent follow-up questions are needed, create the next Ask UI round with the same sessionId.',
-    'If the workflow is complete, mark the Ask UI session complete.',
-    'Do not repeat or overwrite a submitted round.',
+    'If two or more independent follow-up questions are needed, start a new Ask UI form.',
+    'If the workflow is complete, no cleanup is required.',
+    'Do not resubmit or overwrite the submitted answers.',
   ].join('\n');
 
-  await recordWakeState(dataRoot, sessionId, {
+  await recordWakeState(dataRoot, askId, {
     status: 'running',
     provider: binding.provider,
-    roundNumber,
     startedAt: now(),
   });
   try {
     const result = binding.provider === 'claude-code'
       ? await wakeClaudeCode({ binding, prompt })
       : await wakeCodexAppServer({ binding, prompt });
-    const logDirectory = path.join(sessionDirectory(dataRoot, sessionId), 'wake');
+    const logDirectory = path.join(directory, 'wake');
     await fs.mkdir(logDirectory, { recursive: true });
     const logFile = path.join(logDirectory, `${Date.now()}-${binding.provider}.json`);
     await atomicWriteJson(logFile, result);
-    await recordWakeState(dataRoot, sessionId, {
+    await recordWakeState(dataRoot, askId, {
       status: 'succeeded',
       provider: binding.provider,
-      roundNumber,
       completedAt: now(),
       logFile,
     });
     return { status: 'succeeded', logFile };
   } catch (error) {
-    await recordWakeState(dataRoot, sessionId, {
+    await recordWakeState(dataRoot, askId, {
       status: 'failed',
       provider: binding.provider,
-      roundNumber,
       completedAt: now(),
       error: error.message,
     });
@@ -1024,37 +943,35 @@ export async function startHttpServer({
       }
       if (
         request.method === 'GET'
-        && (requestUrl.pathname === '/' || requestUrl.pathname.startsWith('/session/'))
+        && (requestUrl.pathname === '/' || requestUrl.pathname.startsWith('/ask/'))
       ) {
         sendFile(response, path.join(APP_ROOT, 'index.html'));
         return;
       }
 
       const apiMatch = requestUrl.pathname.match(
-        /^\/api\/sessions\/([^/]+)(?:\/rounds\/(\d+)\/(answers)|\/(status))?$/,
+        /^\/api\/asks\/([^/]+)(?:\/(answers|status))?$/,
       );
       if (!apiMatch) {
         sendJson(response, 404, { error: 'Not found' });
         return;
       }
-      const sessionId = assertSafeId(decodeURIComponent(apiMatch[1]), 'sessionId');
-      const roundNumber = apiMatch[2] ? Number(apiMatch[2]) : null;
-      const operation = apiMatch[3] || apiMatch[4] || null;
+      const askId = assertSafeId(decodeURIComponent(apiMatch[1]), 'askId');
+      const operation = apiMatch[2] || null;
 
       if (request.method === 'GET' && operation === 'status') {
-        const session = await readSession(dataRoot, sessionId);
-        sendJson(response, 200, { session });
+        const ask = await readAsk(dataRoot, askId);
+        sendJson(response, 200, { ask });
         return;
       }
       if (request.method === 'GET' && operation === null) {
-        sendJson(response, 200, await loadSessionBundle(dataRoot, sessionId));
+        sendJson(response, 200, await loadAskBundle(dataRoot, askId));
         return;
       }
       if (request.method === 'POST' && operation === 'answers') {
         const result = await submitAnswers(
           dataRoot,
-          sessionId,
-          roundNumber,
+          askId,
           await readRequestJson(request),
         );
         sendJson(response, 200, result);
@@ -1062,18 +979,15 @@ export async function startHttpServer({
           if (onSubmitted) {
             setTimeout(() => {
               try {
-                onSubmitted({ sessionId, roundNumber, result });
+                onSubmitted({ askId, result });
               } catch {
                 // Submission is already durable; observer failures must not alter it.
               }
             }, 0);
           }
-          const submittedRound = result.session.rounds.find(
-            (round) => round.roundNumber === roundNumber,
-          );
-          if (enableWake && submittedRound?.deliveryMode !== 'direct') {
+          if (enableWake && result.ask.deliveryMode !== 'direct') {
             setTimeout(() => {
-              triggerWake(dataRoot, sessionId, roundNumber).catch(() => {});
+              triggerWake(dataRoot, askId).catch(() => {});
             }, 0);
           }
         }
@@ -1102,18 +1016,17 @@ export async function startHttpServer({
   return { server, info };
 }
 
-// 常驻服务此前没有任何终点：每轮提问都会留下一个永不退出的进程。
+// 常驻服务此前没有任何终点：每次提问都会留下一个永不退出的进程。
 // 只要还有人可能来答题就继续跑，否则收摊。
-export async function hasPendingRound(dataRoot) {
+export async function hasPendingAsk(dataRoot) {
   const index = await readJson(path.join(dataRoot, 'index.json'), null);
-  if (!index?.sessions?.length) return false;
-  for (const entry of index.sessions) {
-    const session = await readJson(
-      path.join(dataRoot, 'sessions', entry.sessionId, 'session.json'),
+  if (!index?.asks?.length) return false;
+  for (const entry of index.asks) {
+    const ask = await readJson(
+      path.join(dataRoot, 'asks', entry.askId, 'ask.json'),
       null,
     );
-    if (session?.status !== 'active') continue;
-    if (session.rounds.some((round) => round.status === 'waiting_for_user')) return true;
+    if (ask?.status === 'waiting_for_user') return true;
   }
   return false;
 }
@@ -1129,16 +1042,16 @@ function watchForIdle(server, dataRoot, { idleMs, onExit }) {
       return;
     }
     if (Date.now() - lastRequestAt < idleMs) return;
-    if (await hasPendingRound(dataRoot)) return;
-    onExit(`idle for ${Math.round(idleMs / 60000)} minutes with no unanswered round`);
+    if (await hasPendingAsk(dataRoot)) return;
+    onExit(`idle for ${Math.round(idleMs / 60000)} minutes with no unanswered form`);
   }, Math.min(idleMs, 30_000));
   timer.unref();
   return timer;
 }
 
-// 只在没有任何一轮还等着人回答时才停，且只按 server.json 里记的 pid 精确停。
+// 只在没有任何一次提问还等着人回答时才停，且只按 server.json 里记的 pid 精确停。
 async function stopIdleServer(dataRoot) {
-  if (await hasPendingRound(dataRoot)) return false;
+  if (await hasPendingAsk(dataRoot)) return false;
   const info = await readJson(path.join(dataRoot, 'server.json'), null);
   if (!info?.pid || !await serverIsAlive(info)) return false;
   process.kill(info.pid, 'SIGTERM');
@@ -1181,15 +1094,11 @@ async function ensureServer(dataRoot, { port = 0 } = {}) {
   throw new Error('Ask UI server did not start');
 }
 
-async function waitForRoundSubmission(dataRoot, sessionId, roundNumber, signal) {
+async function waitForSubmission(dataRoot, askId, signal) {
   while (!signal.aborted) {
-    const session = await readSession(dataRoot, sessionId);
-    const round = session.rounds.find((item) => item.roundNumber === roundNumber);
-    if (!round) throw new Error(`Round ${roundNumber} not found`);
-    if (['submitted', 'processed'].includes(round.status)) return round;
-    if (session.status !== 'active') {
-      throw new Error(`Ask UI session is ${session.status}`);
-    }
+    const ask = await readAsk(dataRoot, askId);
+    if (ask.status === 'submitted') return ask;
+    if (ask.status !== 'waiting_for_user') throw new Error(`Ask UI form is ${ask.status}`);
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
   throw signal.reason || new Error('Ask UI wait interrupted');
@@ -1228,10 +1137,10 @@ function help() {
   process.stdout.write(`  ask --input <file> [--data-dir <dir>] [--port <number>] [--no-open]\n`);
   process.stdout.write(`  create --input <file> [--data-dir <dir>] [--no-open] [--no-serve]\n`);
   process.stdout.write(`  serve [--data-dir <dir>] [--port <number>] [--token <token>]\n`);
-  process.stdout.write(`  resume [--session <id>] [--data-dir <dir>]\n`);
-  process.stdout.write(`  status --session <id> [--data-dir <dir>]\n`);
-  process.stdout.write(`  complete --session <id> [--data-dir <dir>]\n`);
-  process.stdout.write(`  cancel --session <id> [--data-dir <dir>]\n`);
+  process.stdout.write(`  resume [--id <askId>] [--data-dir <dir>]\n`);
+  process.stdout.write(`  status --id <askId> [--data-dir <dir>]\n`);
+  process.stdout.write(`  complete --id <askId> [--data-dir <dir>]\n`);
+  process.stdout.write(`  cancel --id <askId> [--data-dir <dir>]\n`);
 }
 
 export async function main(argv = process.argv.slice(2)) {
@@ -1240,39 +1149,33 @@ export async function main(argv = process.argv.slice(2)) {
   const dataRoot = await ensureDataRoot(args['data-dir']);
 
   if (command === 'ask') {
-    const created = await createRound(await readInput(args.input), {
+    const created = await createAsk(await readInput(args.input), {
       dataDir: dataRoot,
       cwd: process.cwd(),
       deliveryMode: 'direct',
     });
     const server = await ensureServer(dataRoot, { port: Number(args.port) || 0 });
-    const url = `http://127.0.0.1:${server.port}/session/${encodeURIComponent(created.sessionId)}?token=${encodeURIComponent(server.token)}`;
+    const url = `http://127.0.0.1:${server.port}/ask/${encodeURIComponent(created.askId)}?token=${encodeURIComponent(server.token)}`;
     const abortController = new AbortController();
     const interrupt = (signal) => abortController.abort(
-      new Error(`Ask UI wait interrupted by ${signal}; saved session data was preserved`),
+      new Error(`Ask UI wait interrupted by ${signal}; saved data was preserved`),
     );
     const onSigint = () => interrupt('SIGINT');
     const onSigterm = () => interrupt('SIGTERM');
     process.once('SIGINT', onSigint);
     process.once('SIGTERM', onSigterm);
     process.stderr.write(`Ask UI ready at ${url}\n`);
-    process.stderr.write(`ask-ui-session: ${created.sessionId}\n`);
-    process.stderr.write(`Waiting for round ${created.roundNumber} submission; data is saved under ${dataRoot}\n`);
+    process.stderr.write(`ask-ui-id: ${created.askId}\n`);
+    process.stderr.write(`Waiting for submission; data is saved under ${dataRoot}\n`);
     // 这条命令会阻塞到用户提交为止，很容易被 harness 转到后台。一旦转后台，
     // 任务输出里 stdout 和 stderr 是混在一起的，直接 JSON.parse 必然失败。
-    process.stderr.write(`If this command is backgrounded or interrupted, do not parse the task output; run: ask-ui.mjs resume --session ${created.sessionId}\n`);
-    // 页面在提交后自行关闭，所以每一轮都要重新打开浏览器。
+    process.stderr.write(`If this command is backgrounded or interrupted, do not parse the task output; run: ask-ui.mjs resume --id ${created.askId}\n`);
     if (!args['no-open']) openBrowser(url);
     try {
-      await waitForRoundSubmission(
-        dataRoot,
-        created.sessionId,
-        created.roundNumber,
-        abortController.signal,
-      );
+      await waitForSubmission(dataRoot, created.askId, abortController.signal);
       // 转后台时 stdout 会和 stderr 混在一起，这行是「结果已就绪」的唯一可靠信号。
-      process.stderr.write(`ask-ui-submitted: ${created.sessionId} round ${created.roundNumber}\n`);
-      print(await submittedRoundResult(dataRoot, created.sessionId, created.roundNumber));
+      process.stderr.write(`ask-ui-submitted: ${created.askId}\n`);
+      print(await submittedAskResult(dataRoot, created.askId));
     } finally {
       process.removeListener('SIGINT', onSigint);
       process.removeListener('SIGTERM', onSigterm);
@@ -1281,26 +1184,25 @@ export async function main(argv = process.argv.slice(2)) {
   }
 
   if (command === 'create') {
-    const created = await createRound(await readInput(args.input), {
+    const created = await createAsk(await readInput(args.input), {
       dataDir: dataRoot,
       cwd: process.cwd(),
       deliveryMode: 'manual',
     });
     if (args['no-serve']) {
-      print({ ...created, session: undefined });
+      print({ ...created, ask: undefined });
       return;
     }
     const server = await ensureServer(dataRoot);
-    const url = `http://127.0.0.1:${server.port}/session/${encodeURIComponent(created.sessionId)}?token=${encodeURIComponent(server.token)}`;
+    const url = `http://127.0.0.1:${server.port}/ask/${encodeURIComponent(created.askId)}?token=${encodeURIComponent(server.token)}`;
     if (!args['no-open']) openBrowser(url);
     print({
       status: 'created',
-      sessionId: created.sessionId,
-      roundNumber: created.roundNumber,
+      askId: created.askId,
       dataRoot,
       questionsPath: created.questionsPath,
       url,
-      marker: `ask-ui-session: ${created.sessionId}`,
+      marker: `ask-ui-id: ${created.askId}`,
     });
     return;
   }
@@ -1326,21 +1228,21 @@ export async function main(argv = process.argv.slice(2)) {
   }
 
   if (command === 'resume') {
-    print(await resumeRound(dataRoot, args.session || null));
+    print(await resumeAsk(dataRoot, args.id || null));
     return;
   }
 
   if (command === 'status') {
-    if (!args.session) throw new Error('--session is required');
-    print(await loadSessionBundle(dataRoot, args.session));
+    if (!args.id) throw new Error('--id is required');
+    print(await loadAskBundle(dataRoot, args.id));
     return;
   }
 
   if (command === 'complete' || command === 'cancel') {
-    if (!args.session) throw new Error('--session is required');
-    const completed = await completeSession(
+    if (!args.id) throw new Error('--id is required');
+    const completed = await completeAsk(
       dataRoot,
-      args.session,
+      args.id,
       command === 'cancel' ? 'cancelled' : 'completed',
     );
     // 收尾时顺手关掉常驻服务，不必等它自己 idle 超时。

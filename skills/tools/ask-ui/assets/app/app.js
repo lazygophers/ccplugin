@@ -1,5 +1,5 @@
 import * as viewState from '/view-state.js';
-import { answersForRound, displayAnswer, selectionCount } from '/view-state.js';
+import { answersForForm, displayAnswer, selectionCount } from '/view-state.js';
 
 const app = document.querySelector('#app');
 const toast = document.querySelector('#toast');
@@ -8,11 +8,10 @@ const SUPPLEMENTARY_TEXT_MAX_LENGTH = 2000;
 const THEME_STORAGE_KEY = 'ask-ui-theme';
 // 新题高亮的存活时长，和 fallback.css 里 .question-card.is-new 的动画时长保持一致。
 const QUESTION_HIGHLIGHT_MS = 1800;
-const sessionId = decodeURIComponent(location.pathname.split('/').filter(Boolean).at(-1) || '');
+const askId = decodeURIComponent(location.pathname.split('/').filter(Boolean).at(-1) || '');
 const token = new URLSearchParams(location.search).get('token') || '';
 
 let bundle = null;
-let activeRoundNumber = null;
 let focusedQuestionId = null;
 let pendingAnswers = [];
 let answeredCountElement = null;
@@ -392,7 +391,10 @@ function openPreview(host, label) {
   overlay.setAttribute('aria-modal', 'true');
   overlay.setAttribute('aria-label', `${label}预览`);
   // 克隆体离开了原来的底板，配色 token 一并带过来，预览里的图表表格才不变色。
-  const hostStyles = getComputedStyle(host);
+  // token 挂在 .rich-text 上：宿主是表格框时自己就带，宿主是整段正文（「本次背景」）
+  // 时取它内部第一个 .rich-text，取不到再退回宿主本身。
+  const tokenSource = host.querySelector('.rich-text') || host;
+  const hostStyles = getComputedStyle(tokenSource);
   for (const token of RICH_TOKENS) {
     canvas.style.setProperty(token, hostStyles.getPropertyValue(token));
   }
@@ -400,6 +402,15 @@ function openPreview(host, label) {
   for (const node of [...host.cloneNode(true).childNodes]) {
     if (node.classList?.contains('preview-hint')) continue;
     canvas.append(node);
+  }
+  // 宿主是整段正文（如「本次背景」）时，克隆体里还嵌着表格、代码块的
+  // 预览框：监听器不会跟过来，但角标和可聚焦残留会，剥掉以免出现点了没反应的假按钮。
+  for (const hint of canvas.querySelectorAll('.preview-hint')) hint.remove();
+  for (const nested of canvas.querySelectorAll('.previewable')) {
+    nested.classList.remove('previewable');
+    nested.removeAttribute('tabindex');
+    nested.removeAttribute('role');
+    nested.removeAttribute('aria-label');
   }
 
   // mermaid 的 svg 带 width="100%"，脱离原容器后量不出宽度。按 viewBox 写死尺寸，
@@ -565,8 +576,12 @@ function showToast(message) {
   setTimeout(() => toast.classList.remove('show'), 2200);
 }
 
-function currentRound() {
-  return bundle.rounds.find((round) => round.roundNumber === activeRoundNumber);
+function currentForm() {
+  return { questions: bundle.questions, answers: bundle.answers };
+}
+
+function editableNow() {
+  return bundle?.ask.status === 'waiting_for_user';
 }
 
 function currentTheme() {
@@ -582,16 +597,6 @@ function setTheme(theme) {
     // The visual theme still works when browser storage is unavailable.
   }
   if (bundle) render();
-}
-
-// 草稿按轮次留在内存里：切去看上一轮再切回来，这一轮已经填的东西必须还在。
-const draftsByRound = new Map();
-
-function draftsFor(round) {
-  if (!draftsByRound.has(round.roundNumber)) {
-    draftsByRound.set(round.roundNumber, answersForRound(round));
-  }
-  return draftsByRound.get(round.roundNumber);
 }
 
 function answerFor(questionId) {
@@ -610,32 +615,28 @@ function answerFor(questionId) {
 
 // 下面几个只是把模块级的草稿与当前题绑上去，推导本身在 view-state.js 里，
 // 页面这一侧不再重复实现一遍。
-function visibleQuestionsOf(round, editable) {
-  return viewState.visibleQuestionsOf(round, editable, pendingAnswers);
+function visibleQuestionsOf(form, editable) {
+  return viewState.visibleQuestionsOf(form, editable, pendingAnswers);
 }
 
-function visibilitySignature(round, editable) {
-  return viewState.visibilitySignature(round, editable, pendingAnswers);
+function visibilitySignature(form, editable) {
+  return viewState.visibilitySignature(form, editable, pendingAnswers);
 }
 
 function isAnswered(question, editable, submittedAnswers) {
   return viewState.isAnswered(question, editable, submittedAnswers, pendingAnswers);
 }
 
-function answeredQuestionCount(round, editable) {
-  return viewState.answeredQuestionCount(round, editable, pendingAnswers);
+function answeredQuestionCount(form, editable) {
+  return viewState.answeredQuestionCount(form, editable, pendingAnswers);
 }
 
 function questionState(question, editable, submittedAnswers) {
   return viewState.questionState(question, editable, submittedAnswers, pendingAnswers, focusedQuestionId);
 }
 
-function firstUnansweredId(round, editable) {
-  return viewState.firstUnansweredId(round, editable, pendingAnswers);
-}
-
-function roundEditable(round) {
-  return round.status === 'waiting_for_user' && bundle.session.status === 'active';
+function firstUnansweredId(form, editable) {
+  return viewState.firstUnansweredId(form, editable, pendingAnswers);
 }
 
 function scrollToQuestion(questionId, behavior = 'smooth') {
@@ -656,9 +657,9 @@ function markAsNew(card) {
 
 // 条件题出现或消失时只增删这几张卡，不重建整页：整页重建会打断正在输入的
 // 那一行、丢掉滚动位置，还要把已经渲染好的图表和代码高亮全部重做一遍。
-function syncVisibleQuestions(round, editable) {
-  lastVisibilitySignature = visibilitySignature(round, editable);
-  const visible = visibleQuestionsOf(round, editable);
+function syncVisibleQuestions(form, editable) {
+  lastVisibilitySignature = visibilitySignature(form, editable);
+  const visible = visibleQuestionsOf(form, editable);
   const visibleIds = new Set(visible.map((question) => question.id));
   const scroll = document.querySelector('.question-scroll');
   if (!scroll) return;
@@ -669,7 +670,7 @@ function syncVisibleQuestions(round, editable) {
   visible.forEach((question, index) => {
     let card = cards.get(question.id);
     if (!card) {
-      card = renderQuestion(question, index, editable, round.answers?.answers);
+      card = renderQuestion(question, index, editable, form.answers?.answers);
       markAsNew(card);
     }
     // 序号是按可见顺序排的，分支一变就得跟着改。
@@ -677,7 +678,7 @@ function syncVisibleQuestions(round, editable) {
     if (number) number.textContent = String(index + 1).padStart(2, '0');
     if (scroll.children[index] !== card) scroll.insertBefore(card, scroll.children[index] || null);
   });
-  if (railNavElement) fillRailNav(railNavElement, round, editable, visible);
+  if (railNavElement) fillRailNav(railNavElement, form, editable, visible);
   if (progressCellsElement) {
     while (progressCellsElement.children.length > visible.length) {
       progressCellsElement.lastElementChild.remove();
@@ -690,20 +691,20 @@ function syncVisibleQuestions(round, editable) {
 
 // 单选选完就把用户送到下一道没答的题，不用自己回去找。
 function advanceFrom(questionId) {
-  const round = currentRound();
-  const editable = roundEditable(round);
-  const pending = viewState.nextUnansweredIdFrom(round, editable, pendingAnswers, questionId);
+  const form = currentForm();
+  const editable = editableNow();
+  const pending = viewState.nextUnansweredIdFrom(form, editable, pendingAnswers, questionId);
   if (!pending) return;
   focusedQuestionId = pending;
-  if (railNavElement) refreshRailStates(round, editable);
-  refreshCardStates(round, editable);
+  if (railNavElement) refreshRailStates(form, editable);
+  refreshCardStates(form, editable);
   scrollToQuestion(pending);
 }
 
 async function alignToFocusedQuestion() {
-  const round = currentRound();
-  if (!round || !focusedQuestionId || !roundEditable(round)) return;
-  const visible = visibleQuestionsOf(round, true);
+  if (!bundle || !focusedQuestionId || !editableNow()) return;
+  const form = currentForm();
+  const visible = visibleQuestionsOf(form, true);
   // 第一题就是待答题时不动，页面本来就从它开始。
   if (visible[0]?.id === focusedQuestionId) return;
   await richTextSettled();
@@ -711,14 +712,14 @@ async function alignToFocusedQuestion() {
 }
 
 function refreshProgress() {
-  const round = currentRound();
-  if (!round) return;
-  const editable = roundEditable(round);
-  if (visibilitySignature(round, editable) !== lastVisibilitySignature) {
-    syncVisibleQuestions(round, editable);
+  if (!bundle) return;
+  const form = currentForm();
+  const editable = editableNow();
+  if (visibilitySignature(form, editable) !== lastVisibilitySignature) {
+    syncVisibleQuestions(form, editable);
   }
-  const visible = visibleQuestionsOf(round, editable);
-  const answered = answeredQuestionCount(round, editable);
+  const visible = visibleQuestionsOf(form, editable);
+  const answered = answeredQuestionCount(form, editable);
   if (answeredCountElement) {
     answeredCountElement.textContent = `已答 ${answered} / ${visible.length}`;
   }
@@ -726,39 +727,39 @@ function refreshProgress() {
     // 每个格子对应同序号的那一题，跳答时空格留在原位，不做左对齐填充。
     [...progressCellsElement.children].forEach((cell, index) => {
       const question = visible[index];
-      cell.classList.toggle('on', Boolean(question) && isAnswered(question, editable, round.answers?.answers));
+      cell.classList.toggle('on', Boolean(question) && isAnswered(question, editable, form.answers?.answers));
     });
   }
   if (editable && focusedQuestionId) {
-    const focused = round.questions.questions.find((item) => item.id === focusedQuestionId);
-    if (focused && isAnswered(focused, editable, round.answers?.answers)) {
-      focusedQuestionId = firstUnansweredId(round, editable);
+    const focused = form.questions.questions.find((item) => item.id === focusedQuestionId);
+    if (focused && isAnswered(focused, editable, form.answers?.answers)) {
+      focusedQuestionId = firstUnansweredId(form, editable);
     }
   }
-  if (railNavElement) refreshRailStates(round, editable);
-  refreshCardStates(round, editable);
+  if (railNavElement) refreshRailStates(form, editable);
+  refreshCardStates(form, editable);
 }
 
-function refreshRailStates(round, editable) {
+function refreshRailStates(form, editable) {
   for (const button of railNavElement.querySelectorAll('.nav-button')) {
-    const question = round.questions.questions.find((item) => item.id === button.dataset.questionId);
+    const question = form.questions.questions.find((item) => item.id === button.dataset.questionId);
     if (!question) continue;
-    const state = questionState(question, editable, round.answers?.answers);
+    const state = questionState(question, editable, form.answers?.answers);
     button.dataset.state = state;
     const status = button.querySelector('.st');
     if (status) status.textContent = { done: '已答', current: '当前', todo: '未答' }[state];
   }
   const counter = railNavElement.parentElement?.querySelector('.rail-count');
   if (counter) {
-    counter.textContent = `${answeredQuestionCount(round, editable)} / ${visibleQuestionsOf(round, editable).length}`;
+    counter.textContent = `${answeredQuestionCount(form, editable)} / ${visibleQuestionsOf(form, editable).length}`;
   }
 }
 
-function refreshCardStates(round, editable) {
+function refreshCardStates(form, editable) {
   for (const card of document.querySelectorAll('.question-card')) {
-    const question = round.questions.questions.find((item) => item.id === card.dataset.questionId);
+    const question = form.questions.questions.find((item) => item.id === card.dataset.questionId);
     if (!question) continue;
-    card.dataset.state = questionState(question, editable, round.answers?.answers);
+    card.dataset.state = questionState(question, editable, form.answers?.answers);
     card.querySelector('.question-flag')?.remove();
     if (card.dataset.state === 'current') {
       card.prepend(element('span', 'question-flag', '现在轮到这一题'));
@@ -779,14 +780,14 @@ function makeThemeButton(theme, label) {
 }
 
 function projectName() {
-  if (bundle.session.projectName) return bundle.session.projectName;
-  const workspace = bundle.session.workspace || '';
+  if (bundle.ask.projectName) return bundle.ask.projectName;
+  const workspace = bundle.ask.workspace || '';
   return workspace.split('/').filter(Boolean).at(-1) || 'ask-ui';
 }
 
 function renderHeader(container) {
   document.title = `${projectName()}-Ask UI`;
-  const header = element('header', 'session-header');
+  const header = element('header', 'ask-header');
   for (const variant of ['d1', 'd2', 'd3']) {
     const deco = element('span', `header-deco ${variant}`);
     deco.setAttribute('aria-hidden', 'true');
@@ -794,16 +795,15 @@ function renderHeader(container) {
   }
 
   const copy = element('div', 'header-copy');
-  copy.append(element('span', 'project-badge', bundle.session.title));
-  copy.append(element('h1', 'session-title', projectName()));
+  copy.append(element('span', 'project-badge', bundle.ask.title));
+  copy.append(element('h1', 'ask-title', projectName()));
   copy.append(element(
     'p',
-    'session-summary',
-    bundle.session.summary || 'Agent 已暂停，正在等你的答复。',
+    'ask-summary',
+    bundle.ask.summary || 'Agent 已暂停，正在等你的答复。',
   ));
 
   const tools = element('div', 'header-tools');
-  tools.append(renderTabs());
   const themes = element('div', 'theme-toggle');
   themes.setAttribute('aria-label', '页面主题');
   themes.append(makeThemeButton(currentTheme() === 'dark' ? 'light' : 'dark', currentTheme() === 'dark' ? '切换浅色主题' : '切换暗色主题'));
@@ -813,74 +813,59 @@ function renderHeader(container) {
   container.append(header);
 }
 
-function renderTabs() {
-  const tabs = element('nav', 'round-tabs');
-  tabs.setAttribute('role', 'tablist');
-  tabs.setAttribute('aria-label', '问题轮次');
-  for (const round of bundle.rounds) {
-    const completed = ['submitted', 'processed'].includes(round.status);
-    const label = completed
-      ? `第 ${round.roundNumber} 轮 · 已提交`
-      : `第 ${round.roundNumber} 轮 · 进行中`;
-    const button = element('button', 'round-tab', label);
-    button.type = 'button';
-    button.setAttribute('role', 'tab');
-    button.setAttribute('aria-selected', String(round.roundNumber === activeRoundNumber));
-    button.dataset.locked = String(completed);
-    button.addEventListener('click', () => {
-      activeRoundNumber = round.roundNumber;
-      pendingAnswers = draftsFor(round);
-      focusedQuestionId = firstUnansweredId(round, roundEditable(round));
-      render();
-      alignToFocusedQuestion();
-    });
-    tabs.append(button);
-  }
-  return tabs;
-}
-
 function renderRail(container) {
-  const round = currentRound();
-  if (!round) return;
-  const editable = roundEditable(round);
+  if (!bundle) return;
+  const form = currentForm();
+  const editable = editableNow();
   const rail = element('aside', 'rail');
-  rail.setAttribute('aria-label', '本轮问题导航');
+  rail.setAttribute('aria-label', '问题导航');
 
-  if (bundle.session.background) {
+  if (bundle.ask.background) {
     const context = element('div', 'rail-block context');
     context.append(element('h2', '', '本次背景'));
-    appendRichText(context, bundle.session.background);
+    // 背景整块放进预览的宿主。块本身不挂点击——背景里有链接和表格，
+    // 整块可点会吞掉它们的交互，所以放大只走右上角独立按钮。
+    const body = element('div', 'context-body');
+    body.tabIndex = -1;
+    appendRichText(body, bundle.ask.background);
+    context.append(body);
+    const expand = element('button', 'context-expand', '放大');
+    expand.type = 'button';
+    expand.setAttribute('aria-label', '放大查看本次背景');
+    expand.title = '放大查看本次背景';
+    expand.addEventListener('click', () => openPreview(body, '本次背景'));
+    context.append(expand);
     rail.append(context);
   }
 
-  const roundBlock = element('div', 'rail-block round');
-  roundBlock.append(element('span', 'kicker', `第 ${round.roundNumber} 轮`));
-  roundBlock.append(element('h2', '', round.title || '需求确认'));
-  if (round.purpose) roundBlock.append(element('p', '', round.purpose));
-  rail.append(roundBlock);
+  const titleBlock = element('div', 'rail-block title');
+  titleBlock.append(element('span', 'kicker', '本次提问'));
+  titleBlock.append(element('h2', '', bundle.ask.title || '需求确认'));
+  if (bundle.ask.purpose) titleBlock.append(element('p', '', bundle.ask.purpose));
+  rail.append(titleBlock);
 
-  const visible = visibleQuestionsOf(round, editable);
+  const visible = visibleQuestionsOf(form, editable);
   const head = element('div', 'rail-head');
   head.append(element('span', '', '队列里还有谁在等'));
   head.append(element(
     'span',
     'rail-count',
-    `${answeredQuestionCount(round, editable)} / ${visible.length}`,
+    `${answeredQuestionCount(form, editable)} / ${visible.length}`,
   ));
   rail.append(head);
 
   const nav = element('ul', 'rail-nav');
   railNavElement = nav;
-  fillRailNav(nav, round, editable, visible);
+  fillRailNav(nav, form, editable, visible);
   rail.append(nav);
   container.append(rail);
 }
 
-function fillRailNav(nav, round, editable, visible) {
+function fillRailNav(nav, form, editable, visible) {
   nav.replaceChildren();
   visible.forEach((question, index) => {
     const item = element('li');
-    const state = questionState(question, editable, round.answers?.answers);
+    const state = questionState(question, editable, form.answers?.answers);
     const button = element('button', 'nav-button');
     button.type = 'button';
     button.dataset.questionId = question.id;
@@ -892,8 +877,8 @@ function fillRailNav(nav, round, editable, visible) {
     button.addEventListener('click', () => {
       if (editable) focusedQuestionId = question.id;
       scrollToQuestion(question.id);
-      refreshRailStates(round, editable);
-      refreshCardStates(round, editable);
+      refreshRailStates(form, editable);
+      refreshCardStates(form, editable);
     });
     item.append(button);
     nav.append(item);
@@ -1139,9 +1124,9 @@ function renderQuestion(question, index, editable, submittedAnswers) {
   return card;
 }
 
-function clientValidation(round) {
+function clientValidation(form) {
   const errors = [];
-  for (const question of visibleQuestionsOf(round, true)) {
+  for (const question of visibleQuestionsOf(form, true)) {
     const answer = answerFor(question.id);
     const count = selectionCount(question, answer);
     const answeredBySupplement = Boolean(answer.supplementaryText?.trim());
@@ -1161,8 +1146,9 @@ function clientValidation(round) {
   return errors;
 }
 
-async function submitRound(round, submitButton) {
-  const errors = clientValidation(round);
+async function submitForm(submitButton) {
+  const form = currentForm();
+  const errors = clientValidation(form);
   if (errors.length) {
     showToast(errors[0]);
     return;
@@ -1170,13 +1156,13 @@ async function submitRound(round, submitButton) {
   if (submitting) return;
   // 隐藏题的草稿只留在页面上供用户切回分支时复用，不进提交：Agent 读到的答案
   // 必须和用户屏幕上的表单一一对应。
-  const visible = new Set(visibleQuestionsOf(round, true).map((question) => question.id));
+  const visible = new Set(visibleQuestionsOf(form, true).map((question) => question.id));
   submitting = true;
   submitButton.disabled = true;
   submitButton.textContent = '正在提交…';
   try {
     await api(
-      `/api/sessions/${encodeURIComponent(sessionId)}/rounds/${round.roundNumber}/answers`,
+      `/api/asks/${encodeURIComponent(askId)}/answers`,
       {
         method: 'POST',
         body: JSON.stringify({
@@ -1186,74 +1172,72 @@ async function submitRound(round, submitButton) {
       },
     );
     showSubmissionConfirmation();
-    // 提交后这一轮的答案以服务端存下的为准，草稿缓存留着会盖掉它。
-    draftsByRound.delete(round.roundNumber);
+    // 提交后答案以服务端存下的为准，内存里的草稿不再代表任何状态。
     await loadBundle(true);
   } catch (error) {
     showToast(error.message);
   } finally {
     submitting = false;
     submitButton.disabled = false;
-    submitButton.textContent = '提交本轮答案';
+    submitButton.textContent = '提交答案';
   }
 }
 
 function renderQuestions(container) {
-  const round = currentRound();
-  if (!round) return;
+  if (!bundle) return;
+  const form = currentForm();
   const scroll = element('main', 'question-scroll');
-  scroll.setAttribute('role', 'tabpanel');
-  const editable = roundEditable(round);
-  visibleQuestionsOf(round, editable).forEach((question, index) => {
-    scroll.append(renderQuestion(question, index, editable, round.answers?.answers));
+  const editable = editableNow();
+  visibleQuestionsOf(form, editable).forEach((question, index) => {
+    scroll.append(renderQuestion(question, index, editable, form.answers?.answers));
   });
   container.append(scroll);
 }
 
 function renderSubmitDock(container) {
-  const round = currentRound();
-  if (!round) return;
+  if (!bundle) return;
+  const form = currentForm();
   const dock = element('footer', 'submit-dock');
-  const editable = roundEditable(round);
-  const directReturn = round.deliveryMode === 'direct';
+  const editable = editableNow();
+  const directReturn = bundle.ask.deliveryMode === 'direct';
 
   if (editable) {
     dock.append(element(
       'p',
       'submit-readme',
       directReturn
-        ? '提交后 Agent 会立即用你的答案继续工作，本轮不可再修改。'
-        : '提交后本轮变为只读，请回到 Agent 会话回复「已提交」继续。',
+        ? '提交后 Agent 会立即用你的答案继续工作，提交后不可再修改。'
+        : '提交后页面变为只读，请回到 Agent 会话回复「已提交」继续。',
     ));
     const status = element('div', 'dock-status');
     progressCellsElement = element('div', 'progress-cells');
-    for (let index = 0; index < visibleQuestionsOf(round, editable).length; index += 1) {
+    for (let index = 0; index < visibleQuestionsOf(form, editable).length; index += 1) {
       progressCellsElement.append(element('span', 'progress-cell'));
     }
     answeredCountElement = element('span', 'answered-count');
     status.append(progressCellsElement, answeredCountElement);
     dock.append(status);
 
-    const submit = element('button', 'btn-primary', '提交本轮答案');
+    const submit = element('button', 'btn-primary', '提交答案');
     submit.type = 'button';
-    submit.addEventListener('click', () => submitRound(round, submit));
+    submit.addEventListener('click', () => submitForm(submit));
     dock.append(submit);
     refreshProgress();
   } else {
     dock.append(element(
       'p',
       'submit-readme',
-      round.status === 'submitted'
+      bundle.ask.status === 'submitted'
         ? (directReturn
             ? '答案已返回 Agent，可以回到会话查看后续处理。'
-            : '本轮已提交，请回到 Agent 会话回复「已提交」。')
-        : '本轮已处理，以上内容作为后续轮次的只读依据。',
+            : '答案已提交，请回到 Agent 会话回复「已提交」。')
+        : '本次提问已结束，以上内容只读。',
     ));
     const status = element('div', 'dock-status');
     status.append(element(
       'span',
       'answered-count',
-      `共 ${visibleQuestionsOf(round, editable).length} 题 · 只读`,
+      `共 ${visibleQuestionsOf(form, editable).length} 题 · 只读`,
     ));
     dock.append(status);
   }
@@ -1269,8 +1253,7 @@ function renderError(error) {
 }
 
 function render() {
-  const round = currentRound();
-  lastVisibilitySignature = round ? visibilitySignature(round, roundEditable(round)) : '';
+  lastVisibilitySignature = bundle ? visibilitySignature(currentForm(), editableNow()) : '';
   answeredCountElement = null;
   progressCellsElement = null;
   railNavElement = null;
@@ -1284,26 +1267,19 @@ function render() {
 }
 
 async function loadBundle(force = false) {
-  const next = await api(`/api/sessions/${encodeURIComponent(sessionId)}`);
-  const changed = force || next.session.updatedAt !== lastUpdatedAt;
-  const previousMaxRound = bundle?.rounds?.length
-    ? Math.max(...bundle.rounds.map((round) => round.roundNumber))
-    : 0;
+  const next = await api(`/api/asks/${encodeURIComponent(askId)}`);
+  const changed = force || next.ask.updatedAt !== lastUpdatedAt;
+  const firstLoad = !bundle;
   bundle = next;
-  lastUpdatedAt = next.session.updatedAt;
-  const waiting = [...bundle.rounds].reverse().find((round) => round.status === 'waiting_for_user');
-  const activeStillExists = bundle.rounds.some((round) => round.roundNumber === activeRoundNumber);
-  const hasNewWaitingRound = waiting && waiting.roundNumber > previousMaxRound;
-  if (!activeStillExists || force || hasNewWaitingRound) {
-    activeRoundNumber = waiting?.roundNumber || bundle.rounds.at(-1)?.roundNumber || null;
-    const round = currentRound();
-    pendingAnswers = round ? draftsFor(round) : [];
-    focusedQuestionId = round ? firstUnansweredId(round, roundEditable(round)) : null;
+  lastUpdatedAt = next.ask.updatedAt;
+  if (firstLoad && next.ask.status === 'waiting_for_user') {
+    pendingAnswers = answersForForm(currentForm());
+    focusedQuestionId = firstUnansweredId(currentForm(), true);
   }
   if (changed) render();
-  // 首次打开和新一轮到达时把视口停在第一道待答题上；轮询中的普通刷新不动视口，
+  // 首次打开把视口停在第一道待答题上；轮询中的普通刷新不动视口，
   // 那会把正在答题的人推走。
-  if (force || hasNewWaitingRound) alignToFocusedQuestion();
+  if (force) alignToFocusedQuestion();
 }
 
 // macOS 上 Home/End 在文本框里不移动光标，而是滚动页面。这里把它们接管成
@@ -1345,8 +1321,8 @@ document.addEventListener('keydown', (event) => {
   }
 });
 
-if (!sessionId || !token) {
-  renderError(new Error('页面链接缺少 Session 或访问令牌。请使用 Agent 返回的完整链接。'));
+if (!askId || !token) {
+  renderError(new Error('页面链接缺少提问 id 或访问令牌。请使用 Agent 返回的完整链接。'));
 } else {
   loadBundle(true)
     .then(() => {

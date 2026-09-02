@@ -22,16 +22,16 @@ description: 向用户提问的时候、调用 `AskUserQuestion` 时都使用本
 无论走到哪条路径，以下红线一次都不能破：
 
 - 🔴 绝不要求用户回复「已提交」来推进 `ask`——后台任务的完成通知就是唤醒信号。
-- 🔴 绝不覆盖已提交的问题或答案——更正和补充一律开新 Round。
+- 🔴 绝不覆盖已提交的问题或答案——更正和补充再发起一次新的 `ask`。
 - 🔴 绝不用 `nohup ... &` 之类手写后台——用 harness 自己的后台机制。
 - 🔴 绝不 `sleep` 轮询、催用户。
 - 🔴 绝不 `tail` harness 任务输出或手拼 `.ask-ui/` 下的文件路径——读 `<run>.stdout.json`，或跑 `resume`。
 
 ## 判断是否使用 UI
 
-🔴 **CHECKPOINT**：当前一轮包含至少两个用户当下就能回答的独立问题时，必须使用 UI。答案依赖前一题的问题写成同一轮里的条件题（`showWhen`，见第 3 步）；只有需要 Agent 拿到答案后重新推理才能提出的问题，才留到后续轮次。只有一个问题时直接在对话里问；唯一的例外是更正或补充已提交的答案——哪怕只有一题也走新 Round 表单，因为对话里口头确认不落盘、不进 Round 链，后续 `basedOnRound` 轮次读不到它。
+🔴 **CHECKPOINT**：当前一批问题里包含至少两个用户当下就能回答的独立问题时，必须使用 UI。答案依赖前一题的问题写成同一次提问里的条件题（`showWhen`，见第 3 步）；只有需要 Agent 拿到答案后重新推理才能提出的问题，才留到下一次 `ask`。只有一个问题时直接在对话里问；唯一的例外是更正或补充已提交的答案——哪怕只有一题也再发起一次 `ask`，因为对话里口头确认不落盘，后续流程读不到它。
 
-对 `grill-me`、`grill-with-docs`、头脑风暴，或其他确认与问题收集类工作流，只要一轮超过两个问题，一律使用 UI。
+对 `grill-me`、`grill-with-docs`、头脑风暴，或其他确认与问题收集类工作流，只要一次超过两个问题，一律使用 UI。
 
 ### 回退顺序
 
@@ -47,13 +47,13 @@ description: 向用户提问的时候、调用 `AskUserQuestion` 时都使用本
 
 1. 把包含本 `SKILL.md` 的目录解析为 `ASK_UI_SKILL_DIR`。
 2. 创建 JSON 前先读两份文件：[references/questionset.schema.json](references/questionset.schema.json) 是字段清单本身（JSON Schema 2020-12，每个字段带中文说明），[references/schema.md](references/schema.md) 讲 schema 表达不了的部分——跨字段硬规则、页面实际行为、为什么这样写。[references/example-question-set.json](references/example-question-set.json) 是一份可直接复制改字段的完整起手模板（单选 / 多选 / 自由文本各一题，带推荐答案和上下文字段）。答案的结构见 [references/answerset.schema.json](references/answerset.schema.json)。
-3. 创建 QuestionSet JSON 文件。新任务省略 `sessionId`；后续轮次复用当前活跃的 `sessionId` 并设置 `basedOnRound`。
+3. 创建 QuestionSet JSON 文件。每次 `ask` 都是一次独立提问，id 由 CLI 自动生成。旧版字段（`sessionId` / `roundNumber` / `basedOnRound` / `sessionTitle` / `sessionSummary` / `sessionBackground`）已全部移除，写了会报错指路。
    每道题必写两个字段：`type`（`single` / `multiple` / `text`，**没有默认值，漏写报错**）和 `text`（问题正文，问题本身和描述都写在这里）。选项一律是 JSON 对象 `{"text":"…","description":"…","recommended":true,"reason":"…"}`，**不接受字符串**；`reason` 只能写在 `recommended: true` 的选项上。
    允许留空的题必须显式写 `"required": false`——`required` 默认 `true`，漏写就是必填，页面挂「必填」徽标、留空挡提交。**别在 `text` 里写「（可留空）」代替这个字段**：文案和徽标对不上，用户只能被迫编一句。「还有别的补充吗」「其他备注」「可选参数」这类题一律 `type: "text"` + `"required": false`。
-   一并写上上下文字段，让用户不看对话就能判断在问什么：Session 级 `projectName` / `sessionSummary` / `sessionBackground`，Round 级 `purpose`，需要单独交代前情的题写 `background`。
+   一并写上上下文字段，让用户不看对话就能判断在问什么：`projectName` / `title` / `summary` / `background`（左栏「本次背景」，右上角有独立按钮可放大）/ `purpose`，需要单独交代前情的题写题级 `background`。
    选择题没有「其他」选项。预设选项之外的答案由每题的补充说明承载，所以选项只列真正互斥的几种，不要凑「其他」。选择题至少要 2 个选项，脚本会直接报错 `第 X 题是选择题，至少要有两个选项` 并退出——只有一个候选的确认题改成 `type: "text"`，或者干脆在对话里问。
-   有依赖关系的问题写成同一轮里的**条件题**：`"showWhen": {"questionId":"q1","optionIds":["a"]}` 让这题只在 `q1` 选了 `a` 时才出现，用户选完当场出现或消失。`showWhen` 只能指向排在前面的题，分支树靠链式依赖搭；文本题作触发源时用 `answered` / `contains` / `matches`。隐藏题不校验必填、也不进 `answers.json`（id 列在 `hiddenQuestionIds`）。完整规则见 [references/schema.md](references/schema.md) 的「条件题（分支）」——`showWhen` 的三条跨字段硬规则（指向前面的题、匹配方式配得上题型、选项 id 真实存在）schema 拦不住，只有运行时会报错。
-   `sessionBackground`、题目的 `text` 和 `background` 支持 **Markdown（GFM：标题、粗体、行内代码、代码块、列表、链接、引用、表格）+ Mermaid**；选项的 `description` 只支持 Markdown。流程、时序、架构这类讲不清的东西写成 ` ```mermaid ` 代码块，会渲染成跟随主题的图。表格、图表和代码块在页面上都能点击放大、缩放拖拽。代码块在围栏上标语言（` ```ts `、` ```sql `）就会按语言高亮。**嵌套规则**：要展示一段本身含 ``` 围栏的 markdown（或代码里含 ```）时，外层围栏必须用四反引号 ` ```` `——三反引号会被内层第一个 ``` 提前闭合，后面的内容漏成正文，页面上出现裸 ``` 字符。
+   有依赖关系的问题写成同一次提问里的**条件题**：`"showWhen": {"questionId":"q1","optionIds":["a"]}` 让这题只在 `q1` 选了 `a` 时才出现，用户选完当场出现或消失。`showWhen` 只能指向排在前面的题，分支树靠链式依赖搭；文本题作触发源时用 `answered` / `contains` / `matches`。隐藏题不校验必填、也不进 `answers.json`（id 列在 `hiddenQuestionIds`）。完整规则见 [references/schema.md](references/schema.md) 的「条件题（分支）」——`showWhen` 的三条跨字段硬规则（指向前面的题、匹配方式配得上题型、选项 id 真实存在）schema 拦不住，只有运行时会报错。
+   `background`、题目的 `text` 和 `background` 支持 **Markdown（GFM：标题、粗体、行内代码、代码块、列表、链接、引用、表格）+ Mermaid**；选项的 `description` 只支持 Markdown。流程、时序、架构这类讲不清的东西写成 ` ```mermaid ` 代码块，会渲染成跟随主题的图。表格、图表和代码块在页面上都能点击放大、缩放拖拽。代码块在围栏上标语言（` ```ts `、` ```sql `）就会按语言高亮。**嵌套规则**：要展示一段本身含 ``` 围栏的 markdown（或代码里含 ```）时，外层围栏必须用四反引号 ` ```` `——三反引号会被内层第一个 ``` 提前闭合，后面的内容漏成正文，页面上出现裸 ``` 字符。
 4. **在后台运行命令，并把 stdout 和 stderr 分开重定向到两个文件**：
 
    ```text
@@ -64,7 +64,7 @@ description: 向用户提问的时候、调用 `AskUserQuestion` 时都使用本
 
 5. 🛑 **STOP：启动后立刻结束本轮，什么都不用等。**`ask` 没有超时，会一直阻塞到用户提交；用户提交后进程退出，harness 主动把任务完成通知推给你，那就是唤醒信号。
 6. 收到完成通知后，直接读 `<run>.stdout.json`——它是一整行 JSON，解析后继续原工作流。stderr 文件只用于排查，正常路径不必看。
-7. 若还需要更多独立问题，用同一个 `sessionId` 再次调用 `ask`，并把 `basedOnRound` 设为返回的轮次号。没有更多问题时，结束该 Session。
+7. 若还需要更多独立问题，再创建一份 QuestionSet JSON 并再次调用 `ask`——每次 `ask` 天然独立，互不干扰。
 
 ### 为什么必须分流重定向
 
@@ -72,28 +72,28 @@ description: 向用户提问的时候、调用 `AskUserQuestion` 时都使用本
 
 ### 服务与浏览器生命周期
 
-- 每一轮都会打开浏览器：页面在提交后自行关闭，所以下一轮必须重新打开。同一 Session 的各轮复用常驻服务和稳定 URL。
+- 每次 `ask` 都会打开浏览器：页面在提交后自行关闭，所以下一次提问必须重新打开。常驻服务和端口在多次提问间复用。
 - 常驻服务不需要手动清理，它自己管进退——四条退出规则见「故障速查」表里「表单挂了很久没人答」那一行。
 - 仅当浏览器打开由外部单独管理时才用 `--no-open`。仅当必须固定 localhost 端口时才用 `--port <number>`。
 
 ## 故障速查：出什么事，做什么
 
 ```text
-node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs resume --session <sessionId>
+node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs resume --id <askId>
 ```
 
 🔴 只有下表列出的情况才需要 `resume`。正常路径永远是读 `<run>.stdout.json`，不要把 `resume` 当常规动作。
 
-`sessionId` 从 stderr 文件里的 `ask-ui-session: <id>` 标记取；stderr 里还有一行 `ask-ui-submitted: <id> round <n>`，是提交完成的备用信号。`resume` 返回 `status: "submitted"` 时其中就是完整答案。
+`askId` 从 stderr 文件里的 `ask-ui-id: <id>` 标记取；stderr 里还有一行 `ask-ui-submitted: <id>`，是提交完成的备用信号。`resume` 返回 `status: "submitted"` 时其中就是完整答案。
 
 | 触发条件 | 一线修复 | 仍失败的兜底 |
 |---|---|---|
-| 任务秒退，stderr 里连 `ask-ui-session` 标记都没有 | QuestionSet JSON 非法，会话根本没建起来：读 stderr 的报错（一次列出全部问题）改 JSON 重跑 `ask` | 🔴 不要跑 `resume`——没有会话可恢复，不带 `--session` 的 `resume` 只会捞出别的任务的旧会话 |
-| 后台任务被杀、崩溃，或退出码非 0（stderr 有 `ask-ui-session`） | 取 `sessionId` 后跑 `resume` | 跑不带 `--session` 的 `resume`，按 `title` / `summary` 筛出讲当前任务的候选，取 `submittedAt` 最新的一条 |
-| `<run>.stdout.json` 为空或不是合法 JSON | 同上，用 `resume` 重取结果 | 会话确实不存在时据实说明答案已丢，用同一批问题开新 Session |
-| 换了新的 Agent 会话，拿不到原来的后台任务 | 从对话里最近的 `ask-ui-session` 标记取 id 后 `resume` | 标记也丢了就跑不带 `--session` 的 `resume` 列候选 |
+| 任务秒退，stderr 里连 `ask-ui-id` 标记都没有 | QuestionSet JSON 非法，提问根本没建起来：读 stderr 的报错（一次列出全部问题）改 JSON 重跑 `ask` | 🔴 不要跑 `resume`——没有数据可恢复，不带 `--id` 的 `resume` 只会捞出别的任务的旧提问 |
+| 后台任务被杀、崩溃，或退出码非 0（stderr 有 `ask-ui-id`） | 取 `askId` 后跑 `resume` | 跑不带 `--id` 的 `resume`，按 `title` / `summary` 筛出讲当前任务的候选，取 `submittedAt` 最新的一条 |
+| `<run>.stdout.json` 为空或不是合法 JSON | 同上，用 `resume` 重取结果 | 数据确实不存在时据实说明答案已丢，用同一批问题重新 `ask` |
+| 换了新的 Agent 会话，拿不到原来的后台任务 | 从对话里最近的 `ask-ui-id` 标记取 id 后 `resume` | 标记也丢了就跑不带 `--id` 的 `resume` 列候选 |
 | `resume` 返回 `{"status":"waiting"}` | 用户还没提交：什么都不做，当场结束本轮，继续等 harness 的完成通知 | 🔴 不重开表单、不重发问题、不催用户、不 `sleep` |
-| 表单挂了很久没人答，担心服务一直占着 | 什么都不做：有轮次等着答服务就该一直跑，全部答完后 30 分钟无访问自行退出，数据目录被删立即退出，`complete` / `cancel` 结束最后一个会话时当场停掉 | 🔴 不要手动 kill 进程；空闲时长要改就用 `ASK_UI_IDLE_TIMEOUT_MINUTES` |
+| 表单挂了很久没人答，担心服务一直占着 | 什么都不做：有提问等着答服务就该一直跑，全部答完后 30 分钟无访问自行退出，数据目录被删立即退出，`complete` / `cancel` 结束最后一个提问时当场停掉 | 🔴 不要手动 kill 进程；空闲时长要改就用 `ASK_UI_IDLE_TIMEOUT_MINUTES` |
 | 本地浏览器连不上临时服务 | 走 `create` 分离式流程（见「手动回退与恢复」） | 仍连不上才退到 `AskUserQuestion` |
 | harness 没有 Bash 或等价的执行工具 | 用 `ToolSearch` 确认工具确实不存在，退到 `AskUserQuestion` | `AskUserQuestion` 也拿不到时才用对话里的编号文本问题 |
 | 唤醒适配器失败 | 保住答案，回到手动「已提交」流程 | 答案已落盘，用 `resume` 重取 |
@@ -102,7 +102,7 @@ node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs resume --session <sessionId>
 
 🔴 **CHECKPOINT：这是最后手段，只在 `ask` 确实用不了时才走**——它是唯一需要用户回复「已提交」的路径。`ask` 在后台运行**不算**用不了，那是标准路径，按上面等通知即可。
 
-出现以下情况时走分离式（detached）流程：前台工具调用无法保持活跃、本地浏览器连不上临时服务、或需要恢复一个被中断的直连轮次：
+出现以下情况时走分离式（detached）流程：前台工具调用无法保持活跃、本地浏览器连不上临时服务、或需要恢复一个被中断的直连提问：
 
 ```text
 node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs create --input <questions.json>
@@ -111,43 +111,35 @@ node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs create --input <questions.json>
 解析返回的 JSON。在对话中同时给出它的 URL 和一个可见标记：
 
    ```text
-   ask-ui-session: <sessionId>
+   ask-ui-id: <askId>
    ```
 
 告诉用户提交表单后只回复「已提交」。`create` 命令会启动或复用一个分离式 localhost 服务并立即返回。
 
 当用户说「已提交」「提交好了」「答完了」时：
 
-1. 从对话中最近一个 `ask-ui-session` 标记恢复 `sessionId`。
+1. 从对话中最近一个 `ask-ui-id` 标记恢复 `askId`。
 2. 运行：
 
    ```text
-   node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs resume --session <sessionId>
+   node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs resume --id <askId>
    ```
 
 3. 若结果为 `submitted`，用其中的问题和答案继续原工作流。
-4. 若还需要更多独立问题，优先回到前台 `ask` 命令，用同一 `sessionId` 并把 `basedOnRound` 设为刚处理的轮次。只有在仍然无法直连等待时才再次使用 `create`。
+4. 若还需要更多独立问题，优先回到前台 `ask` 命令（新的 JSON、新的提问）。只有在仍然无法直连等待时才再次使用 `create`。
 5. 若没有更多问题，运行：
 
    ```text
-   node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs complete --session <sessionId>
+   node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs complete --id <askId>
    ```
 
-若对话中拿不到该标记，运行不带 `--session` 的 `resume`。多个候选时它返回 `status: "ambiguous"` 和一份 `candidates` 列表（含 `sessionId` / `title` / `summary` / `workspace` / `roundNumber` / `submittedAt`）。数据目录默认就是当前工作目录下的 `.ask-ui`，所以候选都来自本工作区。按这个顺序筛：
+若对话中拿不到该标记，运行不带 `--id` 的 `resume`。多个候选时它返回 `status: "ambiguous"` 和一份 `candidates` 列表（含 `askId` / `title` / `summary` / `workspace` / `submittedAt`）。数据目录默认就是当前工作目录下的 `.ask-ui`，所以候选都来自本工作区。按这个顺序筛：
 
 1. 先按 `title` 和 `summary` 筛，只保留讲的是当前任务的候选。
 2. 只剩一条就用它；剩多条时取 `submittedAt` 最新的那条。
-3. 一条都对不上当前任务时，把各候选的 `sessionId`、`title`、`submittedAt` 列出来让用户选，不要挑一个最近的凑合用。
+3. 一条都对不上当前任务时，把各候选的 `askId`、`title`、`submittedAt` 列出来让用户选，不要挑一个最近的凑合用。
 
-🔴 重复的「已提交」消息不得创建重复轮次。只有在成功读到一个 `submitted` 轮次之后，才可以创建新轮次。
-
-## 保持 Session 连续性
-
-- 一个任务对应一个 Session。
-- 每批问题对应一个 Round。
-- 同一任务的所有轮次复用同一个 `sessionId`。
-- 更正和补充确认放进新的 Round。
-- 只有新任务、任务已完成、原 Session 已不可恢复、或用户明确要求重启时，才开新 Session。
+🔴 重复的「已提交」消息不得重复创建提问。只有在成功读到一个 `submitted` 的答案集之后，才可以发起新提问。
 
 ## 可选的主动唤醒
 
@@ -175,8 +167,8 @@ Ask UI 为 Claude Code 和 Codex App Server 支持可选的唤醒元数据。把
 | 漏写 `type`，或把选项写成字符串 | 两者都硬拒收，整批问题连会话都建不起来 | `type` 三选一必写；选项一律写成带 `text` 的 JSON 对象 |
 | 用题级 `recommendedOptionIds` 标推荐 | 已经不认这个字段，脚本会报错 | 推荐写在选项里：`"recommended": true` 配 `"reason"` |
 | 让 `showWhen` 指向排在后面的题 | 顺序即依赖序，向后引用会被硬拒收 | 把触发题排到前面 |
-| 因为「问题有依赖」就拆成多轮 | 每轮都要重开浏览器、Agent 也要多醒一次 | 同一轮里用 `showWhen` 做分支 |
-| 覆盖已提交的问题或答案 | `answers.json` 提交后不可变 | 更正和补充一律开新 Round |
+| 因为「问题有依赖」就拆成多次 ask | 每次都要重开浏览器、Agent 也要多醒一次 | 同一次提问里用 `showWhen` 做分支 |
+| 覆盖已提交的问题或答案 | `answers.json` 提交后不可变 | 更正和补充再发起一次 `ask` |
 | 把「没有 Bash 工具」说成「服务起不来」 | 归因错了，用户会去修一个不存在的环境问题 | 说清是工具缺失还是服务故障 |
 | 猜 Codex thread id | 猜错会把唤醒发给别的会话 | thread id 只能由宿主提供，拿不到就走手动流程 |
 
@@ -185,10 +177,10 @@ Ask UI 为 Claude Code 和 Codex App Server 支持可选的唤醒元数据。把
 ```text
 node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs ask --input <questions.json>    # 标准路径
 node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs create --input <questions.json> # 手动回退
-node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs resume --session <sessionId>    # 故障恢复
-node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs status --session <sessionId>    # 查会话状态
+node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs resume --id <askId>             # 故障恢复
+node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs status --id <askId>             # 查提问状态
 node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs serve                           # 常驻服务（ask/create 自动管理，一般不单跑）
-node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs complete --session <sessionId>  # 正常结束 Session
-node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs cancel --session <sessionId>    # 作废 Session（问题问错了、任务取消）
+node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs complete --id <askId>           # 正常结束提问
+node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs cancel --id <askId>             # 作废提问（问题问错了、任务取消）
 node <ASK_UI_SKILL_DIR>/scripts/self-test.mjs                              # 自检，改完 skill 或排查环境时跑
 ```

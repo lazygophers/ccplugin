@@ -25,27 +25,27 @@ export function normalizeAnswer(answer) {
   return normalized;
 }
 
-export function answersForRound(round) {
-  const source = round.answers?.answers || round.questions.questions.map(defaultAnswer);
+export function answersForForm(form) {
+  const source = form.answers?.answers || form.questions.questions.map(defaultAnswer);
   const byId = new Map(source.map((answer) => [answer.questionId, answer]));
-  return round.questions.questions.map((question) => normalizeAnswer(
+  return form.questions.questions.map((question) => normalizeAnswer(
     byId.get(question.id) || defaultAnswer(question),
   ));
 }
 
-// 条件题：正在编辑时按手里这份草稿算可见性，只读轮次按已提交的答案算。
-function answersInPlay(round, editable, pendingAnswers) {
-  return editable ? (pendingAnswers || []) : (round.answers?.answers || []);
+// 条件题：正在编辑时按手里这份草稿算可见性，只读时按已提交的答案算。
+function answersInPlay(form, editable, pendingAnswers) {
+  return editable ? (pendingAnswers || []) : (form.answers?.answers || []);
 }
 
-export function visibleQuestionsOf(round, editable, pendingAnswers) {
-  const questions = round.questions.questions;
-  const visible = visibleQuestionIds(questions, answersInPlay(round, editable, pendingAnswers));
+export function visibleQuestionsOf(form, editable, pendingAnswers) {
+  const questions = form.questions.questions;
+  const visible = visibleQuestionIds(questions, answersInPlay(form, editable, pendingAnswers));
   return questions.filter((question) => visible.has(question.id));
 }
 
-export function visibilitySignature(round, editable, pendingAnswers) {
-  return visibleQuestionsOf(round, editable, pendingAnswers).map((question) => question.id).join('|');
+export function visibilitySignature(form, editable, pendingAnswers) {
+  return visibleQuestionsOf(form, editable, pendingAnswers).map((question) => question.id).join('|');
 }
 
 export function optionLabel(question, optionId) {
@@ -75,9 +75,9 @@ export function isAnswered(question, editable, submittedAnswers, pendingAnswers)
   return selectionCount(question, answer) > 0 || Boolean(answer.supplementaryText?.trim());
 }
 
-export function answeredQuestionCount(round, editable, pendingAnswers) {
-  return visibleQuestionsOf(round, editable, pendingAnswers).reduce((count, question) => (
-    count + (isAnswered(question, editable, round.answers?.answers, pendingAnswers) ? 1 : 0)
+export function answeredQuestionCount(form, editable, pendingAnswers) {
+  return visibleQuestionsOf(form, editable, pendingAnswers).reduce((count, question) => (
+    count + (isAnswered(question, editable, form.answers?.answers, pendingAnswers) ? 1 : 0)
   ), 0);
 }
 
@@ -86,19 +86,19 @@ export function questionState(question, editable, submittedAnswers, pendingAnswe
   return isAnswered(question, editable, submittedAnswers, pendingAnswers) ? 'done' : 'todo';
 }
 
-export function firstUnansweredId(round, editable, pendingAnswers) {
-  const pending = visibleQuestionsOf(round, editable, pendingAnswers).find(
-    (question) => !isAnswered(question, editable, round.answers?.answers, pendingAnswers),
+export function firstUnansweredId(form, editable, pendingAnswers) {
+  const pending = visibleQuestionsOf(form, editable, pendingAnswers).find(
+    (question) => !isAnswered(question, editable, form.answers?.answers, pendingAnswers),
   );
   return pending?.id || null;
 }
 
 // 单选选完就把用户送到下一道没答的题：从当前位置往后找，找不到再从头绕回来，
 // 这样跳答过的题不会被落下。全部答完时返回 null。
-export function nextUnansweredIdFrom(round, editable, pendingAnswers, questionId) {
-  const visible = visibleQuestionsOf(round, editable, pendingAnswers);
+export function nextUnansweredIdFrom(form, editable, pendingAnswers, questionId) {
+  const visible = visibleQuestionsOf(form, editable, pendingAnswers);
   const from = visible.findIndex((question) => question.id === questionId);
   const pending = [...visible.slice(from + 1), ...visible.slice(0, from + 1)]
-    .find((question) => !isAnswered(question, editable, round.answers?.answers, pendingAnswers));
+    .find((question) => !isAnswered(question, editable, form.answers?.answers, pendingAnswers));
   return pending?.id || null;
 }

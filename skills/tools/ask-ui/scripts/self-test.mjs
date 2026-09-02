@@ -8,12 +8,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
-  completeSession,
-  createRound,
-  hasPendingRound,
-  loadSessionBundle,
+  completeAsk,
+  createAsk,
+  hasPendingAsk,
+  loadAskBundle,
   normalizeQuestionSet,
-  resumeRound,
+  resumeAsk,
   startHttpServer,
 } from './ask-ui.mjs';
 import { formatSchemaErrors, validateAgainstSchema } from './schema-validator.mjs';
@@ -68,34 +68,26 @@ async function runDirectAsk({ questionSet, answers, dataRoot, cwd, testDuplicate
   });
 
   const parsedUrl = new URL(readyUrl);
-  const sessionId = decodeURIComponent(parsedUrl.pathname.split('/').at(-1));
+  const askId = decodeURIComponent(parsedUrl.pathname.split('/').at(-1));
   const token = parsedUrl.searchParams.get('token');
   const bundle = await (await fetch(
-    `${parsedUrl.origin}/api/sessions/${encodeURIComponent(sessionId)}`,
+    `${parsedUrl.origin}/api/asks/${encodeURIComponent(askId)}`,
     { headers: { Authorization: `Bearer ${token}` } },
   )).json();
-  const roundNumber = bundle.session.currentRound;
-  const endpoint = `${parsedUrl.origin}/api/sessions/${encodeURIComponent(sessionId)}/rounds/${roundNumber}/answers`;
+  const endpoint = `${parsedUrl.origin}/api/asks/${encodeURIComponent(askId)}/answers`;
   const request = {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ submissionId: `direct-${roundNumber}`, answers }),
+    body: JSON.stringify({ submissionId: `direct-${askId}`, answers }),
   };
   const submitted = await fetch(endpoint, request);
   assert.equal(submitted.status, 200);
   assert.equal((await submitted.json()).duplicate, false);
 
-  const answersPath = path.join(
-    dataRoot,
-    'sessions',
-    sessionId,
-    'rounds',
-    String(roundNumber).padStart(3, '0'),
-    'answers.json',
-  );
+  const answersPath = path.join(dataRoot, 'asks', askId, 'answers.json');
   assert.ok(JSON.parse(await fs.readFile(answersPath, 'utf8')).submittedAt);
 
   if (testDuplicate) {
@@ -160,7 +152,7 @@ try {
     await fs.readFile(fileURLToPath(new URL('../references/example-question-set.json', import.meta.url)), 'utf8'),
   );
   const baseQuestion = { id: 'q1', type: 'single', text: '选一个', options: [{ text: '甲' }, { text: '乙' }] };
-  const wrap = (...questions) => ({ sessionTitle: '对齐用例', questions });
+  const wrap = (...questions) => ({ title: '对齐用例', questions });
 
   const schemaValidCases = [
     ['references 里的起手模板', exampleQuestionSet],
@@ -197,7 +189,7 @@ try {
       baseQuestion,
       { id: 'q2', type: 'text', text: '细节', showWhen: { questionId: 'q1', optionIds: ['option-1'], answered: true } },
     )],
-    ['questions 为空', { sessionTitle: '空', questions: [] }],
+    ['questions 为空', { title: '空', questions: [] }],
   ];
 
   for (const [name, doc] of rejectedByBoth) {
@@ -233,7 +225,7 @@ try {
   // 这里直接喂问题集与答案断言返回值。可见题序列还要和 conditions.js 判定逐条对齐：
   // 两边一旦漂移，用户屏幕上看到的题和服务端校验的题就不是同一批。
   const viewSet = normalizeQuestionSet({
-    sessionTitle: '视图状态用例',
+    title: '视图状态用例',
     questions: [
       { id: 'entry', type: 'single', text: '选一个方向', options: [{ text: '迁移' }, { text: '回滚' }] },
       { id: 'background', type: 'text', text: '背景说明' },
@@ -243,11 +235,11 @@ try {
       { id: 'rollback', type: 'text', text: '回滚原因', showWhen: { questionId: 'entry', optionIds: ['option-2'] } },
     ],
   }, { cwd: temporaryRoot });
-  const viewRound = { roundNumber: 1, questions: viewSet, answers: null };
-  const draft = viewState.answersForRound(viewRound);
+  const viewForm = { questions: viewSet, answers: null };
+  const draft = viewState.answersForForm(viewForm);
   const draftOf = (id) => draft.find((answer) => answer.questionId === id);
   const visibleIdsNow = () => {
-    const sequence = viewState.visibleQuestionsOf(viewRound, true, draft).map((question) => question.id);
+    const sequence = viewState.visibleQuestionsOf(viewForm, true, draft).map((question) => question.id);
     assert.deepEqual(
       sequence,
       [...visibleQuestionIds(viewSet.questions, draft)],
@@ -256,11 +248,11 @@ try {
     return sequence;
   };
 
-  const untouched = viewState.visibleQuestionsOf(viewRound, true, draft);
+  const untouched = viewState.visibleQuestionsOf(viewForm, true, draft);
   assert.deepEqual(visibleIdsNow(), ['entry', 'background', 'owner']);
 
   draftOf('entry').selectedOptionIds = ['option-1'];
-  const migrating = viewState.visibleQuestionsOf(viewRound, true, draft);
+  const migrating = viewState.visibleQuestionsOf(viewForm, true, draft);
   assert.deepEqual(visibleIdsNow(), ['entry', 'background', 'window', 'owner']);
 
   draftOf('window').customText = '周六 02:00-04:00';
@@ -277,28 +269,27 @@ try {
   // 已答计数与「下一道待答题」。跳答（先答后面的题）后仍要指回真正没答的那一道。
   draftOf('entry').selectedOptionIds = ['option-1'];
   draftOf('window').customText = '';
-  draftOf('background').customText = '上一轮遗留';
+  draftOf('background').customText = '先前遗留';
   draftOf('rollback').customText = '这题此刻不可见，不该计入';
   assert.deepEqual(visibleIdsNow(), ['entry', 'background', 'window', 'owner']);
-  assert.equal(viewState.answeredQuestionCount(viewRound, true, draft), 2);
-  assert.equal(viewState.firstUnansweredId(viewRound, true, draft), 'window');
+  assert.equal(viewState.answeredQuestionCount(viewForm, true, draft), 2);
+  assert.equal(viewState.firstUnansweredId(viewForm, true, draft), 'window');
   assert.equal(viewState.questionState(viewSet.questions[1], true, null, draft, null), 'done');
   assert.equal(viewState.questionState(viewSet.questions[2], true, null, draft, null), 'todo');
   assert.equal(viewState.questionState(viewSet.questions[2], true, null, draft, 'window'), 'current');
 
   draftOf('owner').customText = '张三';
   // 从已答的 owner（最后一题）往后找不到，绕回开头才是那道跳过的 window。
-  assert.equal(viewState.nextUnansweredIdFrom(viewRound, true, draft, 'owner'), 'window');
+  assert.equal(viewState.nextUnansweredIdFrom(viewForm, true, draft, 'owner'), 'window');
   draftOf('window').customText = '周六 02:00-04:00';
   draftOf('plan').customText = '灰度切流';
   assert.deepEqual(visibleIdsNow(), ['entry', 'background', 'window', 'plan', 'owner']);
-  assert.equal(viewState.answeredQuestionCount(viewRound, true, draft), 5);
-  assert.equal(viewState.firstUnansweredId(viewRound, true, draft), null);
-  assert.equal(viewState.nextUnansweredIdFrom(viewRound, true, draft, 'entry'), null);
+  assert.equal(viewState.answeredQuestionCount(viewForm, true, draft), 5);
+  assert.equal(viewState.firstUnansweredId(viewForm, true, draft), null);
+  assert.equal(viewState.nextUnansweredIdFrom(viewForm, true, draft, 'entry'), null);
 
-  const first = await createRound({
-    sessionTitle: '个人工作台需求确认收集',
-    title: '第一轮：目标确认',
+  const first = await createAsk({
+    title: '个人工作台需求确认收集',
     questions: [
       {
         id: 'scope',
@@ -341,8 +332,8 @@ try {
 
   // title 缺省时取正文首个非空行，左栏导航才有短标签可用。
   {
-    const storedFirst = await loadSessionBundle(dataRoot, first.sessionId);
-    const stored = storedFirst.rounds[0].questions.questions;
+    const storedFirst = await loadAskBundle(dataRoot, first.askId);
+    const stored = storedFirst.questions.questions;
     assert.equal(stored[0].title, '优先范围', '显式 title 必须原样保留');
     assert.equal(stored[1].title, '首批模块', 'title 缺省应取 text 首个非空行');
     // 单选最多一个推荐项：两个「推荐」徽标会让用户不知道照哪个。
@@ -350,9 +341,8 @@ try {
     assert.equal(stored[1].options.filter((option) => option.recommended).length, 2);
   }
 
-  const invalidOther = await createRound({
-    sessionTitle: '非法选项验证',
-    title: '第一轮',
+  const invalidOther = await createAsk({
+    title: '非法选项验证',
     questions: [
       {
         id: 'restricted',
@@ -366,9 +356,8 @@ try {
     ],
   }, { dataDir: dataRoot, cwd: temporaryRoot });
 
-  const supplementOnly = await createRound({
-    sessionTitle: '仅补充说明也算作答',
-    title: '第一轮',
+  const supplementOnly = await createAsk({
+    title: '仅补充说明也算作答',
     questions: [
       {
         id: 'must-pick',
@@ -385,9 +374,8 @@ try {
     ],
   }, { dataDir: dataRoot, cwd: temporaryRoot });
 
-  const belowMinimum = await createRound({
-    sessionTitle: '选了就要满足下限',
-    title: '第一轮',
+  const belowMinimum = await createAsk({
+    title: '选了就要满足下限',
     questions: [
       {
         id: 'must-pick',
@@ -406,9 +394,8 @@ try {
 
   // 旧格式必须当场报错，不能静默丢掉推荐徽标或把 label 当成空文本。
   await assert.rejects(
-    () => createRound({
-      sessionTitle: '旧格式必须报错',
-      title: '第一轮',
+    () => createAsk({
+      title: '旧格式必须报错',
       questions: [
         {
           id: 'legacy',
@@ -429,9 +416,8 @@ try {
 
   // type 不再有默认值：漏写必须报错，而不是猜成文本题。
   await assert.rejects(
-    () => createRound({
-      sessionTitle: 'type 必填',
-      title: '第一轮',
+    () => createAsk({
+      title: 'type 必填',
       questions: [{ id: 'q1', text: '没写 type' }],
     }, { dataDir: dataRoot, cwd: temporaryRoot }),
     /必须写明 type/,
@@ -439,9 +425,8 @@ try {
 
   // 选项一律是 JSON 对象，字符串写法不收。
   await assert.rejects(
-    () => createRound({
-      sessionTitle: '选项必须是对象',
-      title: '第一轮',
+    () => createAsk({
+      title: '选项必须是对象',
       questions: [{ id: 'q1', type: 'single', text: '甲', options: ['乙', '丙'] }],
     }, { dataDir: dataRoot, cwd: temporaryRoot }),
     /必须是 JSON 对象/,
@@ -449,9 +434,8 @@ try {
 
   // reason 只属于推荐项，写了 reason 却没标 recommended 是写漏了。
   await assert.rejects(
-    () => createRound({
-      sessionTitle: 'reason 依赖 recommended',
-      title: '第一轮',
+    () => createAsk({
+      title: 'reason 依赖 recommended',
       questions: [{
         id: 'q1',
         type: 'single',
@@ -491,9 +475,8 @@ try {
       showWhen: { questionId: 'only-c', contains: ['超时', 'timeout'] },
     },
   ];
-  const createBranching = (sessionTitle) => createRound({
-    sessionTitle,
-    title: '第一轮',
+  const createBranching = (title) => createAsk({
+    title,
     questions: branchingQuestions(),
   }, { dataDir: dataRoot, cwd: temporaryRoot });
 
@@ -504,7 +487,7 @@ try {
   const branchChainFull = await createBranching('分支链式补全');
 
   {
-    const stored = (await loadSessionBundle(dataRoot, branchA.sessionId)).rounds[0].questions.questions;
+    const stored = (await loadAskBundle(dataRoot, branchA.askId)).questions.questions;
     assert.deepEqual(stored[1].showWhen, { questionId: 'entry', optionIds: ['a'] });
     assert.equal(stored[0].showWhen, null, '没写 showWhen 的题必须显式落成 null');
     assert.deepEqual(stored[4].showWhen, { questionId: 'only-c', contains: ['超时', 'timeout'] });
@@ -512,9 +495,8 @@ try {
 
   // 只能依赖排在前面的题：顺序即依赖序，环在这里就被挡住。
   await assert.rejects(
-    () => createRound({
-      sessionTitle: '条件不能向后引用',
-      title: '第一轮',
+    () => createAsk({
+      title: '条件不能向后引用',
       questions: [
         { id: 'q1', type: 'text', text: '甲', showWhen: { questionId: 'q2', optionIds: ['x'] } },
         { id: 'q2', type: 'single', text: '乙', options: [{ id: 'x', text: 'X' }, { id: 'y', text: 'Y' }] },
@@ -524,9 +506,8 @@ try {
   );
 
   await assert.rejects(
-    () => createRound({
-      sessionTitle: '条件引用不存在的选项',
-      title: '第一轮',
+    () => createAsk({
+      title: '条件引用不存在的选项',
       questions: [
         { id: 'q1', type: 'single', text: '甲', options: [{ id: 'x', text: 'X' }, { id: 'y', text: 'Y' }] },
         { id: 'q2', type: 'text', text: '乙', showWhen: { questionId: 'q1', optionIds: ['z'] } },
@@ -536,9 +517,8 @@ try {
   );
 
   await assert.rejects(
-    () => createRound({
-      sessionTitle: '选择题只能用 optionIds',
-      title: '第一轮',
+    () => createAsk({
+      title: '选择题只能用 optionIds',
       questions: [
         { id: 'q1', type: 'single', text: '甲', options: [{ id: 'x', text: 'X' }, { id: 'y', text: 'Y' }] },
         { id: 'q2', type: 'text', text: '乙', showWhen: { questionId: 'q1', answered: true } },
@@ -548,9 +528,8 @@ try {
   );
 
   await assert.rejects(
-    () => createRound({
-      sessionTitle: '文本题不能用 optionIds',
-      title: '第一轮',
+    () => createAsk({
+      title: '文本题不能用 optionIds',
       questions: [
         { id: 'q1', type: 'text', text: '甲' },
         { id: 'q2', type: 'text', text: '乙', showWhen: { questionId: 'q1', optionIds: ['x'] } },
@@ -560,9 +539,8 @@ try {
   );
 
   await assert.rejects(
-    () => createRound({
-      sessionTitle: '匹配方式只能写一种',
-      title: '第一轮',
+    () => createAsk({
+      title: '匹配方式只能写一种',
       questions: [
         { id: 'q1', type: 'text', text: '甲' },
         { id: 'q2', type: 'text', text: '乙', showWhen: { questionId: 'q1', answered: true, contains: ['x'] } },
@@ -572,9 +550,8 @@ try {
   );
 
   await assert.rejects(
-    () => createRound({
-      sessionTitle: '正则必须能编译',
-      title: '第一轮',
+    () => createAsk({
+      title: '正则必须能编译',
       questions: [
         { id: 'q1', type: 'text', text: '甲' },
         { id: 'q2', type: 'text', text: '乙', showWhen: { questionId: 'q1', matches: '([' } },
@@ -598,30 +575,27 @@ try {
   // 常驻服务必须有终点：还有人没答完就继续跑，最后一个会话结束就收摊。
   {
     const idleRoot = path.join(temporaryRoot, 'idle-data');
-    const first = await createRound({
-      sessionTitle: '甲会话',
-      title: '第一轮',
+    const first = await createAsk({
+      title: '甲提问',
       questions: [{ id: 'q1', type: 'text', text: '甲' }],
     }, { dataDir: idleRoot, cwd: temporaryRoot });
-    const second = await createRound({
-      sessionTitle: '乙会话',
-      title: '第一轮',
+    const second = await createAsk({
+      title: '乙提问',
       questions: [{ id: 'q1', type: 'text', text: '乙' }],
     }, { dataDir: idleRoot, cwd: temporaryRoot });
 
-    assert.equal(await hasPendingRound(idleRoot), true, '两个会话都在等答，应判定为有人未答');
+    assert.equal(await hasPendingAsk(idleRoot), true, '两次提问都在等答，应判定为有人未答');
 
-    await completeSession(idleRoot, first.sessionId, 'completed');
-    assert.equal(await hasPendingRound(idleRoot), true, '乙会话还在等，服务不该收摊');
+    await completeAsk(idleRoot, first.askId, 'completed');
+    assert.equal(await hasPendingAsk(idleRoot), true, '乙提问还在等，服务不该收摊');
 
-    await completeSession(idleRoot, second.sessionId, 'completed');
-    assert.equal(await hasPendingRound(idleRoot), false, '会话都结束了，服务该收摊');
+    await completeAsk(idleRoot, second.askId, 'completed');
+    assert.equal(await hasPendingAsk(idleRoot), false, '提问都结束了，服务该收摊');
   }
 
   // q1、mr 这类短 id 只是 JSON 内部的引用键，不进文件路径，必须放行。
-  const shortIds = await createRound({
-    sessionTitle: '短 id 合法',
-    title: '第一轮',
+  const shortIds = await createAsk({
+    title: '短 id 合法',
     questions: [
       {
         id: 'q1',
@@ -632,13 +606,12 @@ try {
       },
     ],
   }, { dataDir: dataRoot, cwd: temporaryRoot });
-  assert.equal(shortIds.roundNumber, 1);
+  assert.match(shortIds.askId, /^[a-z0-9-]+$/, 'askId 由 CLI 生成');
 
   // 非法 id 必须一次报全：逐个报会让调用方每修一处就重跑一次。
   await assert.rejects(
-    () => createRound({
-      sessionTitle: '非法 id 一次报全',
-      title: '第一轮',
+    () => createAsk({
+      title: '非法 id 一次报全',
       questions: [
         { id: 'q/1', type: 'single', text: '甲', options: [{ id: 'ok-1', text: 'x' }, { id: 'bad opt', text: 'y' }] },
         { id: '..', type: 'single', text: '乙', options: [{ id: 'a/b', text: 'x' }, { id: 'c d', text: 'y' }] },
@@ -654,15 +627,37 @@ try {
     },
   );
 
-  // sessionId 会拼进文件路径，路径穿越必须继续挡住。
+  // 轮次与会话的旧字段必须当场报错指路，不能静默吞掉。
   await assert.rejects(
-    () => createRound({
+    () => createAsk({
       sessionId: '../escape',
-      sessionTitle: '路径穿越',
-      title: '第一轮',
+      roundNumber: 2,
+      basedOnRound: 1,
+      title: '旧字段必须报错',
       questions: [{ id: 'q1', type: 'text', text: '甲' }],
     }, { dataDir: dataRoot, cwd: temporaryRoot }),
-    /sessionId must contain 3-128 safe characters/,
+    (error) => {
+      assert.match(error.message, /sessionId 已移除/);
+      assert.match(error.message, /roundNumber 已移除/);
+      assert.match(error.message, /basedOnRound 已移除/);
+      return true;
+    },
+  );
+
+  // 改名的 session* 字段同样报错并给出新名。
+  await assert.rejects(
+    () => createAsk({
+      sessionTitle: '改名字段',
+      sessionSummary: 'x',
+      sessionBackground: 'y',
+      questions: [{ id: 'q1', type: 'text', text: '甲' }],
+    }, { dataDir: dataRoot, cwd: temporaryRoot }),
+    (error) => {
+      assert.match(error.message, /sessionTitle 已改名：直接写 title/);
+      assert.match(error.message, /sessionSummary 已改名：直接写 summary/);
+      assert.match(error.message, /sessionBackground 已改名：直接写 background/);
+      return true;
+    },
   );
 
   // 渲染组件命中缓存时必须直接回文件，绝不联网：这是离线可用的前提。
@@ -709,7 +704,7 @@ try {
 
   // 必填多选：一个选项都不选，只写补充说明，也应当通过，且不触发 minSelections。
   const supplementOnlyResponse = await fetch(
-    `${base}/api/sessions/${supplementOnly.sessionId}/rounds/1/answers`,
+    `${base}/api/asks/${supplementOnly.askId}/answers`,
     {
       method: 'POST',
       headers,
@@ -729,7 +724,7 @@ try {
 
   // 但只要选了，数量仍须满足 minSelections。
   const belowMinimumResponse = await fetch(
-    `${base}/api/sessions/${belowMinimum.sessionId}/rounds/1/answers`,
+    `${base}/api/asks/${belowMinimum.askId}/answers`,
     {
       method: 'POST',
       headers,
@@ -750,22 +745,20 @@ try {
 
   // 条件题的提交语义：隐藏题不校验、不落盘，可见题该必填还是必填。
   {
-    const submitBranch = (sessionId, answers) => fetch(
-      `${base}/api/sessions/${sessionId}/rounds/1/answers`,
+    const submitBranch = (id, answers) => fetch(
+      `${base}/api/asks/${id}/answers`,
       { method: 'POST', headers, body: JSON.stringify({ answers }) },
     );
-    const readAnswers = async (sessionId) => (
-      await loadSessionBundle(dataRoot, sessionId)
-    ).rounds[0].answers;
+    const readAnswers = async (id) => (await loadAskBundle(dataRoot, id)).answers;
 
-    assert.equal((await submitBranch(branchA.sessionId, [
+    assert.equal((await submitBranch(branchA.askId, [
       { questionId: 'entry', selectedOptionIds: ['a'] },
       { questionId: 'only-a', customText: '甲路径的补充' },
       { questionId: 'a-or-b', selectedOptionIds: ['yes'] },
       // 用户选甲之前在丙分支留下的草稿：屏幕上已经不存在，不该进答案集。
       { questionId: 'only-c', customText: '丙路径的旧草稿' },
     ])).status, 200);
-    const branchAAnswers = await readAnswers(branchA.sessionId);
+    const branchAAnswers = await readAnswers(branchA.askId);
     assert.deepEqual(
       branchAAnswers.answers.map((answer) => answer.questionId),
       ['entry', 'only-a', 'a-or-b'],
@@ -774,54 +767,55 @@ try {
     assert.deepEqual(branchAAnswers.hiddenQuestionIds, ['only-c', 'c-timeout']);
 
     // 选丁：后面所有条件题都不出现，只答一题也能提交。
-    assert.equal((await submitBranch(branchD.sessionId, [
+    assert.equal((await submitBranch(branchD.askId, [
       { questionId: 'entry', selectedOptionIds: ['d'] },
     ])).status, 200);
     assert.deepEqual(
-      (await readAnswers(branchD.sessionId)).answers.map((answer) => answer.questionId),
+      (await readAnswers(branchD.askId)).answers.map((answer) => answer.questionId),
       ['entry'],
     );
 
     // 可见的必填题仍然挡提交。
-    assert.equal((await submitBranch(branchMissing.sessionId, [
+    assert.equal((await submitBranch(branchMissing.askId, [
       { questionId: 'entry', selectedOptionIds: ['a'] },
       { questionId: 'a-or-b', selectedOptionIds: ['yes'] },
     ])).status, 422);
 
     // 链式：丙的回答里没有关键词，第三层不出现。
-    assert.equal((await submitBranch(branchChain.sessionId, [
+    assert.equal((await submitBranch(branchChain.askId, [
       { questionId: 'entry', selectedOptionIds: ['c'] },
       { questionId: 'only-c', customText: '一切正常' },
     ])).status, 200);
     assert.deepEqual(
-      (await readAnswers(branchChain.sessionId)).answers.map((answer) => answer.questionId),
+      (await readAnswers(branchChain.askId)).answers.map((answer) => answer.questionId),
       ['entry', 'only-c'],
     );
 
     // 命中关键词后第三层出现，且必填生效。
-    assert.equal((await submitBranch(branchChainFull.sessionId, [
+    assert.equal((await submitBranch(branchChainFull.askId, [
       { questionId: 'entry', selectedOptionIds: ['c'] },
       { questionId: 'only-c', customText: '接口超时了' },
     ])).status, 422);
-    assert.equal((await submitBranch(branchChainFull.sessionId, [
+    assert.equal((await submitBranch(branchChainFull.askId, [
       { questionId: 'entry', selectedOptionIds: ['c'] },
       { questionId: 'only-c', customText: '接口超时了' },
       { questionId: 'c-timeout', customText: '重试两次仍然超时' },
     ])).status, 200);
     assert.deepEqual(
-      (await readAnswers(branchChainFull.sessionId)).answers.map((answer) => answer.questionId),
+      (await readAnswers(branchChainFull.askId)).answers.map((answer) => answer.questionId),
       ['entry', 'only-c', 'c-timeout'],
     );
   }
 
-  const bundleResponse = await fetch(`${base}/api/sessions/${first.sessionId}`, { headers });
+  const bundleResponse = await fetch(`${base}/api/asks/${first.askId}`, { headers });
   assert.equal(bundleResponse.status, 200);
   const bundle = await bundleResponse.json();
-  assert.equal(bundle.rounds.length, 1);
-  assert.equal(bundle.rounds[0].questions.questions.length, 4);
+  assert.equal(bundle.ask.status, 'waiting_for_user');
+  assert.equal(bundle.questions.questions.length, 4);
+  assert.equal(bundle.answers, null);
 
   const rejectedOtherResponse = await fetch(
-    `${base}/api/sessions/${invalidOther.sessionId}/rounds/1/answers`,
+    `${base}/api/asks/${invalidOther.askId}/answers`,
     {
       method: 'POST',
       headers,
@@ -839,7 +833,7 @@ try {
   assert.equal(rejectedOtherResponse.status, 422);
 
   const rejectedCustomTextResponse = await fetch(
-    `${base}/api/sessions/${invalidOther.sessionId}/rounds/1/answers`,
+    `${base}/api/asks/${invalidOther.askId}/answers`,
     {
       method: 'POST',
       headers,
@@ -857,7 +851,7 @@ try {
   assert.equal(rejectedCustomTextResponse.status, 422);
 
   const rejectedSupplementResponse = await fetch(
-    `${base}/api/sessions/${invalidOther.sessionId}/rounds/1/answers`,
+    `${base}/api/asks/${invalidOther.askId}/answers`,
     {
       method: 'POST',
       headers,
@@ -888,13 +882,13 @@ try {
   ];
   // 草稿自动保存已移除：答案只在用户点提交时落盘，draft 端点必须不复存在。
   const draftResponse = await fetch(
-    `${base}/api/sessions/${first.sessionId}/rounds/1/draft`,
+    `${base}/api/asks/${first.askId}/draft`,
     { method: 'POST', headers, body: JSON.stringify({ answers }) },
   );
   assert.equal(draftResponse.status, 404);
 
   const submitResponse = await fetch(
-    `${base}/api/sessions/${first.sessionId}/rounds/1/answers`,
+    `${base}/api/asks/${first.askId}/answers`,
     {
       method: 'POST',
       headers,
@@ -904,35 +898,31 @@ try {
   assert.equal(submitResponse.status, 200);
   assert.equal((await submitResponse.json()).duplicate, false);
 
-  const resumed = await resumeRound(dataRoot, first.sessionId);
+  const resumed = await resumeAsk(dataRoot, first.askId);
   assert.equal(resumed.status, 'submitted');
-  assert.equal(resumed.roundNumber, 1);
+  assert.equal(resumed.askId, first.askId);
   assert.equal(resumed.answers.answers[0].supplementaryText, '先覆盖个人高频场景。');
 
-  await createRound({
-    sessionId: first.sessionId,
-    sessionTitle: '个人工作台需求确认收集',
-    title: '第二轮：细节确认',
-    basedOnRound: 1,
+  // 后续追问是独立的一次新提问：各自有自己的 id，互不干扰。
+  const followUp = await createAsk({
+    title: '个人工作台细节确认',
     questions: [
       {
         id: 'layout',
         type: 'single',
         text: '布局方式',
         options: [
-          { id: 'tabs', text: 'Tab 切换', recommended: true, reason: '切换成本最低。' },
-          { id: 'board', text: '看板' },
+          { id: 'board', text: '看板', recommended: true, reason: '信息密度更高。' },
+          { id: 'list', text: '列表' },
         ],
       },
     ],
   }, { dataDir: dataRoot, cwd: temporaryRoot });
+  assert.notEqual(followUp.askId, first.askId);
 
-  const afterSecondRound = await loadSessionBundle(dataRoot, first.sessionId);
-  assert.equal(afterSecondRound.rounds[0].status, 'processed');
-  assert.equal(afterSecondRound.rounds[1].status, 'waiting_for_user');
-
-  const completed = await completeSession(dataRoot, first.sessionId);
+  const completed = await completeAsk(dataRoot, first.askId);
   assert.equal(completed.status, 'completed');
+  assert.equal((await loadAskBundle(dataRoot, followUp.askId)).ask.status, 'waiting_for_user');
 
   directDataRoot = path.join(temporaryRoot, 'direct-data');
   const directFirst = await runDirectAsk({
@@ -940,8 +930,7 @@ try {
     dataRoot: directDataRoot,
     testDuplicate: true,
     questionSet: {
-      sessionTitle: '直接返回链路验证',
-      title: '第一轮',
+      title: '直接返回链路验证',
       wake: {
         mode: 'auto',
         provider: 'codex-app-server',
@@ -964,20 +953,16 @@ try {
     },
     answers: [
       { questionId: 'scope', selectedOptionIds: ['opt-a'], customText: '' },
-      { questionId: 'detail', selectedOptionIds: [], customText: '第一轮完成' },
+      { questionId: 'detail', selectedOptionIds: [], customText: '第一次提问完成' },
     ],
   });
   assert.equal(directFirst.status, 'submitted');
-  assert.equal(directFirst.roundNumber, 1);
 
   const directSecond = await runDirectAsk({
     cwd: temporaryRoot,
     dataRoot: directDataRoot,
     questionSet: {
-      sessionId: directFirst.sessionId,
-      sessionTitle: '直接返回链路验证',
-      title: '第二轮',
-      basedOnRound: 1,
+      title: '直接返回链路追问',
       questions: [
         {
           id: 'confirm',
@@ -995,23 +980,24 @@ try {
     },
     answers: [
       { questionId: 'confirm', selectedOptionIds: ['yes'], customText: '' },
-      { questionId: 'note', selectedOptionIds: [], customText: '第二轮完成' },
+      { questionId: 'note', selectedOptionIds: [], customText: '追问完成' },
     ],
   });
-  assert.equal(directSecond.roundNumber, 2);
-  assert.equal(directSecond.testReadyUrl, directFirst.testReadyUrl);
-  const directBundle = await loadSessionBundle(directDataRoot, directFirst.sessionId);
-  assert.equal(directBundle.rounds[0].status, 'processed');
-  assert.equal(directBundle.rounds[0].deliveryMode, 'direct');
-  assert.equal(directBundle.rounds[1].status, 'submitted');
-  assert.equal(directBundle.session.wakeState, undefined);
+  assert.equal(directSecond.status, 'submitted');
+  // 追问是独立的一次 ask，但常驻服务被复用：同一个 origin。
+  assert.equal(new URL(directSecond.testReadyUrl).origin, new URL(directFirst.testReadyUrl).origin);
+  assert.notEqual(new URL(directSecond.testReadyUrl).pathname, new URL(directFirst.testReadyUrl).pathname);
+  const firstBundle = await loadAskBundle(directDataRoot, directFirst.askId);
+  assert.equal(firstBundle.ask.status, 'submitted');
+  assert.equal(firstBundle.ask.deliveryMode, 'direct');
+  assert.equal(firstBundle.ask.wakeState, undefined);
 
   // 真跑出来的 answers.json 必须符合 references/answerset.schema.json——Agent 是照那份
   // 契约读答案的，落盘结构一旦偏离，读答案的一侧会静默拿错字段。
-  for (const round of directBundle.rounds) {
-    if (!round.answers) continue;
-    const verdict = validateAgainstSchema(round.answers, answerSetSchema);
-    assert.ok(verdict.valid, `第 ${round.roundNumber} 轮的 answers.json 不符合 AnswerSet schema：\n${formatSchemaErrors(verdict.errors)}`);
+  for (const bundle of [firstBundle, await loadAskBundle(directDataRoot, directSecond.askId)]) {
+    if (!bundle.answers) continue;
+    const verdict = validateAgainstSchema(bundle.answers, answerSetSchema);
+    assert.ok(verdict.valid, `${bundle.ask.askId} 的 answers.json 不符合 AnswerSet schema：\n${formatSchemaErrors(verdict.errors)}`);
   }
 
   process.stdout.write('ask-ui self-test passed\n');

@@ -12,25 +12,28 @@
 
 ## 两层校验的分工
 
-结构错误（漏字段、类型不对、选项不足两个、`reason` 没配 `recommended`）schema 拦得住。下面这些是**跨字段规则**，schema 表达不了，由 `ask-ui.mjs` 在建 Session 时校验，报中文错误、一次列全：
+结构错误（漏字段、类型不对、选项不足两个、`reason` 没配 `recommended`）schema 拦得住。下面这些是**跨字段规则**，schema 表达不了，由 `ask-ui.mjs` 在建提问时校验，报中文错误、一次列全：
 
 - `showWhen.questionId` 只能指向**排在它前面**的题。
 - `showWhen` 的匹配方式要配得上被指向那道题的类型。
 - `showWhen.optionIds` 里的选项 id 必须真实存在于被指向的题里。
 - `showWhen.matches` 必须是合法 JS 正则。
 - 单选题最多认一个推荐项，多写的会被静默丢掉徽标（不报错）。
+- 旧版字段（`sessionId` / `roundNumber` / `basedOnRound` / `sessionTitle` / `sessionSummary` / `sessionBackground`）已移除，写了直接报错指路。
 
 运行时还会对缺省值做归一：`title` 省略时取 `text` 首个非空行，多选题的 `minSelections` 省略时为 `required ? 1 : 0`，`maxSelections` 省略时为选项总数，文本题 `maxLength` 省略时为 4000。
 
-## Session / Round / Question 三层
+## 一次提问（Ask）：单层结构
+
+没有 Session 和轮次，每次 `ask` 就是一次独立提问，id 由 CLI 自动生成。
 
 ```json
-{"schemaVersion":"1.0","sessionId":"optional-existing-session-id","projectName":"personal-workbench","sessionTitle":"个人工作台需求确认收集","sessionSummary":"收集个人工作台的目标、模块和交互需求","sessionBackground":"已有一版命令行工具，这次要把它做成可视化工作台，先定首页与首期模块。","roundNumber":1,"title":"基础需求确认","purpose":"确认工作台的核心目标","basedOnRound":null,"wake":{"mode":"manual","provider":null,"sessionRef":null,"cwd":null},"questions":[]}
+{"schemaVersion":"1.0","projectName":"personal-workbench","title":"个人工作台需求确认收集","summary":"收集个人工作台的目标、模块和交互需求","background":"已有一版命令行工具，这次要把它做成可视化工作台，先定首页与首期模块。","purpose":"确认工作台的核心目标","wake":{"mode":"manual","provider":null,"sessionRef":null,"cwd":null},"questions":[]}
 ```
 
-省略时，CLI 会自动生成 `sessionId` 和 `roundNumber`。后续轮次复用同一个 `sessionId`，Session 级字段（`projectName` / `sessionSummary` / `sessionBackground`）可以省略，首轮写入的值会保留。
+上下文字段的作用是让用户**不看对话就知道这是在问什么项目、为什么问**。`background` 尤其要写：它是左栏「本次背景」，用户全程都能看到，右上角有独立按钮可放大预览。但也别把整份方案倒进去——左栏太长会把答题区挤走，用户要滚动才能对照，写三五句能定位问题的就够，细节放到对应那道题的 `background` 里。
 
-上下文字段的作用是让用户**不看对话就知道这是在问什么项目、为什么问**。`sessionBackground` 尤其要写：它是左栏「本次背景」，用户全程都能看到。但也别把整份方案倒进去——左栏太长会把答题区挤走，用户要滚动才能对照，写三五句能定位问题的就够，细节放到对应那道题的 `background` 里。
+同一任务的后续追问、更正、补充，都是**再发起一次新的 ask**（新的 JSON、新的 id），已提交的答案不会被覆盖。
 
 ## Question：三件事
 
@@ -107,13 +110,13 @@
 
 ## 页面的答题动线
 
-- 打开页面、切换轮次后，视口停在**第一道未答题**上。
+- 打开页面后，视口停在**第一道未答题**上。
 - 答完一道**单选**题，页面自动移到下一道未答题；多选和文本题不自动前进，用户还要继续选、继续写。
 - 触发分支的单选题选完后，新出现的条件题就是下一道未答题，用户被直接送到它上面。
 
 ## 富文本：Markdown 与 Mermaid
 
-`sessionBackground`、问题的 `text` 和 `background` 同时支持 Markdown 和 Mermaid；选项的 `description` 只支持 Markdown（不渲染 Mermaid：一选项一张图会挤得没法比较）。
+顶层的 `background`、问题的 `text` 和 `background` 同时支持 Markdown 和 Mermaid；选项的 `description` 只支持 Markdown（不渲染 Mermaid：一选项一张图会挤得没法比较）。
 
 Markdown 按 GFM 渲染：标题、粗体、斜体、行内代码、代码块、有序/无序列表、链接、引用、分隔线、表格。换行按原样换行（`breaks: true`），不用为了断行补两个空格。渲染结果经 DOMPurify 净化，脚本和事件属性会被剥掉。
 
@@ -125,7 +128,7 @@ Markdown 按 GFM 渲染：标题、粗体、斜体、行内代码、代码块、
 {"id":"q-flow","type":"single","text":"选哪条链路\n\n两条路线的差异：\n\n```mermaid\nflowchart TD\n  S[启动] --> D{有缓存?}\n  D -->|有| H[直接渲染]\n  D -->|无| N[下载后渲染]\n```\n\n右边那条首次会慢。","options":[{"id":"opt-a","text":"方案甲"},{"id":"opt-b","text":"方案乙"}]}
 ```
 
-图表配色跟随界面的明暗主题。**渲染出来的图表和表格都可以点击放大**，进入全屏预览后可滚轮缩放、拖拽平移，`Esc` 或点击空白处关闭。
+图表配色跟随界面的明暗主题。**表格和代码块可以点击放大**，左栏「本次背景」用右上角的独立按钮放大，进入全屏预览后可滚轮缩放、拖拽平移，`Esc` 或点击空白处关闭。
 
 渲染组件（Mermaid 3.4MB、marked、DOMPurify、highlight.js）不进仓库：只有页面真的用到时才下载，缓存在 `~/.agents/ask-ui/vendor/`，此后所有项目共用同一份，离线可用（`ASK_UI_VENDOR_DIR` 可改缓存位置）。下载不到时正文退回纯文本显示、图表位置显示错误原因和原始图表源码，都不影响答题和提交。
 
@@ -134,7 +137,7 @@ Markdown 按 GFM 渲染：标题、粗体、斜体、行内代码、代码块、
 结构见 [answerset.schema.json](answerset.schema.json)。
 
 ```json
-{"schemaVersion":"1.0","submissionId":"submit-generated-id","sessionId":"personal-workbench-a7k2","roundNumber":1,"submittedAt":"2026-08-10T15:30:00.000Z","hiddenQuestionIds":[],"answers":[{"questionId":"q1","selectedOptionIds":["dashboard"],"customText":"","supplementaryText":"希望首页优先展示今天的任务。"},{"questionId":"q3","selectedOptionIds":[],"customText":"每天使用至少两次。","supplementaryText":""}]}
+{"schemaVersion":"1.0","submissionId":"submit-generated-id","askId":"ask-personal-workbench-a7k2-9f3c","submittedAt":"2026-08-10T15:30:00.000Z","hiddenQuestionIds":[],"answers":[{"questionId":"q1","selectedOptionIds":["dashboard"],"customText":"","supplementaryText":"希望首页优先展示今天的任务。"},{"questionId":"q3","selectedOptionIds":[],"customText":"每天使用至少两次。","supplementaryText":""}]}
 ```
 
 读答案时要知道的三件事：
@@ -143,19 +146,17 @@ Markdown 按 GFM 渲染：标题、粗体、斜体、行内代码、代码块、
 - `customText` 只对文本题有效，是该题的主回答。选择题的 `customText` 恒为空。
 - `supplementaryText` 每道题都可能有，上限 2000 字符。它既是补充上下文，也是「预设选项都不合适」时的自由答案——所以别只看 `selectedOptionIds` 就下结论。
 
-`answers.json` 提交后即不可变。需要更正时创建新的 Round。
+`answers.json` 提交后即不可变。需要更正或补充时再发起一次新的 ask。
 
 ## 状态
 
-Session：`active`、`completed`、`cancelled`。
-
-Round：`waiting_for_user`、`submitted`、`processed`。
+一次提问：`waiting_for_user` → `submitted` → `completed` / `cancelled`。
 
 ## 服务生命周期
 
 常驻服务由 `ask` 和 `create` 自动拉起，也自动退出，不需要手动管理进程：
 
-- 只要还有任何 `active` 会话包含 `waiting_for_user` 轮次，服务一直运行。
+- 只要还有任何 `waiting_for_user` 的提问，服务一直运行。
 - 全部答完后，再有 30 分钟无 HTTP 请求即退出。`ASK_UI_IDLE_TIMEOUT_MINUTES` 或 `serve --idle-timeout <分钟>` 可改这个时长。
 - 数据目录被删除时立即退出。
-- `complete` 和 `cancel` 会在没有任何轮次等待作答时当场停掉服务，返回值里的 `serverStopped` 表示是否真的停了。
+- `complete` 和 `cancel` 会在没有任何提问等待作答时当场停掉服务，返回值里的 `serverStopped` 表示是否真的停了。

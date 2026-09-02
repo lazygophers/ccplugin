@@ -2,9 +2,9 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://ask-ui.local/schemas/answerset.schema.json",
   "title": "Ask UI AnswerSet",
-  "description": "用户提交回来的答案，落盘为该轮目录下的 answers.json，也原样出现在 `ask` / `resume` 返回值的 answers 字段里。提交后不可变——更正和补充一律开新 Round。",
+  "description": "用户提交回来的答案，落盘为该次提问目录下的 answers.json，也原样出现在 `ask` / `resume` 返回值的 answers 字段里。提交后不可变——更正和补充再发起一次新的 ask。",
   "type": "object",
-  "required": ["schemaVersion", "submissionId", "sessionId", "roundNumber", "submittedAt", "answers", "hiddenQuestionIds"],
+  "required": ["schemaVersion", "submissionId", "askId", "submittedAt", "answers", "hiddenQuestionIds"],
   "additionalProperties": false,
   "properties": {
     "schemaVersion": {
@@ -12,19 +12,14 @@
       "const": "1.0"
     },
     "submissionId": {
-      "description": "本次提交的唯一 id。重复提交同一轮不会产生第二个 AnswerSet。",
+      "description": "本次提交的唯一 id。重复提交不会产生第二个 AnswerSet。",
       "type": "string",
       "minLength": 1
     },
-    "sessionId": {
-      "description": "所属会话，与 QuestionSet 的 sessionId 一致。",
+    "askId": {
+      "description": "所属提问，由 Ask UI 自动生成。",
       "type": "string",
       "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{2,127}$"
-    },
-    "roundNumber": {
-      "description": "所属轮次。",
-      "type": "integer",
-      "minimum": 1
     },
     "submittedAt": {
       "description": "提交时刻，ISO 8601 UTC。",
