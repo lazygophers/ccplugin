@@ -25,7 +25,7 @@ description: 向用户提问的时候、调用 `AskUserQuestion` 时都使用本
 - 🔴 绝不覆盖已提交的问题或答案——更正和补充再发起一次新的 `ask`。
 - 🔴 绝不用 `nohup ... &` 之类手写后台——用 harness 自己的后台机制。
 - 🔴 绝不 `sleep` 轮询、催用户。
-- 🔴 绝不 `tail` harness 任务输出或手拼 `.ask-ui/` 下的文件路径——读 `<run>.stdout.json`，或跑 `resume`。
+- 🔴 绝不从 harness 任务输出里解析答案，也绝不手拼 `.ask-ui/` 下的文件路径——答案读 `<run>.stdout.json`，或跑 `resume`。
 
 ## 判断是否使用 UI
 
@@ -43,7 +43,7 @@ description: 向用户提问的时候、调用 `AskUserQuestion` 时都使用本
 
 退档时说清真实原因，别把「没有 Bash 工具」写成「服务起不来」——前者换任何语言重写都没用，后者才是环境问题。用 `ToolSearch` 确认过工具确实不存在，再下结论。
 
-## 标准路径：`ask` 七步
+## 标准路径：`ask` 八步
 
 1. 把包含本 `SKILL.md` 的目录解析为 `ASK_UI_SKILL_DIR`。
 2. 创建 JSON 前先读两份文件：[references/questionset.schema.json](references/questionset.schema.json) 是字段清单本身（JSON Schema 2020-12，每个字段带中文说明），[references/schema.md](references/schema.md) 讲 schema 表达不了的部分——跨字段硬规则、页面实际行为、为什么这样写。[references/example-question-set.json](references/example-question-set.json) 是一份可直接复制改字段的完整起手模板（单选 / 多选 / 自由文本各一题，带推荐答案和上下文字段）。答案的结构见 [references/answerset.schema.json](references/answerset.schema.json)。
@@ -54,21 +54,22 @@ description: 向用户提问的时候、调用 `AskUserQuestion` 时都使用本
    选择题没有「其他」选项。预设选项之外的答案由每题的补充说明承载，所以选项只列真正互斥的几种，不要凑「其他」。选择题至少要 2 个选项，脚本会直接报错 `第 X 题是选择题，至少要有两个选项` 并退出——只有一个候选的确认题改成 `type: "text"`，或者干脆在对话里问。
    有依赖关系的问题写成同一次提问里的**条件题**：`"showWhen": {"questionId":"q1","optionIds":["a"]}` 让这题只在 `q1` 选了 `a` 时才出现，用户选完当场出现或消失。`showWhen` 只能指向排在前面的题，分支树靠链式依赖搭；文本题作触发源时用 `answered` / `contains` / `matches`。隐藏题不校验必填、也不进 `answers.json`（id 列在 `hiddenQuestionIds`）。完整规则见 [references/schema.md](references/schema.md) 的「条件题（分支）」——`showWhen` 的三条跨字段硬规则（指向前面的题、匹配方式配得上题型、选项 id 真实存在）schema 拦不住，只有运行时会报错。
    `background`、题目的 `text` 和 `background` 支持 **Markdown（GFM：标题、粗体、行内代码、代码块、列表、链接、引用、表格）+ Mermaid**；选项的 `description` 只支持 Markdown。流程、时序、架构这类讲不清的东西写成 ` ```mermaid ` 代码块，会渲染成跟随主题的图。表格、图表和代码块在页面上都能点击放大、缩放拖拽。代码块在围栏上标语言（` ```ts `、` ```sql `）就会按语言高亮。**嵌套规则**：要展示一段本身含 ``` 围栏的 markdown（或代码里含 ```）时，外层围栏必须用四反引号 ` ```` `——三反引号会被内层第一个 ``` 提前闭合，后面的内容漏成正文，页面上出现裸 ``` 字符。
-4. **在后台运行命令，并把 stdout 和 stderr 分开重定向到两个文件**：
+4. **在后台运行命令，只把 stdout 重定向到文件，stderr 留在控制台**：
 
    ```text
-   node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs ask --input <questions.json> > <run>.stdout.json 2> <run>.stderr.log
+   node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs ask --input <questions.json> > <run>.stdout.json
    ```
 
-   用 harness 的后台机制启动（Claude Code 里是 Bash 工具的 `run_in_background: true`）。
+   用 harness 的后台机制启动（Claude Code 里是 Bash 工具的 `run_in_background: true`）。stdout 是结果 JSON，必须落文件；stderr 是给人看的进度行（URL、`ask-ui-id`），留在控制台用户当场就能看到。
 
-5. 🛑 **STOP：启动后立刻结束本轮，什么都不用等。**`ask` 没有超时，会一直阻塞到用户提交；用户提交后进程退出，harness 主动把任务完成通知推给你，那就是唤醒信号。
-6. 收到完成通知后，直接读 `<run>.stdout.json`——它是一整行 JSON，解析后继续原工作流。stderr 文件只用于排查，正常路径不必看。
-7. 若还需要更多独立问题，再创建一份 QuestionSet JSON 并再次调用 `ask`——每次 `ask` 天然独立，互不干扰。
+5. **把页面 URL 复述到回复第一行。**stderr 启动时立刻打出 `Ask UI ready at <url>` 和 `ask-ui-id: <id>`，用 `TaskOutput` 读一次后台任务输出取这两行写进回复。浏览器是脚本自动打开的，但它可能没弹出来（无 GUI、默认浏览器没配、窗口被挡），URL 摆出来用户就能自己打开。读一次就够，读不到就照常结束本轮，不要 `sleep` 重试。
+6. 🛑 **STOP：输出 URL 后立刻结束本轮，什么都不用等。**`ask` 没有超时，会一直阻塞到用户提交；用户提交后进程退出，harness 主动把任务完成通知推给你，那就是唤醒信号。
+7. 收到完成通知后，直接读 `<run>.stdout.json`——它是一整行 JSON，解析后继续原工作流。
+8. 若还需要更多独立问题，再创建一份 QuestionSet JSON 并再次调用 `ask`——每次 `ask` 天然独立，互不干扰。
 
-### 为什么必须分流重定向
+### 为什么 stdout 必须重定向
 
-后台任务的 stdout 和 stderr 会混进 harness 的同一个任务输出文件，混在一起的内容 `JSON.parse` 必然失败——这是过去要人工 `resume` 兜底的唯一原因。用 `>` 和 `2>` 分开写到两个文件后，stdout 文件就是纯净的结果 JSON，任务输出文件里只剩 `[exited with code 0]`，整条链路不再需要任何人工确认。
+不重定向时，后台任务的 stdout 和 stderr 会混进 harness 的同一个任务输出，混在一起的内容 `JSON.parse` 必然失败——这是过去要人工 `resume` 兜底的唯一原因。把 stdout 单独 `>` 到文件后，结果 JSON 就是纯净的一行，任务输出里只剩 stderr 的进度行（URL、`ask-ui-id`、`ask-ui-submitted`），既能给人看又不会污染解析。
 
 ### 服务与浏览器生命周期
 
@@ -84,12 +85,12 @@ node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs resume --id <askId>
 
 🔴 只有下表列出的情况才需要 `resume`。正常路径永远是读 `<run>.stdout.json`，不要把 `resume` 当常规动作。
 
-`askId` 从 stderr 文件里的 `ask-ui-id: <id>` 标记取；stderr 里还有一行 `ask-ui-submitted: <id>`，是提交完成的备用信号。`resume` 返回 `status: "submitted"` 时其中就是完整答案。
+`askId` 从任务输出（stderr）里的 `ask-ui-id: <id>` 标记取；那里还有一行 `ask-ui-submitted: <id>`，是提交完成的备用信号。`resume` 返回 `status: "submitted"` 时其中就是完整答案。
 
 | 触发条件 | 一线修复 | 仍失败的兜底 |
 |---|---|---|
-| 任务秒退，stderr 里连 `ask-ui-id` 标记都没有 | QuestionSet JSON 非法，提问根本没建起来：读 stderr 的报错（一次列出全部问题）改 JSON 重跑 `ask` | 🔴 不要跑 `resume`——没有数据可恢复，不带 `--id` 的 `resume` 只会捞出别的任务的旧提问 |
-| 后台任务被杀、崩溃，或退出码非 0（stderr 有 `ask-ui-id`） | 取 `askId` 后跑 `resume` | 跑不带 `--id` 的 `resume`，按 `title` / `summary` 筛出讲当前任务的候选，取 `submittedAt` 最新的一条 |
+| 任务秒退，任务输出里连 `ask-ui-id` 标记都没有 | QuestionSet JSON 非法，提问根本没建起来：读任务输出里的报错（一次列出全部问题）改 JSON 重跑 `ask` | 🔴 不要跑 `resume`——没有数据可恢复，不带 `--id` 的 `resume` 只会捞出别的任务的旧提问 |
+| 后台任务被杀、崩溃，或退出码非 0（任务输出有 `ask-ui-id`） | 取 `askId` 后跑 `resume` | 跑不带 `--id` 的 `resume`，按 `title` / `summary` 筛出讲当前任务的候选，取 `submittedAt` 最新的一条 |
 | `<run>.stdout.json` 为空或不是合法 JSON | 同上，用 `resume` 重取结果 | 数据确实不存在时据实说明答案已丢，用同一批问题重新 `ask` |
 | 换了新的 Agent 会话，拿不到原来的后台任务 | 从对话里最近的 `ask-ui-id` 标记取 id 后 `resume` | 标记也丢了就跑不带 `--id` 的 `resume` 列候选 |
 | `resume` 返回 `{"status":"waiting"}` | 用户还没提交：什么都不做，当场结束本轮，继续等 harness 的完成通知 | 🔴 不重开表单、不重发问题、不催用户、不 `sleep` |
@@ -158,9 +159,10 @@ Ask UI 为 Claude Code 和 Codex App Server 支持可选的唤醒元数据。把
 | 🔴 不要做 | 为什么 | 改成 |
 |---|---|---|
 | 用 `nohup ... &` 之类手写后台 | harness 收不到退出事件，整条链路退回人工追问 | 用 harness 自己的后台机制 |
-| stdout 和 stderr 合并重定向 | 两股输出混在一起，`JSON.parse` 必然失败 | `> <run>.stdout.json 2> <run>.stderr.log` |
+| stdout 不重定向，直接从任务输出解析结果 | 两股输出混在一起，`JSON.parse` 必然失败 | `> <run>.stdout.json`，stderr 留在控制台 |
+| 把 stderr 也重定向进文件 | URL 和 `ask-ui-id` 被埋进文件，用户看不到，页面没弹出来就没法自己打开 | 只重定向 stdout |
 | `sleep` 轮询、催用户、让用户回复「已提交」 | 后台任务的完成通知就是唤醒信号，等它即可 | 启动后立刻结束本轮 |
-| `tail` harness 任务输出，或手拼 `.ask-ui/` 路径 | 绕过了协议，拿到的可能是半截文件 | 读 `<run>.stdout.json`，或跑 `resume` |
+| 从任务输出里找答案，或手拼 `.ask-ui/` 路径 | 任务输出只有 stderr 的进度行，答案不在那里 | 答案读 `<run>.stdout.json` 或跑 `resume`；任务输出只用来取 URL、`ask-ui-id` 和报错 |
 | 给选择题加「其他」选项 | 预设外的答案由每题的补充说明承载 | 选项只列真正互斥的几种 |
 | 写只有一个选项的选择题 | 脚本硬拒收，整批问题连会话都建不起来 | 补足第二个真实互斥的选项，或改成 `type: "text"` |
 | 在 `text` 里写「（可留空）」却不写 `"required": false` | `required` 默认 `true`，页面照挂「必填」徽标、留空挡提交，文案和校验对不上 | 选填题显式写 `"required": false` |
