@@ -157,6 +157,6 @@ Markdown 按 GFM 渲染：标题、粗体、斜体、行内代码、代码块、
 常驻服务由 `ask` 和 `create` 自动拉起，也自动退出，不需要手动管理进程：
 
 - 只要还有任何 `waiting_for_user` 的提问，服务一直运行。
-- 全部答完后，再有 30 分钟无 HTTP 请求即退出。`ASK_UI_IDLE_TIMEOUT_MINUTES` 或 `serve --idle-timeout <分钟>` 可改这个时长。
+- 全部答完后，再有 24 小时无 HTTP 请求即退出。`ASK_UI_IDLE_TIMEOUT_MINUTES` 或 `serve --idle-timeout <分钟>` 可改这个时长。
 - 数据目录被删除时立即退出。
 - `complete` 和 `cancel` 会在没有任何提问等待作答时当场停掉服务，返回值里的 `serverStopped` 表示是否真的停了。

@@ -1,6 +1,13 @@
 #!/usr/bin/env node
 
-import { constants as fsConstants, createReadStream, existsSync, realpathSync } from 'node:fs';
+import {
+  constants as fsConstants,
+  closeSync,
+  createReadStream,
+  existsSync,
+  openSync,
+  realpathSync,
+} from 'node:fs';
 import fs from 'node:fs/promises';
 import http from 'node:http';
 import os from 'node:os';
@@ -42,8 +49,8 @@ const VENDOR = {
   },
 };
 
-// 太短会在多轮提问之间反复重启服务、换掉用户手上的链接；太长又留垃圾进程。
-const DEFAULT_IDLE_TIMEOUT_MS = 30 * 60 * 1000;
+// 太短会在多轮提问之间反复重启服务、换掉用户手上的链接；答完的表单也要能隔天回去翻。
+const DEFAULT_IDLE_TIMEOUT_MS = 24 * 60 * 60 * 1000;
 
 function idleTimeoutMs(value) {
   const minutes = Number(value ?? process.env.ASK_UI_IDLE_TIMEOUT_MINUTES);
@@ -1077,11 +1084,14 @@ async function ensureServer(dataRoot, { port = 0 } = {}) {
   if (await serverIsAlive(existing)) return existing;
 
   const token = randomBytes(24).toString('hex');
+  // stdio 全丢弃时，服务为什么退出就永远查不到了：退出原因和崩溃栈都走 stderr。
+  const logFd = openSync(path.join(dataRoot, 'server.log'), 'a');
   const child = spawn(
     process.execPath,
     [SCRIPT_FILE, 'serve', '--data-dir', dataRoot, '--port', String(Number(port) || 0), '--token', token],
-    { detached: true, stdio: 'ignore', windowsHide: true },
+    { detached: true, stdio: ['ignore', logFd, logFd], windowsHide: true },
   );
+  closeSync(logFd);
   child.unref();
 
   const deadline = Date.now() + 8000;
@@ -1213,11 +1223,21 @@ export async function main(argv = process.argv.slice(2)) {
       token: args.token || randomBytes(24).toString('hex'),
     });
     print(started.info);
+    const idleMs = idleTimeoutMs(args['idle-timeout']);
+    process.stderr.write(
+      `[${now()}] serve started pid=${process.pid} port=${started.info.port} idleMs=${idleMs}\n`,
+    );
+    for (const signal of ['SIGTERM', 'SIGINT']) {
+      process.once(signal, () => {
+        process.stderr.write(`[${now()}] serve exiting: received ${signal}\n`);
+        process.exit(0);
+      });
+    }
     return new Promise((resolve) => {
       watchForIdle(started.server, dataRoot, {
-        idleMs: idleTimeoutMs(args['idle-timeout']),
+        idleMs,
         onExit: (reason) => {
-          process.stderr.write(`Ask UI server exiting: ${reason}\n`);
+          process.stderr.write(`[${now()}] serve exiting: ${reason}\n`);
           started.server.close(() => resolve());
           // 已建立的 keep-alive 连接会拖住 close，直接断掉。
           started.server.closeAllConnections?.();

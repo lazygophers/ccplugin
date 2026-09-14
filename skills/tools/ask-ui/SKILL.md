@@ -94,8 +94,8 @@ node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs resume --id <askId>
 | `<run>.stdout.json` 为空或不是合法 JSON | 同上，用 `resume` 重取结果 | 数据确实不存在时据实说明答案已丢，用同一批问题重新 `ask` |
 | 换了新的 Agent 会话，拿不到原来的后台任务 | 从对话里最近的 `ask-ui-id` 标记取 id 后 `resume` | 标记也丢了就跑不带 `--id` 的 `resume` 列候选 |
 | `resume` 返回 `{"status":"waiting"}` | 用户还没提交：什么都不做，当场结束本轮，继续等 harness 的完成通知 | 🔴 不重开表单、不重发问题、不催用户、不 `sleep` |
-| 表单挂了很久没人答，担心服务一直占着 | 什么都不做：有提问等着答服务就该一直跑，全部答完后 30 分钟无访问自行退出，数据目录被删立即退出，`complete` / `cancel` 结束最后一个提问时当场停掉 | 🔴 不要手动 kill 进程；空闲时长要改就用 `ASK_UI_IDLE_TIMEOUT_MINUTES` |
-| 本地浏览器连不上临时服务 | 走 `create` 分离式流程（见「手动回退与恢复」） | 仍连不上才退到 `AskUserQuestion` |
+| 表单挂了很久没人答，担心服务一直占着 | 什么都不做：有提问等着答服务就该一直跑，全部答完后 24 小时无访问自行退出，数据目录被删立即退出，`complete` / `cancel` 结束最后一个提问时当场停掉 | 🔴 不要手动 kill 进程；空闲时长要改就用 `ASK_UI_IDLE_TIMEOUT_MINUTES` |
+| 本地浏览器连不上临时服务 | 先看 `<dataRoot>/server.log` 最后一行确认服务为什么退出（`received SIGTERM` / `idle for N minutes` / `data directory is gone` / 崩溃栈），再走 `create` 分离式流程（见「手动回退与恢复」） | 仍连不上才退到 `AskUserQuestion` |
 | harness 没有 Bash 或等价的执行工具 | 用 `ToolSearch` 确认工具确实不存在，退到 `AskUserQuestion` | `AskUserQuestion` 也拿不到时才用对话里的编号文本问题 |
 | 唤醒适配器失败 | 保住答案，回到手动「已提交」流程 | 答案已落盘，用 `resume` 重取 |
 
