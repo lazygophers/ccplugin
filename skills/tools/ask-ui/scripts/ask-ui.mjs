@@ -745,18 +745,49 @@ export async function completeAsk(dataRoot, askId, status = 'completed') {
 }
 
 function contentType(file) {
-  if (file.endsWith('.html') || file.endsWith('.htm')) return 'text/html; charset=utf-8';
+  if (file.endsWith('.html')) return 'text/html; charset=utf-8';
   if (file.endsWith('.js')) return 'text/javascript; charset=utf-8';
   if (file.endsWith('.css')) return 'text/css; charset=utf-8';
-  if (file.endsWith('.json')) return 'application/json; charset=utf-8';
-  if (file.endsWith('.svg')) return 'image/svg+xml';
-  if (file.endsWith('.png')) return 'image/png';
-  if (file.endsWith('.jpg') || file.endsWith('.jpeg')) return 'image/jpeg';
-  if (file.endsWith('.gif')) return 'image/gif';
-  if (file.endsWith('.webp')) return 'image/webp';
-  if (file.endsWith('.pdf')) return 'application/pdf';
-  if (file.endsWith('.txt') || file.endsWith('.log')) return 'text/plain; charset=utf-8';
   return 'application/octet-stream';
+}
+
+// 交给系统默认程序打开的白名单。`open` 会执行 `.app` / `.sh` / `.command`，
+// 所以这里只放行文档和图片——正文里的链接不该有本事启动程序。
+const OPENABLE = /\.(html?|md|markdown|txt|log|json|ya?ml|csv|pdf|png|jpe?g|gif|webp|svg)$/i;
+
+function runCapturing(command, args) {
+  return new Promise((resolve) => {
+    const child = spawn(command, args);
+    let out = '';
+    child.stdout.on('data', (chunk) => { out += chunk; });
+    child.on('error', () => resolve(null));
+    child.on('close', (code) => resolve(code === 0 ? out : null));
+  });
+}
+
+// macOS 的 open 在打开 file:// 时会把 `#锚点` 剥掉（`open`、`open -u`、`open -a <浏览器>`
+// 三种写法实测都一样）。唯一留得住的是把整条 URL 直接投给浏览器 app，所以先问
+// LaunchServices 默认浏览器是谁，再用 AppleScript 投给它。
+async function openAnchoredPage(url) {
+  if (process.platform !== 'darwin') return false;
+  const plist = path.join(
+    os.homedir(),
+    'Library/Preferences/com.apple.LaunchServices/com.apple.launchservices.secure.plist',
+  );
+  const raw = await runCapturing('plutil', ['-convert', 'json', '-o', '-', plist]);
+  if (!raw) return false;
+  let bundleId = null;
+  try {
+    bundleId = (JSON.parse(raw).LSHandlers || [])
+      .find((handler) => handler.LSHandlerURLScheme === 'http')?.LSHandlerRoleAll;
+  } catch {
+    return false;
+  }
+  if (!bundleId) return false;
+  // URL 要进 AppleScript 的字符串字面量，反斜杠和引号得转义。
+  const quoted = url.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  const script = `tell application id "${bundleId}" to open location "${quoted}"`;
+  return await runCapturing('osascript', ['-e', script]) !== null;
 }
 
 function addSecurityHeaders(response) {
@@ -775,7 +806,7 @@ function sendJson(response, statusCode, value) {
   response.end(`${JSON.stringify(value)}\n`);
 }
 
-function sendFile(response, file, { secure = true } = {}) {
+function sendFile(response, file) {
   const stream = createReadStream(file);
   // 读文件的错误是异步从流里冒出来的，路由里的 try/catch 接不住。不挂这个监听，
   // 一个权限不对的组件文件就会让整个服务连同全部活跃会话一起退出。
@@ -788,50 +819,10 @@ function sendFile(response, file, { secure = true } = {}) {
   });
   // 头留到确认打得开文件之后再发，否则失败时已经发出去 200，改不回错误状态码。
   stream.on('open', () => {
-    // 用户自己机器上的报告文件走 secure:false：那套 CSP 只允许 'self' 脚本，
-    // 挂上去会把报告里的 CDN 图表库全挡掉，页面变成白板。
-    if (secure) addSecurityHeaders(response);
+    addSecurityHeaders(response);
     response.writeHead(200, { 'Content-Type': contentType(file) });
     stream.pipe(response);
   });
-}
-
-// .md 没有浏览器原生渲染，套一层壳用页面同一套 marked + DOMPurify 渲染。
-// 原文直接嵌进去，省掉第二次请求；JSON.stringify 之后再转义 `<`，`</script>` 关不掉这个壳。
-function markdownShell(title, source) {
-  const payload = JSON.stringify(source).replace(/</g, '\\u003c');
-  return `<!doctype html>
-<html lang="zh"><head><meta charset="utf-8">
-<title>${title.replace(/[<&]/g, (c) => (c === '<' ? '&lt;' : '&amp;'))}</title>
-<style>
-:root{color-scheme:dark light}
-body{margin:0;padding:2.5rem 1.5rem;background:#16181d;color:#e6e8ee;
-font:16px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-main{max-width:52rem;margin:0 auto}
-a{color:#7aa2f7}
-pre{background:#1e2128;padding:1rem;border-radius:8px;overflow:auto}
-code{background:#1e2128;padding:.1em .35em;border-radius:4px}
-pre code{background:none;padding:0}
-table{border-collapse:collapse;width:100%}
-th,td{border:1px solid #333842;padding:.45rem .7rem;text-align:left}
-blockquote{margin:0;padding:.2rem 1rem;border-left:3px solid #7aa2f7;color:#aab}
-img{max-width:100%}
-</style></head>
-<body><main id="doc"></main>
-<script src="/vendor/marked.min.js"></script>
-<script src="/vendor/purify.min.js"></script>
-<script>
-const src = ${payload};
-const host = document.getElementById('doc');
-if (window.marked && window.DOMPurify) {
-  host.innerHTML = DOMPurify.sanitize(marked.parse(src, { gfm: true }));
-} else {
-  const pre = document.createElement('pre');
-  pre.textContent = src;
-  host.append(pre);
-}
-</script></body></html>
-`;
 }
 
 // 并发的同名组件请求只应触发一次下载，后到的请求等同一个 promise。
@@ -991,11 +982,13 @@ export async function startHttpServer({
     }
 
     try {
-      // 正文里的本地文件链接（报告 .html、笔记 .md）走这里。浏览器禁止从
-      // http:// 页面跳 file://，点了只会静默失败，所以必须由本服务代发。
+      // 正文里的本地文件链接点下去走这里：交给系统默认程序打开，浏览器里看到的
+      // 就是真的 file:// 地址。不能让页面自己跳——Chrome 禁止 http:// 页面导航到
+      // file://，`window.open('file://…')` 直接返回 null，点了静默失败。
       // 鉴权就是上面那道 token：服务只绑 127.0.0.1，能拿到 token 的就是本机用户自己。
       if (request.method === 'GET' && requestUrl.pathname === '/local') {
         const requested = requestUrl.searchParams.get('path') || '';
+        const hash = requestUrl.searchParams.get('hash') || '';
         if (!requested) {
           sendJson(response, 400, { error: 'path is required' });
           return;
@@ -1003,16 +996,35 @@ export async function startHttpServer({
         // 相对路径按工作区解析：dataRoot 是 <workspace>/.ask-ui。
         const target = path.resolve(path.dirname(dataRoot), requested.replace(/^file:\/\//, ''));
         if (!existsSync(target)) {
-          sendJson(response, 404, { error: `File not found: ${target}` });
+          sendJson(response, 404, { error: `文件不存在：${target}` });
           return;
         }
-        if (/\.(md|markdown)$/i.test(target)) {
-          const source = await fs.readFile(target, 'utf8');
-          response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-          response.end(markdownShell(path.basename(target), source));
+        if (!OPENABLE.test(target)) {
+          sendJson(response, 403, { error: `只放行文档和图片，不给开这种文件：${path.basename(target)}` });
           return;
         }
-        sendFile(response, target, { secure: false });
+        const url = `${pathToFileURL(target).href}${hash}`;
+        const anchoredPage = Boolean(hash) && /\.html?$/i.test(target);
+        if (!process.env.ASK_UI_OPENER && anchoredPage && await openAnchoredPage(url)) {
+          sendJson(response, 200, { opened: target });
+          return;
+        }
+        // Windows 的 start 是 cmd 内建、不是可执行文件，必须由 cmd 转一手；它后面那个
+        // 空字符串是窗口标题，省掉的话带引号的路径会被当成标题，文件反而不开。
+        const [opener, openerArgs] = process.env.ASK_UI_OPENER
+          ? [process.env.ASK_UI_OPENER, []]
+          : {
+            darwin: ['open', []],
+            win32: ['cmd', ['/c', 'start', '']],
+          }[process.platform] || ['xdg-open', []];
+        // Windows 的 start 和 Linux 的 xdg-open 把 URL 整条转交给默认浏览器，`#锚点`
+        // 留得住；macOS 的 open 会剥掉它，所以那条路走上面的 openAnchoredPage。
+        spawn(opener, [...openerArgs, anchoredPage ? url : target], {
+          detached: true,
+          stdio: 'ignore',
+          windowsHide: true,
+        }).unref();
+        sendJson(response, 200, { opened: target });
         return;
       }
       if (requestUrl.pathname === '/health') {

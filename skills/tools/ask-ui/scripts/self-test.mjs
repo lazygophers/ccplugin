@@ -572,22 +572,25 @@ try {
     'Content-Type': 'application/json',
   };
 
-  // 正文里的本地文件链接：浏览器不让 http:// 页面跳 file://，必须由 /local 代发。
+  // 正文里的本地文件链接：交给系统默认程序打开。浏览器不让 http:// 页面跳 file://，
+  // 所以点击由 /local 代办。真跑 `open` 会在测试机上弹出程序，换成一个空转的命令。
   {
     const workspace = path.dirname(dataRoot);
     await fs.writeFile(path.join(workspace, 'report.html'), '<h1>审计报告</h1>\n');
     await fs.writeFile(path.join(workspace, 'notes.md'), '# 结论\n\n第一条\n');
+    await fs.writeFile(path.join(workspace, 'danger.sh'), '#!/bin/sh\necho nope\n');
+    // node 自己就是跨平台都在的可执行文件，拿它当空转打开器：它解析不了 .html 会直接
+    // 退出，stdio 又是 ignore，不留痕迹。用 `true` 的话 Windows 上没有这个命令。
+    process.env.ASK_UI_OPENER = process.execPath;
 
     const local = (query) => fetch(`${base}/local?${query}`, { headers });
 
     const html = await local(`path=${encodeURIComponent('report.html')}`);
     assert.equal(html.status, 200, '工作区相对路径的 html 应能打开');
-    assert.match(html.headers.get('content-type'), /text\/html/);
-    assert.match(await html.text(), /审计报告/);
     assert.equal(
-      html.headers.get('content-security-policy'),
-      null,
-      '本地报告不能挂 self-only 的 CSP，否则报告里的 CDN 图表库全被挡掉',
+      (await html.json()).opened,
+      path.join(workspace, 'report.html'),
+      '响应要回报打开的是哪个绝对路径，相对路径按工作区解析',
     );
 
     const absolute = await local(`path=${encodeURIComponent(path.join(workspace, 'report.html'))}`);
@@ -596,18 +599,25 @@ try {
     const fileUrl = await local(`path=${encodeURIComponent(`file://${path.join(workspace, 'report.html')}`)}`);
     assert.equal(fileUrl.status, 200, 'file:// 前缀要被剥掉后照常打开');
 
+    const anchored = await local(
+      `path=${encodeURIComponent('report.html')}&hash=${encodeURIComponent('#2-节点体系')}`,
+    );
+    assert.equal(anchored.status, 200, '带锚点的链接不能把 # 当成文件名的一部分');
+
     const markdown = await local(`path=${encodeURIComponent('notes.md')}`);
-    assert.equal(markdown.status, 200);
-    assert.match(markdown.headers.get('content-type'), /text\/html/, '.md 要套壳成 html 才有得看');
-    const shell = await markdown.text();
-    assert.match(shell, /vendor\/marked\.min\.js/, '壳里要带 markdown 渲染器');
-    assert.match(shell, /第一条/, '原文要嵌进壳里，不再发第二次请求');
+    assert.equal(markdown.status, 200, '.md 同样交给默认程序');
+
+    // `open` 能启动 .app / .sh / .command，正文里的一条链接不该有本事跑程序。
+    const executable = await local(`path=${encodeURIComponent('danger.sh')}`);
+    assert.equal(executable.status, 403, '可执行文件必须被白名单挡下');
 
     const missing = await local(`path=${encodeURIComponent('nope.md')}`);
-    assert.equal(missing.status, 404, '文件不存在要报 404，不能吐半截流');
+    assert.equal(missing.status, 404, '文件不存在要报 404，不能静默当作打开了');
 
     const noToken = await fetch(`${base}/local?path=report.html`);
-    assert.equal(noToken.status, 401, '/local 必须在 token 之后：没 token 不能读本机文件');
+    assert.equal(noToken.status, 401, '/local 必须在 token 之后：没 token 不能碰本机文件');
+
+    delete process.env.ASK_UI_OPENER;
   }
 
   // 常驻服务必须有终点：还有人没答完就继续跑，最后一个会话结束就收摊。

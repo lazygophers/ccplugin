@@ -269,20 +269,50 @@ async function highlightCode(host) {
   }
 }
 
-// 指向本机文件的链接（`.scratch/report.html`、`/abs/notes.md`、`file:///…`）改走
-// 服务端 /local 代发：浏览器禁止从 http:// 页面跳 file://，原样留着点了没反应。
-// 判据是「不像网址」：带已知协议、`//` 开头、锚点、纯 query 的一律不动。
+// 点链接 = 让服务端拿系统默认程序打开那个文件，浏览器里看到的是真 file:// 地址。
+// 不能直接导航过去：Chrome 禁止 http:// 页面跳 file://，点了静默失败。所以 href 只
+// 负责显示和复制（右键「复制链接」拿到的就是 file:// 全路径），真正的动作在 click 里。
+function openLocalFile(target, hash) {
+  const query = [
+    `path=${encodeURIComponent(target)}`,
+    `hash=${encodeURIComponent(hash)}`,
+    `token=${encodeURIComponent(token)}`,
+  ].join('&');
+  return fetch(`/local?${query}`)
+    .then(async (response) => {
+      if (response.ok) return;
+      const body = await response.json().catch(() => ({}));
+      showToast(body.error || `打不开 ${target}`);
+    })
+    .catch((error) => showToast(`打不开 ${target}：${error.message}`));
+}
+
+// 指向本机文件的链接（`.scratch/report.html`、`/abs/notes.md`、`file:///…`）。
+// 判据是「不像网址」：带已知协议、`//` 开头、纯锚点、纯 query 的一律不动。
 function rewriteLocalLinks(host) {
+  const workspace = bundle?.ask?.workspace || '';
   for (const anchor of host.querySelectorAll('a[href]')) {
     const href = anchor.getAttribute('href');
     if (!href || /^(https?:|mailto:|tel:|data:|blob:|#|\?|\/\/)/i.test(href)) continue;
     if (/^[a-z][a-z0-9+.-]*:/i.test(href) && !/^file:/i.test(href)) continue;
-    const target = href.replace(/^file:\/\//i, '');
-    anchor.href = `/local?path=${encodeURIComponent(target)}&token=${encodeURIComponent(token)}`;
-    anchor.target = '_blank';
-    anchor.rel = 'noopener';
+    // `notes.md#某章节` 的 `#` 之后是页内锚点，不属于文件名。混进路径会让服务端
+    // 去找一个带 `#` 的文件，直接报文件不存在。
+    const hashAt = href.indexOf('#');
+    const written = (hashAt < 0 ? href : href.slice(0, hashAt)).replace(/^file:\/\//i, '');
+    const hash = hashAt < 0 ? '' : href.slice(hashAt);
+    // 绝对路径三种写法都要认：POSIX 的 `/a/b`、Windows 的 `C:\a\b`、UNC 的 `\\host\share`。
+    const absolute = /^([a-zA-Z]:[\\/]|\/|\\\\)/.test(written)
+      ? written
+      : `${workspace}/${written.replace(/^\.\//, '')}`;
+    const target = absolute.replace(/\\/g, '/');
+    // 三道斜杠固定要有：`file:///C:/a` 和 `file:///a/b` 都靠它，少一道 Windows 认不出。
+    anchor.href = `file:///${target.replace(/^\/+/, '')}${hash}`;
     anchor.classList.add('local-link');
-    anchor.title = `在新标签页打开本地文件：${target}`;
+    anchor.title = `用本机默认程序打开：${target}`;
+    anchor.addEventListener('click', (event) => {
+      event.preventDefault();
+      openLocalFile(target, hash);
+    });
   }
 }
 
