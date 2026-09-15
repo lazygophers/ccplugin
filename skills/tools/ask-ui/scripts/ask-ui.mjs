@@ -341,7 +341,7 @@ function normalizeConditions(questions) {
       return;
     }
     if (source.index >= index) {
-      errors.push(`${label}只能依赖排在它前面的题，${sourceId} 排在第 ${source.index + 1} 位`);
+      errors.push(`${label} 只能依赖排在它前面的题，${sourceId} 排在第 ${source.index + 1} 位`);
       question.showWhen = null;
       return;
     }
@@ -375,7 +375,7 @@ function normalizeConditions(questions) {
       const known = new Set(source.question.options.map((option) => option.id));
       const unknown = optionIds.filter((optionId) => !known.has(optionId));
       if (unknown.length) {
-        errors.push(`${label}引用了 ${sourceId} 里不存在的选项：${unknown.join('、')}`);
+        errors.push(`${label} 引用了 ${sourceId} 里不存在的选项：${unknown.join('、')}`);
         question.showWhen = null;
         return;
       }
@@ -745,9 +745,17 @@ export async function completeAsk(dataRoot, askId, status = 'completed') {
 }
 
 function contentType(file) {
-  if (file.endsWith('.html')) return 'text/html; charset=utf-8';
+  if (file.endsWith('.html') || file.endsWith('.htm')) return 'text/html; charset=utf-8';
   if (file.endsWith('.js')) return 'text/javascript; charset=utf-8';
   if (file.endsWith('.css')) return 'text/css; charset=utf-8';
+  if (file.endsWith('.json')) return 'application/json; charset=utf-8';
+  if (file.endsWith('.svg')) return 'image/svg+xml';
+  if (file.endsWith('.png')) return 'image/png';
+  if (file.endsWith('.jpg') || file.endsWith('.jpeg')) return 'image/jpeg';
+  if (file.endsWith('.gif')) return 'image/gif';
+  if (file.endsWith('.webp')) return 'image/webp';
+  if (file.endsWith('.pdf')) return 'application/pdf';
+  if (file.endsWith('.txt') || file.endsWith('.log')) return 'text/plain; charset=utf-8';
   return 'application/octet-stream';
 }
 
@@ -767,7 +775,7 @@ function sendJson(response, statusCode, value) {
   response.end(`${JSON.stringify(value)}\n`);
 }
 
-function sendFile(response, file) {
+function sendFile(response, file, { secure = true } = {}) {
   const stream = createReadStream(file);
   // 读文件的错误是异步从流里冒出来的，路由里的 try/catch 接不住。不挂这个监听，
   // 一个权限不对的组件文件就会让整个服务连同全部活跃会话一起退出。
@@ -780,10 +788,50 @@ function sendFile(response, file) {
   });
   // 头留到确认打得开文件之后再发，否则失败时已经发出去 200，改不回错误状态码。
   stream.on('open', () => {
-    addSecurityHeaders(response);
+    // 用户自己机器上的报告文件走 secure:false：那套 CSP 只允许 'self' 脚本，
+    // 挂上去会把报告里的 CDN 图表库全挡掉，页面变成白板。
+    if (secure) addSecurityHeaders(response);
     response.writeHead(200, { 'Content-Type': contentType(file) });
     stream.pipe(response);
   });
+}
+
+// .md 没有浏览器原生渲染，套一层壳用页面同一套 marked + DOMPurify 渲染。
+// 原文直接嵌进去，省掉第二次请求；JSON.stringify 之后再转义 `<`，`</script>` 关不掉这个壳。
+function markdownShell(title, source) {
+  const payload = JSON.stringify(source).replace(/</g, '\\u003c');
+  return `<!doctype html>
+<html lang="zh"><head><meta charset="utf-8">
+<title>${title.replace(/[<&]/g, (c) => (c === '<' ? '&lt;' : '&amp;'))}</title>
+<style>
+:root{color-scheme:dark light}
+body{margin:0;padding:2.5rem 1.5rem;background:#16181d;color:#e6e8ee;
+font:16px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+main{max-width:52rem;margin:0 auto}
+a{color:#7aa2f7}
+pre{background:#1e2128;padding:1rem;border-radius:8px;overflow:auto}
+code{background:#1e2128;padding:.1em .35em;border-radius:4px}
+pre code{background:none;padding:0}
+table{border-collapse:collapse;width:100%}
+th,td{border:1px solid #333842;padding:.45rem .7rem;text-align:left}
+blockquote{margin:0;padding:.2rem 1rem;border-left:3px solid #7aa2f7;color:#aab}
+img{max-width:100%}
+</style></head>
+<body><main id="doc"></main>
+<script src="/vendor/marked.min.js"></script>
+<script src="/vendor/purify.min.js"></script>
+<script>
+const src = ${payload};
+const host = document.getElementById('doc');
+if (window.marked && window.DOMPurify) {
+  host.innerHTML = DOMPurify.sanitize(marked.parse(src, { gfm: true }));
+} else {
+  const pre = document.createElement('pre');
+  pre.textContent = src;
+  host.append(pre);
+}
+</script></body></html>
+`;
 }
 
 // 并发的同名组件请求只应触发一次下载，后到的请求等同一个 promise。
@@ -943,6 +991,30 @@ export async function startHttpServer({
     }
 
     try {
+      // 正文里的本地文件链接（报告 .html、笔记 .md）走这里。浏览器禁止从
+      // http:// 页面跳 file://，点了只会静默失败，所以必须由本服务代发。
+      // 鉴权就是上面那道 token：服务只绑 127.0.0.1，能拿到 token 的就是本机用户自己。
+      if (request.method === 'GET' && requestUrl.pathname === '/local') {
+        const requested = requestUrl.searchParams.get('path') || '';
+        if (!requested) {
+          sendJson(response, 400, { error: 'path is required' });
+          return;
+        }
+        // 相对路径按工作区解析：dataRoot 是 <workspace>/.ask-ui。
+        const target = path.resolve(path.dirname(dataRoot), requested.replace(/^file:\/\//, ''));
+        if (!existsSync(target)) {
+          sendJson(response, 404, { error: `File not found: ${target}` });
+          return;
+        }
+        if (/\.(md|markdown)$/i.test(target)) {
+          const source = await fs.readFile(target, 'utf8');
+          response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+          response.end(markdownShell(path.basename(target), source));
+          return;
+        }
+        sendFile(response, target, { secure: false });
+        return;
+      }
       if (requestUrl.pathname === '/health') {
         sendJson(response, 200, { ok: true, pid: process.pid });
         return;

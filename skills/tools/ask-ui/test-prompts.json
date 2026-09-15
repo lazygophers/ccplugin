@@ -1,17 +1,22 @@
 [
   {
     "id": 1,
-    "prompt": "你第一轮的表单我已经提交了（进程正常退出，结果 JSON 里 round=1，sessionId=s-abc123）。现在我又想到几个彼此独立的问题：日志保留多久？要不要灰度开关？失败回滚策略谁定？",
-    "expected": "复用同一 sessionId=s-abc123 再调 ask，QuestionSet 写 basedOnRound=1；三个独立问题进同一批 Round，不开新 Session；后台启动 + stdout/stderr 分流重定向后立刻结束本轮等通知"
+    "prompt": "重构方案我大概想清楚了，但还有几件事要你拍：日志保留多久？要不要灰度开关？失败回滚策略谁定？如果选了灰度开关，还得定开关粒度。",
+    "expected": "判定为 ≥2 个独立问题 → 走 Ask UI。四题写进同一份 QuestionSet：三个独立题 + 「开关粒度」用 showWhen 挂在灰度题的 yes 选项上做条件题，不拆成两次 ask。每题写 type，选项是对象且 ≥2 个。用 harness 后台机制跑 `ask --input ... > <run>.stdout.json`（只重定向 stdout），把 URL 和 ask-ui-id 复述到回复第一行，然后立刻结束本轮，不 sleep、不催用户。"
   },
   {
     "id": 2,
-    "prompt": "后台那个 ask 任务还没收到完成通知，但我看 stderr 文件里有 ask-ui-session 标记，你帮我确认一下我到底提交了没有。",
-    "expected": "从 stderr 取 sessionId 跑 resume --session；若返回 {\"status\":\"waiting\"} → 什么都不做：不重开表单、不重发问题、不催用户、不 sleep，结束本轮继续等 harness 完成通知；只有 submitted 才继续原工作流"
+    "prompt": "后台那个 ask 任务还没收到完成通知，但我看任务输出里有 ask-ui-id 标记，你帮我确认一下我到底提交了没有。",
+    "expected": "从任务输出（stderr）取 ask-ui-id 跑 `resume --id <askId>`；返回 {\"status\":\"waiting\"} 时什么都不做——不重开表单、不重发问题、不催用户、不 sleep，当场结束本轮继续等 harness 完成通知；只有 submitted 才读答案继续原工作流。"
   },
   {
     "id": 3,
     "prompt": "我刚提交的表单第 2 题选错了，本来该选「保留旧接口」，你直接把答案文件里的这条改了就行。",
-    "expected": "拒绝直接改：已提交的问题和答案不可变；用同一 Session 开新 Round 承载更正（该题推荐选项标「保留旧接口」让用户确认）；不覆盖原 Round 数据"
+    "expected": "拒绝直接改 answers.json：已提交的问题和答案不可变。改为再发起一次新的 ask 承载更正（该题把「保留旧接口」标 recommended + reason），不覆盖原提问数据。也不能只在对话里口头确认，因为口头确认不落盘。"
+  },
+  {
+    "id": 4,
+    "prompt": "我把模型选型的审计报告写完了，放在 .scratch/model-audit.html。你照着它问我先修哪一类问题。",
+    "expected": "QuestionSet 正文里把报告写成 Markdown 链接 `[审计报告](.scratch/model-audit.html)`，不写光秃秃的路径；选项只列真正互斥的几类，不加「其他」；需要用户补充的内容用一道 type=text + required=false 的题承载。"
   }
 ]

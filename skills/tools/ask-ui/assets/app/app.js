@@ -269,12 +269,30 @@ async function highlightCode(host) {
   }
 }
 
+// 指向本机文件的链接（`.scratch/report.html`、`/abs/notes.md`、`file:///…`）改走
+// 服务端 /local 代发：浏览器禁止从 http:// 页面跳 file://，原样留着点了没反应。
+// 判据是「不像网址」：带已知协议、`//` 开头、锚点、纯 query 的一律不动。
+function rewriteLocalLinks(host) {
+  for (const anchor of host.querySelectorAll('a[href]')) {
+    const href = anchor.getAttribute('href');
+    if (!href || /^(https?:|mailto:|tel:|data:|blob:|#|\?|\/\/)/i.test(href)) continue;
+    if (/^[a-z][a-z0-9+.-]*:/i.test(href) && !/^file:/i.test(href)) continue;
+    const target = href.replace(/^file:\/\//i, '');
+    anchor.href = `/local?path=${encodeURIComponent(target)}&token=${encodeURIComponent(token)}`;
+    anchor.target = '_blank';
+    anchor.rel = 'noopener';
+    anchor.classList.add('local-link');
+    anchor.title = `在新标签页打开本地文件：${target}`;
+  }
+}
+
 async function renderProse(host, source) {
   try {
     const { marked, purify } = await loadMarkdown();
     // marked 只负责结构，DOMPurify 负责把脚本和事件属性剥干净，两步都不能省。
     host.innerHTML = purify.sanitize(marked.parse(source, { gfm: true, breaks: true }));
     host.dataset.state = 'ready';
+    rewriteLocalLinks(host);
     for (const table of host.querySelectorAll('table')) {
       const frame = element('div', 'table-frame');
       table.replaceWith(frame);

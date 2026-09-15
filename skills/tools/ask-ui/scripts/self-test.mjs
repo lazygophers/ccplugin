@@ -572,6 +572,44 @@ try {
     'Content-Type': 'application/json',
   };
 
+  // 正文里的本地文件链接：浏览器不让 http:// 页面跳 file://，必须由 /local 代发。
+  {
+    const workspace = path.dirname(dataRoot);
+    await fs.writeFile(path.join(workspace, 'report.html'), '<h1>审计报告</h1>\n');
+    await fs.writeFile(path.join(workspace, 'notes.md'), '# 结论\n\n第一条\n');
+
+    const local = (query) => fetch(`${base}/local?${query}`, { headers });
+
+    const html = await local(`path=${encodeURIComponent('report.html')}`);
+    assert.equal(html.status, 200, '工作区相对路径的 html 应能打开');
+    assert.match(html.headers.get('content-type'), /text\/html/);
+    assert.match(await html.text(), /审计报告/);
+    assert.equal(
+      html.headers.get('content-security-policy'),
+      null,
+      '本地报告不能挂 self-only 的 CSP，否则报告里的 CDN 图表库全被挡掉',
+    );
+
+    const absolute = await local(`path=${encodeURIComponent(path.join(workspace, 'report.html'))}`);
+    assert.equal(absolute.status, 200, '绝对路径同样要能打开');
+
+    const fileUrl = await local(`path=${encodeURIComponent(`file://${path.join(workspace, 'report.html')}`)}`);
+    assert.equal(fileUrl.status, 200, 'file:// 前缀要被剥掉后照常打开');
+
+    const markdown = await local(`path=${encodeURIComponent('notes.md')}`);
+    assert.equal(markdown.status, 200);
+    assert.match(markdown.headers.get('content-type'), /text\/html/, '.md 要套壳成 html 才有得看');
+    const shell = await markdown.text();
+    assert.match(shell, /vendor\/marked\.min\.js/, '壳里要带 markdown 渲染器');
+    assert.match(shell, /第一条/, '原文要嵌进壳里，不再发第二次请求');
+
+    const missing = await local(`path=${encodeURIComponent('nope.md')}`);
+    assert.equal(missing.status, 404, '文件不存在要报 404，不能吐半截流');
+
+    const noToken = await fetch(`${base}/local?path=report.html`);
+    assert.equal(noToken.status, 401, '/local 必须在 token 之后：没 token 不能读本机文件');
+  }
+
   // 常驻服务必须有终点：还有人没答完就继续跑，最后一个会话结束就收摊。
   {
     const idleRoot = path.join(temporaryRoot, 'idle-data');
