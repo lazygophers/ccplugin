@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import {
   completeAsk,
   createAsk,
+  ensureServer,
   hasPendingAsk,
   loadAskBundle,
   normalizeQuestionSet,
@@ -109,6 +110,16 @@ async function stopDetachedServer(serverDataRoot) {
     await new Promise((resolve) => setTimeout(resolve, 200));
   } catch (error) {
     if (!['ENOENT', 'ESRCH'].includes(error.code)) throw error;
+  }
+}
+
+// signal 0 不发信号，只问「这个 pid 还在不在」。
+function serverPidAlive(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -618,6 +629,34 @@ try {
     assert.equal(noToken.status, 401, '/local 必须在 token 之后：没 token 不能碰本机文件');
 
     delete process.env.ASK_UI_OPENER;
+  }
+
+  // 常驻服务把代码读进内存就不再看磁盘：改完 skill 得换掉进程，否则页面拿的是新
+  // 前端、服务端还是旧逻辑，新加的路由一律 404（这是真踩过的坑）。
+  {
+    const versionRoot = path.join(temporaryRoot, 'version-data');
+    const first = await ensureServer(versionRoot);
+    assert.ok(first.pid, '第一次调用应拉起一个服务');
+    assert.equal(
+      first.codeVersion,
+      (await fs.stat(ASK_UI_SCRIPT)).mtimeMs,
+      'server.json 要记下脚本当时的修改时间',
+    );
+
+    const reused = await ensureServer(versionRoot);
+    assert.equal(reused.pid, first.pid, '代码没变就该复用，不许每次都重启');
+
+    // 把脚本的修改时间往后拨，等同于「skill 被改过了」。
+    const original = await fs.stat(ASK_UI_SCRIPT);
+    await fs.utimes(ASK_UI_SCRIPT, original.atime, new Date(original.mtimeMs + 5000));
+    try {
+      const restarted = await ensureServer(versionRoot);
+      assert.notEqual(restarted.pid, first.pid, '代码变了必须换掉旧进程');
+      assert.equal(serverPidAlive(first.pid), false, '旧进程要被停掉，不能留着占端口');
+      await stopDetachedServer(versionRoot);
+    } finally {
+      await fs.utimes(ASK_UI_SCRIPT, original.atime, original.mtime);
+    }
   }
 
   // 常驻服务必须有终点：还有人没答完就继续跑，最后一个会话结束就收摊。

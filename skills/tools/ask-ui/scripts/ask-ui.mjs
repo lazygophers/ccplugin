@@ -7,6 +7,7 @@ import {
   existsSync,
   openSync,
   realpathSync,
+  statSync,
 } from 'node:fs';
 import fs from 'node:fs/promises';
 import http from 'node:http';
@@ -1101,6 +1102,7 @@ export async function startHttpServer({
     token,
     dataRoot,
     startedAt: now(),
+    codeVersion: codeVersion(),
   };
   if (persistServerInfo) await atomicWriteJson(path.join(dataRoot, 'server.json'), info);
   return { server, info };
@@ -1162,12 +1164,31 @@ async function serverIsAlive(info) {
   }
 }
 
-async function ensureServer(dataRoot, { port = 0 } = {}) {
+// 常驻服务把代码读进内存就不再看磁盘了，所以改完 skill 必须换掉旧进程，
+// 否则页面拿的是新前端、服务端还是旧逻辑，新加的路由一律 404。
+function codeVersion() {
+  return statSync(SCRIPT_FILE).mtimeMs;
+}
+
+export async function ensureServer(dataRoot, { port = 0 } = {}) {
   const serverFile = path.join(dataRoot, 'server.json');
   const existing = await readJson(serverFile, null);
-  if (await serverIsAlive(existing)) return existing;
+  const alive = await serverIsAlive(existing);
+  if (alive && existing.codeVersion === codeVersion()) return existing;
+  if (alive) {
+    // 有人正在答题就不能换：换了端口会变，他那一页当场失联。等答完下一次再换。
+    if (await hasPendingAsk(dataRoot)) {
+      process.stderr.write(
+        `ask-ui: 服务跑的是旧代码（pid ${existing.pid}），但还有提问等着人回答，先不重启；答完之后的下一次提问会自动换上新代码。\n`,
+      );
+      return existing;
+    }
+    process.kill(existing.pid);
+    await fs.rm(serverFile, { force: true });
+  }
 
   const token = randomBytes(24).toString('hex');
+  await fs.mkdir(dataRoot, { recursive: true });
   // stdio 全丢弃时，服务为什么退出就永远查不到了：退出原因和崩溃栈都走 stderr。
   const logFd = openSync(path.join(dataRoot, 'server.log'), 'a');
   const child = spawn(
