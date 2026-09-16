@@ -583,7 +583,7 @@ try {
     'Content-Type': 'application/json',
   };
 
-  // 正文里的本地文件链接：交给系统默认程序打开。浏览器不让 http:// 页面跳 file://，
+  // 正文里的本地文件链接：交给默认浏览器开新标签页。浏览器不让 http:// 页面跳 file://，
   // 所以点击由 /local 代办。真跑 `open` 会在测试机上弹出程序，换成一个空转的命令。
   {
     const workspace = path.dirname(dataRoot);
@@ -616,7 +616,7 @@ try {
     assert.equal(anchored.status, 200, '带锚点的链接不能把 # 当成文件名的一部分');
 
     const markdown = await local(`path=${encodeURIComponent('notes.md')}`);
-    assert.equal(markdown.status, 200, '.md 同样交给默认程序');
+    assert.equal(markdown.status, 200, '.md 同样交给默认浏览器');
 
     // `open` 能启动 .app / .sh / .command，正文里的一条链接不该有本事跑程序。
     const executable = await local(`path=${encodeURIComponent('danger.sh')}`);

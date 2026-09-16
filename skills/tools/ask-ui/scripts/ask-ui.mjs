@@ -752,7 +752,7 @@ function contentType(file) {
   return 'application/octet-stream';
 }
 
-// 交给系统默认程序打开的白名单。`open` 会执行 `.app` / `.sh` / `.command`，
+// 交给默认浏览器打开的白名单。兜底路径上的 `open` 会执行 `.app` / `.sh` / `.command`，
 // 所以这里只放行文档和图片——正文里的链接不该有本事启动程序。
 const OPENABLE = /\.(html?|md|markdown|txt|log|json|ya?ml|csv|pdf|png|jpe?g|gif|webp|svg)$/i;
 
@@ -766,10 +766,12 @@ function runCapturing(command, args) {
   });
 }
 
-// macOS 的 open 在打开 file:// 时会把 `#锚点` 剥掉（`open`、`open -u`、`open -a <浏览器>`
-// 三种写法实测都一样）。唯一留得住的是把整条 URL 直接投给浏览器 app，所以先问
-// LaunchServices 默认浏览器是谁，再用 AppleScript 投给它。
-async function openAnchoredPage(url) {
+// 本地文件一律进默认浏览器的新标签页：`.md` 之类扔给 `open` 会拉起编辑器，读一眼
+// 报告还得等编辑器启动。顺带解决锚点——macOS 的 open 打开 file:// 时会把 `#锚点`
+// 剥掉（`open`、`open -u`、`open -a <浏览器>` 三种写法实测都一样），唯一留得住的
+// 是把整条 URL 直接投给浏览器 app，所以先问 LaunchServices 默认浏览器是谁，再用
+// AppleScript 投给它。
+async function openInBrowser(url) {
   if (process.platform !== 'darwin') return false;
   const plist = path.join(
     os.homedir(),
@@ -983,7 +985,7 @@ export async function startHttpServer({
     }
 
     try {
-      // 正文里的本地文件链接点下去走这里：交给系统默认程序打开，浏览器里看到的
+      // 正文里的本地文件链接点下去走这里：交给默认浏览器开新标签页，地址栏里看到的
       // 就是真的 file:// 地址。不能让页面自己跳——Chrome 禁止 http:// 页面导航到
       // file://，`window.open('file://…')` 直接返回 null，点了静默失败。
       // 鉴权就是上面那道 token：服务只绑 127.0.0.1，能拿到 token 的就是本机用户自己。
@@ -1005,8 +1007,7 @@ export async function startHttpServer({
           return;
         }
         const url = `${pathToFileURL(target).href}${hash}`;
-        const anchoredPage = Boolean(hash) && /\.html?$/i.test(target);
-        if (!process.env.ASK_UI_OPENER && anchoredPage && await openAnchoredPage(url)) {
+        if (!process.env.ASK_UI_OPENER && await openInBrowser(url)) {
           sendJson(response, 200, { opened: target });
           return;
         }
@@ -1018,9 +1019,9 @@ export async function startHttpServer({
             darwin: ['open', []],
             win32: ['cmd', ['/c', 'start', '']],
           }[process.platform] || ['xdg-open', []];
-        // Windows 的 start 和 Linux 的 xdg-open 把 URL 整条转交给默认浏览器，`#锚点`
-        // 留得住；macOS 的 open 会剥掉它，所以那条路走上面的 openAnchoredPage。
-        spawn(opener, [...openerArgs, anchoredPage ? url : target], {
+        // Windows 的 start 和 Linux 的 xdg-open 把 file:// URL 整条转交给默认处理器，
+        // `#锚点` 留得住；macOS 只有上面那条 AppleScript 路留得住，这里是它的兜底。
+        spawn(opener, [...openerArgs, url], {
           detached: true,
           stdio: 'ignore',
           windowsHide: true,

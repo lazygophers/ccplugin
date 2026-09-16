@@ -269,7 +269,7 @@ async function highlightCode(host) {
   }
 }
 
-// 点链接 = 让服务端拿系统默认程序打开那个文件，浏览器里看到的是真 file:// 地址。
+// 点链接 = 让服务端把文件投给默认浏览器开新标签页，地址栏里是真 file:// 地址。
 // 不能直接导航过去：Chrome 禁止 http:// 页面跳 file://，点了静默失败。所以 href 只
 // 负责显示和复制（右键「复制链接」拿到的就是 file:// 全路径），真正的动作在 click 里。
 function openLocalFile(target, hash) {
@@ -298,7 +298,10 @@ function rewriteLocalLinks(host) {
     // `notes.md#某章节` 的 `#` 之后是页内锚点，不属于文件名。混进路径会让服务端
     // 去找一个带 `#` 的文件，直接报文件不存在。
     const hashAt = href.indexOf('#');
-    const written = (hashAt < 0 ? href : href.slice(0, hashAt)).replace(/^file:\/\//i, '');
+    // `file:///C:/a` 剥协议后要留 `C:/a` 而不是 `/C:/a`，盘符前那道斜杠是协议格式的一部分。
+    const written = (hashAt < 0 ? href : href.slice(0, hashAt))
+      .replace(/^file:\/\//i, '')
+      .replace(/^\/(?=[a-zA-Z]:)/, '');
     const hash = hashAt < 0 ? '' : href.slice(hashAt);
     // 绝对路径三种写法都要认：POSIX 的 `/a/b`、Windows 的 `C:\a\b`、UNC 的 `\\host\share`。
     const absolute = /^([a-zA-Z]:[\\/]|\/|\\\\)/.test(written)
@@ -308,7 +311,7 @@ function rewriteLocalLinks(host) {
     // 三道斜杠固定要有：`file:///C:/a` 和 `file:///a/b` 都靠它，少一道 Windows 认不出。
     anchor.href = `file:///${target.replace(/^\/+/, '')}${hash}`;
     anchor.classList.add('local-link');
-    anchor.title = `用本机默认程序打开：${target}`;
+    anchor.title = `在浏览器新标签页打开：${target}`;
     anchor.addEventListener('click', (event) => {
       event.preventDefault();
       openLocalFile(target, hash);
@@ -460,6 +463,9 @@ function openPreview(host, label, { readable = false } = {}) {
     if (node.classList?.contains('preview-hint')) continue;
     canvas.append(node);
   }
+  // 本机文件链接的 click 监听同样没被克隆带过来，点了会走 href 的 file:// 导航，
+  // 被浏览器静默拦掉。重新挂一遍：href 已是 file:// 全路径，rewriteLocalLinks 认它。
+  rewriteLocalLinks(canvas);
   // 宿主是整段正文（如「本次背景」）时，克隆体里还嵌着表格、代码块的预览框：
   // 克隆不带走监听器，点了没反应。阅读模式下把它们重新接上，表格在阅读层里还能
   // 二次点开自己的缩放预览；缩放模式下没有拖选文字的需求，剥掉角标和残留属性即可。
