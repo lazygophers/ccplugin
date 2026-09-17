@@ -1176,19 +1176,23 @@ export async function ensureServer(dataRoot, { port = 0 } = {}) {
   const existing = await readJson(serverFile, null);
   const alive = await serverIsAlive(existing);
   if (alive && existing.codeVersion === codeVersion()) return existing;
+  // 旧进程照样得换：页面是每次从磁盘现读的新前端，配上内存里的旧服务端，新加的
+  // 路由一律 404（本地文件链接就是这么点不开的）。有人正在答题也照换，只是端口和
+  // token 原样留着——答案本来就在磁盘上，那一页几秒后重新轮询就接上了。
+  let reuse = null;
   if (alive) {
-    // 有人正在答题就不能换：换了端口会变，他那一页当场失联。等答完下一次再换。
     if (await hasPendingAsk(dataRoot)) {
+      reuse = { port: existing.port, token: existing.token };
       process.stderr.write(
-        `ask-ui: 服务跑的是旧代码（pid ${existing.pid}），但还有提问等着人回答，先不重启；答完之后的下一次提问会自动换上新代码。\n`,
+        `ask-ui: 服务跑的是旧代码（pid ${existing.pid}），换成新代码，端口 ${existing.port} 和链接不变。\n`,
       );
-      return existing;
     }
     process.kill(existing.pid);
     await fs.rm(serverFile, { force: true });
   }
 
-  const token = randomBytes(24).toString('hex');
+  const token = reuse?.token || randomBytes(24).toString('hex');
+  if (reuse?.port) port = reuse.port;
   await fs.mkdir(dataRoot, { recursive: true });
   // stdio 全丢弃时，服务为什么退出就永远查不到了：退出原因和崩溃栈都走 stderr。
   const logFd = openSync(path.join(dataRoot, 'server.log'), 'a');
