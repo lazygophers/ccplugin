@@ -1,6 +1,6 @@
 ---
 name: novelist-design
-description: 小说的整体核心设计——主要剧情与主要人物一起定(二者必须同处本 skill, 因为主角与主线相互定义)。当用户说"设计这本书的核心/定主线和主角/搭整体框架/核心设定"时调用。本 skill 是统筹者: 自己产出核心骨架, 并引用 novelist-outline / novelist-character / novelist-worldview 落地各部分细节, 不与它们抢目录。
+description: '小说的整体核心设计——主要剧情与主要人物一起定(二者必须同处本 skill, 因为主角与主线相互定义)。当用户说"设计这本书的核心/定主线和主角/搭整体框架/核心设定"时调用。本 skill 是统筹者: 自己产出核心骨架, 并引用 novelist-outline / novelist-character / novelist-worldview 落地各部分细节, 不与它们抢目录。'
 
 user-invocable: true
 argument-hint: "[可选方向; 缺省=对当前小说做核心设计, 交互敲定]"

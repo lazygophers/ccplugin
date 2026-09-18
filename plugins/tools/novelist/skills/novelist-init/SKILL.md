@@ -1,9 +1,9 @@
 ---
 name: novelist-init
-description: 初始化一部新小说的目录环境(scale)。当用户说"新建小说/开一本书/初始化小说项目/搭小说目录"时调用, 创建中文目录骨架(人物/世界观/设定/大纲/情节/章节/元数据)+模板文件。这是 novelist 插件所有其他 skill 的前置——没有目录环境, design/write/check 无处落盘。
+description: '初始化一部新小说的目录环境(scale)。当用户说"新建小说/开一本书/初始化小说项目/搭小说目录"时调用, 创建中文目录骨架(人物/世界观/设定/大纲/情节/章节/元数据)+模板文件。这是 novelist 插件所有其他 skill 的前置——没有目录环境, design/write/check 无处落盘。'
 
 user-invocable: true
-argument-hint: [小说名] [类型]
+argument-hint: '[小说名] [类型]'
 arguments: [小说名, 可选类型]
 ---
 

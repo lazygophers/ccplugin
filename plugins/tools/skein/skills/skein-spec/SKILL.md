@@ -1,6 +1,6 @@
 ---
 name: skein-spec
-description: SKEIN 规则记忆库 (.skein/spec)。触发: planning 召回既有约定 / finish 后沉淀或改写规则 / 现状 wiki 与记忆库维护 / spec 一致性核查 / 空仓播种与整库重构。recall·sediment·amend·map·analyze·migrate·bootstrap·reconstruct·maintain 全模式入口。
+description: 'SKEIN 规则记忆库 (.skein/spec)。触发: planning 召回既有约定 / finish 后沉淀或改写规则 / 现状 wiki 与记忆库维护 / spec 一致性核查 / 空仓播种与整库重构。recall·sediment·amend·map·analyze·migrate·bootstrap·reconstruct·maintain 全模式入口。'
 user-invocable: true
 argument-hint: "[模式: recall/召回, sediment/沉淀, amend/改写, map/结构现算, analyze/一致性核查, migrate/迁移, bootstrap/播种, reconstruct/重构, maintain/维护 (加 --apply 自动修)] [--deep=recall/low/full/deep/max/high (reconstruct 模式可选)]"
 arguments: "['recall(召回)|sediment(沉淀)|amend(改写)|map(结构现算)|analyze(一致性核查)|migrate(迁移)|bootstrap(播种)|reconstruct(重构)|maintain(维护)', '--deep=recall/low/full/deep/max/high']"

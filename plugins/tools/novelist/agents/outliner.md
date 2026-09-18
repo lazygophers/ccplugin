@@ -1,6 +1,6 @@
 ---
 name: outliner
-description: Use this agent to generate a per-batch chapter route map (路线图) for a novel — reads 大纲/总纲+分卷, 情节/主线+伏笔, 元数据/进度, and outputs a structured route map (每章: 核心事件/人物变化/伏笔推进/收尾钩子/字数目标). Dispatched by the novelist-pipeline workflow's 路线图 stage. Plans only; does not write chapter prose.
+description: 'Use this agent to generate a per-batch chapter route map (路线图) for a novel — reads 大纲/总纲+分卷, 情节/主线+伏笔, 元数据/进度, and outputs a structured route map (每章: 核心事件/人物变化/伏笔推进/收尾钩子/字数目标). Dispatched by the novelist-pipeline workflow''s 路线图 stage. Plans only; does not write chapter prose.'
 model: inherit
 color: cyan
 tools: ["Read", "Write", "Edit", "Grep", "Glob"]

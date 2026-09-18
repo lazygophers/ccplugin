@@ -1,9 +1,9 @@
 ---
 name: novelist-rewrite
-description: 重写小说章节。入参 mode=detect|fix(默认 fix): detect=只读诊断, 扫描全书产「建议重写章清单+理由+建议模式A/B/C」, 不改文件; fix=执行三模式——(A) 按 novelist-check 报告定点修复冲突; (B) 从指定章起清空该章及之后重写; (C) 连续重写多个指定章节。当用户说"重写第N章/从第N章开始重写/这几章重写/按检查报告改/第N章之后全删重写/诊断哪些章需重写"时调用。清空是破坏性操作, 执行前必须显式确认。本 skill 独占 章节/ 目录的覆盖写入。
+description: '重写小说章节。入参 mode=detect|fix(默认 fix): detect=只读诊断, 扫描全书产「建议重写章清单+理由+建议模式A/B/C」, 不改文件; fix=执行三模式——(A) 按 novelist-check 报告定点修复冲突; (B) 从指定章起清空该章及之后重写; (C) 连续重写多个指定章节。当用户说"重写第N章/从第N章开始重写/这几章重写/按检查报告改/第N章之后全删重写/诊断哪些章需重写"时调用。清空是破坏性操作, 执行前必须显式确认。本 skill 独占 章节/ 目录的覆盖写入。'
 
 user-invocable: true
-argument-hint: [mode: detect|fix] [模式: 报告修复 / 从第N章起 / 第A-B章]
+argument-hint: '[mode: detect|fix] [模式: 报告修复 / 从第N章起 / 第A-B章]'
 arguments: [mode, 重写范围]
 ---
 
