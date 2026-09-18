@@ -798,8 +798,62 @@ async function alignToFocusedQuestion() {
   scrollToQuestion(focusedQuestionId, 'auto');
 }
 
+// 每改一下就把草稿写回服务端，但不是每个按键都发一次请求：停手 400 毫秒再发，
+// 连打一串字只落一次盘。关页来不及等防抖，走 sendBeacon 补一枪。
+const DRAFT_DEBOUNCE_MS = 400;
+let draftTimer = null;
+
+function draftPayload() {
+  return { answers: pendingAnswers };
+}
+
+function saveDraftNow() {
+  clearTimeout(draftTimer);
+  draftTimer = null;
+  if (!editableNow()) return;
+  // 草稿写失败不打扰答题：它只是防丢，提交那一步才是正式落盘。
+  api(`/api/asks/${encodeURIComponent(askId)}/draft`, {
+    method: 'PUT',
+    body: JSON.stringify(draftPayload()),
+  }).catch(() => {});
+}
+
+function saveDraftSoon() {
+  if (!editableNow()) return;
+  clearTimeout(draftTimer);
+  draftTimer = setTimeout(saveDraftNow, DRAFT_DEBOUNCE_MS);
+}
+
+// 关标签页时 fetch 会被浏览器掐断，sendBeacon 是唯一保证发出去的方式。
+// 它只会发 POST，也带不了 Authorization 头，所以 token 走 query，路由两种方法都收。
+function flushDraftOnExit() {
+  if (!editableNow() || !draftTimer) return;
+  clearTimeout(draftTimer);
+  draftTimer = null;
+  const url = `/api/asks/${encodeURIComponent(askId)}/draft?token=${encodeURIComponent(token)}`;
+  const body = new Blob([JSON.stringify(draftPayload())], { type: 'application/json' });
+  if (!navigator.sendBeacon?.(url, body)) saveDraftNow();
+}
+
+window.addEventListener('pagehide', flushDraftOnExit);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') flushDraftOnExit();
+});
+
+// 服务端存着的草稿盖回内存里这份：刷新、关页重开、换浏览器、服务重启都接得上。
+function applyDraft(draft) {
+  for (const saved of draft?.answers || []) {
+    const answer = pendingAnswers.find((item) => item.questionId === saved.questionId);
+    if (!answer) continue;
+    answer.selectedOptionIds = [...(saved.selectedOptionIds || [])];
+    answer.customText = saved.customText || '';
+    answer.supplementaryText = saved.supplementaryText || '';
+  }
+}
+
 function refreshProgress() {
   if (!bundle) return;
+  saveDraftSoon();
   const form = currentForm();
   const editable = editableNow();
   if (visibilitySignature(form, editable) !== lastVisibilitySignature) {
@@ -1137,8 +1191,8 @@ function showSubmissionConfirmation() {
   const card = element('div', 'submission-confirmation');
   const title = element('strong', 'submission-confirmation-title', '已提交给 Agent');
   const message = element('p', 'submission-confirmation-message', '答案已安全保存，Agent 正在继续工作。');
-  const countdown = element('span', 'submission-confirmation-countdown', '此页面将在 5 秒后自动关闭');
-  let remaining = 5;
+  const countdown = element('span', 'submission-confirmation-countdown', '此页面将在 3 秒后自动关闭');
+  let remaining = 3;
 
   overlay.setAttribute('role', 'dialog');
   overlay.setAttribute('aria-live', 'assertive');
@@ -1154,9 +1208,10 @@ function showSubmissionConfirmation() {
   submissionConfirmationTimer = setTimeout(() => {
     clearInterval(submissionConfirmationInterval);
     window.close();
-    // 浏览器只允许关闭脚本自己打开的标签页，其余情况停在终态卡上。
+    // 浏览器只允许关闭脚本自己打开的标签页；表单是从外面打开的，所以这一步多半
+    // 失败，真正关页的是服务端（同样 3 秒后从外面关，见 ask-ui.mjs 的 closeBrowserTab）。
     countdown.textContent = '可以关闭这个标签页了';
-  }, 5000);
+  }, 3000);
 }
 
 function questionFlags(question) {
@@ -1362,6 +1417,7 @@ async function loadBundle(force = false) {
   lastUpdatedAt = next.ask.updatedAt;
   if (firstLoad && next.ask.status === 'waiting_for_user') {
     pendingAnswers = answersForForm(currentForm());
+    applyDraft(next.draft);
     focusedQuestionId = firstUnansweredId(currentForm(), true);
   }
   if (changed) render();

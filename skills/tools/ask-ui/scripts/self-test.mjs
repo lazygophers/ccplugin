@@ -2,6 +2,7 @@
 
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -967,12 +968,26 @@ try {
     { questionId: 'context', selectedOptionIds: [], customText: '先做本地 Demo。' },
     { questionId: 'channel', selectedOptionIds: ['email'], customText: '', supplementaryText: '工作日才提醒。' },
   ];
-  // 草稿自动保存已移除：答案只在用户点提交时落盘，draft 端点必须不复存在。
+  // 填到一半就落盘：关页、刷新、服务重启都要能把答案接回来。
   const draftResponse = await fetch(
+    `${base}/api/asks/${first.askId}/draft`,
+    { method: 'PUT', headers, body: JSON.stringify({ answers }) },
+  );
+  assert.equal(draftResponse.status, 200, '草稿要能写进服务端');
+  const draftFile = path.join(dataRoot, 'asks', first.askId, 'draft.json');
+  assert.ok(existsSync(draftFile), '草稿要落成 draft.json');
+  const reopened = await fetch(`${base}/api/asks/${first.askId}`, { headers });
+  assert.equal(
+    (await reopened.json()).draft.answers[0].supplementaryText,
+    '先覆盖个人高频场景。',
+    '重新打开页面要能把草稿读回来',
+  );
+  // sendBeacon 只会发 POST，关标签页那一下全靠它，所以两种方法都得收。
+  const beacon = await fetch(
     `${base}/api/asks/${first.askId}/draft`,
     { method: 'POST', headers, body: JSON.stringify({ answers }) },
   );
-  assert.equal(draftResponse.status, 404);
+  assert.equal(beacon.status, 200, 'sendBeacon 的 POST 也要收');
 
   const submitResponse = await fetch(
     `${base}/api/asks/${first.askId}/answers`,
@@ -984,6 +999,8 @@ try {
   );
   assert.equal(submitResponse.status, 200);
   assert.equal((await submitResponse.json()).duplicate, false);
+
+  assert.ok(!existsSync(draftFile), '提交之后草稿要删掉，别留一份半成品在旁边');
 
   const resumed = await resumeAsk(dataRoot, first.askId);
   assert.equal(resumed.status, 'submitted');

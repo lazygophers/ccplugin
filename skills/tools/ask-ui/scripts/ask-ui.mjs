@@ -644,7 +644,24 @@ export async function loadAskBundle(dataRoot, askId) {
     ask,
     questions: await readJson(path.join(directory, 'questions.json')),
     answers: await readJson(path.join(directory, 'answers.json'), null),
+    draft: await readJson(path.join(directory, 'draft.json'), null),
   };
+}
+
+// 填到一半的答案每改一下就落盘：关页、刷新、换浏览器、服务重启都接得回来。
+// 不校验必填、不校验选项——草稿本来就是半成品，校验留给提交那一步。
+export async function saveDraft(dataRoot, askId, payload) {
+  const directory = askDirectory(dataRoot, askId);
+  const ask = await readAsk(dataRoot, askId);
+  if (ask.status !== 'waiting_for_user') throw new Error('Ask is not accepting answers');
+  const draft = {
+    schemaVersion: SCHEMA_VERSION,
+    askId,
+    updatedAt: now(),
+    answers: Array.isArray(payload?.answers) ? payload.answers : [],
+  };
+  await atomicWriteJson(path.join(directory, 'draft.json'), draft);
+  return draft;
 }
 
 export async function submitAnswers(dataRoot, askId, payload) {
@@ -672,6 +689,7 @@ export async function submitAnswers(dataRoot, askId, payload) {
     hiddenQuestionIds: validated.hiddenQuestionIds,
   };
   await atomicWriteJson(path.join(directory, 'answers.json'), answerSet);
+  await fs.rm(path.join(directory, 'draft.json'), { force: true });
   ask.status = 'submitted';
   ask.submittedAt = answerSet.submittedAt;
   await writeAsk(dataRoot, ask);
@@ -771,25 +789,39 @@ function runCapturing(command, args) {
 // 剥掉（`open`、`open -u`、`open -a <浏览器>` 三种写法实测都一样），唯一留得住的
 // 是把整条 URL 直接投给浏览器 app，所以先问 LaunchServices 默认浏览器是谁，再用
 // AppleScript 投给它。
-async function openInBrowser(url) {
-  if (process.platform !== 'darwin') return false;
+async function defaultBrowserBundleId() {
+  if (process.platform !== 'darwin') return null;
   const plist = path.join(
     os.homedir(),
     'Library/Preferences/com.apple.LaunchServices/com.apple.launchservices.secure.plist',
   );
   const raw = await runCapturing('plutil', ['-convert', 'json', '-o', '-', plist]);
-  if (!raw) return false;
-  let bundleId = null;
+  if (!raw) return null;
   try {
-    bundleId = (JSON.parse(raw).LSHandlers || [])
-      .find((handler) => handler.LSHandlerURLScheme === 'http')?.LSHandlerRoleAll;
+    return (JSON.parse(raw).LSHandlers || [])
+      .find((handler) => handler.LSHandlerURLScheme === 'http')?.LSHandlerRoleAll || null;
   } catch {
-    return false;
+    return null;
   }
+}
+
+async function openInBrowser(url) {
+  const bundleId = await defaultBrowserBundleId();
   if (!bundleId) return false;
   // URL 要进 AppleScript 的字符串字面量，反斜杠和引号得转义。
   const quoted = url.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
   const script = `tell application id "${bundleId}" to open location "${quoted}"`;
+  return await runCapturing('osascript', ['-e', script]) !== null;
+}
+
+// 提交完这一页就没用了。浏览器只允许脚本关闭自己 window.open 出来的标签页，
+// 而表单是 `open` 从外面打开的，所以 window.close() 必然失败，只能由服务端来关。
+// 认页面靠 askId——它在 URL 路径里，天然唯一。只有 macOS 能这么关，其余平台
+// 退回页面上那张「可以关闭这个标签页了」的终态卡。
+async function closeBrowserTab(askId) {
+  const bundleId = await defaultBrowserBundleId();
+  if (!bundleId) return false;
+  const script = `tell application id "${bundleId}" to close (every tab of every window whose URL contains "${askId}")`;
   return await runCapturing('osascript', ['-e', script]) !== null;
 }
 
@@ -936,6 +968,9 @@ async function triggerWake(dataRoot, askId) {
   }
 }
 
+// 提交后等这么久再关页、关进程：留一眼看「已提交」那张卡的时间。
+const SUBMIT_TEARDOWN_MS = Number(process.env.ASK_UI_CLOSE_DELAY_MS) || 3000;
+
 export async function startHttpServer({
   dataRoot,
   token = randomBytes(24).toString('hex'),
@@ -943,6 +978,7 @@ export async function startHttpServer({
   persistServerInfo = true,
   enableWake = true,
   onSubmitted = null,
+  shutdownAfterSubmit = false,
 } = {}) {
   if (!dataRoot) throw new Error('dataRoot is required');
   await fs.mkdir(dataRoot, { recursive: true });
@@ -1042,7 +1078,7 @@ export async function startHttpServer({
       }
 
       const apiMatch = requestUrl.pathname.match(
-        /^\/api\/asks\/([^/]+)(?:\/(answers|status))?$/,
+        /^\/api\/asks\/([^/]+)(?:\/(answers|status|draft))?$/,
       );
       if (!apiMatch) {
         sendJson(response, 404, { error: 'Not found' });
@@ -1058,6 +1094,11 @@ export async function startHttpServer({
       }
       if (request.method === 'GET' && operation === null) {
         sendJson(response, 200, await loadAskBundle(dataRoot, askId));
+        return;
+      }
+      // PUT 是正常路径；关标签页那一下只能靠 sendBeacon，而它只发 POST。
+      if ((request.method === 'PUT' || request.method === 'POST') && operation === 'draft') {
+        sendJson(response, 200, await saveDraft(dataRoot, askId, await readRequestJson(request)));
         return;
       }
       if (request.method === 'POST' && operation === 'answers') {
@@ -1082,6 +1123,10 @@ export async function startHttpServer({
               triggerWake(dataRoot, askId).catch(() => {});
             }, 0);
           }
+          // 答完就收摊：关掉那一页，没有别的提问还等着人答就连进程一起退。
+          if (shutdownAfterSubmit) {
+            setTimeout(() => { teardownAfterSubmit(askId); }, SUBMIT_TEARDOWN_MS);
+          }
         }
         return;
       }
@@ -1090,6 +1135,19 @@ export async function startHttpServer({
       sendJson(response, error.statusCode || 500, { error: error.message });
     }
   });
+
+  async function teardownAfterSubmit(askId) {
+    await closeBrowserTab(askId).catch(() => false);
+    if (await hasPendingAsk(dataRoot)) return;
+    process.stderr.write(`[${now()}] serve exiting: ${askId} submitted\n`);
+    if (persistServerInfo) {
+      await fs.rm(path.join(dataRoot, 'server.json'), { force: true });
+    }
+    server.close(() => process.exit(0));
+    // keep-alive 连接会拖住 close，直接断掉；再兜一层超时，绝不留下僵尸进程。
+    server.closeAllConnections?.();
+    setTimeout(() => process.exit(0), 1000).unref();
+  }
 
   await new Promise((resolve, reject) => {
     server.once('error', reject);
@@ -1331,6 +1389,7 @@ export async function main(argv = process.argv.slice(2)) {
       dataRoot,
       port: Number(args.port) || 0,
       token: args.token || randomBytes(24).toString('hex'),
+      shutdownAfterSubmit: true,
     });
     print(started.info);
     const idleMs = idleTimeoutMs(args['idle-timeout']);
