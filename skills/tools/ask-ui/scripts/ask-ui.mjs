@@ -1124,7 +1124,8 @@ export async function startHttpServer({
             }, 0);
           }
           // 答完就收摊：关掉那一页，没有别的提问还等着人答就连进程一起退。
-          if (shutdownAfterSubmit) {
+          // 手动路径除外——它没有等待方，收摊会把「回会话说已提交」的指引一起掐死。
+          if (shutdownAfterSubmit && result.ask.deliveryMode === 'direct') {
             setTimeout(() => { teardownAfterSubmit(askId); }, SUBMIT_TEARDOWN_MS);
           }
         }

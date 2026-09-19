@@ -1186,6 +1186,11 @@ function showSubmissionConfirmation() {
   document.querySelector('.submission-overlay')?.remove();
   clearTimeout(submissionConfirmationTimer);
   clearInterval(submissionConfirmationInterval);
+  // 手动路径（create）没有进程在等提交，Agent 全靠用户回会话里说一声。自动关页
+  // 会把「回复已提交」那张卡一起关掉，用户不知道下一步、Agent 永远收不到——所以
+  // 只有 ask 路径（磁盘轮询、提交即醒）才倒计时关页。
+  const direct = bundle?.ask?.deliveryMode === 'direct';
+  if (!direct) return;
 
   const overlay = element('div', 'submission-overlay');
   const card = element('div', 'submission-confirmation');
