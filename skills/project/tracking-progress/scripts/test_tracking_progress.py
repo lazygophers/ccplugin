@@ -153,6 +153,7 @@ def test_resolve_blocking():
         tp.Task("s", "02", "等 01 和 03", tp.OPEN, blocked_by=["1", "3"]),
         tp.Task("s", "03", "也要做", tp.OPEN),
     ]
+    tp.analyse(effort)  # 把 blocked_by 换算成真实依赖
     tp.resolve_blocking(effort)
     assert [t.status for t in effort.tasks] == [tp.DONE, tp.BLOCKED, tp.OPEN]
 
@@ -219,28 +220,31 @@ def test_render_contains_every_section(tmp_path):
     root = build_repo(tmp_path)
     scratch = root / ".scratch"
     efforts, unparsed = tp.scan(scratch)
-    md = tp.render(efforts, unparsed, scratch)
-    for heading in (
-        "## 总览",
-        "## 现在能开工的",
-        "## 按 spec 分组",
-        "## 阻塞关系",
-        "## 久未动",
-        "## 最近完成",
-        "## 未能识别的文件",
+    page = tp.render(efforts, unparsed, scratch)
+    for anchor in (
+        "id='overview'",
+        "id='now'",
+        "id='waves'",
+        "id='specs'",
+        "id='stale'",
+        "id='recent'",
+        "id='unknown'",
     ):
-        assert heading in md
-    assert "```mermaid" in md
-    assert "notes.md" in md
-    assert "2026-09-18.md" not in md
+        assert anchor in page
+    # 链接指向源文件；memory/ 与 research/ 永不进页
+    assert "alpha/issues/01-first.md" in page
+    assert "notes.md" in page
+    assert "2026-09-18.md" not in page
+    assert "research/deep.md" not in page
+    # 口径必须写明：这是这版设计的核心承诺
+    assert "进度 = 已完成 ÷ 总票数" in page
 
 
 def test_main_writes_report(tmp_path, monkeypatch, capsys):
     root = build_repo(tmp_path)
-    monkeypatch.setattr(tp, "to_html", lambda path: None)
     assert tp.main(["tracking_progress.py", str(root)]) == 0
-    out = (root / ".scratch" / "progress.md").read_text(encoding="utf-8")
-    assert "# 任务进度" in out
+    page = (root / ".scratch" / "progress.html").read_text(encoding="utf-8")
+    assert "任务进度" in page
     assert "UNPARSED=1" in capsys.readouterr().err
 
 
@@ -249,15 +253,11 @@ def test_main_without_scratch(tmp_path, capsys):
     assert ".scratch" in capsys.readouterr().err
 
 
-def test_bar_endpoints():
-    assert "0%" in tp.bar(0, 0)
-    assert "100%" in tp.bar(4, 4)
-
 
 def test_clip():
-    assert tp.clip("短") == "短"
-    assert tp.clip("x" * 30).endswith("…")
-    assert '"' not in tp.clip('带"引号"的标题')
+    assert tp.clip("短", 5) == "短"
+    assert tp.clip("x" * 30, 20).endswith("…")
+    assert '"' not in tp.clip('带"引号"的标题', 20)
 
 
 def test_normalise_id_without_digits():
@@ -279,12 +279,12 @@ def test_render_empty_project(tmp_path):
     scratch = tmp_path / ".scratch"
     write(scratch / "alpha" / "spec.md", "# Spec\n")
     efforts, unparsed = tp.scan(scratch)
-    md = tp.render(efforts, unparsed, scratch)
-    assert "没有可直接开工的票" in md
-    assert "只有 spec / 地图，没扫到票" in md
-    assert "没有票声明阻塞关系" in md
-    assert "还没有完成的票" in md
-    assert md.rstrip().endswith("没有。")
+    page = tp.render(efforts, unparsed, scratch)
+    assert "没有可直接开工的票" in page
+    assert "只有 spec / 地图，没扫到票" in page
+    assert "没有票声明阻塞关系" in page
+    assert "还没有完成的票" in page
+    assert "没有。全部文件都读出了状态" in page
 
 
 def test_render_flags_stale_spec(tmp_path):
@@ -295,48 +295,98 @@ def test_render_flags_stale_spec(tmp_path):
     os.utime(path.parent, (old, old))
     os.utime(scratch / "alpha", (old, old))
     efforts, unparsed = tp.scan(scratch)
-    md = tp.render(efforts, unparsed, scratch)
-    assert "| alpha | 1 张 |" in md
+    page = tp.render(efforts, unparsed, scratch)
+    row = page[page.find("id='stale'"):]
+    assert "alpha" in row and "1 张" in row
 
 
-def test_to_html_missing_script(tmp_path, monkeypatch):
-    monkeypatch.setattr(Path, "home", staticmethod(lambda: tmp_path))
-    assert tp.to_html(tmp_path / "progress.md") is None
 
 
-def test_to_html_runs_converter(tmp_path, monkeypatch, capsys):
-    script = tmp_path / ".claude" / "scripts" / "md2html.sh"
-    write(script, "#!/bin/sh\nexit 0\n")
-    monkeypatch.setattr(Path, "home", staticmethod(lambda: tmp_path))
-    md = write(tmp_path / "progress.md", "# x\n")
-
-    calls = []
-
-    def fake_run(cmd, **kwargs):
-        calls.append(cmd)
-        return subprocess.CompletedProcess(cmd, 0, "", "")
-
-    monkeypatch.setattr(tp.subprocess, "run", fake_run)
-    assert tp.to_html(md) == tmp_path / "progress.html"
-    assert calls == [[str(script), str(md)]]
 
 
-def test_to_html_reports_converter_failure(tmp_path, monkeypatch, capsys):
-    script = tmp_path / ".claude" / "scripts" / "md2html.sh"
-    write(script, "#!/bin/sh\nexit 1\n")
-    monkeypatch.setattr(Path, "home", staticmethod(lambda: tmp_path))
-    monkeypatch.setattr(
-        tp.subprocess,
-        "run",
-        lambda cmd, **kw: subprocess.CompletedProcess(cmd, 1, "", "pandoc 没装"),
+def test_blocked_by_empty_value_does_not_swallow_next_line(tmp_path):
+    """`Blocked by:` with no value must not mint ids from the quote below."""
+    path = write(
+        tmp_path / "02-tombstone.md",
+        "# 02 · 定性\n\nStatus: open\nBlocked by:\n\n"
+        "> 已拍板：读法 B。术语表 `CONTEXT.md:108` 是对的。\n",
     )
-    assert tp.to_html(write(tmp_path / "progress.md", "# x\n")) is None
-    assert "pandoc 没装" in capsys.readouterr().err
+    task = tp.parse_issue_file(path, "spec")
+    assert task.blocked_by == []
 
 
-def test_main_prints_html_path(tmp_path, monkeypatch, capsys):
-    root = build_repo(tmp_path)
-    html = root / ".scratch" / "progress.html"
-    monkeypatch.setattr(tp, "to_html", lambda path: html)
-    assert tp.main(["tracking_progress.py", str(root)]) == 0
-    assert str(html) in capsys.readouterr().out
+def test_status_empty_value_does_not_swallow_next_line(tmp_path):
+    path = write(
+        tmp_path / "03-x.md",
+        "# 03 · 例子\n\nStatus:\n\n后来才写状态 open\n",
+    )
+    # 空值不再把下一行当状态；没有 Status 也没有别的票面字段，就不算票
+    assert tp.parse_issue_file(path, "spec") is None
+
+
+def test_analyse_depths_and_unlocks():
+    effort = tp.Effort("s", Path("."))
+    effort.tasks = [
+        tp.Task("s", "01", "地基", tp.OPEN),
+        tp.Task("s", "02", "等 01", tp.BLOCKED, blocked_by=["1"]),
+        tp.Task("s", "03", "等 02", tp.BLOCKED, blocked_by=["2"]),
+        tp.Task("s", "04", "也等 01", tp.BLOCKED, blocked_by=["1"]),
+    ]
+    tp.analyse(effort)
+    by = {t.key: t for t in effort.tasks}
+    assert [by["1"].depth, by["2"].depth, by["3"].depth, by["4"].depth] == [0, 1, 2, 1]
+    assert by["1"].unlocks == 2
+    assert effort.edges == [("1", "2"), ("2", "3"), ("1", "4")]
+
+
+def test_analyse_cycle_detected():
+    effort = tp.Effort("s", Path("."))
+    effort.tasks = [
+        tp.Task("s", "01", "甲", tp.BLOCKED, blocked_by=["13"]),
+        tp.Task("s", "13", "乙", tp.BLOCKED, blocked_by=["1"]),
+    ]
+    tp.resolve_blocking(effort)
+    tp.analyse(effort)
+    assert len(effort.cycle_edges) >= 1
+
+
+def test_analyse_dangling_refs_do_not_block():
+    effort = tp.Effort("s", Path("."))
+    effort.tasks = [
+        tp.Task("s", "01", "被文档引用挡住?", tp.OPEN, blocked_by=["46"]),
+    ]
+    tp.analyse(effort)
+    tp.resolve_blocking(effort)  # 46 不存在 → 不算阻塞
+    t = effort.tasks[0]
+    assert t.status == tp.OPEN
+    assert t.dangling == ["46"]
+    assert effort.unknown_nodes == ["46"]
+
+
+def test_wave_svg_skips_all_done_graph():
+    effort = tp.Effort("s", Path("."))
+    effort.tasks = [
+        tp.Task("s", "01", "已完", tp.DONE, blocked_by=["2"]),
+        tp.Task("s", "02", "也完", tp.DONE),
+    ]
+    tp.analyse(effort)
+    assert tp.wave_svg(effort, Path(".")) == ""
+
+
+def test_headline_variants():
+    # 有解锁：点名先做谁
+    e = tp.Effort("s", Path("."))
+    e.tasks = [
+        tp.Task("s", "01", "地基", tp.OPEN),
+        tp.Task("s", "02", "等 01", tp.BLOCKED, blocked_by=["1"]),
+    ]
+    tp.analyse(e)
+    h = tp.headline([e])
+    assert "2 张现在就能开工" not in h
+    assert "先做" in h
+    # 全做完
+    e2 = tp.Effort("t", Path("."))
+    e2.tasks = [tp.Task("t", "01", "唯一", tp.DONE)]
+    assert "没有一张现在能开工" in tp.headline([e2])
+    # 空项目
+    assert tp.headline([]) == "没有扫到任何票。"
