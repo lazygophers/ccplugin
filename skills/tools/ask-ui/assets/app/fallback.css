@@ -889,6 +889,23 @@ textarea {
   opacity: 0.65;
 }
 
+.btn-secondary {
+  border: 2px solid var(--line);
+  padding: 9px 18px;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: "Songti SC", Georgia, serif;
+  font-size: 17px;
+  font-weight: 700;
+  box-shadow: 4px 4px 0 var(--shadow);
+  transform: rotate(-0.6deg);
+}
+
+.btn-secondary:active {
+  box-shadow: 1px 1px 0 var(--shadow);
+  translate: 3px 3px;
+}
+
 /* ---------- 提交确认 / 错误 / toast ---------- */
 
 .submission-overlay {

@@ -1294,6 +1294,50 @@ function clientValidation(form) {
   return errors;
 }
 
+
+// 问题正文是 markdown，复制出去给人读时格式标记只会添噪：链接只留文字、
+// 加粗和行内代码拆掉、标题井号去掉。表格与列表保持原样——本来就是可读文本。
+// 拓展信息（background）不进副本：用户要的是问题与结果本身。
+function plainQuestionText(markdown) {
+  return (markdown || '')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1')
+    .replace(/(\*\*|`|\*)/g, '')
+    .replace(/^\s{0,3}#{1,6}\s+/gm, '');
+}
+
+function buildTranscript() {
+  const form = currentForm();
+  const editable = editableNow();
+  return visibleQuestionsOf(form, editable).map((question, index) => {
+    const answer = editable
+      ? answerFor(question.id)
+      : form.answers?.answers?.find((item) => item.questionId === question.id);
+    return [
+      `Q${index + 1}. ${plainQuestionText(question.text)}`,
+      `答：${displayAnswer(question, answer)}`,
+    ].join('\n');
+  }).join('\n\n');
+}
+
+async function copyTranscript() {
+  const text = buildTranscript();
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    // 旧浏览器或非安全上下文没有 Async Clipboard：退回隐藏文本框 + execCommand。
+    const helper = document.createElement('textarea');
+    helper.value = text;
+    helper.setAttribute('readonly', '');
+    helper.style.position = 'fixed';
+    helper.style.opacity = '0';
+    document.body.append(helper);
+    helper.select();
+    document.execCommand('copy');
+    helper.remove();
+  }
+  showToast('已复制全部问答（含补充说明）');
+}
+
 async function submitForm(submitButton) {
   const form = currentForm();
   const errors = clientValidation(form);
@@ -1366,6 +1410,11 @@ function renderSubmitDock(container) {
     status.append(progressCellsElement, answeredCountElement);
     dock.append(status);
 
+    const copy = element('button', 'btn-secondary', '复制问答');
+    copy.type = 'button';
+    copy.title = '复制全部问题与你的回答（含补充说明），方便粘贴到别处';
+    copy.addEventListener('click', () => copyTranscript());
+    dock.append(copy);
     const submit = element('button', 'btn-primary', '提交答案');
     submit.type = 'button';
     submit.addEventListener('click', () => submitForm(submit));
@@ -1388,6 +1437,11 @@ function renderSubmitDock(container) {
       `共 ${visibleQuestionsOf(form, editable).length} 题 · 只读`,
     ));
     dock.append(status);
+    const copy = element('button', 'btn-secondary', '复制问答');
+    copy.type = 'button';
+    copy.title = '复制全部问题与你的回答（含补充说明），方便粘贴到别处';
+    copy.addEventListener('click', () => copyTranscript());
+    dock.append(copy);
   }
   container.append(dock);
 }
