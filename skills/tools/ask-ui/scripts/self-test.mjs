@@ -1104,6 +1104,25 @@ try {
     assert.ok(verdict.valid, `${bundle.ask.askId} 的 answers.json 不符合 AnswerSet schema：\n${formatSchemaErrors(verdict.errors)}`);
   }
 
+  // 日志：$TEMP/ask-ui.log 满 10MB 轮转，备份最多 3 份。TEMP 在 import log.mjs
+  // 之前指到临时目录，避免污染真实的 $TEMP。
+  {
+    process.env.TEMP = path.join(temporaryRoot, 'log-test');
+    await fs.mkdir(process.env.TEMP, { recursive: true });
+    const { log, logPath } = await import('./log.mjs');
+    const overflow = 'x'.repeat(10 * 1024 * 1024 + 1024);
+    await fs.appendFile(logPath(), overflow, 'utf8');
+    await log('rotation-probe');
+    assert.ok(existsSync(`${logPath()}.1`), '满 10MB 应转出 .1 备份');
+    assert.match(await fs.readFile(logPath(), 'utf8'), /rotation-probe/, '转档后当前文件应从新行开始');
+    for (let round = 2; round <= 4; round += 1) {
+      await fs.appendFile(logPath(), overflow, 'utf8');
+      await log(`rotation-probe-${round}`);
+    }
+    assert.ok(existsSync(`${logPath()}.3`), '第三份备份存在');
+    assert.ok(!existsSync(`${logPath()}.4`), '第四份备份不该存在');
+  }
+
   process.stdout.write('ask-ui self-test passed\n');
 } finally {
   if (server) await new Promise((resolve) => server.close(resolve));

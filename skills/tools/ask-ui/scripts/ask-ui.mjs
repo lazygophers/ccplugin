@@ -21,6 +21,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { wakeClaudeCode } from './adapters/claude-code.mjs';
 import { wakeCodexAppServer } from './adapters/codex-app-server.mjs';
 import { visibleQuestionIds } from '../assets/app/conditions.js';
+import { log } from './log.mjs';
 
 const SCRIPT_FILE = fileURLToPath(import.meta.url);
 const SKILL_ROOT = path.resolve(path.dirname(SCRIPT_FILE), '..');
@@ -964,6 +965,7 @@ async function triggerWake(dataRoot, askId) {
       completedAt: now(),
       error: error.message,
     });
+    log('wake-failed', { askId, provider: binding.provider, error: error.message });
     return { status: 'failed', error: error.message };
   }
 }
@@ -1109,6 +1111,7 @@ export async function startHttpServer({
         );
         sendJson(response, 200, result);
         if (!result.duplicate) {
+          log('ask-submitted', { askId });
           if (onSubmitted) {
             setTimeout(() => {
               try {
@@ -1245,6 +1248,7 @@ export async function ensureServer(dataRoot, { port = 0 } = {}) {
       process.stderr.write(
         `ask-ui: 服务跑的是旧代码（pid ${existing.pid}），换成新代码，端口 ${existing.port} 和链接不变。\n`,
       );
+      log('server-restarted', { oldPid: existing.pid, port: existing.port });
     }
     process.kill(existing.pid);
     await fs.rm(serverFile, { force: true });
@@ -1324,6 +1328,7 @@ function help() {
 export async function main(argv = process.argv.slice(2)) {
   const args = parseArgs(argv);
   const command = args._[0] || 'help';
+  log('cli-start', { command });
   const dataRoot = await ensureDataRoot(args['data-dir']);
 
   if (command === 'ask') {
@@ -1338,8 +1343,8 @@ export async function main(argv = process.argv.slice(2)) {
     const interrupt = (signal) => abortController.abort(
       new Error(`Ask UI wait interrupted by ${signal}; saved data was preserved`),
     );
-    const onSigint = () => interrupt('SIGINT');
-    const onSigterm = () => interrupt('SIGTERM');
+    const onSigint = () => { log('ask-interrupted', { askId: created.askId, signal: 'SIGINT' }); interrupt('SIGINT'); };
+    const onSigterm = () => { log('ask-interrupted', { askId: created.askId, signal: 'SIGTERM' }); interrupt('SIGTERM'); };
     process.once('SIGINT', onSigint);
     process.once('SIGTERM', onSigterm);
     process.stderr.write(`Ask UI ready at ${url}\n`);
@@ -1348,6 +1353,7 @@ export async function main(argv = process.argv.slice(2)) {
     // 这条命令会阻塞到用户提交为止，很容易被 harness 转到后台。一旦转后台，
     // 任务输出里 stdout 和 stderr 是混在一起的，直接 JSON.parse 必然失败。
     process.stderr.write(`If this command is backgrounded or interrupted, do not parse the task output; run: ask-ui.mjs resume --id ${created.askId}\n`);
+    log('ask-created', { askId: created.askId, deliveryMode: 'direct' });
     if (!args['no-open']) openBrowser(url);
     try {
       await waitForSubmission(dataRoot, created.askId, abortController.signal);
@@ -1367,6 +1373,7 @@ export async function main(argv = process.argv.slice(2)) {
       cwd: process.cwd(),
       deliveryMode: 'manual',
     });
+    log('ask-created', { askId: created.askId, deliveryMode: 'manual' });
     if (args['no-serve']) {
       print({ ...created, ask: undefined });
       return;
@@ -1397,9 +1404,11 @@ export async function main(argv = process.argv.slice(2)) {
     process.stderr.write(
       `[${now()}] serve started pid=${process.pid} port=${started.info.port} idleMs=${idleMs}\n`,
     );
+    log('serve-start', { port: started.info.port, idleMs });
     for (const signal of ['SIGTERM', 'SIGINT']) {
       process.once(signal, () => {
         process.stderr.write(`[${now()}] serve exiting: received ${signal}\n`);
+        log('serve-exit', { reason: `signal ${signal}` });
         process.exit(0);
       });
     }
@@ -1408,6 +1417,7 @@ export async function main(argv = process.argv.slice(2)) {
         idleMs,
         onExit: (reason) => {
           process.stderr.write(`[${now()}] serve exiting: ${reason}\n`);
+          log('serve-exit', { reason });
           started.server.close(() => resolve());
           // 已建立的 keep-alive 连接会拖住 close，直接断掉。
           started.server.closeAllConnections?.();
@@ -1434,6 +1444,7 @@ export async function main(argv = process.argv.slice(2)) {
       args.id,
       command === 'cancel' ? 'cancelled' : 'completed',
     );
+    log(command === 'cancel' ? 'ask-cancelled' : 'ask-completed', { askId: args.id });
     // 收尾时顺手关掉常驻服务，不必等它自己 idle 超时。
     print({ ...completed, serverStopped: await stopIdleServer(dataRoot) });
     return;
@@ -1449,6 +1460,7 @@ const isMain = process.argv[1]
 if (isMain) {
   main().catch((error) => {
     process.stderr.write(`${JSON.stringify({ error: error.message })}\n`);
+    log('cli-error', { error: error.message });
     process.exitCode = 1;
   });
 }
