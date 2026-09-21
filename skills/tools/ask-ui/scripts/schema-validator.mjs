@@ -2,9 +2,9 @@
 
 // 零依赖的 JSON Schema 子集校验器。
 //
-// 它只服务一个目的：证明 references/*.schema.json 与 ask-ui.mjs 里手写的校验
-// 规则**对齐**（self-test 会拿同一批样例喂给两边，比对判定）。运行时的问题集
-// 校验仍然走 ask-ui.mjs，因为那边报的是中文业务错误，Agent 照着一次就能改对。
+// 生产路径在用：questionset.mjs 拿它按 references/questionset.schema.json 做结构
+// 校验（与中文业务校验同判，漂移当场抛错），store.mjs 在落盘 answers.json 前拿它
+// 按 references/answerset.schema.json 把关——Agent 是照那份契约读答案的。
 //
 // 支持的关键字止步于 schema 里真正用到的那些：$ref（仅 # 开头的本文档指针）、
 // type、const、enum、pattern、minLength、maxLength、minimum、minItems、maxItems、
