@@ -398,19 +398,24 @@ function appendRichText(container, text, { diagrams = true } = {}) {
 // document 上挂了键盘监听，不区分层级的话一次 Esc 会把所有层一起关掉。
 const previewStack = [];
 
+// 入口只在角上那颗按钮上：整块可点的时候，想拖选表格里的文字、想点表格里的链接，
+// 都会被误判成「要放大」。内容本身照常排在正文里，按钮不改变它看不看得见。
 function makePreviewable(host, label) {
   host.classList.add('previewable');
-  host.tabIndex = 0;
-  host.setAttribute('role', 'button');
-  host.setAttribute('aria-label', `放大查看${label}`);
-  host.title = `点击放大查看${label}`;
-  host.append(element('span', 'preview-hint', '点击放大'));
-  host.addEventListener('click', () => openPreview(host, label));
-  host.addEventListener('keydown', (event) => {
-    if (event.key !== 'Enter' && event.key !== ' ') return;
-    event.preventDefault();
+  host.append(previewButton(host, label));
+}
+
+function previewButton(host, label) {
+  const button = element('button', 'preview-hint', '预览');
+  button.type = 'button';
+  button.setAttribute('aria-label', `放大查看${label}`);
+  button.title = `放大查看${label}`;
+  // 按钮坐在可预览块内部，不拦住冒泡的话外层（阅读层里的正文）会再收到一次点击。
+  button.addEventListener('click', (event) => {
+    event.stopPropagation();
     openPreview(host, label);
   });
+  return button;
 }
 
 const FOCUSABLE_SELECTOR = [
@@ -467,26 +472,19 @@ function openPreview(host, label, { readable = false } = {}) {
   // 被浏览器静默拦掉。重新挂一遍：href 已是 file:// 全路径，rewriteLocalLinks 认它。
   rewriteLocalLinks(canvas);
   // 宿主是整段正文（如「本次背景」）时，克隆体里还嵌着表格、代码块的预览框：
-  // 克隆不带走监听器，点了没反应。阅读模式下把它们重新接上，表格在阅读层里还能
-  // 二次点开自己的缩放预览；缩放模式下没有拖选文字的需求，剥掉角标和残留属性即可。
+  // 克隆不带走监听器，按钮点了没反应。阅读模式下换上新按钮，表格在阅读层里还能
+  // 二次点开自己的缩放预览；缩放模式下按钮连同 .previewable 一起剥掉。
   for (const nested of canvas.querySelectorAll('.previewable')) {
+    const staleButton = nested.querySelector(':scope > .preview-hint');
+    staleButton?.remove();
     if (readable) {
-      const nestedLabel = nested.classList.contains('table-frame') ? '表格' : '代码块';
-      nested.addEventListener('click', () => openPreview(nested, nestedLabel));
-      nested.addEventListener('keydown', (event) => {
-        if (event.key !== 'Enter' && event.key !== ' ') return;
-        event.preventDefault();
-        openPreview(nested, nestedLabel);
-      });
+      const nestedLabel = nested.classList.contains('table-frame')
+        ? '表格'
+        : nested.classList.contains('diagram') ? '图表' : '代码块';
+      nested.append(previewButton(nested, nestedLabel));
     } else {
       nested.classList.remove('previewable');
-      nested.removeAttribute('tabindex');
-      nested.removeAttribute('role');
-      nested.removeAttribute('aria-label');
     }
-  }
-  if (!readable) {
-    for (const hint of canvas.querySelectorAll('.preview-hint')) hint.remove();
   }
 
   // mermaid 的 svg 带 width="100%"，脱离原容器后量不出宽度。按 viewBox 写死尺寸，
@@ -532,7 +530,8 @@ function openPreview(host, label, { readable = false } = {}) {
     overlay.remove();
     document.removeEventListener('keydown', onKeydown);
     previewStack.splice(previewStack.indexOf(overlay), 1);
-    host.focus();
+    // 焦点回到刚才那颗预览按钮；宿主是整段正文（阅读层）时没有按钮，退回宿主自己。
+    (host.querySelector(':scope > .preview-hint') || host).focus();
   };
 
   let focusables = [];

@@ -1305,28 +1305,31 @@ textarea {
 
 .previewable {
   position: relative;
-  cursor: zoom-in;
 }
 
+/* 按钮压在右上角：表格和代码块从上往下读，左上角是内容起点，压住就挡住表头。 */
 .preview-hint {
   position: absolute;
   right: 0;
-  bottom: 0;
+  top: 0;
+  z-index: 1;
   border: 2px solid var(--line);
   border-right: 0;
-  border-bottom: 0;
+  border-top: 0;
   padding: 1px 8px;
   background: var(--blue);
   color: var(--on-blue);
+  font-family: inherit;
   font-size: 14px;
   font-weight: 700;
-  opacity: 0;
-  pointer-events: none;
+  cursor: zoom-in;
+  opacity: 0.6;
   transition: opacity 120ms ease;
 }
 
-.previewable:hover .preview-hint,
-.previewable:focus-visible .preview-hint {
+.preview-hint:hover,
+.preview-hint:focus-visible,
+.previewable:hover .preview-hint {
   opacity: 1;
 }
 

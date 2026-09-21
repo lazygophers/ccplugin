@@ -806,12 +806,35 @@ async function defaultBrowserBundleId() {
   }
 }
 
+// Chrome 系的 `open location` 只在「最前面那个窗口能收标签页」时才开标签页：前台是
+// app 模式 / 弹出窗口、或窗口全被最小化时，它改开一整个新窗口。所以对 Chrome 系先自己
+// 找一个 mode 为 normal 的普通窗口往里塞标签页，找不到才退回 `open location`。
+const CHROMIUM_BUNDLE = /chrome|chromium|edgemac|brave|vivaldi|opera/i;
+
 async function openInBrowser(url) {
   const bundleId = await defaultBrowserBundleId();
   if (!bundleId) return false;
   // URL 要进 AppleScript 的字符串字面量，反斜杠和引号得转义。
   const quoted = url.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-  const script = `tell application id "${bundleId}" to open location "${quoted}"`;
+  const script = CHROMIUM_BUNDLE.test(bundleId)
+    ? `tell application id "${bundleId}"
+  activate
+  set target to missing value
+  repeat with candidate in windows
+    if mode of candidate is "normal" then
+      set target to candidate
+      exit repeat
+    end if
+  end repeat
+  if target is missing value then
+    open location "${quoted}"
+  else
+    tell target to make new tab with properties {URL:"${quoted}"}
+    set index of target to 1
+    set active tab index of target to (count of tabs of target)
+  end if
+end tell`
+    : `tell application id "${bundleId}" to open location "${quoted}"`;
   return await runCapturing('osascript', ['-e', script]) !== null;
 }
 
