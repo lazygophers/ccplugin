@@ -1,0 +1,8 @@
+#!/bin/sh
+# 暂存区里碰到 ask-ui 就跑它自带的自测。自测早就在仓库里，这里只是把它接上电源。
+# 安装（每个克隆各做一次，graphify 的 post-commit / post-checkout 不受影响）：
+#   ln -sf ../../scripts/hooks/pre-commit .git/hooks/pre-commit
+git diff --cached --name-only | grep -q '^skills/tools/ask-ui/' || exit 0
+
+echo "pre-commit: 跑 ask-ui 自测…"
+node skills/tools/ask-ui/scripts/self-test.mjs

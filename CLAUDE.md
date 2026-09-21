@@ -30,6 +30,36 @@
 - `README.md` / `docs/plugin-development.md` — 概览与插件开发指南
 - `pyproject.toml` + `uv.lock` — Python 3.11+ 依赖锁定（`uv` 管理）
 
+## 🔴 skills 有一份在外面跑的副本
+
+`skills/` 下的 skill 被 skill 管理器装成独立拷贝放在 `~/.agents/skills/<name>/`（来源记在 `~/.agents/.skill-lock.json`，指向 GitHub 的 `lazygophers/ccplugin`）。Claude Code 加载的是那一份，**不是本仓库**。两份是各自独立的文件，不是软链接。
+
+改完 skill 必须二选一，否则改动不生效：
+
+```bash
+# 推到 GitHub（管理器从远端拉）
+git push
+
+# 或本地直接同步
+cp -R skills/tools/<name>/. ~/.agents/skills/<name>/
+```
+
+只 `cp` 不 push 的改动，会在下次 skill 更新时被远端版本覆盖掉。
+
+排查「改了怎么没生效」第一条命令：
+
+```bash
+diff -rq skills/tools/<name> ~/.agents/skills/<name>
+```
+
+## 提交前检查
+
+`scripts/hooks/pre-commit`：暂存区碰到 `skills/tools/ask-ui/**` 就跑 `skills/tools/ask-ui/scripts/self-test.mjs`。每个克隆装一次（graphify 的 post-commit / post-checkout 不受影响）：
+
+```bash
+ln -sf ../../scripts/hooks/pre-commit .git/hooks/pre-commit
+```
+
 ## 代码质量检查规范
 
 对于 commands、skills、agents、agent.md 的优化、简化，必须通过以下命令检查 AI 是否可以正确理解识别，是否符合预期：
