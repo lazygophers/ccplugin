@@ -9,7 +9,6 @@ const THEME_STORAGE_KEY = 'ask-ui-theme';
 // 新题高亮的存活时长，和 fallback.css 里 .question-card.is-new 的动画时长保持一致。
 const QUESTION_HIGHLIGHT_MS = 1800;
 const askId = decodeURIComponent(location.pathname.split('/').filter(Boolean).at(-1) || '');
-const token = new URLSearchParams(location.search).get('token') || '';
 
 let bundle = null;
 let focusedQuestionId = null;
@@ -276,7 +275,6 @@ function openLocalFile(target, hash) {
   const query = [
     `path=${encodeURIComponent(target)}`,
     `hash=${encodeURIComponent(hash)}`,
-    `token=${encodeURIComponent(token)}`,
   ].join('&');
   return fetch(`/local?${query}`)
     .then(async (response) => {
@@ -646,7 +644,6 @@ async function api(path, options = {}) {
   const response = await fetch(path, {
     ...options,
     headers: {
-      Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
       ...(options.headers || {}),
     },
@@ -824,12 +821,11 @@ function saveDraftSoon() {
 }
 
 // 关标签页时 fetch 会被浏览器掐断，sendBeacon 是唯一保证发出去的方式。
-// 它只会发 POST，也带不了 Authorization 头，所以 token 走 query，路由两种方法都收。
 function flushDraftOnExit() {
   if (!editableNow() || !draftTimer) return;
   clearTimeout(draftTimer);
   draftTimer = null;
-  const url = `/api/asks/${encodeURIComponent(askId)}/draft?token=${encodeURIComponent(token)}`;
+  const url = `/api/asks/${encodeURIComponent(askId)}/draft`;
   const body = new Blob([JSON.stringify(draftPayload())], { type: 'application/json' });
   if (!navigator.sendBeacon?.(url, body)) saveDraftNow();
 }
@@ -1523,8 +1519,16 @@ document.addEventListener('keydown', (event) => {
   }
 });
 
-if (!askId || !token) {
-  renderError(new Error('页面链接缺少提问 id 或访问令牌。请使用 Agent 返回的完整链接。'));
+// Command/Ctrl+回车 = 提交：与点「提交答案」按钮同一条路，校验和提示条都照走。
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Enter' || !(event.metaKey || event.ctrlKey)) return;
+  if (previewStack.length) return;
+  const submit = document.querySelector('.submit-dock .btn-primary');
+  if (submit && !submit.disabled) submit.click();
+});
+
+if (!askId) {
+  renderError(new Error('页面链接缺少提问 id。请使用 Agent 返回的完整链接。'));
 } else {
   loadBundle(true)
     .then(() => {

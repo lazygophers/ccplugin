@@ -136,7 +136,7 @@ macOS 上多绕了一步：`open` 会按文件类型挑程序，`.md` 落到编�
 
 **只放行文档和图片**：`.html` / `.htm` / `.md` / `.markdown` / `.txt` / `.log` / `.json` / `.yaml` / `.csv` / `.pdf` / `.png` / `.jpg` / `.gif` / `.webp` / `.svg`。`.sh`、`.app`、`.command` 这类会被挡下并报 `只放行文档和图片，不给开这种文件：…`——兜底路径上的 `open` 在 macOS 上能启动程序，正文里的一条链接不该有这个本事。
 
-原理：浏览器禁止 `http://` 页面跳 `file://`（实测 `window.open('file://…')` 返回 `null`，不开标签），所以链接的 `href` 只负责显示和复制，点击被拦下来改成请求本服务的 `/local` 路由，由服务端把 `file://` URL 投给默认浏览器（macOS 走 AppleScript，Windows `cmd /c start`、Linux `xdg-open` 兜底）。这条路由在 token 校验之后，服务只绑 `127.0.0.1`——能打开表单的就是本机用户自己。文件不存在时页面弹提示条显示完整路径，不会静默。
+原理：浏览器禁止 `http://` 页面跳 `file://`（实测 `window.open('file://…')` 返回 `null`，不开标签），所以链接的 `href` 只负责显示和复制，点击被拦下来改成请求本服务的 `/local` 路由，由服务端把 `file://` URL 投给默认浏览器（macOS 走 AppleScript，Windows `cmd /c start`、Linux `xdg-open` 兜底）。服务只绑 `127.0.0.1`，能连上的就是本机。文件不存在时页面弹提示条显示完整路径，不会静默。
 
 调试或换打开方式时设 `ASK_UI_OPENER=<命令>` 覆盖上面那三个默认值。
 

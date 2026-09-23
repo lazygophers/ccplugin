@@ -11,7 +11,6 @@ import fs from 'node:fs/promises';
 import http from 'node:http';
 import path from 'node:path';
 import process from 'node:process';
-import { randomBytes } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -107,7 +106,7 @@ async function readRequestJson(request) {
 // 正文里的本地文件链接点下去走这里：交给默认浏览器开新标签页，地址栏里看到的
 // 就是真的 file:// 地址。不能让页面自己跳——Chrome 禁止 http:// 页面导航到
 // file://，`window.open('file://…')` 直接返回 null，点了静默失败。
-// 鉴权在路由层：服务只绑 127.0.0.1，能拿到 token 的就是本机用户自己。
+// 服务只绑 127.0.0.1，能连上的就是本机。
 async function openLocalFile(response, requestUrl, dataRoot) {
   const requested = requestUrl.searchParams.get('path') || '';
   const hash = requestUrl.searchParams.get('hash') || '';
@@ -229,7 +228,6 @@ async function teardownAfterSubmit({ server, dataRoot, askId, persistServerInfo 
 
 export async function startHttpServer({
   dataRoot,
-  token = randomBytes(24).toString('hex'),
   port = 0,
   persistServerInfo = true,
   enableWake = true,
@@ -265,14 +263,6 @@ export async function startHttpServer({
       } catch (error) {
         sendJson(response, 502, { error: error.message });
       }
-      return;
-    }
-
-    const bearer = request.headers.authorization?.replace(/^Bearer\s+/i, '');
-    const suppliedToken = bearer || requestUrl.searchParams.get('token');
-
-    if (suppliedToken !== token) {
-      sendJson(response, 401, { error: 'Unauthorized' });
       return;
     }
 
@@ -314,7 +304,6 @@ export async function startHttpServer({
     pid: process.pid,
     host: '127.0.0.1',
     port: address.port,
-    token,
     dataRoot,
     startedAt: new Date().toISOString(),
     codeVersion: codeVersion(),
@@ -356,10 +345,10 @@ export async function stopIdleServer(dataRoot) {
 }
 
 async function serverIsAlive(info) {
-  if (!info?.port || !info?.token) return false;
+  if (!info?.port) return false;
   try {
     const response = await fetch(
-      `http://127.0.0.1:${info.port}/health?token=${encodeURIComponent(info.token)}`,
+      `http://127.0.0.1:${info.port}/health`,
       { signal: AbortSignal.timeout(800) },
     );
     return response.ok;
@@ -380,12 +369,12 @@ export async function ensureServer(dataRoot, { port = 0 } = {}) {
   const alive = await serverIsAlive(existing);
   if (alive && existing.codeVersion === codeVersion()) return existing;
   // 旧进程照样得换：页面是每次从磁盘现读的新前端，配上内存里的旧服务端，新加的
-  // 路由一律 404（本地文件链接就是这么点不开的）。有人正在答题也照换，只是端口和
-  // token 原样留着——答案本来就在磁盘上，那一页几秒后重新轮询就接上了。
-  let reuse = null;
+  // 路由一律 404（本地文件链接就是这么点不开的）。有人正在答题也照换，只是端口
+  // 原样留着——答案本来就在磁盘上，那一页几秒后重新轮询就接上了。
+  let reusePort = null;
   if (alive) {
     if (await hasPendingAsk(dataRoot)) {
-      reuse = { port: existing.port, token: existing.token };
+      reusePort = existing.port;
       process.stderr.write(
         `ask-ui: 服务跑的是旧代码（pid ${existing.pid}），换成新代码，端口 ${existing.port} 和链接不变。\n`,
       );
@@ -395,14 +384,13 @@ export async function ensureServer(dataRoot, { port = 0 } = {}) {
     await fs.rm(serverFile, { force: true });
   }
 
-  const token = reuse?.token || randomBytes(24).toString('hex');
-  if (reuse?.port) port = reuse.port;
+  if (reusePort) port = reusePort;
   await fs.mkdir(dataRoot, { recursive: true });
   // stdio 全丢弃时，服务为什么退出就永远查不到了：退出原因和崩溃栈都走 stderr。
   const logFd = openSync(path.join(dataRoot, 'server.log'), 'a');
   const child = spawn(
     process.execPath,
-    [SCRIPT_FILE, 'serve', '--data-dir', dataRoot, '--port', String(Number(port) || 0), '--token', token],
+    [SCRIPT_FILE, 'serve', '--data-dir', dataRoot, '--port', String(Number(port) || 0)],
     { detached: true, stdio: ['ignore', logFd, logFd], windowsHide: true },
   );
   closeSync(logFd);
@@ -412,7 +400,7 @@ export async function ensureServer(dataRoot, { port = 0 } = {}) {
   while (Date.now() < deadline) {
     await new Promise((resolve) => setTimeout(resolve, 150));
     const info = await readJson(serverFile, null);
-    if (info?.token === token && await serverIsAlive(info)) return info;
+    if (await serverIsAlive(info)) return info;
   }
   throw new Error('Ask UI server did not start');
 }

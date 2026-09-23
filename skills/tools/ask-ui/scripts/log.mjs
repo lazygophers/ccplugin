@@ -2,7 +2,7 @@
 // 10MB 轮转，最多留 3 个备份（ask-ui.log.1 .. .3）。多进程同时追加是常态
 // （前台 ask、常驻 serve、resume 会在同一台机器上并发），appendFile 的原子
 // 追加足以保证行不交错；轮转撞车由「写失败就吞掉」兜住——日志永远不许
-// 把主流程搞挂，也不记录 token 和答案内容。
+// 把主流程搞挂，也不记录答案内容。
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';

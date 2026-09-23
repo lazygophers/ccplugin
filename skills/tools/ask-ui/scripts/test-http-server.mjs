@@ -1,4 +1,4 @@
-// http-server module 的测试：路由（静态/vendor/local/api）、鉴权、代码版本换进程、
+// http-server module 的测试：路由（静态/vendor/local/api）、代码版本换进程、
 // 提交后的生命周期。vendor 的缓存命中与读失败也经 /vendor 路由覆盖。
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
@@ -28,15 +28,11 @@ export async function test() {
 
     const started = await startHttpServer({
       dataRoot,
-      token: 'self-test-token',
       persistServerInfo: false,
     });
     server = started.server;
     const base = `http://127.0.0.1:${started.info.port}`;
-    const headers = {
-      Authorization: 'Bearer self-test-token',
-      'Content-Type': 'application/json',
-    };
+    const headers = { 'Content-Type': 'application/json' };
 
     // 正文里的本地文件链接：交给默认浏览器开新标签页。浏览器不让 http:// 页面跳 file://，
     // 所以点击由 /local 代办。真跑 `open` 会在测试机上弹出程序，换成一个空转的命令。
@@ -80,9 +76,6 @@ export async function test() {
       const missing = await local(`path=${encodeURIComponent('nope.md')}`);
       assert.equal(missing.status, 404, '文件不存在要报 404，不能静默当作打开了');
 
-      const noToken = await fetch(`${base}/local?path=report.html`);
-      assert.equal(noToken.status, 401, '/local 必须在 token 之后：没 token 不能碰本机文件');
-
       delete process.env.ASK_UI_OPENER;
     }
 
@@ -106,7 +99,7 @@ export async function test() {
       assert.equal(await vendorResponse.text(), `globalThis.${name} = "cached";`);
     }
     // 未登记的组件名不得变成任意文件读取。
-    assert.equal((await fetch(`${base}/vendor/unknown.min.js`)).status, 401);
+    assert.equal((await fetch(`${base}/vendor/unknown.min.js`)).status, 404);
 
     // 缓存文件读不出来（权限不对、被别的东西占了名字）时，服务必须回一个错误状态码
     // 并继续跑。读文件的错误是异步从流里冒出来的，漏挂监听会让整个进程连同全部活跃

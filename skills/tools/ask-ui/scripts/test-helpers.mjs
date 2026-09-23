@@ -54,18 +54,13 @@ export async function runDirectAsk({ questionSet, answers, dataRoot, cwd, testDu
 
   const parsedUrl = new URL(readyUrl);
   const askId = decodeURIComponent(parsedUrl.pathname.split('/').at(-1));
-  const token = parsedUrl.searchParams.get('token');
   const bundle = await (await fetch(
     `${parsedUrl.origin}/api/asks/${encodeURIComponent(askId)}`,
-    { headers: { Authorization: `Bearer ${token}` } },
   )).json();
   const endpoint = `${parsedUrl.origin}/api/asks/${encodeURIComponent(askId)}/answers`;
   const request = {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ submissionId: `direct-${askId}`, answers }),
   };
   const submitted = await fetch(endpoint, request);

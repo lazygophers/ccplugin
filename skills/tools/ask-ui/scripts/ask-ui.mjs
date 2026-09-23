@@ -4,7 +4,6 @@
 // http-server / wake / browser / vendor 这七个 module 里。
 import process from 'node:process';
 import path from 'node:path';
-import { randomBytes } from 'node:crypto';
 import { realpathSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -78,7 +77,7 @@ function help() {
   process.stdout.write(`Ask UI\n\n`);
   process.stdout.write(`  ask --input <file> [--data-dir <dir>] [--port <number>] [--no-open]\n`);
   process.stdout.write(`  create --input <file> [--data-dir <dir>] [--no-open] [--no-serve]\n`);
-  process.stdout.write(`  serve [--data-dir <dir>] [--port <number>] [--token <token>]\n`);
+  process.stdout.write(`  serve [--data-dir <dir>] [--port <number>]\n`);
   process.stdout.write(`  resume [--id <askId>] [--data-dir <dir>]\n`);
   process.stdout.write(`  status --id <askId> [--data-dir <dir>]\n`);
   process.stdout.write(`  complete --id <askId> [--data-dir <dir>]\n`);
@@ -98,7 +97,7 @@ export async function main(argv = process.argv.slice(2)) {
       deliveryMode: 'direct',
     });
     const server = await ensureServer(dataRoot, { port: Number(args.port) || 0 });
-    const url = `http://127.0.0.1:${server.port}/ask/${encodeURIComponent(created.askId)}?token=${encodeURIComponent(server.token)}`;
+    const url = `http://127.0.0.1:${server.port}/ask/${encodeURIComponent(created.askId)}`;
     const abortController = new AbortController();
     const interrupt = (signal) => abortController.abort(
       new Error(`Ask UI wait interrupted by ${signal}; saved data was preserved`),
@@ -139,7 +138,7 @@ export async function main(argv = process.argv.slice(2)) {
       return;
     }
     const server = await ensureServer(dataRoot);
-    const url = `http://127.0.0.1:${server.port}/ask/${encodeURIComponent(created.askId)}?token=${encodeURIComponent(server.token)}`;
+    const url = `http://127.0.0.1:${server.port}/ask/${encodeURIComponent(created.askId)}`;
     if (!args['no-open']) openBrowser(url);
     print({
       status: 'created',
@@ -156,7 +155,6 @@ export async function main(argv = process.argv.slice(2)) {
     const started = await startHttpServer({
       dataRoot,
       port: Number(args.port) || 0,
-      token: args.token || randomBytes(24).toString('hex'),
       shutdownAfterSubmit: true,
     });
     print(started.info);
