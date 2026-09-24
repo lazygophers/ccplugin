@@ -224,7 +224,7 @@ def test_render_contains_every_section(tmp_path):
     for anchor in (
         "id='overview'",
         "id='now'",
-        "id='waves'",
+        "id='spec-progress'",
         "id='specs'",
         "id='stale'",
         "id='recent'",
@@ -238,6 +238,9 @@ def test_render_contains_every_section(tmp_path):
     assert "research/deep.md" not in page
     # 口径必须写明：这是这版设计的核心承诺
     assert "进度 = 已完成 ÷ 总票数" in page
+    assert "data-copy-spec='alpha'" in page
+    assert "id='waves'" not in page
+    assert "关于这份报告" not in page
 
 
 def test_main_writes_report(tmp_path, monkeypatch, capsys):
@@ -282,7 +285,6 @@ def test_render_empty_project(tmp_path):
     page = tp.render(efforts, unparsed, scratch)
     assert "没有可直接开工的票" in page
     assert "只有 spec / 地图，没扫到票" in page
-    assert "没有票声明阻塞关系" in page
     assert "还没有完成的票" in page
     assert "没有。全部文件都读出了状态" in page
 
@@ -361,16 +363,6 @@ def test_analyse_dangling_refs_do_not_block():
     assert t.status == tp.OPEN
     assert t.dangling == ["46"]
     assert effort.unknown_nodes == ["46"]
-
-
-def test_wave_svg_skips_all_done_graph():
-    effort = tp.Effort("s", Path("."))
-    effort.tasks = [
-        tp.Task("s", "01", "已完", tp.DONE, blocked_by=["2"]),
-        tp.Task("s", "02", "也完", tp.DONE),
-    ]
-    tp.analyse(effort)
-    assert tp.wave_svg(effort, Path(".")) == ""
 
 
 def test_headline_variants():

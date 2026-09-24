@@ -430,12 +430,12 @@ CSS = """
   }
   *{box-sizing:border-box}
   html{scroll-behavior:smooth;scroll-padding-top:56px}
-  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 var(--sans);-webkit-font-smoothing:antialiased}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 var(--sans);-webkit-font-smoothing:antialiased;display:flex;align-items:flex-start}
   a{color:var(--open);text-decoration:none;border-bottom:1px solid rgba(29,91,158,.28)}
   a:hover{border-bottom-color:var(--open)}
-  .wrap{max-width:1180px;margin:0 auto;padding:0 28px}
-  nav{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.96);border-bottom:1px solid var(--rule);backdrop-filter:blur(6px)}
-  nav .wrap{display:flex;gap:22px;align-items:center;height:44px;overflow-x:auto}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 28px;flex:1;min-width:0}
+  nav{position:sticky;top:0;z-index:20;flex:0 0 190px;align-self:stretch;height:100vh;overflow-y:auto;background:rgba(255,255,255,.96);border-right:1px solid var(--rule);backdrop-filter:blur(6px)}
+  nav .wrap{display:flex;flex-direction:column;align-items:flex-start;gap:14px;height:auto;padding:26px 20px;overflow:visible;flex:0 0 auto;max-width:none}
   nav b{font:600 13px/1 var(--sans);color:var(--ink);white-space:nowrap}
   nav a{font-size:13px;color:var(--ink-2);border:0;white-space:nowrap}
   nav a:hover{color:var(--open)}
@@ -485,31 +485,19 @@ CSS = """
   .unlocks-0{font:13px var(--mono);color:var(--ink-3);font-weight:400}
   .spec-head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin:34px 0 4px;padding-top:14px;border-top:1px solid var(--rule)}
   .spec-head h3{font:600 17px/1.3 var(--mono);margin:0}
+  .spec-head h3 button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px}
+  .spec-head h3 button:focus-visible{outline:2px solid var(--open);outline-offset:3px}
   .spec-head .kind{font-size:12px;color:var(--ink-2);border:1px solid var(--rule);padding:1px 6px}
   .spec-head .cnt{font-size:13px;color:var(--ink-2);margin-left:auto;font-family:var(--mono)}
   .minibar{display:flex;height:9px;width:100%;margin:10px 0 3px;background:#fff;border:1px solid var(--rule-2)}
   .minibar i{display:block;height:100%}
   .minibar i+i{border-left:1px solid #fff}
   .minicap{display:flex;justify-content:space-between;font:12px var(--mono);color:var(--ink-2);margin-bottom:12px}
-  .waves{margin-top:6px;overflow-x:auto}
-  .wave-title{font:600 13px var(--mono);margin:22px 0 2px;color:var(--ink)}
-  .waves svg{display:block;height:auto;overflow:visible}
-  .colhead{font:600 12px var(--sans);fill:var(--ink)}
-  .colsub{font:11.5px var(--sans);fill:var(--ink-2)}
-  .n-label{font:12px var(--mono)}
-  .n-title{font:12px var(--sans)}
   .empty{font-size:13px;color:var(--ink-2);padding:14px 0 4px;border-bottom:1px solid var(--rule-2)}
   .filelist{list-style:none;margin:14px 0 0;padding:0}
   .filelist li{font:13px var(--mono);padding:8px 0;border-bottom:1px solid var(--rule-2)}
   footer{border-top:1px solid var(--ink);margin-top:40px;padding:22px 0 60px;font-size:12.5px;line-height:1.75;color:var(--ink-2)}
-  footer b{color:var(--ink);font-weight:600;display:block;margin-bottom:6px;font-size:13px}
 """
-
-NW, NH, GY, CG, TOP, PAD = 150, 38, 9, 34, 44, 2
-NODE_FILL = {OPEN: "#2f6fb5", BLOCKED: "#ffffff", ACTIVE: "#c08a3e"}
-NODE_STROKE = {OPEN: "#1d5b9e", BLOCKED: "#9ba5af", ACTIVE: "#8a5a15"}
-NODE_TEXT = {OPEN: "#ffffff", BLOCKED: "#16191c", ACTIVE: "#16191c"}
-
 
 def esc(s: str) -> str:
     return html.escape(s, quote=True)
@@ -528,81 +516,6 @@ def task_link(task: Task, scratch: Path) -> str:
     if task.source:
         return f'<a href="{esc(rel(task.source, scratch))}">{esc(task.title)}</a>'
     return esc(task.title)
-
-
-def wave_svg(effort: Effort, scratch: Path) -> str:
-    """Layered dependency diagram: columns by depth, bezier edges, no network.
-
-    Only unfinished tickets are drawn: edges between resolved tickets are
-    history, and a graph of done work answers no question the reader has.
-    """
-    by_key = {t.key: t for t in effort.tasks if t.tid}
-    nodes = [t for t in by_key.values() if t.status != DONE]
-    if not any(a in {t.key for t in nodes} or b in {t.key for t in nodes}
-               for a, b in effort.edges):
-        return ""
-    nodes = sorted(nodes, key=lambda t: t.depth)
-
-    cols: dict[int, list[Task]] = {}
-    for t in nodes:
-        cols.setdefault(t.depth, []).append(t)
-    for depth in cols:
-        cols[depth].sort(key=lambda t: (len(t.tid), t.tid))
-
-    pos = {}
-    for ci, depth in enumerate(sorted(cols)):
-        for ri, t in enumerate(cols[depth]):
-            pos[t.key] = (PAD + ci * (NW + CG), TOP + ri * (NH + GY))
-
-    n_cols = len(cols)
-    width = PAD * 2 + n_cols * NW + (n_cols - 1) * CG
-    height = TOP + max(len(c) for c in cols.values()) * (NH + GY)
-    cycle = set(effort.cycle_edges)
-
-    out = [f'<svg viewBox="0 0 {width} {height + 6}" style="min-width:{width}px">']
-    for ci, depth in enumerate(sorted(cols)):
-        x = PAD + ci * (NW + CG)
-        first = "现在能开工 · " if depth == 0 else f"等前 {depth} 层 · "
-        out += [
-            f'<text class="colhead" x="{x}" y="14">第 {depth} 波</text>',
-            f'<text class="colsub" x="{x}" y="30">{first}{len(cols[depth])} 张</text>',
-            f'<line x1="{x}" y1="37" x2="{x + NW}" y2="37" stroke="#dfe3e7"/>',
-        ]
-
-    edges_svg = []
-    for a, b in effort.edges:
-        if a not in pos or b not in pos:
-            continue
-        x1, y1 = pos[a]
-        x2, y2 = pos[b]
-        y1, y2 = y1 + NH / 2, y2 + NH / 2
-        is_cycle = (a, b) in cycle
-        dash = ' stroke-dasharray="4 3" stroke="#8a5a15"' if is_cycle else ""
-        width_attr = 1.4 if is_cycle else 1
-        edges_svg.append(
-            f'<path d="M{x1 + NW} {y1} C{x1 + NW + CG / 2} {y1} {x2 - CG / 2} {y2} '
-            f'{x2} {y2}" fill="none" stroke-width="{width_attr}"'
-            + (dash or ' stroke="#c2c9cf"')
-            + "/>"
-        )
-
-    unknown = set(effort.unknown_nodes)
-    node_svg = []
-    for t in nodes:
-        x, y = pos[t.key]
-        s = t.status
-        node_svg.append(
-            f'<g><title>{esc(t.tid + " " + t.title)}</title>'
-            f'<rect x="{x}" y="{y}" width="{NW}" height="{NH}" '
-            f'fill="{NODE_FILL.get(s, "#fff")}" stroke="{NODE_STROKE.get(s, "#c6ccd2")}"/>'
-            f'<text class="n-label" x="{x + 9}" y="{y + 17}" fill="{NODE_TEXT.get(s, "#16191c")}" '
-            f'font-weight="600">{esc(t.tid)}</text>'
-            f'<text class="n-title" x="{x + 9}" y="{y + 30}" '
-            f'fill="{NODE_TEXT.get(s, "#6e7781")}">{esc(clip(t.title, 17))}</text></g>'
-        )
-    # Cycle edges last so they draw on top of the nodes.
-    out += edges_svg + node_svg + [f"</svg>"]
-    return "".join(out)
 
 
 def stacked_bar(total: int, counts: dict[str, int], height_css: str) -> tuple[str, str]:
@@ -674,7 +587,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         f"<style>{CSS}</style></head><body>",
         "<nav><div class='wrap'>",
         f"<b>任务进度 · {esc(project)}</b>",
-        "<a href='#now'>现在能开工</a><a href='#waves'>阻塞与解锁波次</a>"
+        "<a href='#spec-progress'>按 spec 的进度</a><a href='#now'>可开工的票</a>"
         "<a href='#specs'>按 spec 明细</a><a href='#stale'>久未动</a>"
         "<a href='#recent'>最近完成</a><a href='#unknown'>未能识别</a>",
         "</div></nav><div class='wrap'>",
@@ -708,9 +621,47 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         (t for t in all_tasks if t.status == OPEN),
         key=lambda t: (-t.unlocks, t.effort, t.tid),
     )
+    # spec 维度进度：每个 spec 一行，状态计数 + 进度。放在最前面。
+    out += [
+        "<section id='spec-progress'>",
+        "<h2>按 spec 的进度</h2>",
+        "<p class='sub'>每个 spec 一行：票数按状态拆开，进度 = 该 spec 的已完成 ÷ 该 spec 总票数。"
+        "「可开工」列非零说明这个 spec 现在就有活能干。</p>",
+        "<table><thead><tr><th style='width:150px'>spec</th>"
+        "<th class='num'>可开工</th><th class='num'>进行中</th><th class='num'>已完成</th>"
+        "<th class='num'>被阻塞</th><th class='num'>票</th><th class='num'>进度</th></tr></thead><tbody>",
+    ]
+    spec_rows = sorted(
+        efforts,
+        key=lambda e: (
+            -sum(1 for t in e.tasks if t.status == OPEN),
+            e.name,
+        ),
+    )
+    for effort in spec_rows:
+        ec = {s: 0 for s in STATUS_LABEL}
+        for t in effort.tasks:
+            ec[t.status] += 1
+        et = len(effort.tasks)
+        epct = round(ec[DONE] * 100 / et) if et else 0
+        out.append(
+            f"<tr><td class='spec'>"
+            f"<button type='button' data-copy-spec='{esc(effort.name)}' "
+            f"style='font:inherit;background:none;border:0;padding:0;cursor:pointer;"
+            f"text-decoration:underline dotted;text-underline-offset:3px'>"
+            f"{esc(effort.name)}</button></td>"
+            f"<td class='num'>{ec[OPEN] or '·'}</td>"
+            f"<td class='num'>{ec[ACTIVE] or '·'}</td>"
+            f"<td class='num'>{ec[DONE] or '·'}</td>"
+            f"<td class='num'>{ec[BLOCKED] or '·'}</td>"
+            f"<td class='num'>{et}</td>"
+            f"<td class='num'>{epct}%</td></tr>"
+        )
+    out.append("</tbody></table></section>")
+
     out += [
         "<section id='now'>",
-        f"<h2>现在能开工的 · {len(open_now)} 张</h2>",
+        f"<h2>可开工的票 · {len(open_now)} 张</h2>",
         "<p class='sub'>未完成、没有前置票挡着、也没人在做的票。按「直接解锁」从多到少排——"
         "解锁得多的票，做完能让更多票动起来。</p>",
     ]
@@ -736,50 +687,6 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         out.append("<p class='empty'>没有可直接开工的票——要么全做完了，要么都卡在别的票后面。</p>")
     out.append("</section>")
 
-    out += [
-        "<section id='waves'>",
-        "<h2>阻塞与解锁波次</h2>",
-        "<p class='sub'>阻塞是一张有向图：箭头 A → B 表示「A 不做完，B 就动不了」。"
-        "这里按<b>最长前置链</b>把票排进波次——第 0 波是没有任何前置的票（也就是「现在能开工」），"
-        "第 N 波要等前面 N 层全部做完。列头就是标签，图里不再放图例。</p>",
-    ]
-    graphs = [e for e in efforts if e.edges]
-    if graphs:
-        for effort in graphs:
-            out += [
-                f"<p class='wave-title'>{esc(effort.name)}</p>",
-                f"<div class='waves'>{wave_svg(effort, scratch)}</div>",
-            ]
-        notes = [
-            "<b>波次 = 到这张票的最长前置链长度</b>。它是最坏情况下的等待深度，不是排期——"
-            "同一波的票彼此独立，可以并行。"
-        ]
-        cycles = sum(len(e.cycle_edges) for e in graphs)
-        if cycles:
-            names = "、".join(
-                f"{esc(e.name)} {' / '.join(f'{a} ↔ {b}' for a, b in e.cycle_edges)}"
-                for e in graphs
-                if e.cycle_edges
-            )
-            notes.append(
-                f"<b>虚线 = 环</b>：两张票互相阻塞，谁都开不了工，需要人工拆。"
-                f"本次扫描命中 <b>{cycles} 处</b>（{names}）。"
-            )
-        unknown = [(e.name, e.unknown_nodes) for e in graphs if e.unknown_nodes]
-        if unknown:
-            listed = "、".join(
-                f"{esc(name)} 的 {'、'.join(ids)}" for name, ids in unknown
-            )
-            notes.append(
-                "<b>空心虚线框 = 引用了扫描范围之外的票号</b>，本次有这些："
-                f"<b>{listed}</b>。它们被当作「已不存在的前置」，不拦路，"
-                "但也说明票面里的编号可能写错了。"
-            )
-        out.append("<p class='note'>" + "<br>".join(notes) + "</p>")
-    else:
-        out.append("<p class='empty'>没有票声明阻塞关系。</p>")
-    out.append("</section>")
-
     out.append("<section id='specs'><h2>按 spec 明细</h2>")
     for effort in efforts:
         ec = {s: 0 for s in STATUS_LABEL}
@@ -790,7 +697,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         minibar, _ = stacked_bar(et, ec, "") if et else ("", "")
         out += [
             "<div class='spec-head'>",
-            f"<h3>{esc(effort.name)}</h3>",
+            f"<h3><button type='button' data-copy-spec='{esc(effort.name)}' title='复制 spec 名称'>{esc(effort.name)}</button></h3>",
             "<span class='kind'>wayfinder 地图</span>" if effort.is_map else "",
             "<span class='kind'>spec</span>" if effort.has_spec else "",
             f"<span class='cnt'>{et} 张 · {ec[DONE]} 已完成</span></div>",
@@ -905,9 +812,10 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
     out.append("</section></div>")
 
     out += [
-        "<footer><div class='wrap'><b>关于这份报告</b>",
-        "tracking-progress 生成 · 数据来自 .scratch 目录的原始文件，没有数据库、"
-        "没有服务端、没有第二份真相。本页不联网：双击打开即完整可用。</div></footer>",
+        "<script>document.querySelectorAll('[data-copy-spec]').forEach(button => button.addEventListener('click', async () => {"
+        "try { await navigator.clipboard.writeText(button.dataset.copySpec); button.title = '已复制'; } "
+        "catch { button.title = '复制失败'; }"
+        "}));</script>",
         "</body></html>",
     ]
     return "".join(out)
