@@ -499,8 +499,11 @@ CSS = """
   .unlocks-0{font:13px var(--mono);color:var(--ink-3);font-weight:400}
   .spec-head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin:34px 0 4px;padding-top:14px;border-top:1px solid var(--rule)}
   .spec-head h3{font:600 17px/1.3 var(--mono);margin:0}
-  .spec-head h3 button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px}
-  .spec-head h3 button:focus-visible{outline:2px solid var(--open);outline-offset:3px}
+  .spec-head h3:focus-within button.copy-btn{outline:2px solid var(--open);outline-offset:3px}
+  .copy-btn{font:inherit;line-height:1;color:var(--ink-3);background:none;border:0;padding:0 0 0 5px;cursor:pointer;vertical-align:-1px}
+  .copy-btn:hover{color:var(--open)}
+  .copy-btn svg{display:block}
+  .copy-btn.copied{color:var(--open);font:600 12px/1 var(--sans)}
   .spec-head .kind{font-size:12px;color:var(--ink-2);border:1px solid var(--rule);padding:1px 6px}
   .spec-head .cnt{font-size:13px;color:var(--ink-2);margin-left:auto;font-family:var(--mono)}
   .minibar{display:flex;height:9px;width:100%;margin:10px 0 3px;background:var(--panel);border:1px solid var(--rule-2)}
@@ -527,6 +530,20 @@ def clip(text: str, n: int) -> str:
 
 def rel(source: str, scratch: Path) -> str:
     return os.path.relpath(source, scratch)
+
+
+def copy_btn(name: str) -> str:
+    """Small icon button that copies the spec name; every spec column gets one."""
+    icon = (
+        "<svg width='12' height='12' viewBox='0 0 16 16' fill='none' "
+        "stroke='currentColor' stroke-width='1.5' stroke-linejoin='round'>"
+        "<rect x='5' y='5' width='8' height='8' rx='1.5'></rect>"
+        "<path d='M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5'></path></svg>"
+    )
+    return (
+        f"<button type='button' class='copy-btn' data-copy-spec='{esc(name)}' "
+        f"aria-label='复制 spec 名称 {esc(name)}' title='复制 spec 名称'>{icon}</button>"
+    )
 
 
 def task_link(task: Task, scratch: Path) -> str:
@@ -665,11 +682,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         et = len(effort.tasks)
         epct = round(ec[DONE] * 100 / et) if et else 0
         out.append(
-            f"<tr><td class='spec'>"
-            f"<button type='button' data-copy-spec='{esc(effort.name)}' "
-            f"style='font:inherit;background:none;border:0;padding:0;cursor:pointer;"
-            f"text-decoration:underline dotted;text-underline-offset:3px'>"
-            f"{esc(effort.name)}</button></td>"
+            f"<tr><td class='spec'>{esc(effort.name)}{copy_btn(effort.name)}</td>"
             f"<td class='num'>{ec[OPEN] or '·'}</td>"
             f"<td class='num'>{ec[ACTIVE] or '·'}</td>"
             f"<td class='num'>{ec[DONE] or '·'}</td>"
@@ -693,7 +706,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         out += [
             "<tbody>"
             + "".join(
-                f"<tr><td class='spec'>{esc(t.effort)}</td>"
+                f"<tr><td class='spec'>{esc(t.effort)}{copy_btn(t.effort)}</td>"
                 f"<td class='lbl'>{esc(t.label)}</td>"
                 f"<td class='t'>{task_link(t, scratch)}</td>"
                 f"<td class='meta'>{esc(t.kind) or '—'}</td>"
@@ -717,7 +730,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         minibar, _ = stacked_bar(et, ec, "") if et else ("", "")
         out += [
             "<div class='spec-head'>",
-            f"<h3><button type='button' data-copy-spec='{esc(effort.name)}' title='复制 spec 名称'>{esc(effort.name)}</button></h3>",
+            f"<h3>{esc(effort.name)}{copy_btn(effort.name)}</h3>",
             "<span class='kind'>wayfinder 地图</span>" if effort.is_map else "",
             "<span class='kind'>spec</span>" if effort.has_spec else "",
             f"<span class='cnt'>{et} 张 · {ec[DONE]} 已完成</span></div>",
@@ -773,7 +786,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
             "<table><thead><tr><th>spec</th><th class='num'>未完成</th>"
             "<th class='num'>最后改动</th></tr></thead><tbody>",
             "".join(
-                f"<tr><td class='spec'>{esc(e.name)}</td>"
+                f"<tr><td class='spec'>{esc(e.name)}{copy_btn(e.name)}</td>"
                 f"<td class='num'>{sum(1 for t in e.tasks if t.status != DONE)} 张</td>"
                 f"<td class='num'>{int((now - e.mtime) / 86400)} 天前</td></tr>"
                 for e in rows
@@ -802,7 +815,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
             "".join(
                 f"<tr class='r-done'><td class='lbl'>"
                 f"{time.strftime('%Y-%m-%d', time.localtime(t.mtime))}</td>"
-                f"<td class='spec'>{esc(t.effort)}</td>"
+                f"<td class='spec'>{esc(t.effort)}{copy_btn(t.effort)}</td>"
                 f"<td class='t'>{task_link(t, scratch)}</td></tr>"
                 for t in recent
             ),
@@ -833,9 +846,12 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
 
     out += [
         "<script>document.querySelectorAll('[data-copy-spec]').forEach(button => button.addEventListener('click', async () => {"
-        "try { await navigator.clipboard.writeText(button.dataset.copySpec); button.title = '已复制'; } "
-        "catch { button.title = '复制失败'; }"
-        "}));</script>",
+        "if (button.classList.contains('copied')) return;"
+        "try { await navigator.clipboard.writeText(button.dataset.copySpec); button.classList.add('copied'); button.textContent = '已复制'; } "
+        "catch { button.textContent = '失败'; }"
+        "setTimeout(function(){ button.classList.remove('copied'); button.innerHTML = button.dataset.icon; }, 1600);"
+        "}));"
+        "document.querySelectorAll('[data-copy-spec]').forEach(button => button.dataset.icon = button.innerHTML);</script>",
         "<script>(function(){var root=document.documentElement,btn=document.getElementById('themeToggle');"
         "function set(t){root.dataset.theme=t;btn.textContent=t==='dark'?'亮色':'深色';"
         "try{localStorage.setItem('tp-theme',t)}catch(e){}}"
