@@ -248,7 +248,7 @@ def test_main_writes_report(tmp_path, monkeypatch, capsys):
     assert tp.main(["tracking_progress.py", str(root)]) == 0
     page = (root / ".scratch" / "progress.html").read_text(encoding="utf-8")
     assert "任务进度" in page
-    assert "UNPARSED=1" in capsys.readouterr().err
+    assert capsys.readouterr().err == ""
 
 
 def test_main_without_scratch(tmp_path, capsys):

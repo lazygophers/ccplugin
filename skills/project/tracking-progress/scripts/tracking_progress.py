@@ -857,8 +857,6 @@ def main(argv: list[str]) -> int:
     out_path = scratch / "progress.html"
     out_path.write_text(render(efforts, unparsed, scratch), encoding="utf-8")
     print(out_path)
-    if unparsed:
-        print(f"UNPARSED={len(unparsed)}", file=sys.stderr)
     return 0
 
 

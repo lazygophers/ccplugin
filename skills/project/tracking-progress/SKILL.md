@@ -15,7 +15,7 @@ Then:
 
 1. Open the HTML: `open .scratch/progress.html`.
 2. Report the headline (the page leads with a one-sentence conclusion) and the 现在能开工的 table. Link the HTML as `[任务进度](.scratch/progress.html)`.
-3. If stderr printed `UNPARSED=<n>`, read the 未能识别的文件 section. For each file, decide whether it actually holds tasks. If any does, the script is missing a convention — ask the user whether to file an issue at `.scratch/tracking-progress/issues/` describing the unrecognised format, then add the rule to the script.
+3. Open the page's 未能识别的文件 section if it is non-empty. For each file, decide whether it actually holds tasks. If any does, the script is missing a convention — ask the user whether to file an issue at `.scratch/tracking-progress/issues/` describing the unrecognised format, then add the rule to the script. (The script prints only the output path; the count, if any, lives on the page.)
 
 ## What it recognises
 
