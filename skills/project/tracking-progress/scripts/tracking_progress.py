@@ -595,17 +595,14 @@ def stacked_bar(total: int, counts: dict[str, int], height_css: str) -> tuple[st
 
 
 def mermaid_graph(effort: "Effort") -> str:
-    """Mermaid flowchart of this effort's blocking edges; '' when there are none.
-    Colours ride the CSS variables so the diagram follows the page theme."""
-    if not effort.edges:
-        return ""
-    by_key = {t.key: t for t in effort.tasks if t.tid}
-    nodes = {k: by_key[k] for a, b in effort.edges for k in (a, b) if k in by_key}
+    """Mermaid flowchart of this effort's tickets: every ticket is a node
+    (isolated ones included), blocking edges are arrows. '' when no ticket
+    has an id. Colours are a safe base; the page repaints them per theme."""
+    nodes = {t.key: t for t in effort.tasks if t.tid}
     if not nodes:
         return ""
     ids = {k: f"n{i}" for i, k in enumerate(nodes)}
-    # Colours here are only a safe base; the page CSS overrides them per theme
-    # (mermaid's parser rejects var(--x) in linkStyle/classDef, so no CSS vars here).
+    # mermaid's parser rejects var(--x) in linkStyle/classDef, so hex only here.
     lines = [
         "graph TD",
         "classDef done fill:#d7dce0",
@@ -614,7 +611,7 @@ def mermaid_graph(effort: "Effort") -> str:
         "classDef blocked fill:#9ba5af",
     ]
     for key, t in nodes.items():
-        label = clip(t.tid, 24)
+        label = f"{clip(t.tid, 12)} · {mmd_label(t.title)}"
         lines.append(f'{ids[key]}["{label}"]:::{STATUS_CLASS[t.status]}')
     cyc = {frozenset(e) for e in effort.cycle_edges}
     edge_i = 0
@@ -627,6 +624,13 @@ def mermaid_graph(effort: "Effort") -> str:
             lines.append(f"linkStyle {edge_i} stroke:#b5813a")
         edge_i += 1
     return "\n".join(lines)
+
+
+def mmd_label(text: str, n: int = 40) -> str:
+    """Title safe for a quoted mermaid node label: quotes/brackets/newlines out."""
+    for bad, good in (('"', "'"), ("[", "（"), ("]", "）"), ("\n", " ")):
+        text = text.replace(bad, good)
+    return clip(text, n)
 
 
 def headline(efforts: list[Effort]) -> str:
@@ -718,7 +722,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "「可开工」列非零说明这个 spec 现在就有活能干。</p>",
         "<table><thead><tr><th style='width:150px'>spec</th>"
         "<th class='num'>可开工</th><th class='num'>进行中</th><th class='num'>已完成</th>"
-        "<th class='num'>被阻塞</th><th class='num'>ID</th><th class='num'>进度</th></tr></thead><tbody>",
+        "<th class='num'>被阻塞</th><th class='num'>ticket</th><th class='num'>进度</th></tr></thead><tbody>",
     ]
     spec_rows = sorted(
         efforts,
@@ -752,7 +756,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
     ]
     if open_now:
         out += [
-            "<table><thead><tr><th style='width:130px'>spec</th><th style='width:44px'>ID</th>"
+            "<table><thead><tr><th style='width:130px'>spec</th><th style='width:44px'>ticket</th>"
             "<th>标题</th><th style='width:70px'>类型</th><th class='num'>解锁</th></tr></thead>",
         ]
         out += [
@@ -804,7 +808,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
             out.append(f"<pre class='mmd'>{esc(mmd)}</pre>")
         if et:
             out += [
-                "<table><thead><tr><th style='width:44px'>ID</th><th>标题</th>"
+                "<table><thead><tr><th style='width:44px'>ticket</th><th>标题</th>"
                 "<th style='width:64px'>状态</th><th style='width:110px'>阻塞于</th>"
                 "<th class='num'>解锁</th></tr></thead><tbody>",
             ]
