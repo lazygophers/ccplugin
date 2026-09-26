@@ -517,14 +517,24 @@ CSS = """
   .minibar i{display:block;height:100%}
   .minibar i+i{border-left:1px solid var(--gap)}
   .minicap{display:flex;justify-content:space-between;font:12px var(--mono);color:var(--ink-2);margin-bottom:12px}
-  .mmd{margin:14px 0 18px;text-align:center;font:12px/1.5 var(--mono);overflow-x:auto}
+  .mmd{margin:14px 0 18px;text-align:center;font:12px/1.5 var(--mono);overflow-x:auto;position:relative}
   .mmd svg{max-width:100%}
-  .mmd path.flowchart-link{stroke:var(--ink-3)!important}
-  .mmd marker path{fill:var(--ink-3)!important;stroke:var(--ink-3)!important}
-  .mmd .edgeLabel,.mmd .edgeLabel text{fill:var(--ink-2)}
-  .mmd path.flowchart-link{stroke:var(--ink-3)!important}
-  .mmd marker path{fill:var(--ink-3)!important;stroke:var(--ink-3)!important}
-  .mmd .edgeLabel,.mmd .edgeLabel text{fill:var(--ink-2)}
+  .mmd-zoom{position:absolute;right:0;top:0;font:600 11px/1 var(--sans);color:var(--ink-2);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:4px 8px;cursor:pointer;z-index:2}
+  .mmd-zoom:hover{color:var(--open);border-color:var(--open)}
+  .mmd-viewer{position:fixed;inset:0;z-index:50;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;flex-direction:column;gap:10px}
+  .mmd-viewer.open{display:flex}
+  .mmd-viewer .stage{flex:1;width:100%;overflow:hidden;cursor:grab;touch-action:none}
+  .mmd-viewer .stage.dragging{cursor:grabbing}
+  .mmd-viewer svg{max-width:none;transform-origin:0 0}
+  .mmd-viewer .hint{font:12px var(--sans);color:var(--ink-2);padding:10px 0 14px}
+  .mmd-viewer .close{position:absolute;right:18px;top:14px;font:600 12px/1 var(--sans);color:var(--ink-2);background:var(--panel);border:1px solid var(--rule);border-radius:99px;padding:6px 13px;cursor:pointer}
+  .mmd-viewer .close:hover{color:var(--open);border-color:var(--open)}
+  .mmd path.flowchart-link,.mmd-viewer path.flowchart-link{stroke:var(--ink-3)!important}
+  .mmd marker path,.mmd-viewer marker path{fill:var(--ink-3)!important;stroke:var(--ink-3)!important}
+  .mmd .edgeLabel,.mmd-viewer .edgeLabel,.mmd .edgeLabel text,.mmd-viewer .edgeLabel text{fill:var(--ink-2)}
+  .mmd path.flowchart-link,.mmd-viewer path.flowchart-link{stroke:var(--ink-3)!important}
+  .mmd marker path,.mmd-viewer marker path{fill:var(--ink-3)!important;stroke:var(--ink-3)!important}
+  .mmd .edgeLabel,.mmd-viewer .edgeLabel,.mmd .edgeLabel text,.mmd-viewer .edgeLabel text{fill:var(--ink-2)}
   .spec-head h3 a{color:inherit;border-bottom:1px dotted var(--rule)}
   .spec-head h3 a:hover{color:var(--open);border-bottom-color:var(--open)}
   .empty{font-size:13px;color:var(--ink-2);padding:14px 0 4px;border-bottom:1px solid var(--rule-2)}
@@ -683,7 +693,10 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "<a href='#spec-progress'>按 spec 的进度</a><a href='#now'>可开工的票</a>"
         "<a href='#specs'>按 spec 明细</a><a href='#stale'>久未动</a>"
         "<a href='#recent'>最近完成</a><a href='#unknown'>未能识别</a>",
-        "</div></nav><div class='wrap'>",
+        "</div></nav><div class='wrap'>"
+        "<div class='mmd-viewer' id='mmdViewer'><button class='close' type='button' id='mmdClose'>关闭</button>"
+        "<div class='stage' id='mmdStage'></div>"
+        "<p class='hint'>滚轮缩放 · 拖拽平移 · 双击复位 · ESC 退出</p></div>",
         "<header>",
         f"<h1>{headline(efforts)}</h1>",
         "<p class='standfirst'>",
@@ -942,8 +955,47 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "g.querySelectorAll('rect,polygon').forEach(function(r){ r.setAttribute('style', 'fill:'+F[k]); });"
         "g.querySelectorAll('text').forEach(function(t){ t.setAttribute('style', 'fill:'+(light&&k==='done'?'#6e7781':'#ffffff')); });"
         "});});};"
+        # per-diagram buttons: copy the mermaid source / open the zoom viewer.
+        # sources must be captured before run() replaces the pre's content,
+        # buttons must be injected after — so capture now, inject in then().
+        "var viewer = document.getElementById('mmdViewer'), stage = document.getElementById('mmdStage');"
+        "var pres = document.querySelectorAll('pre.mmd');"
+        "for (var i = 0; i < pres.length; i++) pres[i].dataset.src = pres[i].textContent;"
+        "function addButtons(){"
+        "document.querySelectorAll('pre.mmd').forEach(function(pre){"
+        "function mk(label, fn){ var b = document.createElement('button');"
+        "b.type = 'button'; b.className = 'mmd-zoom'; b.textContent = label;"
+        "b.addEventListener('click', fn); pre.appendChild(b); }"
+        "mk('复制', function(e){ e.stopPropagation(); var b = e.currentTarget;"
+        "navigator.clipboard.writeText(pre.dataset.src).then(function(){"
+        "b.textContent = '已复制'; setTimeout(function(){ b.textContent = '复制'; }, 1600);"
+        "}, function(){ b.textContent = '失败'; setTimeout(function(){ b.textContent = '复制'; }, 1600); }); });"
+        "mk('放大', function(){ openViewer(pre); });"
+        "});}"
+        "var svg = null, tx = 0, ty = 0, sc = 1;"
+        "function apply(){ if (svg) svg.style.transform = 'translate('+tx+'px,'+ty+'px) scale('+sc+')'; }"
+        "function fit(){ if (!svg) return;"
+        "var r = svg.getBoundingClientRect(), w = stage.clientWidth, h = stage.clientHeight;"
+        "sc = Math.min(1, Math.min(w/r.width, h/r.height) * 0.92) || 1;"
+        "tx = (w - r.width*sc)/2; ty = (h - r.height*sc)/2; apply(); }"
+        "function openViewer(pre){ var el = pre.querySelector('svg'); if (!el) return;"
+        "stage.innerHTML = ''; svg = el.cloneNode(true); svg.removeAttribute('style');"
+        "stage.appendChild(svg); viewer.classList.add('open'); fit(); }"
+        "function closeViewer(){ viewer.classList.remove('open'); svg = null; stage.innerHTML = ''; }"
+        "document.getElementById('mmdClose').addEventListener('click', closeViewer);"
+        "document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeViewer(); });"
+        "stage.addEventListener('wheel', function(e){ e.preventDefault();"
+        "sc = Math.max(0.2, Math.min(8, sc * (e.deltaY < 0 ? 1.15 : 0.87))); apply(); }, {passive:false});"
+        "stage.addEventListener('dblclick', fit);"
+        "stage.addEventListener('pointerdown', function(e){"
+        "var px = e.clientX - tx, py = e.clientY - ty;"
+        "stage.classList.add('dragging'); stage.setPointerCapture(e.pointerId);"
+        "function move(ev){ tx = ev.clientX - px; ty = ev.clientY - py; apply(); }"
+        "function up(){ stage.classList.remove('dragging');"
+        "stage.removeEventListener('pointermove', move); stage.removeEventListener('pointerup', up); }"
+        "stage.addEventListener('pointermove', move); stage.addEventListener('pointerup', up); });"
         "m.initialize({startOnLoad:false, securityLevel:'loose', flowchart:{htmlLabels:false}});"
-        "m.run({querySelector:'.mmd'}).then(function(){ window.paintMmd(); })"
+        "m.run({querySelector:'pre.mmd'}).then(function(){ window.paintMmd(); addButtons(); })"
         ".catch(function(e){ console.warn('mermaid 渲染失败，依赖图显示源码', e); });"
         "})();</script>",
         "</body></html>",
