@@ -418,23 +418,37 @@ def analyse(effort: Effort) -> None:
 
 CSS = """
   :root{
+    --ink:#d7dce1; --ink-2:#9aa4ae; --ink-3:#737d87;
+    --rule:#2b3138; --rule-2:#232830;
+    --open:#6aa5e3; --open-fill:#2f6fb5;
+    --active:#d9a35f; --active-fill:#b5813a;
+    --blocked:#8b96a2; --blocked-fill:#66707a;
+    --done-fill:#3b444d; --bg:#141719;
+    --panel:#1a1e22; --gap:#141719; --nav-bg:rgba(20,23,25,.96); --row-hover:#1d2227;
+    --underline:rgba(106,165,227,.4); --danger:#e0796c;
+    --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans CJK SC","Hiragino Sans GB",sans-serif;
+    --serif:Georgia,"Songti SC","Noto Serif CJK SC","STSong",serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    color-scheme:dark;
+  }
+  :root[data-theme=light]{
     --ink:#16191c; --ink-2:#4d565f; --ink-3:#6e7781;
     --rule:#dfe3e7; --rule-2:#eef1f3;
     --open:#1d5b9e; --open-fill:#2f6fb5;
     --active:#8a5a15; --active-fill:#c08a3e;
     --blocked:#5b6570; --blocked-fill:#9ba5af;
     --done-fill:#d7dce0; --bg:#ffffff;
-    --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans CJK SC","Hiragino Sans GB",sans-serif;
-    --serif:Georgia,"Songti SC","Noto Serif CJK SC","STSong",serif;
-    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --panel:#ffffff; --gap:#ffffff; --nav-bg:rgba(255,255,255,.96); --row-hover:#f7f9fa;
+    --underline:rgba(29,91,158,.28); --danger:#a33;
+    color-scheme:light;
   }
   *{box-sizing:border-box}
   html{scroll-behavior:smooth;scroll-padding-top:56px}
   body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 var(--sans);-webkit-font-smoothing:antialiased;display:flex;align-items:flex-start}
-  a{color:var(--open);text-decoration:none;border-bottom:1px solid rgba(29,91,158,.28)}
+  a{color:var(--open);text-decoration:none;border-bottom:1px solid var(--underline)}
   a:hover{border-bottom-color:var(--open)}
   .wrap{max-width:1180px;margin:0 auto;padding:0 28px;flex:1;min-width:0}
-  nav{position:sticky;top:0;z-index:20;flex:0 0 190px;align-self:stretch;height:100vh;overflow-y:auto;background:rgba(255,255,255,.96);border-right:1px solid var(--rule);backdrop-filter:blur(6px)}
+  nav{position:sticky;top:0;z-index:20;flex:0 0 190px;align-self:stretch;height:100vh;overflow-y:auto;background:var(--nav-bg);border-right:1px solid var(--rule);backdrop-filter:blur(6px)}
   nav .wrap{display:flex;flex-direction:column;align-items:flex-start;gap:14px;height:auto;padding:26px 20px;overflow:visible;flex:0 0 auto;max-width:none}
   nav b{font:600 13px/1 var(--sans);color:var(--ink);white-space:nowrap}
   nav a{font-size:13px;color:var(--ink-2);border:0;white-space:nowrap}
@@ -452,9 +466,9 @@ CSS = """
   .note code{font:12px var(--mono)}
   .statline{display:flex;flex-wrap:wrap;gap:0 30px;margin:0 0 22px;font-size:13.5px;color:var(--ink-2)}
   .statline span{font:600 13.5px var(--mono);color:var(--ink)}
-  .stack{display:flex;height:34px;width:100%;border:1px solid var(--rule);background:#fff}
+  .stack{display:flex;height:34px;width:100%;border:1px solid var(--rule);background:var(--panel)}
   .stack i{display:block;height:100%}
-  .stack i+i{border-left:1px solid #fff}
+  .stack i+i{border-left:1px solid var(--gap)}
   .ticks{display:flex;width:100%;margin-top:0}
   .tick{position:relative;padding:9px 0 0}
   .tick::before{content:"";position:absolute;left:0;top:0;width:1px;height:7px;background:var(--rule)}
@@ -467,7 +481,7 @@ CSS = """
   th{text-align:left;font:600 12px/1.4 var(--sans);color:var(--ink-2);letter-spacing:.04em;padding:0 10px 7px 0;border-bottom:1px solid var(--ink);white-space:nowrap}
   th.num,td.num{text-align:right;padding-right:16px}
   td{padding:7px 10px 7px 0;border-bottom:1px solid var(--rule-2);vertical-align:top}
-  tr:hover td{background:#f7f9fa}
+  tr:hover td{background:var(--row-hover)}
   td.lbl{font:12.5px var(--mono);color:var(--ink-2);white-space:nowrap;width:44px}
   td.spec{font:12.5px var(--mono);color:var(--ink-2);white-space:nowrap;width:130px}
   td.t{max-width:0;width:100%}
@@ -489,14 +503,17 @@ CSS = """
   .spec-head h3 button:focus-visible{outline:2px solid var(--open);outline-offset:3px}
   .spec-head .kind{font-size:12px;color:var(--ink-2);border:1px solid var(--rule);padding:1px 6px}
   .spec-head .cnt{font-size:13px;color:var(--ink-2);margin-left:auto;font-family:var(--mono)}
-  .minibar{display:flex;height:9px;width:100%;margin:10px 0 3px;background:#fff;border:1px solid var(--rule-2)}
+  .minibar{display:flex;height:9px;width:100%;margin:10px 0 3px;background:var(--panel);border:1px solid var(--rule-2)}
   .minibar i{display:block;height:100%}
-  .minibar i+i{border-left:1px solid #fff}
+  .minibar i+i{border-left:1px solid var(--gap)}
   .minicap{display:flex;justify-content:space-between;font:12px var(--mono);color:var(--ink-2);margin-bottom:12px}
   .empty{font-size:13px;color:var(--ink-2);padding:14px 0 4px;border-bottom:1px solid var(--rule-2)}
   .filelist{list-style:none;margin:14px 0 0;padding:0}
   .filelist li{font:13px var(--mono);padding:8px 0;border-bottom:1px solid var(--rule-2)}
   footer{border-top:1px solid var(--ink);margin-top:40px;padding:22px 0 60px;font-size:12.5px;line-height:1.75;color:var(--ink-2)}
+  .theme-btn{position:fixed;right:18px;top:14px;z-index:30;font:600 12px/1 var(--sans);color:var(--ink-2);background:var(--panel);border:1px solid var(--rule);border-radius:99px;padding:6px 13px;cursor:pointer}
+  .theme-btn:hover{color:var(--open);border-color:var(--open)}
+  .dangling{color:var(--danger)}
 """
 
 def esc(s: str) -> str:
@@ -584,7 +601,10 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "<!DOCTYPE html><html lang='zh-Hans'><head><meta charset='utf-8'>",
         "<meta name='viewport' content='width=device-width,initial-scale=1'>",
         f"<title>任务进度 · {esc(project)}</title>",
-        f"<style>{CSS}</style></head><body>",
+        f"<style>{CSS}</style>",
+        "<script>try{var t=localStorage.getItem('tp-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>",
+        "</head><body>",
+        "<button class='theme-btn' type='button' id='themeToggle' aria-label='切换深浅色'>亮色</button>",
         "<nav><div class='wrap'>",
         f"<b>任务进度 · {esc(project)}</b>",
         "<a href='#spec-progress'>按 spec 的进度</a><a href='#now'>可开工的票</a>"
@@ -715,7 +735,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
                 meta = []
                 if t.dangling:
                     meta.append(
-                        "<s style='color:#a33'>"
+                        "<s class='dangling'>"
                         + " ".join(esc(d) for d in t.dangling)
                         + "</s>"
                     )
@@ -816,6 +836,11 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "try { await navigator.clipboard.writeText(button.dataset.copySpec); button.title = '已复制'; } "
         "catch { button.title = '复制失败'; }"
         "}));</script>",
+        "<script>(function(){var root=document.documentElement,btn=document.getElementById('themeToggle');"
+        "function set(t){root.dataset.theme=t;btn.textContent=t==='dark'?'亮色':'深色';"
+        "try{localStorage.setItem('tp-theme',t)}catch(e){}}"
+        "set(root.dataset.theme||'dark');"
+        "btn.addEventListener('click',function(){set(root.dataset.theme==='dark'?'light':'dark')});})();</script>",
         "</body></html>",
     ]
     return "".join(out)
