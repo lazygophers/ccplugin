@@ -518,6 +518,13 @@ CSS = """
   .minibar i+i{border-left:1px solid var(--gap)}
   .minicap{display:flex;justify-content:space-between;font:12px var(--mono);color:var(--ink-2);margin-bottom:12px}
   .mmd{margin:14px 0 18px;text-align:center;font:12px/1.5 var(--mono);overflow-x:auto}
+  .mmd svg{max-width:100%}
+  .mmd path.flowchart-link{stroke:var(--ink-3)!important}
+  .mmd marker path{fill:var(--ink-3)!important;stroke:var(--ink-3)!important}
+  .mmd .edgeLabel,.mmd .edgeLabel text{fill:var(--ink-2)}
+  .mmd path.flowchart-link{stroke:var(--ink-3)!important}
+  .mmd marker path{fill:var(--ink-3)!important;stroke:var(--ink-3)!important}
+  .mmd .edgeLabel,.mmd .edgeLabel text{fill:var(--ink-2)}
   .spec-head h3 a{color:inherit;border-bottom:1px dotted var(--rule)}
   .spec-head h3 a:hover{color:var(--open);border-bottom-color:var(--open)}
   .empty{font-size:13px;color:var(--ink-2);padding:14px 0 4px;border-bottom:1px solid var(--rule-2)}
@@ -597,13 +604,14 @@ def mermaid_graph(effort: "Effort") -> str:
     if not nodes:
         return ""
     ids = {k: f"n{i}" for i, k in enumerate(nodes)}
+    # Colours here are only a safe base; the page CSS overrides them per theme
+    # (mermaid's parser rejects var(--x) in linkStyle/classDef, so no CSS vars here).
     lines = [
         "graph TD",
-        "linkStyle default stroke:var(--ink-3)",
-        "classDef done fill:var(--done-fill),color:var(--ink-3),stroke:none",
-        "classDef active fill:var(--active-fill),color:#fff,stroke:none",
-        "classDef open fill:var(--open-fill),color:#fff,stroke:none",
-        "classDef blocked fill:var(--blocked-fill),color:#fff,stroke:none",
+        "classDef done fill:#d7dce0",
+        "classDef active fill:#c08a3e",
+        "classDef open fill:#2f6fb5",
+        "classDef blocked fill:#9ba5af",
     ]
     for key, t in nodes.items():
         label = clip(t.tid, 24)
@@ -616,7 +624,7 @@ def mermaid_graph(effort: "Effort") -> str:
         arrow = "-.->" if frozenset((a, b)) in cyc else "-->"
         lines.append(f"{ids[a]} {arrow} {ids[b]}")
         if arrow == "-.->":
-            lines.append(f"linkStyle {edge_i} stroke:var(--active-fill)")
+            lines.append(f"linkStyle {edge_i} stroke:#b5813a")
         edge_i += 1
     return "\n".join(lines)
 
@@ -910,14 +918,29 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "document.querySelectorAll('[data-copy-spec]').forEach(button => button.dataset.icon = button.innerHTML);</script>",
         "<script>(function(){var root=document.documentElement,btn=document.getElementById('themeToggle');"
         "function set(t){root.dataset.theme=t;btn.textContent=t==='dark'?'亮色':'深色';"
+        "if(window.paintMmd)window.paintMmd();"
         "try{localStorage.setItem('tp-theme',t)}catch(e){}}"
         "set(root.dataset.theme||'dark');"
         "btn.addEventListener('click',function(){set(root.dataset.theme==='dark'?'light':'dark')});})();</script>",
         "<script>" + MERMAID_JS + "</script>",
         "<script>(function(){ if (!window.mermaid) return;"
         "var m = window.mermaid.default || window.mermaid;"
+        # mermaid bakes classDef colours into inline style="fill:... !important",
+        # so the page repaints nodes itself — and again on theme switch.
+        "window.paintMmd = function(){"
+        "var light = document.documentElement.dataset.theme === 'light';"
+        "var F = light ? {done:'#d7dce0', active:'#c08a3e', open:'#2f6fb5', blocked:'#9ba5af'}"
+        "              : {done:'#3b444d', active:'#b5813a', open:'#2f6fb5', blocked:'#66707a'};"
+        "document.querySelectorAll('.mmd g.node').forEach(function(g){"
+        "var cls = g.getAttribute('class') || '';"
+        "Object.keys(F).forEach(function(k){"
+        "if (cls.indexOf(k) < 0) return;"
+        "g.querySelectorAll('rect,polygon').forEach(function(r){ r.setAttribute('style', 'fill:'+F[k]); });"
+        "g.querySelectorAll('text').forEach(function(t){ t.setAttribute('style', 'fill:'+(light&&k==='done'?'#6e7781':'#ffffff')); });"
+        "});});};"
         "m.initialize({startOnLoad:false, securityLevel:'loose', flowchart:{htmlLabels:false}});"
-        "m.run({querySelector:'.mmd'}).catch(function(e){ console.warn('mermaid 渲染失败，依赖图显示源码', e); });"
+        "m.run({querySelector:'.mmd'}).then(function(){ window.paintMmd(); })"
+        ".catch(function(e){ console.warn('mermaid 渲染失败，依赖图显示源码', e); });"
         "})();</script>",
         "</body></html>",
     ]
