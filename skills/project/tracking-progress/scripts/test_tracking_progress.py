@@ -243,6 +243,21 @@ def test_render_contains_every_section(tmp_path):
     assert "关于这份报告" not in page
 
 
+def test_mermaid_dependency_graph(tmp_path):
+    root = build_repo(tmp_path)
+    efforts, _ = tp.scan(root / ".scratch")
+    page = tp.render(efforts, [], root / ".scratch")
+    # alpha has one real edge (02 blocked by 03); the graph rides it.
+    assert "class='mmd'" in page
+    assert "graph TD" in page
+    # spec name links to its file, ticket id copies as spec#id
+    assert "href='alpha/spec.md'" in page or "href='alpha/map.md'" in page
+    assert "data-copy-spec='alpha#02'" in page
+    # mermaid runtime is inlined so the page stays offline
+    assert "mermaid" in page
+    assert "cdn.jsdelivr" not in page
+
+
 def test_main_writes_report(tmp_path, monkeypatch, capsys):
     root = build_repo(tmp_path)
     assert tp.main(["tracking_progress.py", str(root)]) == 0

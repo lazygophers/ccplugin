@@ -416,6 +416,13 @@ def analyse(effort: Effort) -> None:
 
 # ────────────────────────────── rendering ──────────────────────────────
 
+# Flowchart-only mermaid build (katex/cytoscape stubbed out), inlined into the
+# page so it stays self-contained and offline. Rebuild:
+#   npm i mermaid@11 esbuild && esbuild entry.mjs --bundle --minify --format=iife \
+#     --global-name=mermaid --alias:katex=stub.js --alias:cytoscape=stub.js \
+#     [--external every non-flowchart diagram chunk]
+MERMAID_JS = (Path(__file__).parent / "mermaid.flow.min.js").read_text(encoding="utf-8")
+
 CSS = """
   :root{
     --ink:#d7dce1; --ink-2:#9aa4ae; --ink-3:#737d87;
@@ -510,6 +517,9 @@ CSS = """
   .minibar i{display:block;height:100%}
   .minibar i+i{border-left:1px solid var(--gap)}
   .minicap{display:flex;justify-content:space-between;font:12px var(--mono);color:var(--ink-2);margin-bottom:12px}
+  .mmd{margin:14px 0 18px;text-align:center;font:12px/1.5 var(--mono);overflow-x:auto}
+  .spec-head h3 a{color:inherit;border-bottom:1px dotted var(--rule)}
+  .spec-head h3 a:hover{color:var(--open);border-bottom-color:var(--open)}
   .empty{font-size:13px;color:var(--ink-2);padding:14px 0 4px;border-bottom:1px solid var(--rule-2)}
   .filelist{list-style:none;margin:14px 0 0;padding:0}
   .filelist li{font:13px var(--mono);padding:8px 0;border-bottom:1px solid var(--rule-2)}
@@ -532,8 +542,8 @@ def rel(source: str, scratch: Path) -> str:
     return os.path.relpath(source, scratch)
 
 
-def copy_btn(name: str) -> str:
-    """Small icon button that copies the spec name; every spec column gets one."""
+def copy_btn(name: str, what: str = "spec 名称") -> str:
+    """Small icon button next to an id/name; copies `name` on click."""
     icon = (
         "<svg width='12' height='12' viewBox='0 0 16 16' fill='none' "
         "stroke='currentColor' stroke-width='1.5' stroke-linejoin='round'>"
@@ -542,7 +552,7 @@ def copy_btn(name: str) -> str:
     )
     return (
         f"<button type='button' class='copy-btn' data-copy-spec='{esc(name)}' "
-        f"aria-label='复制 spec 名称 {esc(name)}' title='复制 spec 名称'>{icon}</button>"
+        f"aria-label='复制{esc(what)} {esc(name)}' title='复制{esc(what)}'>{icon}</button>"
     )
 
 
@@ -575,6 +585,40 @@ def stacked_bar(total: int, counts: dict[str, int], height_css: str) -> tuple[st
             f'<span class="v">{round(pct)}%</span></div>'
         )
     return "".join(band), "".join(ticks)
+
+
+def mermaid_graph(effort: "Effort") -> str:
+    """Mermaid flowchart of this effort's blocking edges; '' when there are none.
+    Colours ride the CSS variables so the diagram follows the page theme."""
+    if not effort.edges:
+        return ""
+    by_key = {t.key: t for t in effort.tasks if t.tid}
+    nodes = {k: by_key[k] for a, b in effort.edges for k in (a, b) if k in by_key}
+    if not nodes:
+        return ""
+    ids = {k: f"n{i}" for i, k in enumerate(nodes)}
+    lines = [
+        "graph TD",
+        "linkStyle default stroke:var(--ink-3)",
+        "classDef done fill:var(--done-fill),color:var(--ink-3),stroke:none",
+        "classDef active fill:var(--active-fill),color:#fff,stroke:none",
+        "classDef open fill:var(--open-fill),color:#fff,stroke:none",
+        "classDef blocked fill:var(--blocked-fill),color:#fff,stroke:none",
+    ]
+    for key, t in nodes.items():
+        label = clip(t.tid, 24)
+        lines.append(f'{ids[key]}["{label}"]:::{STATUS_CLASS[t.status]}')
+    cyc = {frozenset(e) for e in effort.cycle_edges}
+    edge_i = 0
+    for a, b in effort.edges:
+        if a not in ids or b not in ids:
+            continue
+        arrow = "-.->" if frozenset((a, b)) in cyc else "-->"
+        lines.append(f"{ids[a]} {arrow} {ids[b]}")
+        if arrow == "-.->":
+            lines.append(f"linkStyle {edge_i} stroke:var(--active-fill)")
+        edge_i += 1
+    return "\n".join(lines)
 
 
 def headline(efforts: list[Effort]) -> str:
@@ -666,7 +710,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "「可开工」列非零说明这个 spec 现在就有活能干。</p>",
         "<table><thead><tr><th style='width:150px'>spec</th>"
         "<th class='num'>可开工</th><th class='num'>进行中</th><th class='num'>已完成</th>"
-        "<th class='num'>被阻塞</th><th class='num'>票</th><th class='num'>进度</th></tr></thead><tbody>",
+        "<th class='num'>被阻塞</th><th class='num'>ID</th><th class='num'>进度</th></tr></thead><tbody>",
     ]
     spec_rows = sorted(
         efforts,
@@ -700,14 +744,14 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
     ]
     if open_now:
         out += [
-            "<table><thead><tr><th style='width:130px'>spec</th><th style='width:44px'>票</th>"
+            "<table><thead><tr><th style='width:130px'>spec</th><th style='width:44px'>ID</th>"
             "<th>标题</th><th style='width:70px'>类型</th><th class='num'>解锁</th></tr></thead>",
         ]
         out += [
             "<tbody>"
             + "".join(
                 f"<tr><td class='spec'>{esc(t.effort)}{copy_btn(t.effort)}</td>"
-                f"<td class='lbl'>{esc(t.label)}</td>"
+                f"<td class='lbl'>{esc(t.label)}{copy_btn(f'{t.effort}#{t.tid}', '票号') if t.tid else ''}</td>"
                 f"<td class='t'>{task_link(t, scratch)}</td>"
                 f"<td class='meta'>{esc(t.kind) or '—'}</td>"
                 f"<td class='num {'unlocks' if t.unlocks else 'unlocks-0'}'>"
@@ -728,9 +772,18 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         et = len(effort.tasks)
         epct = round(ec[DONE] * 100 / et) if et else 0
         minibar, _ = stacked_bar(et, ec, "") if et else ("", "")
+        head_target = (
+            effort.path / "map.md" if effort.is_map
+            else effort.path / "spec.md" if effort.has_spec
+            else None
+        )
+        name_html = (
+            f"<a href='{esc(rel(str(head_target), scratch))}'>{esc(effort.name)}</a>"
+            if head_target else esc(effort.name)
+        )
         out += [
             "<div class='spec-head'>",
-            f"<h3>{esc(effort.name)}{copy_btn(effort.name)}</h3>",
+            f"<h3>{name_html}{copy_btn(effort.name)}</h3>",
             "<span class='kind'>wayfinder 地图</span>" if effort.is_map else "",
             "<span class='kind'>spec</span>" if effort.has_spec else "",
             f"<span class='cnt'>{et} 张 · {ec[DONE]} 已完成</span></div>",
@@ -738,9 +791,12 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
             f"<div class='minicap'><span>{STATUS_LABEL[DONE]} {ec[DONE]}</span>"
             f"<span>{epct}%</span></div>" if et else "",
         ]
+        mmd = mermaid_graph(effort)
+        if mmd:
+            out.append(f"<pre class='mmd'>{esc(mmd)}</pre>")
         if et:
             out += [
-                "<table><thead><tr><th style='width:44px'>票</th><th>标题</th>"
+                "<table><thead><tr><th style='width:44px'>ID</th><th>标题</th>"
                 "<th style='width:64px'>状态</th><th style='width:110px'>阻塞于</th>"
                 "<th class='num'>解锁</th></tr></thead><tbody>",
             ]
@@ -759,7 +815,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
                 )
                 out.append(
                     f"<tr class='r-{STATUS_CLASS[t.status]}'>"
-                    f"<td class='lbl'>{esc(t.label)}</td>"
+                    f"<td class='lbl'>{esc(t.label)}{copy_btn(f'{t.effort}#{t.tid}', '票号') if t.tid else ''}</td>"
                     f"<td class='t'>{task_link(t, scratch)}</td>"
                     f"<td><span class='st st-{STATUS_CLASS[t.status]}'>"
                     f"{STATUS_LABEL[t.status]}</span></td>"
@@ -857,6 +913,12 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "try{localStorage.setItem('tp-theme',t)}catch(e){}}"
         "set(root.dataset.theme||'dark');"
         "btn.addEventListener('click',function(){set(root.dataset.theme==='dark'?'light':'dark')});})();</script>",
+        "<script>" + MERMAID_JS + "</script>",
+        "<script>(function(){ if (!window.mermaid) return;"
+        "var m = window.mermaid.default || window.mermaid;"
+        "m.initialize({startOnLoad:false, securityLevel:'loose', flowchart:{htmlLabels:false}});"
+        "m.run({querySelector:'.mmd'}).catch(function(e){ console.warn('mermaid 渲染失败，依赖图显示源码', e); });"
+        "})();</script>",
         "</body></html>",
     ]
     return "".join(out)

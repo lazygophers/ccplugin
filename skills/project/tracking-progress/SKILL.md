@@ -9,7 +9,9 @@ Run the script. It does the whole job — scan, analyse, render.
 python3 skills/project/tracking-progress/scripts/tracking_progress.py
 ```
 
-It writes `.scratch/progress.html` and prints the path. Single self-contained file: no network, no dependencies, opens from `file://`. Page renders dark by default; the 亮色 button (top-right) switches to light and the choice is remembered via localStorage. Pass a repo root as the first argument to scan a different project.
+It writes `.scratch/progress.html` and prints the path. Single self-contained file: no network, no dependencies, opens from `file://` (a flowchart-only mermaid build, `scripts/mermaid.flow.min.js`, is inlined — the page weighs about 1 MB). Page renders dark by default; the 亮色 button (top-right) switches to light and the choice is remembered via localStorage. Pass a repo root as the first argument to scan a different project.
+
+The page includes per-spec dependency diagrams (mermaid, colours follow the theme), and every spec name / ticket id has a copy-icon button next to it — ticket ids copy as `spec#id`. Spec and wayfinder-map headings link to their source file.
 
 Then:
 
