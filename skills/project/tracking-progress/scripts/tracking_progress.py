@@ -683,13 +683,13 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
     out = [
         "<!DOCTYPE html><html lang='zh-Hans'><head><meta charset='utf-8'>",
         "<meta name='viewport' content='width=device-width,initial-scale=1'>",
-        f"<title>任务进度 · {esc(project)}</title>",
+        f"<title>{esc(project)}·任务进度</title>",
         f"<style>{CSS}</style>",
         "<script>try{var t=localStorage.getItem('tp-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>",
         "</head><body>",
         "<button class='theme-btn' type='button' id='themeToggle' aria-label='切换深浅色'>亮色</button>",
         "<nav><div class='wrap'>",
-        f"<b>任务进度 · {esc(project)}</b>",
+        f"<b>{esc(project)}·任务进度</b>",
         "<a href='#spec-progress'>按 spec 的进度</a><a href='#now'>可开工的票</a>"
         "<a href='#specs'>按 spec 明细</a><a href='#stale'>久未动</a>"
         "<a href='#recent'>最近完成</a><a href='#unknown'>未能识别</a>",
