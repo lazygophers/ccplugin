@@ -29,7 +29,7 @@ Then:
 | `memory.md` checkpoint rows | `- [x]` done, `- [ ]` open, `- [~]` in progress |
 | wayfinder `map.md` + its children | `Status: claimed` / `resolved`, `Blocked by: NN` |
 
-`memory/` and `research/` are never scanned — they are history, not work in flight.
+`memory/` and the top-level `research/` are never scanned — they are history, not work in flight. A spec-level `<spec>/research/*.md` is listed under its spec with links (new tab), status-free.
 
 Status strings are matched loosely: `resolved` / `done` / `已完成` / `定稿` all count as done, `claimed` / `in-progress` / `进行中` as in progress, everything else as open.
 

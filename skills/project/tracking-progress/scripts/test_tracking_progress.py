@@ -403,3 +403,15 @@ def test_links_open_in_new_tab():
     # 票面和 spec/地图标题的链接都开新标签页，不顶掉进度页
     t = tp.Task("s", "01", "demo", tp.DONE, source="/r/.scratch/s/01.md")
     assert 'target="_blank"' in tp.task_link(t, Path("/r/.scratch"))
+
+
+def test_research_docs_listed(tmp_path):
+    # spec 级 research/ 文档要出现在页面里,链接新标签页打开
+    import tracking_progress as tp2
+    spec = tmp_path / "s1"
+    (spec / "research").mkdir(parents=True)
+    (spec / "spec.md").write_text("# spec\n")
+    (spec / "research" / "01-notes.md").write_text("note\n")
+    efforts, _ = tp2.scan(tmp_path)
+    e = next(e for e in efforts if e.name == "s1")
+    assert len(e.research) == 1

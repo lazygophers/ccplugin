@@ -117,6 +117,8 @@ class Effort:
     edges: list[tuple[str, str]] = field(default_factory=list)
     cycle_edges: list[tuple[str, str]] = field(default_factory=list)
     unknown_nodes: list[str] = field(default_factory=list)
+    # spec 级 research/ 下的文档,页面只列链接不解析状态
+    research: list[Path] = field(default_factory=list)
 
 
 def classify(text: str) -> str:
@@ -290,6 +292,10 @@ def scan(scratch: Path) -> tuple[list[Effort], list[Path]]:
 
     absorb_root_checklist(efforts)
     for effort in efforts.values():
+        # 顶层 .scratch/research/ 是跨项目历史,不进页;只有 spec 级 research/ 展示
+        rdir = effort.path / "research"
+        if effort.name != ROOT and rdir.is_dir():
+            effort.research = sorted(rdir.glob("*.md"))
         effort.tasks = dedupe(effort.tasks)
         # analyse first: it splits blocked_by into real deps and dangling
         # refs, so blocking only counts ids that actually exist.
@@ -539,6 +545,9 @@ CSS = """
   .spec-head h3 a{color:inherit;border-bottom:1px dotted var(--rule)}
   .spec-head h3 a:hover{color:var(--open);border-bottom-color:var(--open)}
   .empty{font-size:13px;color:var(--ink-2);padding:14px 0 4px;border-bottom:1px solid var(--rule-2)}
+  .research{font-size:13px;color:var(--ink-2);padding:10px 0 4px;border-bottom:1px solid var(--rule-2)}
+  .research a{color:var(--ink);text-decoration:none;border-bottom:1px dotted var(--ink-3)}
+  .research a:hover{color:var(--open)}
   .filelist{list-style:none;margin:14px 0 0;padding:0}
   .filelist li{font:13px var(--mono);padding:8px 0;border-bottom:1px solid var(--rule-2)}
   footer{border-top:1px solid var(--ink);margin-top:40px;padding:22px 0 60px;font-size:12.5px;line-height:1.75;color:var(--ink-2)}
@@ -857,6 +866,15 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
             out.append("</tbody></table>")
         else:
             out.append("<p class='empty'>只有 spec / 地图，没扫到票。</p>")
+        if effort.research:
+            links = "、".join(
+                f"<a href='{esc(rel(str(p), scratch))}' target='_blank' rel='noopener'>"
+                f"{esc(re.sub(r'^\\d+-', '', p.stem).replace('-', ' '))}</a>"
+                for p in effort.research
+            )
+            out.append(
+                f"<p class='research'>research {len(effort.research)} 篇：{links}</p>"
+            )
     out.append("</section>")
 
     stale = [
