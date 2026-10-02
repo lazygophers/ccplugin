@@ -513,6 +513,17 @@ CSS = """
   .spec-head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin:34px 0 4px;padding-top:14px;border-top:1px solid var(--rule)}
   .spec-head h3{font:600 17px/1.3 var(--mono);margin:0}
   .spec-head h3:focus-within button.copy-btn{outline:2px solid var(--open);outline-offset:3px}
+  .share-wrap{position:relative;display:inline-block;margin-left:8px}
+  .share-btn{font:600 11px/1 var(--mono);color:var(--ink-3);background:none;border:1px solid var(--rule);border-radius:99px;padding:3px 9px;cursor:pointer}
+  .share-btn:hover{color:var(--open);border-color:var(--open)}
+  .share-menu{display:none;position:absolute;top:calc(100% + 4px);left:0;background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:4px;z-index:40;min-width:130px;box-shadow:0 6px 18px rgba(0,0,0,.3)}
+  .share-wrap.open .share-menu,.share-wrap:focus-within .share-menu{display:flex;flex-direction:column}
+  .share-menu button{all:unset;font:600 12px/1 var(--sans);color:var(--ink);padding:7px 10px;border-radius:5px;cursor:pointer;white-space:nowrap}
+  .share-menu button:hover{background:var(--row-hover);color:var(--open)}
+  .mmd .share-wrap{position:absolute;right:52px;top:0;margin:0}
+  .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--panel);color:var(--ink);border:1px solid var(--rule);border-radius:8px;padding:9px 16px;font:600 13px var(--sans);opacity:0;transition:opacity .2s;z-index:60;pointer-events:none}
+  .toast.show{opacity:1}
+  .toast.err{color:var(--danger)}
   .copy-btn{font:inherit;line-height:1;color:var(--ink-3);background:none;border:0;padding:0 0 0 5px;cursor:pointer;vertical-align:-1px}
   .copy-btn:hover{color:var(--open)}
   .copy-btn svg{display:block}
@@ -525,6 +536,7 @@ CSS = """
   .minibar i+i{border-left:1px solid var(--gap)}
   .minicap{display:flex;justify-content:space-between;font:12px var(--mono);color:var(--ink-2);margin-bottom:12px}
   .mmd{margin:14px 0 18px;text-align:center;font:12px/1.5 var(--mono);overflow-x:auto;position:relative}
+  .mmd svg text,#mmdStage svg text{font-weight:600}
   .mmd svg{max-width:100%}
   .mmd-zoom{position:absolute;right:0;top:0;font:600 11px/1 var(--sans);color:var(--ink-2);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:4px 8px;cursor:pointer;z-index:2}
   .mmd-zoom:hover{color:var(--open);border-color:var(--open)}
@@ -679,6 +691,24 @@ def headline(efforts: list[Effort]) -> str:
     else:
         tail = "，做完都不会解锁别的票。"
     return f"{total} 张票里，<em>{len(open_now)} 张现在就能开工</em>{tail}"
+
+
+def minify_html(doc: str) -> str:
+    """输出压缩:保护 pre/script/style 内部,标签间空白与注释全去掉。"""
+    parts = re.split(
+        r"(<pre[^>]*>.*?</pre>|<script[^>]*>.*?</script>|<style>.*?</style>)",
+        doc, flags=re.S,
+    )
+    out = []
+    for i, seg in enumerate(parts):
+        if i % 2 == 1:
+            out.append(seg)
+            continue
+        seg = re.sub(r"<!--.*?-->", "", seg, flags=re.S)
+        seg = re.sub(r">\s+<", "><", seg)
+        seg = re.sub(r"\s{2,}", " ", seg)
+        out.append(seg.strip())
+    return "".join(out)
 
 
 def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
@@ -841,7 +871,13 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
             )
         out += [
             "<div class='spec-head'>",
-            f"<h3>{name_html}{copy_btn(effort.name)}</h3>",
+            f"<h3>{name_html}{copy_btn(effort.name)}"
+            f"<span class='share-wrap'><button type='button' class='share-btn'>分享</button>"
+            f"<span class='share-menu'>"
+            f"<button type='button' data-share='progress' data-spec='{esc(effort.name)}'>进度(文字)</button>"
+            f"<button type='button' data-share='deps-img' data-spec='{esc(effort.name)}'>依赖图(图片)</button>"
+            f"<button type='button' data-share='deps-md' data-spec='{esc(effort.name)}'>依赖(源码)</button>"
+            f"</span></span></h3>",
             *kinds,
             f"<span class='cnt'>{et} 张 · {ec[DONE]} 已完成</span></div>",
             f"<div class='minibar'>{minibar}</div>",
@@ -850,11 +886,16 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         ]
         mmd = mermaid_graph(effort)
         if mmd:
-            out.append(f"<pre class='mmd'>{esc(mmd)}</pre>")
+            out.append(f"<pre class='mmd' data-spec='{esc(effort.name)}'>{esc(mmd)}</pre>")
         if et:
             out += [
-                "<table><thead><tr><th style='width:44px'>ticket</th><th>标题</th>"
-                "<th style='width:64px'>状态</th><th style='width:110px'>阻塞于</th>"
+                f"<table><thead><tr><th style='width:44px'>ticket</th>"
+                f"<th>标题<span class='share-wrap'><button type='button' class='share-btn'>分享</button>"
+                f"<span class='share-menu'>"
+                f"<button type='button' data-share='table-md' data-spec='{esc(effort.name)}'>表格(文字)</button>"
+                f"<button type='button' data-share='table-img' data-spec='{esc(effort.name)}'>表格(图片)</button>"
+                f"</span></span></th>"
+                f"<th style='width:64px'>状态</th><th style='width:110px'>阻塞于</th>"
                 "<th class='num'>解锁</th></tr></thead><tbody>",
             ]
             for t in effort.tasks:
@@ -947,6 +988,25 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         ]
     out.append("</div>")
 
+    import json as _json
+    share = {
+        e.name: {
+            "is_map": e.is_map,
+            "tasks": [
+                {"tid": t.tid, "title": t.title, "st": STATUS_CLASS[t.status],
+                 "deps": t.deps}
+                for t in e.tasks
+            ],
+            "mmd": mermaid_graph(e),
+        }
+        for e in efforts
+    }
+    out.append(
+        "<script id='tp-data' type='application/json'>"
+        + _json.dumps(share, ensure_ascii=False).replace("<", "\\u003c")
+        + "</script>"
+    )
+
     out += [
         "<script>document.querySelectorAll('[data-copy-spec]').forEach(button => button.addEventListener('click', async () => {"
         "if (button.classList.contains('copied')) return;"
@@ -955,6 +1015,108 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "setTimeout(function(){ button.classList.remove('copied'); button.innerHTML = button.dataset.icon; }, 1600);"
         "}));"
         "document.querySelectorAll('[data-copy-spec]').forEach(button => button.dataset.icon = button.innerHTML);</script>",
+        # 分享:spec 头 / ticket 表 / mermaid 图,点击即复制进剪贴板,toast 通知成败
+        "<script>(function(){"
+        "var TPDATA={};try{TPDATA=JSON.parse(document.getElementById('tp-data').textContent)}catch(e){}"
+        "var STZH={done:'已完成',active:'进行中',open:'可开工',blocked:'被阻塞'};"
+        "var STC={done:'#7ba888',active:'#c08a3e',open:'#6aa5e3',blocked:'#c98a80'};"
+        r"function escMd(s){return String(s).replace(/\|/g,'\\|').replace(/\n/g,' ')}"
+        "function clip(s,n){s=String(s);return s.length>n?s.slice(0,n-1)+'…':s}"
+        "function progMd(name){var d=TPDATA[name];if(!d)return '';"
+        "var c={done:0,active:0,open:0,blocked:0};"
+        "d.tasks.forEach(function(t){c[t.st]++});"
+        "var n=d.tasks.length,pct=n?Math.round(c.done*100/n):0;"
+        "var L=['### '+name+(d.is_map?'(wayfinder 地图)':'')+' · 进度','','"
+        "共 '+n+' 张:已完成 '+c.done+' · 进行中 '+c.active+' · 可开工 '+c.open+' · 被阻塞 '+c.blocked+'(进度 '+pct+'%)','','"
+        "| 票 | 标题 | 状态 | 阻塞于 |','|---|---|---|---|'];"
+        "d.tasks.forEach(function(t){L.push('| '+t.tid+' | '+escMd(t.title)+' | '+STZH[t.st]+' | '+(t.deps.length?t.deps.join('、'):'—')+' |')});"
+        r"return L.join('\n')}"
+        "function tableMd(name){var d=TPDATA[name];if(!d)return '';"
+        "var L=['### '+name+' · 票表','','| 票 | 标题 | 状态 | 阻塞于 |','|---|---|---|---|'];"
+        "d.tasks.forEach(function(t){L.push('| '+t.tid+' | '+escMd(t.title)+' | '+STZH[t.st]+' | '+(t.deps.length?t.deps.join('、'):'—')+' |')});"
+        r"return L.join('\n')}"
+        "function depsMd(name){var d=TPDATA[name];if(!d)return '';"
+        "var L=['### '+name+' · 依赖','','```mermaid'];"
+        "L.push(d.mmd||'graph TD');L.push('```');"
+        "var rel=d.tasks.filter(function(t){return t.deps.length});"
+        "if(rel.length){L.push('');L.push('阻塞关系:');"
+        "rel.forEach(function(t){L.push('- '+t.tid+' 被 '+t.deps.join('、')+' 阻塞')})}"
+        r"return L.join('\n')}"
+        "function toast(msg,err){var t=document.getElementById('tpToast');"
+        "t.textContent=msg;t.classList.toggle('err',true===err);t.classList.add('show');"
+        "clearTimeout(t._h);t._h=setTimeout(function(){t.classList.remove('show')},1800)}"
+        "function copyText(txt,label){navigator.clipboard.writeText(txt).then("
+        "function(){toast('已复制'+label)},function(){toast('复制失败',true)})}"
+        "function svgPngBlob(svg,cb){var r=svg.getBoundingClientRect();"
+        "var s=new XMLSerializer().serializeToString(svg);"
+        "var url=URL.createObjectURL(new Blob([s],{type:'image/svg+xml;charset=utf-8'}));"
+        "var img=new Image();"
+        "img.onload=function(){var c=document.createElement('canvas');"
+        "c.width=Math.max(1,Math.round(r.width*2));c.height=Math.max(1,Math.round(r.height*2));"
+        "var x=c.getContext('2d');"
+        "x.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--bg').trim()||'#141719';"
+        "x.fillRect(0,0,c.width,c.height);x.drawImage(img,0,0,c.width,c.height);"
+        "URL.revokeObjectURL(url);c.toBlob(function(b){cb(b)},'image/png')};"
+        "img.onerror=function(){URL.revokeObjectURL(url);cb(null)};img.src=url}"
+        "function copyDepsImg(name){"
+        "var pre=document.querySelector(\"pre.mmd[data-spec='\"+name.replace(/'/g,'')+'\"]');"
+        "var svg=pre&&pre.querySelector('svg');"
+        "if(!svg){toast('没有依赖图',true);return}"
+        "svgPngBlob(svg,function(b){"
+        "if(!b){toast('复制失败',true);return}"
+        "try{navigator.clipboard.write([new ClipboardItem({'image/png':b})]).then("
+        "function(){toast('已复制依赖图')},function(){toast('复制失败',true)})"
+        "}catch(e){toast('复制失败',true)}})}"
+        "function clipCard(name){var d=TPDATA[name];if(!d)return null;"
+        "var W=1080,RH=40,HH=48,TH=68,pad=24;"
+        "var H=TH+HH+d.tasks.length*RH+pad*2;"
+        "var c=document.createElement('canvas');c.width=W;c.height=H;"
+        "var x=c.getContext('2d');"
+        "x.fillStyle='#141719';x.fillRect(0,0,W,H);"
+        "x.fillStyle='#e8ecef';"
+        "x.font='600 26px \"Maple Mono\",\"JetBrains Mono\",ui-monospace,monospace';"
+        "x.fillText(clip(name,40),pad,TH-20);"
+        "var y=TH;x.fillStyle='#1c2126';x.fillRect(pad,y,W-pad*2,HH);"
+        "x.fillStyle='#8b96a2';x.font='600 15px -apple-system,BlinkMacSystemFont,sans-serif';"
+        "x.fillText('票',pad+16,y+30);x.fillText('标题',pad+100,y+30);"
+        "x.fillText('状态',pad+600,y+30);x.fillText('阻塞于',pad+740,y+30);"
+        "d.tasks.forEach(function(t,i){var yy=y+HH+i*RH;"
+        "if(i%2){x.fillStyle='rgba(255,255,255,.03)';x.fillRect(pad,yy,W-pad*2,RH)}"
+        "x.fillStyle='#e8ecef';x.font='15px -apple-system,BlinkMacSystemFont,sans-serif';"
+        "x.fillText(t.tid,pad+16,yy+26);x.fillText(clip(t.title,36),pad+100,yy+26);"
+        "x.fillStyle=STC[t.st]||'#e8ecef';x.font='600 15px -apple-system,BlinkMacSystemFont,sans-serif';"
+        "x.fillText(STZH[t.st],pad+600,yy+26);"
+        "x.fillStyle='#8b96a2';x.font='15px -apple-system,BlinkMacSystemFont,sans-serif';"
+        "x.fillText(t.deps.length?t.deps.join('、'):'—',pad+740,yy+26)})"
+        "return c}"
+        "function copyTableImg(name){var c=clipCard(name);"
+        "if(!c){toast('没有票',true);return}"
+        "c.toBlob(function(b){"
+        "try{navigator.clipboard.write([new ClipboardItem({'image/png':b})]).then("
+        "function(){toast('已复制表格图片')},function(){toast('复制失败',true)})"
+        "}catch(e){toast('复制失败',true)}},'image/png')}"
+        "function wireShare(){"
+        "document.querySelectorAll('[data-share]:not([data-wired])').forEach(function(b){"
+        "b.dataset.wired=1;"
+        "b.addEventListener('click',function(e){e.stopPropagation();"
+        "var w=b.dataset.share,s=b.dataset.spec;"
+        "if(w==='progress')copyText(progMd(s),'进度');"
+        "else if(w==='deps-md')copyText(depsMd(s),'依赖');"
+        "else if(w==='deps-img')copyDepsImg(s);"
+        "else if(w==='table-md')copyText(tableMd(s),'表格文字');"
+        "else if(w==='table-img')copyTableImg(s)})})}"
+        "function wireHover(){"
+"document.querySelectorAll('.share-wrap:not([data-hw])').forEach(function(w){"
+"w.dataset.hw=1;"
+"w.addEventListener('mouseenter',function(){clearTimeout(w._t);w.classList.add('open')});"
+"w.addEventListener('mouseleave',function(){w._t=setTimeout(function(){"
+"w.classList.remove('open')},350)})})}"
+"wireHover();"
+"if(document.readyState!='loading')wireShare();"
+"else document.addEventListener('DOMContentLoaded',wireShare);"
+"window._copyDepsImg=copyDepsImg;"
+        "})();</script>",
+
         "<script>(function(){var root=document.documentElement,btn=document.getElementById('themeToggle');"
         "function set(t){root.dataset.theme=t;btn.textContent=t==='dark'?'亮色':'深色';"
         "if(window.paintMmd)window.paintMmd();"
@@ -994,6 +1156,8 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "b.textContent = '已复制'; setTimeout(function(){ b.textContent = '复制'; }, 1600);"
         "}, function(){ b.textContent = '失败'; setTimeout(function(){ b.textContent = '复制'; }, 1600); }); });"
         "mk('放大', function(){ openViewer(pre); });"
+        "if(pre.dataset.spec)mk('复制图',function(e){e.stopPropagation();"
+        "window._copyDepsImg&&window._copyDepsImg(pre.dataset.spec)});"
         "});}"
         "var svg = null, tx = 0, ty = 0, sc = 1;"
         "function apply(){ if (svg) svg.style.transform = 'translate('+tx+'px,'+ty+'px) scale('+sc+')'; }"
@@ -1037,7 +1201,7 @@ def main(argv: list[str]) -> int:
 
     efforts, unparsed = scan(scratch)
     out_path = scratch / "progress.html"
-    out_path.write_text(render(efforts, unparsed, scratch), encoding="utf-8")
+    out_path.write_text(minify_html(render(efforts, unparsed, scratch)), encoding="utf-8")
     print(out_path)
     return 0
 
