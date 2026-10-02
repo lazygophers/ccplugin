@@ -54,7 +54,7 @@ diff -rq skills/tools/<name> ~/.agents/skills/<name>
 
 ## 提交前检查
 
-`scripts/hooks/pre-commit`：暂存区碰到 `skills/tools/ask-ui/**` 就跑 `skills/tools/ask-ui/scripts/self-test.mjs`。每个克隆装一次（graphify 的 post-commit / post-checkout 不受影响）：
+`scripts/hooks/pre-commit`：按暂存区路径前缀触发对应 skill 的自测——`skills/tools/ask-ui/**` 跑 `skills/tools/ask-ui/scripts/self-test.mjs`，`skills/project/tracking-progress/**` 跑 `python3 -m pytest skills/project/tracking-progress/scripts/test_tracking_progress.py`。每个克隆装一次（graphify 的 post-commit / post-checkout 不受影响）：
 
 ```bash
 ln -sf ../../scripts/hooks/pre-commit .git/hooks/pre-commit
