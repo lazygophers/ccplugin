@@ -693,6 +693,24 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
 
     band, ticks = stacked_bar(total, c, "") if total else ("", "")
 
+    stale = [
+        e
+        for e in efforts
+        if any(t.status != DONE for t in e.tasks)
+        and (now - e.mtime) > STALE_DAYS * 86400
+    ]
+    recent = sorted(
+        (t for t in all_tasks if t.status == DONE),
+        key=lambda t: (not t.from_file, -t.mtime),
+    )[:TIMELINE_LIMIT]
+    nav_extra = "".join(
+        [
+            "<a href='#stale'>久未动</a>" if stale else "",
+            "<a href='#recent'>最近完成</a>" if recent else "",
+            "<a href='#unknown'>未能识别</a>" if unparsed else "",
+        ]
+    )
+
     out = [
         "<!DOCTYPE html><html lang='zh-Hans'><head><meta charset='utf-8'>",
         "<meta name='viewport' content='width=device-width,initial-scale=1'>",
@@ -704,8 +722,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "<nav><div class='wrap'>",
         f"<b>{esc(project)}·任务进度</b>",
         "<a href='#spec-progress'>按 spec 的进度</a><a href='#now'>可开工的票</a>"
-        "<a href='#specs'>按 spec 明细</a><a href='#stale'>久未动</a>"
-        "<a href='#recent'>最近完成</a><a href='#unknown'>未能识别</a>",
+        "<a href='#specs'>按 spec 明细</a>" + nav_extra,
         "</div></nav><div class='wrap'>"
         "<div class='mmd-viewer' id='mmdViewer'><button class='close' type='button' id='mmdClose'>关闭</button>"
         "<div class='stage' id='mmdStage'></div>"
@@ -877,16 +894,10 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
             )
     out.append("</section>")
 
-    stale = [
-        e
-        for e in efforts
-        if any(t.status != DONE for t in e.tasks)
-        and (now - e.mtime) > STALE_DAYS * 86400
-    ]
-    out += ["<section id='stale'>", "<h2>久未动</h2>",
-            f"<p class='sub'>超过 {STALE_DAYS} 天没有任何文件改动、且还有未完成票的 spec。</p>"]
     if stale:
         rows = sorted(stale, key=lambda e: e.mtime)
+        out += ["<section id='stale'>", "<h2>久未动</h2>",
+                f"<p class='sub'>超过 {STALE_DAYS} 天没有任何文件改动、且还有未完成票的 spec。</p>"]
         out += [
             "<table><thead><tr><th>spec</th><th class='num'>未完成</th>"
             "<th class='num'>最后改动</th></tr></thead><tbody>",
@@ -897,24 +908,16 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
                 for e in rows
             ),
             "</tbody></table>",
+            "</section>",
         ]
-    else:
-        out.append("<p class='empty'>没有搁置超过两周的 spec。</p>")
-    out.append("</section>")
 
-    recent = sorted(
-        (t for t in all_tasks if t.status == DONE),
-        key=lambda t: (not t.from_file, -t.mtime),
-    )[:TIMELINE_LIMIT]
-    out += [
-        "<section id='recent'>",
-        f"<h2>最近完成 · {len(recent)} 条</h2>",
-        "<p class='sub'>按源文件修改时间倒序，最多 "
-        f"{TIMELINE_LIMIT} 条。票面文件排在勾选行前面——勾选行共用同一个文件时间，"
-        "彼此之间没有先后。</p>",
-    ]
     if recent:
         out += [
+            "<section id='recent'>",
+            f"<h2>最近完成 · {len(recent)} 条</h2>",
+            "<p class='sub'>按源文件修改时间倒序，最多 "
+            f"{TIMELINE_LIMIT} 条。票面文件排在勾选行前面——勾选行共用同一个文件时间，"
+            "彼此之间没有先后。</p>",
             "<table><thead><tr><th style='width:110px'>日期</th><th style='width:130px'>spec</th>"
             "<th>标题</th></tr></thead><tbody>",
             "".join(
@@ -925,29 +928,24 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
                 for t in recent
             ),
             "</tbody></table>",
+            "</section>",
         ]
-    else:
-        out.append("<p class='empty'>还没有完成的票。</p>")
-    out.append("</section>")
 
-    out += [
-        "<section id='unknown'>",
-        "<h2>未能识别的文件</h2>",
-        "<p class='sub'>扫描时读不出任务状态的 markdown 文件。如果里面其实有真任务，"
-        "说明这个工具漏了一种写法——那是工具的问题，不是你的。</p>",
-    ]
     if unparsed:
         out += [
+            "<section id='unknown'>",
+            "<h2>未能识别的文件</h2>",
+            "<p class='sub'>扫描时读不出任务状态的 markdown 文件。如果里面其实有真任务，"
+            "说明这个工具漏了一种写法——那是工具的问题，不是你的。</p>",
             "<ul class='filelist'>",
             "".join(
-                f"<li><a href='{esc(rel(str(p), scratch))}'>{esc(rel(str(p), scratch))}</a></li>"
+                f"<li><a href='{esc(rel(str(p), scratch))}' target='_blank' rel='noopener'>{esc(rel(str(p), scratch))}</a></li>"
                 for p in unparsed
             ),
             "</ul>",
+            "</section>",
         ]
-    else:
-        out.append("<p class='empty'>没有。全部文件都读出了状态，或本就不含任务。</p>")
-    out.append("</section></div>")
+    out.append("</div>")
 
     out += [
         "<script>document.querySelectorAll('[data-copy-spec]').forEach(button => button.addEventListener('click', async () => {"

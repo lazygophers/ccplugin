@@ -226,9 +226,6 @@ def test_render_contains_every_section(tmp_path):
         "id='now'",
         "id='spec-progress'",
         "id='specs'",
-        "id='stale'",
-        "id='recent'",
-        "id='unknown'",
     ):
         assert anchor in page
     # 链接指向源文件；memory/ 与 research/ 永不进页
@@ -300,8 +297,9 @@ def test_render_empty_project(tmp_path):
     page = tp.render(efforts, unparsed, scratch)
     assert "没有可直接开工的票" in page
     assert "只有 spec / 地图，没扫到票" in page
-    assert "还没有完成的票" in page
-    assert "没有。全部文件都读出了状态" in page
+    # 空区整段隐藏(含导航项);可开工为空时保留,它的空就是结论
+    for gone in ("id='stale'", "id='recent'", "id='unknown'", "#stale", "#recent", "#unknown"):
+        assert gone not in page
 
 
 def test_render_flags_stale_spec(tmp_path):
