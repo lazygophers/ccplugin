@@ -435,13 +435,13 @@ CSS = """
     --rule:#2b3138; --rule-2:#232830;
     --open:#6aa5e3; --open-fill:#2f6fb5;
     --active:#d9a35f; --active-fill:#b5813a;
-    --blocked:#e0796c; --blocked-fill:#a04030;
-    --done:#3fb950; --done-fill:#238636; --bg:#141719;
+    --blocked:#c98a80; --blocked-fill:#8f5348;
+    --done:#7fae8b; --done-fill:#4a6b52; --bg:#141719;
     --panel:#1a1e22; --gap:#141719; --nav-bg:rgba(20,23,25,.96); --row-hover:#1d2227;
     --underline:rgba(106,165,227,.4); --danger:#e0796c;
     --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans CJK SC","Hiragino Sans GB",sans-serif;
     --serif:Georgia,"Songti SC","Noto Serif CJK SC","STSong",serif;
-    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --mono:"Maple Mono","JetBrains Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
     color-scheme:dark;
   }
   :root[data-theme=light]{
@@ -449,8 +449,8 @@ CSS = """
     --rule:#dfe3e7; --rule-2:#eef1f3;
     --open:#1d5b9e; --open-fill:#2f6fb5;
     --active:#8a5a15; --active-fill:#c08a3e;
-    --blocked:#a33; --blocked-fill:#d0604f;
-    --done:#1a7f37; --done-fill:#2da44e; --bg:#ffffff;
+    --blocked:#9c4a3f; --blocked-fill:#c9968c;
+    --done:#3f6f4e; --done-fill:#7ba888; --bg:#ffffff;
     --panel:#ffffff; --gap:#ffffff; --nav-bg:rgba(255,255,255,.96); --row-hover:#f7f9fa;
     --underline:rgba(29,91,158,.28); --danger:#a33;
     color-scheme:light;
@@ -628,10 +628,10 @@ def mermaid_graph(effort: "Effort") -> str:
     # mermaid's parser rejects var(--x) in linkStyle/classDef, so hex only here.
     lines = [
         "graph TD",
-        "classDef done fill:#2da44e",
+        "classDef done fill:#7ba888",
         "classDef active fill:#c08a3e",
         "classDef open fill:#2f6fb5",
-        "classDef blocked fill:#d0604f",
+        "classDef blocked fill:#c9968c",
     ]
     for key, t in nodes.items():
         label = f"{clip(t.tid, 12)} · {mmd_label(t.title)}"
@@ -975,7 +975,8 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "Object.keys(F).forEach(function(k){"
         "if (cls.indexOf(k) < 0) return;"
         "g.querySelectorAll('rect,polygon').forEach(function(r){ r.setAttribute('style', 'fill:'+F[k]); });"
-        "g.querySelectorAll('text').forEach(function(t){ t.setAttribute('style', 'fill:'+(light&&k==='done'?'#6e7781':'#ffffff')); });"
+        "g.querySelectorAll('text').forEach(function(t){"
+        "t.setAttribute('style', 'fill:'+(light?'#16191c':'#ffffff')+';font-weight:600;font-size:14px'); });"
         "});});};"
         # per-diagram buttons: copy the mermaid source / open the zoom viewer.
         # sources must be captured before run() replaces the pre's content,
@@ -1016,7 +1017,9 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "function up(){ stage.classList.remove('dragging');"
         "stage.removeEventListener('pointermove', move); stage.removeEventListener('pointerup', up); }"
         "stage.addEventListener('pointermove', move); stage.addEventListener('pointerup', up); });"
-        "m.initialize({startOnLoad:false, securityLevel:'loose', flowchart:{htmlLabels:false}});"
+        "m.initialize({startOnLoad:false, securityLevel:'loose', flowchart:{htmlLabels:false},"
+        "themeVariables:{fontSize:'14px',"
+        "fontFamily:'\\\"Maple Mono\\\",\\\"JetBrains Mono\\\",ui-monospace,monospace'}});"
         "m.run({querySelector:'pre.mmd'}).then(function(){ window.paintMmd(); addButtons(); })"
         ".catch(function(e){ console.warn('mermaid 渲染失败，依赖图显示源码', e); });"
         "})();</script>",
