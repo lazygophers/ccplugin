@@ -397,3 +397,9 @@ def test_headline_variants():
     assert "没有一张现在能开工" in tp.headline([e2])
     # 空项目
     assert tp.headline([]) == "没有扫到任何票。"
+
+
+def test_links_open_in_new_tab():
+    # 票面和 spec/地图标题的链接都开新标签页，不顶掉进度页
+    t = tp.Task("s", "01", "demo", tp.DONE, source="/r/.scratch/s/01.md")
+    assert 'target="_blank"' in tp.task_link(t, Path("/r/.scratch"))

@@ -575,7 +575,10 @@ def copy_btn(name: str, what: str = "spec 名称") -> str:
 
 def task_link(task: Task, scratch: Path) -> str:
     if task.source:
-        return f'<a href="{esc(rel(task.source, scratch))}">{esc(task.title)}</a>'
+        return (
+            f'<a href="{esc(rel(task.source, scratch))}" target="_blank" '
+            f'rel="noopener">{esc(task.title)}</a>'
+        )
     return esc(task.title)
 
 
@@ -803,7 +806,8 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
             else None
         )
         name_html = (
-            f"<a href='{esc(rel(str(head_target), scratch))}'>{esc(effort.name)}</a>"
+            f"<a href='{esc(rel(str(head_target), scratch))}' target='_blank' "
+            f"rel='noopener'>{esc(effort.name)}</a>"
             if head_target else esc(effort.name)
         )
         out += [
