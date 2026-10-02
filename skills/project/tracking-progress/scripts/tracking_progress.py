@@ -540,6 +540,9 @@ CSS = """
   .mmd svg{max-width:100%}
   .mmd-zoom{position:absolute;right:0;top:0;font:600 11px/1 var(--sans);color:var(--ink-2);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:4px 8px;cursor:pointer;z-index:2}
   .mmd-zoom:hover{color:var(--open);border-color:var(--open)}
+  .mmd button.mmd-zoom:nth-of-type(1){right:0}
+  .mmd button.mmd-zoom:nth-of-type(2){right:58px}
+  .mmd button.mmd-zoom:nth-of-type(3){right:122px}
   .mmd-viewer{position:fixed;inset:0;z-index:50;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;flex-direction:column;gap:10px}
   .mmd-viewer.open{display:flex}
   .mmd-viewer .stage{flex:1;width:100%;overflow:hidden;cursor:grab;touch-action:none}
