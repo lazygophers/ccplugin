@@ -882,7 +882,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
             f"<span class='cnt'>{et} 张 · {ec[DONE]} 已完成</span></div>",
             f"<div class='minibar'>{minibar}</div>",
             f"<div class='minicap'><span>{STATUS_LABEL[DONE]} {ec[DONE]}</span>"
-            f"<span>{epct}%</span></div>" if et else "",
+            f"<span>{epct}%({ec[DONE]} ÷ {et})</span></div>" if et else "",
         ]
         mmd = mermaid_graph(effort)
         if mmd:
@@ -1016,6 +1016,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "}));"
         "document.querySelectorAll('[data-copy-spec]').forEach(button => button.dataset.icon = button.innerHTML);</script>",
         # 分享:spec 头 / ticket 表 / mermaid 图,点击即复制进剪贴板,toast 通知成败
+        "<div class='toast' id='tpToast'></div>",
         "<script>(function(){"
         "var TPDATA={};try{TPDATA=JSON.parse(document.getElementById('tp-data').textContent)}catch(e){}"
         "var STZH={done:'已完成',active:'进行中',open:'可开工',blocked:'被阻塞'};"
@@ -1047,7 +1048,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "clearTimeout(t._h);t._h=setTimeout(function(){t.classList.remove('show')},1800)}"
         "function copyText(txt,label){navigator.clipboard.writeText(txt).then("
         "function(){toast('已复制'+label)},function(){toast('复制失败',true)})}"
-        "function svgPngBlob(svg,cb){var r=svg.getBoundingClientRect();"
+        r"function svgPngBlob(svg,cb){var r={width:+svg.getAttribute('width')||svg.getBoundingClientRect().width,height:+svg.getAttribute('height')||svg.getBoundingClientRect().height};"
         "var s=new XMLSerializer().serializeToString(svg);"
         "var url=URL.createObjectURL(new Blob([s],{type:'image/svg+xml;charset=utf-8'}));"
         "var img=new Image();"
@@ -1059,10 +1060,13 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "URL.revokeObjectURL(url);c.toBlob(function(b){cb(b)},'image/png')};"
         "img.onerror=function(){URL.revokeObjectURL(url);cb(null)};img.src=url}"
         "function copyDepsImg(name){"
-        "var pre=document.querySelector(\"pre.mmd[data-spec='\"+name.replace(/'/g,'')+'\"]');"
+        "var pre=document.querySelector(\"pre.mmd[data-spec='\"+name.replace(/'/g,'')+\"']\");"
         "var svg=pre&&pre.querySelector('svg');"
         "if(!svg){toast('没有依赖图',true);return}"
-        "svgPngBlob(svg,function(b){"
+        "var vb=svg.viewBox&&svg.viewBox.baseVal;"
+        "var clone=svg.cloneNode(true);clone.removeAttribute('style');"
+        "if(vb&&vb.width){clone.setAttribute('width',vb.width);clone.setAttribute('height',vb.height)}"
+        "svgPngBlob(clone,function(b){"
         "if(!b){toast('复制失败',true);return}"
         "try{navigator.clipboard.write([new ClipboardItem({'image/png':b})]).then("
         "function(){toast('已复制依赖图')},function(){toast('复制失败',true)})"
@@ -1087,7 +1091,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "x.fillStyle=STC[t.st]||'#e8ecef';x.font='600 15px -apple-system,BlinkMacSystemFont,sans-serif';"
         "x.fillText(STZH[t.st],pad+600,yy+26);"
         "x.fillStyle='#8b96a2';x.font='15px -apple-system,BlinkMacSystemFont,sans-serif';"
-        "x.fillText(t.deps.length?t.deps.join('、'):'—',pad+740,yy+26)})"
+        "x.fillText(t.deps.length?t.deps.join('、'):'—',pad+740,yy+26)});"
         "return c}"
         "function copyTableImg(name){var c=clipCard(name);"
         "if(!c){toast('没有票',true);return}"
@@ -1181,7 +1185,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "function up(){ stage.classList.remove('dragging');"
         "stage.removeEventListener('pointermove', move); stage.removeEventListener('pointerup', up); }"
         "stage.addEventListener('pointermove', move); stage.addEventListener('pointerup', up); });"
-        "m.initialize({startOnLoad:false, securityLevel:'loose', flowchart:{htmlLabels:false},"
+        "m.initialize({startOnLoad:false, securityLevel:'strict', htmlLabels:false,"
         "themeVariables:{fontSize:'14px',"
         "fontFamily:'\\\"Maple Mono\\\",\\\"JetBrains Mono\\\",ui-monospace,monospace'}});"
         "m.run({querySelector:'pre.mmd'}).then(function(){ window.paintMmd(); addButtons(); })"
