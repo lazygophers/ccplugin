@@ -511,7 +511,8 @@ CSS = """
   .copy-btn:hover{color:var(--open)}
   .copy-btn svg{display:block}
   .copy-btn.copied{color:var(--open);font:600 12px/1 var(--sans)}
-  .spec-head .kind{font-size:12px;color:var(--ink-2);border:1px solid var(--rule);padding:1px 6px}
+  .spec-head .kind{font-size:12px;color:var(--ink-2);border:1px solid var(--rule);padding:1px 6px;text-decoration:none}
+  .spec-head a.kind:hover{color:var(--open);border-color:var(--open)}
   .spec-head .cnt{font-size:13px;color:var(--ink-2);margin-left:auto;font-family:var(--mono)}
   .minibar{display:flex;height:9px;width:100%;margin:10px 0 3px;background:var(--panel);border:1px solid var(--rule-2)}
   .minibar i{display:block;height:100%}
@@ -800,21 +801,22 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         et = len(effort.tasks)
         epct = round(ec[DONE] * 100 / et) if et else 0
         minibar, _ = stacked_bar(et, ec, "") if et else ("", "")
-        head_target = (
-            effort.path / "map.md" if effort.is_map
-            else effort.path / "spec.md" if effort.has_spec
-            else None
-        )
-        name_html = (
-            f"<a href='{esc(rel(str(head_target), scratch))}' target='_blank' "
-            f"rel='noopener'>{esc(effort.name)}</a>"
-            if head_target else esc(effort.name)
-        )
+        name_html = esc(effort.name)
+        kinds = []
+        if effort.is_map:
+            kinds.append(
+                f"<a class='kind' href='{esc(rel(str(effort.path / 'map.md'), scratch))}' "
+                f"target='_blank' rel='noopener'>wayfinder 地图</a>"
+            )
+        if effort.has_spec:
+            kinds.append(
+                f"<a class='kind' href='{esc(rel(str(effort.path / 'spec.md'), scratch))}' "
+                f"target='_blank' rel='noopener'>spec</a>"
+            )
         out += [
             "<div class='spec-head'>",
             f"<h3>{name_html}{copy_btn(effort.name)}</h3>",
-            "<span class='kind'>wayfinder 地图</span>" if effort.is_map else "",
-            "<span class='kind'>spec</span>" if effort.has_spec else "",
+            *kinds,
             f"<span class='cnt'>{et} 张 · {ec[DONE]} 已完成</span></div>",
             f"<div class='minibar'>{minibar}</div>",
             f"<div class='minicap'><span>{STATUS_LABEL[DONE]} {ec[DONE]}</span>"
