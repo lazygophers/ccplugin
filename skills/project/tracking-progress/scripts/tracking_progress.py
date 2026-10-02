@@ -435,8 +435,8 @@ CSS = """
     --rule:#2b3138; --rule-2:#232830;
     --open:#6aa5e3; --open-fill:#2f6fb5;
     --active:#d9a35f; --active-fill:#b5813a;
-    --blocked:#8b96a2; --blocked-fill:#66707a;
-    --done-fill:#3b444d; --bg:#141719;
+    --blocked:#e0796c; --blocked-fill:#a04030;
+    --done:#3fb950; --done-fill:#238636; --bg:#141719;
     --panel:#1a1e22; --gap:#141719; --nav-bg:rgba(20,23,25,.96); --row-hover:#1d2227;
     --underline:rgba(106,165,227,.4); --danger:#e0796c;
     --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans CJK SC","Hiragino Sans GB",sans-serif;
@@ -449,8 +449,8 @@ CSS = """
     --rule:#dfe3e7; --rule-2:#eef1f3;
     --open:#1d5b9e; --open-fill:#2f6fb5;
     --active:#8a5a15; --active-fill:#c08a3e;
-    --blocked:#5b6570; --blocked-fill:#9ba5af;
-    --done-fill:#d7dce0; --bg:#ffffff;
+    --blocked:#a33; --blocked-fill:#d0604f;
+    --done:#1a7f37; --done-fill:#2da44e; --bg:#ffffff;
     --panel:#ffffff; --gap:#ffffff; --nav-bg:rgba(255,255,255,.96); --row-hover:#f7f9fa;
     --underline:rgba(29,91,158,.28); --danger:#a33;
     color-scheme:light;
@@ -505,9 +505,9 @@ CSS = """
   .st-open{color:var(--open);font-weight:600} .st-open::before{background:var(--open-fill)}
   .st-active{color:var(--active);font-weight:600} .st-active::before{background:var(--active-fill)}
   .st-blocked{color:var(--blocked)} .st-blocked::before{background:var(--blocked-fill)}
-  .st-done{color:var(--ink-3)} .st-done::before{background:var(--done-fill)}
-  tr.r-done td.t a{color:var(--ink-3);border-bottom-color:var(--rule)}
-  tr.r-done td.lbl{color:var(--ink-3)}
+  .st-done{color:var(--done)} .st-done::before{background:var(--done-fill)}
+  tr.r-done td.t a{color:var(--done);border-bottom-color:var(--done-fill)}
+  tr.r-done td.lbl{color:var(--done)}
   .unlocks{font:600 13px var(--mono);color:var(--open)}
   .unlocks-0{font:13px var(--mono);color:var(--ink-3);font-weight:400}
   .spec-head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin:34px 0 4px;padding-top:14px;border-top:1px solid var(--rule)}
@@ -628,10 +628,10 @@ def mermaid_graph(effort: "Effort") -> str:
     # mermaid's parser rejects var(--x) in linkStyle/classDef, so hex only here.
     lines = [
         "graph TD",
-        "classDef done fill:#d7dce0",
+        "classDef done fill:#2da44e",
         "classDef active fill:#c08a3e",
         "classDef open fill:#2f6fb5",
-        "classDef blocked fill:#9ba5af",
+        "classDef blocked fill:#d0604f",
     ]
     for key, t in nodes.items():
         label = f"{clip(t.tid, 12)} · {mmd_label(t.title)}"
