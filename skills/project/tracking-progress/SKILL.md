@@ -37,4 +37,5 @@ Status strings are matched loosely: `resolved` / `done` / `已完成` / `定稿`
 
 - **Blocking only counts ids that exist.** A `Blocked by:` referencing a number no ticket owns (often a document reference like `ADR-0046` minted into an id) is shown as a dangling ref, not treated as a blocker.
 - **互相阻塞的票** (A blocks B, B blocks A) are drawn with dashed amber edges in the wave diagram — someone has to break the loop by hand.
+- **未建票 vs 票已建齐**: a map/checklist row with no ticket file behind it is marked 未建 (badge on the spec head, mark on the row, dashed node in the graph, count in the per-spec table). A spec where every row has a ticket file gets the 票已建齐 badge.
 - **口径写在页面上**: progress = done ÷ total, blockers in the denominator; one ticket = one ticket file or one `memory.md` checklist row, so "done" can include process notes like 「写 spec.md」. The page states this instead of hiding it.

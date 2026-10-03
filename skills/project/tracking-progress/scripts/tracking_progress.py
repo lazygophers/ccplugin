@@ -273,6 +273,8 @@ def scan(scratch: Path) -> tuple[list[Effort], list[Path]]:
         effort = effort_for(path)
         if name == "map.md":
             effort.is_map = True
+            # 地图行也要进任务集:还没建票面文件的条目靠它暴露为「未建票」
+            effort.tasks.extend(parse_checklist_file(path, effort.name))
             continue
         if name == "spec.md":
             effort.has_spec = True
@@ -531,6 +533,9 @@ CSS = """
   .spec-head .kind{font-size:12px;color:var(--ink-2);border:1px solid var(--rule);padding:1px 6px;text-decoration:none}
   .spec-head a.kind:hover{color:var(--open);border-color:var(--open)}
   .spec-head .cnt{font-size:13px;color:var(--ink-2);margin-left:auto;font-family:var(--mono)}
+  .spec-head .kind.tbd{color:#b5813a;border-color:#b5813a}
+  .spec-head .kind.ok{color:var(--done);border-color:var(--done)}
+  .tbdmark{font-style:normal;font-size:11px;color:#b5813a;border:1px solid #b5813a;border-radius:3px;padding:0 3px;margin-left:4px}
   .minibar{display:flex;height:9px;width:100%;margin:10px 0 3px;background:var(--panel);border:1px solid var(--rule-2)}
   .minibar i{display:block;height:100%}
   .minibar i+i{border-left:1px solid var(--gap)}
@@ -647,10 +652,13 @@ def mermaid_graph(effort: "Effort") -> str:
         "classDef active fill:#c08a3e",
         "classDef open fill:#2f6fb5",
         "classDef blocked fill:#c9968c",
+        "classDef tbd stroke-dasharray:5 5",
     ]
     for key, t in nodes.items():
         label = f"{clip(t.tid, 12)} · {mmd_label(t.title)}"
         lines.append(f'{ids[key]}["{label}"]:::{STATUS_CLASS[t.status]}')
+        if not t.from_file:
+            lines.append(f"class {ids[key]} tbd")
     cyc = {frozenset(e) for e in effort.cycle_edges}
     edge_i = 0
     for a, b in effort.edges:
@@ -781,6 +789,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "<b>进度 = 已完成 ÷ 总票数</b>，被阻塞的票也算在分母里——所以这个百分比是"
         "「全部要做的事完成了多少」，不是「手头能推进的事完成了多少」。<br>",
         "<b>四种状态是一条单向的路</b>：被阻塞 → 可开工 → 进行中 → 已完成，票只前进不后退。<br>",
+        "<b>未建票</b> = 只在 map.md / 清单上有一行、还没有票面文件的条目；「票已建齐」= 每一条都有对应票面文件。<br>",
         "<b>一张票 = 一个票面文件，或 <code>memory.md</code> 里的一行勾选</b>。两种来源同等计数，"
         "所以「已完成」里可能包含「写 spec.md」这类过程记录，不等于功能数。",
         "</p></section>",
@@ -795,10 +804,11 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "<section id='spec-progress'>",
         "<h2>按 spec 的进度</h2>",
         "<p class='sub'>每个 spec 一行：票数按状态拆开，进度 = 该 spec 的已完成 ÷ 该 spec 总票数。"
-        "「可开工」列非零说明这个 spec 现在就有活能干。</p>",
+        "「可开工」列非零说明这个 spec 现在就有活能干。「未建」列非零说明还有条目没有票面文件。</p>",
         "<table><thead><tr><th style='width:150px'>spec</th>"
         "<th class='num'>可开工</th><th class='num'>进行中</th><th class='num'>已完成</th>"
-        "<th class='num'>被阻塞</th><th class='num'>ticket</th><th class='num'>进度</th></tr></thead><tbody>",
+        "<th class='num'>被阻塞</th><th class='num'>ticket</th><th class='num'>未建</th>"
+        "<th class='num'>进度</th></tr></thead><tbody>",
     ]
     spec_rows = sorted(
         efforts,
@@ -811,6 +821,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         ec = {s: 0 for s in STATUS_LABEL}
         for t in effort.tasks:
             ec[t.status] += 1
+        tbd = sum(1 for t in effort.tasks if not t.from_file)
         et = len(effort.tasks)
         epct = round(ec[DONE] * 100 / et) if et else 0
         out.append(
@@ -820,6 +831,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
             f"<td class='num'>{ec[DONE] or '·'}</td>"
             f"<td class='num'>{ec[BLOCKED] or '·'}</td>"
             f"<td class='num'>{et}</td>"
+            f"<td class='num'>{tbd or '·'}</td>"
             f"<td class='num'>{epct}%</td></tr>"
         )
     out.append("</tbody></table></section>")
@@ -872,6 +884,12 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
                 f"<a class='kind' href='{esc(rel(str(effort.path / 'spec.md'), scratch))}' "
                 f"target='_blank' rel='noopener'>spec</a>"
             )
+        # 未建票 = 只有 map.md/清单行、还没有票面文件的条目
+        tbd = sum(1 for t in effort.tasks if not t.from_file)
+        if et and tbd:
+            kinds.append(f"<span class='kind tbd'>未建票 {tbd}</span>")
+        elif et:
+            kinds.append("<span class='kind ok'>票已建齐</span>")
         out += [
             "<div class='spec-head'>",
             f"<h3>{name_html}{copy_btn(effort.name)}"
@@ -885,6 +903,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
             f"<span class='cnt'>{et} 张 · {ec[DONE]} 已完成</span></div>",
             f"<div class='minibar'>{minibar}</div>",
             f"<div class='minicap'><span>{STATUS_LABEL[DONE]} {ec[DONE]}</span>"
+            f"{('<span>未建票 %d</span>' % tbd) if tbd else ''}"
             f"<span>{epct}%({ec[DONE]} ÷ {et})</span></div>" if et else "",
         ]
         mmd = mermaid_graph(effort)
@@ -902,6 +921,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
                 "<th class='num'>解锁</th></tr></thead><tbody>",
             ]
             for t in effort.tasks:
+                mark = "<i class='tbdmark'>未建</i>" if not t.from_file else ""
                 meta = []
                 if t.dangling:
                     meta.append(
@@ -916,7 +936,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
                 )
                 out.append(
                     f"<tr class='r-{STATUS_CLASS[t.status]}'>"
-                    f"<td class='lbl'>{esc(t.label)}{copy_btn(f'{t.effort}#{t.tid}', '票号') if t.tid else ''}</td>"
+                    f"<td class='lbl'>{esc(t.label)}{mark}{copy_btn(f'{t.effort}#{t.tid}', '票号') if t.tid else ''}</td>"
                     f"<td class='t'>{task_link(t, scratch)}</td>"
                     f"<td><span class='st st-{STATUS_CLASS[t.status]}'>"
                     f"{STATUS_LABEL[t.status]}</span></td>"
@@ -997,7 +1017,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
             "is_map": e.is_map,
             "tasks": [
                 {"tid": t.tid, "title": t.title, "st": STATUS_CLASS[t.status],
-                 "deps": t.deps}
+                 "deps": t.deps, "f": 0 if t.from_file else 1}
                 for t in e.tasks
             ],
             "mmd": mermaid_graph(e),
@@ -1031,7 +1051,8 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "d.tasks.forEach(function(t){c[t.st]++});"
         "var n=d.tasks.length,pct=n?Math.round(c.done*100/n):0;"
         "var L=['### '+name+(d.is_map?'(wayfinder 地图)':'')+' · 进度','','"
-        "共 '+n+' 张:已完成 '+c.done+' · 进行中 '+c.active+' · 可开工 '+c.open+' · 被阻塞 '+c.blocked+'(进度 '+pct+'%)','','"
+        "共 '+n+' 张:已完成 '+c.done+' · 进行中 '+c.active+' · 可开工 '+c.open+' · 被阻塞 '+c.blocked+'(进度 '+pct+'%)'"
+        "+(d.tasks.some(function(t){return t.f})?' · 另有未建票 '+d.tasks.filter(function(t){return t.f}).length+' 张':'')+'','"
         "| 票 | 标题 | 状态 | 阻塞于 |','|---|---|---|---|'];"
         "d.tasks.forEach(function(t){L.push('| '+t.tid+' | '+escMd(t.title)+' | '+STZH[t.st]+' | '+(t.deps.length?t.deps.join('、'):'—')+' |')});"
         r"return L.join('\n')}"

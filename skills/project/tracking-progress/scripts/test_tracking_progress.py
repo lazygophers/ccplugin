@@ -165,7 +165,11 @@ def build_repo(tmp_path: Path) -> Path:
         "## checkpoint\n\n- [x] **01** 第一张票\n- [ ] 没编号的收尾动作\n",
     )
     write(scratch / "alpha" / "spec.md", "# Spec\n")
-    write(scratch / "alpha" / "map.md", "# Map\n\n## Destination\n\n出一份 spec。\n")
+    write(
+        scratch / "alpha" / "map.md",
+        "# Map\n\n## Destination\n\n出一份 spec。\n\n"
+        "- [ ] 04 后续扩展（还没建票）\n",
+    )
     write(
         scratch / "alpha" / "issues" / "01-first.md",
         "# 01 — 第一张票\n\nType: research\nStatus: resolved\nBlocked by: —\n",
@@ -413,3 +417,18 @@ def test_research_docs_listed(tmp_path):
     efforts, _ = tp2.scan(tmp_path)
     e = next(e for e in efforts if e.name == "s1")
     assert len(e.research) == 1
+
+
+def test_ticket_establishment_marks(tmp_path):
+    """未建票(map/清单行、无票面文件)与票已建齐的 spec 在页面上要分得开。"""
+    root = build_repo(tmp_path)
+    scratch = root / ".scratch"
+    efforts, _ = tp.scan(scratch)
+    page = tp.render(efforts, [], scratch)
+    # alpha: map 上有 04 无票文件 → 未建票徽章 + 票行「未建」标 + 图上虚线
+    assert "未建票 1" in page  # map 上的 04;根清单的无编号行算在根 effort 头上
+    assert "<i class='tbdmark'>未建</i>" in page
+    assert "classDef tbd stroke-dasharray:5 5" in page
+    assert "票已建齐" in page  # beta 全部有票面文件
+    # 总览表带「未建」列
+    assert "<th class='num'>未建</th>" in page
