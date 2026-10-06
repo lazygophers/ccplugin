@@ -22,7 +22,7 @@
 
 - `git/` — git 相关 skill 模板
 - `project/` — 项目级 skill 模板
-- `tools/` — 交互工具 skill（`ask-ui`）
+- `tools/` — 交互工具 skill（`ask-ui`，源码 `scripts/**/*.mts`，同目录 `.mjs` 是 tsc 编译产物一并进仓库——只改 `.mts`，见该 skill 的 SKILL.md）
 
 ### 顶层关键文件
 
