@@ -41,7 +41,8 @@
 git push
 
 # 或本地直接同步
-cp -R skills/tools/<name>/. ~/.agents/skills/<name>/
+rsync -a --delete --exclude node_modules --exclude .ask-ui skills/tools/<name>/ ~/.agents/skills/<name>/
+# ask-ui 带 node_modules（typescript devDeps），cp -R 会把几十 MB 依赖拷过去，必须 rsync 排除
 ```
 
 只 `cp` 不 push 的改动，会在下次 skill 更新时被远端版本覆盖掉。
