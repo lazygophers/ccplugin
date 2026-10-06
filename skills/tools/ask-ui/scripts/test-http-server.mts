@@ -224,4 +224,64 @@ export async function test() {
     }
     await fs.rm(temporaryRoot, { recursive: true, force: true });
   }
+
+    // ---- 提交后的生命周期：onSubmitted 回调、manual 提问的唤醒分支 ----
+    {
+      const manualAsk = await createAsk({
+        title: '手动提交生命周期',
+        wake: { mode: 'manual' },
+        questions: [{
+          id: 'only', type: 'single', text: '选',
+          options: [{ id: 'a', text: '甲' }, { id: 'b', text: '乙' }],
+        }],
+      }, { dataDir: dataRoot, cwd: temporaryRoot });
+      const observed: unknown[] = [];
+      const lifecycleServer = await startHttpServer({
+        dataRoot,
+        port: 0,
+        persistServerInfo: false,
+        enableWake: true,
+        onSubmitted: (payload) => {
+          observed.push(payload);
+          throw new Error('observer crash must not break submission');
+        },
+      });
+      try {
+        const manualBase = `http://127.0.0.1:${lifecycleServer.info.port}`;
+        // /health 与 / 也走一趟。
+        assert.equal((await fetch(`${manualBase}/health`)).status, 200);
+        assert.equal((await fetch(`${manualBase}/`)).status, 200);
+        // 404：不存在的 api 路径；405：answers 打 GET。
+        assert.equal((await fetch(`${manualBase}/api/unknown-route`)).status, 404);
+        assert.equal((await fetch(`${manualBase}/api/asks/${manualAsk.askId}/answers`)).status, 405);
+        // 坏 JSON body：400。
+        const malformed = await fetch(`${manualBase}/api/asks/${manualAsk.askId}/draft`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: '{oops',
+        });
+        assert.equal(malformed.status, 400);
+        // 超 1MB body：413。
+        const huge = await fetch(`${manualBase}/api/asks/${manualAsk.askId}/draft`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ answers: [{ supplementaryText: 'x'.repeat(1_100_000) }] }),
+        });
+        assert.equal(huge.status, 413);
+        // 正常提交：onSubmitted 被异步调用；observer 抛错不影响落盘。
+        const submitted = await fetch(`${manualBase}/api/asks/${manualAsk.askId}/answers`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ answers: [{ questionId: 'only', selectedOptionIds: ['a'] }] }),
+        });
+        assert.equal(submitted.status, 200);
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        assert.equal(observed.length, 1, 'onSubmitted 应被调用恰好一次');
+        assert.equal((observed[0] as { askId: string }).askId, manualAsk.askId);
+    
+
+
+
+  } finally {
+        await new Promise<void>((resolve) => lifecycleServer.server.close(() => resolve()));
+        lifecycleServer.server.closeAllConnections?.();
+      }
+    }
 }

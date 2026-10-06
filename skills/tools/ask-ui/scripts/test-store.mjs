@@ -1,9 +1,11 @@
 // store module 的测试：createAsk 落盘、title/推荐徽标归一、resume/complete、
 // 重复提交、hasPendingAsk 生命周期。
 import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
 import path from 'node:path';
 import { completeAsk, createAsk, hasPendingAsk, loadAskBundle, resumeAsk, saveDraft, submitAnswers, } from './store.mjs';
 import { makeTempRoot } from './test-helpers.mjs';
+import { atomicWriteJson, readJson } from './store.mjs';
 export async function test() {
     const temporaryRoot = await makeTempRoot('store');
     const dataRoot = path.join(temporaryRoot, 'data');
@@ -132,6 +134,23 @@ export async function test() {
         assert.equal(await hasPendingAsk(idleRoot), true, '乙提问还在等，服务不该收摊');
         await completeAsk(idleRoot, askB.askId, 'completed');
         assert.equal(await hasPendingAsk(idleRoot), false, '提问都结束了，服务该收摊');
+        // ---- readJson 的错误分支 ----
+        {
+            const broken = path.join(temporaryRoot, 'broken.json');
+            await fs.writeFile(broken, '{oops', 'utf8');
+            await assert.rejects(readJson(broken), /Invalid JSON/, '写坏的 JSON 要带原报错信息');
+            // ENOENT 且无 fallback：原样抛。
+            await assert.rejects(readJson(path.join(temporaryRoot, 'missing.json')), /ENOENT/);
+            // atomicWriteJson 正常路径（mkdir + rename）。
+            const nested = path.join(temporaryRoot, 'a', 'b', 'x.json');
+            await atomicWriteJson(nested, { ok: true });
+            assert.deepEqual(await readJson(nested), { ok: true });
+            // resume 在空数据目录：waiting，不抛。
+            const empty = path.join(temporaryRoot, 'empty');
+            const fsMod = await import('node:fs/promises');
+            await fsMod.mkdir(empty, { recursive: true });
+            assert.deepEqual(await resumeAsk(empty, null), { status: 'waiting', askId: null });
+        }
     }
     finally {
         const fs = await import('node:fs/promises');

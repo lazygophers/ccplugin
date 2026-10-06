@@ -177,4 +177,51 @@ export async function test() {
         assert.match(message, /sessionBackground 已改名：直接写 background/);
         return true;
     });
+    // ---- 归一化的缺省分支 ----
+    {
+        const normalized = normalizeQuestionSet({
+            title: '缺省分支',
+            wake: { mode: 'auto', sessionRef: 'x', cwd: '/tmp' },
+            questions: [
+                { type: 'multiple', text: '多选缺省', required: false, options: [{ text: '甲' }, { text: '乙' }] },
+                { type: 'text', text: '补充说明\n更多细节' },
+            ],
+        });
+        // provider 非法 → null，auto 没有可用 provider 降级 unavailable；sessionRef/cwd 保留。
+        assert.equal(normalized.wake.mode, 'unavailable');
+        assert.equal(normalized.wake.provider, null);
+        assert.equal(normalized.wake.sessionRef, 'x');
+        // 非必填多选缺省 min=0、max=选项数；文本题缺省 4000 字。
+        const multiple = normalized.questions[0];
+        assert.equal(multiple.minSelections, 0);
+        assert.equal(multiple.maxSelections, 2);
+        assert.equal(normalized.questions[1].maxLength, 4000);
+        // 题目没写 id：按序号生成 q1。
+        assert.equal(normalized.questions[0].id, 'q1');
+        // 题目没写 title：取正文首个非空行。
+        assert.equal(normalized.questions[1].title, '补充说明');
+        // wake 整个缺省：manual + cwd 归一到当前目录。
+        const noWake = normalizeQuestionSet({ title: 't', questions: [{ id: 'q1', type: 'text', text: '甲' }] });
+        assert.equal(noWake.wake.mode, 'manual');
+        assert.equal(noWake.wake.provider, null);
+        // 必填多选缺省 min=1；min/max 显式给出时 max 被钳到不低于 min。
+        const pinned = normalizeQuestionSet({
+            title: 't',
+            questions: [{
+                    id: 'm', type: 'multiple', text: '甲',
+                    options: [{ text: 'a' }, { text: 'b' }, { text: 'c' }],
+                    minSelections: 3, maxSelections: 1,
+                }],
+        }).questions[0];
+        assert.equal(pinned.minSelections, 3);
+        assert.equal(pinned.maxSelections, 3);
+        // maxLength 显式：原样保留且不小于 1；multiline 缺省 true；recommendedDraft/reason 归一成字符串。
+        const text = normalizeQuestionSet({
+            title: 't', questions: [{ id: 'x', type: 'text', text: '甲', maxLength: 10, multiline: false }],
+        }).questions[0];
+        assert.equal(text.maxLength, 10);
+        assert.equal(text.multiline, false);
+        assert.equal(text.recommendedDraft, '');
+        assert.equal(text.recommendationReason, '');
+    }
 }

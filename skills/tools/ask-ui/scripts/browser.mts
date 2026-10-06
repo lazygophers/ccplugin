@@ -5,6 +5,8 @@ import path from 'node:path';
 import process from 'node:process';
 import { spawn } from 'node:child_process';
 
+import { log } from './log.mjs';
+
 function runCapturing(command: string, args: string[]): Promise<string | null> {
   return new Promise((resolve) => {
     const child = spawn(command, args);
@@ -80,18 +82,33 @@ export async function closeBrowserTab(askId: string): Promise<boolean> {
 }
 
 // CLI 打开表单页用的兜底路径：不经 AppleScript，按平台直接投给系统打开器。
+// 打开器失败是真实存在的（SSH/无 GUI 登录会话、headless Linux 没有 xdg-open、
+// rundll32 被策略禁）：结果不许吞——stderr 报一行带 URL 的提示、日志留事件，
+// 用户照 URL 手动打开，提问链路本身不受影响。
 export function openBrowser(url: string): void {
-  let child;
-  if (process.platform === 'win32') {
-    child = spawn('rundll32.exe', ['url.dll,FileProtocolHandler', url], {
-      detached: true,
-      stdio: 'ignore',
-      windowsHide: true,
-    });
-  } else if (process.platform === 'darwin') {
-    child = spawn('open', [url], { detached: true, stdio: 'ignore' });
-  } else {
-    child = spawn('xdg-open', [url], { detached: true, stdio: 'ignore' });
-  }
+  const child = process.platform === 'win32'
+    ? spawn('rundll32.exe', ['url.dll,FileProtocolHandler', url], {
+      detached: true, stdio: 'ignore', windowsHide: true,
+    })
+    : process.platform === 'darwin'
+      ? spawn('open', [url], { detached: true, stdio: 'ignore' })
+      : spawn('xdg-open', [url], { detached: true, stdio: 'ignore' });
+  // error（spawn 不起来）和 close（起来又非零退出）可能接连发生，只报第一次。
+  let reported = false;
+  const report = (reason: string) => {
+    if (reported) return;
+    reported = true;
+    reportOpenFailure(url, reason);
+  };
+  log('browser-open', { url });
+  child.once('error', (error) => report(error.message));
+  child.once('close', (code) => {
+    if (code !== 0) report(`opener exited with code ${code}`);
+  });
   child.unref();
+}
+
+function reportOpenFailure(url: string, reason: string): void {
+  process.stderr.write(`ask-ui: 自动打开浏览器失败（${reason}），请手动访问 ${url}\n`);
+  log('browser-open-failed', { reason });
 }

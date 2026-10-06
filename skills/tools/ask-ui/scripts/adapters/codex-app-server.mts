@@ -72,18 +72,30 @@ export async function wakeCodexAppServer({ binding, prompt }: WakeRequest) {
     child.stderr!.on('data', (chunk) => {
       if (stderr.length < 1_000_000) stderr += chunk.toString();
     });
+    // 子进程早死（握手都没完成）时，挂起的 request 也得跟着失败，否则永远悬空；
+    // completion 的 rejection 若无人 await 还会变成 unhandled rejection 崩掉宿主。
+    const failPending = (error: Error) => {
+      for (const [, waiter] of pending) waiter.reject(error);
+      pending.clear();
+    };
     child.on('error', (error) => {
       clearTimeout(timer);
+      failPending(error);
       reject(error);
     });
     child.on('close', (code) => {
       if (!settled) {
         clearTimeout(timer);
-        reject(new Error(stderr || `Codex App Server exited with code ${code}`));
+        const error = new Error(stderr || `Codex App Server exited with code ${code}`);
+        failPending(error);
+        reject(error);
       }
     });
   });
 
+  // completion 在到达 await 前就 reject 时（握手阶段子进程死掉），失败已经由
+  // failPending 传导给挂起的 request，这里只防 unhandled rejection。
+  completion.catch(() => {});
   await request(1, 'initialize', {
     clientInfo: { name: 'ask-ui', title: 'Ask UI', version: '1.0.0' },
   });

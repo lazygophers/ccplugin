@@ -197,4 +197,23 @@ export async function test() {
     assert.equal(viewState.answeredQuestionCount(viewForm, true, draft), 5);
     assert.equal(viewState.firstUnansweredId(viewForm, true, draft), null);
     assert.equal(viewState.nextUnansweredIdFrom(viewForm, true, draft, 'entry'), null);
+    // ---- 边界输入 ----
+    {
+        const questions = setOf([
+            { id: 'pick', type: 'single', text: '选', options: [{ id: 'a', text: '甲' }, { id: 'b', text: '乙' }] },
+        ]).questions;
+        // rawAnswers 不是数组：按空答案处理，必填报错但不崩。
+        const notArray = validateAnswers({ questions }, null);
+        assert.ok(notArray.errors.length > 0, '非数组答案应触发必填报错');
+        // 答案缺 questionId / 字段残缺：normalizeAnswer 兜成空串。
+        const fragment = validateAnswers({ questions }, [{ questionId: 'pick', selectedOptionIds: ['a'] }]);
+        assert.deepEqual(fragment.errors, [], '残缺答案经归一后应能过');
+        assert.equal(fragment.answers[0].questionId, 'pick');
+        assert.equal(fragment.answers[0].customText, '');
+        // 补充说明超 2000 字：报错。
+        const long = validateAnswers({ questions }, [{
+                questionId: 'pick', selectedOptionIds: ['a'], supplementaryText: 'x'.repeat(2001),
+            }]);
+        assert.ok(long.errors.some((message) => message.includes('supplement')), '超长补充说明应报错');
+    }
 }

@@ -20,6 +20,9 @@ import { test as testStore } from './test-store.mjs';
 import { test as testHttpServer } from './test-http-server.mjs';
 import { test as testVendor } from './test-vendor.mjs';
 import { test as testWake } from './test-wake.mjs';
+import { test as testAdapters } from './test-adapters.mjs';
+import { test as testBrowser } from './test-browser.mjs';
+import { test as testCli } from './test-cli.mjs';
 
 const answerSetSchema = JSON.parse(
   await fs.readFile(fileURLToPath(new URL('../references/answerset.schema.json', import.meta.url)), 'utf8'),
@@ -32,6 +35,9 @@ const suites: [string, () => Promise<void>][] = [
   ['http-server', testHttpServer],
   ['vendor', testVendor],
   ['wake', testWake],
+  ['adapters', testAdapters],
+  ['browser', testBrowser],
+  ['cli', testCli],
 ];
 for (const [name, run] of suites) {
   await run();
@@ -159,4 +165,14 @@ try {
 } finally {
   await stopDetachedServer(directDataRoot);
   await fs.rm(temporaryRoot, { recursive: true, force: true });
+
+  // ---- log 写失败：目录不存在/不可写时吞掉异常，不拖挂主流程 ----
+  {
+    const previousTemp = process.env.TEMP;
+    process.env.TEMP = path.join(temporaryRoot, 'no-such-dir', 'deeper');
+    const { log: failingLog } = await import('./log.mjs');
+    await failingLog('write-failure-probe'); // 不该抛
+    process.env.TEMP = previousTemp;
+  }
+
 }
