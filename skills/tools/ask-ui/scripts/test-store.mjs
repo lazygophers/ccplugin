@@ -73,7 +73,7 @@ export async function test() {
                 },
             ],
         }, { dataDir: dataRoot, cwd: temporaryRoot });
-        assert.match(shortIds.askId, /^[a-z0-9-]+$/, 'askId 由 CLI 生成');
+        assert.match(shortIds.askId, /^[a-f0-9]{12}$/, 'askId 是 12 位随机十六进制字符串');
         // 草稿：填到一半就落盘，不校验半成品。
         const draft = await saveDraft(dataRoot, first.askId, {
             answers: [{ questionId: 'scope', selectedOptionIds: ['personal'], customText: '' }],
@@ -118,6 +118,7 @@ export async function test() {
         assert.notEqual(followUp.askId, first.askId);
         const completed = await completeAsk(dataRoot, first.askId);
         assert.equal(completed.status, 'completed');
+        await assert.rejects(loadAskBundle(dataRoot, first.askId), /ENOENT/, 'complete 后只清理本次提问目录');
         assert.equal((await loadAskBundle(dataRoot, followUp.askId)).ask.status, 'waiting_for_user');
         // 常驻服务必须有终点：还有人没答完就继续跑，最后一个会话结束就收摊。
         const idleRoot = path.join(temporaryRoot, 'idle-data');

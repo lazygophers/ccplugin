@@ -59,6 +59,7 @@ export async function runDirectAsk({ questionSet, answers, dataRoot, cwd, testDu
   });
 
   const parsedUrl = new URL(readyUrl);
+  assert.match(parsedUrl.pathname, /^\/[a-f0-9]{12}$/, '页面 URL 直接使用 12 位 askId');
   const askId = decodeURIComponent(parsedUrl.pathname.split('/').at(-1) || '');
   const bundle = await (await fetch(
     `${parsedUrl.origin}/api/asks/${encodeURIComponent(askId)}`,
@@ -84,6 +85,9 @@ export async function runDirectAsk({ questionSet, answers, dataRoot, cwd, testDu
 
   const exitCode = await exitPromise;
   assert.equal(exitCode, 0, stderr);
+  assert.equal(JSON.parse(stdout).url, readyUrl);
+  assert.equal(JSON.parse(stdout).answers.answers.length, (answers as unknown[]).length);
+  await assert.rejects(fs.access(answersPath), /ENOENT/, '输出答案后自动清理本次提问');
   return { ...JSON.parse(stdout), testReadyUrl: readyUrl };
 }
 

@@ -84,7 +84,7 @@ export async function main(argv = process.argv.slice(2)) {
             deliveryMode: 'direct',
         });
         const server = await ensureServer(dataRoot, { port: Number(args.port) || 0 });
-        const url = `http://127.0.0.1:${server.port}/ask/${encodeURIComponent(created.askId)}`;
+        const url = `http://127.0.0.1:${server.port}/${encodeURIComponent(created.askId)}`;
         const abortController = new AbortController();
         const interrupt = (signal) => abortController.abort(new Error(`Ask UI wait interrupted by ${signal}; saved data was preserved`));
         const onSigint = () => { log('ask-interrupted', { askId: created.askId, signal: 'SIGINT' }); interrupt('SIGINT'); };
@@ -104,7 +104,11 @@ export async function main(argv = process.argv.slice(2)) {
             await waitForSubmission(dataRoot, created.askId, abortController.signal);
             // 转后台时 stdout 会和 stderr 混在一起，这行是「结果已就绪」的唯一可靠信号。
             process.stderr.write(`ask-ui-submitted: ${created.askId}\n`);
-            print(await submittedAskResult(dataRoot, created.askId));
+            const result = { ...await submittedAskResult(dataRoot, created.askId), url };
+            await new Promise((resolve, reject) => {
+                process.stdout.write(`${JSON.stringify(result)}\n`, (error) => error ? reject(error) : resolve());
+            });
+            await completeAsk(dataRoot, created.askId);
         }
         finally {
             process.removeListener('SIGINT', onSigint);
@@ -124,7 +128,7 @@ export async function main(argv = process.argv.slice(2)) {
             return;
         }
         const server = await ensureServer(dataRoot);
-        const url = `http://127.0.0.1:${server.port}/ask/${encodeURIComponent(created.askId)}`;
+        const url = `http://127.0.0.1:${server.port}/${encodeURIComponent(created.askId)}`;
         if (!args['no-open'])
             openBrowser(url);
         print({
@@ -180,10 +184,12 @@ export async function main(argv = process.argv.slice(2)) {
     if (command === 'complete' || command === 'cancel') {
         if (!strArg(args.id))
             throw new Error('--id is required');
-        const completed = await completeAsk(dataRoot, strArg(args.id), command === 'cancel' ? 'cancelled' : 'completed');
-        log(command === 'cancel' ? 'ask-cancelled' : 'ask-completed', { askId: strArg(args.id) });
+        const askId = strArg(args.id);
+        const result = command === 'complete' ? await submittedAskResult(dataRoot, askId) : null;
+        const completed = await completeAsk(dataRoot, askId, command === 'cancel' ? 'cancelled' : 'completed');
+        log(command === 'cancel' ? 'ask-cancelled' : 'ask-completed', { askId });
         // 收尾时顺手关掉常驻服务，不必等它自己 idle 超时。
-        print({ ...completed, serverStopped: await stopIdleServer(dataRoot) });
+        print({ ...(result || { status: completed.status, ask: completed }), serverStopped: await stopIdleServer(dataRoot) });
         return;
     }
     help();

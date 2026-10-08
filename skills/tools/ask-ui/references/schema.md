@@ -157,7 +157,7 @@ macOS 上多绕了一步：`open` 会按文件类型挑程序，`.md` 落到编�
 结构见 [answerset.schema.json](answerset.schema.json)。
 
 ```json
-{"schemaVersion":"1.0","submissionId":"submit-generated-id","askId":"ask-personal-workbench-a7k2-9f3c","submittedAt":"2026-08-10T15:30:00.000Z","hiddenQuestionIds":[],"answers":[{"questionId":"q1","selectedOptionIds":["dashboard"],"customText":"","supplementaryText":"希望首页优先展示今天的任务。"},{"questionId":"q3","selectedOptionIds":[],"customText":"每天使用至少两次。","supplementaryText":""}]}
+{"schemaVersion":"1.0","submissionId":"submit-generated-id","askId":"a1b2c3d4e5f6","submittedAt":"2026-08-10T15:30:00.000Z","hiddenQuestionIds":[],"answers":[{"questionId":"q1","selectedOptionIds":["dashboard"],"customText":"","supplementaryText":"希望首页优先展示今天的任务。"},{"questionId":"q3","selectedOptionIds":[],"customText":"每天使用至少两次。","supplementaryText":""}]}
 ```
 
 读答案时要知道的三件事：

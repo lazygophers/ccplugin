@@ -21,15 +21,9 @@ export function assertSafeId(value, label = 'id') {
     }
     return value;
 }
-export function makeAskId(title = 'ask-ui') {
-    const slug = String(title)
-        .normalize('NFKD')
-        .replace(/[^a-zA-Z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '')
-        .toLowerCase()
-        .slice(0, 36) || 'ask-ui';
-    const stamp = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14);
-    return `${slug}-${stamp}-${randomBytes(2).toString('hex')}`;
+export function makeAskId() {
+    // 12 hex characters are random bytes, not a standard UUID.
+    return randomBytes(6).toString('hex');
 }
 export function askDirectory(dataRoot, askId) {
     return path.join(dataRoot, 'asks', assertSafeId(askId, 'askId'));
@@ -134,9 +128,10 @@ export async function createAsk(input, options = {}) {
         throw new Error('deliveryMode must be direct or manual');
     }
     const questionSet = normalizeQuestionSet(input, { cwd });
-    const askId = makeAskId(questionSet.title);
+    const askId = makeAskId();
     const directory = askDirectory(dataRoot, askId);
-    await fs.mkdir(directory, { recursive: true });
+    await fs.mkdir(path.dirname(directory), { recursive: true });
+    await fs.mkdir(directory);
     const storedQuestionSet = {
         schemaVersion: SCHEMA_VERSION,
         askId,
@@ -315,7 +310,16 @@ export async function completeAsk(dataRoot, askId, status = 'completed') {
     ask.status = status;
     ask.completedAt = now();
     await writeAsk(dataRoot, ask);
-    await updateIndex(dataRoot, ask, { activeAskId: null });
+    // 调用方必须先读完答案，再到这里清掉本次提问；只删自己的 ask 目录。
+    await fs.rm(askDirectory(dataRoot, askId), { recursive: true, force: true });
+    const index = await readJson(path.join(dataRoot, 'index.json'), { schemaVersion: SCHEMA_VERSION });
+    if (Array.isArray(index.asks))
+        index.asks = index.asks.filter((entry) => entry.askId !== askId);
+    for (const key of ['activeAskId', 'lastSubmittedAskId']) {
+        if (index[key] === askId)
+            index[key] = null;
+    }
+    await atomicWriteJson(path.join(dataRoot, 'index.json'), { ...index, updatedAt: now() });
     return ask;
 }
 export async function hasPendingAsk(dataRoot) {

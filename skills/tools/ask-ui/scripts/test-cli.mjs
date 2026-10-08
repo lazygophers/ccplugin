@@ -54,6 +54,9 @@ export async function test() {
         assert.equal(JSON.parse(waiting.stdout).status, 'waiting');
         const waitingById = await runCli(['resume', '--id', ask.askId, '--data-dir', dataRoot]);
         assert.equal(JSON.parse(waitingById.stdout).status, 'waiting');
+        const premature = await runCli(['complete', '--id', ask.askId, '--data-dir', dataRoot]);
+        assert.equal(premature.code, 1, '未提交时不能读完答案并清理');
+        assert.equal(JSON.parse((await runCli(['status', '--id', ask.askId, '--data-dir', dataRoot])).stdout).ask.status, 'waiting_for_user');
         // 提交后 resume 直接带答案；两份已提交且不带 --id 时回 ambiguous。
         await submitAnswers(dataRoot, ask.askId, { answers: [{ questionId: 'q1', customText: '答' }] });
         const resumed = await runCli(['resume', '--data-dir', dataRoot]);
@@ -110,10 +113,15 @@ export async function test() {
         const cancelled = await runCli(['cancel', '--id', cancelTarget.askId, '--data-dir', dataRoot]);
         assert.equal(cancelled.code, 0);
         assert.equal(JSON.parse(cancelled.stdout).status, 'cancelled');
+        await assert.rejects(fs.access(path.join(dataRoot, 'asks', cancelTarget.askId)), /ENOENT/);
         // complete：正常收尾。
         const done = await runCli(['complete', '--id', ask.askId, '--data-dir', dataRoot]);
         assert.equal(done.code, 0);
-        assert.equal(JSON.parse(done.stdout).status, 'completed');
+        assert.equal(JSON.parse(done.stdout).status, 'submitted');
+        assert.equal(JSON.parse(done.stdout).answers.answers[0].customText, '答');
+        await assert.rejects(fs.access(path.join(dataRoot, 'asks', ask.askId)), /ENOENT/);
+        assert.equal((await runCli(['resume', '--data-dir', dataRoot])).stdout.includes(ask.askId), false);
+        assert.equal(JSON.parse((await runCli(['resume', '--id', second.askId, '--data-dir', dataRoot])).stdout).answers.answers[0].customText, '乙答');
         // 非法终态：store 层报错。
         assert.rejects(() => completeAsk(dataRoot, second.askId, 'bogus'), /Invalid final status/);
         // serve：拉起、健康、idle 自动收摊（idle 窗口 0.05 分钟 = 3 秒）。

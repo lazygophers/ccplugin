@@ -239,7 +239,7 @@ export async function startHttpServer({ dataRoot, port = 0, persistServerInfo = 
                 return;
             }
             if (request.method === 'GET'
-                && (requestUrl.pathname === '/' || requestUrl.pathname.startsWith('/ask/'))) {
+                && (requestUrl.pathname === '/' || /^\/[^/]+$/.test(requestUrl.pathname))) {
                 sendFile(response, path.join(APP_ROOT, 'index.html'));
                 return;
             }

@@ -17,7 +17,7 @@
       "minLength": 1
     },
     "askId": {
-      "description": "所属提问，由 Ask UI 自动生成。",
+      "description": "所属提问，由 Ask UI 自动生成，为 12 位随机十六进制字符串（不是标准完整 UUID）。",
       "type": "string",
       "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{2,127}$"
     },

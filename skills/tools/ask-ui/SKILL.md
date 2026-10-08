@@ -58,14 +58,14 @@ description: 开一个本地网页表单，一次把多个问题摆给用户、�
 
 5. **把页面 URL 复述到回复第一行。**stderr 启动时立刻打出 `Ask UI ready at <url>` 和 `ask-ui-id: <id>`，用 `TaskOutput` 读一次后台任务输出取这两行写进回复。浏览器是脚本自动打开的，但它可能没弹出来（无 GUI、默认浏览器没配、窗口被挡），URL 摆出来用户就能自己打开。读一次就够，读不到就照常结束本轮，不要 `sleep` 重试。
 6. 🛑 **STOP：输出 URL 后立刻结束本轮，什么都不用等。**`ask` 没有超时，会一直阻塞到用户提交；用户提交后进程退出，harness 主动把任务完成通知推给你，那就是唤醒信号。
-7. 收到完成通知后，直接读 `<run>.stdout.json`——它是一整行 JSON，解析后继续原工作流。
+7. 收到完成通知后，读完 `<run>.stdout.json` 中的完整问题和答案，再继续原工作流。标准 `ask` 已在 stdout 写完后自动清理提问目录；读完后只删除本次创建的 `<questions.json>` 和 `<run>.stdout.json`（不要清理其他请求文件）。使用 `create` 时立即运行 `node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs complete --id <askId>`（自定义数据目录带 `--data-dir`）。`complete` 先读取答案，再只删除指定提问目录及其索引项，然后输出已读取的答案；答案读取失败时保留文件，按故障速查恢复。
 8. 若还需要更多独立问题，再创建一份 QuestionSet JSON 并再次调用 `ask`——每次 `ask` 天然独立，互不干扰。
 
 ### 服务与浏览器生命周期
 
 - 运行日志在 `$TEMP/ask-ui.log`：一行一条 JSON（时间 / pid / 事件 / askId），10MB 轮转、最多留 3 份备份（`.1` `.2` `.3`）。排查服务起停、提交、唤醒失败先看它；`<dataRoot>/server.log` 只有常驻 serve 进程的 stderr 崩溃栈。
 
-- 每次 `ask` 都会打开浏览器：提交 3 秒后页面自动关闭，服务端也会在没有别的提问等着人答时一起退出，所以下一次提问必须重新打开。
+- URL 格式是 `http://127.0.0.1:<port>/<askId>`，不带 `/ask/`；`askId` 是随机 12 位十六进制字符串，不是标准完整 UUID。每次 `ask` 都会打开浏览器：提交后先保存 `answers.json`，再把完整问题、答案和 URL 写入 stdout，最后退出命令；页面在提交 3 秒后关闭。标准 `ask` 在 stdout 写完后立即调用 `complete` 清理；若使用 `create`，答案保留到 Agent 读完并执行 `complete`。
 - 用户填到一半的答案每改一下就写进 `<ask 目录>/draft.json`（停手 400 毫秒落一次，关标签页时补发一次）。刷新、关页重开、服务重启都接得回来；提交成功后这份草稿被删掉。**别把 `draft.json` 当答案读**，它是半成品，不过校验；正式答案只有 `answers.json`。
 - 常驻服务不需要手动清理，它自己管进退——退出规则见上一条与「故障速查」表里「表单挂了很久没人答」那一行。
 - 仅当浏览器打开由外部单独管理时才用 `--no-open`。仅当必须固定 localhost 端口时才用 `--port <number>`。
@@ -119,13 +119,14 @@ node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs create --input <questions.json>
    node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs resume --id <askId>
    ```
 
-3. 若结果为 `submitted`，用其中的问题和答案继续原工作流。
-4. 若还需要更多独立问题，优先回到前台 `ask` 命令（新的 JSON、新的提问）。只有在仍然无法直连等待时才再次使用 `create`。
-5. 若没有更多问题，运行：
+3. 若结果为 `submitted`，先读完整问题和答案；立即运行第 4 步的 `complete --id <askId>` 清理，再删除本次创建的临时输入/输出文件，然后继续原工作流。
+4. 每次读取答案后立即清理，即使下一步还要提问：
 
    ```text
    node <ASK_UI_SKILL_DIR>/scripts/ask-ui.mjs complete --id <askId>
    ```
+
+5. 若还需要更多独立问题，优先回到前台 `ask` 命令（新的 JSON、新的提问）。只有在仍然无法直连等待时才再次使用 `create`。
 
 若对话中拿不到该标记，运行不带 `--id` 的 `resume`。多个候选时它返回 `status: "ambiguous"` 和一份 `candidates` 列表（含 `askId` / `title` / `summary` / `workspace` / `submittedAt`）。数据目录默认就是当前工作目录下的 `.ask-ui`，所以候选都来自本工作区。按这个顺序筛：
 

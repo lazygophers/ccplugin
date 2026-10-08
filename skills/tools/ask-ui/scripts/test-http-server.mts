@@ -33,6 +33,8 @@ export async function test() {
     server = started.server;
     const base = `http://127.0.0.1:${started.info.port}`;
     const headers = { 'Content-Type': 'application/json' };
+    assert.equal((await fetch(`${base}/${first.askId}`)).status, 200);
+    assert.equal((await fetch(`${base}/ask/${first.askId}`)).status, 404);
 
     // 正文里的本地文件链接：交给默认浏览器开新标签页。浏览器不让 http:// 页面跳 file://，
     // 所以点击由 /local 代办。真跑 `open` 会在测试机上弹出程序，换成一个空转的命令。

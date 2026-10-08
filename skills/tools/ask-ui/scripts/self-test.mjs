@@ -8,7 +8,6 @@ import path from 'node:path';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { validateAgainstSchema, formatSchemaErrors } from './schema-validator.mjs';
-import { loadAskBundle } from './store.mjs';
 import { makeTempRoot, runDirectAsk, stopDetachedServer } from './test-helpers.mjs';
 import { test as testQuestionset } from './test-questionset.mjs';
 import { test as testAnswers } from './test-answers.mjs';
@@ -117,17 +116,15 @@ try {
     // 追问是独立的一次 ask，但常驻服务被复用：同一个 origin。
     assert.equal(new URL(directSecond.testReadyUrl).origin, new URL(directFirst.testReadyUrl).origin);
     assert.notEqual(new URL(directSecond.testReadyUrl).pathname, new URL(directFirst.testReadyUrl).pathname);
-    const firstBundle = await loadAskBundle(directDataRoot, directFirst.askId);
-    assert.equal(firstBundle.ask.status, 'submitted');
-    assert.equal(firstBundle.ask.deliveryMode, 'direct');
-    assert.equal(firstBundle.ask.wakeState, undefined, 'direct 模式不走唤醒，wakeState 不该出现');
+    assert.equal(directFirst.answers.answers.length, 2);
+    assert.equal(directFirst.questions.questions.length, 2);
+    assert.equal(directFirst.answers.answers[1].customText, '第一次提问完成');
+    assert.equal(directSecond.answers.answers[1].customText, '追问完成');
     // 真跑出来的 answers.json 必须符合 references/answerset.schema.json——Agent 是照那份
     // 契约读答案的，落盘结构一旦偏离，读答案的一侧会静默拿错字段。
-    for (const bundle of [firstBundle, await loadAskBundle(directDataRoot, directSecond.askId)]) {
-        if (!bundle.answers)
-            continue;
-        const verdict = validateAgainstSchema(bundle.answers, answerSetSchema);
-        assert.ok(verdict.valid, `${bundle.ask.askId} 的 answers.json 不符合 AnswerSet schema：\n${formatSchemaErrors(verdict.errors)}`);
+    for (const result of [directFirst, directSecond]) {
+        const verdict = validateAgainstSchema(result.answers, answerSetSchema);
+        assert.ok(verdict.valid, `${result.askId} 的 answers.json 不符合 AnswerSet schema：\n${formatSchemaErrors(verdict.errors)}`);
     }
     // ---- 日志轮转 ----
     // $TEMP/ask-ui.log 满 10MB 轮转，备份最多 3 份。TEMP 在 import log.mjs

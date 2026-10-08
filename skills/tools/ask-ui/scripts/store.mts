@@ -93,15 +93,9 @@ export function assertSafeId(value: string, label = 'id'): string {
   return value;
 }
 
-export function makeAskId(title = 'ask-ui'): string {
-  const slug = String(title)
-    .normalize('NFKD')
-    .replace(/[^a-zA-Z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .toLowerCase()
-    .slice(0, 36) || 'ask-ui';
-  const stamp = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14);
-  return `${slug}-${stamp}-${randomBytes(2).toString('hex')}`;
+export function makeAskId(): string {
+  // 12 hex characters are random bytes, not a standard UUID.
+  return randomBytes(6).toString('hex');
 }
 
 export function askDirectory(dataRoot: string, askId: string): string {
@@ -220,9 +214,10 @@ export async function createAsk(input: unknown, options: CreateAskOptions = {}):
     throw new Error('deliveryMode must be direct or manual');
   }
   const questionSet: QuestionSet = normalizeQuestionSet(input, { cwd });
-  const askId = makeAskId(questionSet.title);
+  const askId = makeAskId();
   const directory = askDirectory(dataRoot, askId);
-  await fs.mkdir(directory, { recursive: true });
+  await fs.mkdir(path.dirname(directory), { recursive: true });
+  await fs.mkdir(directory);
 
   const storedQuestionSet: StoredQuestionSet = {
     schemaVersion: SCHEMA_VERSION,
@@ -416,7 +411,14 @@ export async function completeAsk(dataRoot: string, askId: string, status: 'comp
   ask.status = status;
   ask.completedAt = now();
   await writeAsk(dataRoot, ask);
-  await updateIndex(dataRoot, ask, { activeAskId: null });
+  // 调用方必须先读完答案，再到这里清掉本次提问；只删自己的 ask 目录。
+  await fs.rm(askDirectory(dataRoot, askId), { recursive: true, force: true });
+  const index = await readJson<AskIndex>(path.join(dataRoot, 'index.json'), { schemaVersion: SCHEMA_VERSION });
+  if (Array.isArray(index.asks)) index.asks = index.asks.filter((entry) => entry.askId !== askId);
+  for (const key of ['activeAskId', 'lastSubmittedAskId']) {
+    if (index[key] === askId) index[key] = null;
+  }
+  await atomicWriteJson(path.join(dataRoot, 'index.json'), { ...index, updatedAt: now() });
   return ask;
 }
 
