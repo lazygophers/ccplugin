@@ -2,13 +2,13 @@
 # 暂存区碰到哪个 skill 的测试，就跑哪个的自测。自测早就在仓库里，这里只是把它们接上电源。
 # 安装（每个克隆各做一次，graphify 的 post-commit / post-checkout 不受影响）：
 #   ln -sf ../../scripts/hooks/pre-commit .git/hooks/pre-commit
-if git diff --cached --name-only | grep -q '^skills/tools/ask-ui/'; then
-  echo "pre-commit: 编译 ask-ui TS（=类型检查）并暂存产物…"
-  [ -d skills/tools/ask-ui/node_modules ] || npm --prefix skills/tools/ask-ui install --no-fund --no-audit || exit 1
-  npm --prefix skills/tools/ask-ui run --silent build || exit 1
-  git add skills/tools/ask-ui/scripts || exit 1
-  echo "pre-commit: 跑 ask-ui 自测…"
-  node skills/tools/ask-ui/scripts/self-test.mjs || exit 1
+if git diff --cached --name-only | grep -q '^skills/tools/ask-me/'; then
+  echo "pre-commit: 编译 ask-me TS（=类型检查）并暂存产物…"
+  [ -d skills/tools/ask-me/node_modules ] || npm --prefix skills/tools/ask-me install --no-fund --no-audit || exit 1
+  npm --prefix skills/tools/ask-me run --silent build || exit 1
+  git add skills/tools/ask-me/scripts || exit 1
+  echo "pre-commit: 跑 ask-me 自测…"
+  node skills/tools/ask-me/scripts/self-test.mjs || exit 1
 fi
 
 if git diff --cached --name-only | grep -q '^skills/project/tracking-progress/'; then

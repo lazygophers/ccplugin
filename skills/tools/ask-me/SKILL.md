@@ -1,0 +1,190 @@
+---
+name: ask-me
+description: 开一个本地网页表单，一次把多个问题摆给用户、等他提交，答案落盘成 JSON 再继续原工作流——替代 `AskUserQuestion`。要向用户提问、要他拍板或确认、一批里有两个或更多独立问题、问题之间有依赖要做分支、或要更正已提交的答案时使用；grill、头脑风暴、方案选型、需求澄清同样走本 skill。
+---
+
+# Ask Me
+
+把 Ask Me 当作展示与持久化适配器使用。问题的生成和推理仍留在调用方工作流里。
+
+## 总览：三条路径，只走一条
+
+| 路径 | 何时走 | 答案怎么回来 |
+|---|---|---|
+| **标准路径 `ask`** | 默认。后台运行，阻塞到用户提交 | 进程退出，harness 推完成通知，读 stdout 文件 |
+| **故障恢复 `resume`** | 仅「故障速查」表列出的情况 | `status: "submitted"` 里就是完整答案 |
+| **手动回退 `create`** | `ask` 确实用不了的最后手段 | 用户回复「已提交」后跑 `resume` |
+
+选错路径的代价都在后文用 🔴 标出。先读总览再往下走，不要跳进某条路径的细节里出不来。
+
+🔴 **红线清单只有一份，在文末的「反模式」表**——每行三列：不要做什么、为什么、改成什么。每次准备发命令或回话之前对照一遍。（中间各节里的 🔴 是就地提醒，不是另一份清单。）
+
+## 判断是否使用 UI
+
+🔴 **CHECKPOINT**：当前一批问题里包含至少两个用户当下就能回答的独立问题时，必须使用 UI。答案依赖前一题的问题写成同一次提问里的条件题（`showWhen`，见第 3 步）；只有需要 Agent 拿到答案后重新推理才能提出的问题，才留到下一次 `ask`。只有一个问题时直接在对话里问；唯一的例外是更正或补充已提交的答案——哪怕只有一题也再发起一次 `ask`，因为对话里口头确认不落盘，后续流程读不到它。
+
+对 `grill-me`、`grill-with-docs`、头脑风暴，或其他确认与问题收集类工作流，只要一次超过两个问题，一律使用 UI。
+
+### 回退顺序
+
+按顺序往下退，退到能用的第一档为止：
+
+1. **Ask Me**（本 skill）——默认。
+2. **`AskUserQuestion`**——本 skill 用不了时改用它。用不了的情形有两种：harness 没有可执行命令的工具（Bash 或等价物），或服务/浏览器确实起不动。
+3. **对话里的编号文本问题**——只有在 `AskUserQuestion` 也拿不到时才允许。
+
+退档时说清真实原因，别把「没有 Bash 工具」写成「服务起不来」——前者换任何语言重写都没用，后者才是环境问题。用 `ToolSearch` 确认过工具确实不存在，再下结论。
+
+## 标准路径：`ask` 八步
+
+1. 把包含本 `SKILL.md` 的目录解析为 `ASK_ME_SKILL_DIR`。
+2. 创建 JSON 前先读两份文件：[references/questionset.schema.json](references/questionset.schema.json) 是字段清单本身（JSON Schema 2020-12，每个字段带中文说明），[references/schema.md](references/schema.md) 讲 schema 表达不了的部分——跨字段硬规则、页面实际行为、为什么这样写。[references/example-question-set.json](references/example-question-set.json) 是一份可直接复制改字段的完整起手模板（单选 / 多选 / 自由文本各一题，带推荐答案和上下文字段）。答案的结构见 [references/answerset.schema.json](references/answerset.schema.json)。
+3. 创建 QuestionSet JSON 文件。每次 `ask` 都是一次独立提问，id 由 CLI 自动生成。旧版字段（`sessionId` / `roundNumber` / `basedOnRound` / `sessionTitle` / `sessionSummary` / `sessionBackground`）已全部移除，写了会报错指路。以下七条逐条过一遍：
+
+   - **必写字段**：每道题必写两个字段：`type`（`single` / `multiple` / `text`，**没有默认值，漏写报错**）和 `text`（问题正文，问题本身和描述都写在这里）。
+   - **选填题**：允许留空的题必须显式写 `"required": false`——`required` 默认 `true`，漏写就是必填，页面挂「必填」徽标、留空挡提交。**别在 `text` 里写「（可留空）」代替这个字段**：文案和徽标对不上，用户只能被迫编一句。「还有别的补充吗」「其他备注」「可选参数」这类题一律 `type: "text"` + `"required": false`。
+   - **上下文字段**：一并写上，让用户不看对话就能判断在问什么：`projectName` / `title` / `summary` / `background`（左栏「本次背景」，右上角有独立按钮可放大）/ `purpose`，需要单独交代前情的题写题级 `background`。
+   - **选项**：一律是 JSON 对象 `{"text":"…","description":"…","recommended":true,"reason":"…"}`，**不接受字符串**；`reason` 只能写在 `recommended: true` 的选项上。选项的 `id` 不写就按这题内的顺序自动生成 `option-1` / `option-2`…；**要被 `showWhen` 指到的选项必须自己写 `"id"`**，别去猜自动生成的序号。选择题没有「其他」选项。预设选项之外的答案由每题的补充说明承载，所以选项只列真正互斥的几种，不要凑「其他」。选择题至少要 2 个选项，脚本会直接报错 `第 X 题是选择题，至少要有两个选项` 并退出——只有一个候选的确认题改成 `type: "text"`，或者干脆在对话里问。
+   - **条件题（分支）**：有依赖关系的问题写成同一次提问里的条件题——`q1` 的选项写成 `{"id":"yes","text":"要，分阶段放量"}`，这题写 `"showWhen": {"questionId":"q1","optionIds":["yes"]}`，于是只在 `q1` 选了那个选项时才出现，用户选完当场出现或消失。`optionIds` 里填的是**选项的 `id`**，不是选项的文字——填文字会报 `第 q2 题的 showWhen 引用了 q1 里不存在的选项：…`。`showWhen` 只能指向排在前面的题，分支树靠链式依赖搭；文本题作触发源时用 `answered` / `contains` / `matches`。隐藏题不校验必填、也不进 `answers.json`（id 列在 `hiddenQuestionIds`）。完整规则见 [references/schema.md](references/schema.md) 的「条件题（分支）」——`showWhen` 的三条跨字段硬规则（指向前面的题、匹配方式配得上题型、选项 id 真实存在）schema 拦不住，只有运行时会报错。
+   - **富文本与文件链接**：`background`、题目的 `text` 和 `background` 支持 **Markdown（GFM：标题、粗体、行内代码、代码块、列表、链接、引用、表格）+ Mermaid**；选项的 `description` 只支持 Markdown。**提到文件就写成链接**：`[审计报告](.scratch/model-audit.html)`（路径相对工作区，也收绝对路径和 `file:///…`），点开就在默认浏览器的新标签页里打开它，地址是真的 `file://`。只放行文档和图片（`.html` / `.md` / `.txt` / `.log` / `.json` / `.yaml` / `.csv` / `.pdf` / 图片），`.sh`、`.app` 这类会被挡下。光写路径点不了，用户得自己去开。细节见 [references/schema.md](references/schema.md) 的「本地文件链接」。
+   - **图表与嵌套围栏**：流程、时序、架构这类讲不清的东西写成 ` ```mermaid ` 代码块，会渲染成跟随主题的图。表格、图表和代码块在页面上都能点击放大、缩放拖拽。代码块在围栏上标语言（` ```ts `、` ```sql `）就会按语言高亮。**嵌套规则**：要展示一段本身含 ``` 围栏的 markdown（或代码里含 ```）时，外层围栏必须用四反引号 ` ```` `——三反引号会被内层第一个 ``` 提前闭合，后面的内容漏成正文，页面上出现裸 ``` 字符。
+4. **在后台运行命令，只把 stdout 重定向到文件，stderr 留在控制台**：
+
+   ```text
+   node <ASK_ME_SKILL_DIR>/scripts/ask-me.mjs ask --input <questions.json> > <run>.stdout.json
+   ```
+
+   用 harness 的后台机制启动（Claude Code 里是 Bash 工具的 `run_in_background: true`）。stdout 是结果 JSON，必须落文件；stderr 是给人看的进度行（URL、`ask-me-id`），留在控制台用户当场就能看到。
+
+5. **把页面 URL 复述到回复第一行。**stderr 启动时立刻打出 `Ask Me ready at <url>` 和 `ask-me-id: <id>`，用 `TaskOutput` 读一次后台任务输出取这两行写进回复。浏览器是脚本自动打开的，但它可能没弹出来（无 GUI、默认浏览器没配、窗口被挡），URL 摆出来用户就能自己打开。读一次就够，读不到就照常结束本轮，不要 `sleep` 重试。
+6. 🛑 **STOP：输出 URL 后立刻结束本轮，什么都不用等。**`ask` 没有超时，会一直阻塞到用户提交；用户提交后进程退出，harness 主动把任务完成通知推给你，那就是唤醒信号。
+7. 收到完成通知后，读完 `<run>.stdout.json` 中的完整问题和答案，再继续原工作流。标准 `ask` 已在 stdout 写完后自动清理提问目录；读完后只删除本次创建的 `<questions.json>` 和 `<run>.stdout.json`（不要清理其他请求文件）。使用 `create` 时立即运行 `node <ASK_ME_SKILL_DIR>/scripts/ask-me.mjs complete --id <askId>`（自定义数据目录带 `--data-dir`）。`complete` 先读取答案，再只删除指定提问目录及其索引项，然后输出已读取的答案；答案读取失败时保留文件，按故障速查恢复。
+8. 若还需要更多独立问题，再创建一份 QuestionSet JSON 并再次调用 `ask`——每次 `ask` 天然独立，互不干扰。
+
+### 服务与浏览器生命周期
+
+- 运行日志在 `$TEMP/ask-me.log`：一行一条 JSON（时间 / pid / 事件 / askId），10MB 轮转、最多留 3 份备份（`.1` `.2` `.3`）。排查服务起停、提交、唤醒失败先看它；`<dataRoot>/server.log` 只有常驻 serve 进程的 stderr 崩溃栈。
+
+- URL 格式是 `http://127.0.0.1:<port>/<askId>`，不带 `/ask/`；`askId` 是随机 12 位十六进制字符串，不是标准完整 UUID。每次 `ask` 都会打开浏览器：提交后先保存 `answers.json`，再把完整问题、答案和 URL 写入 stdout，最后退出命令；页面在提交 3 秒后关闭。标准 `ask` 在 stdout 写完后立即调用 `complete` 清理；若使用 `create`，答案保留到 Agent 读完并执行 `complete`。
+- 用户填到一半的答案每改一下就写进 `<ask 目录>/draft.json`（停手 400 毫秒落一次，关标签页时补发一次）。刷新、关页重开、服务重启都接得回来；提交成功后这份草稿被删掉。**别把 `draft.json` 当答案读**，它是半成品，不过校验；正式答案只有 `answers.json`。
+- 常驻服务不需要手动清理，它自己管进退——退出规则见上一条与「故障速查」表里「表单挂了很久没人答」那一行。
+- 仅当浏览器打开由外部单独管理时才用 `--no-open`。仅当必须固定 localhost 端口时才用 `--port <number>`。
+
+## 故障速查：出什么事，做什么
+
+```text
+node <ASK_ME_SKILL_DIR>/scripts/ask-me.mjs resume --id <askId>
+```
+
+🔴 只有下表列出的情况才需要 `resume`。正常路径永远是读 `<run>.stdout.json`，不要把 `resume` 当常规动作。
+
+`askId` 从任务输出（stderr）里的 `ask-me-id: <id>` 标记取；那里还有一行 `ask-me-submitted: <id>`，是提交完成的备用信号。`resume` 返回 `status: "submitted"` 时其中就是完整答案。
+
+| 触发条件 | 一线修复 | 仍失败的兜底 |
+|---|---|---|
+| 任务秒退，任务输出里连 `ask-me-id` 标记都没有 | QuestionSet JSON 非法，提问根本没建起来：读任务输出里的报错（一次列出全部问题）改 JSON 重跑 `ask` | 🔴 不要跑 `resume`——没有数据可恢复，不带 `--id` 的 `resume` 只会捞出别的任务的旧提问 |
+| 后台任务被杀、崩溃，或退出码非 0（任务输出有 `ask-me-id`） | 取 `askId` 后跑 `resume` | 跑不带 `--id` 的 `resume`，按 `title` / `summary` 筛出讲当前任务的候选，取 `submittedAt` 最新的一条 |
+| `<run>.stdout.json` 为空或不是合法 JSON | 同上，用 `resume` 重取结果 | 数据确实不存在时据实说明答案已丢，用同一批问题重新 `ask` |
+| 换了新的 Agent 会话，拿不到原来的后台任务 | 从对话里最近的 `ask-me-id` 标记取 id 后 `resume` | 标记也丢了就跑不带 `--id` 的 `resume` 列候选 |
+| `resume` 返回 `{"status":"waiting"}` | 用户还没提交：什么都不做，当场结束本轮，继续等 harness 的完成通知 | 🔴 不重开表单、不重发问题、不催用户、不 `sleep` |
+| 表单挂了很久没人答，担心服务一直占着 | 什么都不做：有提问等着答服务就该一直跑，全部答完后 24 小时无访问自行退出，数据目录被删立即退出，`complete` / `cancel` 结束最后一个提问时当场停掉 | 🔴 不要手动 kill 进程；空闲时长要改就用 `ASK_ME_IDLE_TIMEOUT_MINUTES` |
+| 本地浏览器连不上临时服务 | 先看 `<dataRoot>/server.log` 最后一行确认服务为什么退出（`received SIGTERM` / `idle for N minutes` / `data directory is gone` / 崩溃栈），再走 `create` 分离式流程（见「手动回退与恢复」） | 仍连不上才退到 `AskUserQuestion` |
+| harness 没有 Bash 或等价的执行工具 | 用 `ToolSearch` 确认工具确实不存在，退到 `AskUserQuestion` | `AskUserQuestion` 也拿不到时才用对话里的编号文本问题 |
+| 唤醒适配器失败 | 保住答案，回到手动「已提交」流程 | 答案已落盘，用 `resume` 重取 |
+
+## 手动回退与恢复
+
+🔴 **CHECKPOINT：这是最后手段，只在 `ask` 确实用不了时才走**——它是唯一需要用户回复「已提交」的路径。`ask` 在后台运行**不算**用不了，那是标准路径，按上面等通知即可。
+
+出现以下情况时走分离式（detached）流程：前台工具调用无法保持活跃、本地浏览器连不上临时服务、或需要恢复一个被中断的直连提问：
+
+```text
+node <ASK_ME_SKILL_DIR>/scripts/ask-me.mjs create --input <questions.json>
+```
+
+解析返回的 JSON。在对话中同时给出它的 URL 和一个可见标记：
+
+   ```text
+   ask-me-id: <askId>
+   ```
+
+告诉用户提交表单后只回复「已提交」。`create` 命令会启动或复用一个分离式 localhost 服务并立即返回。
+
+当用户说「已提交」「提交好了」「答完了」时：
+
+1. 从对话中最近一个 `ask-me-id` 标记恢复 `askId`。
+2. 运行：
+
+   ```text
+   node <ASK_ME_SKILL_DIR>/scripts/ask-me.mjs resume --id <askId>
+   ```
+
+3. 若结果为 `submitted`，先读完整问题和答案；立即运行第 4 步的 `complete --id <askId>` 清理，再删除本次创建的临时输入/输出文件，然后继续原工作流。
+4. 每次读取答案后立即清理，即使下一步还要提问：
+
+   ```text
+   node <ASK_ME_SKILL_DIR>/scripts/ask-me.mjs complete --id <askId>
+   ```
+
+5. 若还需要更多独立问题，优先回到前台 `ask` 命令（新的 JSON、新的提问）。只有在仍然无法直连等待时才再次使用 `create`。
+
+若对话中拿不到该标记，运行不带 `--id` 的 `resume`。多个候选时它返回 `status: "ambiguous"` 和一份 `candidates` 列表（含 `askId` / `title` / `summary` / `workspace` / `submittedAt`）。数据目录默认就是当前工作目录下的 `.ask-me`，所以候选都来自本工作区。按这个顺序筛：
+
+1. 先按 `title` 和 `summary` 筛，只保留讲的是当前任务的候选。
+2. 只剩一条就用它；剩多条时取 `submittedAt` 最新的那条。
+3. 一条都对不上当前任务时，把各候选的 `askId`、`title`、`submittedAt` 列出来让用户选，不要挑一个最近的凑合用。
+
+🔴 重复的「已提交」消息不得重复创建提问。只有在成功读到一个 `submitted` 的答案集之后，才可以发起新提问。
+
+## 可选的主动唤醒
+
+Ask Me 为 Claude Code 和 Codex App Server 支持可选的唤醒元数据。把它当增强项，不是必需项。
+
+- 只有在用户同意后才启用自动唤醒。
+- Claude Code 需要一个已记录的 session id。
+- Codex 需要宿主提供的 thread id。绝不猜测 Codex thread id。
+- 适配器失败时，保住答案并回到手动「已提交」流程。
+- 直连 `ask` 模式永远不触发唤醒适配器，因为等待中的进程本身就是返回通道。
+
+## 反模式：这些事一次都不要做
+
+每次准备发命令或回话之前，对照一遍。
+
+| 🔴 不要做 | 为什么 | 改成 |
+|---|---|---|
+| 用 `nohup ... &` 之类手写后台 | harness 收不到退出事件，整条链路退回人工追问 | 用 harness 自己的后台机制 |
+| stdout 不重定向，直接从任务输出解析结果 | 两股输出混在一起，`JSON.parse` 必然失败 | `> <run>.stdout.json`，stderr 留在控制台 |
+| 把 stderr 也重定向进文件 | URL 和 `ask-me-id` 被埋进文件，用户看不到，页面没弹出来就没法自己打开 | 只重定向 stdout |
+| `sleep` 轮询、催用户、让用户回复「已提交」 | 后台任务的完成通知就是唤醒信号，等它即可 | 启动后立刻结束本轮 |
+| 从任务输出里找答案，或手拼 `.ask-me/` 路径 | 任务输出只有 stderr 的进度行，答案不在那里 | 答案读 `<run>.stdout.json` 或跑 `resume`；任务输出只用来取 URL、`ask-me-id` 和报错 |
+| 正文里写光秃秃的文件路径 | 页面上点不开，用户要自己去文件管理器里找 | 写成 Markdown 链接 `[报告](.scratch/report.html)`，点开就是新标签页 |
+| 给选择题加「其他」选项 | 预设外的答案由每题的补充说明承载 | 选项只列真正互斥的几种 |
+| 写只有一个选项的选择题 | 脚本硬拒收，整批问题连会话都建不起来 | 补足第二个真实互斥的选项，或改成 `type: "text"` |
+| 在 `text` 里写「（可留空）」却不写 `"required": false` | `required` 默认 `true`，页面照挂「必填」徽标、留空挡提交，文案和校验对不上 | 选填题显式写 `"required": false` |
+| 漏写 `type`，或把选项写成字符串 | 两者都硬拒收，整批问题连会话都建不起来 | `type` 三选一必写；选项一律写成带 `text` 的 JSON 对象 |
+| 用题级 `recommendedOptionIds` 标推荐 | 已经不认这个字段，脚本会报错 | 推荐写在选项里：`"recommended": true` 配 `"reason"` |
+| 让 `showWhen` 指向排在后面的题 | 顺序即依赖序，向后引用会被硬拒收 | 把触发题排到前面 |
+| 因为「问题有依赖」就拆成多次 ask | 每次都要重开浏览器、Agent 也要多醒一次 | 同一次提问里用 `showWhen` 做分支 |
+| 覆盖已提交的问题或答案 | `answers.json` 提交后不可变 | 更正和补充再发起一次 `ask` |
+| 把「没有 Bash 工具」说成「服务起不来」 | 归因错了，用户会去修一个不存在的环境问题 | 说清是工具缺失还是服务故障 |
+| 猜 Codex thread id | 猜错会把唤醒发给别的会话 | thread id 只能由宿主提供，拿不到就走手动流程 |
+
+## 常用命令
+
+```text
+node <ASK_ME_SKILL_DIR>/scripts/ask-me.mjs ask --input <questions.json>    # 标准路径
+node <ASK_ME_SKILL_DIR>/scripts/ask-me.mjs create --input <questions.json> # 手动回退
+node <ASK_ME_SKILL_DIR>/scripts/ask-me.mjs resume --id <askId>             # 故障恢复
+node <ASK_ME_SKILL_DIR>/scripts/ask-me.mjs status --id <askId>             # 查提问状态
+node <ASK_ME_SKILL_DIR>/scripts/ask-me.mjs serve                           # 常驻服务（ask/create 自动管理，一般不单跑）
+node <ASK_ME_SKILL_DIR>/scripts/ask-me.mjs complete --id <askId>           # 正常结束提问
+node <ASK_ME_SKILL_DIR>/scripts/ask-me.mjs cancel --id <askId>             # 作废提问（问题问错了、任务取消）
+node <ASK_ME_SKILL_DIR>/scripts/self-test.mjs                              # 自检，改完 skill 或排查环境时跑
+```
+
+## 开发：TS 源码与编译产物
+
+- **改代码只改 `scripts/**/*.mts`**。同名 `.mjs` 是 tsc 编译产物，一起进仓库（`~/.agents` 的安装副本直接跑 `.mjs`，不带构建步骤）；手改 `.mjs` 会在下次编译时被覆盖。
+- 编译即类型检查（strict）：`npm --prefix <ASK_ME_SKILL_DIR> run build`（首次先 `npm --prefix <ASK_ME_SKILL_DIR> install`）；只查不改用 `run typecheck`。pre-commit 钩子会自动编译、暂存产物并跑自测。
+- 运行时要求 Node ≥ 18（`fetch` / `AbortSignal.timeout`）；package.json 的 `engines` 已声明。
+- 浏览器资产 `assets/app/*.js` 保持 .js（Node 与浏览器共用，无构建），类型契约在同目录 `.d.ts`——改了 `.js` 的导出签名要同步改 `.d.ts`。

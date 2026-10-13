@@ -22,7 +22,7 @@
 
 - `git/` — git 相关 skill 模板
 - `project/` — 项目级 skill 模板
-- `tools/` — 交互工具 skill（`ask-ui`，源码 `scripts/**/*.mts`，同目录 `.mjs` 是 tsc 编译产物一并进仓库——只改 `.mts`，见该 skill 的 SKILL.md）
+- `tools/` — 交互工具 skill（`ask-me`，源码 `scripts/**/*.mts`，同目录 `.mjs` 是 tsc 编译产物一并进仓库——只改 `.mts`，见该 skill 的 SKILL.md）
 
 ### 顶层关键文件
 
@@ -41,8 +41,8 @@
 git push
 
 # 或本地直接同步
-rsync -a --delete --exclude node_modules --exclude .ask-ui skills/tools/<name>/ ~/.agents/skills/<name>/
-# ask-ui 带 node_modules（typescript devDeps），cp -R 会把几十 MB 依赖拷过去，必须 rsync 排除
+rsync -a --delete --exclude node_modules --exclude .ask-me skills/tools/<name>/ ~/.agents/skills/<name>/
+# ask-me 带 node_modules（typescript devDeps），cp -R 会把几十 MB 依赖拷过去，必须 rsync 排除
 ```
 
 只 `cp` 不 push 的改动，会在下次 skill 更新时被远端版本覆盖掉。
@@ -55,7 +55,7 @@ diff -rq skills/tools/<name> ~/.agents/skills/<name>
 
 ## 提交前检查
 
-`scripts/hooks/pre-commit`：按暂存区路径前缀触发对应 skill 的自测——`skills/tools/ask-ui/**` 跑 `skills/tools/ask-ui/scripts/self-test.mjs`，`skills/project/tracking-progress/**` 跑 `python3 -m pytest skills/project/tracking-progress/scripts/test_tracking_progress.py`。每个克隆装一次（graphify 的 post-commit / post-checkout 不受影响）：
+`scripts/hooks/pre-commit`：按暂存区路径前缀触发对应 skill 的自测——`skills/tools/ask-me/**` 跑 `skills/tools/ask-me/scripts/self-test.mjs`，`skills/project/tracking-progress/**` 跑 `python3 -m pytest skills/project/tracking-progress/scripts/test_tracking_progress.py`。每个克隆装一次（graphify 的 post-commit / post-checkout 不受影响）：
 
 ```bash
 ln -sf ../../scripts/hooks/pre-commit .git/hooks/pre-commit

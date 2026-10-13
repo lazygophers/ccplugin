@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 # Directories under .scratch that never hold task state.
-SKIP_DIRS = {"memory", "research", ".ask-ui", "node_modules", ".git"}
+SKIP_DIRS = {"memory", "research", ".ask-me", "node_modules", ".git"}
 
 # Files that are structural, not tasks — never reported as unrecognised.
 KNOWN_FILENAMES = {"map.md", "memory.md", "spec.md", "readme.md"}

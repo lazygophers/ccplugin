@@ -1,0 +1,1538 @@
+import * as viewState from '/view-state.js';
+import { answersForForm, displayAnswer, selectionCount } from '/view-state.js';
+
+const app = document.querySelector('#app');
+const toast = document.querySelector('#toast');
+
+const SUPPLEMENTARY_TEXT_MAX_LENGTH = 2000;
+const THEME_STORAGE_KEY = 'ask-me-theme';
+// 新题高亮的存活时长，和 fallback.css 里 .question-card.is-new 的动画时长保持一致。
+const QUESTION_HIGHLIGHT_MS = 1800;
+const askId = decodeURIComponent(location.pathname.split('/').filter(Boolean).at(-1) || '');
+
+let bundle = null;
+let focusedQuestionId = null;
+let pendingAnswers = [];
+let answeredCountElement = null;
+let progressCellsElement = null;
+let railNavElement = null;
+let lastUpdatedAt = null;
+let submitting = false;
+let submissionConfirmationTimer = null;
+let submissionConfirmationInterval = null;
+let lastVisibilitySignature = '';
+
+function element(tag, className = '', text = '') {
+  const value = document.createElement(tag);
+  if (className) value.className = className;
+  if (text !== '') value.textContent = text;
+  return value;
+}
+
+const MERMAID_BLOCK = /^[ \t]*```mermaid[ \t]*\r?\n([\s\S]*?)^[ \t]*```[ \t]*$/gm;
+
+// 富文本的一组底板配色 token，定义见 fallback.css 的 .rich-text。
+const RICH_TOKENS = [
+  '--rich-bg',
+  '--rich-fg',
+  '--rich-muted',
+  '--rich-accent',
+  '--rich-accent-fg',
+  '--rich-accent-2',
+  '--rich-accent-2-fg',
+];
+
+const vendorLoaders = new Map();
+// 两次重试的退避间隔，毫秒。
+const VENDOR_RETRY_DELAYS = [300, 900];
+let diagramSequence = 0;
+const pendingRichText = new Set();
+
+// 首屏要滚到第一道未答题，而正文和图表是异步渲染的：不等它们渲染完，卡片高度
+// 还在变，刚滚到的位置立刻就偏掉了。
+function trackRichText(promise) {
+  pendingRichText.add(promise);
+  promise.finally(() => pendingRichText.delete(promise));
+  return promise;
+}
+
+async function richTextSettled() {
+  while (pendingRichText.size) {
+    await Promise.allSettled([...pendingRichText]);
+  }
+}
+
+function injectVendorScript(name, globalName) {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = `/vendor/${name}.min.js`;
+    script.onload = () => resolve(globalThis[globalName]);
+    script.onerror = () => {
+      script.remove();
+      reject(new Error(`${name} 组件加载失败`));
+    };
+    document.head.append(script);
+  });
+}
+
+function delay(ms) {
+  return new Promise((resolve) => { setTimeout(resolve, ms); });
+}
+
+// 一次网络抖动不该让这一页的图表和正文全部消失：退避重试两次再认输。
+async function fetchVendor(name, globalName) {
+  for (let attempt = 0; attempt <= VENDOR_RETRY_DELAYS.length; attempt += 1) {
+    if (attempt) await delay(VENDOR_RETRY_DELAYS[attempt - 1]);
+    try {
+      return await injectVendorScript(name, globalName);
+    } catch {
+      // 继续退避重试；全部用完后统一抛下面那个带 vendorName 的错误。
+    }
+  }
+  const error = new Error(`${name} 组件加载失败，点正文里的「重试」可重新加载`);
+  // 有这个字段才说明是「下载不到」，值得给重试按钮；图表语法错误不是。
+  error.vendorName = name;
+  throw error;
+}
+
+function loadVendor(name, globalName) {
+  // 缓存这一个 promise，重试期间并发的调用共享它，不重复发请求。
+  if (!vendorLoaders.has(name)) {
+    // 失败的 promise 不能留下来，否则一次网络抖动会让这一页永远加载不出。
+    vendorLoaders.set(name, fetchVendor(name, globalName).catch((error) => {
+      vendorLoaders.delete(name);
+      throw error;
+    }));
+  }
+  return vendorLoaders.get(name);
+}
+
+// 组件彻底下载不到时，除 toast 外在受影响的那段正文里留一个可点的出口。点它只
+// 重跑这一段的渲染，页面不重新加载，用户已填的答案与草稿都留在原处。
+function appendRetry(host, label, rerender) {
+  const button = element('button', 'rich-retry', `重试加载${label}`);
+  button.type = 'button';
+  button.addEventListener('click', (event) => {
+    event.stopPropagation();
+    button.disabled = true;
+    button.textContent = `重新加载${label}…`;
+    trackRichText(rerender());
+  });
+  host.append(button);
+}
+
+function loadMermaid() {
+  return loadVendor('mermaid', 'mermaid');
+}
+
+async function loadMarkdown() {
+  const [marked, purify] = await Promise.all([
+    loadVendor('marked', 'marked'),
+    loadVendor('purify', 'DOMPurify'),
+  ]);
+  return { marked, purify };
+}
+
+// 图表用它所在底板的配色，不用全局 token：黄色左栏里的图必须是黄色系的，
+// 否则一块 surface 色的图钉在黄底上，整页就散了。明暗主题同样跟着换。
+function mermaidTheme(host) {
+  const styles = getComputedStyle(host);
+  const read = (name) => styles.getPropertyValue(name).trim();
+  const background = read('--rich-bg');
+  const line = read('--rich-fg');
+  const muted = read('--rich-muted');
+  const mutedText = read('--ink');
+  const accent = read('--rich-accent');
+  const accentText = read('--rich-accent-fg');
+  const accent2 = read('--rich-accent-2');
+  const accent2Text = read('--rich-accent-2-fg');
+  return {
+    theme: 'base',
+    fontFamily: styles.fontFamily,
+    themeVariables: {
+      background,
+      primaryColor: accent,
+      primaryTextColor: accentText,
+      primaryBorderColor: line,
+      secondaryColor: accent2,
+      secondaryTextColor: accent2Text,
+      secondaryBorderColor: line,
+      tertiaryColor: muted,
+      tertiaryTextColor: mutedText,
+      tertiaryBorderColor: line,
+      lineColor: line,
+      textColor: line,
+      mainBkg: accent,
+      nodeBorder: line,
+      clusterBkg: muted,
+      clusterBorder: line,
+      titleColor: line,
+      edgeLabelBackground: background,
+      actorBkg: accent,
+      actorBorder: line,
+      actorTextColor: accentText,
+      signalColor: line,
+      signalTextColor: line,
+      labelBoxBkgColor: accent2,
+      labelBoxBorderColor: line,
+      labelTextColor: accent2Text,
+      noteBkgColor: muted,
+      noteBorderColor: line,
+      noteTextColor: mutedText,
+    },
+    // themeVariables 管不到线宽，也管不到连线标签的文字色——后者在暗色主题下
+    // 会留在默认深色上，压在深色背景里看不见。
+    themeCSS: `
+      .node rect, .node circle, .node ellipse, .node polygon, .node path,
+      .cluster rect, .actor, .labelBox, .note {
+        stroke-width: 3px;
+      }
+      .edgePath .path, .flowchart-link, .messageLine0, .messageLine1 {
+        stroke-width: 2.5px;
+      }
+      .edgeLabel, .edgeLabel p, .edgeLabel span, .edgeLabel foreignObject div {
+        color: ${line};
+        background: ${background};
+      }
+      .edgeLabel rect {
+        fill: ${background};
+      }
+    `,
+  };
+}
+
+// mermaid 11.16.1 的 render(id, text, container) 没有配置参数，主题只能写进全局
+// initialize，所以按底板算配色的行为必须留在 initialize 上。于是改成两件事：
+// 配色签名没变就不再 initialize，以及把「initialize + render」排成一条队列——
+// 否则同一页两张不同底板的图会在 await 之间互相覆盖对方的全局配置。
+let mermaidThemeSignature = null;
+let diagramQueue = Promise.resolve();
+
+function renderDiagram(host, code) {
+  // 组件下载仍然并发（并发调用共享同一个 promise），排队的只是改全局配置那一段。
+  const loading = loadMermaid();
+  // 排队等待期间先接住失败，真正的处理在 renderDiagramNow 的 try 里。
+  loading.catch(() => {});
+  const task = diagramQueue.then(() => renderDiagramNow(host, code, loading));
+  diagramQueue = task.catch(() => {});
+  return task;
+}
+
+async function renderDiagramNow(host, code, loading) {
+  diagramSequence += 1;
+  const id = `ask-me-diagram-${diagramSequence}`;
+  try {
+    const mermaid = await loading;
+    const theme = mermaidTheme(host);
+    const signature = JSON.stringify(theme);
+    if (signature !== mermaidThemeSignature) {
+      mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', ...theme });
+      mermaidThemeSignature = signature;
+    }
+    const { svg } = await mermaid.render(id, code);
+    host.innerHTML = svg;
+    host.dataset.state = 'ready';
+    makePreviewable(host, '图表');
+  } catch (error) {
+    // 渲染不出来时把原始图表源码亮出来，比留一个空框有用。
+    host.replaceChildren();
+    host.dataset.state = 'failed';
+    host.append(element('p', 'diagram-error', `图表无法渲染：${error.message}`));
+    // 只有「组件下载不到」才值得重试；图表语法错误重试多少次都是同一个结果。
+    if (error.vendorName) appendRetry(host, '图表', () => renderDiagram(host, code));
+    host.append(element('pre', 'diagram-source', code));
+  }
+}
+
+let markdownWarned = false;
+let highlightWarned = false;
+
+// 代码块按 ```lang 标注的语言上色。hljs 只认自己注册过的语言，标注是别名或
+// 没标注的就保持素色，不猜。
+async function highlightCode(host) {
+  const blocks = [...host.querySelectorAll('pre code[class*="language-"]')];
+  if (!blocks.length) return;
+  try {
+    const hljs = await loadVendor('highlight', 'hljs');
+    for (const block of blocks) {
+      const language = block.className.match(/language-([\w+#.-]+)/)[1];
+      if (!hljs.getLanguage(language)) continue;
+      block.innerHTML = hljs.highlight(block.textContent, { language }).value;
+      block.classList.add('hljs');
+    }
+  } catch {
+    // 高亮组件下载不到时代码块保持素色，正文和答题都不受影响。
+    if (highlightWarned) return;
+    highlightWarned = true;
+    showToast('代码高亮组件加载失败，代码块按素色显示');
+  }
+}
+
+// 点链接 = 让服务端把文件投给默认浏览器开新标签页，地址栏里是真 file:// 地址。
+// 不能直接导航过去：Chrome 禁止 http:// 页面跳 file://，点了静默失败。所以 href 只
+// 负责显示和复制（右键「复制链接」拿到的就是 file:// 全路径），真正的动作在 click 里。
+function openLocalFile(target, hash) {
+  const query = [
+    `path=${encodeURIComponent(target)}`,
+    `hash=${encodeURIComponent(hash)}`,
+  ].join('&');
+  return fetch(`/local?${query}`)
+    .then(async (response) => {
+      if (response.ok) return;
+      const body = await response.json().catch(() => ({}));
+      showToast(body.error || `打不开 ${target}`);
+    })
+    .catch((error) => showToast(`打不开 ${target}：${error.message}`));
+}
+
+// 指向本机文件的链接（`.scratch/report.html`、`/abs/notes.md`、`file:///…`）。
+// 判据是「不像网址」：带已知协议、`//` 开头、纯锚点、纯 query 的一律不动。
+function rewriteLocalLinks(host) {
+  const workspace = bundle?.ask?.workspace || '';
+  for (const anchor of host.querySelectorAll('a[href]')) {
+    const href = anchor.getAttribute('href');
+    if (!href || /^(https?:|mailto:|tel:|data:|blob:|#|\?|\/\/)/i.test(href)) continue;
+    if (/^[a-z][a-z0-9+.-]*:/i.test(href) && !/^file:/i.test(href)) continue;
+    // `notes.md#某章节` 的 `#` 之后是页内锚点，不属于文件名。混进路径会让服务端
+    // 去找一个带 `#` 的文件，直接报文件不存在。
+    const hashAt = href.indexOf('#');
+    // `file:///C:/a` 剥协议后要留 `C:/a` 而不是 `/C:/a`，盘符前那道斜杠是协议格式的一部分。
+    const written = (hashAt < 0 ? href : href.slice(0, hashAt))
+      .replace(/^file:\/\//i, '')
+      .replace(/^\/(?=[a-zA-Z]:)/, '');
+    const hash = hashAt < 0 ? '' : href.slice(hashAt);
+    // 绝对路径三种写法都要认：POSIX 的 `/a/b`、Windows 的 `C:\a\b`、UNC 的 `\\host\share`。
+    const absolute = /^([a-zA-Z]:[\\/]|\/|\\\\)/.test(written)
+      ? written
+      : `${workspace}/${written.replace(/^\.\//, '')}`;
+    const target = absolute.replace(/\\/g, '/');
+    // 三道斜杠固定要有：`file:///C:/a` 和 `file:///a/b` 都靠它，少一道 Windows 认不出。
+    anchor.href = `file:///${target.replace(/^\/+/, '')}${hash}`;
+    anchor.classList.add('local-link');
+    anchor.title = `在浏览器新标签页打开：${target}`;
+    anchor.addEventListener('click', (event) => {
+      event.preventDefault();
+      openLocalFile(target, hash);
+    });
+  }
+}
+
+async function renderProse(host, source) {
+  try {
+    const { marked, purify } = await loadMarkdown();
+    // marked 只负责结构，DOMPurify 负责把脚本和事件属性剥干净，两步都不能省。
+    host.innerHTML = purify.sanitize(marked.parse(source, { gfm: true, breaks: true }));
+    host.dataset.state = 'ready';
+    rewriteLocalLinks(host);
+    for (const table of host.querySelectorAll('table')) {
+      const frame = element('div', 'table-frame');
+      table.replaceWith(frame);
+      frame.append(table);
+      makePreviewable(frame, '表格');
+    }
+    // 代码块窄栏（左侧背景、题卡）里横向滚动看不出结构，和表格一样包一层框，
+    // 框上挂放大预览——预览克隆时只搬子节点，外壳留在原地，所以框必须是外层。
+    for (const code of host.querySelectorAll('pre')) {
+      const frame = element('div', 'code-frame');
+      code.replaceWith(frame);
+      frame.append(code);
+      makePreviewable(frame, '代码块');
+    }
+    highlightCode(host);
+  } catch (error) {
+    // 组件下载不到时保持纯文本：内容照样读得懂，答题不受影响。重试按钮是它的
+    // 补充，不是替代——按钮没被点之前，正文照样读得到、表单照样能提交。
+    host.dataset.state = 'plain';
+    host.textContent = source;
+    if (error.vendorName) appendRetry(host, '正文排版', () => renderProse(host, source));
+    if (markdownWarned) return;
+    markdownWarned = true;
+    showToast('Markdown 组件加载失败，正文按纯文本显示');
+  }
+}
+
+// 文本里的 ```mermaid 块渲染成图，其余部分按 Markdown 渲染再净化，绝不直出原始 HTML。
+// diagrams 为 false 时整段只走 Markdown——选项卡片一人一张图会挤得没法比较。
+function appendRichText(container, text, { diagrams = true } = {}) {
+  const value = text || '';
+  const host = element('div', 'rich-text');
+  container.append(host);
+
+  const addProse = (prose) => {
+    const trimmed = prose.trim();
+    if (!trimmed) return;
+    // Markdown 组件到位前先按纯文本显示，加载完再整体替换。
+    const block = element('div', 'prose', trimmed);
+    block.dataset.state = 'plain';
+    host.append(block);
+    trackRichText(renderProse(block, trimmed));
+  };
+
+  if (!diagrams) {
+    addProse(value);
+    return host;
+  }
+
+  MERMAID_BLOCK.lastIndex = 0;
+  let cursor = 0;
+  let match = MERMAID_BLOCK.exec(value);
+  while (match) {
+    addProse(value.slice(cursor, match.index));
+    const diagram = element('div', 'diagram');
+    diagram.dataset.state = 'loading';
+    diagram.append(element('p', 'diagram-loading', '图表加载中…'));
+    host.append(diagram);
+    trackRichText(renderDiagram(diagram, match[1].trim()));
+    cursor = match.index + match[0].length;
+    match = MERMAID_BLOCK.exec(value);
+  }
+  addProse(value.slice(cursor));
+  return host;
+}
+
+// 图表和表格常常比题卡宽。点开进全屏预览，滚轮缩放、拖拽平移。
+
+// 打开中的预览层，后开在上。预览可以嵌套（背景阅读层里再点开表格），每层都在
+// document 上挂了键盘监听，不区分层级的话一次 Esc 会把所有层一起关掉。
+const previewStack = [];
+
+// 入口只在角上那颗按钮上：整块可点的时候，想拖选表格里的文字、想点表格里的链接，
+// 都会被误判成「要放大」。内容本身照常排在正文里，按钮不改变它看不看得见。
+function makePreviewable(host, label) {
+  host.classList.add('previewable');
+  host.append(previewButton(host, label));
+}
+
+function previewButton(host, label) {
+  const button = element('button', 'preview-hint', '预览');
+  button.type = 'button';
+  button.setAttribute('aria-label', `放大查看${label}`);
+  button.title = `放大查看${label}`;
+  // 按钮坐在可预览块内部，不拦住冒泡的话外层（阅读层里的正文）会再收到一次点击。
+  button.addEventListener('click', (event) => {
+    event.stopPropagation();
+    openPreview(host, label);
+  });
+  return button;
+}
+
+const FOCUSABLE_SELECTOR = [
+  'a[href]',
+  'button',
+  'input',
+  'select',
+  'textarea',
+  'summary',
+  'audio[controls]',
+  'video[controls]',
+  '[contenteditable]',
+  '[tabindex]',
+].join(',');
+
+// 按 DOM 顺序取出真正能被 Tab 停留的元素：禁用的、tabindex="-1" 的、
+// 以及没有盒子（display:none 之类）的都不算。
+function focusableWithin(root) {
+  return [...root.querySelectorAll(FOCUSABLE_SELECTOR)].filter(
+    (node) => !node.disabled
+      && node.tabIndex >= 0
+      && (node.offsetWidth || node.offsetHeight || node.getClientRects().length),
+  );
+}
+
+function openPreview(host, label, { readable = false } = {}) {
+  const overlay = element('div', 'preview-overlay');
+  const stage = element('div', 'preview-stage');
+  const canvas = element('div', 'preview-canvas');
+  const toolbar = element('div', 'preview-toolbar');
+  const readout = element('span', 'preview-readout');
+
+  // 阅读模式给整段正文（如「本次背景」）用：文字保持原尺寸、可选中复制，
+  // 舞台改为滚动而不是缩放平移——transform 一缩放，选中文字就成了拖拽的牺牲品。
+  if (readable) stage.classList.add('readable');
+
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-label', `${label}预览`);
+  // 克隆体离开了原来的底板，配色 token 一并带过来，预览里的图表表格才不变色。
+  // token 挂在 .rich-text 上：宿主是表格框时自己就带，宿主是整段正文（「本次背景」）
+  // 时取它内部第一个 .rich-text，取不到再退回宿主本身。
+  const tokenSource = host.querySelector('.rich-text') || host;
+  const hostStyles = getComputedStyle(tokenSource);
+  for (const token of RICH_TOKENS) {
+    canvas.style.setProperty(token, hostStyles.getPropertyValue(token));
+  }
+  // append 会把节点从克隆体上摘走，先固化成数组再遍历，否则会漏掉一半。
+  for (const node of [...host.cloneNode(true).childNodes]) {
+    if (node.classList?.contains('preview-hint')) continue;
+    canvas.append(node);
+  }
+  // 本机文件链接的 click 监听同样没被克隆带过来，点了会走 href 的 file:// 导航，
+  // 被浏览器静默拦掉。重新挂一遍：href 已是 file:// 全路径，rewriteLocalLinks 认它。
+  rewriteLocalLinks(canvas);
+  // 宿主是整段正文（如「本次背景」）时，克隆体里还嵌着表格、代码块的预览框：
+  // 克隆不带走监听器，按钮点了没反应。阅读模式下换上新按钮，表格在阅读层里还能
+  // 二次点开自己的缩放预览；缩放模式下按钮连同 .previewable 一起剥掉。
+  for (const nested of canvas.querySelectorAll('.previewable')) {
+    const staleButton = nested.querySelector(':scope > .preview-hint');
+    staleButton?.remove();
+    if (readable) {
+      const nestedLabel = nested.classList.contains('table-frame')
+        ? '表格'
+        : nested.classList.contains('diagram') ? '图表' : '代码块';
+      nested.append(previewButton(nested, nestedLabel));
+    } else {
+      nested.classList.remove('previewable');
+    }
+  }
+
+  // mermaid 的 svg 带 width="100%"，脱离原容器后量不出宽度。按 viewBox 写死尺寸，
+  // 舞台才有东西可以量、可以缩放。
+  for (const svg of canvas.querySelectorAll('svg')) {
+    const box = svg.viewBox?.baseVal;
+    if (!box?.width) continue;
+    svg.style.width = `${box.width}px`;
+    svg.style.height = `${box.height}px`;
+  }
+
+  // 图表按原始尺寸渲染，多半比屏幕小得多。打开预览时先缩放到铺满舞台，
+  // 留一圈边距，再由用户滚轮微调。
+  const fitScale = () => {
+    const margin = 48;
+    const width = canvas.offsetWidth;
+    const height = canvas.offsetHeight;
+    if (!width || !height) return 1;
+    const ratio = Math.min(
+      (stage.clientWidth - margin) / width,
+      (stage.clientHeight - margin) / height,
+    );
+    return Math.min(8, Math.max(0.2, ratio));
+  };
+
+  let scale = 1;
+  let offsetX = 0;
+  let offsetY = 0;
+  const apply = () => {
+    canvas.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+    readout.textContent = `${Math.round(scale * 100)}%`;
+  };
+  const zoomTo = (next, anchorX = 0, anchorY = 0) => {
+    const clamped = Math.min(8, Math.max(0.2, next));
+    const ratio = clamped / scale;
+    offsetX = anchorX - (anchorX - offsetX) * ratio;
+    offsetY = anchorY - (anchorY - offsetY) * ratio;
+    scale = clamped;
+    apply();
+  };
+
+  const close = () => {
+    overlay.remove();
+    document.removeEventListener('keydown', onKeydown);
+    previewStack.splice(previewStack.indexOf(overlay), 1);
+    // 焦点回到刚才那颗预览按钮；宿主是整段正文（阅读层）时没有按钮，退回宿主自己。
+    (host.querySelector(':scope > .preview-hint') || host).focus();
+  };
+
+  let focusables = [];
+  // 弹层是模态的，Tab 必须留在里面：走到尾就回到头，Shift+Tab 走到头就回到尾。
+  // 焦点若因任何原因落到弹层外（或落在弹层内不可聚焦的地方），下一次 Tab 直接拉回来。
+  const trapTab = (event) => {
+    // 弹层里一个可聚焦元素都没有时，焦点原地不动。放 Tab 出去等于取消焦点陷阱，
+    // 用户会在看不见的情况下操作背后的表单；这里的退路是 Esc，它照常关得掉弹层。
+    // 工具栏的四个按钮都不会被禁用，所以这一支实际走不到，留着是防御。
+    if (!focusables.length) {
+      event.preventDefault();
+      return;
+    }
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    const index = focusables.indexOf(document.activeElement);
+    if (index === -1) {
+      event.preventDefault();
+      (event.shiftKey ? last : first).focus();
+      return;
+    }
+    if (event.shiftKey && index === 0) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && index === focusables.length - 1) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
+
+  function onKeydown(event) {
+    // 嵌套时键盘只归最上层：下层的 Esc/Tab 都让开，否则一次 Esc 关掉整串。
+    if (previewStack[previewStack.length - 1] !== overlay) return;
+    if (event.key === 'Escape') {
+      close();
+      return;
+    }
+    if (event.key === 'Tab') trapTab(event);
+  }
+
+  const button = (text, onClick, buttonLabel) => {
+    const control = element('button', 'preview-button', text);
+    control.type = 'button';
+    control.setAttribute('aria-label', buttonLabel);
+    control.addEventListener('click', (event) => {
+      event.stopPropagation();
+      onClick();
+    });
+    return control;
+  };
+  toolbar.append(
+    ...(readable ? [] : [
+      button('－', () => zoomTo(scale / 1.25), '缩小'),
+      readout,
+      button('＋', () => zoomTo(scale * 1.25), '放大'),
+      button('重置', () => { scale = fitScale(); offsetX = 0; offsetY = 0; apply(); }, '重置缩放'),
+    ]),
+    button('关闭', close, '关闭预览'),
+  );
+
+  // 阅读模式下滚轮和拖拽都让给原生行为：滚轮滚内容，拖动选中文字。
+  if (!readable) {
+    stage.addEventListener('wheel', (event) => {
+      event.preventDefault();
+      const rect = stage.getBoundingClientRect();
+      zoomTo(
+        scale * (event.deltaY < 0 ? 1.12 : 1 / 1.12),
+        event.clientX - rect.left - rect.width / 2,
+        event.clientY - rect.top - rect.height / 2,
+      );
+    }, { passive: false });
+
+    let dragging = null;
+    stage.addEventListener('pointerdown', (event) => {
+      dragging = { pointerId: event.pointerId, x: event.clientX - offsetX, y: event.clientY - offsetY };
+      stage.setPointerCapture(event.pointerId);
+      stage.classList.add('dragging');
+    });
+    stage.addEventListener('pointermove', (event) => {
+      if (dragging?.pointerId !== event.pointerId) return;
+      offsetX = event.clientX - dragging.x;
+      offsetY = event.clientY - dragging.y;
+      apply();
+    });
+    const endDrag = (event) => {
+      if (dragging?.pointerId !== event.pointerId) return;
+      dragging = null;
+      stage.classList.remove('dragging');
+    };
+    stage.addEventListener('pointerup', endDrag);
+    stage.addEventListener('pointercancel', endDrag);
+  }
+
+  overlay.addEventListener('click', (event) => {
+    if (event.target === overlay) close();
+  });
+  stage.append(canvas);
+  overlay.append(stage, toolbar);
+  document.body.append(overlay);
+  // 内容是打开时的静态克隆，之后不会变，可聚焦元素收集一次就够，不用监听 DOM 变化。
+  focusables = focusableWithin(overlay);
+  previewStack.push(overlay);
+  document.addEventListener('keydown', onKeydown);
+  if (!readable) {
+    scale = fitScale();
+    apply();
+  }
+  toolbar.querySelector('.preview-button')?.focus();
+}
+
+async function api(path, options = {}) {
+  const response = await fetch(path, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(options.headers || {}),
+    },
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || `请求失败：${response.status}`);
+  return data;
+}
+
+function showToast(message) {
+  toast.textContent = message;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2200);
+}
+
+function currentForm() {
+  return { questions: bundle.questions, answers: bundle.answers };
+}
+
+function editableNow() {
+  return bundle?.ask.status === 'waiting_for_user';
+}
+
+function currentTheme() {
+  return document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
+}
+
+function setTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  document.querySelector('meta[name="color-scheme"]')?.setAttribute('content', theme);
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, theme);
+  } catch {
+    // The visual theme still works when browser storage is unavailable.
+  }
+  if (bundle) render();
+}
+
+function answerFor(questionId) {
+  let answer = pendingAnswers.find((item) => item.questionId === questionId);
+  if (!answer) {
+    answer = {
+      questionId,
+      selectedOptionIds: [],
+      customText: '',
+      supplementaryText: '',
+    };
+    pendingAnswers.push(answer);
+  }
+  return answer;
+}
+
+// 下面几个只是把模块级的草稿与当前题绑上去，推导本身在 view-state.js 里，
+// 页面这一侧不再重复实现一遍。
+function visibleQuestionsOf(form, editable) {
+  return viewState.visibleQuestionsOf(form, editable, pendingAnswers);
+}
+
+function visibilitySignature(form, editable) {
+  return viewState.visibilitySignature(form, editable, pendingAnswers);
+}
+
+function isAnswered(question, editable, submittedAnswers) {
+  return viewState.isAnswered(question, editable, submittedAnswers, pendingAnswers);
+}
+
+function answeredQuestionCount(form, editable) {
+  return viewState.answeredQuestionCount(form, editable, pendingAnswers);
+}
+
+function questionState(question, editable, submittedAnswers) {
+  return viewState.questionState(question, editable, submittedAnswers, pendingAnswers, focusedQuestionId);
+}
+
+function firstUnansweredId(form, editable) {
+  return viewState.firstUnansweredId(form, editable, pendingAnswers);
+}
+
+function scrollToQuestion(questionId, behavior = 'smooth') {
+  document
+    .querySelector(`.question-card[data-question-id="${CSS.escape(questionId)}"]`)
+    ?.scrollIntoView({ block: 'center', behavior });
+}
+
+// 新出现的卡片挂一段短暂的高亮，眼睛能定位到「刚才多了这一题」。
+// 开了「减少动态效果」时 animationend 不会触发（样式表里动画被整体关掉），
+// 所以另外用计时器兜底，否则高亮会一直挂着不摘。
+function markAsNew(card) {
+  const clear = () => card.classList.remove('is-new');
+  card.classList.add('is-new');
+  card.addEventListener('animationend', clear, { once: true });
+  setTimeout(clear, QUESTION_HIGHLIGHT_MS);
+}
+
+// 条件题出现或消失时只增删这几张卡，不重建整页：整页重建会打断正在输入的
+// 那一行、丢掉滚动位置，还要把已经渲染好的图表和代码高亮全部重做一遍。
+function syncVisibleQuestions(form, editable) {
+  lastVisibilitySignature = visibilitySignature(form, editable);
+  const visible = visibleQuestionsOf(form, editable);
+  const visibleIds = new Set(visible.map((question) => question.id));
+  const scroll = document.querySelector('.question-scroll');
+  if (!scroll) return;
+  for (const card of [...scroll.children]) {
+    if (!visibleIds.has(card.dataset.questionId)) card.remove();
+  }
+  const cards = new Map([...scroll.children].map((card) => [card.dataset.questionId, card]));
+  visible.forEach((question, index) => {
+    let card = cards.get(question.id);
+    if (!card) {
+      card = renderQuestion(question, index, editable, form.answers?.answers);
+      markAsNew(card);
+    }
+    // 序号是按可见顺序排的，分支一变就得跟着改。
+    const number = card.querySelector('.question-number');
+    if (number) number.textContent = String(index + 1).padStart(2, '0');
+    if (scroll.children[index] !== card) scroll.insertBefore(card, scroll.children[index] || null);
+  });
+  if (railNavElement) fillRailNav(railNavElement, form, editable, visible);
+  if (progressCellsElement) {
+    while (progressCellsElement.children.length > visible.length) {
+      progressCellsElement.lastElementChild.remove();
+    }
+    while (progressCellsElement.children.length < visible.length) {
+      progressCellsElement.append(element('span', 'progress-cell'));
+    }
+  }
+}
+
+// 单选选完就把用户送到下一道没答的题，不用自己回去找。
+function advanceFrom(questionId) {
+  const form = currentForm();
+  const editable = editableNow();
+  const pending = viewState.nextUnansweredIdFrom(form, editable, pendingAnswers, questionId);
+  if (!pending) return;
+  focusedQuestionId = pending;
+  if (railNavElement) refreshRailStates(form, editable);
+  refreshCardStates(form, editable);
+  scrollToQuestion(pending);
+}
+
+async function alignToFocusedQuestion() {
+  if (!bundle || !focusedQuestionId || !editableNow()) return;
+  const form = currentForm();
+  const visible = visibleQuestionsOf(form, true);
+  // 第一题就是待答题时不动，页面本来就从它开始。
+  if (visible[0]?.id === focusedQuestionId) return;
+  await richTextSettled();
+  scrollToQuestion(focusedQuestionId, 'auto');
+}
+
+// 每改一下就把草稿写回服务端，但不是每个按键都发一次请求：停手 400 毫秒再发，
+// 连打一串字只落一次盘。关页来不及等防抖，走 sendBeacon 补一枪。
+const DRAFT_DEBOUNCE_MS = 400;
+let draftTimer = null;
+
+function draftPayload() {
+  return { answers: pendingAnswers };
+}
+
+function saveDraftNow() {
+  clearTimeout(draftTimer);
+  draftTimer = null;
+  if (!editableNow()) return;
+  // 草稿写失败不打扰答题：它只是防丢，提交那一步才是正式落盘。
+  api(`/api/asks/${encodeURIComponent(askId)}/draft`, {
+    method: 'PUT',
+    body: JSON.stringify(draftPayload()),
+  }).catch(() => {});
+}
+
+function saveDraftSoon() {
+  if (!editableNow()) return;
+  clearTimeout(draftTimer);
+  draftTimer = setTimeout(saveDraftNow, DRAFT_DEBOUNCE_MS);
+}
+
+// 关标签页时 fetch 会被浏览器掐断，sendBeacon 是唯一保证发出去的方式。
+function flushDraftOnExit() {
+  if (!editableNow() || !draftTimer) return;
+  clearTimeout(draftTimer);
+  draftTimer = null;
+  const url = `/api/asks/${encodeURIComponent(askId)}/draft`;
+  const body = new Blob([JSON.stringify(draftPayload())], { type: 'application/json' });
+  if (!navigator.sendBeacon?.(url, body)) saveDraftNow();
+}
+
+window.addEventListener('pagehide', flushDraftOnExit);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') flushDraftOnExit();
+});
+
+// 服务端存着的草稿盖回内存里这份：刷新、关页重开、换浏览器、服务重启都接得上。
+function applyDraft(draft) {
+  for (const saved of draft?.answers || []) {
+    const answer = pendingAnswers.find((item) => item.questionId === saved.questionId);
+    if (!answer) continue;
+    answer.selectedOptionIds = [...(saved.selectedOptionIds || [])];
+    answer.customText = saved.customText || '';
+    answer.supplementaryText = saved.supplementaryText || '';
+  }
+}
+
+function refreshProgress() {
+  if (!bundle) return;
+  saveDraftSoon();
+  const form = currentForm();
+  const editable = editableNow();
+  if (visibilitySignature(form, editable) !== lastVisibilitySignature) {
+    syncVisibleQuestions(form, editable);
+  }
+  const visible = visibleQuestionsOf(form, editable);
+  const answered = answeredQuestionCount(form, editable);
+  if (answeredCountElement) {
+    answeredCountElement.textContent = `已答 ${answered} / ${visible.length}`;
+  }
+  if (progressCellsElement) {
+    // 每个格子对应同序号的那一题，跳答时空格留在原位，不做左对齐填充。
+    [...progressCellsElement.children].forEach((cell, index) => {
+      const question = visible[index];
+      cell.classList.toggle('on', Boolean(question) && isAnswered(question, editable, form.answers?.answers));
+    });
+  }
+  if (editable && focusedQuestionId) {
+    const focused = form.questions.questions.find((item) => item.id === focusedQuestionId);
+    if (focused && isAnswered(focused, editable, form.answers?.answers)) {
+      focusedQuestionId = firstUnansweredId(form, editable);
+    }
+  }
+  if (railNavElement) refreshRailStates(form, editable);
+  refreshCardStates(form, editable);
+}
+
+function refreshRailStates(form, editable) {
+  for (const button of railNavElement.querySelectorAll('.nav-button')) {
+    const question = form.questions.questions.find((item) => item.id === button.dataset.questionId);
+    if (!question) continue;
+    const state = questionState(question, editable, form.answers?.answers);
+    button.dataset.state = state;
+    const status = button.querySelector('.st');
+    if (status) status.textContent = { done: '已答', current: '当前', todo: '未答' }[state];
+  }
+  const counter = railNavElement.parentElement?.querySelector('.rail-count');
+  if (counter) {
+    counter.textContent = `${answeredQuestionCount(form, editable)} / ${visibleQuestionsOf(form, editable).length}`;
+  }
+}
+
+function refreshCardStates(form, editable) {
+  for (const card of document.querySelectorAll('.question-card')) {
+    const question = form.questions.questions.find((item) => item.id === card.dataset.questionId);
+    if (!question) continue;
+    card.dataset.state = questionState(question, editable, form.answers?.answers);
+    card.querySelector('.question-flag')?.remove();
+    if (card.dataset.state === 'current') {
+      card.prepend(element('span', 'question-flag', '现在轮到这一题'));
+    }
+  }
+}
+
+function badge(text, variant = '') {
+  return element('span', `badge${variant ? ` ${variant}` : ''}`, text);
+}
+
+function makeThemeButton(theme, label) {
+  const button = element('button', 'theme-button', label);
+  button.type = 'button';
+  button.setAttribute('aria-pressed', String(currentTheme() === theme));
+  button.addEventListener('click', () => setTheme(theme));
+  return button;
+}
+
+function projectName() {
+  if (bundle.ask.projectName) return bundle.ask.projectName;
+  const workspace = bundle.ask.workspace || '';
+  return workspace.split('/').filter(Boolean).at(-1) || 'ask-me';
+}
+
+function renderHeader(container) {
+  document.title = `${projectName()}-Ask Me`;
+  const header = element('header', 'ask-header');
+  for (const variant of ['d1', 'd2', 'd3']) {
+    const deco = element('span', `header-deco ${variant}`);
+    deco.setAttribute('aria-hidden', 'true');
+    header.append(deco);
+  }
+
+  const copy = element('div', 'header-copy');
+  copy.append(element('span', 'project-badge', bundle.ask.title));
+  copy.append(element('h1', 'ask-title', projectName()));
+  copy.append(element(
+    'p',
+    'ask-summary',
+    bundle.ask.summary || 'Agent 已暂停，正在等你的答复。',
+  ));
+
+  const tools = element('div', 'header-tools');
+  const themes = element('div', 'theme-toggle');
+  themes.setAttribute('aria-label', '页面主题');
+  themes.append(makeThemeButton(currentTheme() === 'dark' ? 'light' : 'dark', currentTheme() === 'dark' ? '切换浅色主题' : '切换暗色主题'));
+  tools.append(themes);
+
+  header.append(copy, tools);
+  container.append(header);
+}
+
+function renderRail(container) {
+  if (!bundle) return;
+  const form = currentForm();
+  const editable = editableNow();
+  const rail = element('aside', 'rail');
+  rail.setAttribute('aria-label', '问题导航');
+
+  if (bundle.ask.background) {
+    const context = element('div', 'rail-block context');
+    context.append(element('h2', '', '本次背景'));
+    // 背景整块放进预览的宿主。块本身不挂点击——背景里有链接和表格，
+    // 整块可点会吞掉它们的交互，所以放大只走右上角独立按钮。
+    const body = element('div', 'context-body');
+    body.tabIndex = -1;
+    appendRichText(body, bundle.ask.background);
+    context.append(body);
+    const expand = element('button', 'context-expand', '放大');
+    expand.type = 'button';
+    expand.setAttribute('aria-label', '放大查看本次背景');
+    expand.title = '放大查看本次背景';
+    // 阅读模式：文字原尺寸可复制，嵌在里面的表格还能二次点开自己的缩放预览。
+    expand.addEventListener('click', () => openPreview(body, '本次背景', { readable: true }));
+    context.append(expand);
+    rail.append(context);
+  }
+
+  const titleBlock = element('div', 'rail-block title');
+  titleBlock.append(element('span', 'kicker', '本次提问'));
+  titleBlock.append(element('h2', '', bundle.ask.title || '需求确认'));
+  if (bundle.ask.purpose) titleBlock.append(element('p', '', bundle.ask.purpose));
+  rail.append(titleBlock);
+
+  const visible = visibleQuestionsOf(form, editable);
+  const head = element('div', 'rail-head');
+  head.append(element('span', '', '队列里还有谁在等'));
+  head.append(element(
+    'span',
+    'rail-count',
+    `${answeredQuestionCount(form, editable)} / ${visible.length}`,
+  ));
+  rail.append(head);
+
+  const nav = element('ul', 'rail-nav');
+  railNavElement = nav;
+  fillRailNav(nav, form, editable, visible);
+  rail.append(nav);
+  container.append(rail);
+}
+
+function fillRailNav(nav, form, editable, visible) {
+  nav.replaceChildren();
+  visible.forEach((question, index) => {
+    const item = element('li');
+    const state = questionState(question, editable, form.answers?.answers);
+    const button = element('button', 'nav-button');
+    button.type = 'button';
+    button.dataset.questionId = question.id;
+    button.dataset.state = state;
+    button.append(element('span', 'n', String(index + 1).padStart(2, '0')));
+    // 导航是索引不是正文：多行标题只取第一行，免得把左栏撑乱。
+    button.append(element('span', 't', question.title.split('\n')[0]));
+    button.append(element('span', 'st', { done: '已答', current: '当前', todo: '未答' }[state]));
+    button.addEventListener('click', () => {
+      if (editable) focusedQuestionId = question.id;
+      scrollToQuestion(question.id);
+      refreshRailStates(form, editable);
+      refreshCardStates(form, editable);
+    });
+    item.append(button);
+    nav.append(item);
+  });
+}
+
+function renderChoiceQuestion(card, question, answer, editable) {
+  const list = element('div', 'option-list');
+  question.options.forEach((option, optionIndex) => {
+    const optionCard = element('label', 'option-card');
+    const input = document.createElement('input');
+    input.className = 'option-selector';
+    input.type = question.type === 'single' ? 'radio' : 'checkbox';
+    input.name = `question-${question.id}`;
+    input.value = option.id;
+    input.checked = answer.selectedOptionIds.includes(option.id);
+    input.disabled = !editable;
+
+    // 单选也要能反悔：再点一次选中项就清空。radio 点自己不触发 change，
+    // 所以按下时先记住原状态，click 里据此撤销。
+    let checkedBeforeClick = false;
+    const rememberState = () => { checkedBeforeClick = input.checked; };
+    input.addEventListener('pointerdown', rememberState);
+    input.addEventListener('keydown', rememberState);
+    optionCard.addEventListener('pointerdown', rememberState);
+    input.addEventListener('click', () => {
+      if (question.type !== 'single' || !checkedBeforeClick) return;
+      input.checked = false;
+      answer.selectedOptionIds = [];
+      refreshProgress();
+    });
+
+    input.addEventListener('change', () => {
+      if (question.type === 'single') {
+        answer.selectedOptionIds = input.checked ? [option.id] : [];
+      } else if (input.checked) {
+        answer.selectedOptionIds = [...new Set([...answer.selectedOptionIds, option.id])];
+      } else {
+        answer.selectedOptionIds = answer.selectedOptionIds.filter((id) => id !== option.id);
+      }
+      refreshProgress();
+      // 多选和文本题不自动前进：用户还要继续选、继续写。
+      if (question.type === 'single' && input.checked) advanceFrom(question.id);
+    });
+
+    const content = element('span', 'option-content');
+    const title = element('span', 'option-label');
+    title.append(element('span', '', option.text));
+    if (option.recommended) title.append(badge('推荐', 'recommended'));
+    content.append(title);
+    if (option.description) {
+      const description = element('span', 'option-description');
+      appendRichText(description, option.description, { diagrams: false });
+      content.append(description);
+    }
+    if (option.recommended && option.reason) {
+      content.append(element('span', 'option-reason', `推荐理由：${option.reason}`));
+    }
+    // 序号由渲染顺序自动生成，QuestionSet 不需要也不应该传。
+    optionCard.append(input, element('span', 'option-number', String(optionIndex + 1)), content);
+    list.append(optionCard);
+  });
+
+  card.append(list);
+}
+
+function renderTextQuestion(card, question, answer, editable) {
+  const input = document.createElement(question.multiline === false ? 'input' : 'textarea');
+  const counter = element('span', 'text-counter');
+  input.className = 'text-input';
+  input.dataset.questionId = question.id;
+  input.dataset.answerField = 'text';
+  if (input.tagName === 'TEXTAREA') input.rows = 3;
+  if (question.recommendedDraft) input.placeholder = `建议：${question.recommendedDraft}`;
+  input.maxLength = question.maxLength || 4000;
+  input.value = answer.customText || '';
+  input.disabled = !editable;
+  const updateCounter = () => {
+    counter.textContent = `${input.value.length}/${input.maxLength}`;
+  };
+  input.addEventListener('input', () => {
+    answer.customText = input.value;
+    updateCounter();
+    refreshProgress();
+  });
+  updateCounter();
+  card.append(input, counter);
+}
+
+function renderSupplementaryInput(card, question, answer) {
+  const field = element('div', 'supplement-field');
+  const trigger = element('button', 'supplement-trigger');
+  const triggerIcon = element('span', 'supplement-trigger-icon', '＋');
+  const triggerText = element('span', 'supplement-trigger-text');
+  const triggerBadge = element('span', 'supplement-badge');
+  const panel = element('div', 'supplement-panel');
+  const heading = element('div', 'supplement-heading');
+  const inputId = `supplement-${question.id}`;
+  const helperId = `${inputId}-helper`;
+  const panelId = `${inputId}-panel`;
+  const label = element('label', 'supplement-label', '补充说明');
+  const optional = element('span', 'supplement-optional', '选填');
+  const counter = element('span', 'supplement-counter');
+  const helper = element(
+    'p',
+    'supplement-helper',
+    '选项里没有合适的？在这里直接写你的答案、限制条件或偏好，Agent 会一并读到。',
+  );
+  const input = document.createElement('textarea');
+
+  trigger.type = 'button';
+  trigger.setAttribute('aria-controls', panelId);
+  trigger.append(triggerIcon, triggerText, triggerBadge);
+  panel.id = panelId;
+  label.htmlFor = inputId;
+  label.append(' ', optional);
+  input.id = inputId;
+  input.className = 'supplement-input';
+  input.dataset.questionId = question.id;
+  input.dataset.answerField = 'supplement';
+  input.rows = 2;
+  input.maxLength = SUPPLEMENTARY_TEXT_MAX_LENGTH;
+  input.placeholder = '例如：都不合适，我想要按项目分组；或：仅适用于首期版本';
+  input.value = answer.supplementaryText || '';
+  input.setAttribute('aria-describedby', helperId);
+  helper.id = helperId;
+
+  const setExpanded = (expanded, focusInput = false) => {
+    const filled = Boolean(answer.supplementaryText?.trim());
+    trigger.setAttribute('aria-expanded', String(expanded));
+    field.classList.toggle('has-content', filled);
+    triggerIcon.textContent = expanded ? '－' : '＋';
+    triggerText.textContent = filled
+      ? (expanded ? '收起补充说明' : '编辑补充说明')
+      : (expanded ? '收起补充说明' : '添加补充说明');
+    triggerBadge.textContent = filled ? '已填写' : '';
+    panel.hidden = !expanded;
+    if (expanded && focusInput) input.focus();
+  };
+
+  const updateCounter = () => {
+    counter.textContent = `${input.value.length}/${input.maxLength}`;
+  };
+  input.addEventListener('input', () => {
+    answer.supplementaryText = input.value;
+    updateCounter();
+    setExpanded(true);
+    refreshProgress();
+  });
+  trigger.addEventListener('click', () => {
+    const expanded = trigger.getAttribute('aria-expanded') === 'true';
+    setExpanded(!expanded, !expanded);
+  });
+  updateCounter();
+  heading.append(label, counter);
+  panel.append(heading, input, helper);
+  field.append(trigger, panel);
+  setExpanded(Boolean(answer.supplementaryText?.trim()));
+  card.append(field);
+}
+
+function showSubmissionConfirmation() {
+  document.querySelector('.submission-overlay')?.remove();
+  clearTimeout(submissionConfirmationTimer);
+  clearInterval(submissionConfirmationInterval);
+  // 手动路径（create）没有进程在等提交，Agent 全靠用户回会话里说一声。自动关页
+  // 会把「回复已提交」那张卡一起关掉，用户不知道下一步、Agent 永远收不到——所以
+  // 只有 ask 路径（磁盘轮询、提交即醒）才倒计时关页。
+  const direct = bundle?.ask?.deliveryMode === 'direct';
+  if (!direct) return;
+
+  const overlay = element('div', 'submission-overlay');
+  const card = element('div', 'submission-confirmation');
+  const title = element('strong', 'submission-confirmation-title', '已提交给 Agent');
+  const message = element('p', 'submission-confirmation-message', '答案已安全保存，Agent 正在继续工作。');
+  const countdown = element('span', 'submission-confirmation-countdown', '此页面将在 3 秒后自动关闭');
+  let remaining = 3;
+
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-live', 'assertive');
+  overlay.setAttribute('aria-atomic', 'true');
+  card.append(title, message, countdown);
+  overlay.append(card);
+  document.body.append(overlay);
+
+  submissionConfirmationInterval = setInterval(() => {
+    remaining -= 1;
+    if (remaining > 0) countdown.textContent = `此页面将在 ${remaining} 秒后自动关闭`;
+  }, 1000);
+  submissionConfirmationTimer = setTimeout(() => {
+    clearInterval(submissionConfirmationInterval);
+    window.close();
+    // 浏览器只允许关闭脚本自己打开的标签页；表单是从外面打开的，所以这一步多半
+    // 失败，真正关页的是服务端（同样 3 秒后从外面关，见 ask-me.mjs 的 closeBrowserTab）。
+    countdown.textContent = '可以关闭这个标签页了';
+  }, 3000);
+}
+
+function questionFlags(question) {
+  const flags = element('div', 'question-flags');
+  flags.append(badge(question.required ? '必填' : '选填', question.required ? 'required' : 'optional'));
+  const typeLabel = { single: '单选', multiple: '多选', text: '文本' }[question.type];
+  flags.append(badge(typeLabel, question.type === 'multiple' ? 'multi' : ''));
+  return flags;
+}
+
+function renderQuestion(question, index, editable, submittedAnswers) {
+  const card = element('section', 'question-card');
+  const state = questionState(question, editable, submittedAnswers);
+  card.dataset.questionId = question.id;
+  card.dataset.state = state;
+  if (state === 'current') {
+    card.append(element('span', 'question-flag', '现在轮到这一题'));
+  }
+
+  const header = element('div', 'question-header');
+  header.append(element('span', 'question-number', String(index + 1).padStart(2, '0')));
+  const copy = element('div', 'question-copy');
+  const body = element('div', 'question-body');
+  appendRichText(body, question.text);
+  copy.append(body);
+  header.append(copy, questionFlags(question));
+  card.append(header);
+
+  if (question.background) {
+    const background = element('div', 'question-background');
+    // 正文可能以表格或图表开头，标签独立成块，不再往第一段里插。
+    background.append(element('b', 'background-lead', '背景 ·'));
+    appendRichText(background, question.background);
+    card.append(background);
+  }
+
+  const answer = editable
+    ? answerFor(question.id)
+    : submittedAnswers?.find((item) => item.questionId === question.id);
+  if (editable) {
+    if (question.type === 'text') {
+      renderTextQuestion(card, question, answer, true);
+      if (question.recommendationReason) {
+        card.append(element('p', 'recommendation', `推荐理由：${question.recommendationReason}`));
+      }
+    } else {
+      renderChoiceQuestion(card, question, answer, true);
+    }
+    renderSupplementaryInput(card, question, answer);
+  } else {
+    card.append(element('div', 'history-answer', displayAnswer(question, answer)));
+  }
+  return card;
+}
+
+function clientValidation(form) {
+  const errors = [];
+  for (const question of visibleQuestionsOf(form, true)) {
+    const answer = answerFor(question.id);
+    const count = selectionCount(question, answer);
+    const answeredBySupplement = Boolean(answer.supplementaryText?.trim());
+    if (question.required && count === 0 && !answeredBySupplement) {
+      errors.push(`请回答“${question.title}”`);
+    }
+    if (question.type === 'single' && count > 1) errors.push(`“${question.title}”只能选择一项`);
+    if (question.type === 'multiple' && !(count === 0 && answeredBySupplement)) {
+      if (count < question.minSelections) {
+        errors.push(`“${question.title}”至少选择 ${question.minSelections} 项`);
+      }
+      if (count > question.maxSelections) {
+        errors.push(`“${question.title}”最多选择 ${question.maxSelections} 项`);
+      }
+    }
+  }
+  return errors;
+}
+
+
+// 问题正文是 markdown，复制出去给人读时格式标记只会添噪：链接只留文字、
+// 加粗和行内代码拆掉、标题井号去掉。表格与列表保持原样——本来就是可读文本。
+// 拓展信息（background）不进副本：用户要的是问题与结果本身。
+function plainQuestionText(markdown) {
+  return (markdown || '')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1')
+    .replace(/(\*\*|`|\*)/g, '')
+    .replace(/^\s{0,3}#{1,6}\s+/gm, '');
+}
+
+function buildTranscript() {
+  const form = currentForm();
+  const editable = editableNow();
+  return visibleQuestionsOf(form, editable).map((question, index) => {
+    const answer = editable
+      ? answerFor(question.id)
+      : form.answers?.answers?.find((item) => item.questionId === question.id);
+    return [
+      `Q${index + 1}. ${plainQuestionText(question.text)}`,
+      `答：${displayAnswer(question, answer)}`,
+    ].join('\n');
+  }).join('\n\n');
+}
+
+async function copyTranscript() {
+  const text = buildTranscript();
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    // 旧浏览器或非安全上下文没有 Async Clipboard：退回隐藏文本框 + execCommand。
+    const helper = document.createElement('textarea');
+    helper.value = text;
+    helper.setAttribute('readonly', '');
+    helper.style.position = 'fixed';
+    helper.style.opacity = '0';
+    document.body.append(helper);
+    helper.select();
+    document.execCommand('copy');
+    helper.remove();
+  }
+  showToast('已复制全部问答（含补充说明）');
+}
+
+async function submitForm(submitButton) {
+  const form = currentForm();
+  const errors = clientValidation(form);
+  if (errors.length) {
+    showToast(errors[0]);
+    return;
+  }
+  if (submitting) return;
+  // 隐藏题的草稿只留在页面上供用户切回分支时复用，不进提交：Agent 读到的答案
+  // 必须和用户屏幕上的表单一一对应。
+  const visible = new Set(visibleQuestionsOf(form, true).map((question) => question.id));
+  submitting = true;
+  submitButton.disabled = true;
+  submitButton.textContent = '正在提交…';
+  try {
+    await api(
+      `/api/asks/${encodeURIComponent(askId)}/answers`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          submissionId: `submit-${crypto.randomUUID()}`,
+          answers: pendingAnswers.filter((answer) => visible.has(answer.questionId)),
+        }),
+      },
+    );
+    showSubmissionConfirmation();
+    // 提交后答案以服务端存下的为准，内存里的草稿不再代表任何状态。
+    await loadBundle(true);
+  } catch (error) {
+    showToast(error.message);
+  } finally {
+    submitting = false;
+    submitButton.disabled = false;
+    submitButton.textContent = '提交答案';
+  }
+}
+
+function renderQuestions(container) {
+  if (!bundle) return;
+  const form = currentForm();
+  const scroll = element('main', 'question-scroll');
+  const editable = editableNow();
+  visibleQuestionsOf(form, editable).forEach((question, index) => {
+    scroll.append(renderQuestion(question, index, editable, form.answers?.answers));
+  });
+  container.append(scroll);
+}
+
+function renderSubmitDock(container) {
+  if (!bundle) return;
+  const form = currentForm();
+  const dock = element('footer', 'submit-dock');
+  const editable = editableNow();
+  const directReturn = bundle.ask.deliveryMode === 'direct';
+
+  if (editable) {
+    dock.append(element(
+      'p',
+      'submit-readme',
+      directReturn
+        ? '提交后 Agent 会立即用你的答案继续工作，提交后不可再修改。'
+        : '提交后页面变为只读，请回到 Agent 会话回复「已提交」继续。',
+    ));
+    const status = element('div', 'dock-status');
+    progressCellsElement = element('div', 'progress-cells');
+    for (let index = 0; index < visibleQuestionsOf(form, editable).length; index += 1) {
+      progressCellsElement.append(element('span', 'progress-cell'));
+    }
+    answeredCountElement = element('span', 'answered-count');
+    status.append(progressCellsElement, answeredCountElement);
+    dock.append(status);
+
+    const copy = element('button', 'btn-secondary', '复制问答');
+    copy.type = 'button';
+    copy.title = '复制全部问题与你的回答（含补充说明），方便粘贴到别处';
+    copy.addEventListener('click', () => copyTranscript());
+    dock.append(copy);
+    const submit = element('button', 'btn-primary', '提交答案');
+    submit.type = 'button';
+    submit.addEventListener('click', () => submitForm(submit));
+    dock.append(submit);
+    refreshProgress();
+  } else {
+    dock.append(element(
+      'p',
+      'submit-readme',
+      bundle.ask.status === 'submitted'
+        ? (directReturn
+            ? '答案已返回 Agent，可以回到会话查看后续处理。'
+            : '答案已提交，请回到 Agent 会话回复「已提交」。')
+        : '本次提问已结束，以上内容只读。',
+    ));
+    const status = element('div', 'dock-status');
+    status.append(element(
+      'span',
+      'answered-count',
+      `共 ${visibleQuestionsOf(form, editable).length} 题 · 只读`,
+    ));
+    dock.append(status);
+    const copy = element('button', 'btn-secondary', '复制问答');
+    copy.type = 'button';
+    copy.title = '复制全部问题与你的回答（含补充说明），方便粘贴到别处';
+    copy.addEventListener('click', () => copyTranscript());
+    dock.append(copy);
+  }
+  container.append(dock);
+}
+
+function renderError(error) {
+  app.replaceChildren();
+  const panel = element('div', 'error-panel');
+  panel.append(element('strong', '', 'Ask Me 无法加载'));
+  panel.append(element('p', '', error.message));
+  app.append(panel);
+}
+
+function render() {
+  lastVisibilitySignature = bundle ? visibilitySignature(currentForm(), editableNow()) : '';
+  answeredCountElement = null;
+  progressCellsElement = null;
+  railNavElement = null;
+  app.replaceChildren();
+  renderHeader(app);
+  const workspace = element('div', 'workspace');
+  renderRail(workspace);
+  renderQuestions(workspace);
+  app.append(workspace);
+  renderSubmitDock(app);
+}
+
+async function loadBundle(force = false) {
+  const next = await api(`/api/asks/${encodeURIComponent(askId)}`);
+  const changed = force || next.ask.updatedAt !== lastUpdatedAt;
+  const firstLoad = !bundle;
+  bundle = next;
+  lastUpdatedAt = next.ask.updatedAt;
+  if (firstLoad && next.ask.status === 'waiting_for_user') {
+    pendingAnswers = answersForForm(currentForm());
+    applyDraft(next.draft);
+    focusedQuestionId = firstUnansweredId(currentForm(), true);
+  }
+  if (changed) render();
+  // 首次打开把视口停在第一道待答题上；轮询中的普通刷新不动视口，
+  // 那会把正在答题的人推走。
+  if (force) alignToFocusedQuestion();
+}
+
+// macOS 上 Home/End 在文本框里不移动光标，而是滚动页面。这里把它们接管成
+// 行首/行尾，配合 Shift 扩选、配合 Cmd/Ctrl 跳到全文首尾。
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Home' && event.key !== 'End') return;
+  if (event.altKey) return;
+  const field = event.target;
+  // radio 和 checkbox 也是 input，但没有文本光标，selectionStart 为 null。
+  if (!field || field.selectionStart === null || field.selectionStart === undefined) return;
+
+  const value = field.value;
+  const toStart = event.key === 'Home';
+  const backward = field.selectionDirection === 'backward';
+  const caret = event.shiftKey
+    ? (backward ? field.selectionStart : field.selectionEnd)
+    : (toStart ? field.selectionStart : field.selectionEnd);
+
+  let target;
+  if (event.metaKey || event.ctrlKey) {
+    target = toStart ? 0 : value.length;
+  } else if (toStart) {
+    target = value.lastIndexOf('\n', caret - 1) + 1;
+  } else {
+    const lineEnd = value.indexOf('\n', caret);
+    target = lineEnd === -1 ? value.length : lineEnd;
+  }
+
+  event.preventDefault();
+  if (event.shiftKey) {
+    const anchor = backward ? field.selectionEnd : field.selectionStart;
+    field.setSelectionRange(
+      Math.min(anchor, target),
+      Math.max(anchor, target),
+      target < anchor ? 'backward' : 'forward',
+    );
+  } else {
+    field.setSelectionRange(target, target);
+  }
+});
+
+// Command/Ctrl+回车 = 提交：与点「提交答案」按钮同一条路，校验和提示条都照走。
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Enter' || !(event.metaKey || event.ctrlKey)) return;
+  if (previewStack.length) return;
+  const submit = document.querySelector('.submit-dock .btn-primary');
+  if (submit && !submit.disabled) submit.click();
+});
+
+if (!askId) {
+  renderError(new Error('页面链接缺少提问 id。请使用 Agent 返回的完整链接。'));
+} else {
+  loadBundle(true)
+    .then(() => {
+      setInterval(() => loadBundle(false).catch(() => {}), 3000);
+    })
+    .catch(renderError);
+}
