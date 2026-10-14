@@ -34,18 +34,18 @@
 
 `skills/` 下的 skill 被 skill 管理器装成独立拷贝放在 `~/.agents/skills/<name>/`（来源记在 `~/.agents/.skill-lock.json`，指向 GitHub 的 `lazygophers/ccplugin`）。Claude Code 加载的是那一份，**不是本仓库**。两份是各自独立的文件，不是软链接。
 
-改完 skill 必须二选一，否则改动不生效：
+改完 skill 必须同步副本，否则改动不生效。skill 的删除、安装、更新尽量用 `npx skills` 官方命令（它管 `~/.agents/.skill-lock.json` 的 hash，手改 lock 会漂）：
 
 ```bash
-# 推到 GitHub（管理器从远端拉）
-git push
+# 首选：push 后用官方 CLI 拉取（顺带重算 lock hash）
+git push && npx skills update <name>
 
-# 或本地直接同步
+# 或本地直接同步（不等 push）；之后跑一次 npx skills update <name> 让 CLI 重算 lock hash
 rsync -a --delete --exclude node_modules --exclude .ask-me skills/tools/<name>/ ~/.agents/skills/<name>/
 # ask-me 带 node_modules（typescript devDeps），cp -R 会把几十 MB 依赖拷过去，必须 rsync 排除
 ```
 
-只 `cp` 不 push 的改动，会在下次 skill 更新时被远端版本覆盖掉。
+只本地同步不 push 的改动，会在下次 skill 更新时被远端版本覆盖掉。改名不走 update（只更新同名）：`npx skills remove <旧名>` + `npx skills add lazygophers/ccplugin/skills/tools/<新名>`，全仓改名清单见 `.claude/rules/tooling/skill-rename-checklist.md` 与 `docs/ask-me-migration.md`。
 
 排查「改了怎么没生效」第一条命令：
 
