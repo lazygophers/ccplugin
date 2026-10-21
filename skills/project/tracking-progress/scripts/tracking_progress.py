@@ -303,10 +303,17 @@ def scan(scratch: Path) -> tuple[list[Effort], list[Path]]:
         # refs, so blocking only counts ids that actually exist.
         analyse(effort)
         resolve_blocking(effort)
-        if effort.tasks:
+        if effort.name != ROOT:
+            # spec 更新时间 = 整个文件夹(递归)里文件的最后写入时间
+            effort.mtime = max(
+                (p.stat().st_mtime for p in effort.path.rglob("*") if p.is_file()),
+                default=effort.mtime,
+            )
+        elif effort.tasks:
             effort.mtime = max(effort.mtime, max(t.mtime for t in effort.tasks))
 
-    ordered = sorted(efforts.values(), key=lambda e: e.name)
+    # spec 按更新时间倒序,最近动过的排最前
+    ordered = sorted(efforts.values(), key=lambda e: (-e.mtime, e.name))
     return [e for e in ordered if e.tasks or e.is_map or e.has_spec], unparsed
 
 

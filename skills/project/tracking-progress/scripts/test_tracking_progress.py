@@ -319,6 +319,22 @@ def test_render_flags_stale_spec(tmp_path):
     assert "alpha" in row and "1 张" in row
 
 
+def test_specs_sorted_by_folder_mtime_desc(tmp_path):
+    """spec 明细按文件夹最后写入时间倒序,最近动过的 spec 排最前。"""
+    scratch = tmp_path / ".scratch"
+    write(scratch / "old-spec" / "issues" / "01-a.md", "# 01: 老票\n\nStatus: open\n")
+    write(scratch / "new-spec" / "01-b.md", "# 01: 新票\n\nStatus: open\n")
+    old = 1_700_000_000
+    os.utime(scratch / "old-spec" / "issues" / "01-a.md", (old, old))
+    os.utime(scratch / "old-spec" / "issues", (old, old))
+    os.utime(scratch / "old-spec", (old, old))
+    efforts, _ = tp.scan(scratch)
+    assert [e.name for e in efforts] == ["new-spec", "old-spec"]
+    page = tp.render(efforts, [], scratch)
+    heads = page[page.find("id='specs'"):]
+    assert heads.find("new-spec") < heads.find("old-spec")
+
+
 
 
 
