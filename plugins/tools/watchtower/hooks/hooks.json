@@ -1,0 +1,6 @@
+{
+  "description": "The watchtower pane: the latest 10 agent return values of this session, read straight from the transcript (zero storage of its own)",
+  "modules": [
+    "./register.ts"
+  ]
+}
