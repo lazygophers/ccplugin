@@ -1,0 +1,14 @@
+{
+  "name": "watchtower",
+  "version": "0.1.0",
+  "description": "展示当前 session 最近 10 条 agent 返回值（直读 transcript，零自建存储）",
+  "author": {
+    "name": "lazygophers",
+    "email": "admin@lazygophers.dev",
+    "url": "https://github.com/lazygophers"
+  },
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/watchtower",
+  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/watchtower",
+  "license": "AGPL-3.0-or-later",
+  "keywords": ["agent", "returns", "transcript", "monitor"]
+}
