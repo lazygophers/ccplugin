@@ -1,4 +1,4 @@
-// pane 视图：把 pane-rows 的字符串行映射成组件树；每条包 Button，点击切换展开/收起。
+// pane / band 视图：把 pane-rows 的字符串行映射成组件树；每条包 Button，点击切换展开/收起。
 // Box/Text/Button 由 register.ts 经 $.ui.resolve 提供；属性用法照 code-modernization 的 views/pane.tsx。
 import { MAX_ROWS, headerOf, collapsedRows, expandedRows } from '../../scripts/pane-rows.mjs'
 
@@ -32,18 +32,32 @@ export function paneView(
           <Text bold>{headerOf(shown.length)}</Text>
           {shown.map((e) => {
             const rows = e.id === expandedId ? expandedRows(e, columns) : collapsedRows(e, columns)
+            // Button 的 children 只能是字符串和 Text（Box 会被引擎拒绝，见 ButtonProps）：
+            // 只有标题行做成按钮，预览/全文行是按钮下面的 dim Text
             return (
-              <Button key={e.id} onPress={() => onToggle(e.id)}>
-                <Box flexDirection="column">
-                  {rows.map((row, i) => (
-                    <Text key={i} wrap="truncate-end" dimColor={i > 0}>{row}</Text>
-                  ))}
-                </Box>
-              </Button>
+              <Box key={e.id} flexDirection="column">
+                <Button key={e.id} onPress={() => onToggle(e.id)}>{rows[0]}</Button>
+                {rows.slice(1).map((row, i) => (
+                  <Text key={i} wrap="truncate-end" dimColor>{row}</Text>
+                ))}
+              </Box>
             )
           })}
         </>
       )}
+    </Box>
+  )
+}
+
+// band 视图：pane 未摆放（终端 <144 列 unasked，或 person 关过面板）时，
+// AbovePrompt 兜底画的一行——整行一个 Button，点击由 register.ts 开 pane
+export function bandView(kit: Kit, label: string, onOpen: () => void): unknown {
+  const { Box, Text, Button } = kit
+  return (
+    <Box>
+      <Button key="watchtower-band" onPress={onOpen}>
+        <Text wrap="truncate-end">{label}</Text>
+      </Button>
     </Box>
   )
 }

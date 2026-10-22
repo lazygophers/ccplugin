@@ -1,6 +1,7 @@
 import type { On, PluginOptions } from 'claude-code'
 import { locateTranscript, projectDirOf, recentAgentReturns } from '../scripts/parse-transcript.mjs'
-import { paneView } from './views/pane'
+import { bandRow } from '../scripts/pane-rows.mjs'
+import { bandView, paneView } from './views/pane'
 import type { Entry, Kit } from './views/pane'
 
 /**
@@ -78,6 +79,49 @@ export function register(on: On, _raw: PluginOptions) {
     })
 
     return next(e)
+  })
+
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    // pane 已摆放（宽终端，或按钮/命令开过）时 band 让位；非终端 surface 没有 band
+    if (e.surface !== 'terminal' || state.pane.isOpen) {
+      return next(e)
+    }
+
+    // band 渲染时顺手读一次 transcript 记条数（读失败按 0 条）；
+    // 不为 band 起新 timer，跟引擎自己的 AbovePrompt 重绘走
+    const table = $.ui.resolve(e)
+    let count = 0
+    try {
+      const dir = projectDirOf(state.cwd, state.home)
+      const path =
+        state.sessionId !== ''
+          ? locateTranscript(state.cwd, state.sessionId, state.home)
+          : `${dir}/${newestTranscriptOf(await $.fs.list(dir))}`
+      count = recentAgentReturns(await $.fs.read(path)).length
+    } catch {
+      // transcript 读不到（缺失、无记录、超 4 MiB）：按 0 条画 band，不报错
+    }
+
+    return bandView(
+      { Box: table.Box, Text: table.Text, Button: table.Button } as Kit,
+      bandRow(count),
+      () => {
+        // 引擎调用内联在 handler 里（不存 $）：点击是 asked open，110 列起摆放
+        void (async () => {
+          try {
+            const result = await $.ui.open({ id: PANE_ID, title: 'Agent returns' })
+            if (result === undefined || result.isPlaced !== false) {
+              state.pane.isOpen = true
+              $.ui.invalidate('ui.render')
+            } else {
+              $.ui.toast(`The pane could not be shown: ${result.reason}`, { timeoutMs: 8000 })
+            }
+          } catch {
+            // a build without panes: nothing to open
+          }
+        })()
+      },
+    )
   })
 
   on('ui.render', { component: 'Pane' }, async ($, e, next) => {

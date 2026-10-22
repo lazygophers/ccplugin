@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { rowsOf, collapsedRows, wrapLines, titleOf } from './pane-rows.mjs';
+import { rowsOf, collapsedRows, wrapLines, titleOf, bandRow } from './pane-rows.mjs';
 
 const entry = (over = {}) => ({ id: 'e1', time: '2026-10-22T04:12:13Z', taskId: null, text: 'first result', ...over });
 
@@ -71,6 +71,15 @@ test('titleOf：summary 优先于 title，缺失时逐级回退；summary 在时
   const rows = collapsedRows(entry({ summary: 'Agent "调研" finished', text: 'line1\nline2' }), 80);
   assert.match(rows[0], /▸ Agent "调研" finished$/);
   assert.deepEqual(rows.slice(1), ['  line1', '  line2']); // 首行不被跳过
+});
+
+test('bandRow：有记录带条数，0 / null / 非数都回退尚无记录，一行不炸', () => {
+  assert.equal(bandRow(3), 'Agent returns: 3 条 — 点此打开');
+  assert.equal(bandRow(0), 'Agent returns: 尚无记录 — 点此打开');
+  assert.equal(bandRow(null), 'Agent returns: 尚无记录 — 点此打开');
+  assert.equal(bandRow(undefined), 'Agent returns: 尚无记录 — 点此打开');
+  assert.equal(bandRow('garbage'), 'Agent returns: 尚无记录 — 点此打开');
+  assert.ok(bandRow(10).length <= 40); // 100 列终端一行放得下
 });
 
 test('坏时间戳不抛错，titleOf 回退正文第一个非空行', () => {

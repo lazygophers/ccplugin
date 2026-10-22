@@ -69,6 +69,14 @@ export function expandedRows(entry, width) {
 
 export const headerOf = (count) => `Agent returns — ${count} shown, newest first`;
 
+// band 兜底行（终端 <144 列 unasked 时 pane 不摆放，AbovePrompt 上画这一行）：
+// 有记录带条数，读失败 / 无记录按 0 条；整行是按钮文案，「点此打开」即提示可点
+export function bandRow(count) {
+  const n = Number(count);
+  const head = Number.isInteger(n) && n > 0 ? `${n} 条` : '尚无记录';
+  return `Agent returns: ${head} — 点此打开`;
+}
+
 // entries 为 null（transcript 读不到）或空数组 → 空态一行，不报错。
 // errorText 非空（transcript 读不了，如超 4 MiB）→ 只显示那一行错误，区分于空态。
 // 解析器已限 10 条，slice 是渲染层兜底：满 10 条时最旧滚出。
