@@ -23,13 +23,13 @@ Then:
 
 | Where tasks live | How status is read |
 | --- | --- |
-| `<spec>/issues/NN-slug.md`, `<spec>/impl/NN-slug.md`, `<spec>/NN-slug.md` | `Status:` / `状态：` line, bare or bold |
+| `<feature>/issues/NN-slug.md`, `<feature>/impl/NN-slug.md`, `<feature>/NN-slug.md` | `Status:` / `状态：` line, bare or bold |
 | `issues/open/` vs `issues/done/` | the directory name |
 | ticket file with `Blocked by:` but no status | open (nobody marked it done) |
 | `memory.md` checkpoint rows | `- [x]` done, `- [ ]` open, `- [~]` in progress |
 | wayfinder `map.md` + its children | `Status: claimed` / `resolved`, `Blocked by: NN` |
 
-`memory/` and the top-level `research/` are never scanned — they are history, not work in flight. A spec-level `<spec>/research/*.md` is listed under its spec with links (new tab), status-free.
+`memory/` and the top-level `research/` are never scanned — they are history, not work in flight. A feature-level `<feature>/research/*.md` is listed under its feature with links (new tab), status-free.
 
 Status strings are matched loosely: `resolved` / `done` / `已完成` / `定稿` all count as done, `claimed` / `in-progress` / `进行中` as in progress, everything else as open.
 
