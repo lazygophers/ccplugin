@@ -28,12 +28,15 @@ const blocks = (content) => (Array.isArray(content) ? content : [content]);
 const blockText = (b) => (typeof b === 'string' ? b : b?.text ?? '');
 
 // 输入 transcript jsonl 路径，输出最近 limit 条（默认 10）agent 返回值，
-// 按文件行序从新到旧：[{ time, taskId, text }]
+// 按文件行序从新到旧：[{ time, taskId, id, title?, text }]
+// id = tool-use-id（pane 展开态的锚点，跨刷新稳定）；title = 调用时 tool_use
+// input.description（无则省略该字段，展示层回退正文首行）
 export function recentAgentReturns(transcriptPath, limit = 10) {
   const lines = readFileSync(transcriptPath, 'utf8').split('\n');
   // shortcut: 先整读建 id→工具名 映射（同步 tool_result 的 id 在文件更早处出现，
   // 纯逆向扫拿不到映射）；transcript 1M 量级整读无压力，超大文件再改尾窗
   const idIsAgent = new Set();
+  const idTitle = new Map();
   const parsed = [];
   for (const line of lines) {
     let o;
@@ -45,7 +48,10 @@ export function recentAgentReturns(transcriptPath, limit = 10) {
     parsed.push(o);
     if (o.type !== 'assistant') continue; // 跳过 api-request-blob 等重放行
     for (const b of o.message?.content ?? []) {
-      if (b.type === 'tool_use' && AGENT_TOOLS.has(b.name)) idIsAgent.add(b.id);
+      if (b.type !== 'tool_use' || !AGENT_TOOLS.has(b.name)) continue;
+      idIsAgent.add(b.id);
+      const d = b.input?.description;
+      if (typeof d === 'string' && d.trim() !== '') idTitle.set(b.id, d.trim());
     }
   }
   const out = [];
@@ -57,11 +63,17 @@ export function recentAgentReturns(transcriptPath, limit = 10) {
       if (NOTIF.test(t)) {
         const m = t.match(RESULT_RE); // [\s\S] 即 DOTALL
         // task-notification 也发给 Bash 后台任务，按 tool-use-id 回查只留 agent 的
-        if (m && idIsAgent.has(m[2])) out.push({ time: o.timestamp, taskId: m[1], text: m[3] });
+        if (m && idIsAgent.has(m[2])) {
+          const title = idTitle.get(m[2]);
+          out.push({ time: o.timestamp, taskId: m[1], id: m[2], text: m[3], ...(title !== undefined && { title }) });
+        }
       } else if (b?.type === 'tool_result' && idIsAgent.has(b.tool_use_id)) {
         const text = typeof b.content === 'string' ? b.content : (b.content ?? []).filter((c) => c.type === 'text').map((c) => c.text).join('');
         // 后台 agent 的 tool_result 只是启动元数据（agentId + output_file），非返回值
-        if (text && !ASYNC_LAUNCH.test(text)) out.push({ time: o.timestamp, taskId: null, text });
+        if (text && !ASYNC_LAUNCH.test(text)) {
+          const title = idTitle.get(b.tool_use_id);
+          out.push({ time: o.timestamp, taskId: null, id: b.tool_use_id, text, ...(title !== undefined && { title }) });
+        }
       }
       if (out.length >= limit) break;
     }

@@ -15,10 +15,10 @@ function fixture(lines) {
 }
 
 // helpers：构造 transcript 行
-const assistantToolUse = (id, name, ts) => ({
+const assistantToolUse = (id, name, ts, input = { description: 'd' }) => ({
   type: 'assistant',
   timestamp: ts,
-  message: { content: [{ type: 'tool_use', id, name, input: { description: 'd' } }] },
+  message: { content: [{ type: 'tool_use', id, name, input }] },
 });
 const bashResult = (id, ts) => ({
   type: 'user',
@@ -62,8 +62,8 @@ test('同步 tool_result 直存正文（Task 与 Agent 名都匹配，Bash 被�
     syncResult('c3', '2026-10-22T03:01:00Z', 'sync agent result'),
   ]);
   assert.deepEqual(recentAgentReturns(p), [
-    { time: '2026-10-22T03:01:00Z', taskId: null, text: 'sync agent result' },
-    { time: '2026-10-22T01:01:00Z', taskId: null, text: 'sync task result' },
+    { time: '2026-10-22T03:01:00Z', taskId: null, id: 'c3', title: 'd', text: 'sync agent result' },
+    { time: '2026-10-22T01:01:00Z', taskId: null, id: 'c1', title: 'd', text: 'sync task result' },
   ]);
 });
 
@@ -74,7 +74,7 @@ test('后台 agent：取 task-notification 的 <result> 全文，跳过启动元
     taskNotification('t1', 'c1', '2026-10-22T04:12:13Z', '多行\n正文\n全文'),
   ]);
   assert.deepEqual(recentAgentReturns(p), [
-    { time: '2026-10-22T04:12:13Z', taskId: 't1', text: '多行\n正文\n全文\n' },
+    { time: '2026-10-22T04:12:13Z', taskId: 't1', id: 'c1', title: 'd', text: '多行\n正文\n全文\n' },
   ]);
 });
 
@@ -108,7 +108,7 @@ test('不足 10 条：返回全部', () => {
     assistantToolUse('c1', 'Agent', '2026-10-22T04:00:00Z'),
     syncResult('c1', '2026-10-22T04:00:30Z', 'only one'),
   ]);
-  assert.deepEqual(recentAgentReturns(p), [{ time: '2026-10-22T04:00:30Z', taskId: null, text: 'only one' }]);
+  assert.deepEqual(recentAgentReturns(p), [{ time: '2026-10-22T04:00:30Z', taskId: null, id: 'c1', title: 'd', text: 'only one' }]);
 });
 
 test('同一条 user 行里 task-notification 与 tool_result 混排也能取', () => {
@@ -126,7 +126,7 @@ test('同一条 user 行里 task-notification 与 tool_result 混排也能取', 
       },
     },
   ]);
-  assert.deepEqual(recentAgentReturns(p), [{ time: '2026-10-22T06:00:00Z', taskId: 't9', text: 'mixed result\n' }]);
+  assert.deepEqual(recentAgentReturns(p), [{ time: '2026-10-22T06:00:00Z', taskId: 't9', id: 'c9', title: 'd', text: 'mixed result\n' }]);
 });
 
 test('真实形态：content 块是纯字符串；Bash 后台任务的 task-notification 被排除', () => {
@@ -143,7 +143,26 @@ test('真实形态：content 块是纯字符串；Bash 后台任务的 task-noti
       message: { content: [' <task-notification>\n<task-id>bx</task-id>\n<tool-use-id>cb</tool-use-id>\n<status>completed</status>\n<result>bash bg output</result>\n</task-notification>', '<task-notification>\n<task-id>ax</task-id>\n<tool-use-id>ca</tool-use-id>\n<status>completed</status>\n<result>agent full result</result>\n</task-notification>'] },
     },
   ]);
-  assert.deepEqual(recentAgentReturns(p), [{ time: '2026-10-22T07:00:00Z', taskId: 'ax', text: 'agent full result' }]);
+  assert.deepEqual(recentAgentReturns(p), [{ time: '2026-10-22T07:00:00Z', taskId: 'ax', id: 'ca', title: 'd', text: 'agent full result' }]);
+});
+
+test('title 按 tool-use-id 回查 input.description；无 description 时省略 title 字段', () => {
+  const p = fixture([
+    assistantToolUse('c1', 'Task', '2026-10-22T07:00:00Z', { description: '查依赖版本' }),
+    syncResult('c1', '2026-10-22T07:01:00Z', 'result with title'),
+    assistantToolUse('c2', 'Agent', '2026-10-22T08:00:00Z', { prompt: 'x' }),
+    syncResult('c2', '2026-10-22T08:01:00Z', 'result without title'),
+    // 后台通知同样按 tool-use-id 回查 description
+    assistantToolUse('c3', 'Agent', '2026-10-22T09:00:00Z', { description: '后台调研' }),
+    asyncLaunch('c3', '2026-10-22T09:00:01Z'),
+    taskNotification('t3', 'c3', '2026-10-22T09:10:00Z', 'bg result'),
+  ]);
+  assert.deepEqual(recentAgentReturns(p), [
+    { time: '2026-10-22T09:10:00Z', taskId: 't3', id: 'c3', title: '后台调研', text: 'bg result\n' },
+    { time: '2026-10-22T08:01:00Z', taskId: null, id: 'c2', text: 'result without title' },
+    { time: '2026-10-22T07:01:00Z', taskId: null, id: 'c1', title: '查依赖版本', text: 'result with title' },
+  ]);
+  assert.ok(!('title' in recentAgentReturns(p)[1]));
 });
 
 test('locateTranscript：HOME 下按 slug 编码定位（/ 与 . 都 → -，worktree 变体）', () => {

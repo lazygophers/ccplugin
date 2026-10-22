@@ -20,6 +20,8 @@ type State = {
   sessionId: string
   pane: Pane
   timer: { cancel(): void } | null
+  /** The tool-use id of the one expanded entry; null = all collapsed. Survives the 2s refresh. */
+  expandedId: string | null
 }
 
 const state: State = {
@@ -28,6 +30,7 @@ const state: State = {
   sessionId: '',
   pane: { isOpen: false, isClosedByPerson: false },
   timer: null,
+  expandedId: null,
 }
 
 /** A cell count as the engine reports it, made safe for layout arithmetic. */
@@ -85,7 +88,7 @@ export function register(on: On, _raw: PluginOptions) {
     }
 
     const table = $.ui.resolve(e)
-    const kit: Kit = { Box: table.Box, Text: table.Text }
+    const kit: Kit = { Box: table.Box, Text: table.Text, Button: table.Button }
     const columns = Math.max(40, wholeOf(e.props.bodyColumns))
 
     state.pane.isOpen = true
@@ -97,7 +100,15 @@ export function register(on: On, _raw: PluginOptions) {
       // no transcript yet, or not readable: the empty state, not an error
     }
 
-    return paneView(kit, entries, columns)
+    // the refresh keeps the expanded entry expanded while it is still among the latest 10
+    if (state.expandedId !== null && entries !== null && !entries.some((entry) => entry.id === state.expandedId)) {
+      state.expandedId = null
+    }
+
+    return paneView(kit, entries, columns, state.expandedId, (id) => {
+      state.expandedId = state.expandedId === id ? null : id
+      $.ui.invalidate('ui.render')
+    })
   })
 
   on('ui.close', async ($, e, next) => {
