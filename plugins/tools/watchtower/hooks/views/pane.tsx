@@ -6,8 +6,8 @@ type AnyComponent = (props: Record<string, unknown>) => unknown
 
 export type Kit = { Box: AnyComponent; Text: AnyComponent; Button: AnyComponent }
 
-// 只声明渲染用到的字段；来源 recentAgentReturns 多出的 taskId 不渲染（窄 pane 放不下）
-export type Entry = { id: string; time: string; summary?: string; title?: string; text: string }
+// 只声明渲染用到的字段；来源 recentReturns 多出的 taskId 不渲染（窄 pane 放不下）
+export type Entry = { kind?: 'agent' | 'main'; id: string; time: string; summary?: string; title?: string; text: string }
 
 export function paneView(
   kit: Kit,
@@ -26,7 +26,7 @@ export function paneView(
       {errorText !== null ? (
         <Text>{errorText}</Text>
       ) : shown.length === 0 ? (
-        <Text>No agent returns in this session yet.</Text>
+        <Text>No returns in this session yet.</Text>
       ) : (
         <>
           <Text bold>{headerOf(shown.length)}</Text>

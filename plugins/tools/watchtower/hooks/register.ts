@@ -1,11 +1,12 @@
 import type { On, PluginOptions } from 'claude-code'
-import { locateTranscript, projectDirOf, recentAgentReturns } from '../scripts/parse-transcript.mjs'
+import { locateTranscript, projectDirOf, recentReturns } from '../scripts/parse-transcript.mjs'
 import { bandRow } from '../scripts/pane-rows.mjs'
 import { bandView, paneView } from './views/pane'
 import type { Entry, Kit } from './views/pane'
 
 /**
- * The watchtower pane: the latest 10 agent return values of this session,
+ * The watchtower pane: the latest 50 entries of this session (agent return
+ * values + main-conversation final replies, newest first),
  * read straight from the transcript on every draw (zero storage of its own).
  * Structure follows the official code-modernization plugin: `session.start`
  * opens the pane, `clock.every` keeps it fresh, `ui.render` redraws,
@@ -97,7 +98,7 @@ export function register(on: On, _raw: PluginOptions) {
         state.sessionId !== ''
           ? locateTranscript(state.cwd, state.sessionId, state.home)
           : `${dir}/${newestTranscriptOf(await $.fs.list(dir))}`
-      count = recentAgentReturns(await $.fs.read(path)).length
+      count = recentReturns(await $.fs.read(path)).length
     } catch {
       // transcript 读不到（缺失、无记录、超 4 MiB）：按 0 条画 band，不报错
     }
@@ -148,14 +149,14 @@ export function register(on: On, _raw: PluginOptions) {
         if (newest === null) throw new Error(`no transcript in ${dir}`)
         path = `${dir}/${newest}`
       }
-      entries = recentAgentReturns(await $.fs.read(path))
+      entries = recentReturns(await $.fs.read(path))
     } catch (err) {
       // unreadable (missing, or over the engine's 4 MiB read cap): one error
       // line, distinct from "no agent returns yet"
       errorText = `Cannot read transcript: ${err instanceof Error ? err.message : String(err)}`
     }
 
-    // the refresh keeps the expanded entry expanded while it is still among the latest 10
+    // the refresh keeps the expanded entry expanded while it is still among the latest 50
     if (state.expandedId !== null && entries !== null && !entries.some((entry) => entry.id === state.expandedId)) {
       state.expandedId = null
     }

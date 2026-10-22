@@ -2,7 +2,7 @@
 // 放 .mjs 让 node --test 直接测；hooks/views/pane.tsx 只做字符串 → 组件映射。
 // 展开态也是这里的纯状态变换：rowsOf(entries, width, expandedId)，点击接线在 register.ts/pane.tsx。
 
-export const MAX_ROWS = 10;
+export const MAX_ROWS = 50;
 
 const hhmm = (iso) => {
   const d = new Date(iso);
@@ -45,32 +45,38 @@ export const titleOf = (entry) =>
   entry.summary ?? entry.title ?? ((entry.text ?? '').split('\n').find((l) => l.trim() !== '') ?? '').trim();
 
 // 收起态：标题行 + 正文预览。预览行数按宽度自适应（≥60 两行，否则一行，小屏至少 1 行）；
-// 标题回退自正文时预览跳过该行，不重复展示
+// agent 条目标题回退自正文时预览跳过该行，不重复展示；main 条目头部是「主回复」、
+// 不含正文，预览从首行起
+const isMain = (entry) => entry.kind === 'main';
+const headOf = (entry, marker) =>
+  isMain(entry) ? `${hhmm(entry.time)}  ◆ 主回复` : `${hhmm(entry.time)}  ${marker} ${titleOf(entry)}`;
+
 export function collapsedRows(entry, width) {
   const w = Math.max(8, width);
   const lines = wrapLines(entry.text, w - 2);
   // 标题回退自正文时预览跳过该行（header 已显示它）；summary/title 在时不跳
-  const rest = entry.summary === undefined && entry.title === undefined ? lines.slice(1) : lines;
+  const rest = isMain(entry) || entry.summary !== undefined || entry.title !== undefined ? lines : lines.slice(1);
   const n = w >= 60 ? 2 : 1;
   const shown = rest
     .slice(0, n)
     .map((l, i) => clip(`  ${l}${i === n - 1 && rest.length > n ? '…' : ''}`, w));
-  return [clip(`${hhmm(entry.time)}  ▸ ${titleOf(entry)}`, w), ...shown];
+  return [clip(headOf(entry, '▸'), w), ...shown];
 }
 
-// 展开态：标题行 + 全文按宽度换行
+// 展开态：标题行 + 全文按宽度换行（main 保持 ◆ 标记，agent 转为 ▾）
 export function expandedRows(entry, width) {
   const w = Math.max(8, width);
   return [
-    clip(`${hhmm(entry.time)}  ▾ ${titleOf(entry)}`, w),
+    clip(headOf(entry, '▾'), w),
     ...wrapLines(entry.text, w - 2).map((l) => clip(`  ${l}`, w)),
   ];
 }
 
-export const headerOf = (count) => `Agent returns — ${count} shown, newest first`;
+export const headerOf = (count) => `Returns — ${count} shown, newest first`;
 
 // band 兜底行（终端 <144 列 unasked 时 pane 不摆放，AbovePrompt 上画这一行）：
-// 有记录带条数，读失败 / 无记录按 0 条；整行是按钮文案，「点此打开」即提示可点
+// 有记录带条数（混合池：agent 返回值 + 主回复），读失败 / 无记录按 0 条；
+// 整行是按钮文案，「点此打开」即提示可点
 export function bandRow(count) {
   const n = Number(count);
   const head = Number.isInteger(n) && n > 0 ? `${n} 条` : '尚无记录';
@@ -79,11 +85,11 @@ export function bandRow(count) {
 
 // entries 为 null（transcript 读不到）或空数组 → 空态一行，不报错。
 // errorText 非空（transcript 读不了，如超 4 MiB）→ 只显示那一行错误，区分于空态。
-// 解析器已限 10 条，slice 是渲染层兜底：满 10 条时最旧滚出。
+// 解析器已限 50 条，slice 是渲染层兜底：满 50 条时最旧滚出。
 // expandedId 命中的条目展开全文（至多一条），其余收起。
 export function rowsOf(entries, width = 80, expandedId = null, errorText = null) {
   if (errorText) return [errorText];
-  if (!entries || entries.length === 0) return ['No agent returns in this session yet.'];
+  if (!entries || entries.length === 0) return ['No returns in this session yet.'];
   const kept = entries.slice(0, MAX_ROWS);
   return [
     headerOf(kept.length),

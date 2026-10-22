@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { rowsOf, collapsedRows, wrapLines, titleOf, bandRow } from './pane-rows.mjs';
+import { rowsOf, collapsedRows, expandedRows, wrapLines, titleOf, bandRow } from './pane-rows.mjs';
 
 const entry = (over = {}) => ({ id: 'e1', time: '2026-10-22T04:12:13Z', taskId: null, text: 'first result', ...over });
 
 test('空态：null 与空数组都返回一行空态文案', () => {
-  assert.deepEqual(rowsOf(null), ['No agent returns in this session yet.']);
-  assert.deepEqual(rowsOf([]), ['No agent returns in this session yet.']);
+  assert.deepEqual(rowsOf(null), ['No returns in this session yet.']);
+  assert.deepEqual(rowsOf([]), ['No returns in this session yet.']);
 });
 
 test('读失败态：errorText 只渲染一行错误，区分于空态，有记录也不渲染', () => {
@@ -20,7 +20,7 @@ test('读失败态：errorText 只渲染一行错误，区分于空态，有记�
 test('收起态：表头 + 每条标题行（无 title 回退正文首行，单行正文不再重复出预览）', () => {
   const rows = rowsOf([entry(), entry({ id: 'e2', time: '2026-10-22T03:00:00Z', text: 'second result' })]);
   assert.equal(rows.length, 3);
-  assert.match(rows[0], /^Agent returns — 2 shown, newest first$/);
+  assert.match(rows[0], /^Returns — 2 shown, newest first$/);
   assert.match(rows[1], /^\d{2}:\d{2}  ▸ first result$/);
   assert.match(rows[2], /^\d{2}:\d{2}  ▸ second result$/);
 });
@@ -31,11 +31,30 @@ test('有 title 用 title，预览显示正文前两行（≥60 宽），截断�
   assert.deepEqual(rows.slice(1), ['  line1', '  line2…']);
 });
 
-test('截断到 10 条：12 条输入只保留最新 10 条，最旧滚出', () => {
-  const entries = Array.from({ length: 12 }, (_, i) => entry({ id: `e${i}`, time: `2026-10-22T0${i}:00:00Z`, text: `result ${i}` })); // 新→旧
+test('截断到 50 条：60 条输入只保留最新 50 条，最旧滚出', () => {
+  const entries = Array.from({ length: 60 }, (_, i) => entry({ id: `e${i}`, time: `2026-10-22T0${Math.floor(i / 10)}:${String(i).padStart(2, '0')}:00Z`, text: `result ${i}` })); // 新→旧
   const rows = rowsOf(entries);
   assert.ok(rows[1].includes('result 0')); // 最新保留
-  assert.ok(!rows.some((r) => r.includes('result 10') || r.includes('result 11'))); // 最旧滚出
+  assert.ok(!rows.some((r) => r.includes('result 50') || r.includes('result 59'))); // 最旧滚出
+});
+
+test('main 条目：头部 ◆ 主回复，预览从正文首行起（不因头部吞首行）', () => {
+  const rows = collapsedRows(entry({ kind: 'main', text: 'line1\nline2\nline3' }), 80);
+  assert.match(rows[0], /^\d{2}:\d{2}  ◆ 主回复$/);
+  assert.deepEqual(rows.slice(1), ['  line1', '  line2…']);
+  // 展开态也保持 ◆ 标记
+  const expanded = expandedRows(entry({ kind: 'main', text: '第一行\n第二行' }), 80);
+  assert.match(expanded[0], /^\d{2}:\d{2}  ◆ 主回复$/);
+  assert.deepEqual(expanded.slice(1), ['  第一行', '  第二行']);
+});
+
+test('混池渲染：同一批里 ◆ 与 ▸ 两种头部并存，agent 条目维持 title 头部', () => {
+  const rows = rowsOf([
+    entry({ kind: 'main', text: 'main reply body' }),
+    entry({ kind: 'agent', title: '查依赖', text: 'agent body' }),
+  ]);
+  assert.ok(rows.some((r) => /◆ 主回复/.test(r)));
+  assert.ok(rows.some((r) => /▸ 查依赖/.test(r)));
 });
 
 test('展开态：expandedId 命中条目显示全文换行，其余条目收起', () => {
