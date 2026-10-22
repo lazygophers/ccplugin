@@ -300,6 +300,14 @@ allowed-tools: Read, Grep, Bash
 
 模块导出 `register(on, options)`，用 `on(...)` 监听引擎事件（`session.start` / `ui.render` / `ui.close` 等），可做常驻 pane 这类界面扩展。本机参照官方 code-modernization 插件；仓内用例 `plugins/tools/watchtower`。
 
+**模块沙箱三条硬规则**（违反即整个模块加载失败，pane 一类界面静默不出现）：
+
+1. 导入只许两种：模块自己的文件（相对路径）和 `claude-code` 类型；`node:fs` / `node:path` / `node:os` 一律禁——文件读写走引擎 `$.fs`（`read`/`list`/`stat`/`exists`，单次读上限 4 MiB），home 目录走 `$.env.get("HOME")`
+2. `$` 本身不得存储/传递/展开/返回（报错形如 `$ itself is assigned`）——引擎调用只能内联在各 handler 里，需要跨事件的状态存普通数据，不存 `$`
+3. 改完模块跑 `claude plugin validate <插件目录>` 可静态复现沙箱违规，不用起真机；真机验证 pane 渲染需要 ≥100 列的 pty，窄终端引擎挂起不画
+
+出处：2026-10-22 watchtower 两条真机报错（`cannot import "node:fs"`、`$ itself is assigned`），commit 56e12761。
+
 ### 6. MCP Servers
 
 Model Context Protocol 服务器，提供外部工具集成。

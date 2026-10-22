@@ -9,8 +9,12 @@ package.json / tsconfig.json / .gitignore / package-lock.json / node_modules 一
 
 - 写文件（heredoc / `>` / `tee`）和装依赖（`npm --prefix <dir> install`）一律带绝对路径或
   `--prefix`，不依赖上一条命令留下的 cwd
+- 内联脚本（`python3 - <<EOF`）里的 `open()` 读写路径同样写绝对路径：它吃的是脚本执行那一刻
+  的 cwd，cwd 被重置后相对路径直接 FileNotFoundError，整段脚本报废重跑
 - 生成一批文件后 `ls` 目标目录核对数目和文件名，不信退出码——后台任务会吞报错
 - 误写仓库根的被跟踪文件，先 `git diff` 确认没有要保留的内容，再 `git checkout -- <path>`
   从 HEAD 恢复
 
 出处：2026-10-06 ask-me .mjs → TypeScript 迁移 session 实录（本文件即该 session 复盘产物）。
+2026-10-22 watchtower session 复发内联脚本形态：`python3 -c` 改 spec.md 用相对路径
+'spec.md'，FileNotFoundError 整段报废（transcript d5852c1b L365-366），补绝对路径后重跑。
