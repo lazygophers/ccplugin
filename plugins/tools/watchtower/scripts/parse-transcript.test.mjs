@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, rmSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { recentAgentReturns } from './parse-transcript.mjs';
+import { recentAgentReturns, locateTranscript } from './parse-transcript.mjs';
 
 const dir = mkdtempSync(join(tmpdir(), 'watchtower-test-'));
 test.after(() => rmSync(dir, { recursive: true, force: true }));
@@ -144,4 +144,32 @@ test('真实形态：content 块是纯字符串；Bash 后台任务的 task-noti
     },
   ]);
   assert.deepEqual(recentAgentReturns(p), [{ time: '2026-10-22T07:00:00Z', taskId: 'ax', text: 'agent full result' }]);
+});
+
+test('locateTranscript：HOME 下按 slug 编码定位（/ 与 . 都 → -，worktree 变体）', () => {
+  const home = mkdtempSync(join(tmpdir(), 'watchtower-home-'));
+  const realHome = process.env.HOME;
+  process.env.HOME = home; // os.homedir() 优先读 $HOME
+  try {
+    // 普通：/Users/x/proj → -Users-x-proj
+    const d1 = join(home, '.claude/projects/-Users-x-proj');
+    mkdirSync(d1, { recursive: true });
+    writeFileSync(join(d1, 'sess1.jsonl'), '{}\n');
+    assert.equal(locateTranscript('/Users/x/proj', 'sess1'), join(d1, 'sess1.jsonl'));
+
+    // worktree：/Users/x/proj/.claude/worktrees/agent-1 → -Users-x-proj--claude-worktrees-agent-1
+    const d2 = join(home, '.claude/projects/-Users-x-proj--claude-worktrees-agent-1');
+    mkdirSync(d2, { recursive: true });
+    writeFileSync(join(d2, 'sess2.jsonl'), '{}\n');
+    assert.equal(
+      locateTranscript('/Users/x/proj/.claude/worktrees/agent-1', 'sess2'),
+      join(d2, 'sess2.jsonl')
+    );
+
+    // 不存在的 session：路径仍可算出（调用方自行 existsSync）
+    assert.equal(locateTranscript('/Users/x/proj', 'nope'), join(d1, 'nope.jsonl'));
+  } finally {
+    process.env.HOME = realHome;
+    rmSync(home, { recursive: true, force: true });
+  }
 });

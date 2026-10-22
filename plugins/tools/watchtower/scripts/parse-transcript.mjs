@@ -1,4 +1,6 @@
 import { readFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 
 // 解析依据：.scratch/research/2026-10-22-transcript-task-entry-structure.md（实测报告）
 // 返回值 = 后台 task-notification 的 <result> 全文；同步 Task 的 tool_result 直存正文。
@@ -8,6 +10,14 @@ const NOTIF = /^<task-notification>/;
 const RESULT_RE = /<task-id>([\s\S]*?)<\/task-id>\s*<tool-use-id>([\s\S]*?)<\/tool-use-id>[\s\S]*?<result>([\s\S]*?)<\/result>/;
 const ASYNC_LAUNCH = /^Async agent launched/;
 const AGENT_TOOLS = new Set(['Task', 'Agent']);
+
+// ~/.claude/projects/<cwd 编码>/<sessionId>.jsonl
+// 编码规则（实测 ~/.claude/projects 全目录）：路径中每个非字母数字字符 → "-"
+// （`/`、`.`、`-` 均如此；worktree 的 .claude/worktrees 即成 --claude-worktrees）
+export function locateTranscript(cwd, sessionId) {
+  const slug = cwd.replace(/[^A-Za-z0-9]/g, '-');
+  return join(homedir(), '.claude/projects', slug, `${sessionId}.jsonl`);
+}
 
 // content 可能是块数组（对象/纯字符串）或本身就是纯字符串（本机实测三种都有）
 const blocks = (content) => (Array.isArray(content) ? content : [content]);
