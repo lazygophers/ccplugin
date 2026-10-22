@@ -7,7 +7,7 @@ type AnyComponent = (props: Record<string, unknown>) => unknown
 export type Kit = { Box: AnyComponent; Text: AnyComponent; Button: AnyComponent }
 
 // 只声明渲染用到的字段；来源 recentAgentReturns 多出的 taskId 不渲染（窄 pane 放不下）
-export type Entry = { id: string; time: string; title?: string; text: string }
+export type Entry = { id: string; time: string; summary?: string; title?: string; text: string }
 
 export function paneView(
   kit: Kit,
@@ -15,13 +15,17 @@ export function paneView(
   columns: number,
   expandedId: string | null,
   onToggle: (id: string) => void,
+  /** Non-null = the transcript itself is unreadable: one error line, not the empty state. */
+  errorText: string | null = null,
 ): unknown {
   const { Box, Text, Button } = kit
   const shown = (entries ?? []).slice(0, MAX_ROWS)
 
   return (
     <Box flexDirection="column" paddingRight={1} rowGap={0}>
-      {shown.length === 0 ? (
+      {errorText !== null ? (
+        <Text>{errorText}</Text>
+      ) : shown.length === 0 ? (
         <Text>No agent returns in this session yet.</Text>
       ) : (
         <>

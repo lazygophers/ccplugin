@@ -9,6 +9,14 @@ test('空态：null 与空数组都返回一行空态文案', () => {
   assert.deepEqual(rowsOf([]), ['No agent returns in this session yet.']);
 });
 
+test('读失败态：errorText 只渲染一行错误，区分于空态，有记录也不渲染', () => {
+  const tooBig = 'Cannot read transcript: file is over the 4 MiB read cap';
+  assert.deepEqual(rowsOf(null, 80, null, tooBig), [tooBig]);
+  assert.deepEqual(rowsOf([entry()], 80, null, 'Cannot read transcript: not found'), [
+    'Cannot read transcript: not found',
+  ]);
+});
+
 test('收起态：表头 + 每条标题行（无 title 回退正文首行，单行正文不再重复出预览）', () => {
   const rows = rowsOf([entry(), entry({ id: 'e2', time: '2026-10-22T03:00:00Z', text: 'second result' })]);
   assert.equal(rows.length, 3);
@@ -54,6 +62,15 @@ test('wrapLines：软换行、超宽词硬切、跳过空行', () => {
   assert.deepEqual(wrapLines('abcdefghij', 4), ['abcd', 'efgh', 'ij']); // 超长词硬切不丢字符
   assert.deepEqual(wrapLines('\n\n x \n\n  y', 10), ['x', 'y']); // 只留非空行
   assert.deepEqual(wrapLines(undefined, 10), []); // 坏输入不抛错
+});
+
+test('titleOf：summary 优先于 title，缺失时逐级回退；summary 在时预览不吞正文首行', () => {
+  assert.equal(titleOf(entry({ summary: 'Agent "调研" finished', title: '查依赖版本' })), 'Agent "调研" finished');
+  assert.equal(titleOf(entry({ title: '查依赖版本' })), '查依赖版本');
+  assert.equal(titleOf(entry({ text: '\n\n t1\nrest' })), 't1');
+  const rows = collapsedRows(entry({ summary: 'Agent "调研" finished', text: 'line1\nline2' }), 80);
+  assert.match(rows[0], /▸ Agent "调研" finished$/);
+  assert.deepEqual(rows.slice(1), ['  line1', '  line2']); // 首行不被跳过
 });
 
 test('坏时间戳不抛错，titleOf 回退正文第一个非空行', () => {

@@ -1,17 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, rmSync, mkdirSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { recentAgentReturns, locateTranscript, projectDirOf } from './parse-transcript.mjs';
 
-const dir = mkdtempSync(join(tmpdir(), 'watchtower-test-'));
-test.after(() => rmSync(dir, { recursive: true, force: true }));
-
+// 解析器是纯函数：夹具直接给 transcript 文本，不落盘
 function fixture(lines) {
-  const p = join(dir, `f-${Math.random().toString(36).slice(2)}.jsonl`);
-  writeFileSync(p, lines.map((l) => JSON.stringify(l)).join('\n') + '\n');
-  return p;
+  return lines.map((l) => JSON.stringify(l)).join('\n') + '\n';
 }
 
 // helpers：构造 transcript 行
@@ -39,14 +32,14 @@ const asyncLaunch = (id, ts) => ({
     ],
   },
 });
-const taskNotification = (taskId, id, ts, result) => ({
+const taskNotification = (taskId, id, ts, result, summary = null) => ({
   type: 'user',
   timestamp: ts,
   message: {
     content: [
       {
         type: 'text',
-        text: `<task-notification>\n<task-id>${taskId}</task-id>\n<tool-use-id>${id}</tool-use-id>\n<output-file>/tmp/x</output-file>\n<status>completed</status>\n<summary>Agent "t" finished</summary>\n<result>${result}\n</result>\n</task-notification>`,
+        text: `<task-notification>\n<task-id>${taskId}</task-id>\n<tool-use-id>${id}</tool-use-id>\n<output-file>/tmp/x</output-file>\n<status>completed</status>\n${summary !== null ? `<summary>${summary}</summary>\n` : ''}<result>${result}\n</result>\n</task-notification>`,
       },
     ],
   },
@@ -146,6 +139,19 @@ test('真实形态：content 块是纯字符串；Bash 后台任务的 task-noti
   assert.deepEqual(recentAgentReturns(p), [{ time: '2026-10-22T07:00:00Z', taskId: 'ax', id: 'ca', title: 'd', text: 'agent full result' }]);
 });
 
+test('task-notification 带 <summary>：输出 summary 字段，summary 与 title 缺失时都省略', () => {
+  const p = fixture([
+    assistantToolUse('c1', 'Agent', '2026-10-22T10:00:00Z', { description: '后台调研' }),
+    taskNotification('t1', 'c1', '2026-10-22T10:01:00Z', 'bg result', 'Agent "后台调研" finished'),
+    assistantToolUse('c2', 'Task', '2026-10-22T11:00:00Z'),
+    taskNotification('t2', 'c2', '2026-10-22T11:01:00Z', 'no summary result'),
+  ]);
+  assert.deepEqual(recentAgentReturns(p), [
+    { time: '2026-10-22T11:01:00Z', taskId: 't2', id: 'c2', title: 'd', text: 'no summary result\n' },
+    { time: '2026-10-22T10:01:00Z', taskId: 't1', id: 'c1', summary: 'Agent "后台调研" finished', title: '后台调研', text: 'bg result\n' },
+  ]);
+});
+
 test('title 按 tool-use-id 回查 input.description；无 description 时省略 title 字段', () => {
   const p = fixture([
     assistantToolUse('c1', 'Task', '2026-10-22T07:00:00Z', { description: '查依赖版本' }),
@@ -165,32 +171,21 @@ test('title 按 tool-use-id 回查 input.description；无 description 时省略
   assert.ok(!('title' in recentAgentReturns(p)[1]));
 });
 
-test('locateTranscript：HOME 下按 slug 编码定位（/ 与 . 都 → -，worktree 变体）', () => {
-  const home = mkdtempSync(join(tmpdir(), 'watchtower-home-'));
-  const realHome = process.env.HOME;
-  process.env.HOME = home; // os.homedir() 优先读 $HOME
-  try {
-    // 普通：/Users/x/proj → -Users-x-proj
-    const d1 = join(home, '.claude/projects/-Users-x-proj');
-    mkdirSync(d1, { recursive: true });
-    writeFileSync(join(d1, 'sess1.jsonl'), '{}\n');
-    assert.equal(projectDirOf('/Users/x/proj'), d1);
-    assert.equal(locateTranscript('/Users/x/proj', 'sess1'), join(d1, 'sess1.jsonl'));
+test('projectDirOf / locateTranscript：纯字符串拼接，HOME 下按 slug 编码（/ 与 . 都 → -，worktree 变体）', () => {
+  const home = '/Users/x/home';
+  // 普通：/Users/x/proj → -Users-x-proj
+  const d1 = `${home}/.claude/projects/-Users-x-proj`;
+  assert.equal(projectDirOf('/Users/x/proj', home), d1);
+  assert.equal(locateTranscript('/Users/x/proj', 'sess1', home), `${d1}/sess1.jsonl`);
 
-    // worktree：/Users/x/proj/.claude/worktrees/agent-1 → -Users-x-proj--claude-worktrees-agent-1
-    const d2 = join(home, '.claude/projects/-Users-x-proj--claude-worktrees-agent-1');
-    mkdirSync(d2, { recursive: true });
-    writeFileSync(join(d2, 'sess2.jsonl'), '{}\n');
-    assert.equal(projectDirOf('/Users/x/proj/.claude/worktrees/agent-1'), d2);
-    assert.equal(
-      locateTranscript('/Users/x/proj/.claude/worktrees/agent-1', 'sess2'),
-      join(d2, 'sess2.jsonl')
-    );
+  // worktree：/Users/x/proj/.claude/worktrees/agent-1 → -Users-x-proj--claude-worktrees-agent-1
+  const d2 = `${home}/.claude/projects/-Users-x-proj--claude-worktrees-agent-1`;
+  assert.equal(projectDirOf('/Users/x/proj/.claude/worktrees/agent-1', home), d2);
+  assert.equal(
+    locateTranscript('/Users/x/proj/.claude/worktrees/agent-1', 'sess2', home),
+    `${d2}/sess2.jsonl`
+  );
 
-    // 不存在的 session：路径仍可算出（调用方自行 existsSync）
-    assert.equal(locateTranscript('/Users/x/proj', 'nope'), join(d1, 'nope.jsonl'));
-  } finally {
-    process.env.HOME = realHome;
-    rmSync(home, { recursive: true, force: true });
-  }
+  // 不存在的 session：路径仍可算出（调用方自行读失败处理）
+  assert.equal(locateTranscript('/Users/x/proj', 'nope', home), `${d1}/nope.jsonl`);
 });

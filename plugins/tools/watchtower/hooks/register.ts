@@ -1,4 +1,4 @@
-import type { EngineInterface, On, PluginOptions } from 'claude-code'
+import type { On, PluginOptions } from 'claude-code'
 import { locateTranscript, projectDirOf, recentAgentReturns } from '../scripts/parse-transcript.mjs'
 import { paneView } from './views/pane'
 import type { Entry, Kit } from './views/pane'
@@ -7,17 +7,19 @@ import type { Entry, Kit } from './views/pane'
  * The watchtower pane: the latest 10 agent return values of this session,
  * read straight from the transcript on every draw (zero storage of its own).
  * Structure follows the official code-modernization plugin: `session.start`
- * binds the engine and opens the pane, `clock.every` keeps it fresh,
- * `ui.render` redraws, `ui.close` takes it down.
+ * opens the pane, `clock.every` keeps it fresh, `ui.render` redraws,
+ * `ui.close` takes it down. The engine `$` is never stored or passed: it is
+ * only spelled `$.noun.event(...)` inside the handler the engine gave it to.
  */
 export const PANE_ID = 'watchtower'
 const REFRESH_MS = 2000
 
 type Pane = { isOpen: boolean; isClosedByPerson: boolean }
 type State = {
-  $: EngineInterface | null
   cwd: string
   sessionId: string
+  /** The home dir as `$.env.get('HOME')` gave it; transcript paths live under it. */
+  home: string
   pane: Pane
   timer: { cancel(): void } | null
   /** The tool-use id of the one expanded entry; null = all collapsed. Survives the 2s refresh. */
@@ -25,9 +27,9 @@ type State = {
 }
 
 const state: State = {
-  $: null,
   cwd: '',
   sessionId: '',
+  home: '',
   pane: { isOpen: false, isClosedByPerson: false },
   timer: null,
   expandedId: null,
@@ -37,27 +39,23 @@ const state: State = {
 const wholeOf = (value: unknown): number =>
   typeof value === 'number' && Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0
 
-/** The transcript of the current session: by session id when the engine gave
- *  one, else the newest .jsonl of the project dir (research report §7 fallback). */
-async function transcriptOf(): Promise<string> {
-  const $ = state.$
-  if ($ === null) throw new Error('engine not bound')
-  if (state.sessionId !== '') return locateTranscript(state.cwd, state.sessionId)
-  const dir = projectDirOf(state.cwd)
-  let newest: { path: string; mtimeMs: number } | null = null
-  for (const entry of await $.fs.list(dir)) {
+type DirEntry = { name: string; kind: string; mtimeMs: number }
+
+/** The newest .jsonl of the project dir (research report §7 fallback); null if none. */
+function newestTranscriptOf(entries: DirEntry[]): string | null {
+  let newest: DirEntry | null = null
+  for (const entry of entries) {
     if (entry.kind !== 'file' || !entry.name.endsWith('.jsonl')) continue
-    const mtimeMs = (await $.fs.stat(`${dir}/${entry.name}`)).mtimeMs
-    if (newest === null || mtimeMs > newest.mtimeMs) newest = { path: `${dir}/${entry.name}`, mtimeMs }
+    // a list entry already carries a regular file's own mtimeMs
+    if (newest === null || entry.mtimeMs > newest.mtimeMs) newest = entry
   }
-  if (newest === null) throw new Error(`no transcript in ${dir}`)
-  return newest.path
+  return newest?.name ?? null
 }
 
 export function register(on: On, _raw: PluginOptions) {
   on('session.start', async ($, e, next) => {
-    state.$ = $
     state.cwd = e.cwd
+    state.home = (await $.env.get('HOME')) ?? ''
     state.sessionId =
       typeof (e as { sessionId?: unknown }).sessionId === 'string'
         ? (e as { sessionId: string }).sessionId
@@ -83,7 +81,7 @@ export function register(on: On, _raw: PluginOptions) {
   })
 
   on('ui.render', { component: 'Pane' }, async ($, e, next) => {
-    if (state.$ === null || e.requestId !== PANE_ID) {
+    if (e.requestId !== PANE_ID) {
       return next(e)
     }
 
@@ -94,10 +92,23 @@ export function register(on: On, _raw: PluginOptions) {
     state.pane.isOpen = true
 
     let entries: Entry[] | null = null
+    let errorText: string | null = null
     try {
-      entries = recentAgentReturns(await transcriptOf())
-    } catch {
-      // no transcript yet, or not readable: the empty state, not an error
+      // the transcript, read through the engine (a hooks module cannot touch node:fs):
+      // by session id when the engine gave one, else the newest .jsonl of the project dir
+      const dir = projectDirOf(state.cwd, state.home)
+      let path: string
+      if (state.sessionId !== '') path = locateTranscript(state.cwd, state.sessionId, state.home)
+      else {
+        const newest = newestTranscriptOf(await $.fs.list(dir))
+        if (newest === null) throw new Error(`no transcript in ${dir}`)
+        path = `${dir}/${newest}`
+      }
+      entries = recentAgentReturns(await $.fs.read(path))
+    } catch (err) {
+      // unreadable (missing, or over the engine's 4 MiB read cap): one error
+      // line, distinct from "no agent returns yet"
+      errorText = `Cannot read transcript: ${err instanceof Error ? err.message : String(err)}`
     }
 
     // the refresh keeps the expanded entry expanded while it is still among the latest 10
@@ -105,10 +116,17 @@ export function register(on: On, _raw: PluginOptions) {
       state.expandedId = null
     }
 
-    return paneView(kit, entries, columns, state.expandedId, (id) => {
-      state.expandedId = state.expandedId === id ? null : id
-      $.ui.invalidate('ui.render')
-    })
+    return paneView(
+      kit,
+      entries,
+      columns,
+      state.expandedId,
+      (id) => {
+        state.expandedId = state.expandedId === id ? null : id
+        $.ui.invalidate('ui.render')
+      },
+      errorText,
+    )
   })
 
   on('ui.close', async ($, e, next) => {

@@ -1,38 +1,38 @@
-import { readFileSync } from 'node:fs';
-import { homedir } from 'node:os';
-import { join } from 'node:path';
-
 // 解析依据：.scratch/research/2026-10-22-transcript-task-entry-structure.md（实测报告）
 // 返回值 = 后台 task-notification 的 <result> 全文；同步 Task 的 tool_result 直存正文。
 // API 依据：transcript 内部格式无官方契约，改格式时先重跑实测。
+// 本模块是纯函数、零 node:* 导入：hooks module 沙箱只许相对导入和 claude-code，
+// 文件读写由调用方（register.ts 走引擎 $.fs.read）负责。
 
 const NOTIF = /^<task-notification>/;
 const RESULT_RE = /<task-id>([\s\S]*?)<\/task-id>\s*<tool-use-id>([\s\S]*?)<\/tool-use-id>[\s\S]*?<result>([\s\S]*?)<\/result>/;
+// harness 渲染的「Teammate @name finished」形态；单独取，避免与主正则的惰性量词争位
+const SUMMARY_RE = /<summary>([\s\S]*?)<\/summary>/;
 const ASYNC_LAUNCH = /^Async agent launched/;
 const AGENT_TOOLS = new Set(['Task', 'Agent']);
 
-// ~/.claude/projects/<cwd 编码>/
+// <home>/.claude/projects/<cwd 编码>/
 // 编码规则（实测 ~/.claude/projects 全目录）：路径中每个非字母数字字符 → "-"
 // （`/`、`.`、`-` 均如此；worktree 的 .claude/worktrees 即成 --claude-worktrees）
-export function projectDirOf(cwd) {
+export function projectDirOf(cwd, home) {
   const slug = cwd.replace(/[^A-Za-z0-9]/g, '-');
-  return join(homedir(), '.claude/projects', slug);
+  return `${home}/.claude/projects/${slug}`;
 }
 
-export function locateTranscript(cwd, sessionId) {
-  return join(projectDirOf(cwd), `${sessionId}.jsonl`);
+export function locateTranscript(cwd, sessionId, home) {
+  return `${projectDirOf(cwd, home)}/${sessionId}.jsonl`;
 }
 
 // content 可能是块数组（对象/纯字符串）或本身就是纯字符串（本机实测三种都有）
 const blocks = (content) => (Array.isArray(content) ? content : [content]);
 const blockText = (b) => (typeof b === 'string' ? b : b?.text ?? '');
 
-// 输入 transcript jsonl 路径，输出最近 limit 条（默认 10）agent 返回值，
-// 按文件行序从新到旧：[{ time, taskId, id, title?, text }]
+// 输入 transcript jsonl 文本，输出最近 limit 条（默认 10）agent 返回值，
+// 按文本行序从新到旧：[{ time, taskId, id, title?, text }]
 // id = tool-use-id（pane 展开态的锚点，跨刷新稳定）；title = 调用时 tool_use
 // input.description（无则省略该字段，展示层回退正文首行）
-export function recentAgentReturns(transcriptPath, limit = 10) {
-  const lines = readFileSync(transcriptPath, 'utf8').split('\n');
+export function recentAgentReturns(transcriptContent, limit = 10) {
+  const lines = String(transcriptContent ?? '').split('\n');
   // shortcut: 先整读建 id→工具名 映射（同步 tool_result 的 id 在文件更早处出现，
   // 纯逆向扫拿不到映射）；transcript 1M 量级整读无压力，超大文件再改尾窗
   const idIsAgent = new Set();
@@ -64,8 +64,9 @@ export function recentAgentReturns(transcriptPath, limit = 10) {
         const m = t.match(RESULT_RE); // [\s\S] 即 DOTALL
         // task-notification 也发给 Bash 后台任务，按 tool-use-id 回查只留 agent 的
         if (m && idIsAgent.has(m[2])) {
+          const summary = t.match(SUMMARY_RE)?.[1];
           const title = idTitle.get(m[2]);
-          out.push({ time: o.timestamp, taskId: m[1], id: m[2], text: m[3], ...(title !== undefined && { title }) });
+          out.push({ time: o.timestamp, taskId: m[1], id: m[2], text: m[3], ...(summary !== undefined && { summary }), ...(title !== undefined && { title }) });
         }
       } else if (b?.type === 'tool_result' && idIsAgent.has(b.tool_use_id)) {
         const text = typeof b.content === 'string' ? b.content : (b.content ?? []).filter((c) => c.type === 'text').map((c) => c.text).join('');

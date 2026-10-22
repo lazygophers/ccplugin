@@ -9,14 +9,14 @@ Claude Code mod pane 插件：常驻面板展示**当前 session 最近 10 条 a
 Claude Code 界面多一块常驻面板 **Agent returns**：
 
 - `session.start` 时自动打开，每 2 秒刷新一次（`clock.every` + `ui.render`）
-- 每条默认收起：时间 + 调用标题（Task/Agent 的 `tool_use` `input.description`，无则回退正文第一个非空行）+ 正文预览（按面板宽度自适应行数：≥60 列两行、窄屏一行，超宽截断、超长词硬切不炸版；窄面板放不下 taskId，不渲染）
+- 每条默认收起：时间 + 调用标题（后台通知取 `<summary>`（如 `Agent "…" finished`），否则 Task/Agent 的 `tool_use` `input.description`，再无则回退正文第一个非空行）+ 正文预览（按面板宽度自适应行数：≥60 列两行、窄屏一行，超宽截断、超长词硬切不炸版；窄面板放不下 taskId，不渲染）
 - 点击某条就地展开该条全文（按宽度换行），再点收起；同一时刻至多一条展开，2 秒刷新不丢展开态（该条滚出最近 10 条才自动收起）
 - 最多 10 条，新的在前；面板可手动关闭，关闭后本 session 不再自动重开
 - 终端太窄 dock 不下 pane 时，面板保持未绘制状态，不报错
 
 不做的事：不跨 session / 历史查询，不做返回值筛选、搜索、导出。
 
-已知限制：session.start 事件不带 sessionId 时，取该项目目录下 mtime 最新的 transcript 兜底；同项目并发第二个 session 可能读到别的 session 的记录。
+已知限制：session.start 事件不带 sessionId 时，取该项目目录下 mtime 最新的 transcript 兜底；同项目并发第二个 session 可能读到别的 session 的记录。transcript 超过 4 MiB（引擎单次读上限，见 `$.fs.read` 文档）时读不了，面板显示 `Cannot read transcript: …` 一行错误。
 
 ## 安装
 

@@ -39,16 +39,18 @@ export function wrapLines(text, width) {
   return out;
 }
 
-// 显示标题：调用时的 description（解析器回查），无则回退正文第一个非空行
+// 显示标题：通知的 <summary>（harness 的「Teammate @name finished」形态）优先，
+// 再调用时的 description（解析器回查），都无则回退正文第一个非空行
 export const titleOf = (entry) =>
-  entry.title ?? ((entry.text ?? '').split('\n').find((l) => l.trim() !== '') ?? '').trim();
+  entry.summary ?? entry.title ?? ((entry.text ?? '').split('\n').find((l) => l.trim() !== '') ?? '').trim();
 
 // 收起态：标题行 + 正文预览。预览行数按宽度自适应（≥60 两行，否则一行，小屏至少 1 行）；
 // 标题回退自正文时预览跳过该行，不重复展示
 export function collapsedRows(entry, width) {
   const w = Math.max(8, width);
   const lines = wrapLines(entry.text, w - 2);
-  const rest = entry.title === undefined ? lines.slice(1) : lines;
+  // 标题回退自正文时预览跳过该行（header 已显示它）；summary/title 在时不跳
+  const rest = entry.summary === undefined && entry.title === undefined ? lines.slice(1) : lines;
   const n = w >= 60 ? 2 : 1;
   const shown = rest
     .slice(0, n)
@@ -68,9 +70,11 @@ export function expandedRows(entry, width) {
 export const headerOf = (count) => `Agent returns — ${count} shown, newest first`;
 
 // entries 为 null（transcript 读不到）或空数组 → 空态一行，不报错。
+// errorText 非空（transcript 读不了，如超 4 MiB）→ 只显示那一行错误，区分于空态。
 // 解析器已限 10 条，slice 是渲染层兜底：满 10 条时最旧滚出。
 // expandedId 命中的条目展开全文（至多一条），其余收起。
-export function rowsOf(entries, width = 80, expandedId = null) {
+export function rowsOf(entries, width = 80, expandedId = null, errorText = null) {
+  if (errorText) return [errorText];
   if (!entries || entries.length === 0) return ['No agent returns in this session yet.'];
   const kept = entries.slice(0, MAX_ROWS);
   return [
