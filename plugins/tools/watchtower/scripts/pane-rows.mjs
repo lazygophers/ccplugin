@@ -78,12 +78,10 @@ export function expandedRows(entry, width) {
 export const headerOf = (count) => `Returns — ${count} shown, newest first`;
 
 // band 兜底行（终端 <144 列 unasked 时 pane 不摆放，AbovePrompt 上画这一行）：
-// 有记录带条数（混合池：agent 返回值 + 主回复），读失败 / 无记录按 0 条；
-// 整行是按钮文案，「点此打开」即提示可点
+// 读失败 / 无记录按 0 条；整行是按钮，⌃ 即提示可点开面板
 export function bandRow(count) {
   const n = Number(count);
-  const head = Number.isInteger(n) && n > 0 ? `${n} 条` : '尚无记录';
-  return `Agent returns: ${head} — 点此打开`;
+  return `⌃ 返回值 ${Number.isInteger(n) && n > 0 ? n : 0}`;
 }
 
 // entries 为 null（transcript 读不到）或空数组 → 空态一行，不报错。

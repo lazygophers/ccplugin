@@ -94,13 +94,12 @@ test('titleOf：summary 优先于 title，缺失时逐级回退；summary 在时
   assert.deepEqual(rows.slice(1), ['  line1', '  line2']); // 首行不被跳过
 });
 
-test('bandRow：有记录带条数，0 / null / 非数都回退尚无记录，一行不炸', () => {
-  assert.equal(bandRow(3), 'Agent returns: 3 条 — 点此打开');
-  assert.equal(bandRow(0), 'Agent returns: 尚无记录 — 点此打开');
-  assert.equal(bandRow(null), 'Agent returns: 尚无记录 — 点此打开');
-  assert.equal(bandRow(undefined), 'Agent returns: 尚无记录 — 点此打开');
-  assert.equal(bandRow('garbage'), 'Agent returns: 尚无记录 — 点此打开');
-  assert.ok(bandRow(10).length <= 40); // 100 列终端一行放得下
+test('bandRow：一行短文案，0 / null / 非数都回退 0，不炸', () => {
+  assert.equal(bandRow(3), '⌃ 返回值 3');
+  assert.equal(bandRow(0), '⌃ 返回值 0'); // 0 不画 band，此值只保底
+  assert.equal(bandRow(null), '⌃ 返回值 0');
+  assert.equal(bandRow('garbage'), '⌃ 返回值 0');
+  assert.ok(bandRow(999999).length <= 20); // 100 列终端一行放得下
 });
 
 test('坏时间戳不抛错，titleOf 回退正文第一个非空行', () => {

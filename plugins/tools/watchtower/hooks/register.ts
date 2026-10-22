@@ -19,7 +19,6 @@ const REFRESH_MS = 2000
 type Pane = { isOpen: boolean; isClosedByPerson: boolean }
 type State = {
   cwd: string
-  sessionId: string
   /** The home dir as `$.env.get('HOME')` gave it; transcript paths live under it. */
   home: string
   pane: Pane
@@ -30,7 +29,6 @@ type State = {
 
 const state: State = {
   cwd: '',
-  sessionId: '',
   home: '',
   pane: { isOpen: false, isClosedByPerson: false },
   timer: null,
@@ -45,10 +43,6 @@ export function register(on: On, _raw: PluginOptions) {
   on('session.start', async ($, e, next) => {
     state.cwd = e.cwd
     state.home = (await $.env.get('HOME')) ?? ''
-    state.sessionId =
-      typeof (e as { sessionId?: unknown }).sessionId === 'string'
-        ? (e as { sessionId: string }).sessionId
-        : ''
 
     state.timer?.cancel()
 
@@ -75,15 +69,16 @@ export function register(on: On, _raw: PluginOptions) {
       return next(e)
     }
 
-    // band 渲染时顺手读一次 transcript 记条数（读失败按 0 条）；
-    // 不为 band 起新 timer，跟引擎自己的 AbovePrompt 重绘走
+    // band 渲染时顺手读一次 transcript 记条数；当前 session 无记录（含读不到）
+    // 时不画 band——有数据才展示。不为 band 起新 timer，跟引擎自己的 AbovePrompt 重绘走
     const table = $.ui.resolve(e)
     let count = 0
     try {
-      // 只读当前 session 的 transcript（读不到按 0 条画 band）；
-      // 不做「项目目录最新文件」兜底——那会读到别的 session 的记录
-      if (state.sessionId === '') throw new Error('session id unknown')
-      const path = locateTranscript(state.cwd, state.sessionId, state.home)
+      // 只读当前 session 的 transcript。id 每次渲染实时取（$.session.id()）：
+      // session.start 事件不带 id，且 /clear、resume 换 id 时不重发 session.start
+      const sid = await $.session.id()
+      if (sid === '') throw new Error('session id unknown')
+      const path = locateTranscript(state.cwd, sid, state.home)
       // 超 4 MiB（$.fs.read 单次上限）改走 tail -c 取尾（stdout 上限同 4 MiB，常量已留余量）；
       // 本段与 Pane handler 内联重复：$ 不能存进任何变量，含作参数传入 helper
       const stat = await $.fs.stat(path)
@@ -97,8 +92,10 @@ export function register(on: On, _raw: PluginOptions) {
       }
       count = recentReturns(content).length
     } catch {
-      // transcript 读不到（缺失、tail 失败）：按 0 条画 band，不报错
+      // transcript 读不到（缺失、tail 失败）：按 0 条，即不画 band
     }
+
+    if (count === 0) return next(e)
 
     return bandView(
       { Box: table.Box, Text: table.Text, Button: table.Button } as Kit,
@@ -137,10 +134,12 @@ export function register(on: On, _raw: PluginOptions) {
     let errorText: string | null = null
     try {
       // the current session's transcript only, read through the engine (a hooks
-      // module cannot touch node:fs); no "newest file of the project dir"
-      // fallback — that would show another session's returns
-      if (state.sessionId === '') throw new Error('session id unknown')
-      const path = locateTranscript(state.cwd, state.sessionId, state.home)
+      // module cannot touch node:fs). The id is fetched live per draw: the
+      // session.start event carries none, and /clear or a resume swaps it
+      // without session.start firing again
+      const sid = await $.session.id()
+      if (sid === '') throw new Error('session id unknown')
+      const path = locateTranscript(state.cwd, sid, state.home)
       // 超 4 MiB（$.fs.read 单次上限）改走 tail -c 取尾（stdout 上限同 4 MiB，常量已留余量）；
       // 尾部切片首行可能被截断成非法 JSON —— 解析器本来就跳过 JSON.parse 失败的行
       const stat = await $.fs.stat(path)

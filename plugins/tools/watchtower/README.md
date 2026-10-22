@@ -17,7 +17,7 @@ Claude Code 界面多一块常驻面板 **Agent returns**：
 
 不做的事：不跨 session / 历史查询，不做返回值筛选、搜索、导出。
 
-已知限制：只读当前 session 的 transcript；session.start 事件不带 sessionId 时面板不展示任何记录。transcript 超过 4 MiB（引擎单次读上限，见 `$.fs.read` 文档）时取最近约 4 MiB（`tail -c`）解析，更早的条目不进面板；取尾失败才显示 `Cannot read transcript: …` 一行错误。
+已知限制：只读当前 session 的 transcript（session id 每次渲染经 `$.session.id()` 实时取）。transcript 超过 4 MiB（引擎单次读上限，见 `$.fs.read` 文档）时取最近约 4 MiB（`tail -c`）解析，更早的条目不进面板；取尾失败才显示 `Cannot read transcript: …` 一行错误。
 
 ## 安装
 
