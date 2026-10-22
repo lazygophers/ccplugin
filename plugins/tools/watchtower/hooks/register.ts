@@ -1,5 +1,5 @@
 import type { On, PluginOptions } from 'claude-code'
-import { locateTranscript, projectDirOf, recentReturns } from '../scripts/parse-transcript.mjs'
+import { locateTranscript, projectDirOf, recentReturns, READ_CAP, TAIL_BYTES } from '../scripts/parse-transcript.mjs'
 import { bandRow } from '../scripts/pane-rows.mjs'
 import { bandView, paneView } from './views/pane'
 import type { Entry, Kit } from './views/pane'
@@ -98,9 +98,20 @@ export function register(on: On, _raw: PluginOptions) {
         state.sessionId !== ''
           ? locateTranscript(state.cwd, state.sessionId, state.home)
           : `${dir}/${newestTranscriptOf(await $.fs.list(dir))}`
-      count = recentReturns(await $.fs.read(path)).length
+      // 超 4 MiB（$.fs.read 单次上限）改走 tail -c 取尾（stdout 上限同 4 MiB，常量已留余量）；
+      // 本段与 Pane handler 内联重复：$ 不能存进任何变量，含作参数传入 helper
+      const stat = await $.fs.stat(path)
+      let content: string
+      if (stat !== undefined && stat.size > READ_CAP) {
+        const tail = await $.process.run(['tail', '-c', String(TAIL_BYTES), path])
+        if (tail.exitCode !== 0) throw new Error(tail.stderr !== '' ? tail.stderr : `tail exited with ${tail.exitCode}`)
+        content = tail.stdout
+      } else {
+        content = await $.fs.read(path)
+      }
+      count = recentReturns(content).length
     } catch {
-      // transcript 读不到（缺失、无记录、超 4 MiB）：按 0 条画 band，不报错
+      // transcript 读不到（缺失、tail 失败）：按 0 条画 band，不报错
     }
 
     return bandView(
@@ -149,9 +160,20 @@ export function register(on: On, _raw: PluginOptions) {
         if (newest === null) throw new Error(`no transcript in ${dir}`)
         path = `${dir}/${newest}`
       }
-      entries = recentReturns(await $.fs.read(path))
+      // 超 4 MiB（$.fs.read 单次上限）改走 tail -c 取尾（stdout 上限同 4 MiB，常量已留余量）；
+      // 尾部切片首行可能被截断成非法 JSON —— 解析器本来就跳过 JSON.parse 失败的行
+      const stat = await $.fs.stat(path)
+      let content: string
+      if (stat !== undefined && stat.size > READ_CAP) {
+        const tail = await $.process.run(['tail', '-c', String(TAIL_BYTES), path])
+        if (tail.exitCode !== 0) throw new Error(tail.stderr !== '' ? tail.stderr : `tail exited with ${tail.exitCode}`)
+        content = tail.stdout
+      } else {
+        content = await $.fs.read(path)
+      }
+      entries = recentReturns(content)
     } catch (err) {
-      // unreadable (missing, or over the engine's 4 MiB read cap): one error
+      // unreadable (missing, or the stat/read/tail above failed): one error
       // line, distinct from "no agent returns yet"
       errorText = `Cannot read transcript: ${err instanceof Error ? err.message : String(err)}`
     }

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { recentReturns, locateTranscript, projectDirOf } from './parse-transcript.mjs';
+import { recentReturns, locateTranscript, projectDirOf, READ_CAP, TAIL_BYTES } from './parse-transcript.mjs';
 
 // 解析器是纯函数：夹具直接给 transcript 文本，不落盘
 function fixture(lines) {
@@ -273,4 +273,25 @@ test('projectDirOf / locateTranscript：纯字符串拼接，HOME 下按 slug �
 
   // 不存在的 session：路径仍可算出（调用方自行读失败处理）
   assert.equal(locateTranscript('/Users/x/proj', 'nope', home), `${d1}/nope.jsonl`);
+});
+
+test('尾部切片首行半截 JSON：跳过、不炸、不算条目（tail -c 取尾的常态）', () => {
+  // tail 从行中间切开，首行成了非法 JSON；其后完整行照常解析
+  const halfLine = '{"type":"assistant","timestamp":"2026-10-22T00:59:00Z","mess';
+  const p = halfLine + '\n' + fixture([
+    assistantToolUse('c1', 'Task', '2026-10-22T01:00:00Z'),
+    syncResult('c1', '2026-10-22T01:01:00Z', 'sync task result'),
+    assistantText('2026-10-22T01:02:00Z', 'main reply'),
+  ]);
+  const r = recentReturns(p);
+  assert.equal(r.length, 2);
+  assert.equal(r[0].kind, 'main');
+  assert.equal(r[0].text, 'main reply');
+  assert.equal(r[1].kind, 'agent');
+  assert.equal(r[1].text, 'sync task result');
+});
+
+test('引擎读上限常量：READ_CAP = 4194304（$.fs.read / stdout 共同上限），TAIL_BYTES 在上限内且留余量', () => {
+  assert.equal(READ_CAP, 4194304);
+  assert.ok(TAIL_BYTES > 0 && TAIL_BYTES < READ_CAP);
 });

@@ -5,6 +5,13 @@
 // 本模块是纯函数、零 node:* 导入：hooks module 沙箱只许相对导入和 claude-code，
 // 文件读写由调用方（register.ts 走引擎 $.fs.read）负责。
 
+// 引擎读文件的边界（index.d.ts）：$.fs.read 单次上限 4194304 字节、无 offset；
+// $.process.run 的 stdout 同上限。超限 transcript 由 register.ts 改走
+// tail -c 取尾：取 4194000 字节，给 stdout 上限留 304 字节余量。
+// 常量放这里供 register.ts 与单测共用（hooks 模块不可被测试 import）。
+export const READ_CAP = 4194304;
+export const TAIL_BYTES = 4194000;
+
 const NOTIF = /^<task-notification>/;
 const RESULT_RE = /<task-id>([\s\S]*?)<\/task-id>\s*<tool-use-id>([\s\S]*?)<\/tool-use-id>[\s\S]*?<result>([\s\S]*?)<\/result>/;
 // harness 渲染的「Teammate @name finished」形态；单独取，避免与主正则的惰性量词争位

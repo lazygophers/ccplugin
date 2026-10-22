@@ -17,7 +17,7 @@ Claude Code 界面多一块常驻面板 **Agent returns**：
 
 不做的事：不跨 session / 历史查询，不做返回值筛选、搜索、导出。
 
-已知限制：session.start 事件不带 sessionId 时，取该项目目录下 mtime 最新的 transcript 兜底；同项目并发第二个 session 可能读到别的 session 的记录。transcript 超过 4 MiB（引擎单次读上限，见 `$.fs.read` 文档）时读不了，面板显示 `Cannot read transcript: …` 一行错误。
+已知限制：session.start 事件不带 sessionId 时，取该项目目录下 mtime 最新的 transcript 兜底；同项目并发第二个 session 可能读到别的 session 的记录。transcript 超过 4 MiB（引擎单次读上限，见 `$.fs.read` 文档）时取最近约 4 MiB（`tail -c`）解析，更早的条目不进面板；取尾失败才显示 `Cannot read transcript: …` 一行错误。
 
 ## 安装
 
