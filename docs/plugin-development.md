@@ -292,6 +292,14 @@ allowed-tools: Read, Grep, Bash
 {"hooks":{"PostToolUse":[{"matcher":"Write|Edit","hooks":[{"type":"command","command":"${CLAUDE_PLUGIN_ROOT}/scripts/format.sh","env":{"FORMAT":"true"}}]}]}}
 ```
 
+除命令外，`hooks/hooks.json` 还支持 `"modules"` 形态加载 TS 模块：
+
+```json
+{"description":"面板描述","modules":["./register.ts"]}
+```
+
+模块导出 `register(on, options)`，用 `on(...)` 监听引擎事件（`session.start` / `ui.render` / `ui.close` 等），可做常驻 pane 这类界面扩展。本机参照官方 code-modernization 插件；仓内用例 `plugins/tools/watchtower`。
+
 ### 6. MCP Servers
 
 Model Context Protocol 服务器，提供外部工具集成。

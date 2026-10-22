@@ -1,5 +1,5 @@
 import type { EngineInterface, On, PluginOptions } from 'claude-code'
-import { locateTranscript, recentAgentReturns } from '../scripts/parse-transcript.mjs'
+import { locateTranscript, projectDirOf, recentAgentReturns } from '../scripts/parse-transcript.mjs'
 import { paneView } from './views/pane'
 import type { Entry, Kit } from './views/pane'
 
@@ -13,7 +13,7 @@ import type { Entry, Kit } from './views/pane'
 export const PANE_ID = 'watchtower'
 const REFRESH_MS = 2000
 
-type Pane = { isOpen: boolean; isWaiting: boolean; isClosedByPerson: boolean }
+type Pane = { isOpen: boolean; isClosedByPerson: boolean }
 type State = {
   $: EngineInterface | null
   cwd: string
@@ -26,7 +26,7 @@ const state: State = {
   $: null,
   cwd: '',
   sessionId: '',
-  pane: { isOpen: false, isWaiting: false, isClosedByPerson: false },
+  pane: { isOpen: false, isClosedByPerson: false },
   timer: null,
 }
 
@@ -40,8 +40,7 @@ async function transcriptOf(): Promise<string> {
   const $ = state.$
   if ($ === null) throw new Error('engine not bound')
   if (state.sessionId !== '') return locateTranscript(state.cwd, state.sessionId)
-  const anyPath = locateTranscript(state.cwd, 'x')
-  const dir = anyPath.slice(0, anyPath.lastIndexOf('/'))
+  const dir = projectDirOf(state.cwd)
   let newest: { path: string; mtimeMs: number } | null = null
   for (const entry of await $.fs.list(dir)) {
     if (entry.kind !== 'file' || !entry.name.endsWith('.jsonl')) continue
@@ -68,7 +67,6 @@ export function register(on: On, _raw: PluginOptions) {
         // opened unasked on a terminal too narrow to dock a pane, the engine holds it undrawn
         const result = await $.ui.open({ id: PANE_ID, title: 'Agent returns' })
         state.pane.isOpen = result === undefined || result.isPlaced !== false
-        state.pane.isWaiting = !state.pane.isOpen
       } catch {
         // a build without panes: the pane is simply not there
       }
@@ -91,7 +89,6 @@ export function register(on: On, _raw: PluginOptions) {
     const columns = Math.max(40, wholeOf(e.props.bodyColumns))
 
     state.pane.isOpen = true
-    state.pane.isWaiting = false
 
     let entries: Entry[] | null = null
     try {
@@ -108,7 +105,6 @@ export function register(on: On, _raw: PluginOptions) {
 
     if (e.id === PANE_ID && result.deny === undefined) {
       state.pane.isOpen = false
-      state.pane.isWaiting = false
       state.pane.isClosedByPerson = e.origin.kind === 'person' || state.pane.isClosedByPerson
     }
 

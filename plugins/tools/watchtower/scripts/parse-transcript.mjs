@@ -11,12 +11,16 @@ const RESULT_RE = /<task-id>([\s\S]*?)<\/task-id>\s*<tool-use-id>([\s\S]*?)<\/to
 const ASYNC_LAUNCH = /^Async agent launched/;
 const AGENT_TOOLS = new Set(['Task', 'Agent']);
 
-// ~/.claude/projects/<cwd 编码>/<sessionId>.jsonl
+// ~/.claude/projects/<cwd 编码>/
 // 编码规则（实测 ~/.claude/projects 全目录）：路径中每个非字母数字字符 → "-"
 // （`/`、`.`、`-` 均如此；worktree 的 .claude/worktrees 即成 --claude-worktrees）
-export function locateTranscript(cwd, sessionId) {
+export function projectDirOf(cwd) {
   const slug = cwd.replace(/[^A-Za-z0-9]/g, '-');
-  return join(homedir(), '.claude/projects', slug, `${sessionId}.jsonl`);
+  return join(homedir(), '.claude/projects', slug);
+}
+
+export function locateTranscript(cwd, sessionId) {
+  return join(projectDirOf(cwd), `${sessionId}.jsonl`);
 }
 
 // content 可能是块数组（对象/纯字符串）或本身就是纯字符串（本机实测三种都有）

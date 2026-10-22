@@ -9,11 +9,13 @@ Claude Code mod pane 插件：常驻面板展示**当前 session 最近 10 条 a
 Claude Code 界面多一块常驻面板 **Agent returns**：
 
 - `session.start` 时自动打开，每 2 秒刷新一次（`clock.every` + `ui.render`）
-- 每行 = 一条 agent 返回值：时间 + taskId（后台异步 agent 有，同步 Task 无）+ 正文
+- 每行 = 一条 agent 返回值：时间 + 正文第一个非空行（超宽截断；窄面板放不下 taskId，不渲染）
 - 最多 10 条，新的在前；面板可手动关闭，关闭后本 session 不再自动重开
 - 终端太窄 dock 不下 pane 时，面板保持未绘制状态，不报错
 
 不做的事：不跨 session / 历史查询，不做返回值筛选、搜索、导出。
+
+已知限制：session.start 事件不带 sessionId 时，取该项目目录下 mtime 最新的 transcript 兜底；同项目并发第二个 session 可能读到别的 session 的记录。
 
 ## 安装
 
@@ -30,7 +32,7 @@ claude plugin install watchtower@ccplugin-market
 
 1. 装好插件后新开一个 Claude Code session，确认右侧出现 Agent returns 面板
 2. 让 Claude 派一个 agent（Task，同步或后台异步均可），等它返回
-3. 面板应在返回后 2 秒内出现该返回值（时间、taskId、正文）
+3. 面板应在返回后 2 秒内出现该返回值（时间、正文）
 4. 无头环境验证：跑一个 `claude -p` session 派 Task agent，然后对该 session 的 transcript 跑解析器，确认能读出刚产生的返回值：
    ```bash
    node -e 'import("./plugins/tools/watchtower/scripts/parse-transcript.mjs").then(m => console.log(m.recentAgentReturns("<transcript.jsonl>", 10)))'

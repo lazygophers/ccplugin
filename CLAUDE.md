@@ -6,7 +6,7 @@
 
 ### 市场插件 `plugins/tools/`
 
-发布到 Claude Code 插件市场的正式插件，共 7 个：
+发布到 Claude Code 插件市场的正式插件，共 8 个：
 
 - `cortex` — 记忆/认知层
 - `deepresearch` — 深度研究
@@ -15,6 +15,7 @@
 - `skein` — 任务编排/拆分（subtask 生命周期）
 - `trellisx` — 与 `skein` 并存的任务管理实现，两者分工互补
 - `version` — 版本管理
+- `watchtower` — transcript agent 返回值面板
 
 ### skill 开发模板 `skills/`
 

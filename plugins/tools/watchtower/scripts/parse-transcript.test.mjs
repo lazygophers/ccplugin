@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, writeFileSync, rmSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { recentAgentReturns, locateTranscript } from './parse-transcript.mjs';
+import { recentAgentReturns, locateTranscript, projectDirOf } from './parse-transcript.mjs';
 
 const dir = mkdtempSync(join(tmpdir(), 'watchtower-test-'));
 test.after(() => rmSync(dir, { recursive: true, force: true }));
@@ -155,12 +155,14 @@ test('locateTranscript：HOME 下按 slug 编码定位（/ 与 . 都 → -，wor
     const d1 = join(home, '.claude/projects/-Users-x-proj');
     mkdirSync(d1, { recursive: true });
     writeFileSync(join(d1, 'sess1.jsonl'), '{}\n');
+    assert.equal(projectDirOf('/Users/x/proj'), d1);
     assert.equal(locateTranscript('/Users/x/proj', 'sess1'), join(d1, 'sess1.jsonl'));
 
     // worktree：/Users/x/proj/.claude/worktrees/agent-1 → -Users-x-proj--claude-worktrees-agent-1
     const d2 = join(home, '.claude/projects/-Users-x-proj--claude-worktrees-agent-1');
     mkdirSync(d2, { recursive: true });
     writeFileSync(join(d2, 'sess2.jsonl'), '{}\n');
+    assert.equal(projectDirOf('/Users/x/proj/.claude/worktrees/agent-1'), d2);
     assert.equal(
       locateTranscript('/Users/x/proj/.claude/worktrees/agent-1', 'sess2'),
       join(d2, 'sess2.jsonl')

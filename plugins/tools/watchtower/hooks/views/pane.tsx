@@ -6,7 +6,8 @@ type AnyComponent = (props: Record<string, unknown>) => unknown
 
 export type Kit = { Box: AnyComponent; Text: AnyComponent }
 
-export type Entry = { time: string; taskId: string | null; text: string }
+// 只声明渲染用到的字段；来源 recentAgentReturns 多出的 taskId 不渲染（窄 pane 放不下）
+export type Entry = { time: string; text: string }
 
 export function paneView(kit: Kit, entries: Entry[] | null, columns: number): unknown {
   const { Box, Text } = kit
