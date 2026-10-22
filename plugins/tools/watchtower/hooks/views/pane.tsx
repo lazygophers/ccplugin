@@ -31,15 +31,18 @@ export function paneView(
         <>
           <Text bold>{headerOf(shown.length)}</Text>
           {shown.map((e) => {
-            const rows = e.id === expandedId ? expandedRows(e, columns) : collapsedRows(e, columns)
+            const expanded = e.id === expandedId
+            const rows = expanded ? expandedRows(e, columns) : collapsedRows(e, columns)
             // Button 的 children 只能是字符串和 Text（Box 会被引擎拒绝，见 ButtonProps）：
-            // 只有标题行做成按钮，预览/全文行是按钮下面的 dim Text
+            // 标题行是按钮；展开态末尾的收起行也是按钮，其余预览/全文行是 dim Text
+            const body = expanded ? rows.slice(1, -1) : rows.slice(1)
             return (
               <Box key={e.id} flexDirection="column">
                 <Button key={e.id} onPress={() => onToggle(e.id)}>{rows[0]}</Button>
-                {rows.slice(1).map((row, i) => (
+                {body.map((row, i) => (
                   <Text key={i} wrap="truncate-end" dimColor>{row}</Text>
                 ))}
+                {expanded ? <Button key="collapse" onPress={() => onToggle(e.id)}>{rows[rows.length - 1]}</Button> : null}
               </Box>
             )
           })}

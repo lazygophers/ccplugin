@@ -1,5 +1,5 @@
 import type { On, PluginOptions } from 'claude-code'
-import { locateTranscript, projectDirOf, recentReturns, READ_CAP, TAIL_BYTES } from '../scripts/parse-transcript.mjs'
+import { locateTranscript, recentReturns, READ_CAP, TAIL_BYTES } from '../scripts/parse-transcript.mjs'
 import { bandRow } from '../scripts/pane-rows.mjs'
 import { bandView, paneView } from './views/pane'
 import type { Entry, Kit } from './views/pane'
@@ -41,19 +41,6 @@ const state: State = {
 const wholeOf = (value: unknown): number =>
   typeof value === 'number' && Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0
 
-type DirEntry = { name: string; kind: string; mtimeMs: number }
-
-/** The newest .jsonl of the project dir (research report §7 fallback); null if none. */
-function newestTranscriptOf(entries: DirEntry[]): string | null {
-  let newest: DirEntry | null = null
-  for (const entry of entries) {
-    if (entry.kind !== 'file' || !entry.name.endsWith('.jsonl')) continue
-    // a list entry already carries a regular file's own mtimeMs
-    if (newest === null || entry.mtimeMs > newest.mtimeMs) newest = entry
-  }
-  return newest?.name ?? null
-}
-
 export function register(on: On, _raw: PluginOptions) {
   on('session.start', async ($, e, next) => {
     state.cwd = e.cwd
@@ -93,11 +80,10 @@ export function register(on: On, _raw: PluginOptions) {
     const table = $.ui.resolve(e)
     let count = 0
     try {
-      const dir = projectDirOf(state.cwd, state.home)
-      const path =
-        state.sessionId !== ''
-          ? locateTranscript(state.cwd, state.sessionId, state.home)
-          : `${dir}/${newestTranscriptOf(await $.fs.list(dir))}`
+      // 只读当前 session 的 transcript（读不到按 0 条画 band）；
+      // 不做「项目目录最新文件」兜底——那会读到别的 session 的记录
+      if (state.sessionId === '') throw new Error('session id unknown')
+      const path = locateTranscript(state.cwd, state.sessionId, state.home)
       // 超 4 MiB（$.fs.read 单次上限）改走 tail -c 取尾（stdout 上限同 4 MiB，常量已留余量）；
       // 本段与 Pane handler 内联重复：$ 不能存进任何变量，含作参数传入 helper
       const stat = await $.fs.stat(path)
@@ -150,16 +136,11 @@ export function register(on: On, _raw: PluginOptions) {
     let entries: Entry[] | null = null
     let errorText: string | null = null
     try {
-      // the transcript, read through the engine (a hooks module cannot touch node:fs):
-      // by session id when the engine gave one, else the newest .jsonl of the project dir
-      const dir = projectDirOf(state.cwd, state.home)
-      let path: string
-      if (state.sessionId !== '') path = locateTranscript(state.cwd, state.sessionId, state.home)
-      else {
-        const newest = newestTranscriptOf(await $.fs.list(dir))
-        if (newest === null) throw new Error(`no transcript in ${dir}`)
-        path = `${dir}/${newest}`
-      }
+      // the current session's transcript only, read through the engine (a hooks
+      // module cannot touch node:fs); no "newest file of the project dir"
+      // fallback — that would show another session's returns
+      if (state.sessionId === '') throw new Error('session id unknown')
+      const path = locateTranscript(state.cwd, state.sessionId, state.home)
       // 超 4 MiB（$.fs.read 单次上限）改走 tail -c 取尾（stdout 上限同 4 MiB，常量已留余量）；
       // 尾部切片首行可能被截断成非法 JSON —— 解析器本来就跳过 JSON.parse 失败的行
       const stat = await $.fs.stat(path)

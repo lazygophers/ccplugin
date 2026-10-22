@@ -42,10 +42,10 @@ test('main 条目：头部 ◆ 主回复，预览从正文首行起（不因头�
   const rows = collapsedRows(entry({ kind: 'main', text: 'line1\nline2\nline3' }), 80);
   assert.match(rows[0], /^\d{2}:\d{2}  ◆ 主回复$/);
   assert.deepEqual(rows.slice(1), ['  line1', '  line2…']);
-  // 展开态也保持 ◆ 标记
+  // 展开态也保持 ◆ 标记，末尾带收起行
   const expanded = expandedRows(entry({ kind: 'main', text: '第一行\n第二行' }), 80);
   assert.match(expanded[0], /^\d{2}:\d{2}  ◆ 主回复$/);
-  assert.deepEqual(expanded.slice(1), ['  第一行', '  第二行']);
+  assert.deepEqual(expanded.slice(1), ['  第一行', '  第二行', '⌃ 收起']);
 });
 
 test('混池渲染：同一批里 ◆ 与 ▸ 两种头部并存，agent 条目维持 title 头部', () => {
@@ -68,6 +68,8 @@ test('展开态：expandedId 命中条目显示全文换行，其余条目收起
   assert.ok(rows.some((r) => r.includes('第三行')));
   assert.ok(rows.some((r) => r.includes('▾ 查依赖')));
   assert.ok(rows.some((r) => r.includes('▸ short result'))); // 其余仍收起
+  assert.ok(rows.includes('⌃ 收起')); // 展开块末尾有显式收起入口
+  assert.ok(!rowsOf(entries, 80, null).includes('⌃ 收起')); // 收起态不出现
 });
 
 test('小屏（width 20）：预览只 1 行、所有行不超宽、超长词硬切不炸版', () => {

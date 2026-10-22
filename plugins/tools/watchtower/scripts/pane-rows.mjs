@@ -63,12 +63,15 @@ export function collapsedRows(entry, width) {
   return [clip(headOf(entry, '▸'), w), ...shown];
 }
 
-// 展开态：标题行 + 全文按宽度换行（main 保持 ◆ 标记，agent 转为 ▾）
+// 展开态：标题行 + 全文按宽度换行（main 保持 ◆ 标记，agent 转为 ▾）+ 末尾收起行。
+// 收起行是显式入口：全文一长标题行滚出视野，末尾不给可点的收起就没有入口
+export const COLLAPSE_ROW = '⌃ 收起';
 export function expandedRows(entry, width) {
   const w = Math.max(8, width);
   return [
     clip(headOf(entry, '▾'), w),
     ...wrapLines(entry.text, w - 2).map((l) => clip(`  ${l}`, w)),
+    COLLAPSE_ROW,
   ];
 }
 
