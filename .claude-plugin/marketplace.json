@@ -179,6 +179,26 @@
         "kanban",
         "standalone"
       ]
+    },
+    {
+      "name": "watchtower",
+      "source": "./plugins/tools/watchtower",
+      "description": "watchtower — 常驻面板展示当前 session 最近 10 条 agent 返回值: pane 直读 transcript (Task/Agent 的 tool_use/tool_result 配对 + 后台异步 task-notification), 零自建存储, 每 2 秒刷新, session.start 自动打开",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/watchtower",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/watchtower",
+      "license": "AGPL-3.0-or-later",
+      "keywords": [
+        "agent",
+        "returns",
+        "transcript",
+        "pane",
+        "monitor",
+        "sub-agent"
+      ]
     }
   ]
 }
