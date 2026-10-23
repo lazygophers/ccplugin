@@ -4,9 +4,10 @@
 Writes .scratch/progress.html — a single self-contained page, no network,
 no build step. Open it directly in a browser.
 
-Design: data-publication style after Our World in Data — every number states
-how it was counted, finished work greys out, and the one accent colour is
-reserved for work you can start right now.
+Design: 晨雾企业台 admin console — light blue-white canvas, white cards, one
+blue accent reserved for work you can start right now; hash-routed views so
+every tab/menu item behaves like its own page. Numbers still state how they
+were counted (see the 口径 note on the overview).
 
 Usage: python3 tracking_progress.py [repo-root]
 """
@@ -605,6 +606,9 @@ CSS = """
   @keyframes metergrow{to{width:var(--w)}}
   section{padding:26px 0;border-top:1px solid var(--rule)}
   section:first-of-type{border-top:0}
+  /* hash 路由视图:每个 tab/菜单项是独立页面,同一时刻只显示一个 */
+  .view{display:none}
+  .view.on{display:block}
   h2{font:600 16px/1.4 var(--sans);margin:0 0 4px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   .sub{font-size:13px;color:var(--ink-2);margin:0 0 16px;max-width:64em}
   .note{font-size:12.5px;line-height:1.7;color:var(--ink-2);margin:14px 0 0;padding:12px 14px;
@@ -978,19 +982,19 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
             return f"{m.group(2)}·{m.group(3)}"
         return time.strftime("%m·%d", time.localtime(p.stat().st_mtime))
 
-    tabs = [("<a class='on' href='#overview'>概览</a>")]
-    tabs.append(f"<a href='#now'>可开工<span class='n'>{len(open_now)}</span></a>")
-    tabs.append(f"<a href='#specs'>功能台<span class='n'>{len(efforts)}</span></a>")
+    tabs = [("<a class='on' href='#/overview'>概览</a>")]
+    tabs.append(f"<a href='#/now'>可开工<span class='n'>{len(open_now)}</span></a>")
+    tabs.append(f"<a href='#/specs'>功能台<span class='n'>{len(efforts)}</span></a>")
     if mem_files:
-        tabs.append(f"<a href='#memory'>决策档案<span class='n'>{len(mem_files)}</span></a>")
+        tabs.append(f"<a href='#/memory'>决策档案<span class='n'>{len(mem_files)}</span></a>")
     if res_files:
-        tabs.append(f"<a href='#research'>调研<span class='n'>{len(res_files)}</span></a>")
+        tabs.append(f"<a href='#/research'>调研<span class='n'>{len(res_files)}</span></a>")
     if stale:
-        tabs.append(f"<a href='#stale'>久未动<span class='n'>{len(stale)}</span></a>")
+        tabs.append(f"<a href='#/stale'>久未动<span class='n'>{len(stale)}</span></a>")
     if recent:
-        tabs.append(f"<a href='#recent'>最近完成<span class='n'>{len(recent)}</span></a>")
+        tabs.append(f"<a href='#/recent'>最近完成<span class='n'>{len(recent)}</span></a>")
     if unparsed:
-        tabs.append(f"<a href='#unknown'>未能识别<span class='n'>{len(unparsed)}</span></a>")
+        tabs.append(f"<a href='#/unknown'>未能识别<span class='n'>{len(unparsed)}</span></a>")
     nav_extra = "".join(tabs)
 
     icon_grid = "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8'><rect x='3' y='3' width='7' height='9' rx='1.5'/><rect x='14' y='3' width='7' height='5' rx='1.5'/><rect x='14' y='12' width='7' height='9' rx='1.5'/><rect x='3' y='16' width='7' height='5' rx='1.5'/></svg>"
@@ -1001,7 +1005,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
     icon_alert = "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8'><path d='M12 9v4M12 17h.01'/><circle cx='12' cy='12' r='9'/></svg>"
 
     side_proj = "".join(
-        f"<a href='#spec-{esc(e.name)}'><span class='nm'>{esc(e.name)}</span>"
+        f"<a href='#/spec-{esc(e.name)}'><span class='nm'>{esc(e.name)}</span>"
         f"<span class='mini'><i style='width:{round(sum(1 for t in e.tasks if t.status == DONE) * 100 / len(e.tasks)) if e.tasks else 0}%'></i></span></a>"
         for e in efforts
     )
@@ -1031,25 +1035,25 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "<nav class='nav'>",
         navgroup(
             "工作台",
-            f"<a class='on' href='#overview'>{icon_grid}总览<span class='cnt'>{total}</span></a>"
-            f"<a href='#now'>{icon_target}可开工<span class='cnt'>{len(open_now)}</span></a>",
+            f"<a class='on' href='#/overview'>{icon_grid}总览<span class='cnt'>{total}</span></a>"
+            f"<a href='#/now'>{icon_target}可开工<span class='cnt'>{len(open_now)}</span></a>",
         ),
         navgroup(
             "功能台",
-            f"<a href='#specs'>{icon_board}全部功能<span class='cnt'>{len(efforts)}</span></a>"
+            f"<a href='#/specs'>{icon_board}全部功能<span class='cnt'>{len(efforts)}</span></a>"
             + (f"<div class='proj'>{side_proj}</div>" if efforts else ""),
         ),
         navgroup(
             "档案库",
             "".join(
                 [
-                    f"<a href='#memory'>{icon_clock}决策档案<span class='cnt'>{len(mem_files)}</span></a>"
+                    f"<a href='#/memory'>{icon_clock}决策档案<span class='cnt'>{len(mem_files)}</span></a>"
                     if mem_files
                     else "",
-                    f"<a href='#research'>{icon_search}调研<span class='cnt'>{len(res_files)}</span></a>"
+                    f"<a href='#/research'>{icon_search}调研<span class='cnt'>{len(res_files)}</span></a>"
                     if res_files
                     else "",
-                    f"<a href='#unknown'>{icon_alert}未能识别<span class='cnt'>{len(unparsed)}</span></a>"
+                    f"<a href='#/unknown'>{icon_alert}未能识别<span class='cnt'>{len(unparsed)}</span></a>"
                     if unparsed
                     else "",
                 ]
@@ -1072,7 +1076,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "<div class='pagebar'>",
         "<div class='row'>",
         f"<h1>.scratch 总览 <span class='scope'>{total} 票 · {pct}%</span></h1>",
-        f"<div class='acts'><a class='btn' href='#now'>可开工 {len(open_now)}</a></div>" if total else "",
+        f"<div class='acts'><a class='btn' href='#/now'>可开工 {len(open_now)}</a></div>" if total else "",
         "</div>",
         f"<nav class='tabs'>{nav_extra}</nav>",
         "</div>",
@@ -1081,8 +1085,8 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "<div class='stage' id='mmdStage'></div>"
         "<p class='hint'>滚轮缩放 · 拖拽平移 · 双击复位 · ESC 退出</p></div>",
         f"<div class='focus rise d1'><span class='pulse'></span><div class='ft'>{headline(efforts)}</div>"
-        f"<a class='btn' href='#now'>看可开工的票</a></div>" if total else "",
-        "<section id='overview' style='border-top:0;padding-top:0'>",
+        f"<a class='btn' href='#/now'>看可开工的票</a></div>" if total else "",
+        "<section class='view on' id='overview' data-route='overview' style='border-top:0;padding-top:0'>",
         "<div class='kpis rise d2'>",
         f"<div class='kpi'><div class='k'><i style='background:var(--done-fill)'></i>已完成</div>"
         f"<div class='v'><span data-n='{c[DONE]}'>0</span><small>/ {total} 票</small></div>"
@@ -1112,12 +1116,12 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "</p></section>",
     ]
 
-    # spec 维度进度：每个 spec 一行，状态计数 + 进度。放在最前面。
+    # 功能台首页:每个 spec 一行,点名字进该 spec 的独立视图
     out += [
-        "<section id='spec-progress'>",
-        "<h2>按 spec 的进度</h2>",
+        "<section class='view' id='specs' data-route='specs'>",
+        "<h2>功能台</h2>",
         "<p class='sub'>每个 spec 一行：票数按状态拆开，进度 = 该 spec 的已完成 ÷ 该 spec 总票数。"
-        "「可开工」列非零说明这个 spec 现在就有活能干。「未建」列非零说明还有条目没有票面文件。</p>",
+        "「可开工」列非零说明这个 spec 现在就有活能干；点 spec 名进它的独立页面。</p>",
         "<table><thead><tr><th style='width:150px'>spec</th>"
         "<th class='num'>可开工</th><th class='num'>进行中</th><th class='num'>已完成</th>"
         "<th class='num'>被阻塞</th><th class='num'>ticket</th><th class='num'>未建</th>"
@@ -1138,7 +1142,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         et = len(effort.tasks)
         epct = round(ec[DONE] * 100 / et) if et else 0
         out.append(
-            f"<tr><td class='spec'>{esc(effort.name)}{copy_btn(effort.name)}</td>"
+            f"<tr><td class='spec'><a href='#/spec-{esc(effort.name)}'>{esc(effort.name)}</a>{copy_btn(effort.name)}</td>"
             f"<td class='num'>{ec[OPEN] or '·'}</td>"
             f"<td class='num'>{ec[ACTIVE] or '·'}</td>"
             f"<td class='num'>{ec[DONE] or '·'}</td>"
@@ -1150,7 +1154,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
     out.append("</tbody></table></section>")
 
     out += [
-        "<section id='now'>",
+        "<section class='view' id='now' data-route='now'>",
         f"<h2>可开工的票 · {len(open_now)} 张</h2>",
         "<p class='sub'>未完成、没有前置票挡着、也没人在做的票。按「直接解锁」从多到少排——"
         "解锁得多的票，做完能让更多票动起来。</p>",
@@ -1177,8 +1181,9 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         out.append("<p class='empty'>没有可直接开工的票——要么全做完了，要么都卡在别的票后面。</p>")
     out.append("</section>")
 
-    out.append("<section id='specs'><h2>按 spec 明细</h2>")
+    # 每个 spec 一个独立视图(hash 路由 spec-<名>),代替原来的「按 spec 明细」长列表
     for effort in efforts:
+        out.append(f"<div class='view' id='view-spec-{esc(effort.name)}' data-route='spec-{esc(effort.name)}'>")
         ec = {s: 0 for s in STATUS_LABEL}
         for t in effort.tasks:
             ec[t.status] += 1
@@ -1204,7 +1209,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         elif et:
             kinds.append("<span class='kind ok'>票已建齐</span>")
         out += [
-            f"<div class='spec-head' id='spec-{esc(effort.name)}'>",
+            "<div class='spec-head'>",
             f"<h3>{name_html}{copy_btn(effort.name)}"
             f"<span class='share-wrap'><button type='button' class='share-btn'>分享</button>"
             f"<span class='share-menu'>"
@@ -1269,11 +1274,11 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
             out.append(
                 f"<p class='research'>research {len(effort.research)} 篇：{links}</p>"
             )
-    out.append("</section>")
+        out.append("</div>")
 
     if stale:
         rows = sorted(stale, key=lambda e: e.mtime)
-        out += ["<section id='stale'>", "<h2>久未动</h2>",
+        out += ["<section class='view' id='stale' data-route='stale'>", "<h2>久未动</h2>",
                 f"<p class='sub'>超过 {STALE_DAYS} 天没有任何文件改动、且还有未完成票的 spec。</p>"]
         out += [
             "<table><thead><tr><th>spec</th><th class='num'>未完成</th>"
@@ -1290,7 +1295,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
 
     if recent:
         out += [
-            "<section id='recent'>",
+            "<section class='view' id='recent' data-route='recent'>",
             f"<h2>最近完成 · {len(recent)} 条</h2>",
             "<p class='sub'>按源文件修改时间倒序，最多 "
             f"{TIMELINE_LIMIT} 条。票面文件排在勾选行前面——勾选行共用同一个文件时间，"
@@ -1310,7 +1315,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
 
     if mem_files:
         out += [
-            "<section id='memory'>",
+            "<section class='view' id='memory' data-route='memory'>",
             "<h2>决策档案 <span class='badge'>memory/</span></h2>",
             "<p class='sub'>按天追加的决策账本，历史存档——只列文件，不解析状态、不计进度。点开是 markdown 原文。</p>",
             "<div class='panel'>",
@@ -1327,7 +1332,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         ]
     if res_files:
         out += [
-            "<section id='research'>",
+            "<section class='view' id='research' data-route='research'>",
             "<h2>调研 <span class='badge'>research/</span></h2>",
             "<p class='sub'>顶层 research/ 的调研报告，只读参考，不参与进度统计。</p>",
             "<div class='panel'>",
@@ -1345,7 +1350,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
 
     if unparsed:
         out += [
-            "<section id='unknown'>",
+            "<section class='view' id='unknown' data-route='unknown'>",
             "<h2>未能识别的文件</h2>",
             "<p class='sub'>扫描时读不出任务状态的 markdown 文件。如果里面其实有真任务，"
             "说明这个工具漏了一种写法——那是工具的问题，不是你的。</p>",
@@ -1529,22 +1534,20 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "r.style.display=!q||r.textContent.toLowerCase().indexOf(q)>=0?'':'none'})});"
         "document.addEventListener('keydown',function(e){"
         "if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();box.focus()}})}})();</script>",
-        # 顶部页签与侧栏的高亮联动:点击立即切换,滚动时 scrollspy 跟随当前区块
+        # hash 路由:每个 tab/菜单项是独立视图;#/路由切换,浏览器前进后退可用,未知路由回落总览
         "<script>(function(){"
-        "var links=[].slice.call(document.querySelectorAll('.pagebar .tabs a[href^=\\'#\\'],.nav a[href^=\\'#\\']'));"
-        "if(!links.length)return;"
-        "function setActive(hash){"
-        "links.forEach(function(a){a.classList.toggle('on',a.getAttribute('href')===hash)})}"
-        "links.forEach(function(a){"
-        "a.addEventListener('click',function(){setActive(a.getAttribute('href'))})});"
-        "var byId={};links.forEach(function(a){byId[a.getAttribute('href').slice(1)]=true});"
-        "var secs=[].slice.call(document.querySelectorAll('section[id]')).filter(function(s){return byId[s.id]});"
-        "if('IntersectionObserver' in window&&secs.length){"
-        "var io=new IntersectionObserver(function(es){"
-        "es.forEach(function(e){if(e.isIntersecting)setActive('#'+e.target.id)})},"
-        "{rootMargin:'-120px 0px -55% 0px'});"
-        "secs.forEach(function(s){io.observe(s)})}}"
-        ")();</script>",
+        "var views={};document.querySelectorAll('.view').forEach(function(v){views[v.dataset.route]=v});"
+        "var links=[].slice.call(document.querySelectorAll('.pagebar .tabs a[href^=\\'#/\\'],.nav a[href^=\\'#/\\']'));"
+        "function setActive(route){"
+        "links.forEach(function(a){a.classList.toggle('on',a.getAttribute('href')==='#/'+route)})}"
+        "function show(route){"
+        "if(!views[route])route='overview';"
+        "Object.keys(views).forEach(function(k){views[k].classList.toggle('on',k===route)});"
+        "setActive(route);window.scrollTo(0,0)}"
+        "function current(){return location.hash.replace(/^#\\//,'')||'overview'}"
+        "window.addEventListener('hashchange',function(){show(current())});"
+        "show(current());"
+        "})();</script>",
         # 侧栏一级分组折叠
         "<script>document.querySelectorAll('[data-navcap]').forEach(function(h){"
         "h.addEventListener('click',function(){h.classList.toggle('closed')})});</script>",

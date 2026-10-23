@@ -242,10 +242,11 @@ def test_render_contains_every_section(tmp_path):
     for anchor in (
         "id='overview'",
         "id='now'",
-        "id='spec-progress'",
         "id='specs'",
         "id='memory'",
         "id='research'",
+        "data-route='overview'",
+        "data-route='specs'",
     ):
         assert anchor in page
     # 链接指向源文件；memory/ 与 research/ 是入口目录的一部分:列文件,不解析状态
@@ -253,8 +254,9 @@ def test_render_contains_every_section(tmp_path):
     assert "notes.md" in page
     assert "2026-09-18.md" in page
     assert "research/deep.md" in page
-    # 每个 spec 是侧栏的一个二级菜单项(锚点直达该 spec 明细)
-    assert "href='#spec-alpha'" in page
+    # 每个 spec 是侧栏的一个二级菜单项,指向它的独立视图(hash 路由)
+    assert "href='#/spec-alpha'" in page
+    assert "id='view-spec-alpha'" in page
     assert "class='proj'" in page
     assert "class='mini'" in page
     # 页内预览:md 原文嵌进页面(tp-files),点击链接抽屉渲染
