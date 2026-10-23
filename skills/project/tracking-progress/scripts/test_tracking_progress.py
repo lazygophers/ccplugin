@@ -510,3 +510,31 @@ def test_ticket_establishment_marks(tmp_path):
     assert "票已建齐" in page  # beta 全部有票面文件
     # 总览表带「未建」列
     assert "<th class='num'>未建</th>" in page
+
+
+def _bare_task(tid: str) -> tp.Task:
+    return tp.Task(effort="d", tid=tid, title="任务", status=tp.OPEN, blocked_by=[],
+                   kind="", source="", mtime=0, raw_status="open", from_file=True)
+
+
+def _bare_effort(n: int, edges: list[tuple[str, str]] | None = None):
+    return tp.Effort(name="d", path=Path("/d"), tasks=[_bare_task(f"T{i:02d}") for i in range(1, n + 1)],
+                     edges=edges or [], cycle_edges=[])
+
+
+def test_mermaid_grid_all_isolated():
+    """全孤立票:按 ⌈√n⌉ 列切隐形链摊成网格,不再一竖条。"""
+    g = tp.mermaid_graph(_bare_effort(12))
+    assert g.count("~~~") == 8  # 4 列,每列 3 节点,链 = n - cols
+
+
+def test_mermaid_grid_edge_cases():
+    g1 = tp.mermaid_graph(_bare_effort(1))
+    assert "~~~" not in g1  # 单节点无所谓分布
+    g3 = tp.mermaid_graph(_bare_effort(3))
+    assert g3.count("~~~") == 1  # 2 列:3-2=1 条链
+
+
+def test_mermaid_no_grid_when_edges_exist():
+    g = tp.mermaid_graph(_bare_effort(6, [("T1", "T2")]))  # 边键用归一化后的 key
+    assert "~~~" not in g  # 有真依赖时 dagre 正常布局,不加隐形链

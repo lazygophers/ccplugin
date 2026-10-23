@@ -874,6 +874,14 @@ def mermaid_graph(effort: "Effort") -> str:
         if arrow == "-.->":
             lines.append(f"linkStyle {edge_i} stroke:#b5813a")
         edge_i += 1
+    if edge_i == 0:
+        # 全孤立时 dagre 把节点摞成一竖条;按 ⌈√n⌉ 列切隐形链(~~~)摊成网格
+        cols = int(len(nodes) ** 0.5)
+        if cols * cols < len(nodes):
+            cols += 1
+        keys = list(nodes)
+        for i in range(len(keys) - cols):
+            lines.append(f"{ids[keys[i]]} ~~~ {ids[keys[i + cols]]}")
     return "\n".join(lines)
 
 
@@ -1556,7 +1564,9 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "if(!views[route])route='overview';"
         "Object.keys(views).forEach(function(k){views[k].classList.toggle('on',k===route)});"
         "setActive(route);if(window._mmdShow)window._mmdShow(views[route]);window.scrollTo(0,0)}"
-        "function current(){return location.hash.replace(/^#\\//,'')||'overview'}"
+        # 浏览器会把 hash 里的中文 percent-encode,先解码再匹配 data-route
+        "function current(){var h=location.hash.replace(/^#\\//,'');"
+        "try{h=decodeURIComponent(h)}catch(e){};return h||'overview'}"
         "window.addEventListener('hashchange',function(){show(current())});"
         "show(current());"
         "})();</script>",
