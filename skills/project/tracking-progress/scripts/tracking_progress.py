@@ -514,7 +514,12 @@ CSS = """
     color:#fff;display:grid;place-items:center;font:700 13px var(--mono);box-shadow:0 4px 10px rgba(37,99,235,.35);flex-shrink:0}
   .side .ws{font:600 13.5px var(--sans);line-height:1.35;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .side .ws span{display:block;font:400 11px var(--mono);color:var(--ink-3)}
-  .navcap{font:600 10.5px/1 var(--sans);letter-spacing:.08em;color:var(--ink-3);padding:14px 10px 6px}
+  .navcap{font:600 10.5px/1 var(--sans);letter-spacing:.08em;color:var(--ink-3);padding:14px 10px 6px;
+    display:flex;align-items:center;cursor:pointer;user-select:none;border:0;background:none;width:100%;text-align:left}
+  .navcap .chev{width:11px;height:11px;margin-left:auto;transition:transform .18s}
+  .navcap.closed .chev{transform:rotate(-90deg)}
+  .nav .grp{display:flex;flex-direction:column}
+  .navcap.closed+.grp{display:none}
   .nav{display:flex;flex-direction:column}
   .nav a{display:flex;align-items:center;gap:10px;padding:7.5px 10px;border-radius:8px;
     color:var(--ink-2);font:500 13.5px var(--sans);transition:background .14s,color .14s}
@@ -526,7 +531,11 @@ CSS = """
   .nav a.on .cnt{background:rgba(37,99,235,.14);color:var(--blue-2)}
   .nav .proj{padding-left:26px;position:relative}
   .nav .proj::before{content:"";position:absolute;left:16px;top:0;bottom:0;width:1.5px;background:var(--rule)}
-  .nav .proj a{padding:5.5px 10px;font-size:13px}
+  .nav .proj a{padding:5.5px 10px;font-size:13px;min-width:0}
+  .nav .proj .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .nav .proj .mini{margin-left:auto;width:40px;height:3px;border-radius:2px;background:var(--gray-soft);
+    overflow:hidden;flex-shrink:0;border:1px solid var(--rule-2)}
+  .nav .proj .mini i{display:block;height:100%;background:var(--open-fill)}
   .nav .soon{display:flex;align-items:center;gap:10px;padding:7.5px 10px;color:var(--ink-3);font:500 13px var(--sans)}
   .nav .soon .soon-tag{margin-left:auto;font:600 10px var(--mono);color:var(--ink-3);
     border:1px dashed var(--rule);border-radius:99px;padding:2px 7px;white-space:nowrap}
@@ -708,6 +717,39 @@ CSS = """
   .theme-btn{position:fixed;right:18px;top:11px;z-index:30;font:600 12px/1 var(--sans);color:var(--ink-2);background:var(--panel);border:1px solid var(--rule);border-radius:99px;padding:7px 13px;cursor:pointer;box-shadow:var(--sh-1)}
   .theme-btn:hover{color:var(--open);border-color:var(--open)}
   .dangling{color:var(--danger)}
+  /* 页内文件预览 */
+  .pv-wrap{position:fixed;inset:0;z-index:55;background:color-mix(in srgb,var(--bg) 75%,transparent);
+    backdrop-filter:blur(4px);display:none;align-items:stretch;justify-content:flex-end}
+  .pv-wrap.open{display:flex}
+  .pv-card{width:min(880px,94vw);background:var(--panel);border-left:1px solid var(--rule);
+    box-shadow:-18px 0 50px rgba(28,43,58,.18);display:flex;flex-direction:column;
+    animation:pvslide .28s cubic-bezier(.22,.9,.3,1)}
+  @keyframes pvslide{from{transform:translateX(40px);opacity:0}to{transform:none;opacity:1}}
+  .pv-head{display:flex;align-items:center;gap:12px;padding:13px 20px;border-bottom:1px solid var(--rule);flex-shrink:0}
+  .pv-head .t{font:600 14px var(--mono);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pv-head .raw{font:500 12px var(--sans);color:var(--ink-2);white-space:nowrap}
+  .pv-head .close{margin-left:auto;font:600 12px/1 var(--sans);color:var(--ink-2);background:var(--panel);
+    border:1px solid var(--rule);border-radius:99px;padding:6px 13px;cursor:pointer;flex-shrink:0}
+  .pv-head .close:hover{color:var(--open);border-color:var(--open)}
+  .pv-body{flex:1;overflow-y:auto;padding:26px 30px 50px;font:14px/1.75 var(--sans);color:var(--ink)}
+  .pv-body h1,.pv-body h2,.pv-body h3,.pv-body h4{font:600 20px/1.4 var(--sans);margin:22px 0 8px;letter-spacing:-.2px}
+  .pv-body h1{font-size:24px}.pv-body h2{font-size:19px}.pv-body h3{font-size:16px}.pv-body h4{font-size:14px;color:var(--ink-2)}
+  .pv-body h1:first-child,.pv-body h2:first-child,.pv-body h3:first-child{margin-top:0}
+  .pv-body p{margin:10px 0}
+  .pv-body ul,.pv-body ol{margin:10px 0;padding-left:24px}
+  .pv-body li{margin:3px 0}
+  .pv-body li input[type=checkbox]{margin-right:7px;vertical-align:-1px}
+  .pv-body code{font:12.5px var(--mono);background:var(--gray-soft);border:1px solid var(--rule-2);
+    border-radius:5px;padding:1px 5px}
+  .pv-body pre{background:var(--row-hover);border:1px solid var(--rule);border-radius:10px;
+    padding:14px 16px;overflow-x:auto;margin:14px 0}
+  .pv-body pre code{background:none;border:0;padding:0;font-size:12.5px;line-height:1.6}
+  .pv-body blockquote{margin:12px 0;padding:2px 14px;border-left:3px solid var(--rule-2);color:var(--ink-2)}
+  .pv-body table{width:auto;max-width:100%;border-collapse:collapse;margin:14px 0;font-size:13px}
+  .pv-body th{border:1px solid var(--rule);border-bottom-width:2px;padding:7px 12px;background:var(--row-hover)}
+  .pv-body td{border:1px solid var(--rule);padding:6px 12px}
+  .pv-body hr{border:0;border-top:1px solid var(--rule);margin:20px 0}
+  .pv-body a{color:var(--open)}
   @media (max-width:960px){.app{grid-template-columns:1fr}.side{display:none}.kpis{grid-template-columns:repeat(2,1fr)}
     .pagebar{top:0}.search{min-width:0;flex:1}}
 """
@@ -899,6 +941,32 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
     )
     mem_files, res_files = scan_index(scratch)
 
+    # 页内预览:把 md 原文嵌进页面——file:// 下 fetch 本地文件会被 CORS 拦,
+    # 只能在生成期读。按相对路径去重,总字节封顶,超限的文件回退为新标签打开。
+    pv_files: dict[str, str] = {}
+    pv_budget = 2_000_000
+
+    def add_pv(*paths) -> None:
+        nonlocal pv_budget
+        for p in paths:
+            key = rel(str(p), scratch)
+            if key in pv_files or pv_budget <= 0:
+                continue
+            try:
+                text = p.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
+            if len(text) > pv_budget:
+                continue
+            pv_files[key] = text
+            pv_budget -= len(text)
+
+    add_pv(*mem_files, *res_files)
+    for e in efforts:
+        add_pv(e.path / "spec.md", e.path / "map.md", *e.research)
+        add_pv(*[Path(s) for s in (t.source for t in e.tasks if t.from_file and t.source)])
+    add_pv(*unparsed)
+
     def human_size(p: Path) -> str:
         n = p.stat().st_size
         return f"{n / 1024:.1f}K" if n >= 1024 else f"{n}B"
@@ -933,10 +1001,21 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
     icon_alert = "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8'><path d='M12 9v4M12 17h.01'/><circle cx='12' cy='12' r='9'/></svg>"
 
     side_proj = "".join(
-        f"<a href='#spec-{esc(e.name)}'>{esc(e.name)}"
-        f"<span class='cnt'>{round(sum(1 for t in e.tasks if t.status == DONE) * 100 / len(e.tasks)) if e.tasks else 0}%</span></a>"
+        f"<a href='#spec-{esc(e.name)}'><span class='nm'>{esc(e.name)}</span>"
+        f"<span class='mini'><i style='width:{round(sum(1 for t in e.tasks if t.status == DONE) * 100 / len(e.tasks)) if e.tasks else 0}%'></i></span></a>"
         for e in efforts
     )
+
+    chev = "<svg class='chev' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.2'><path d='m6 9 6 6 6-6'/></svg>"
+
+    def navgroup(cap: str, items: str) -> str:
+        """一级分组头(可折叠) + 二级条目容器。"""
+        if not items:
+            return ""
+        return (
+            f"<button type='button' class='navcap' data-navcap>{cap}{chev}</button>"
+            f"<div class='grp'>{items}</div>"
+        )
 
     out = [
         "<!DOCTYPE html><html lang='zh-Hans'><head><meta charset='utf-8'>",
@@ -950,17 +1029,33 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "<aside class='side'>",
         f"<div class='workspace'><div class='mark'>sc</div><div class='ws'>{esc(project)}<span>.scratch 工作区</span></div></div>",
         "<nav class='nav'>",
-        "<div class='navcap'>工作台</div>",
-        f"<a class='on' href='#overview'>{icon_grid}总览<span class='cnt'>{total}</span></a>",
-        f"<a href='#now'>{icon_target}可开工<span class='cnt'>{len(open_now)}</span></a>",
-        "<div class='navcap'>功能台</div>",
-        f"<a href='#specs'>{icon_board}全部功能<span class='cnt'>{len(efforts)}</span></a>",
-        f"<div class='proj'>{side_proj}</div>" if efforts else "",
-        "<div class='navcap'>档案库</div>",
-        f"<a href='#memory'>{icon_clock}决策档案<span class='cnt'>{len(mem_files)}</span></a>" if mem_files else "",
-        f"<a href='#research'>{icon_search}调研<span class='cnt'>{len(res_files)}</span></a>" if res_files else "",
-        f"<a href='#unknown'>{icon_alert}未能识别<span class='cnt'>{len(unparsed)}</span></a>" if unparsed else "",
-        "<div class='navcap'>即将上线</div>",
+        navgroup(
+            "工作台",
+            f"<a class='on' href='#overview'>{icon_grid}总览<span class='cnt'>{total}</span></a>"
+            f"<a href='#now'>{icon_target}可开工<span class='cnt'>{len(open_now)}</span></a>",
+        ),
+        navgroup(
+            "功能台",
+            f"<a href='#specs'>{icon_board}全部功能<span class='cnt'>{len(efforts)}</span></a>"
+            + (f"<div class='proj'>{side_proj}</div>" if efforts else ""),
+        ),
+        navgroup(
+            "档案库",
+            "".join(
+                [
+                    f"<a href='#memory'>{icon_clock}决策档案<span class='cnt'>{len(mem_files)}</span></a>"
+                    if mem_files
+                    else "",
+                    f"<a href='#research'>{icon_search}调研<span class='cnt'>{len(res_files)}</span></a>"
+                    if res_files
+                    else "",
+                    f"<a href='#unknown'>{icon_alert}未能识别<span class='cnt'>{len(unparsed)}</span></a>"
+                    if unparsed
+                    else "",
+                ]
+            ),
+        ),
+        "<div class='navcap' style='cursor:default'>即将上线</div>",
         "<div class='soon'>更多模块<span class='soon-tag'>规划中</span></div>",
         "</nav>",
         f"<div class='foot'><div class='ava'>{esc(project[:1].upper())}</div><div class='who'>{esc(project)}<span>本地模式 · file:// 直开</span></div></div>",
@@ -1286,6 +1381,11 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         + _json.dumps(share, ensure_ascii=False).replace("<", "\\u003c")
         + "</script>"
     )
+    out.append(
+        "<script id='tp-files' type='application/json'>"
+        + _json.dumps(pv_files, ensure_ascii=False).replace("<", "\\u003c")
+        + "</script>"
+    )
 
     out += [
         "<script>document.querySelectorAll('[data-copy-spec]').forEach(button => button.addEventListener('click', async () => {"
@@ -1296,6 +1396,11 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "}));"
         "document.querySelectorAll('[data-copy-spec]').forEach(button => button.dataset.icon = button.innerHTML);</script>",
         # 分享:spec 头 / ticket 表 / mermaid 图,点击即复制进剪贴板,toast 通知成败
+        "<div class='pv-wrap' id='pvWrap'><div class='pv-card'>"
+        "<div class='pv-head'><span class='t' id='pvTitle'></span>"
+        "<a class='raw' id='pvRaw' target='_blank' rel='noopener'>新标签打开</a>"
+        "<button class='close' type='button' id='pvClose'>关闭</button></div>"
+        "<div class='pv-body' id='pvBody'></div></div></div>",
         "<div class='toast' id='tpToast'></div>",
         "<script>(function(){"
         "var TPDATA={};try{TPDATA=JSON.parse(document.getElementById('tp-data').textContent)}catch(e){}"
@@ -1424,6 +1529,78 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "r.style.display=!q||r.textContent.toLowerCase().indexOf(q)>=0?'':'none'})});"
         "document.addEventListener('keydown',function(e){"
         "if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();box.focus()}})}})();</script>",
+        # 顶部页签与侧栏的高亮联动:点击立即切换,滚动时 scrollspy 跟随当前区块
+        "<script>(function(){"
+        "var links=[].slice.call(document.querySelectorAll('.pagebar .tabs a[href^=\\'#\\'],.nav a[href^=\\'#\\']'));"
+        "if(!links.length)return;"
+        "function setActive(hash){"
+        "links.forEach(function(a){a.classList.toggle('on',a.getAttribute('href')===hash)})}"
+        "links.forEach(function(a){"
+        "a.addEventListener('click',function(){setActive(a.getAttribute('href'))})});"
+        "var byId={};links.forEach(function(a){byId[a.getAttribute('href').slice(1)]=true});"
+        "var secs=[].slice.call(document.querySelectorAll('section[id]')).filter(function(s){return byId[s.id]});"
+        "if('IntersectionObserver' in window&&secs.length){"
+        "var io=new IntersectionObserver(function(es){"
+        "es.forEach(function(e){if(e.isIntersecting)setActive('#'+e.target.id)})},"
+        "{rootMargin:'-120px 0px -55% 0px'});"
+        "secs.forEach(function(s){io.observe(s)})}}"
+        ")();</script>",
+        # 侧栏一级分组折叠
+        "<script>document.querySelectorAll('[data-navcap]').forEach(function(h){"
+        "h.addEventListener('click',function(){h.classList.toggle('closed')})});</script>",
+        # 页内预览:点任何嵌入了原文的 md 链接,右侧抽屉渲染;没有嵌入的回退新标签
+        r"<script>(function(){"
+        r"var PV={};try{PV=JSON.parse(document.getElementById('tp-files').textContent)}catch(e){}"
+        r"var wrap=document.getElementById('pvWrap'),body=document.getElementById('pvBody'),"
+        r"title=document.getElementById('pvTitle'),raw=document.getElementById('pvRaw');"
+        r"function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;')}"
+        r"function inline(s){return s"
+        r".replace(/`([^`]+)`/g,'<code>$1</code>')"
+        r".replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>')"
+        r".replace(/\[([^\]]+)\]\(([^)\s]+)\)/g,function(m,t,u){return '<a href=\"'+u+'\" target=\"_blank\" rel=\"noopener\">'+t+'</a>'})}"
+        r"function renderMd(src){"
+        r"var L=escHtml(src).split('\n'),out=[],i=0;"
+        r"function cells(r){r=r.replace(/^\s*\|/,'').replace(/\|\s*$/,'');"
+        r"return r.split('|').map(function(c){return inline(c.trim())})}"
+        r"while(i<L.length){var s=L[i];"
+        r"if(/^```/.test(s)){var buf=[];i++;while(i<L.length&&!/^```/.test(L[i])){buf.push(L[i]);i++}i++;"
+        r"out.push('<pre><code>'+buf.join('\n')+'</code></pre>');continue}"
+        r"var h=s.match(/^(#{1,4})\s+(.*)/);"
+        r"if(h){out.push('<h'+h[1].length+'>'+inline(h[2])+'</h'+h[1].length+'>');i++;continue}"
+        r"if(/^\s*(-{3,}|\*{3,})\s*$/.test(s)){out.push('<hr>');i++;continue}"
+        r"if(/^>/.test(s)){var b=[];while(i<L.length&&/^>/.test(L[i])){b.push(L[i].replace(/^>\s?/,''));i++}"
+        r"out.push('<blockquote>'+inline(b.join(' '))+'</blockquote>');continue}"
+        r"if(s.indexOf('|')>=0&&i+1<L.length&&/^\s*\|?[\s:|-]+\|?\s*$/.test(L[i+1])&&L[i+1].indexOf('-')>=0){"
+        r"var rows=[];while(i<L.length&&L[i].indexOf('|')>=0){rows.push(L[i]);i++}"
+        r"var t='<table><thead><tr>'+cells(rows[0]).map(function(c){return '<th>'+c+'</th>'}).join('')+'</tr></thead><tbody>';"
+        r"for(var r=2;r<rows.length;r++){t+='<tr>'+cells(rows[r]).map(function(c){return '<td>'+c+'</td>'}).join('')+'</tr>'}"
+        r"out.push(t+'</tbody></table>');continue}"
+        r"var ml=s.match(/^(\s*)([-*]|\d+\.)\s+(.*)/);"
+        r"if(ml){var ol=/\d/.test(ml[2]),tag=ol?'ol':'ul',items=[];"
+        r"while(i<L.length){var m2=L[i].match(/^(\s*)([-*]|\d+\.)\s+(.*)/);"
+        r"if(!m2||(/\d/.test(m2[2]))!==ol)break;"
+        r"var cb=m2[3].match(/^\[([ xX~/\-])\]\s+(.*)/);"
+        r"if(cb){var ck=/[xX]/.test(cb[1])?' checked':'';"
+        r"items.push('<li><input type=\"checkbox\" disabled'+ck+'> '+inline(cb[2])+'</li>')}"
+        r"else items.push('<li>'+inline(m2[3])+'</li>');i++}"
+        r"out.push('<'+tag+'>'+items.join('')+'</'+tag+'>');continue}"
+        r"if(!s.trim()){i++;continue}"
+        r"var para=[s];i++;"
+        r"while(i<L.length&&L[i].trim()&&!/^(#{1,4}\s|```|>|\s*([-*]|\d+\.)\s)/.test(L[i])&&L[i].indexOf('|')<0){para.push(L[i]);i++}"
+        r"out.push('<p>'+inline(para.join('<br>'))+'</p>')}"
+        r"return out.join('\n')}"
+        r"function openPv(k){title.textContent=k;raw.href=k;"
+        r"body.innerHTML=renderMd(PV[k]||'(空文件)');body.scrollTop=0;wrap.classList.add('open')}"
+        r"function closePv(){wrap.classList.remove('open')}"
+        r"document.getElementById('pvClose').addEventListener('click',closePv);"
+        r"wrap.addEventListener('click',function(e){if(e.target===wrap)closePv()});"
+        r"document.addEventListener('keydown',function(e){if(e.key==='Escape')closePv()});"
+        r"document.addEventListener('click',function(e){"
+        r"var a=e.target.closest?e.target.closest('a'):null;if(!a)return;"
+        r"var href=a.getAttribute('href')||'';"
+        r"if(a.target==='_blank'&&PV.hasOwnProperty(href)&&!e.metaKey&&!e.ctrlKey){"
+        r"e.preventDefault();openPv(href)}});"
+        r"})();</script>",
         "<script>" + MERMAID_JS + "</script>",
         "<script>(function(){ if (!window.mermaid) return;"
         "var m = window.mermaid.default || window.mermaid;"

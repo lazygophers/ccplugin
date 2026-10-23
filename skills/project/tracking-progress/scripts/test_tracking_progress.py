@@ -253,6 +253,15 @@ def test_render_contains_every_section(tmp_path):
     assert "notes.md" in page
     assert "2026-09-18.md" in page
     assert "research/deep.md" in page
+    # 每个 spec 是侧栏的一个二级菜单项(锚点直达该 spec 明细)
+    assert "href='#spec-alpha'" in page
+    assert "class='proj'" in page
+    assert "class='mini'" in page
+    # 页内预览:md 原文嵌进页面(tp-files),点击链接抽屉渲染
+    assert "id='tp-files'" in page
+    assert "id='pvWrap'" in page
+    assert "renderMd" in page
+    assert '"memory/2026-09-18.md":' in page  # 原文确实嵌入
     # 口径必须写明：这是这版设计的核心承诺
     assert "进度 = 已完成 ÷ 总票数" in page
     assert "data-copy-spec='alpha'" in page
