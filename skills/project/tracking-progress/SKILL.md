@@ -11,7 +11,7 @@ python3 skills/project/tracking-progress/scripts/tracking_progress.py
 
 It writes `.scratch/progress.html` and prints the path. Single self-contained file: no network, no dependencies, opens from `file://` (a flowchart-only mermaid build, `scripts/mermaid.flow.min.js`, is inlined — the page weighs about 1 MB). The page is the entry directory to `.scratch/`: hash-routed views (`#/overview`, `#/now`, `#/specs`, `#/spec-<名>`, `#/memory`, `#/research`, `#/unknown`) driven by a sidebar (工作台 / 功能台 per spec / 档案库) plus top tabs — each tab/menu item is its own page, browser back/forward works. Renders light (晨雾) by default; the 深色 button (top-right) switches to dark and the choice is remembered via localStorage. Pass a repo root as the first argument to scan a different project.
 
-The page includes per-spec dependency diagrams (mermaid, colours follow the theme), and every spec name / ticket id has a copy-icon button next to it — ticket ids copy as `spec#id`. The spec name itself is inert (clicking it does nothing). The `wayfinder 地图` / `spec` badge next to it is the link: clicking opens the source `map.md` / `spec.md` in a new tab. Ticket-title links open in a new tab too. The top search box filters table rows as you type (⌘K focuses it).
+The page includes per-spec dependency diagrams (mermaid, colours follow the theme), and every spec name / ticket id has a copy-icon button next to it — ticket ids copy as `spec#id`. There is no 未能识别 bucket: a top-level `.scratch/<name>.md` that parses to no tasks becomes a **single-file feature** (own view, `单文件` badge); non-task files inside a feature dir (`design.md`, `brief.md`, …) become its 附件 chips, and common asset dirs (`design-demos/`, any non-issues/impl/research subdir) are listed with file counts. In the 可开工/停滞/最近 tables the first column is the **feature** (`.scratch/<feature>/` unit — spec.md and wayfinder map are both kinds of content inside it), and the feature name links to its detail view `#/spec-<名>`. The `wayfinder 地图` / `spec` badge next to it is the link: clicking opens the source `map.md` / `spec.md` in a new tab. Ticket-title links open in a new tab too. The top search box filters table rows as you type (⌘K focuses it).
 
 Then:
 
@@ -29,7 +29,7 @@ Then:
 | `memory.md` checkpoint rows | `- [x]` done, `- [ ]` open, `- [~]` / `- [-]` in progress |
 | wayfinder `map.md` + its children | `Status: claimed` / `resolved`, `Blocked by: NN` |
 
-`memory/` and the top-level `research/` are never scanned — they are history, not work in flight. A feature-level `<feature>/research/*.md` is listed under its feature with links (new tab), status-free.
+`memory/` and the top-level `research/` are never scanned for tasks — they are history, not work in flight. The 决策档案 (`#/memory`) view renders the ledger as 变更审计流: day stubs with counts only; clicking a day parses that day's text on demand from the inlined `tp-files` JSON (canonical `- 改成: … | 原本 | 我说 | 为什么 | 否掉了` lines become diff cards, everything else stays as verbatim 原文 blocks — nothing hidden, nothing dropped). Decision content is never written into the HTML at generation time, so page size and DOM stay bounded. A feature-level `<feature>/research/*.md` is listed under its feature with links (new tab), status-free.
 
 Status strings are matched loosely: `resolved` / `done` / `已完成` / `定稿` all count as done, `claimed` / `in-progress` / `进行中` as in progress, everything else as open. A negated status (`未完成`, `无法完成`, `not done`, `unresolved`) counts as open, not done — the negation prefix cancels the keyword hit.
 

@@ -219,7 +219,9 @@ def test_scan_end_to_end(tmp_path):
 
     # The unnumbered root row has nowhere to go, so it stays at the root.
     assert len(names[tp.ROOT].tasks) == 1
-    assert [p.name for p in unparsed] == ["notes.md"]
+    # 未识别桶取消:feature 内文件进附件(beta/notes.md),顶层文件升格单文件 feature
+    assert unparsed == []
+    assert any(p.name == "notes.md" for p in names["beta"].assets)
 
 
 def test_absorb_skips_ambiguous_ids(tmp_path):
@@ -538,3 +540,74 @@ def test_mermaid_grid_edge_cases():
 def test_mermaid_no_grid_when_edges_exist():
     g = tp.mermaid_graph(_bare_effort(6, [("T1", "T2")]))  # 边键用归一化后的 key
     assert "~~~" not in g  # 有真依赖时 dagre 正常布局,不加隐形链
+
+
+def test_now_view_feature_cells_link_to_detail(tmp_path):
+    """可开工/停滞/最近表里那列是 feature(.scratch/<feature>/ 单位),不是 spec;
+    单元格要能点进该 feature 的独立视图。"""
+    root = build_repo(tmp_path)
+    efforts, _ = tp.scan(root / ".scratch")
+    page = tp.render(efforts, [], root / ".scratch")
+    assert "<th style='width:130px'>feature</th>" in page  # 可开工表头
+    assert ">spec</th>" not in page
+    # 可开工行的 feature 名是指向详情视图的链接
+    assert "<a href='#/spec-alpha'>alpha</a>" in page
+
+
+def test_memory_view_stubs_and_on_demand(tmp_path):
+    """决策档案=变更审计流:生成端只写日存根+统计,决策内容不进 HTML;
+    实时解析靠 tp-files + ledger 脚本。"""
+    root = build_repo(tmp_path)
+    scratch = root / ".scratch"
+    (scratch / "memory" / "2026-10-22.md").write_text(
+        "# 决策\n\n## 主题一\n\n"
+        "- 改成: 网格分布 | 原本: 一竖条 | 我说: 要网格 | 为什么: 实测 | 否掉了: 长条\n"
+        "- 遗留: 旧渲染器未删\n",
+        encoding="utf-8",
+    )
+    efforts, _ = tp.scan(scratch)
+    page = tp.render(efforts, [], scratch)
+    assert "class='mstub' data-mem='memory/2026-10-22.md'" in page
+    assert "1 条规整 · 3 行原文" in page
+    assert "class='mstats'" in page
+    # 内容只在 tp-files 嵌入里出现一次,不在视图 HTML 里重复
+    assert page.count("网格分布") == 1
+    assert "LEDGER" not in page  # 脚本以内联 <script> 注入,不经名字引用
+    assert "parseLedger" in page and "mstub" in page
+
+
+def test_top_level_unknown_md_becomes_single_file_feature(tmp_path):
+    """顶层未识别 md(如 平台管理页-重设计.md)是一个 feature,不再进未识别桶。"""
+    root = build_repo(tmp_path)
+    scratch = root / ".scratch"
+    (scratch / "平台管理页-重设计.md").write_text("# 平台管理页重设计\n草稿,还没有 spec/ticket。\n", encoding="utf-8")
+    efforts, unparsed = tp.scan(scratch)
+    sf = [e for e in efforts if e.name == "平台管理页-重设计"]
+    assert sf and sf[0].single is not None
+    assert unparsed == []
+    page = tp.render(efforts, unparsed, scratch)
+    assert "id='view-spec-平台管理页-重设计'" in page       # 独立视图
+    assert "href='#/spec-平台管理页-重设计'" in page        # 侧栏/功能台可进
+    assert ">单文件</a>" in page                            # 徽标
+    assert "id='unknown'" not in page                       # 未识别桶已取消
+    assert '"平台管理页-重设计.md":' in page                 # 原文已嵌入预览
+
+
+def test_feature_assets_and_dirs(tmp_path):
+    """feature 目录内的 design.md 进附件,design-demos/ 作为资产目录列出。"""
+    root = build_repo(tmp_path)
+    scratch = root / ".scratch"
+    (scratch / "alpha" / "design.md").write_text("# 设计\n线框描述。\n", encoding="utf-8")
+    dd = scratch / "alpha" / "design-demos"
+    dd.mkdir()
+    (dd / "A.html").write_text("<b>a</b>", encoding="utf-8")
+    (dd / "B.html").write_text("<b>b</b>", encoding="utf-8")
+    efforts, _ = tp.scan(scratch)
+    alpha = next(e for e in efforts if e.name == "alpha")
+    assert any(p.name == "design.md" for p in alpha.assets)
+    assert alpha.asset_dirs and alpha.asset_dirs[0][0] == "design-demos" and alpha.asset_dirs[0][2] == 2
+    page = tp.render(efforts, _, scratch)
+    # 附件条:文件 chip + 目录 chip
+    assert "class='chipf'" in page and "design.md" in page
+    assert "design-demos/ · 2 文件" in page
+    assert '"alpha/design.md":' in page                     # 附件原文进预览嵌入

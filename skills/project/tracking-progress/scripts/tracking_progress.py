@@ -130,6 +130,11 @@ class Effort:
     unknown_nodes: list[str] = field(default_factory=list)
     # spec 级 research/ 下的文档,页面只列链接不解析状态
     research: list[Path] = field(default_factory=list)
+    # 单文件 feature:顶层 .scratch/<名字>.md,没建目录也该作为一个 feature 呈现
+    single: Path | None = None
+    # feature 目录内读不出任务的 md(design.md 等)与常规资产目录(design-demos/ 等)
+    assets: list[Path] = field(default_factory=list)
+    asset_dirs: list[tuple[str, Path, int]] = field(default_factory=list)
 
 
 def negated(head: str, i: int) -> bool:
@@ -296,6 +301,12 @@ def scan(scratch: Path) -> tuple[list[Effort], list[Path]]:
             efforts[name] = Effort(name=name, path=base, mtime=base.stat().st_mtime)
         return efforts[name]
 
+    def effort_for_single(path: Path, pool: dict, root: Path) -> Effort:
+        key = "_" + path.stem  # 前缀避免和同名目录 feature 撞 key
+        if key not in pool:
+            pool[key] = Effort(name=path.stem, path=root, single=path, mtime=path.stat().st_mtime)
+        return pool[key]
+
     for path in sorted(iter_md(scratch)):
         name = path.name.lower()
         effort = effort_for(path)
@@ -318,7 +329,13 @@ def scan(scratch: Path) -> tuple[list[Effort], list[Path]]:
             effort.tasks.extend(found)
         elif name not in KNOWN_FILENAMES and not path.stem.startswith("00"):
             # `00-INDEX.md` / `00-graph.md` are task indexes, not tasks.
-            unparsed.append(path)
+            if len(path.relative_to(scratch).parts) == 1:
+                # 顶层单文件:本身就是个 feature(如 平台管理页-重设计.md)
+                sf = effort_for_single(path, efforts, scratch)
+                sf.single = path
+            else:
+                # feature 目录内的附属文档(design.md 等):进附件区,不算未识别
+                effort.assets.append(path)
 
     absorb_root_checklist(efforts)
     for effort in efforts.values():
@@ -326,6 +343,15 @@ def scan(scratch: Path) -> tuple[list[Effort], list[Path]]:
         rdir = effort.path / "research"
         if effort.name != ROOT and rdir.is_dir():
             effort.research = sorted(rdir.glob("*.md"))
+        # 常规资产目录(design-demos/ 等):issues/impl/research 和隐藏目录外都算
+        if effort.name != ROOT:
+            for d in sorted(effort.path.iterdir()):
+                if (d.is_dir() and not d.name.startswith(".")
+                        and d.name not in SKIP_DIRS | {"issues", "impl", "research"}
+                        and not (effort.single and d == effort.single.parent)):
+                    n = sum(1 for _ in d.rglob("*") if _.is_file())
+                    if n:
+                        effort.asset_dirs.append((d.name, d, n))
         effort.tasks = dedupe(effort.tasks)
         # analyse first: it splits blocked_by into real deps and dangling
         # refs, so blocking only counts ids that actually exist.
@@ -342,7 +368,8 @@ def scan(scratch: Path) -> tuple[list[Effort], list[Path]]:
 
     # spec 按更新时间倒序,最近动过的排最前
     ordered = sorted(efforts.values(), key=lambda e: (-e.mtime, e.name))
-    return [e for e in ordered if e.tasks or e.is_map or e.has_spec], unparsed
+    kept = [e for e in ordered if e.tasks or e.is_map or e.has_spec or e.single or e.assets or e.asset_dirs]
+    return kept, unparsed
 
 
 def dedupe(tasks: list[Task]) -> list[Task]:
@@ -464,6 +491,58 @@ def analyse(effort: Effort) -> None:
 #   npm i mermaid@11 esbuild && esbuild entry.mjs --bundle --minify --format=iife \
 #     --global-name=mermaid --alias:katex=stub.js --alias:cytoscape=stub.js \
 #     [--external every non-flowchart diagram chunk]
+LEDGER_JS = r"""<script>(function(){
+var PV2={};try{PV2=JSON.parse(document.getElementById('tp-files').textContent)}catch(e){}
+function esc(t){var d=document.createElement('div');d.textContent=t;return d.innerHTML}
+function parseLedger(text){
+var out=[],lines=text.split(/\r?\n/),buf=[];
+function flush(){if(buf.length){out.push({t:'raw',text:buf.join('\n')});buf=[]}}
+lines.forEach(function(l){
+if(/^##\s+/.test(l)){flush();out.push({t:'sec',title:l.replace(/^##\s+/,'')});return}
+var m=l.match(/^-\s*改成[:：]\s*(.*)$/);
+if(m){flush();
+var rest=m[1],keys=['原本','我说','为什么','否掉了'],marks=[];
+keys.forEach(function(k){var p=rest.indexOf(' | '+k+': ');if(p>=0)marks.push([p,k])});
+marks.sort(function(a,b){return a[0]-b[0]});
+var f={};f['改成']=marks.length?rest.slice(0,marks[0][0]):rest;
+marks.forEach(function(mk,i){
+var from=mk[0]+(' | '+mk[1]+': ').length;
+var to=i+1<marks.length?marks[i+1][0]:rest.length;
+f[mk[1]]=rest.slice(from,to)});
+out.push({t:'dec',f:f,ov:/推翻/.test(l)});return}
+if(l.trim())buf.push(l)});
+flush();return out}
+function render(items){var h='',any=false;
+items.forEach(function(it){
+if(it.t==='sec'){h+="<div class='secmark'>"+esc(it.title)+"</div>"}
+else if(it.t==='raw'){
+if(!any){h+="<div class='mzero'>以下内容不符合决策行格式,按原文保留</div>";any=true}
+h+="<div class='raw'><div class='rl'>原文</div><pre>"+esc(it.text)+"</pre></div>"}
+else{var f=it.f;
+h+="<article class='dc'>";
+if(it.ov)h+="<span class='ostamp'>推翻</span>";
+if(f['原本']){h+="<div class='diff'><div class='cell was'><b>原本·已否掉</b><s>"+esc(f['原本'])+"</s></div><div class='cell now'><b>改成</b>"+esc(f['改成'])+"</div></div>"}
+else h+="<div class='diff solo'><div class='cell now'><b>改成</b>"+esc(f['改成'])+"</div></div>";
+if(f['我说'])h+="<div class='quote'>"+esc(f['我说'])+"</div>";
+if(f['为什么'])h+="<div class='why'>"+esc(f['为什么'])+(f['否掉了']?"<span class='kl'>"+esc(f['否掉了'])+"</span>":'')+"</div>";
+else if(f['否掉了'])h+="<div class='why'><span class='kl'>"+esc(f['否掉了'])+"</span></div>";
+h+="</article>"}});
+return h||"<div class='raw'><div class='rl'>原文</div><pre>(空)</pre></div>"}
+document.querySelectorAll('.mstub').forEach(function(st,i){
+setTimeout(function(){st.classList.add('rise')},40+i*60);
+var head=st.querySelector('.mhead'),body=st.querySelector('.mbody');
+head.addEventListener('click',function(e){
+if(e.target.closest('a'))return;
+var open=st.classList.toggle('open');
+if(open&&!body.dataset.loaded){
+var txt=PV2[st.dataset.mem];
+body.innerHTML=txt?render(parseLedger(txt)):"<div class='raw'><div class='rl'>原文</div><pre>这天文件未嵌入(超 2MB 预算或读取失败),点右上「原文」看文件</pre></div>";
+body.dataset.loaded='1'}
+if(!open){body.innerHTML='';body.dataset.loaded=''}})});
+})();</script>"""
+
+
+
 MERMAID_JS = (Path(__file__).parent / "mermaid.flow.min.js").read_text(encoding="utf-8")
 
 CSS = """
@@ -763,6 +842,62 @@ CSS = """
   .pv-body a{color:var(--open)}
   @media (max-width:960px){.app{grid-template-columns:1fr}.side{display:none}.kpis{grid-template-columns:repeat(2,1fr)}
     .pagebar{top:0}.search{min-width:0;flex:1}}
+  /* 决策档案·变更审计流:日存根 + 变更卡 + 原文块(内容点开才解析,见 ledger 脚本) */
+  .mstats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:0 0 22px}
+  .mstat{background:var(--panel);border:1px solid var(--rule);border-radius:11px;padding:12px 15px}
+  .mstat b{display:block;font:300 24px/1.15 var(--mono);letter-spacing:-.5px}
+  .mstat span{font:500 10.5px var(--mono);color:var(--ink-3);letter-spacing:.06em}
+  .mstat.blue b{color:var(--open)} .mstat.red b{color:#B4453A}
+  .mstub{margin-bottom:12px;opacity:0;transform:translateY(12px)}
+  .mstub.rise{animation:mstubin .45s cubic-bezier(.2,.7,.2,1) forwards}
+  @keyframes mstubin{to{opacity:1;transform:none}}
+  .mhead{width:100%;display:flex;align-items:center;gap:14px;padding:13px 17px;
+    background:var(--panel);border:1px solid var(--rule);border-radius:11px;cursor:pointer;
+    font:inherit;text-align:left;transition:border-color .16s,box-shadow .16s}
+  .mhead:hover{border-color:#C9D8EC;box-shadow:0 2px 10px rgba(28,60,110,.06)}
+  .mstub.open .mhead{border-bottom-left-radius:0;border-bottom-right-radius:0}
+  .mhead .d{font:700 14.5px var(--mono);letter-spacing:-.2px}
+  .mhead .cnt{font:500 11px var(--mono);color:var(--ink-3)}
+  .mhead a{margin-left:auto;font:500 11.5px var(--mono);color:var(--open)}
+  .mhead .chev{width:15px;height:15px;color:var(--ink-3);transition:transform .2s;flex-shrink:0}
+  .mstub.open .chev{transform:rotate(180deg)}
+  .mbody{display:none;background:var(--panel);border:1px solid var(--rule);border-top:0;
+    border-radius:0 0 11px 11px;padding:8px 14px 14px}
+  .mstub.open .mbody{display:block;animation:viewfade .3s ease}
+  .secmark{display:flex;align-items:center;gap:8px;margin:14px 2px 9px;font:600 12.5px var(--sans);color:var(--ink-2)}
+  .secmark::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--ink-3)}
+  .dc{border:1px solid var(--rule);border-radius:11px;padding:13px 15px;margin:9px 0;
+    background:linear-gradient(180deg,#FBFCFE,transparent)}
+  .dc:hover{border-color:#C9D8EC}
+  .ostamp{display:inline-flex;align-items:center;gap:6px;font:600 10.5px var(--mono);color:#B4453A;
+    background:#FBEDEA;border:1px solid #F0D4CF;border-radius:7px;padding:4px 10px;margin-bottom:9px}
+  .dc .diff{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--rule-2);
+    border-radius:9px;overflow:hidden;margin:3px 0 9px}
+  .dc .diff .was{background:#FBEDEA}.dc .diff .now{background:#E7F4EC}
+  .dc .diff .cell{padding:10px 13px;font:400 12.5px/1.62 var(--sans);color:#6B4A44}
+  .dc .diff .cell.now{color:#2E5741}
+  .dc .diff .cell b{display:block;font:600 10px var(--mono);letter-spacing:.12em;margin-bottom:5px;color:var(--ink-3)}
+  .dc .diff .cell.was s{opacity:.8}
+  .dc .diff.solo{grid-template-columns:1fr}
+  .dc .quote{display:flex;gap:9px;background:var(--bg);border-left:3px solid var(--open);
+    border-radius:0 8px 8px 0;padding:8px 12px;margin:0 0 8px;font:400 12.5px/1.58 var(--sans);color:var(--ink-2)}
+  .dc .quote::before{content:"我说";font:600 10px/1.9 var(--mono);color:var(--open);flex-shrink:0}
+  .dc .why{display:flex;gap:8px;font:400 11.5px/1.6 var(--sans);color:var(--ink-3)}
+  .dc .why::before{content:"为什么";font:600 10px/1.8 var(--mono);letter-spacing:.1em;flex-shrink:0}
+  .dc .why .kl{color:#A0524A}
+  .dc .why .kl::before{content:" · 否掉了";font:600 10px var(--mono)}
+  .assetbar{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0 14px}
+  .chipf{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 11px;
+    background:var(--panel);border:1px solid var(--rule);border-radius:8px;
+    font:500 11.5px var(--mono);color:var(--ink-2);transition:all .15s}
+  .chipf:hover{border-color:var(--open);color:var(--open)}
+  .chipf.dir{background:var(--row-hover,#F8FAFD)}
+  .chipf.dir::before{content:"▣";font-size:10px;color:var(--ink-3)}
+  .raw{background:var(--bg);border:1px dashed var(--rule);border-radius:10px;padding:11px 14px;margin:9px 0}
+  .raw .rl{font:600 10px var(--mono);color:var(--ink-3);letter-spacing:.12em;margin-bottom:7px}
+  .raw pre{white-space:pre-wrap;word-break:break-word;margin:0;font:400 12px/1.68 var(--mono);color:var(--ink-2)}
+  .mzero{font:600 11px var(--mono);color:#b5813a;background:#FBF3E4;border:1px solid #EBDDBB;
+    border-radius:7px;padding:5px 11px;display:inline-block;margin:4px 0 8px}
 """
 
 def esc(s: str) -> str:
@@ -777,6 +912,18 @@ def clip(text: str, n: int) -> str:
 def rel(source: str, scratch: Path) -> str:
     return os.path.relpath(source, scratch)
 
+
+def ledger_counts(text: str) -> tuple[int, int]:
+    """一天账本的 (规整决策行数, 其余非空行数)。规整行 = '- 改成:' 开头。"""
+    dec = raw = 0
+    for line in text.splitlines():
+        if not line.strip():
+            continue
+        if line.lstrip("- ").startswith("改成:") or line.lstrip("- ").startswith("改成："):
+            dec += 1
+        else:
+            raw += 1
+    return dec, raw
 
 def scan_index(scratch: Path) -> tuple[list[Path], list[Path]]:
     """入口目录索引:顶层 memory/ 与 research/ 的 markdown,按改动时间倒序。
@@ -985,7 +1132,9 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
 
     add_pv(*mem_files, *res_files)
     for e in efforts:
-        add_pv(e.path / "spec.md", e.path / "map.md", *e.research)
+        add_pv(e.path / "spec.md", e.path / "map.md", *e.research, *e.assets)
+        if e.single:
+            add_pv(e.single)
         add_pv(*[Path(s) for s in (t.source for t in e.tasks if t.from_file and t.source)])
     add_pv(*unparsed)
 
@@ -1011,8 +1160,6 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         tabs.append(f"<a href='#/stale'>久未动<span class='n'>{len(stale)}</span></a>")
     if recent:
         tabs.append(f"<a href='#/recent'>最近完成<span class='n'>{len(recent)}</span></a>")
-    if unparsed:
-        tabs.append(f"<a href='#/unknown'>未能识别<span class='n'>{len(unparsed)}</span></a>")
     nav_extra = "".join(tabs)
 
     icon_grid = "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8'><rect x='3' y='3' width='7' height='9' rx='1.5'/><rect x='14' y='3' width='7' height='5' rx='1.5'/><rect x='14' y='12' width='7' height='9' rx='1.5'/><rect x='3' y='16' width='7' height='5' rx='1.5'/></svg>"
@@ -1071,9 +1218,6 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
                     f"<a href='#/research'>{icon_search}调研<span class='cnt'>{len(res_files)}</span></a>"
                     if res_files
                     else "",
-                    f"<a href='#/unknown'>{icon_alert}未能识别<span class='cnt'>{len(unparsed)}</span></a>"
-                    if unparsed
-                    else "",
                 ]
             ),
         ),
@@ -1087,7 +1231,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "<span class='crumb'><b>.scratch</b> / 总览</span>",
         "<label class='search'>",
         "<svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><circle cx='11' cy='11' r='7'/><path d='m21 21-4.3-4.3'/></svg>",
-        "<input id='tpFilter' type='text' placeholder='过滤票号、标题、spec…' aria-label='过滤行'>",
+        "<input id='tpFilter' type='text' placeholder='过滤票号、标题、feature…' aria-label='过滤行'>",
         "<kbd>输入即滤</kbd>",
         "</label>",
         "</header>",
@@ -1138,9 +1282,9 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
     out += [
         "<section class='view' id='specs' data-route='specs'>",
         "<h2>功能台</h2>",
-        "<p class='sub'>每个 spec 一行：票数按状态拆开，进度 = 该 spec 的已完成 ÷ 该 spec 总票数。"
-        "「可开工」列非零说明这个 spec 现在就有活能干；点 spec 名进它的独立页面。</p>",
-        "<table><thead><tr><th style='width:150px'>spec</th><th style='width:150px'>分布</th>"
+        "<p class='sub'>每个 feature 一行：票数按状态拆开，进度 = 该 feature 的已完成 ÷ 该 feature 总票数。"
+        "「可开工」列非零说明这个 feature 现在就有活能干；点 feature 名进它的独立页面。</p>",
+        "<table><thead><tr><th style='width:150px'>feature</th><th style='width:150px'>分布</th>"
         "<th class='num'>可开工</th><th class='num'>进行中</th><th class='num'>已完成</th>"
         "<th class='num'>被阻塞</th><th class='num'>ticket</th><th class='num'>未建</th>"
         "<th class='num'>进度</th></tr></thead><tbody>",
@@ -1181,13 +1325,13 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
     ]
     if open_now:
         out += [
-            "<table><thead><tr><th style='width:130px'>spec</th><th style='width:44px'>ticket</th>"
+            "<table><thead><tr><th style='width:130px'>feature</th><th style='width:44px'>ticket</th>"
             "<th>标题</th><th style='width:70px'>类型</th><th class='num'>解锁</th></tr></thead>",
         ]
         out += [
             "<tbody>"
             + "".join(
-                f"<tr><td class='spec'>{esc(t.effort)}{copy_btn(t.effort)}</td>"
+                f"<tr><td class='spec'><a href='#/spec-{esc(t.effort)}'>{esc(t.effort)}</a>{copy_btn(t.effort)}</td>"
                 f"<td class='lbl'>{esc(t.label)}{copy_btn(f'{t.effort}#{t.tid}', '票号') if t.tid else ''}</td>"
                 f"<td class='t'>{task_link(t, scratch)}</td>"
                 f"<td class='meta'>{esc(t.kind) or '—'}</td>"
@@ -1222,6 +1366,22 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
                 f"<a class='kind' href='{esc(rel(str(effort.path / 'spec.md'), scratch))}' "
                 f"target='_blank' rel='noopener'>spec</a>"
             )
+        if effort.single:
+            kinds.append(
+                f"<a class='kind tbd' href='{esc(rel(str(effort.single), scratch))}' "
+                f"target='_blank' rel='noopener'>单文件</a>"
+            )
+        if effort.assets or effort.asset_dirs:
+            chips = "".join(
+                f"<a class='chipf' href='{esc(rel(str(p), scratch))}' target='_blank' rel='noopener'>"
+                f"{esc(p.name)}</a>"
+                for p in sorted(effort.assets, key=lambda x: x.name)
+            ) + "".join(
+                f"<a class='chipf dir' href='{esc(rel(str(d), scratch))}' target='_blank' rel='noopener'>"
+                f"{esc(nm)}/ · {cnt} 文件</a>"
+                for nm, d, cnt in effort.asset_dirs
+            )
+            kinds.append(f"<span class='kind'>附件 {len(effort.assets) + len(effort.asset_dirs)}</span>")
         # 未建票 = 只有 map.md/清单行、还没有票面文件的条目
         tbd = sum(1 for t in effort.tasks if not t.from_file)
         if et and tbd:
@@ -1239,6 +1399,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
             f"</span></span></h3>",
             *kinds,
             f"<span class='cnt'>{et} 张 · {ec[DONE]} 已完成</span></div>",
+            f"<div class='assetbar'>{chips}</div>" if (effort.assets or effort.asset_dirs) else "",
             f"<div class='minibar'>{minibar}</div>",
             f"<div class='minicap'><span>{STATUS_LABEL[DONE]} {ec[DONE]}</span>"
             f"{('<span>未建票 %d</span>' % tbd) if tbd else ''}"
@@ -1301,10 +1462,10 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         out += ["<section class='view' id='stale' data-route='stale'>", "<h2>久未动</h2>",
                 f"<p class='sub'>超过 {STALE_DAYS} 天没有任何文件改动、且还有未完成票的 spec。</p>"]
         out += [
-            "<table><thead><tr><th>spec</th><th class='num'>未完成</th>"
+            "<table><thead><tr><th>feature</th><th class='num'>未完成</th>"
             "<th class='num'>最后改动</th></tr></thead><tbody>",
             "".join(
-                f"<tr><td class='spec'>{esc(e.name)}{copy_btn(e.name)}</td>"
+                f"<tr><td class='spec'><a href='#/spec-{esc(e.name)}'>{esc(e.name)}</a>{copy_btn(e.name)}</td>"
                 f"<td class='num'>{sum(1 for t in e.tasks if t.status != DONE)} 张</td>"
                 f"<td class='num'>{int((now - e.mtime) / 86400)} 天前</td></tr>"
                 for e in rows
@@ -1320,12 +1481,12 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
             "<p class='sub'>按源文件修改时间倒序，最多 "
             f"{TIMELINE_LIMIT} 条。票面文件排在勾选行前面——勾选行共用同一个文件时间，"
             "彼此之间没有先后。</p>",
-            "<table><thead><tr><th style='width:110px'>日期</th><th style='width:130px'>spec</th>"
+            "<table><thead><tr><th style='width:110px'>日期</th><th style='width:130px'>feature</th>"
             "<th>标题</th></tr></thead><tbody>",
             "".join(
                 f"<tr class='r-done'><td class='lbl'>"
                 f"{time.strftime('%Y-%m-%d', time.localtime(t.mtime))}</td>"
-                f"<td class='spec'>{esc(t.effort)}{copy_btn(t.effort)}</td>"
+                f"<td class='spec'><a href='#/spec-{esc(t.effort)}'>{esc(t.effort)}</a>{copy_btn(t.effort)}</td>"
                 f"<td class='t'>{task_link(t, scratch)}</td></tr>"
                 for t in recent
             ),
@@ -1334,21 +1495,39 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         ]
 
     if mem_files:
+        # 变更审计流:统计条 + 日存根。决策内容不写进 HTML——点开当天才从
+        # tp-files 嵌入的原文实时解析渲染,收起即释放,页面体积与内存有界。
+        tot_dec = tot_me = tot_ov = 0
+        stubs = []
+        for p in mem_files:
+            try:
+                text = p.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                text = ""
+            dec, raw = ledger_counts(text)
+            tot_dec += dec
+            tot_me += text.count("| 我说: ")
+            tot_ov += text.count("推翻")
+            zero = " · 全原文" if dec == 0 else ""
+            stubs.append(
+                f"<div class='mstub' data-mem='{esc(rel(str(p), scratch))}'>"
+                f"<button type='button' class='mhead'><span class='d'>{day_mark(p)}</span>"
+                f"<span class='cnt'>{dec} 条规整 · {raw} 行原文{zero}</span>"
+                f"<a href='{esc(rel(str(p), scratch))}' target='_blank' rel='noopener'>原文</a>"
+                "<svg class='chev' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.4'><path d='m6 9 6 6 6-6'/></svg></button>"
+                "<div class='mbody'></div></div>"
+            )
         out += [
             "<section class='view' id='memory' data-route='memory'>",
             "<h2>决策档案 <span class='badge'>memory/</span></h2>",
-            "<p class='sub'>按天追加的决策账本，历史存档——只列文件，不解析状态、不计进度。点开是 markdown 原文。</p>",
-            "<div class='panel'>",
-            "<table><thead><tr><th style='width:80px'>日期</th><th>文件</th>"
-            "<th class='num' style='width:90px'>大小</th></tr></thead><tbody>",
-            "".join(
-                f"<tr><td class='lbl'>{day_mark(p)}</td>"
-                f"<td class='t'><a href='{esc(rel(str(p), scratch))}' target='_blank' rel='noopener'>"
-                f"{esc(p.name)}</a></td>"
-                f"<td class='num'>{human_size(p)}</td></tr>"
-                for p in mem_files
-            ),
-            "</tbody></table></div></section>",
+            "<p class='sub'>按天追加的决策账本。规整决策行渲染成变更卡,不符合格式的原文原样保留、一行不丢;内容点开当天才实时解析,不写死进本页。</p>",
+            "<div class='mstats'>"
+            f"<div class='mstat'><b>{tot_dec}</b><span>规整决策</span></div>"
+            f"<div class='mstat blue'><b>{tot_me}</b><span>含「我说」</span></div>"
+            f"<div class='mstat red'><b>{tot_ov}</b><span>提到推翻</span></div>"
+            f"<div class='mstat'><b>{len(mem_files)}</b><span>天</span></div></div>",
+            "".join(stubs),
+            "</section>",
         ]
     if res_files:
         out += [
@@ -1368,20 +1547,6 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
             "</tbody></table></div></section>",
         ]
 
-    if unparsed:
-        out += [
-            "<section class='view' id='unknown' data-route='unknown'>",
-            "<h2>未能识别的文件</h2>",
-            "<p class='sub'>扫描时读不出任务状态的 markdown 文件。如果里面其实有真任务，"
-            "说明这个工具漏了一种写法——那是工具的问题，不是你的。</p>",
-            "<ul class='filelist'>",
-            "".join(
-                f"<li><a href='{esc(rel(str(p), scratch))}' target='_blank' rel='noopener'>{esc(rel(str(p), scratch))}</a></li>"
-                for p in unparsed
-            ),
-            "</ul>",
-            "</section>",
-        ]
     out += [
         "<footer>口径：进度 = 已完成 ÷ 总票数，被阻塞计入分母 · 一次快照，无历史统计 · "
         f"{esc('tracking_progress.py')} 生成，file:// 直开</footer>",
@@ -1626,6 +1791,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         r"if(a.target==='_blank'&&PV.hasOwnProperty(href)&&!e.metaKey&&!e.ctrlKey){"
         r"e.preventDefault();openPv(href)}});"
         r"})();</script>",
+        LEDGER_JS,
         "<script>" + MERMAID_JS + "</script>",
         "<script>(function(){ if (!window.mermaid) return;"
         "var m = window.mermaid.default || window.mermaid;"
