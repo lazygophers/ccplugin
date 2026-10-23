@@ -99,7 +99,7 @@ The five canonical triage roles keep their default names, recorded as a `Status:
 
 ### Domain docs
 
-Single-context: one `CONTEXT.md` at the root plus `docs/adr/`. See `docs/agents/domain.md`.
+Single-context: one `GLOSSARY.md` at the root plus `docs/adr/`. See `docs/agents/domain.md`.
 
 ## 相关文档
 
