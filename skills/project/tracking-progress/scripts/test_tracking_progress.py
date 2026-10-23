@@ -29,6 +29,13 @@ import tracking_progress as tp
         ("ready-for-agent", tp.OPEN),
         ("needs-triage", tp.OPEN),
         ("", tp.OPEN),
+        # 否定前缀让子串命中失效:「未完成」不是完成
+        ("未完成", tp.OPEN),
+        ("无法完成", tp.OPEN),
+        ("取消完成", tp.OPEN),
+        ("unresolved", tp.OPEN),
+        ("undone", tp.OPEN),
+        ("not done", tp.OPEN),
     ],
 )
 def test_classify(raw, expected):
@@ -44,6 +51,9 @@ def test_classify(raw, expected):
         ("无", []),
         ("I02 I04", ["I2", "I4"]),
         ("", []),
+        # 文档引用带连字符写法要和不带的一致,前缀不能被静默丢掉
+        ("ADR-0046", ["ADR46"]),
+        ("ADR0046", ["ADR46"]),
     ],
 )
 def test_parse_ids(raw, expected):
@@ -65,6 +75,10 @@ def test_normalise_id_keeps_prefix():
         ("23: 地图", "23", "地图"),
         ("01 · 选路器收成深模块", "01", "选路器收成深模块"),
         ("没有编号的标题", "", "没有编号的标题"),
+        # 裸数字后直接接文字不是票号:日期、"404 页面修复"不能铸号
+        ("2026 年计划", "", "2026 年计划"),
+        ("404 页面修复", "", "404 页面修复"),
+        ("3rd-party API", "", "3rd-party API"),
     ],
 )
 def test_split_title(title, tid, rest):
@@ -285,6 +299,13 @@ def test_normalise_id_without_digits():
 
 def test_status_from_path_open_directory(tmp_path):
     path = write(tmp_path / "issues" / "open" / "09-x.md", "# 09: 待办\n")
+    assert tp.parse_issue_file(path, "spec").status == tp.OPEN
+
+
+def test_status_from_path_ignores_ancestors_above_scratch(tmp_path):
+    # 克隆位置里带 open/done 字样的目录不该翻转判定:只看 .scratch 以下
+    path = tmp_path / "done" / ".scratch" / "f" / "issues" / "open" / "09-x.md"
+    write(path, "# 09: 待办\n")
     assert tp.parse_issue_file(path, "spec").status == tp.OPEN
 
 

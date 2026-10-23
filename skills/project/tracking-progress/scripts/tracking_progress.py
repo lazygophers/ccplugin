@@ -61,12 +61,22 @@ INLINE_BLOCKED_RE = re.compile(r"[（(](?:阻塞于|blocked by)[:：]?\s*([^）)
 H1_RE = re.compile(r"^#\s+(.+?)\s*$", re.M)
 CHECKBOX_RE = re.compile(r"^\s*[-*]\s*\[([ xX~/\-])\]\s*(.+?)\s*$")
 # Leading ticket id inside a title: "01 — foo", "**I01** foo", "23: foo".
-LEAD_ID_RE = re.compile(r"^\**\s*([A-Za-z]{0,3}\d{1,4})\**\s*[—\-·:：.、)]?\s*(.*)$")
-ID_TOKEN_RE = re.compile(r"[A-Za-z]{0,3}\d{1,4}")
+# Group 2 captures the separator + trailing whitespace: a bare number with no
+# separator must be ≤2 digits AND space-separated to mint an id — that keeps
+# map rows like "04 后续扩展" working while rejecting dates ("2026 年计划"),
+# error codes ("404 页面修复") and "3rd-party API" (no whitespace at all).
+LEAD_ID_RE = re.compile(r"^\**\s*([A-Za-z]{0,3}\d{1,4})\**((?:\s*[—\-·:：.、)])?\s*)(.*)$")
+# Hyphen between prefix and digits stays part of the token, so "ADR-0046" and
+# "ADR0046" normalise to the same "ADR46" instead of the hyphen dropping it.
+ID_TOKEN_RE = re.compile(r"[A-Za-z]{0,3}-?\d{1,4}")
 # Strip markdown emphasis only — `_` is part of identifiers like open_session.
 MD_NOISE_RE = re.compile(r"[*`]")
 
 DONE, ACTIVE, OPEN, BLOCKED = "done", "active", "open", "blocked"
+
+# 「未完成」「无法完成」「取消完成」「not done」「unresolved」——
+# 状态词前面带否定时，子串命中不算数。
+NEGATION_RE = re.compile(r"未|不|没|无|非|勿|取消|无法|不能|暂停|not$|n't$|un$")
 
 STATUS_LABEL = {DONE: "已完成", ACTIVE: "进行中", OPEN: "可开工", BLOCKED: "被阻塞"}
 
@@ -121,6 +131,12 @@ class Effort:
     research: list[Path] = field(default_factory=list)
 
 
+def negated(head: str, i: int) -> bool:
+    """「未完成」「not done」:状态词前缀带否定时，子串命中不算数。"""
+    before = head[max(0, i - 4) : i].rstrip()
+    return bool(NEGATION_RE.search(before))
+
+
 def classify(text: str) -> str:
     """Map a free-form status string onto done/active/open."""
     head = re.split(r"[·（(，,。]", MD_NOISE_RE.sub("", text or ""), maxsplit=1)[0]
@@ -128,10 +144,12 @@ def classify(text: str) -> str:
     if not head:
         return OPEN
     for word in DONE_WORDS:
-        if word in head:
+        i = head.find(word)
+        if i >= 0 and not negated(head, i):
             return DONE
     for word in ACTIVE_WORDS:
-        if word in head:
+        i = head.find(word)
+        if i >= 0 and not negated(head, i):
             return ACTIVE
     return OPEN
 
@@ -153,7 +171,7 @@ def normalise_id(tid: str) -> str:
     schemes side by side (decision tickets `01..13` and impl tickets `T01..T11`),
     and collapsing them would merge unrelated work.
     """
-    match = re.match(r"\s*([A-Za-z]*)0*(\d+)", tid or "")
+    match = re.match(r"\s*([A-Za-z]*)-?0*(\d+)", tid or "")
     if not match:
         return (tid or "").strip().lower()
     return match.group(1).upper() + match.group(2)
@@ -161,14 +179,24 @@ def normalise_id(tid: str) -> str:
 
 def split_title(title: str) -> tuple[str, str]:
     """Return (id, remaining title) for '01 — foo'; id is '' when absent."""
-    match = LEAD_ID_RE.match(MD_NOISE_RE.sub("", title).strip())
-    if match and match.group(2):
-        return match.group(1), match.group(2).strip()
-    return "", MD_NOISE_RE.sub("", title).strip()
+    text = MD_NOISE_RE.sub("", title).strip()
+    match = LEAD_ID_RE.match(text)
+    if match and match.group(3):
+        tid, gap = match.group(1), match.group(2)
+        if tid.isdigit() and (not gap or len(tid) > 2):
+            # 裸数字无分隔符:只在 ≤2 位且后随空白时算票号("04 后续扩展");
+            # 日期("2026 年计划")、错误码("404 页面修复")、"3rd-party"不算
+            return "", text
+        return tid, match.group(3).strip()
+    return "", text
 
 
 def status_from_path(path: Path) -> str | None:
-    parts = {p.lower() for p in path.parts}
+    parts = path.parts
+    # 只看 .scratch 以下的段:克隆位置里带 open/done 字样的目录不能翻转判定
+    if ".scratch" in parts:
+        parts = parts[parts.index(".scratch") + 1 :]
+    parts = {p.lower() for p in parts}
     if parts & {"done", "closed", "resolved", "completed", "已完成"}:
         return DONE
     if parts & {"open", "todo", "backlog", "待办"}:
@@ -183,8 +211,7 @@ def parse_issue_file(path: Path, effort: str) -> Task | None:
     title = heading.group(1) if heading else path.stem
     tid, rest = split_title(title)
     if not tid:
-        stem_id = LEAD_ID_RE.match(path.stem)
-        tid = stem_id.group(1) if stem_id and stem_id.group(2) else ""
+        tid, _ = split_title(path.stem)
     title = rest or path.stem
 
     raw = ""
