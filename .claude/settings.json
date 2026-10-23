@@ -3,7 +3,5 @@
     "CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR": "1",
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "0"
   },
-  "enabledPlugins": {
-    "skein@ccplugin-market": false
-  }
+  "enabledPlugins": {}
 }

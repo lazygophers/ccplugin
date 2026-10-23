@@ -318,7 +318,7 @@ def test_main_writes_report(tmp_path, monkeypatch, capsys):
     root = build_repo(tmp_path)
     assert tp.main(["tracking_progress.py", str(root)]) == 0
     page = (root / ".scratch" / "progress.html").read_text(encoding="utf-8")
-    assert ".scratch 总览" in page
+    assert "任务进度" in page
     assert capsys.readouterr().err == ""
 
 

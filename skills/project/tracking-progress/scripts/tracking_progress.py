@@ -606,9 +606,15 @@ CSS = """
   @keyframes metergrow{to{width:var(--w)}}
   section{padding:26px 0;border-top:1px solid var(--rule)}
   section:first-of-type{border-top:0}
-  /* hash 路由视图:每个 tab/菜单项是独立页面,同一时刻只显示一个 */
+  /* hash 路由视图:每个 tab/菜单项是独立页面,同一时刻只显示一个;切换带入场动效 */
   .view{display:none}
-  .view.on{display:block}
+  .view.on{display:block;animation:viewfade .32s cubic-bezier(.22,.9,.3,1)}
+  @keyframes viewfade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){.view.on{animation:none}}
+  .stack i{transition:filter .15s;cursor:default}
+  .stack i:hover{filter:brightness(1.14)}
+  /* 长表滚动时钉住表头(pagebar 高约 110px) */
+  .view th{position:sticky;top:151px;background:var(--panel);z-index:5} /* 顶栏 55 + 页签栏 96,粘低了会被页签栏盖住半截 */
   h2{font:600 16px/1.4 var(--sans);margin:0 0 4px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   .sub{font-size:13px;color:var(--ink-2);margin:0 0 16px;max-width:64em}
   .note{font-size:12.5px;line-height:1.7;color:var(--ink-2);margin:14px 0 0;padding:12px 14px;
@@ -616,7 +622,7 @@ CSS = """
   .note b{color:var(--ink);font-weight:600}
   .note code{font:12px var(--mono)}
   .badge{font:600 11px var(--mono);color:var(--blue-2);background:var(--blue-soft);border-radius:99px;padding:2px 9px}
-  .panel{background:var(--panel);border:1px solid var(--rule);border-radius:12px;box-shadow:var(--sh-1);overflow:hidden}
+  .panel{background:var(--panel);border:1px solid var(--rule);border-radius:12px;box-shadow:var(--sh-1);overflow:clip} /* hidden 会让卡片成为 sticky 表头的滚动参照,表头被推到表格中间;clip 同样裁圆角但不产生滚动容器 */
   .statline{display:flex;flex-wrap:wrap;gap:0 26px;margin:0 0 14px;font-size:13px;color:var(--ink-2)}
   .statline span{font:600 13.5px var(--mono);color:var(--ink)}
   .stack{display:flex;height:30px;width:100%;border:1px solid var(--rule);background:var(--panel);border-radius:8px;overflow:hidden}
@@ -630,7 +636,8 @@ CSS = """
   .tick.low{padding-top:50px}
   .tick.low::before{height:48px}
   .k-done{color:var(--ink-3)} .k-active{color:var(--active)} .k-open{color:var(--open)} .k-blocked{color:var(--blocked)}
-  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  /* separate+0 间距:collapse 和 th 的 position:sticky 在 Chromium 冲突,粘住后边框/格子错位 */
+  table{width:100%;border-collapse:separate;border-spacing:0;font-size:13.5px}
   th{text-align:left;font:500 11px/1.4 var(--mono);color:var(--ink-3);letter-spacing:.05em;padding:9px 12px 9px 0;
     border-bottom:1px solid var(--rule);white-space:nowrap;text-transform:uppercase;background:transparent}
   th.num,td.num{text-align:right;padding-right:14px}
@@ -822,7 +829,10 @@ def stacked_bar(total: int, counts: dict[str, int], height_css: str) -> tuple[st
         if not n:
             continue
         pct = round(n * 100 / total, 2)
-        band.append(f'<i style="width:{pct}%;background:{fills[status]}"></i>')
+        band.append(
+            f'<i style="width:{pct}%;background:{fills[status]}" '
+            f'title="{STATUS_LABEL[status]} {n} 张 · {round(pct)}%"></i>'
+        )
         low = ' low' if pct < 6 else ""
         ticks.append(
             f'<div class="tick{low}" style="width:{pct}%">'
@@ -1024,7 +1034,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
     out = [
         "<!DOCTYPE html><html lang='zh-Hans'><head><meta charset='utf-8'>",
         "<meta name='viewport' content='width=device-width,initial-scale=1'>",
-        f"<title>{esc(project)}·.scratch 总览</title>",
+        f"<title>{esc(project)}·任务进度</title>",
         f"<style>{CSS}</style>",
         "<script>try{var t=localStorage.getItem('tp-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>",
         "</head><body>",
@@ -1075,7 +1085,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "</header>",
         "<div class='pagebar'>",
         "<div class='row'>",
-        f"<h1>.scratch 总览 <span class='scope'>{total} 票 · {pct}%</span></h1>",
+        f"<h1>任务进度 <span class='scope'>{total} 票 · {pct}%</span></h1>",
         f"<div class='acts'><a class='btn' href='#/now'>可开工 {len(open_now)}</a></div>" if total else "",
         "</div>",
         f"<nav class='tabs'>{nav_extra}</nav>",
@@ -1122,7 +1132,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "<h2>功能台</h2>",
         "<p class='sub'>每个 spec 一行：票数按状态拆开，进度 = 该 spec 的已完成 ÷ 该 spec 总票数。"
         "「可开工」列非零说明这个 spec 现在就有活能干；点 spec 名进它的独立页面。</p>",
-        "<table><thead><tr><th style='width:150px'>spec</th>"
+        "<table><thead><tr><th style='width:150px'>spec</th><th style='width:150px'>分布</th>"
         "<th class='num'>可开工</th><th class='num'>进行中</th><th class='num'>已完成</th>"
         "<th class='num'>被阻塞</th><th class='num'>ticket</th><th class='num'>未建</th>"
         "<th class='num'>进度</th></tr></thead><tbody>",
@@ -1141,8 +1151,10 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         tbd = sum(1 for t in effort.tasks if not t.from_file)
         et = len(effort.tasks)
         epct = round(ec[DONE] * 100 / et) if et else 0
+        band_e, _ = stacked_bar(et, ec, "") if et else ("", "")
         out.append(
             f"<tr><td class='spec'><a href='#/spec-{esc(effort.name)}'>{esc(effort.name)}</a>{copy_btn(effort.name)}</td>"
+            f"<td><div class='minibar' style='height:8px;border:1px solid var(--rule);border-radius:4px'>{band_e}</div></td>"
             f"<td class='num'>{ec[OPEN] or '·'}</td>"
             f"<td class='num'>{ec[ACTIVE] or '·'}</td>"
             f"<td class='num'>{ec[DONE] or '·'}</td>"
@@ -1543,7 +1555,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "function show(route){"
         "if(!views[route])route='overview';"
         "Object.keys(views).forEach(function(k){views[k].classList.toggle('on',k===route)});"
-        "setActive(route);window.scrollTo(0,0)}"
+        "setActive(route);if(window._mmdShow)window._mmdShow(views[route]);window.scrollTo(0,0)}"
         "function current(){return location.hash.replace(/^#\\//,'')||'overview'}"
         "window.addEventListener('hashchange',function(){show(current())});"
         "show(current());"
@@ -1626,9 +1638,20 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         # buttons must be injected after — so capture now, inject in then().
         "var viewer = document.getElementById('mmdViewer'), stage = document.getElementById('mmdStage');"
         "var pres = document.querySelectorAll('pre.mmd');"
-        "for (var i = 0; i < pres.length; i++) pres[i].dataset.src = pres[i].textContent;"
-        "function addButtons(){"
-        "document.querySelectorAll('pre.mmd').forEach(function(pre){"
+        "for (var i = 0; i < pres.length; i++) {"
+        "pres[i].id = 'mmd' + i;"
+        "pres[i].dataset.src = pres[i].textContent; }"
+        # 懒渲染:display:none 视图里 mermaid 量出 0 尺寸画坏图,改为视图首次显示才画
+        "function paint(pre){"
+        "if (!pre || pre.dataset.done) return; pre.dataset.done = '1';"
+        "m.run({querySelector: '#' + pre.id}).then(function(){"
+        "window.paintMmd(); addButtons(pre); })"
+        ".catch(function(e){ console.warn('mermaid 渲染失败，依赖图显示源码', e); });}"
+        "window._mmdShow = function(view){"
+        "view.querySelectorAll('pre.mmd').forEach(paint); };"
+        "document.querySelectorAll('.view.on pre.mmd').forEach(paint);"
+        "function addButtons(pre){"
+        "if (pre.dataset.btns) return; pre.dataset.btns = '1';"
         "function mk(label, fn){ var b = document.createElement('button');"
         "b.type = 'button'; b.className = 'mmd-zoom'; b.textContent = label;"
         "b.addEventListener('click', fn); pre.appendChild(b); }"
@@ -1639,7 +1662,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "mk('放大', function(){ openViewer(pre); });"
         "if(pre.dataset.spec)mk('复制图',function(e){e.stopPropagation();"
         "window._copyDepsImg&&window._copyDepsImg(pre.dataset.spec)});"
-        "});}"
+        "}"
         "var svg = null, tx = 0, ty = 0, sc = 1;"
         "function apply(){ if (svg) svg.style.transform = 'translate('+tx+'px,'+ty+'px) scale('+sc+')'; }"
         "function fit(){ if (!svg) return;"
@@ -1666,8 +1689,6 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "m.initialize({startOnLoad:false, securityLevel:'strict', htmlLabels:false,"
         "themeVariables:{fontSize:'14px',"
         "fontFamily:'\\\"Maple Mono\\\",\\\"JetBrains Mono\\\",ui-monospace,monospace'}});"
-        "m.run({querySelector:'pre.mmd'}).then(function(){ window.paintMmd(); addButtons(); })"
-        ".catch(function(e){ console.warn('mermaid 渲染失败，依赖图显示源码', e); });"
         "})();</script>",
         "</body></html>",
     ]
