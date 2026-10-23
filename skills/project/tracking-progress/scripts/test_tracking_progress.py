@@ -244,18 +244,48 @@ def test_render_contains_every_section(tmp_path):
         "id='now'",
         "id='spec-progress'",
         "id='specs'",
+        "id='memory'",
+        "id='research'",
     ):
         assert anchor in page
-    # 链接指向源文件；memory/ 与 research/ 永不进页
+    # 链接指向源文件；memory/ 与 research/ 是入口目录的一部分:列文件,不解析状态
     assert "alpha/issues/01-first.md" in page
     assert "notes.md" in page
-    assert "2026-09-18.md" not in page
-    assert "research/deep.md" not in page
+    assert "2026-09-18.md" in page
+    assert "research/deep.md" in page
     # 口径必须写明：这是这版设计的核心承诺
     assert "进度 = 已完成 ÷ 总票数" in page
     assert "data-copy-spec='alpha'" in page
     assert "id='waves'" not in page
     assert "关于这份报告" not in page
+
+
+def test_scan_index_lists_memory_and_research(tmp_path):
+    """入口索引:memory/ 与 research/ 的 md 按改动时间倒序;目录缺失返回空。"""
+    scratch = tmp_path / ".scratch"
+    (scratch / "memory").mkdir(parents=True)
+    (scratch / "research").mkdir()
+    old = scratch / "memory" / "2026-09-18.md"
+    new = scratch / "memory" / "2026-10-22.md"
+    old.write_text("a")
+    new.write_text("b")
+    os.utime(old, (1_700_000_000, 1_700_000_000))
+    mem, res = tp.scan_index(scratch)
+    assert [p.name for p in mem] == ["2026-10-22.md", "2026-09-18.md"]
+    assert res == []
+    # 目录不存在:空列表,不抛
+    mem2, res2 = tp.scan_index(tmp_path / "nowhere" / ".scratch")
+    assert mem2 == [] and res2 == []
+
+
+def test_render_memory_and_research_hidden_when_absent(tmp_path):
+    """memory/research 目录没有文件时整段隐藏(含页签与侧栏项),和 unknown 同一口径。"""
+    scratch = tmp_path / ".scratch"
+    write(scratch / "alpha" / "spec.md", "# Spec\n")
+    efforts, unparsed = tp.scan(scratch)
+    page = tp.render(efforts, unparsed, scratch)
+    for gone in ("id='memory'", "id='research'", "#memory", "#research"):
+        assert gone not in page
 
 
 def test_mermaid_dependency_graph(tmp_path):
@@ -277,7 +307,7 @@ def test_main_writes_report(tmp_path, monkeypatch, capsys):
     root = build_repo(tmp_path)
     assert tp.main(["tracking_progress.py", str(root)]) == 0
     page = (root / ".scratch" / "progress.html").read_text(encoding="utf-8")
-    assert "任务进度" in page
+    assert ".scratch 总览" in page
     assert capsys.readouterr().err == ""
 
 

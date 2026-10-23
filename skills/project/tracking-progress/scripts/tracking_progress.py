@@ -467,6 +467,23 @@ MERMAID_JS = (Path(__file__).parent / "mermaid.flow.min.js").read_text(encoding=
 
 CSS = """
   :root{
+    --ink:#1C2B3A; --ink-2:#5B6E82; --ink-3:#93A5B8;
+    --rule:#E3EBF4; --rule-2:#EDF2F8;
+    --open:#1D4FD7; --open-fill:#2563EB;
+    --active:#B45309; --active-fill:#D97706;
+    --blocked:#A16207; --blocked-fill:#D97706;
+    --done:#14945B; --done-fill:#16A34A;
+    --bg:#F3F7FC; --panel:#FFFFFF; --gap:#F3F7FC; --nav-bg:#FFFFFF; --row-hover:#F8FAFD;
+    --underline:rgba(37,99,235,.3); --danger:#D6455D;
+    --blue:#2563EB; --blue-2:#1D4FD7; --blue-soft:#EAF0FE;
+    --amber-soft:#FBF0DE; --green-soft:#E5F5EC; --gray-soft:#EEF2F7;
+    --sh-1:0 1px 2px rgba(28,43,58,.05),0 1px 3px rgba(28,43,58,.06);
+    --sh-2:0 10px 28px -10px rgba(28,43,58,.16);
+    --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans CJK SC","Hiragino Sans GB",sans-serif;
+    --mono:"Maple Mono","JetBrains Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    color-scheme:light;
+  }
+  :root[data-theme=dark]{
     --ink:#d7dce1; --ink-2:#9aa4ae; --ink-3:#737d87;
     --rule:#2b3138; --rule-2:#232830;
     --open:#6aa5e3; --open-fill:#2f6fb5;
@@ -475,106 +492,187 @@ CSS = """
     --done:#7fae8b; --done-fill:#4a6b52; --bg:#141719;
     --panel:#1a1e22; --gap:#141719; --nav-bg:rgba(20,23,25,.96); --row-hover:#1d2227;
     --underline:rgba(106,165,227,.4); --danger:#e0796c;
-    --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans CJK SC","Hiragino Sans GB",sans-serif;
-    --serif:Georgia,"Songti SC","Noto Serif CJK SC","STSong",serif;
-    --mono:"Maple Mono","JetBrains Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --blue:#60A5FA; --blue-2:#93C5FD; --blue-soft:rgba(47,111,181,.18);
+    --amber-soft:rgba(181,129,58,.15); --green-soft:rgba(74,107,82,.2); --gray-soft:rgba(154,164,174,.12);
+    --sh-1:none; --sh-2:none;
     color-scheme:dark;
   }
-  :root[data-theme=light]{
-    --ink:#16191c; --ink-2:#4d565f; --ink-3:#6e7781;
-    --rule:#dfe3e7; --rule-2:#eef1f3;
-    --open:#1d5b9e; --open-fill:#2f6fb5;
-    --active:#8a5a15; --active-fill:#c08a3e;
-    --blocked:#9c4a3f; --blocked-fill:#c9968c;
-    --done:#3f6f4e; --done-fill:#7ba888; --bg:#ffffff;
-    --panel:#ffffff; --gap:#ffffff; --nav-bg:rgba(255,255,255,.96); --row-hover:#f7f9fa;
-    --underline:rgba(29,91,158,.28); --danger:#a33;
-    color-scheme:light;
-  }
   *{box-sizing:border-box}
-  html{scroll-behavior:smooth;scroll-padding-top:56px}
-  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 var(--sans);-webkit-font-smoothing:antialiased;display:flex;align-items:flex-start}
+  html{scroll-behavior:smooth;scroll-padding-top:118px}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.6 var(--sans);-webkit-font-smoothing:antialiased}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background:radial-gradient(1000px 520px at 18% -10%,rgba(37,99,235,.07),transparent 60%),
+               radial-gradient(760px 420px at 90% 0%,rgba(96,165,250,.08),transparent 55%)}
   a{color:var(--open);text-decoration:none;border-bottom:1px solid var(--underline)}
   a:hover{border-bottom-color:var(--open)}
-  .wrap{max-width:1180px;margin:0 auto;padding:0 28px;flex:1;min-width:0}
-  nav{position:sticky;top:0;z-index:20;flex:0 0 190px;align-self:stretch;height:100vh;overflow-y:auto;background:var(--nav-bg);border-right:1px solid var(--rule);backdrop-filter:blur(6px)}
-  nav .wrap{display:flex;flex-direction:column;align-items:flex-start;gap:14px;height:auto;padding:26px 20px;overflow:visible;flex:0 0 auto;max-width:none}
-  nav b{font:600 13px/1 var(--sans);color:var(--ink);white-space:nowrap}
-  nav a{font-size:13px;color:var(--ink-2);border:0;white-space:nowrap}
-  nav a:hover{color:var(--open)}
-  header{padding:48px 0 22px}
-  h1{font:400 34px/1.28 var(--serif);margin:0 0 12px;letter-spacing:-.2px;max-width:26em}
-  h1 em{font-style:normal;color:var(--open)}
-  .standfirst{font-size:15px;color:var(--ink-2);margin:0;max-width:52em}
-  .standfirst code{font:12.5px var(--mono);color:var(--ink-2)}
-  section{padding:30px 0;border-top:1px solid var(--rule)}
-  h2{font:600 19px/1.4 var(--sans);margin:0 0 4px}
-  .sub{font-size:13px;color:var(--ink-2);margin:0 0 18px;max-width:62em}
-  .note{font-size:12.5px;line-height:1.65;color:var(--ink-2);margin:12px 0 0;padding-left:11px;border-left:2px solid var(--rule)}
+  svg{flex-shrink:0}
+  .app{position:relative;z-index:1;display:grid;grid-template-columns:236px minmax(0,1fr);min-height:100vh}
+  .side{background:var(--nav-bg);border-right:1px solid var(--rule);display:flex;flex-direction:column;
+    position:sticky;top:0;height:100vh;overflow-y:auto;padding:14px 12px;z-index:21}
+  .side .workspace{display:flex;align-items:center;gap:10px;padding:6px 8px 14px;border-bottom:1px solid var(--rule);margin-bottom:12px}
+  .side .mark{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#3B82F6,#1D4FD7);
+    color:#fff;display:grid;place-items:center;font:700 13px var(--mono);box-shadow:0 4px 10px rgba(37,99,235,.35);flex-shrink:0}
+  .side .ws{font:600 13.5px var(--sans);line-height:1.35;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .side .ws span{display:block;font:400 11px var(--mono);color:var(--ink-3)}
+  .navcap{font:600 10.5px/1 var(--sans);letter-spacing:.08em;color:var(--ink-3);padding:14px 10px 6px}
+  .nav{display:flex;flex-direction:column}
+  .nav a{display:flex;align-items:center;gap:10px;padding:7.5px 10px;border-radius:8px;
+    color:var(--ink-2);font:500 13.5px var(--sans);transition:background .14s,color .14s}
+  .nav a svg{width:17px;height:17px}
+  .nav a:hover{background:var(--row-hover);color:var(--ink)}
+  .nav a.on{background:var(--blue-soft);color:var(--blue-2);font-weight:600}
+  .nav .cnt{margin-left:auto;font:600 11px var(--mono);color:var(--ink-3);background:var(--gray-soft);
+    border-radius:99px;padding:1.5px 7px}
+  .nav a.on .cnt{background:rgba(37,99,235,.14);color:var(--blue-2)}
+  .nav .proj{padding-left:26px;position:relative}
+  .nav .proj::before{content:"";position:absolute;left:16px;top:0;bottom:0;width:1.5px;background:var(--rule)}
+  .nav .proj a{padding:5.5px 10px;font-size:13px}
+  .nav .soon{display:flex;align-items:center;gap:10px;padding:7.5px 10px;color:var(--ink-3);font:500 13px var(--sans)}
+  .nav .soon .soon-tag{margin-left:auto;font:600 10px var(--mono);color:var(--ink-3);
+    border:1px dashed var(--rule);border-radius:99px;padding:2px 7px;white-space:nowrap}
+  .side .foot{margin-top:auto;border-top:1px solid var(--rule);padding:12px 8px 4px;display:flex;align-items:center;gap:10px}
+  .side .foot .ava{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#60A5FA,#2563EB);
+    color:#fff;display:grid;place-items:center;font:600 12px var(--sans);flex-shrink:0}
+  .side .foot .who{font:600 12.5px var(--sans);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .side .foot .who span{display:block;font:400 11px var(--mono);color:var(--ink-3)}
+  .right{min-width:0;display:flex;flex-direction:column}
+  .top{display:flex;align-items:center;gap:14px;padding:10px 24px;border-bottom:1px solid var(--rule);
+    background:var(--nav-bg);position:sticky;top:0;z-index:20}
+  .crumb{font:500 13px var(--sans);color:var(--ink-3);white-space:nowrap}
+  .crumb b{color:var(--ink);font-weight:600}
+  .search{margin-left:auto;display:flex;align-items:center;gap:9px;height:34px;min-width:min(340px,38vw);
+    background:var(--row-hover);border:1px solid var(--rule);border-radius:8px;padding:0 12px;
+    color:var(--ink-3);font:400 13px var(--sans);cursor:text;transition:border-color .18s,box-shadow .18s}
+  .search:focus-within{background:var(--panel);border-color:var(--open);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+  .search svg{opacity:.7}
+  .search kbd{font:600 10.5px var(--mono);color:var(--ink-3);background:var(--panel);
+    border:1px solid var(--rule);border-radius:5px;padding:2px 5px}
+  .search input{all:unset;flex:1;min-width:0;font:400 13px var(--sans);color:var(--ink)}
+  .search input::placeholder{color:var(--ink-3)}
+  .pagebar{background:var(--nav-bg);border-bottom:1px solid var(--rule);padding:18px 24px 0;position:sticky;top:55px;z-index:19}
+  .pagebar .row{display:flex;align-items:center;gap:14px;max-width:1240px;margin:0 auto}
+  .pagebar h1{font:700 20px/1.3 var(--sans);letter-spacing:-.3px;margin:0;display:flex;align-items:center;gap:10px}
+  .pagebar .scope{font:500 11px var(--mono);color:var(--ink-2);background:var(--row-hover);
+    border:1px solid var(--rule);border-radius:99px;padding:3px 10px;font-weight:500;white-space:nowrap}
+  .pagebar .acts{margin-left:auto;display:flex;gap:8px}
+  .btn{display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 13px;border-radius:8px;
+    border:1px solid var(--rule);background:var(--panel);color:var(--ink);font:600 12.5px var(--sans);
+    cursor:pointer;transition:box-shadow .15s,border-color .15s}
+  .btn:hover{box-shadow:var(--sh-1);border-color:var(--ink-3)}
+  .btn.primary{background:var(--open);border-color:var(--open);color:#fff}
+  .btn.primary:hover{background:var(--blue-2)}
+  .pagebar .tabs{display:flex;gap:20px;max-width:1240px;margin:12px auto 0;overflow-x:auto}
+  .pagebar .tabs a{display:flex;align-items:center;gap:7px;padding:9px 0 11px;font:500 13px var(--sans);
+    color:var(--ink-2);border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .13s;white-space:nowrap}
+  .pagebar .tabs a:hover{color:var(--ink)}
+  .pagebar .tabs a.on{color:var(--ink);border-color:var(--open);font-weight:600}
+  .pagebar .tabs a .n{font:500 10.5px var(--mono);color:var(--ink-3);background:var(--gray-soft);
+    border-radius:99px;padding:1px 6px}
+  .pagebody{max-width:1240px;width:100%;margin:0 auto;padding:20px 24px 70px;position:relative;z-index:1}
+  /* 入场编排 */
+  .rise{opacity:0;transform:translateY(10px);animation:tprise .55s cubic-bezier(.22,.9,.3,1) forwards}
+  @keyframes tprise{to{opacity:1;transform:none}}
+  .d1{animation-delay:.04s}.d2{animation-delay:.1s}.d3{animation-delay:.16s}.d4{animation-delay:.22s}.d5{animation-delay:.28s}
+  @media (prefers-reduced-motion:reduce){.rise{animation:none;opacity:1;transform:none}}
+  .focus{display:flex;align-items:center;gap:13px;background:linear-gradient(90deg,var(--blue-soft),rgba(234,240,254,.35));
+    border:1px solid var(--rule);border-radius:12px;padding:12px 18px;margin-bottom:16px}
+  :root[data-theme=dark] .focus{background:var(--blue-soft)}
+  .focus .pulse{width:9px;height:9px;border-radius:50%;background:var(--open-fill);flex-shrink:0;
+    box-shadow:0 0 0 0 rgba(37,99,235,.4);animation:pulse 2s infinite}
+  @keyframes pulse{70%{box-shadow:0 0 0 9px rgba(37,99,235,0)}100%{box-shadow:0 0 0 0 rgba(37,99,235,0)}}
+  .focus .ft{font:600 13.5px/1.55 var(--sans)}
+  .focus .ft em{font-style:normal;color:var(--blue-2)}
+  .focus .btn{flex-shrink:0;margin-left:auto}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+  .kpi{background:var(--panel);border:1px solid var(--rule);border-radius:12px;padding:14px 16px;
+    box-shadow:var(--sh-1);transition:transform .2s,box-shadow .2s}
+  .kpi:hover{transform:translateY(-2px);box-shadow:var(--sh-2)}
+  .kpi .k{display:flex;align-items:center;gap:7px;font:500 12.5px var(--sans);color:var(--ink-2)}
+  .kpi .k i{width:8px;height:8px;border-radius:3px}
+  .kpi .v{font:700 26px/1.3 var(--sans);letter-spacing:-.5px;margin-top:4px;font-variant-numeric:tabular-nums}
+  .kpi .v small{font:500 12px var(--sans);color:var(--ink-3);letter-spacing:0;margin-left:5px;font-weight:500}
+  .kpi .meter{height:4px;border-radius:99px;background:var(--gray-soft);margin-top:9px;overflow:hidden}
+  .kpi .meter i{display:block;height:100%;border-radius:99px;width:0;animation:metergrow 1s .4s cubic-bezier(.22,.9,.3,1) forwards}
+  @keyframes metergrow{to{width:var(--w)}}
+  section{padding:26px 0;border-top:1px solid var(--rule)}
+  section:first-of-type{border-top:0}
+  h2{font:600 16px/1.4 var(--sans);margin:0 0 4px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .sub{font-size:13px;color:var(--ink-2);margin:0 0 16px;max-width:64em}
+  .note{font-size:12.5px;line-height:1.7;color:var(--ink-2);margin:14px 0 0;padding:12px 14px;
+    background:var(--panel);border:1px solid var(--rule);border-radius:10px}
   .note b{color:var(--ink);font-weight:600}
   .note code{font:12px var(--mono)}
-  .statline{display:flex;flex-wrap:wrap;gap:0 30px;margin:0 0 22px;font-size:13.5px;color:var(--ink-2)}
+  .badge{font:600 11px var(--mono);color:var(--blue-2);background:var(--blue-soft);border-radius:99px;padding:2px 9px}
+  .panel{background:var(--panel);border:1px solid var(--rule);border-radius:12px;box-shadow:var(--sh-1);overflow:hidden}
+  .statline{display:flex;flex-wrap:wrap;gap:0 26px;margin:0 0 14px;font-size:13px;color:var(--ink-2)}
   .statline span{font:600 13.5px var(--mono);color:var(--ink)}
-  .stack{display:flex;height:34px;width:100%;border:1px solid var(--rule);background:var(--panel)}
+  .stack{display:flex;height:30px;width:100%;border:1px solid var(--rule);background:var(--panel);border-radius:8px;overflow:hidden}
   .stack i{display:block;height:100%}
   .stack i+i{border-left:1px solid var(--gap)}
   .ticks{display:flex;width:100%;margin-top:0}
   .tick{position:relative;padding:9px 0 0}
   .tick::before{content:"";position:absolute;left:0;top:0;width:1px;height:7px;background:var(--rule)}
-  .tick .k{display:block;font:600 13px/1.3 var(--sans);padding-left:8px;white-space:nowrap}
-  .tick .v{display:block;font:12px/1.4 var(--mono);color:var(--ink-2);padding-left:8px;white-space:nowrap}
+  .tick .k{display:block;font:600 12.5px/1.3 var(--sans);padding-left:8px;white-space:nowrap}
+  .tick .v{display:block;font:11px/1.4 var(--mono);color:var(--ink-2);padding-left:8px;white-space:nowrap}
   .tick.low{padding-top:50px}
   .tick.low::before{height:48px}
   .k-done{color:var(--ink-3)} .k-active{color:var(--active)} .k-open{color:var(--open)} .k-blocked{color:var(--blocked)}
-  table{width:100%;border-collapse:collapse;font-size:14px}
-  th{text-align:left;font:600 12px/1.4 var(--sans);color:var(--ink-2);letter-spacing:.04em;padding:0 10px 7px 0;border-bottom:1px solid var(--ink);white-space:nowrap}
-  th.num,td.num{text-align:right;padding-right:16px}
-  td{padding:7px 10px 7px 0;border-bottom:1px solid var(--rule-2);vertical-align:top}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th{text-align:left;font:500 11px/1.4 var(--mono);color:var(--ink-3);letter-spacing:.05em;padding:9px 12px 9px 0;
+    border-bottom:1px solid var(--rule);white-space:nowrap;text-transform:uppercase;background:transparent}
+  th.num,td.num{text-align:right;padding-right:14px}
+  td{padding:10px 12px 10px 0;border-bottom:1px solid var(--rule-2);vertical-align:middle}
   tr:hover td{background:var(--row-hover)}
-  td.lbl{font:12.5px var(--mono);color:var(--ink-2);white-space:nowrap;width:44px}
-  td.spec{font:12.5px var(--mono);color:var(--ink-2);white-space:nowrap;width:130px}
+  td.lbl{font:600 12px var(--mono);color:var(--ink-2);white-space:nowrap;width:44px}
+  td.spec{font:600 12px var(--mono);color:var(--ink-2);white-space:nowrap;width:130px}
   td.t{max-width:0;width:100%}
   td.t a{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}
-  td.meta{font:12.5px var(--mono);color:var(--ink-2);white-space:nowrap}
-  .st{font:12px/1 var(--sans);white-space:nowrap}
-  .st::before{content:"";display:inline-block;width:8px;height:8px;margin-right:6px;vertical-align:1px}
-  .st-open{color:var(--open);font-weight:600} .st-open::before{background:var(--open-fill)}
-  .st-active{color:var(--active);font-weight:600} .st-active::before{background:var(--active-fill)}
-  .st-blocked{color:var(--blocked)} .st-blocked::before{background:var(--blocked-fill)}
-  .st-done{color:var(--done)} .st-done::before{background:var(--done-fill)}
-  tr.r-done td.t a{color:var(--done);border-bottom-color:var(--done-fill)}
-  tr.r-done td.lbl{color:var(--done)}
+  td.meta{font:12px var(--mono);color:var(--ink-2);white-space:nowrap}
+  .st{display:inline-flex;align-items:center;gap:6px;height:21px;padding:0 9px;border-radius:99px;font:600 11.5px/1 var(--sans);white-space:nowrap}
+  .st::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.85}
+  .st-open{color:var(--open);background:var(--blue-soft)}
+  .st-active{color:var(--active);background:var(--amber-soft)}
+  .st-blocked{color:var(--blocked);background:var(--amber-soft)}
+  .st-done{color:var(--done);background:var(--green-soft)}
+  tr.r-done td.t a{color:var(--ink-2)}
+  tr.r-done td.lbl{color:var(--ink-3)}
   .unlocks{font:600 13px var(--mono);color:var(--open)}
   .unlocks-0{font:13px var(--mono);color:var(--ink-3);font-weight:400}
-  .spec-head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin:34px 0 4px;padding-top:14px;border-top:1px solid var(--rule)}
-  .spec-head h3{font:600 17px/1.3 var(--mono);margin:0}
+  .spec-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:26px 0 6px;padding:12px 16px;
+    background:var(--panel);border:1px solid var(--rule);border-radius:12px 12px 0 0;border-bottom:0}
+  .spec-head h3{font:600 15px/1.3 var(--sans);margin:0;display:flex;align-items:center}
   .spec-head h3:focus-within button.copy-btn{outline:2px solid var(--open);outline-offset:3px}
+  .spec-head h3 a{color:inherit;border-bottom:1px dotted var(--rule)}
+  .spec-head h3 a:hover{color:var(--open);border-bottom-color:var(--open)}
   .share-wrap{position:relative;display:inline-block;margin-left:8px}
   .share-btn{font:600 11px/1 var(--mono);color:var(--ink-3);background:none;border:1px solid var(--rule);border-radius:99px;padding:3px 9px;cursor:pointer}
   .share-btn:hover{color:var(--open);border-color:var(--open)}
-  .share-menu{display:none;position:absolute;top:calc(100% + 4px);left:0;background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:4px;z-index:40;min-width:130px;box-shadow:0 6px 18px rgba(0,0,0,.3)}
+  .share-menu{display:none;position:absolute;top:calc(100% + 4px);left:0;background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:4px;z-index:40;min-width:130px;box-shadow:var(--sh-2)}
   .share-wrap.open .share-menu,.share-wrap:focus-within .share-menu{display:flex;flex-direction:column}
   .share-menu button{all:unset;font:600 12px/1 var(--sans);color:var(--ink);padding:7px 10px;border-radius:5px;cursor:pointer;white-space:nowrap}
   .share-menu button:hover{background:var(--row-hover);color:var(--open)}
   .mmd .share-wrap{position:absolute;right:52px;top:0;margin:0}
-  .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--panel);color:var(--ink);border:1px solid var(--rule);border-radius:8px;padding:9px 16px;font:600 13px var(--sans);opacity:0;transition:opacity .2s;z-index:60;pointer-events:none}
+  .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--ink);color:#fff;border:0;border-radius:8px;padding:9px 16px;font:600 13px var(--sans);opacity:0;transition:opacity .2s;z-index:60;pointer-events:none}
   .toast.show{opacity:1}
-  .toast.err{color:var(--danger)}
+  .toast.err{background:var(--danger)}
   .copy-btn{font:inherit;line-height:1;color:var(--ink-3);background:none;border:0;padding:0 0 0 5px;cursor:pointer;vertical-align:-1px}
   .copy-btn:hover{color:var(--open)}
   .copy-btn svg{display:block}
   .copy-btn.copied{color:var(--open);font:600 12px/1 var(--sans)}
-  .spec-head .kind{font-size:12px;color:var(--ink-2);border:1px solid var(--rule);padding:1px 6px;text-decoration:none}
+  .spec-head .kind{font-size:12px;color:var(--ink-2);border:1px solid var(--rule);padding:2px 8px;border-radius:99px;text-decoration:none;background:var(--row-hover)}
   .spec-head a.kind:hover{color:var(--open);border-color:var(--open)}
-  .spec-head .cnt{font-size:13px;color:var(--ink-2);margin-left:auto;font-family:var(--mono)}
-  .spec-head .kind.tbd{color:#b5813a;border-color:#b5813a}
-  .spec-head .kind.ok{color:var(--done);border-color:var(--done)}
-  .tbdmark{font-style:normal;font-size:11px;color:#b5813a;border:1px solid #b5813a;border-radius:3px;padding:0 3px;margin-left:4px}
-  .minibar{display:flex;height:9px;width:100%;margin:10px 0 3px;background:var(--panel);border:1px solid var(--rule-2)}
+  .spec-head .cnt{font-size:12px;color:var(--ink-2);margin-left:auto;font-family:var(--mono);white-space:nowrap}
+  .spec-head .kind.tbd{color:var(--active);border-color:var(--active);background:var(--amber-soft)}
+  .spec-head .kind.ok{color:var(--done);border-color:var(--done);background:var(--green-soft)}
+  .tbdmark{font-style:normal;font-size:11px;color:var(--active);border:1px solid var(--active);border-radius:4px;padding:0 3px;margin-left:4px}
+  .minibar{display:flex;height:8px;width:100%;margin:0 0 0;background:var(--row-hover);border:1px solid var(--rule-2);border-radius:0 0 0 0;overflow:hidden}
   .minibar i{display:block;height:100%}
   .minibar i+i{border-left:1px solid var(--gap)}
-  .minicap{display:flex;justify-content:space-between;font:12px var(--mono);color:var(--ink-2);margin-bottom:12px}
-  .mmd{margin:14px 0 18px;text-align:center;font:12px/1.5 var(--mono);overflow-x:auto;position:relative}
+  .minicap{display:flex;justify-content:space-between;gap:10px;font:12px var(--mono);color:var(--ink-2);
+    padding:8px 16px;background:var(--panel);border:1px solid var(--rule);border-top:0}
+  .mmd{margin:0;text-align:center;font:12px/1.5 var(--mono);overflow-x:auto;position:relative;
+    background:var(--panel);border:1px solid var(--rule);border-top:0;padding:14px 8px 18px}
+  .minicap+.mmd{border-top:0}
   .mmd svg text,#mmdStage svg text{font-weight:600}
   .mmd svg{max-width:100%}
   .mmd-zoom{position:absolute;right:0;top:0;font:600 11px/1 var(--sans);color:var(--ink-2);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:4px 8px;cursor:pointer;z-index:2}
@@ -593,21 +691,25 @@ CSS = """
   .mmd path.flowchart-link,.mmd-viewer path.flowchart-link{stroke:var(--ink-3)!important}
   .mmd marker path,.mmd-viewer marker path{fill:var(--ink-3)!important;stroke:var(--ink-3)!important}
   .mmd .edgeLabel,.mmd-viewer .edgeLabel,.mmd .edgeLabel text,.mmd-viewer .edgeLabel text{fill:var(--ink-2)}
-  .mmd path.flowchart-link,.mmd-viewer path.flowchart-link{stroke:var(--ink-3)!important}
-  .mmd marker path,.mmd-viewer marker path{fill:var(--ink-3)!important;stroke:var(--ink-3)!important}
-  .mmd .edgeLabel,.mmd-viewer .edgeLabel,.mmd .edgeLabel text,.mmd-viewer .edgeLabel text{fill:var(--ink-2)}
-  .spec-head h3 a{color:inherit;border-bottom:1px dotted var(--rule)}
-  .spec-head h3 a:hover{color:var(--open);border-bottom-color:var(--open)}
-  .empty{font-size:13px;color:var(--ink-2);padding:14px 0 4px;border-bottom:1px solid var(--rule-2)}
-  .research{font-size:13px;color:var(--ink-2);padding:10px 0 4px;border-bottom:1px solid var(--rule-2)}
-  .research a{color:var(--ink);text-decoration:none;border-bottom:1px dotted var(--ink-3)}
-  .research a:hover{color:var(--open)}
+  .empty{font-size:13px;color:var(--ink-2);padding:14px 16px;border:1.5px dashed var(--rule);border-radius:10px;display:flex;gap:9px;align-items:center}
+  .empty .ok{color:var(--done);font-weight:700}
+  .docrow{display:flex;align-items:center;gap:11px;padding:10px 4px;border-bottom:1px solid var(--rule-2);
+    color:var(--ink);transition:background .12s}
+  .docrow:hover{background:var(--row-hover)}
+  .docrow .ico{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;flex-shrink:0;
+    font:700 10px var(--mono);background:var(--green-soft);color:var(--done)}
+  .docrow .ico.res{background:var(--amber-soft);color:var(--active)}
+  .docrow .t{font:600 13.5px var(--sans);line-height:1.35;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .docrow .m{font:400 11.5px var(--mono);color:var(--ink-3)}
+  .docrow .sz{margin-left:auto;font:500 11.5px var(--mono);color:var(--ink-3);white-space:nowrap}
   .filelist{list-style:none;margin:14px 0 0;padding:0}
   .filelist li{font:13px var(--mono);padding:8px 0;border-bottom:1px solid var(--rule-2)}
-  footer{border-top:1px solid var(--ink);margin-top:40px;padding:22px 0 60px;font-size:12.5px;line-height:1.75;color:var(--ink-2)}
-  .theme-btn{position:fixed;right:18px;top:14px;z-index:30;font:600 12px/1 var(--sans);color:var(--ink-2);background:var(--panel);border:1px solid var(--rule);border-radius:99px;padding:6px 13px;cursor:pointer}
+  footer{border-top:1px solid var(--rule);margin-top:34px;padding:20px 0 10px;font-size:12.5px;line-height:1.75;color:var(--ink-2)}
+  .theme-btn{position:fixed;right:18px;top:11px;z-index:30;font:600 12px/1 var(--sans);color:var(--ink-2);background:var(--panel);border:1px solid var(--rule);border-radius:99px;padding:7px 13px;cursor:pointer;box-shadow:var(--sh-1)}
   .theme-btn:hover{color:var(--open);border-color:var(--open)}
   .dangling{color:var(--danger)}
+  @media (max-width:960px){.app{grid-template-columns:1fr}.side{display:none}.kpis{grid-template-columns:repeat(2,1fr)}
+    .pagebar{top:0}.search{min-width:0;flex:1}}
 """
 
 def esc(s: str) -> str:
@@ -621,6 +723,19 @@ def clip(text: str, n: int) -> str:
 
 def rel(source: str, scratch: Path) -> str:
     return os.path.relpath(source, scratch)
+
+
+def scan_index(scratch: Path) -> tuple[list[Path], list[Path]]:
+    """入口目录索引:顶层 memory/ 与 research/ 的 markdown,按改动时间倒序。
+
+    两处目录都是历史账本,只列文件名不解析状态;目录不存在就返回空列表。
+    """
+    def ls(d: Path) -> list[Path]:
+        if not d.is_dir():
+            return []
+        return sorted(d.glob("*.md"), key=lambda p: -p.stat().st_mtime)
+
+    return ls(scratch / "memory"), ls(scratch / "research")
 
 
 def copy_btn(name: str, what: str = "spec 名称") -> str:
@@ -778,48 +893,121 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         (t for t in all_tasks if t.status == DONE),
         key=lambda t: (not t.from_file, -t.mtime),
     )[:TIMELINE_LIMIT]
-    nav_extra = "".join(
-        [
-            "<a href='#stale'>久未动</a>" if stale else "",
-            "<a href='#recent'>最近完成</a>" if recent else "",
-            "<a href='#unknown'>未能识别</a>" if unparsed else "",
-        ]
+    open_now = sorted(
+        (t for t in all_tasks if t.status == OPEN),
+        key=lambda t: (-t.unlocks, t.effort, t.tid),
+    )
+    mem_files, res_files = scan_index(scratch)
+
+    def human_size(p: Path) -> str:
+        n = p.stat().st_size
+        return f"{n / 1024:.1f}K" if n >= 1024 else f"{n}B"
+
+    def day_mark(p: Path) -> str:
+        """2026-10-22 → 10·22；不带日期前缀的文件用改动时间。"""
+        m = re.match(r"(\d{4})-(\d{2})-(\d{2})", p.stem)
+        if m:
+            return f"{m.group(2)}·{m.group(3)}"
+        return time.strftime("%m·%d", time.localtime(p.stat().st_mtime))
+
+    tabs = [("<a class='on' href='#overview'>概览</a>")]
+    tabs.append(f"<a href='#now'>可开工<span class='n'>{len(open_now)}</span></a>")
+    tabs.append(f"<a href='#specs'>功能台<span class='n'>{len(efforts)}</span></a>")
+    if mem_files:
+        tabs.append(f"<a href='#memory'>决策档案<span class='n'>{len(mem_files)}</span></a>")
+    if res_files:
+        tabs.append(f"<a href='#research'>调研<span class='n'>{len(res_files)}</span></a>")
+    if stale:
+        tabs.append(f"<a href='#stale'>久未动<span class='n'>{len(stale)}</span></a>")
+    if recent:
+        tabs.append(f"<a href='#recent'>最近完成<span class='n'>{len(recent)}</span></a>")
+    if unparsed:
+        tabs.append(f"<a href='#unknown'>未能识别<span class='n'>{len(unparsed)}</span></a>")
+    nav_extra = "".join(tabs)
+
+    icon_grid = "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8'><rect x='3' y='3' width='7' height='9' rx='1.5'/><rect x='14' y='3' width='7' height='5' rx='1.5'/><rect x='14' y='12' width='7' height='9' rx='1.5'/><rect x='3' y='16' width='7' height='5' rx='1.5'/></svg>"
+    icon_target = "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8'><circle cx='12' cy='12' r='9'/><circle cx='12' cy='12' r='4'/></svg>"
+    icon_board = "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8'><path d='M8 6h13M8 12h13M8 18h13'/><circle cx='4' cy='6' r='1'/><circle cx='4' cy='12' r='1'/><circle cx='4' cy='18' r='1'/></svg>"
+    icon_clock = "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8'><path d='M12 8v4l2.5 2.5'/><circle cx='12' cy='12' r='9'/></svg>"
+    icon_search = "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8'><circle cx='11' cy='11' r='7'/><path d='m21 21-4.3-4.3'/></svg>"
+    icon_alert = "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8'><path d='M12 9v4M12 17h.01'/><circle cx='12' cy='12' r='9'/></svg>"
+
+    side_proj = "".join(
+        f"<a href='#spec-{esc(e.name)}'>{esc(e.name)}"
+        f"<span class='cnt'>{round(sum(1 for t in e.tasks if t.status == DONE) * 100 / len(e.tasks)) if e.tasks else 0}%</span></a>"
+        for e in efforts
     )
 
     out = [
         "<!DOCTYPE html><html lang='zh-Hans'><head><meta charset='utf-8'>",
         "<meta name='viewport' content='width=device-width,initial-scale=1'>",
-        f"<title>{esc(project)}·任务进度</title>",
+        f"<title>{esc(project)}·.scratch 总览</title>",
         f"<style>{CSS}</style>",
         "<script>try{var t=localStorage.getItem('tp-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>",
         "</head><body>",
-        "<button class='theme-btn' type='button' id='themeToggle' aria-label='切换深浅色'>亮色</button>",
-        "<nav><div class='wrap'>",
-        f"<b>{esc(project)}·任务进度</b>",
-        "<a href='#spec-progress'>按 spec 的进度</a><a href='#now'>可开工的票</a>"
-        "<a href='#specs'>按 spec 明细</a>" + nav_extra,
-        "</div></nav><div class='wrap'>"
+        "<button class='theme-btn' type='button' id='themeToggle' aria-label='切换深浅色'>深色</button>",
+        "<div class='app'>",
+        "<aside class='side'>",
+        f"<div class='workspace'><div class='mark'>sc</div><div class='ws'>{esc(project)}<span>.scratch 工作区</span></div></div>",
+        "<nav class='nav'>",
+        "<div class='navcap'>工作台</div>",
+        f"<a class='on' href='#overview'>{icon_grid}总览<span class='cnt'>{total}</span></a>",
+        f"<a href='#now'>{icon_target}可开工<span class='cnt'>{len(open_now)}</span></a>",
+        "<div class='navcap'>功能台</div>",
+        f"<a href='#specs'>{icon_board}全部功能<span class='cnt'>{len(efforts)}</span></a>",
+        f"<div class='proj'>{side_proj}</div>" if efforts else "",
+        "<div class='navcap'>档案库</div>",
+        f"<a href='#memory'>{icon_clock}决策档案<span class='cnt'>{len(mem_files)}</span></a>" if mem_files else "",
+        f"<a href='#research'>{icon_search}调研<span class='cnt'>{len(res_files)}</span></a>" if res_files else "",
+        f"<a href='#unknown'>{icon_alert}未能识别<span class='cnt'>{len(unparsed)}</span></a>" if unparsed else "",
+        "<div class='navcap'>即将上线</div>",
+        "<div class='soon'>更多模块<span class='soon-tag'>规划中</span></div>",
+        "</nav>",
+        f"<div class='foot'><div class='ava'>{esc(project[:1].upper())}</div><div class='who'>{esc(project)}<span>本地模式 · file:// 直开</span></div></div>",
+        "</aside>",
+        "<div class='right'>",
+        "<header class='top'>",
+        "<span class='crumb'><b>.scratch</b> / 总览</span>",
+        "<label class='search'>",
+        "<svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><circle cx='11' cy='11' r='7'/><path d='m21 21-4.3-4.3'/></svg>",
+        "<input id='tpFilter' type='text' placeholder='过滤票号、标题、spec…' aria-label='过滤行'>",
+        "<kbd>输入即滤</kbd>",
+        "</label>",
+        "</header>",
+        "<div class='pagebar'>",
+        "<div class='row'>",
+        f"<h1>.scratch 总览 <span class='scope'>{total} 票 · {pct}%</span></h1>",
+        f"<div class='acts'><a class='btn' href='#now'>可开工 {len(open_now)}</a></div>" if total else "",
+        "</div>",
+        f"<nav class='tabs'>{nav_extra}</nav>",
+        "</div>",
+        "<div class='pagebody'>",
         "<div class='mmd-viewer' id='mmdViewer'><button class='close' type='button' id='mmdClose'>关闭</button>"
         "<div class='stage' id='mmdStage'></div>"
         "<p class='hint'>滚轮缩放 · 拖拽平移 · 双击复位 · ESC 退出</p></div>",
-        "<header>",
-        f"<h1>{headline(efforts)}</h1>",
-        "<p class='standfirst'>",
-        f"口径：扫描 <code>{esc(str(scratch))}</code> 下 {len(efforts)} 个 spec 目录的票面文件与 "
-        f"<code>memory.md</code> 勾选行，生成于 {time.strftime('%Y-%m-%d %H:%M')}。"
-        "一次快照，无历史记录——本页所有数字都由这一次扫描直接数出来，没有跨时间的统计。",
-        "</p></header>",
-        "<section id='overview' style='border-top:0;padding-top:8px'>",
-        "<h2>总览</h2>",
-        f"<p class='sub'>全部 {total} 张票按状态切成四段，段宽 = 该状态的票数占总数的比例。"
-        "标签直接写在各段起点下方。</p>",
-        "<div class='statline'>",
-        f"<div>spec <span>{len(efforts)}</span> 个</div>",
-        f"<div>票 <span>{total}</span> 张</div>",
-        f"<div>总进度 <span>{pct}%</span>（{c[DONE]} ÷ {total}）</div>" if total else "",
+        f"<div class='focus rise d1'><span class='pulse'></span><div class='ft'>{headline(efforts)}</div>"
+        f"<a class='btn' href='#now'>看可开工的票</a></div>" if total else "",
+        "<section id='overview' style='border-top:0;padding-top:0'>",
+        "<div class='kpis rise d2'>",
+        f"<div class='kpi'><div class='k'><i style='background:var(--done-fill)'></i>已完成</div>"
+        f"<div class='v'><span data-n='{c[DONE]}'>0</span><small>/ {total} 票</small></div>"
+        f"<div class='meter'><i style='--w:{pct}%;background:var(--done-fill)'></i></div></div>",
+        f"<div class='kpi'><div class='k'><i style='background:var(--active-fill)'></i>进行中</div>"
+        f"<div class='v'><span data-n='{c[ACTIVE]}'>0</span></div>"
+        f"<div class='meter'><i style='--w:{round(c[ACTIVE] * 100 / total) if total else 0}%;background:var(--active-fill)'></i></div></div>",
+        f"<div class='kpi'><div class='k'><i style='background:var(--open-fill)'></i>可开工</div>"
+        f"<div class='v'><span data-n='{c[OPEN]}'>0</span></div>"
+        f"<div class='meter'><i style='--w:{round(c[OPEN] * 100 / total) if total else 0}%;background:var(--open-fill)'></i></div></div>",
+        f"<div class='kpi'><div class='k'><i style='background:var(--blocked-fill)'></i>被阻塞</div>"
+        f"<div class='v'><span data-n='{c[BLOCKED]}'>0</span></div>"
+        f"<div class='meter'><i style='--w:{round(c[BLOCKED] * 100 / total) if total else 0}%;background:var(--blocked-fill)'></i></div></div>",
         "</div>",
-        f"<div class='stack'>{band}</div><div class='ticks'>{ticks}</div>",
-        "<p class='note'>",
+        f"<p class='statline rise d3'>spec <span>{len(efforts)}</span> 个 · 票 <span>{total}</span> 张 · "
+        f"总进度 <span>{pct}%</span>（{c[DONE]} ÷ {total}） · 生成于 {time.strftime('%Y-%m-%d %H:%M')} · "
+        f"扫描 <code>{esc(str(scratch))}</code> 下 {len(efforts)} 个 spec 目录的票面文件与 "
+        f"<code>memory.md</code> 勾选行。一次快照，无历史记录——本页所有数字都由这一次扫描直接数出来。</p>",
+        f"<div class='stack rise d3'>{band}</div><div class='ticks rise d3'>{ticks}</div>",
+        "<p class='note rise d4'>",
         "<b>进度 = 已完成 ÷ 总票数</b>，被阻塞的票也算在分母里——所以这个百分比是"
         "「全部要做的事完成了多少」，不是「手头能推进的事完成了多少」。<br>",
         "<b>四种状态是一条单向的路</b>：被阻塞 → 可开工 → 进行中 → 已完成，票只前进不后退。<br>",
@@ -829,10 +1017,6 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "</p></section>",
     ]
 
-    open_now = sorted(
-        (t for t in all_tasks if t.status == OPEN),
-        key=lambda t: (-t.unlocks, t.effort, t.tid),
-    )
     # spec 维度进度：每个 spec 一行，状态计数 + 进度。放在最前面。
     out += [
         "<section id='spec-progress'>",
@@ -925,7 +1109,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         elif et:
             kinds.append("<span class='kind ok'>票已建齐</span>")
         out += [
-            "<div class='spec-head'>",
+            f"<div class='spec-head' id='spec-{esc(effort.name)}'>",
             f"<h3>{name_html}{copy_btn(effort.name)}"
             f"<span class='share-wrap'><button type='button' class='share-btn'>分享</button>"
             f"<span class='share-menu'>"
@@ -1029,6 +1213,41 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
             "</section>",
         ]
 
+    if mem_files:
+        out += [
+            "<section id='memory'>",
+            "<h2>决策档案 <span class='badge'>memory/</span></h2>",
+            "<p class='sub'>按天追加的决策账本，历史存档——只列文件，不解析状态、不计进度。点开是 markdown 原文。</p>",
+            "<div class='panel'>",
+            "<table><thead><tr><th style='width:80px'>日期</th><th>文件</th>"
+            "<th class='num' style='width:90px'>大小</th></tr></thead><tbody>",
+            "".join(
+                f"<tr><td class='lbl'>{day_mark(p)}</td>"
+                f"<td class='t'><a href='{esc(rel(str(p), scratch))}' target='_blank' rel='noopener'>"
+                f"{esc(p.name)}</a></td>"
+                f"<td class='num'>{human_size(p)}</td></tr>"
+                for p in mem_files
+            ),
+            "</tbody></table></div></section>",
+        ]
+    if res_files:
+        out += [
+            "<section id='research'>",
+            "<h2>调研 <span class='badge'>research/</span></h2>",
+            "<p class='sub'>顶层 research/ 的调研报告，只读参考，不参与进度统计。</p>",
+            "<div class='panel'>",
+            "<table><thead><tr><th style='width:80px'>日期</th><th>文件</th>"
+            "<th class='num' style='width:90px'>大小</th></tr></thead><tbody>",
+            "".join(
+                f"<tr><td class='lbl'>{day_mark(p)}</td>"
+                f"<td class='t'><a href='{esc(rel(str(p), scratch))}' target='_blank' rel='noopener'>"
+                f"{esc(p.name)}</a></td>"
+                f"<td class='num'>{human_size(p)}</td></tr>"
+                for p in res_files
+            ),
+            "</tbody></table></div></section>",
+        ]
+
     if unparsed:
         out += [
             "<section id='unknown'>",
@@ -1043,7 +1262,11 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
             "</ul>",
             "</section>",
         ]
-    out.append("</div>")
+    out += [
+        "<footer>口径：进度 = 已完成 ÷ 总票数，被阻塞计入分母 · 一次快照，无历史统计 · "
+        f"{esc('tracking_progress.py')} 生成，file:// 直开</footer>",
+        "</div></div></div>",
+    ]
 
     import json as _json
     share = {
@@ -1183,8 +1406,24 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "function set(t){root.dataset.theme=t;btn.textContent=t==='dark'?'亮色':'深色';"
         "if(window.paintMmd)window.paintMmd();"
         "try{localStorage.setItem('tp-theme',t)}catch(e){}}"
-        "set(root.dataset.theme||'dark');"
+        "set(root.dataset.theme||'light');"
         "btn.addEventListener('click',function(){set(root.dataset.theme==='dark'?'light':'dark')});})();</script>",
+        # KPI 数字滚动 + ⌘K/输入即滤:过滤所有表格行和依赖图标题
+        "<script>(function(){"
+        "document.querySelectorAll('.kpi [data-n]').forEach(function(el){"
+        "var n=+el.dataset.n,t0=performance.now();"
+        "requestAnimationFrame(function tick(t){"
+        "var p=Math.min((t-t0-350)/800,1);"
+        "if(p>=0)el.textContent=Math.round(n*(1-Math.pow(1-p,3)));"
+        "if(p<1)requestAnimationFrame(tick)});});"
+        "var box=document.getElementById('tpFilter');if(box){"
+        "var rows=[].slice.call(document.querySelectorAll('tbody tr'));"
+        "box.addEventListener('input',function(){"
+        "var q=box.value.trim().toLowerCase();"
+        "rows.forEach(function(r){"
+        "r.style.display=!q||r.textContent.toLowerCase().indexOf(q)>=0?'':'none'})});"
+        "document.addEventListener('keydown',function(e){"
+        "if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();box.focus()}})}})();</script>",
         "<script>" + MERMAID_JS + "</script>",
         "<script>(function(){ if (!window.mermaid) return;"
         "var m = window.mermaid.default || window.mermaid;"
