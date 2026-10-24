@@ -140,6 +140,8 @@ class Effort:
     asset_dirs: list[tuple[str, Path, int]] = field(default_factory=list)
     # 设计样例目录(design-demos/):按「设计样例」独立区块展示每个样例文件
     design_dir: Path | None = None
+    # 文件清单:feature 目录下所有未归类的非 md 文件(html/图片/杂项),一个不漏
+    extra_files: list[Path] = field(default_factory=list)
 
 
 def negated(head: str, i: int) -> bool:
@@ -360,6 +362,20 @@ def scan(scratch: Path) -> tuple[list[Effort], list[Path]]:
                     n = sum(1 for _ in d.rglob("*") if _.is_file())
                     if n:
                         effort.asset_dirs.append((d.name, d, n))
+            # 文件清单:md 全部已归口(spec/map/票面/附件),这里收非 md 的每个文件
+            srcs = {Path(t.source) for t in effort.tasks if t.from_file and t.source}
+            junk = {".ds_store", "thumbs.db"}  # 系统垃圾文件不进清单
+            effort.extra_files = sorted(
+                (
+                    p for p in effort.path.rglob("*")
+                    if p.is_file()
+                    and p.suffix.lower() != ".md"
+                    and p.name.lower() not in junk
+                    and not (effort.design_dir and p.is_relative_to(effort.design_dir))
+                    and p not in srcs
+                ),
+                key=lambda p: str(p.relative_to(effort.path)),
+            )
         effort.tasks = dedupe(effort.tasks)
         # analyse first: it splits blocked_by into real deps and dangling
         # refs, so blocking only counts ids that actually exist.
@@ -376,7 +392,8 @@ def scan(scratch: Path) -> tuple[list[Effort], list[Path]]:
 
     # spec 按更新时间倒序,最近动过的排最前
     ordered = sorted(efforts.values(), key=lambda e: (-e.mtime, e.name))
-    kept = [e for e in ordered if e.tasks or e.is_map or e.has_spec or e.single or e.assets or e.asset_dirs or e.design_dir]
+    kept = [e for e in ordered if e.tasks or e.is_map or e.has_spec or e.single
+            or e.assets or e.asset_dirs or e.design_dir or e.extra_files]
     return kept, unparsed
 
 
@@ -906,6 +923,8 @@ CSS = """
   .dthumb{display:grid;place-items:center;aspect-ratio:16/10;background:
     linear-gradient(135deg,var(--bg),#E9F0F8);border-bottom:1px solid var(--rule);overflow:hidden}
   .dthumb img{width:100%;height:100%;object-fit:cover;display:block}
+  .dthumb iframe{width:1280px;height:800px;border:0;transform:scale(.168);transform-origin:0 0;
+    pointer-events:none}  /* 1280×800 缩到 215×134,活渲染卡面;点击由外层卡片接管 */
   .dthumb i{font-style:normal;font-size:22px;color:var(--ink-3)}
   .dname{font:600 12.5px/1.4 var(--sans);color:var(--ink);padding:8px 11px 1px;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -1067,23 +1086,19 @@ def design_gallery(effort: "Effort", scratch: Path) -> list[str]:
         return []
     cards = []
     for p in files:
-        thumb = ""
+        # html 样例:卡面就是活渲染(iframe 缩放铺满,lazy 到可视区才加载)
         if p.suffix.lower() == ".html":
-            stem = p.stem
-            cand = [
-                q for q in files
-                if q.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp")
-                and (q.stem == stem or q.stem.startswith(stem + "-"))
-            ]
-            if cand:
-                t = max(cand, key=lambda q: q.stat().st_mtime)
-                thumb = (
-                    f"<img src='{esc(rel(str(t), scratch))}' alt='' loading='lazy'>"
-                )
-        icon = "◈" if p.suffix.lower() == ".html" else "▣"
+            face = (
+                f"<iframe src='{esc(rel(str(p), scratch))}' title='{esc(p.stem)}' "
+                f"loading='lazy' scrolling='no' tabindex='-1'></iframe>"
+            )
+        elif p.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp", ".svg"):
+            face = f"<img src='{esc(rel(str(p), scratch))}' alt='' loading='lazy'>"
+        else:
+            face = "<i>▣</i>"
         cards.append(
             f"<a class='democard' href='{esc(rel(str(p), scratch))}' target='_blank' rel='noopener'>"
-            f"<span class='dthumb'>{'<i>' + icon + '</i>' if not thumb else ''}{thumb}</span>"
+            f"<span class='dthumb'>{face}</span>"
             f"<span class='dname'>{esc(p.stem)}</span>"
             f"<span class='dmeta'>{p.suffix.lstrip('.').lower()} · {p.stat().st_size // 1024 or 1}K</span></a>"
         )
@@ -1432,7 +1447,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
                 f"<a class='kind tbd' href='{esc(rel(str(effort.single), scratch))}' "
                 f"target='_blank' rel='noopener'>单文件</a>"
             )
-        if effort.assets or effort.asset_dirs:
+        if effort.assets or effort.asset_dirs or effort.extra_files:
             chips = "".join(
                 f"<a class='chipf' href='{esc(rel(str(p), scratch))}' target='_blank' rel='noopener'>"
                 f"{esc(p.name)}</a>"
@@ -1441,8 +1456,13 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
                 f"<a class='chipf dir' href='{esc(rel(str(d), scratch))}' target='_blank' rel='noopener'>"
                 f"{esc(nm)}/ · {cnt} 文件</a>"
                 for nm, d, cnt in effort.asset_dirs
+            ) + "".join(
+                f"<a class='chipf' href='{esc(rel(str(p), scratch))}' target='_blank' rel='noopener'"
+                f" title='{esc(str(p.relative_to(effort.path)))}'>{esc(p.name)}</a>"
+                for p in effort.extra_files
             )
-            kinds.append(f"<span class='kind'>附件 {len(effort.assets) + len(effort.asset_dirs)}</span>")
+            n_extra = len(effort.assets) + len(effort.asset_dirs) + len(effort.extra_files)
+            kinds.append(f"<span class='kind'>附件 {n_extra}</span>")
         # 未建票 = 只有 map.md/清单行、还没有票面文件的条目
         tbd = sum(1 for t in effort.tasks if not t.from_file)
         if et and tbd:
@@ -1460,7 +1480,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
             f"</span></span></h3>",
             *kinds,
             f"<span class='cnt'>{et} 张 · {ec[DONE]} 已完成</span></div>",
-            f"<div class='assetbar'>{chips}</div>" if (effort.assets or effort.asset_dirs) else "",
+            f"<div class='assetbar'>{chips}</div>" if (effort.assets or effort.asset_dirs or effort.extra_files) else "",
             *design_gallery(effort, scratch),
             f"<div class='minibar'>{minibar}</div>",
             f"<div class='minicap'><span>{STATUS_LABEL[DONE]} {ec[DONE]}</span>"

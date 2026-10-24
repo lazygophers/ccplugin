@@ -598,6 +598,8 @@ def test_feature_assets_and_dirs(tmp_path):
     root = build_repo(tmp_path)
     scratch = root / ".scratch"
     (scratch / "alpha" / "design.md").write_text("# 设计\n线框描述。\n", encoding="utf-8")
+    (scratch / "alpha" / "原型图.png").write_bytes(b"\x89PNG")
+    (scratch / "alpha" / "tmp.csv").write_text("a,b\n1,2\n", encoding="utf-8")
     dd = scratch / "alpha" / "design-demos"
     dd.mkdir()
     (dd / "A.html").write_text("<b>a</b>", encoding="utf-8")
@@ -615,5 +617,12 @@ def test_feature_assets_and_dirs(tmp_path):
     assert "设计样例" in page and "class='democard'" in page
     assert ">A<" in page and ">B<" in page  # 卡片名渲染用 stem
     assert "html · " in page
-    assert "<img src='alpha/design-demos/A-v2.png'" in page  # 封面缩略图
+    # html 样例卡面 = 活渲染 iframe;图片文件卡面 = img
+    assert "<iframe src='alpha/design-demos/A.html'" in page
+    assert "<iframe src='alpha/design-demos/B.html'" in page
+    assert "<img src='alpha/design-demos/A-v2.png'" in page
+    # 文件清单:未归类的非 md 文件一个不漏
+    assert any(p.name == "原型图.png" for p in alpha.extra_files)
+    assert any(p.name == "tmp.csv" for p in alpha.extra_files)
+    assert "原型图.png" in page and "tmp.csv" in page
     assert '"alpha/design.md":' in page                     # 附件原文进预览嵌入
