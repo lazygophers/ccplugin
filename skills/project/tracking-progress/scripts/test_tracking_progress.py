@@ -602,12 +602,18 @@ def test_feature_assets_and_dirs(tmp_path):
     dd.mkdir()
     (dd / "A.html").write_text("<b>a</b>", encoding="utf-8")
     (dd / "B.html").write_text("<b>b</b>", encoding="utf-8")
+    (dd / "A-v2.png").write_bytes(b"\x89PNG fake")  # 同名 png 当封面(取 -v2 后缀最新)
     efforts, _ = tp.scan(scratch)
     alpha = next(e for e in efforts if e.name == "alpha")
     assert any(p.name == "design.md" for p in alpha.assets)
-    assert alpha.asset_dirs and alpha.asset_dirs[0][0] == "design-demos" and alpha.asset_dirs[0][2] == 2
+    # design-demos 按语义识别为设计样例区,不再进通用资产 chip
+    assert alpha.asset_dirs == [] and alpha.design_dir is not None and alpha.design_dir.name == "design-demos"
     page = tp.render(efforts, _, scratch)
-    # 附件条:文件 chip + 目录 chip
+    # 附件条:文件 chip;设计样例区:每个样例一张卡
     assert "class='chipf'" in page and "design.md" in page
-    assert "design-demos/ · 2 文件" in page
+    assert "design-demos/ · 2 文件" not in page
+    assert "设计样例" in page and "class='democard'" in page
+    assert ">A<" in page and ">B<" in page  # 卡片名渲染用 stem
+    assert "html · " in page
+    assert "<img src='alpha/design-demos/A-v2.png'" in page  # 封面缩略图
     assert '"alpha/design.md":' in page                     # 附件原文进预览嵌入

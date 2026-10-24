@@ -28,6 +28,9 @@ SKIP_DIRS = {"memory", "research", ".ask-me", "node_modules", ".git"}
 # Files that are structural, not tasks — never reported as unrecognised.
 KNOWN_FILENAMES = {"map.md", "memory.md", "spec.md", "readme.md"}
 
+# 设计样例目录:不是普通资产,按语义识别成独立的设计样例区
+DESIGN_DIRS = {"design-demos", "demos", "设计样例"}
+
 DONE_WORDS = (
     "resolved done closed completed complete fixed merged shipped wontfix "
     "won't-fix 已完成 完成 已解决 已合并 定稿 已抵达目的地 已交付 已归档"
@@ -135,6 +138,8 @@ class Effort:
     # feature 目录内读不出任务的 md(design.md 等)与常规资产目录(design-demos/ 等)
     assets: list[Path] = field(default_factory=list)
     asset_dirs: list[tuple[str, Path, int]] = field(default_factory=list)
+    # 设计样例目录(design-demos/):按「设计样例」独立区块展示每个样例文件
+    design_dir: Path | None = None
 
 
 def negated(head: str, i: int) -> bool:
@@ -343,12 +348,15 @@ def scan(scratch: Path) -> tuple[list[Effort], list[Path]]:
         rdir = effort.path / "research"
         if effort.name != ROOT and rdir.is_dir():
             effort.research = sorted(rdir.glob("*.md"))
-        # 常规资产目录(design-demos/ 等):issues/impl/research 和隐藏目录外都算
-        if effort.name != ROOT:
+        # 资产目录:design-demos 等按语义识别为设计样例区,其余进通用附件;
+        # 单文件 feature(path=scratch 根)不吸收任何目录
+        if effort.name != ROOT and not effort.single:
             for d in sorted(effort.path.iterdir()):
                 if (d.is_dir() and not d.name.startswith(".")
-                        and d.name not in SKIP_DIRS | {"issues", "impl", "research"}
-                        and not (effort.single and d == effort.single.parent)):
+                        and d.name not in SKIP_DIRS | {"issues", "impl", "research"}):
+                    if d.name in DESIGN_DIRS:
+                        effort.design_dir = d
+                        continue
                     n = sum(1 for _ in d.rglob("*") if _.is_file())
                     if n:
                         effort.asset_dirs.append((d.name, d, n))
@@ -368,7 +376,7 @@ def scan(scratch: Path) -> tuple[list[Effort], list[Path]]:
 
     # spec 按更新时间倒序,最近动过的排最前
     ordered = sorted(efforts.values(), key=lambda e: (-e.mtime, e.name))
-    kept = [e for e in ordered if e.tasks or e.is_map or e.has_spec or e.single or e.assets or e.asset_dirs]
+    kept = [e for e in ordered if e.tasks or e.is_map or e.has_spec or e.single or e.assets or e.asset_dirs or e.design_dir]
     return kept, unparsed
 
 
@@ -887,6 +895,21 @@ CSS = """
   .dc .why .kl{color:#A0524A}
   .dc .why .kl::before{content:" · 否掉了";font:600 10px var(--mono)}
   .assetbar{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0 14px}
+  .demos{margin:16px 0 6px}
+  .demos h4{display:flex;align-items:center;gap:9px;font:600 13.5px var(--sans);margin:0 0 10px}
+  .demos .badge{font:500 10.5px var(--mono);color:var(--ink-3);background:var(--bg);
+    border:1px solid var(--rule);border-radius:99px;padding:2px 9px}
+  .demogrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:11px}
+  .democard{display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--rule);
+    border-radius:11px;overflow:hidden;text-decoration:none;transition:transform .18s,border-color .18s,box-shadow .18s}
+  .democard:hover{transform:translateY(-2px);border-color:#C9D8EC;box-shadow:0 6px 18px rgba(28,60,110,.1)}
+  .dthumb{display:grid;place-items:center;aspect-ratio:16/10;background:
+    linear-gradient(135deg,var(--bg),#E9F0F8);border-bottom:1px solid var(--rule);overflow:hidden}
+  .dthumb img{width:100%;height:100%;object-fit:cover;display:block}
+  .dthumb i{font-style:normal;font-size:22px;color:var(--ink-3)}
+  .dname{font:600 12.5px/1.4 var(--sans);color:var(--ink);padding:8px 11px 1px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .dmeta{font:500 10.5px var(--mono);color:var(--ink-3);padding:0 11px 9px}
   .chipf{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 11px;
     background:var(--panel);border:1px solid var(--rule);border-radius:8px;
     font:500 11.5px var(--mono);color:var(--ink-2);transition:all .15s}
@@ -1030,6 +1053,44 @@ def mermaid_graph(effort: "Effort") -> str:
         for i in range(len(keys) - cols):
             lines.append(f"{ids[keys[i]]} ~~~ {ids[keys[i + cols]]}")
     return "\n".join(lines)
+
+
+def design_gallery(effort: "Effort", scratch: Path) -> list[str]:
+    """设计样例区:design-demos/ 里的每个文件一张卡,同名 png(-v2 等后缀)当封面。"""
+    if not effort.design_dir:
+        return []
+    files = sorted(
+        (p for p in effort.design_dir.iterdir() if p.is_file()),
+        key=lambda p: -p.stat().st_mtime,
+    )
+    if not files:
+        return []
+    cards = []
+    for p in files:
+        thumb = ""
+        if p.suffix.lower() == ".html":
+            stem = p.stem
+            cand = [
+                q for q in files
+                if q.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp")
+                and (q.stem == stem or q.stem.startswith(stem + "-"))
+            ]
+            if cand:
+                t = max(cand, key=lambda q: q.stat().st_mtime)
+                thumb = (
+                    f"<img src='{esc(rel(str(t), scratch))}' alt='' loading='lazy'>"
+                )
+        icon = "◈" if p.suffix.lower() == ".html" else "▣"
+        cards.append(
+            f"<a class='democard' href='{esc(rel(str(p), scratch))}' target='_blank' rel='noopener'>"
+            f"<span class='dthumb'>{'<i>' + icon + '</i>' if not thumb else ''}{thumb}</span>"
+            f"<span class='dname'>{esc(p.stem)}</span>"
+            f"<span class='dmeta'>{p.suffix.lstrip('.').lower()} · {p.stat().st_size // 1024 or 1}K</span></a>"
+        )
+    return [
+        f"<div class='demos'><h4>设计样例 <span class='badge'>{esc(effort.design_dir.name)}/ · {len(files)}</span></h4>",
+        f"<div class='demogrid'>{''.join(cards)}</div></div>",
+    ]
 
 
 def mmd_label(text: str, n: int = 40) -> str:
@@ -1400,6 +1461,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
             *kinds,
             f"<span class='cnt'>{et} 张 · {ec[DONE]} 已完成</span></div>",
             f"<div class='assetbar'>{chips}</div>" if (effort.assets or effort.asset_dirs) else "",
+            *design_gallery(effort, scratch),
             f"<div class='minibar'>{minibar}</div>",
             f"<div class='minicap'><span>{STATUS_LABEL[DONE]} {ec[DONE]}</span>"
             f"{('<span>未建票 %d</span>' % tbd) if tbd else ''}"
