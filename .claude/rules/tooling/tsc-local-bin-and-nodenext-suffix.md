@@ -11,4 +11,4 @@
    `.mts`——那是往错误方向改，改完还得改回来。
 
 出处：2026-10-06 ask-me 迁移 session 实录；NodeNext 后缀规则另见
-skills/tools/ask-me/SKILL.md「开发：TS 源码与编译产物」一节。
+skills/tools/ask-me/references/development.md。

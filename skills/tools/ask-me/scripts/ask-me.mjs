@@ -93,7 +93,6 @@ export async function main(argv = process.argv.slice(2)) {
         process.once('SIGTERM', onSigterm);
         process.stderr.write(`Ask Me ready at ${url}\n`);
         process.stderr.write(`ask-me-id: ${created.askId}\n`);
-        process.stderr.write(`Waiting for submission; data is saved under ${dataRoot}\n`);
         // 这条命令会阻塞到用户提交为止，很容易被 harness 转到后台。一旦转后台，
         // 任务输出里 stdout 和 stderr 是混在一起的，直接 JSON.parse 必然失败。
         process.stderr.write(`If this command is backgrounded or interrupted, do not parse the task output; run: ask-me.mjs resume --id ${created.askId}\n`);
@@ -185,11 +184,14 @@ export async function main(argv = process.argv.slice(2)) {
         if (!strArg(args.id))
             throw new Error('--id is required');
         const askId = strArg(args.id);
-        const result = command === 'complete' ? await submittedAskResult(dataRoot, askId) : null;
+        // complete 只收已提交的表单（没人答的用 cancel 作废）；回显精简，不再带 questions/answers。
+        if (command === 'complete')
+            await submittedAskResult(dataRoot, askId);
         const completed = await completeAsk(dataRoot, askId, command === 'cancel' ? 'cancelled' : 'completed');
         log(command === 'cancel' ? 'ask-cancelled' : 'ask-completed', { askId });
         // 收尾时顺手关掉常驻服务，不必等它自己 idle 超时。
-        print({ ...(result || { status: completed.status, ask: completed }), serverStopped: await stopIdleServer(dataRoot) });
+        // 目录已删、答案已陈旧，不再回显完整 questions/answers。
+        print({ status: completed.status, askId, serverStopped: await stopIdleServer(dataRoot) });
         return;
     }
     help();

@@ -38,7 +38,7 @@ description: 开一个本地网页表单，一次把多个问题摆给用户、�
 ## 标准路径：`ask` 八步
 
 1. 把包含本 `SKILL.md` 的目录解析为 `ASK_ME_SKILL_DIR`。
-2. 创建 JSON 前先读两份文件：[references/questionset.schema.json](references/questionset.schema.json) 是字段清单本身（JSON Schema 2020-12，每个字段带中文说明），[references/schema.md](references/schema.md) 讲 schema 表达不了的部分——跨字段硬规则、页面实际行为、为什么这样写。[references/example-question-set.json](references/example-question-set.json) 是一份可直接复制改字段的完整起手模板（单选 / 多选 / 自由文本各一题，带推荐答案和上下文字段）。答案的结构见 [references/answerset.schema.json](references/answerset.schema.json)。
+2. 创建 JSON 前先读两份文件：[references/questionset.schema.json](references/questionset.schema.json) 是字段清单本身（JSON Schema 2020-12，每个字段带中文说明），[references/schema.md](references/schema.md) 讲 schema 表达不了的部分——跨字段硬规则、页面实际行为、为什么这样写。[references/example-question-set.json](references/example-question-set.json) 是一份可直接复制改字段的完整起手模板（单选 / 多选 / 自由文本各一题，带推荐答案和上下文字段）。
 3. 创建 QuestionSet JSON 文件。每次 `ask` 都是一次独立提问，id 由 CLI 自动生成。旧版字段（`sessionId` / `roundNumber` / `basedOnRound` / `sessionTitle` / `sessionSummary` / `sessionBackground`）已全部移除，写了会报错指路。以下七条逐条过一遍：
 
    - **必写字段**：每道题必写两个字段：`type`（`single` / `multiple` / `text`，**没有默认值，漏写报错**）和 `text`（问题正文，问题本身和描述都写在这里）。
@@ -58,7 +58,7 @@ description: 开一个本地网页表单，一次把多个问题摆给用户、�
 
 5. **把页面 URL 复述到回复第一行。**stderr 启动时立刻打出 `Ask Me ready at <url>` 和 `ask-me-id: <id>`，用 `TaskOutput` 读一次后台任务输出取这两行写进回复。浏览器是脚本自动打开的，但它可能没弹出来（无 GUI、默认浏览器没配、窗口被挡），URL 摆出来用户就能自己打开。读一次就够，读不到就照常结束本轮，不要 `sleep` 重试。
 6. 🛑 **STOP：输出 URL 后立刻结束本轮，什么都不用等。**`ask` 没有超时，会一直阻塞到用户提交；用户提交后进程退出，harness 主动把任务完成通知推给你，那就是唤醒信号。
-7. 收到完成通知后，读完 `<run>.stdout.json` 中的完整问题和答案，再继续原工作流。标准 `ask` 已在 stdout 写完后自动清理提问目录；读完后只删除本次创建的 `<questions.json>` 和 `<run>.stdout.json`（不要清理其他请求文件）。使用 `create` 时立即运行 `node <ASK_ME_SKILL_DIR>/scripts/ask-me.mjs complete --id <askId>`（自定义数据目录带 `--data-dir`）。`complete` 先读取答案，再只删除指定提问目录及其索引项，然后输出已读取的答案；答案读取失败时保留文件，按故障速查恢复。
+7. 收到完成通知后，读完 `<run>.stdout.json` 中的完整问题和答案，答案字段有疑问时读 [references/answerset.schema.json](references/answerset.schema.json)，再继续原工作流。标准 `ask` 已在 stdout 写完后自动清理提问目录；读完后只删除本次创建的 `<questions.json>` 和 `<run>.stdout.json`（不要清理其他请求文件）。使用 `create` 时立即运行 `node <ASK_ME_SKILL_DIR>/scripts/ask-me.mjs complete --id <askId>`（自定义数据目录带 `--data-dir`）。`complete` 先校验答案已提交，再只删除指定提问目录及其索引项，然后输出收尾状态（`status` / `askId` / `serverStopped`，不含问题和答案）；答案读取失败时保留文件，按故障速查恢复。
 8. 若还需要更多独立问题，再创建一份 QuestionSet JSON 并再次调用 `ask`——每次 `ask` 天然独立，互不干扰。
 
 ### 服务与浏览器生命周期
@@ -136,15 +136,7 @@ node <ASK_ME_SKILL_DIR>/scripts/ask-me.mjs create --input <questions.json>
 
 🔴 重复的「已提交」消息不得重复创建提问。只有在成功读到一个 `submitted` 的答案集之后，才可以发起新提问。
 
-## 可选的主动唤醒
-
-Ask Me 为 Claude Code 和 Codex App Server 支持可选的唤醒元数据。把它当增强项，不是必需项。
-
-- 只有在用户同意后才启用自动唤醒。
-- Claude Code 需要一个已记录的 session id。
-- Codex 需要宿主提供的 thread id。绝不猜测 Codex thread id。
-- 适配器失败时，保住答案并回到手动「已提交」流程。
-- 直连 `ask` 模式永远不触发唤醒适配器，因为等待中的进程本身就是返回通道。
+## 唤醒适配器（仅用户显式启用时）：见 [references/wake.md](references/wake.md)
 
 ## 反模式：这些事一次都不要做
 
@@ -182,9 +174,4 @@ node <ASK_ME_SKILL_DIR>/scripts/ask-me.mjs cancel --id <askId>             # 作
 node <ASK_ME_SKILL_DIR>/scripts/self-test.mjs                              # 自检，改完 skill 或排查环境时跑
 ```
 
-## 开发：TS 源码与编译产物
-
-- **改代码只改 `scripts/**/*.mts`**。同名 `.mjs` 是 tsc 编译产物，一起进仓库（`~/.agents` 的安装副本直接跑 `.mjs`，不带构建步骤）；手改 `.mjs` 会在下次编译时被覆盖。
-- 编译即类型检查（strict）：`npm --prefix <ASK_ME_SKILL_DIR> run build`（首次先 `npm --prefix <ASK_ME_SKILL_DIR> install`）；只查不改用 `run typecheck`。pre-commit 钩子会自动编译、暂存产物并跑自测。
-- 运行时要求 Node ≥ 18（`fetch` / `AbortSignal.timeout`）；package.json 的 `engines` 已声明。
-- 浏览器资产 `assets/app/*.js` 保持 .js（Node 与浏览器共用，无构建），类型契约在同目录 `.d.ts`——改了 `.js` 的导出签名要同步改 `.d.ts`。
+## 开发本 skill（TS 源码与编译产物）：见 [references/development.md](references/development.md)

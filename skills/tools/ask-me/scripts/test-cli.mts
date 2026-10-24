@@ -129,8 +129,8 @@ export async function test() {
     // complete：正常收尾。
     const done = await runCli(['complete', '--id', ask.askId, '--data-dir', dataRoot]);
     assert.equal(done.code, 0);
-    assert.equal(JSON.parse(done.stdout).status, 'submitted');
-    assert.equal(JSON.parse(done.stdout).answers.answers[0].customText, '答');
+    assert.equal(JSON.parse(done.stdout).status, 'completed');
+    assert.equal(JSON.parse(done.stdout).askId, ask.askId);
     await assert.rejects(fs.access(path.join(dataRoot, 'asks', ask.askId)), /ENOENT/);
     assert.equal((await runCli(['resume', '--data-dir', dataRoot])).stdout.includes(ask.askId), false);
     assert.equal(JSON.parse((await runCli(['resume', '--id', second.askId, '--data-dir', dataRoot])).stdout).answers.answers[0].customText, '乙答');
