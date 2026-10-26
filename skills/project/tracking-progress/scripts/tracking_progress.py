@@ -1231,6 +1231,8 @@ PV_HTML_BUDGET = 600_000
 PV_IMG_BUDGET = 1_400_000
 # 视频/PDF 不进 tp-files/tp-imgs 通道、不吃预算:前端按扩展名直接用相对路径
 # src/iframe 渲染(file:// 下 <video>/<iframe> 相对路径可用),渲染失败回退 ↗
+# 必须显式跳过下面的文本嗅探:pdf 头 "%PDF-" 是 ASCII,utf-8 严格解码成功且
+# 前 8KB 无 NUL,不跳过会被当文本收进 tp-files,弹窗显示原始字节而非渲染
 PV_MEDIA_EXTS = {".mp4", ".m4v", ".mov", ".webm", ".pdf"}
 
 
