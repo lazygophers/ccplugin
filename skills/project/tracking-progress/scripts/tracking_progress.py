@@ -846,7 +846,7 @@ CSS = """
   .pv-wrap{position:fixed;inset:0;z-index:55;background:color-mix(in srgb,var(--ink) 32%,transparent);
     backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center}
   .pv-wrap.open{display:flex}
-  .pv-card{width:90vw;height:88vh;background:var(--panel);
+  .pv-card{width:97vw;height:96vh;background:var(--panel);
     border:1px solid var(--rule);border-radius:14px;overflow:hidden;
     box-shadow:0 24px 70px rgba(28,43,58,.3);display:flex;flex-direction:column;
     animation:pvslide .28s cubic-bezier(.22,.9,.3,1)}
