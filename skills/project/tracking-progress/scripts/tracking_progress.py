@@ -846,7 +846,7 @@ CSS = """
   .pv-wrap{position:fixed;inset:0;z-index:55;background:color-mix(in srgb,var(--ink) 32%,transparent);
     backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center}
   .pv-wrap.open{display:flex}
-  .pv-card{width:min(860px,92vw);height:min(85vh,900px);background:var(--panel);
+  .pv-card{width:90vw;height:88vh;background:var(--panel);
     border:1px solid var(--rule);border-radius:14px;overflow:hidden;
     box-shadow:0 24px 70px rgba(28,43,58,.3);display:flex;flex-direction:column;
     animation:pvslide .28s cubic-bezier(.22,.9,.3,1)}
@@ -871,8 +871,8 @@ CSS = """
     padding:14px 16px;overflow-x:auto;margin:14px 0}
   .pv-body pre code{background:none;border:0;padding:0;font-size:12.5px;line-height:1.6}
   .pv-body blockquote{margin:12px 0;padding:2px 14px;border-left:3px solid var(--rule-2);color:var(--ink-2)}
-  .pv-frame{width:100%;height:min(76vh,820px);border:1px solid var(--rule);border-radius:10px;background:#fff}
-  .pv-img{display:block;max-width:100%;max-height:min(76vh,820px);margin:0 auto;border-radius:10px}
+  .pv-frame{width:100%;height:calc(100% - 76px);border:1px solid var(--rule);border-radius:10px;background:#fff}
+  .pv-img{display:block;max-width:100%;max-height:calc(100% - 76px);margin:0 auto;border-radius:10px}
   .pv-body table{width:auto;max-width:100%;border-collapse:collapse;margin:14px 0;font-size:13px}
   .pv-body th{border:1px solid var(--rule);border-bottom-width:2px;padding:7px 12px;background:var(--row-hover)}
   .pv-body td{border:1px solid var(--rule);padding:6px 12px}
