@@ -857,7 +857,7 @@ CSS = """
   .pv-head .close{margin-left:auto;font:600 12px/1 var(--sans);color:var(--ink-2);background:var(--panel);
     border:1px solid var(--rule);border-radius:99px;padding:6px 13px;cursor:pointer;flex-shrink:0}
   .pv-head .close:hover{color:var(--open);border-color:var(--open)}
-  .pv-body{flex:1;overflow-y:auto;padding:26px 30px 50px;font:14px/1.75 var(--sans);color:var(--ink)}
+  .pv-body{flex:1;overflow-y:auto;padding:6px 8px;font:14px/1.75 var(--sans);color:var(--ink)}
   .pv-body h1,.pv-body h2,.pv-body h3,.pv-body h4{font:600 20px/1.4 var(--sans);margin:22px 0 8px;letter-spacing:-.2px}
   .pv-body h1{font-size:24px}.pv-body h2{font-size:19px}.pv-body h3{font-size:16px}.pv-body h4{font-size:14px;color:var(--ink-2)}
   .pv-body h1:first-child,.pv-body h2:first-child,.pv-body h3:first-child{margin-top:0}
@@ -868,11 +868,11 @@ CSS = """
   .pv-body code{font:12.5px var(--mono);background:var(--gray-soft);border:1px solid var(--rule-2);
     border-radius:5px;padding:1px 5px}
   .pv-body pre{background:var(--row-hover);border:1px solid var(--rule);border-radius:10px;
-    padding:14px 16px;overflow-x:auto;margin:14px 0}
+    padding:12px 10px;overflow-x:auto;margin:14px 0}
   .pv-body pre code{background:none;border:0;padding:0;font-size:12.5px;line-height:1.6}
   .pv-body blockquote{margin:12px 0;padding:2px 14px;border-left:3px solid var(--rule-2);color:var(--ink-2)}
-  .pv-frame{width:100%;height:calc(100% - 76px);border:1px solid var(--rule);border-radius:10px;background:#fff}
-  .pv-img{display:block;max-width:100%;max-height:calc(100% - 76px);margin:0 auto;border-radius:10px}
+  .pv-frame{width:100%;height:calc(100% - 4px);border:1px solid var(--rule);border-radius:10px;background:#fff}
+  .pv-img{display:block;max-width:100%;max-height:calc(100% - 4px);margin:0 auto;border-radius:10px}
   .pv-body table{width:auto;max-width:100%;border-collapse:collapse;margin:14px 0;font-size:13px}
   .pv-body th{border:1px solid var(--rule);border-bottom-width:2px;padding:7px 12px;background:var(--row-hover)}
   .pv-body td{border:1px solid var(--rule);padding:6px 12px}
