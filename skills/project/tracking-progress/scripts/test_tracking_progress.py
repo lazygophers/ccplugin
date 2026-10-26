@@ -316,6 +316,20 @@ def test_mermaid_dependency_graph(tmp_path):
     assert "cdn.jsdelivr" not in page
 
 
+def test_view_switch_closes_preview_overlays(tmp_path):
+    """切换 spec 详情(hash 路由 show)时必须关掉已打开的预览弹窗。
+    用户反馈:在 spec A 展开美人鱼预览后点进 spec B,弹窗残留遮挡。"""
+    root = build_repo(tmp_path)
+    efforts, _ = tp.scan(root / ".scratch")
+    page = tp.render(efforts, [], root / ".scratch")
+    # show() 里调用两个弹窗的关闭函数——文件预览(pvWrap)与美人鱼放大(mmdViewer);
+    # 关闭函数定义在后面的 IIFE 里,经 window 暴露,show 首跑时用守卫防未定义
+    assert "if(window._closePv)window._closePv()" in page
+    assert "if(window._closeMmd)window._closeMmd()" in page
+    assert "window._closePv=closePv" in page
+    assert "window._closeMmd=closeViewer" in page
+
+
 def test_main_writes_report(tmp_path, monkeypatch, capsys):
     root = build_repo(tmp_path)
     assert tp.main(["tracking_progress.py", str(root)]) == 0

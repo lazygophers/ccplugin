@@ -1997,7 +1997,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "function show(route){"
         "if(!views[route])route='overview';"
         "Object.keys(views).forEach(function(k){views[k].classList.toggle('on',k===route)});"
-        "setActive(route);if(window._mmdShow)window._mmdShow(views[route]);window.scrollTo(0,0)}"
+        "setActive(route);if(window._closePv)window._closePv();if(window._closeMmd)window._closeMmd();if(window._mmdShow)window._mmdShow(views[route]);window.scrollTo(0,0)}"
         # 浏览器会把 hash 里的中文 percent-encode,先解码再匹配 data-route
         "function current(){var h=location.hash.replace(/^#\\//,'');"
         "try{h=decodeURIComponent(h)}catch(e){};return h||'overview'}"
@@ -2096,7 +2096,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         # 未知文本扩展:原文 pre 展示(等宽,pre 自带 overflow-x 横向滚动)
         r"else html='<pre>'+escHtml(s)+'</pre>';"
         r"body.innerHTML=html;body.scrollTop=0;wrap.classList.add('open')}"
-        r"function closePv(){wrap.classList.remove('open')}"
+        r"function closePv(){wrap.classList.remove('open')}window._closePv=closePv;"
         r"document.getElementById('pvClose').addEventListener('click',closePv);"
         r"wrap.addEventListener('click',function(e){if(e.target===wrap)closePv()});"
         r"document.addEventListener('keydown',function(e){if(e.key==='Escape')closePv()});"
@@ -2164,7 +2164,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "viewer.dataset.spec = pre.dataset.spec || '';"
         "stage.innerHTML = ''; svg = el.cloneNode(true); svg.removeAttribute('style');"
         "stage.appendChild(svg); viewer.classList.add('open'); fit(); }"
-        "function closeViewer(){ viewer.classList.remove('open'); svg = null; stage.innerHTML = ''; }"
+        "function closeViewer(){ viewer.classList.remove('open'); svg = null; stage.innerHTML = ''; }window._closeMmd=closeViewer;"
         "document.getElementById('mmdClose').addEventListener('click', closeViewer);"
         "document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeViewer(); else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'c' && viewer.classList.contains('open') && viewer.dataset.spec){ e.preventDefault(); window._copyDepsImg && window._copyDepsImg(viewer.dataset.spec); } });"
         "stage.addEventListener('wheel', function(e){ e.preventDefault();"
