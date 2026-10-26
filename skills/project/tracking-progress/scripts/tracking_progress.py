@@ -366,6 +366,14 @@ def scan(scratch: Path) -> tuple[list[Effort], list[Path]]:
             # 文件清单:md 全部已归口(spec/map/票面/附件),这里收非 md 的每个文件
             srcs = {Path(t.source) for t in effort.tasks if t.from_file and t.source}
             junk = {".ds_store", "thumbs.db"}  # 系统垃圾文件不进清单
+            # 已在目录树或设计样例区里的文件(含 assets 里的 md)不重复进外层
+            # 附件区(判重按相对路径)
+            adirs = [d for _nm, d, _cnt in effort.asset_dirs]
+            effort.assets = [
+                p for p in effort.assets
+                if not any(p.is_relative_to(ad) for ad in adirs)
+                and not (effort.design_dir and p.is_relative_to(effort.design_dir))
+            ]
             effort.extra_files = sorted(
                 (
                     p for p in effort.path.rglob("*")
@@ -373,6 +381,7 @@ def scan(scratch: Path) -> tuple[list[Effort], list[Path]]:
                     and p.suffix.lower() != ".md"
                     and p.name.lower() not in junk
                     and not (effort.design_dir and p.is_relative_to(effort.design_dir))
+                    and not any(p.is_relative_to(ad) for ad in adirs)
                     and p not in srcs
                 ),
                 key=lambda p: str(p.relative_to(effort.path)),
@@ -1198,17 +1207,23 @@ def minify_html(doc: str) -> str:
     return "".join(out)
 
 
-# 弹窗内做内置美化渲染的数据附件后缀;其余非 md 附件回退新标签打开
+# 弹窗内做内置美化渲染的数据附件后缀
 DATA_SUF = {".csv", ".tsv", ".json", ".yaml", ".yml"}
-# 设计稿(html)与图片的弹窗预览后缀;独立于 md 通道的预算按文件字节计,
-# 全部塞满时页面总大小(md 2MB + html 0.6MB + 图片 base64 后 ~1.9MB)封顶 ~5MB
-IMG_SUF = {".png", ".jpg", ".jpeg", ".gif", ".svg"}
+# 图片弹窗预览:按扩展名 MIME 表判定(实现选型:只查表不做魔数嗅探——表外的
+# 伪图片扩展会落进下面的文本嗅探,同样不会误报)。表外文件做文本嗅探:前 8KB
+# 无 NUL 字节且 utf-8 严格解码成功即算文本,原文进 tp-files;失败 = 二进制,
+# 回退 ↗ 新标签。独立于 md 通道的预算按文件字节计,全部塞满时页面总大小
+# (md 2MB + html 0.6MB + 图片 base64 后 ~1.9MB)封顶 ~5MB
 IMG_MIME = {
     ".png": "image/png",
     ".jpg": "image/jpeg",
     ".jpeg": "image/jpeg",
     ".gif": "image/gif",
     ".svg": "image/svg+xml",
+    ".webp": "image/webp",
+    ".bmp": "image/bmp",
+    ".ico": "image/x-icon",
+    ".avif": "image/avif",
 }
 PV_HTML_BUDGET = 600_000
 PV_IMG_BUDGET = 1_400_000
@@ -1271,24 +1286,19 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         if e.single:
             add_pv(e.single)
         add_pv(*[Path(s) for s in (t.source for t in e.tasks if t.from_file and t.source)])
-        # 数据附件(csv/tsv/json/yaml)与资产目录内的 md/数据文件也进预览通道
-        add_pv(*[p for p in e.extra_files if p.suffix.lower() in DATA_SUF])
-        add_pv(*[p for _nm, d, _cnt in e.asset_dirs for p in sorted(d.rglob("*"))
-                 if p.is_file() and (p.suffix.lower() in DATA_SUF or p.suffix.lower() == ".md")])
     add_pv(*unparsed)
 
-    # 设计稿与图片的弹窗预览:html 原文进 tp-files(前端 iframe srcdoc 渲染),
-    # 图片转 base64 data URI 进 tp-imgs(前端 <img> 渲染)。独立预算,按文件
-    # 大小升序公平分配,不让第一个大文件独占预算饿死后面;超预算回退 ↗ 新标签。
+    # 附件弹窗预览:html 原文进 tp-files(前端 iframe srcdoc 渲染),图片按
+    # 扩展名 MIME 表转 base64 data URI 进 tp-imgs(前端 <img> 渲染),其余
+    # 文件做文本嗅探(见 IMG_MIME 注释),文本原文进 tp-files。独立预算,按
+    # 文件大小升序公平分配,不让第一个大文件独占预算饿死后面;超预算或
+    # 二进制回退 ↗ 新标签。
     pv_imgs: dict[str, str] = {}
     rich: list[Path] = []
     for e in efforts:
         if e.design_dir:
             rich.extend(p for p in e.design_dir.iterdir() if p.is_file())
-        rich.extend(
-            p for p in e.extra_files
-            if p.suffix.lower() in IMG_SUF or p.suffix.lower() == ".html"
-        )
+        rich.extend(e.extra_files)
         rich.extend(
             p for _nm, d, _cnt in e.asset_dirs for p in d.rglob("*") if p.is_file()
         )
@@ -1296,7 +1306,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
     seen_rich: set[str] = set()
     for p in sorted(rich, key=lambda p: (p.stat().st_size, str(p))):
         k = rel(str(p), scratch)
-        if k in seen_rich:
+        if k in seen_rich or k in pv_files:
             continue
         seen_rich.add(k)
         ext = p.suffix.lower()
@@ -1320,7 +1330,19 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
                     + base64.b64encode(data).decode("ascii")
                 )
                 img_budget -= len(data)
-        except OSError:
+            else:
+                # 文本嗅探:前 8KB 无 NUL 且 utf-8 严格解码成功才算文本;
+                # 失败 = 二进制,不进弹窗通道(回退 ↗ 新标签)
+                if pv_budget <= 0:
+                    continue
+                data = p.read_bytes()
+                if len(data) > pv_budget or b"\0" in data[:8192]:
+                    continue
+                text = data.decode("utf-8")
+                pv_files[k] = text
+                pv_titles[k] = md_title(text, p.name)
+                pv_budget -= len(text)
+        except (OSError, UnicodeDecodeError):
             continue
 
     def human_size(p: Path) -> str:
@@ -1591,8 +1613,8 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
             f"{('<span>未建票 %d</span>' % tbd) if tbd else ''}"
             f"<span>{epct}%({ec[DONE]} ÷ {et})</span></div>" if et else "",
         ]
-        # 附件区块:沉到视图底部;asset_dirs 目录条目可展开列出目录内每个文件,
-        # 文件条目规则与 docbar 一致(md/数据后缀弹窗,其余新标签 + ↗)
+        # 附件区块:沉到视图底部;asset_dirs 目录条目可展开(默认展开)列出
+        # 目录内每个文件,文件条目规则与 docbar 一致(文本/图片弹窗,二进制 ↗)
         if effort.assets or effort.asset_dirs or effort.extra_files:
             n_extra = len(effort.assets) + len(effort.asset_dirs) + len(effort.extra_files)
 
@@ -1619,7 +1641,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
 
                 def emit(node: dict) -> str:
                     return "".join(
-                        f"<details class='fdir'><summary>{esc(name)}/ · {count(sub)} 文件</summary>"
+                        f"<details class='fdir' open><summary>{esc(name)}/ · {count(sub)} 文件</summary>"
                         f"<div class='fdir-list'>{emit(sub)}</div></details>"
                         if isinstance(sub, dict)
                         else chipf(sub)
@@ -1627,7 +1649,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
                     )
 
                 return (
-                    f"<details class='fdir'><summary>{esc(nm)}/ · {cnt} 文件</summary>"
+                    f"<details class='fdir' open><summary>{esc(nm)}/ · {cnt} 文件</summary>"
                     f"<div class='fdir-list'>{emit(tree)}</div></details>"
                 )
 
@@ -2070,7 +2092,9 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         r"if(ext==='csv'||ext==='tsv')html=renderCsv(s,ext==='tsv'?'\t':',');"
         r"else if(ext==='json')html=renderJson(s);"
         r"else if(ext==='yaml'||ext==='yml')html='<pre><code>'+hlYaml(s)+'</code></pre>';"
-        r"else html=renderMd(s);"
+        r"if(ext==='md'||ext==='markdown')html=renderMd(s);"
+        # 未知文本扩展:原文 pre 展示(等宽,pre 自带 overflow-x 横向滚动)
+        r"else html='<pre>'+escHtml(s)+'</pre>';"
         r"body.innerHTML=html;body.scrollTop=0;wrap.classList.add('open')}"
         r"function closePv(){wrap.classList.remove('open')}"
         r"document.getElementById('pvClose').addEventListener('click',closePv);"

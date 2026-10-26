@@ -702,7 +702,7 @@ def test_render_asset_dir_expandable(tmp_path):
     alpha = next(e for e in efforts if e.name == "alpha")
     assert alpha.asset_dirs and alpha.asset_dirs[0][0] == "mockups"
     page = tp.render(efforts, [], scratch)
-    assert "<details class='fdir'><summary>mockups/ · 2 文件</summary>" in page
+    assert "<details class='fdir' open><summary>mockups/ · 2 文件</summary>" in page
     assert "href='alpha/mockups/A.png'" in page
     assert "href='alpha/mockups/B.png'" in page
 
@@ -721,10 +721,10 @@ def test_render_asset_dir_nested_tree(tmp_path):
     assert alpha.asset_dirs and alpha.asset_dirs[0][0] == "mockups"
     page = tp.render(efforts, [], scratch)
     # 顶层 summary 用递归文件数
-    assert "<details class='fdir'><summary>mockups/ · 3 文件</summary>" in page
+    assert "<details class='fdir' open><summary>mockups/ · 3 文件</summary>" in page
     # 两层子目录各自一层 details,嵌套出现
-    assert "<details class='fdir'><summary>v1/ · 2 文件</summary>" in page
-    assert "<details class='fdir'><summary>deep/ · 1 文件</summary>" in page
+    assert "<details class='fdir' open><summary>v1/ · 2 文件</summary>" in page
+    assert "<details class='fdir' open><summary>deep/ · 1 文件</summary>" in page
     # 嵌套结构:deep 的 details 出现在 v1 的 details 之后、顶层闭合之前
     top = page.index("<summary>mockups/")
     v1 = page.index("<summary>v1/")
@@ -788,3 +788,71 @@ def test_render_rich_budget_fallback_and_fair_share(tmp_path, monkeypatch):
     # big.png 超图片预算,回退 ↗
     assert '"alpha/big.png":' not in page
     assert ">big.png ↗</a>" in page
+
+
+def test_render_unknown_text_extension_embedded(tmp_path):
+    """未知扩展文本(utf-8 可解码、前 8KB 无 NUL)原文进 tp-files 弹窗通道。"""
+    root = build_repo(tmp_path)
+    scratch = root / ".scratch"
+    (scratch / "alpha" / "util.py").write_text("print('hi')\n", encoding="utf-8")
+    (scratch / "alpha" / "run.log").write_text("line1\nline2\n", encoding="utf-8")
+    efforts, _ = tp.scan(scratch)
+    page = tp.render(efforts, [], scratch)
+    assert '"alpha/util.py":' in page
+    assert '"alpha/run.log":' in page
+    assert ">util.py ↗</a>" not in page
+
+
+def test_render_binary_non_image_falls_back_new_tab(tmp_path):
+    """解码失败的二进制非图片不进弹窗通道,回退 ↗ 新标签。"""
+    root = build_repo(tmp_path)
+    scratch = root / ".scratch"
+    (scratch / "alpha" / "blob.bin").write_bytes(b"\x00\x01\x02\xff\xfe")
+    efforts, _ = tp.scan(scratch)
+    page = tp.render(efforts, [], scratch)
+    assert '"alpha/blob.bin":' not in page
+    assert ">blob.bin ↗</a>" in page
+
+
+def test_render_webp_bmp_data_uri(tmp_path):
+    """webp/bmp 按各自 MIME 转 base64 data URI 进 tp-imgs。"""
+    root = build_repo(tmp_path)
+    scratch = root / ".scratch"
+    (scratch / "alpha" / "p.webp").write_bytes(b"RIFF\x00\x00WEBP")
+    (scratch / "alpha" / "q.bmp").write_bytes(b"BM\x00\x00")
+    efforts, _ = tp.scan(scratch)
+    page = tp.render(efforts, [], scratch)
+    assert '"alpha/p.webp": "data:image/webp;base64,' in page
+    assert '"alpha/q.bmp": "data:image/bmp;base64,' in page
+
+
+def test_dir_files_not_duplicated_in_extra_files(tmp_path):
+    """目录树内的文件不再在外层 extra_files 平铺区重复;顶层散文件保留。"""
+    root = build_repo(tmp_path)
+    scratch = root / ".scratch"
+    dd = scratch / "alpha" / "mockups"
+    dd.mkdir()
+    (dd / "x.txt").write_text("x\n", encoding="utf-8")
+    (dd / "note.md").write_text("普通文档,无任务清单\n", encoding="utf-8")
+    (scratch / "alpha" / "loose.txt").write_text("l\n", encoding="utf-8")
+    efforts, _ = tp.scan(scratch)
+    alpha = next(e for e in efforts if e.name == "alpha")
+    assert all("mockups" not in p.parts for p in alpha.extra_files)
+    assert all(p.name != "note.md" for p in alpha.assets)  # 目录内 md 也不进外层附件区
+    assert any(p.name == "loose.txt" for p in alpha.extra_files)
+    page = tp.render(efforts, [], scratch)
+    assert page.count("href='alpha/mockups/x.txt'") == 1
+
+
+def test_fdir_default_open(tmp_path):
+    """目录树 details 生成期带 open 属性(无脚本依赖,默认展开)。"""
+    root = build_repo(tmp_path)
+    scratch = root / ".scratch"
+    dd = scratch / "alpha" / "mockups"
+    (dd / "v1").mkdir(parents=True)
+    (dd / "v1" / "x.txt").write_text("x\n", encoding="utf-8")
+    efforts, _ = tp.scan(scratch)
+    page = tp.render(efforts, [], scratch)
+    assert "<details class='fdir' open><summary>mockups/" in page
+    assert "<details class='fdir' open><summary>v1/" in page
+    assert "<details class='fdir'><summary>" not in page  # 无一漏网
