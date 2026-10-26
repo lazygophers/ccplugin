@@ -683,9 +683,11 @@ def test_render_data_attachments_embedded_and_beautify_fns(tmp_path):
     # 附件在底部独立区块,顶部 assetbar 不复存在
     assert "class='filebox'" in page
     assert "class='assetbar'" not in page
-    # png 不进预览通道,条目仍是新标签链接
-    assert '"alpha/diagram.png":' not in page
+    # png 进 tp-imgs base64 data URI 通道,弹窗直显;条目不再带 ↗
+    assert "id='tp-imgs'" in page
+    assert '"alpha/diagram.png": "data:image/png;base64,' in page
     assert "href='alpha/diagram.png' target='_blank'" in page
+    assert ">diagram.png ↗</a>" not in page
 
 
 def test_render_asset_dir_expandable(tmp_path):
@@ -703,3 +705,86 @@ def test_render_asset_dir_expandable(tmp_path):
     assert "<details class='fdir'><summary>mockups/ · 2 文件</summary>" in page
     assert "href='alpha/mockups/A.png'" in page
     assert "href='alpha/mockups/B.png'" in page
+
+
+def test_render_asset_dir_nested_tree(tmp_path):
+    """asset_dirs 按相对路径建树:子目录递归嵌套 details/summary,文件为叶子。"""
+    root = build_repo(tmp_path)
+    scratch = root / ".scratch"
+    dd = scratch / "alpha" / "mockups"
+    (dd / "v1" / "deep").mkdir(parents=True)
+    (dd / "v1" / "deep" / "x.png").write_bytes(b"\x89PNG")
+    (dd / "v1" / "a.txt").write_text("a\n", encoding="utf-8")
+    (dd / "top.md").write_text("# 顶\n", encoding="utf-8")
+    efforts, _ = tp.scan(scratch)
+    alpha = next(e for e in efforts if e.name == "alpha")
+    assert alpha.asset_dirs and alpha.asset_dirs[0][0] == "mockups"
+    page = tp.render(efforts, [], scratch)
+    # 顶层 summary 用递归文件数
+    assert "<details class='fdir'><summary>mockups/ · 3 文件</summary>" in page
+    # 两层子目录各自一层 details,嵌套出现
+    assert "<details class='fdir'><summary>v1/ · 2 文件</summary>" in page
+    assert "<details class='fdir'><summary>deep/ · 1 文件</summary>" in page
+    # 嵌套结构:deep 的 details 出现在 v1 的 details 之后、顶层闭合之前
+    top = page.index("<summary>mockups/")
+    v1 = page.index("<summary>v1/")
+    deep = page.index("<summary>deep/")
+    assert top < v1 < deep
+    # 叶子文件条目规则不变
+    assert "href='alpha/mockups/v1/deep/x.png'" in page
+    assert "href='alpha/mockups/top.md'" in page
+
+
+def test_render_html_design_embedded_with_iframe_srcdoc(tmp_path):
+    """html 设计稿原文进 tp-files,openPv 有 iframe srcdoc + sandbox 分支。"""
+    root = build_repo(tmp_path)
+    scratch = root / ".scratch"
+    dd = scratch / "alpha" / "design-demos"
+    dd.mkdir()
+    (dd / "A.html").write_text(
+        "<!DOCTYPE html><html><body><script>alert(1)</script><b>稿</b></body></html>",
+        encoding="utf-8",
+    )
+    efforts, _ = tp.scan(scratch)
+    page = tp.render(efforts, [], scratch)
+    assert '"alpha/design-demos/A.html":' in page
+    assert 'sandbox=\\"allow-scripts allow-same-origin\\"' in page
+    assert "srcdoc=" in page
+    # 卡片条目不再带 ↗
+    assert ">A ↗</a>" not in page
+
+
+def test_render_image_data_uri_per_type(tmp_path):
+    """png/jpg/gif/svg 按各自 MIME 转 base64 data URI 进 tp-imgs。"""
+    root = build_repo(tmp_path)
+    scratch = root / ".scratch"
+    (scratch / "alpha" / "a.png").write_bytes(b"\x89PNG")
+    (scratch / "alpha" / "b.jpg").write_bytes(b"\xff\xd8\xff")
+    (scratch / "alpha" / "c.gif").write_bytes(b"GIF8")
+    (scratch / "alpha" / "d.svg").write_text("<svg/>", encoding="utf-8")
+    efforts, _ = tp.scan(scratch)
+    page = tp.render(efforts, [], scratch)
+    assert '"alpha/a.png": "data:image/png;base64,' in page
+    assert '"alpha/b.jpg": "data:image/jpeg;base64,' in page
+    assert '"alpha/c.gif": "data:image/gif;base64,' in page
+    assert '"alpha/d.svg": "data:image/svg+xml;base64,' in page
+
+
+def test_render_rich_budget_fallback_and_fair_share(tmp_path, monkeypatch):
+    """超预算条目回退 ↗ 新标签;预算按文件大小升序分配,小文件不被饿死。"""
+    root = build_repo(tmp_path)
+    scratch = root / ".scratch"
+    (scratch / "alpha" / "big.html").write_text("B" * 500, encoding="utf-8")
+    (scratch / "alpha" / "small.html").write_text("S" * 100, encoding="utf-8")
+    (scratch / "alpha" / "big.png").write_bytes(b"P" * 500)
+    monkeypatch.setattr(tp, "PV_HTML_BUDGET", 200)
+    monkeypatch.setattr(tp, "PV_IMG_BUDGET", 100)
+    efforts, _ = tp.scan(scratch)
+    page = tp.render(efforts, [], scratch)
+    # small.html 在预算内进 tp-files;big.html 超预算回退 ↗ 新标签
+    assert '"alpha/small.html":' in page
+    assert '"alpha/big.html":' not in page
+    assert ">big.html ↗</a>" in page
+    # big.png 超图片预算,回退 ↗
+    assert '"alpha/big.png":' not in page
+    assert ">big.png ↗</a>" in page

@@ -14,6 +14,7 @@ Usage: python3 tracking_progress.py [repo-root]
 
 from __future__ import annotations
 
+import base64
 import html
 import os
 import re
@@ -861,6 +862,8 @@ CSS = """
     padding:14px 16px;overflow-x:auto;margin:14px 0}
   .pv-body pre code{background:none;border:0;padding:0;font-size:12.5px;line-height:1.6}
   .pv-body blockquote{margin:12px 0;padding:2px 14px;border-left:3px solid var(--rule-2);color:var(--ink-2)}
+  .pv-frame{width:100%;height:min(76vh,820px);border:1px solid var(--rule);border-radius:10px;background:#fff}
+  .pv-img{display:block;max-width:100%;max-height:min(76vh,820px);margin:0 auto;border-radius:10px}
   .pv-body table{width:auto;max-width:100%;border-collapse:collapse;margin:14px 0;font-size:13px}
   .pv-body th{border:1px solid var(--rule);border-bottom-width:2px;padding:7px 12px;background:var(--row-hover)}
   .pv-body td{border:1px solid var(--rule);padding:6px 12px}
@@ -1197,6 +1200,18 @@ def minify_html(doc: str) -> str:
 
 # 弹窗内做内置美化渲染的数据附件后缀;其余非 md 附件回退新标签打开
 DATA_SUF = {".csv", ".tsv", ".json", ".yaml", ".yml"}
+# 设计稿(html)与图片的弹窗预览后缀;独立于 md 通道的预算按文件字节计,
+# 全部塞满时页面总大小(md 2MB + html 0.6MB + 图片 base64 后 ~1.9MB)封顶 ~5MB
+IMG_SUF = {".png", ".jpg", ".jpeg", ".gif", ".svg"}
+IMG_MIME = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".gif": "image/gif",
+    ".svg": "image/svg+xml",
+}
+PV_HTML_BUDGET = 600_000
+PV_IMG_BUDGET = 1_400_000
 
 
 def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
@@ -1261,6 +1276,52 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         add_pv(*[p for _nm, d, _cnt in e.asset_dirs for p in sorted(d.rglob("*"))
                  if p.is_file() and (p.suffix.lower() in DATA_SUF or p.suffix.lower() == ".md")])
     add_pv(*unparsed)
+
+    # 设计稿与图片的弹窗预览:html 原文进 tp-files(前端 iframe srcdoc 渲染),
+    # 图片转 base64 data URI 进 tp-imgs(前端 <img> 渲染)。独立预算,按文件
+    # 大小升序公平分配,不让第一个大文件独占预算饿死后面;超预算回退 ↗ 新标签。
+    pv_imgs: dict[str, str] = {}
+    rich: list[Path] = []
+    for e in efforts:
+        if e.design_dir:
+            rich.extend(p for p in e.design_dir.iterdir() if p.is_file())
+        rich.extend(
+            p for p in e.extra_files
+            if p.suffix.lower() in IMG_SUF or p.suffix.lower() == ".html"
+        )
+        rich.extend(
+            p for _nm, d, _cnt in e.asset_dirs for p in d.rglob("*") if p.is_file()
+        )
+    html_budget, img_budget = PV_HTML_BUDGET, PV_IMG_BUDGET
+    seen_rich: set[str] = set()
+    for p in sorted(rich, key=lambda p: (p.stat().st_size, str(p))):
+        k = rel(str(p), scratch)
+        if k in seen_rich:
+            continue
+        seen_rich.add(k)
+        ext = p.suffix.lower()
+        try:
+            if ext == ".html":
+                if html_budget <= 0:
+                    continue
+                text = p.read_text(encoding="utf-8", errors="replace")
+                if len(text) > html_budget:
+                    continue
+                pv_files[k] = text
+                html_budget -= len(text)
+            elif ext in IMG_MIME:
+                if img_budget <= 0:
+                    continue
+                data = p.read_bytes()
+                if len(data) > img_budget:
+                    continue
+                pv_imgs[k] = (
+                    f"data:{IMG_MIME[ext]};base64,"
+                    + base64.b64encode(data).decode("ascii")
+                )
+                img_budget -= len(data)
+        except OSError:
+            continue
 
     def human_size(p: Path) -> str:
         n = p.stat().st_size
@@ -1537,17 +1598,41 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
 
             def chipf(p: Path) -> str:
                 k = rel(str(p), scratch)
-                mark = "" if k in pv_files else " ↗"
+                mark = "" if (k in pv_files or k in pv_imgs) else " ↗"
                 return (f"<a class='chipf' href='{esc(k)}' target='_blank' rel='noopener'>"
                         f"{esc(p.name)}{mark}</a>")
 
-            items = [chipf(p) for p in sorted(effort.assets, key=lambda x: x.name)]
-            for nm, d, cnt in effort.asset_dirs:
-                inner = "".join(chipf(f) for f in sorted(d.rglob("*")) if f.is_file())
-                items.append(
+            def render_fdir(nm: str, d: Path, cnt: int) -> str:
+                """目录递归嵌套:每层子目录一个 details/summary(递归文件数),
+                文件条目为叶子;条目规则与 docbar 一致。"""
+                tree: dict = {}
+                for f in sorted(d.rglob("*")):
+                    if f.is_file():
+                        node = tree
+                        for part in f.relative_to(d).parts[:-1]:
+                            node = node.setdefault(part, {})
+                        node[f.name] = f
+
+                def count(node: dict) -> int:
+                    return sum(count(v) if isinstance(v, dict) else 1
+                               for v in node.values())
+
+                def emit(node: dict) -> str:
+                    return "".join(
+                        f"<details class='fdir'><summary>{esc(name)}/ · {count(sub)} 文件</summary>"
+                        f"<div class='fdir-list'>{emit(sub)}</div></details>"
+                        if isinstance(sub, dict)
+                        else chipf(sub)
+                        for name, sub in node.items()
+                    )
+
+                return (
                     f"<details class='fdir'><summary>{esc(nm)}/ · {cnt} 文件</summary>"
-                    f"<div class='fdir-list'>{inner}</div></details>"
+                    f"<div class='fdir-list'>{emit(tree)}</div></details>"
                 )
+
+            items = [chipf(p) for p in sorted(effort.assets, key=lambda x: x.name)]
+            items += [render_fdir(nm, d, cnt) for nm, d, cnt in effort.asset_dirs]
             items += [chipf(p) for p in effort.extra_files]
             out += [
                 "<section class='filebox'>",
@@ -1732,6 +1817,12 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         + _json.dumps(pv_titles, ensure_ascii=False).replace("<", "\\u003c")
         + "</script>"
     )
+    # 图片 base64 data URI 通道:openPv 命中即 <img> 直显
+    out.append(
+        "<script id='tp-imgs' type='application/json'>"
+        + _json.dumps(pv_imgs, ensure_ascii=False).replace("<", "\\u003c")
+        + "</script>"
+    )
 
     out += [
         "<script>document.querySelectorAll('[data-copy-spec]').forEach(button => button.addEventListener('click', async () => {"
@@ -1899,6 +1990,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         r"<script>(function(){"
         r"var PV={};try{PV=JSON.parse(document.getElementById('tp-files').textContent)}catch(e){}"
         r"var TITLES={};try{TITLES=JSON.parse(document.getElementById('tp-titles').textContent)}catch(e){}"
+        r"var IMGS={};try{IMGS=JSON.parse(document.getElementById('tp-imgs').textContent)}catch(e){}"
         r"var wrap=document.getElementById('pvWrap'),body=document.getElementById('pvBody'),"
         r"title=document.getElementById('pvTitle'),raw=document.getElementById('pvRaw');"
         r"function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;')}"
@@ -1971,7 +2063,10 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         r"return e}).join('\n')}"
         r"function extOf(k){var m=k.toLowerCase().match(/\.([a-z0-9]+)$/);return m?m[1]:''}"
         r"function openPv(k){title.textContent=TITLES[k]||k;raw.href=k;"
+        r"var img=IMGS[k];"
+        r"if(img){body.innerHTML='<img class=\"pv-img\" src=\"'+img+'\" alt=\"\">';body.scrollTop=0;wrap.classList.add('open');return}"
         r"var s=PV[k]||'(空文件)',ext=extOf(k),html;"
+        r"if(ext==='html'){body.innerHTML='<iframe class=\"pv-frame\" srcdoc=\"'+escHtml(s)+'\" sandbox=\"allow-scripts allow-same-origin\"></iframe>';body.scrollTop=0;wrap.classList.add('open');return}"
         r"if(ext==='csv'||ext==='tsv')html=renderCsv(s,ext==='tsv'?'\t':',');"
         r"else if(ext==='json')html=renderJson(s);"
         r"else if(ext==='yaml'||ext==='yml')html='<pre><code>'+hlYaml(s)+'</code></pre>';"
@@ -1984,7 +2079,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         r"document.addEventListener('click',function(e){"
         r"var a=e.target.closest?e.target.closest('a'):null;if(!a)return;"
         r"var href=a.getAttribute('href')||'';"
-        r"if(a.target==='_blank'&&PV.hasOwnProperty(href)&&!e.metaKey&&!e.ctrlKey){"
+        r"if(a.target==='_blank'&&(PV.hasOwnProperty(href)||IMGS.hasOwnProperty(href))&&!e.metaKey&&!e.ctrlKey){"
         r"e.preventDefault();openPv(href)}});"
         r"})();</script>",
         LEDGER_JS,
