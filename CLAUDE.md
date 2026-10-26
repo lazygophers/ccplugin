@@ -54,6 +54,8 @@ rsync -a --delete --exclude node_modules --exclude .ask-me skills/tools/<name>/ 
 diff -rq skills/tools/<name> ~/.agents/skills/<name>
 ```
 
+副本固定在 `$HOME/.agents/`（本机即 `/Users/luoxin/.agents`），**不随仓库路径走**：给 agent 派单写绝对路径前先 `ls -d` 核对，不要从仓库所在目录往上拼（2026-10-26 tracking-progress session 曾误拼成 `/Users/luoxin/persons/lyxamour/.agents`，目录不存在，验收 agent 找不到副本）。
+
 ## 提交前检查
 
 `scripts/hooks/pre-commit`：按暂存区路径前缀触发对应 skill 的自测——`skills/tools/ask-me/**` 跑 `skills/tools/ask-me/scripts/self-test.mjs`，`skills/project/tracking-progress/**` 跑 `python3 -m pytest skills/project/tracking-progress/scripts/test_tracking_progress.py`。每个克隆装一次（graphify 的 post-commit / post-checkout 不受影响）：
