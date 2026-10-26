@@ -588,7 +588,7 @@ def test_top_level_unknown_md_becomes_single_file_feature(tmp_path):
     page = tp.render(efforts, unparsed, scratch)
     assert "id='view-spec-平台管理页-重设计'" in page       # 独立视图
     assert "href='#/spec-平台管理页-重设计'" in page        # 侧栏/功能台可进
-    assert ">单文件</a>" in page                            # 徽标
+    assert ">单文件</span>" in page                         # 徽标(纯标签不可点)
     assert "id='unknown'" not in page                       # 未识别桶已取消
     assert '"平台管理页-重设计.md":' in page                 # 原文已嵌入预览
 
@@ -626,3 +626,80 @@ def test_feature_assets_and_dirs(tmp_path):
     assert any(p.name == "tmp.csv" for p in alpha.extra_files)
     assert "原型图.png" in page and "tmp.csv" in page
     assert '"alpha/design.md":' in page                     # 附件原文进预览嵌入
+
+
+def test_md_title_extraction():
+    # 前 10 行内的 h1 → 「h1（文件名）」
+    assert tp.md_title("# 进度页重设计\n正文\n", "spec.md") == "进度页重设计（spec.md）"
+    # YAML frontmatter 跳过,取正文里的 h1
+    assert tp.md_title("---\ntitle: x\n---\n# 真标题\n", "spec.md") == "真标题（spec.md）"
+    # ``` 围栏内的 # 行不是标题
+    assert tp.md_title("```bash\n# 注释\n```\n", "a.md") == "a.md"
+    # 无 h1 → 回退文件名
+    assert tp.md_title("只有正文,没有标题\n", "notes.md") == "notes.md"
+
+
+def test_render_badges_are_plain_labels(tmp_path):
+    """徽章去链接化:kind 全是 span 不带 href/target,展示入口移到 docbar。"""
+    root = build_repo(tmp_path)
+    scratch = root / ".scratch"
+    efforts, _ = tp.scan(scratch)
+    page = tp.render(efforts, [], scratch)
+    assert "<span class='kind'>spec</span>" in page
+    assert "<span class='kind'>wayfinder 地图</span>" in page
+    assert "class='kind' href" not in page
+
+
+def test_render_docbar_and_tp_titles(tmp_path):
+    """docbar 是新展示入口,标题用生成期 h1;tp-titles JSON 通道存在。"""
+    root = build_repo(tmp_path)
+    scratch = root / ".scratch"
+    (scratch / "alpha" / "spec.md").write_text("# Alpha 规格\n正文\n", encoding="utf-8")
+    efforts, _ = tp.scan(scratch)
+    page = tp.render(efforts, [], scratch)
+    assert "class='docbar'" in page
+    assert "href='alpha/spec.md'" in page
+    assert "id='tp-titles'" in page
+    assert "Alpha 规格（spec.md）" in page  # 生成期提取,不是文件名
+    assert "TITLES[k]||k" in page
+
+
+def test_render_data_attachments_embedded_and_beautify_fns(tmp_path):
+    """非 md 数据附件保持可点,内容进 tp-files 弹窗美化;其余文件回退新标签。"""
+    root = build_repo(tmp_path)
+    scratch = root / ".scratch"
+    (scratch / "alpha" / "data.json").write_text('{"k": 1}\n', encoding="utf-8")
+    (scratch / "alpha" / "table.csv").write_text("a,b\n1,2\n", encoding="utf-8")
+    (scratch / "alpha" / "conf.yaml").write_text("k: v\n", encoding="utf-8")
+    (scratch / "alpha" / "diagram.png").write_bytes(b"\x89PNG")
+    efforts, _ = tp.scan(scratch)
+    page = tp.render(efforts, [], scratch)
+    # 数据附件进预览通道
+    for key in ('"alpha/data.json":', '"alpha/table.csv":', '"alpha/conf.yaml":'):
+        assert key in page
+    # 弹窗内美化函数存在,openPv 按后缀分发
+    for fn in ("renderCsv", "parseCsv", "renderJson", "hlYaml", "extOf"):
+        assert fn in page
+    # 附件在底部独立区块,顶部 assetbar 不复存在
+    assert "class='filebox'" in page
+    assert "class='assetbar'" not in page
+    # png 不进预览通道,条目仍是新标签链接
+    assert '"alpha/diagram.png":' not in page
+    assert "href='alpha/diagram.png' target='_blank'" in page
+
+
+def test_render_asset_dir_expandable(tmp_path):
+    """asset_dirs 目录条目可展开:details/summary 列出目录内每个文件。"""
+    root = build_repo(tmp_path)
+    scratch = root / ".scratch"
+    dd = scratch / "alpha" / "mockups"
+    dd.mkdir()
+    (dd / "A.png").write_bytes(b"\x89PNG")
+    (dd / "B.png").write_bytes(b"\x89PNG")
+    efforts, _ = tp.scan(scratch)
+    alpha = next(e for e in efforts if e.name == "alpha")
+    assert alpha.asset_dirs and alpha.asset_dirs[0][0] == "mockups"
+    page = tp.render(efforts, [], scratch)
+    assert "<details class='fdir'><summary>mockups/ · 2 文件</summary>" in page
+    assert "href='alpha/mockups/A.png'" in page
+    assert "href='alpha/mockups/B.png'" in page

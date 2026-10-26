@@ -783,7 +783,7 @@ CSS = """
   .copy-btn:hover{color:var(--open)}
   .copy-btn svg{display:block}
   .copy-btn.copied{color:var(--open);font:600 12px/1 var(--sans)}
-  .spec-head .kind{font-size:12px;color:var(--ink-2);border:1px solid var(--rule);padding:2px 8px;border-radius:99px;text-decoration:none;background:var(--row-hover)}
+  .spec-head .kind{font-size:12px;color:var(--ink-2);border:1px solid var(--rule);padding:2px 8px;border-radius:99px;text-decoration:none;background:var(--row-hover);cursor:default}
   .spec-head a.kind:hover{color:var(--open);border-color:var(--open)}
   .spec-head .cnt{font-size:12px;color:var(--ink-2);margin-left:auto;font-family:var(--mono);white-space:nowrap}
   .spec-head .kind.tbd{color:var(--active);border-color:var(--active);background:var(--amber-soft)}
@@ -832,14 +832,15 @@ CSS = """
   .theme-btn{position:fixed;right:18px;top:11px;z-index:30;font:600 12px/1 var(--sans);color:var(--ink-2);background:var(--panel);border:1px solid var(--rule);border-radius:99px;padding:7px 13px;cursor:pointer;box-shadow:var(--sh-1)}
   .theme-btn:hover{color:var(--open);border-color:var(--open)}
   .dangling{color:var(--danger)}
-  /* 页内文件预览 */
-  .pv-wrap{position:fixed;inset:0;z-index:55;background:color-mix(in srgb,var(--bg) 75%,transparent);
-    backdrop-filter:blur(4px);display:none;align-items:stretch;justify-content:flex-end}
+  /* 页内文件预览:居中弹窗 */
+  .pv-wrap{position:fixed;inset:0;z-index:55;background:color-mix(in srgb,var(--ink) 32%,transparent);
+    backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center}
   .pv-wrap.open{display:flex}
-  .pv-card{width:min(880px,94vw);background:var(--panel);border-left:1px solid var(--rule);
-    box-shadow:-18px 0 50px rgba(28,43,58,.18);display:flex;flex-direction:column;
+  .pv-card{width:min(860px,92vw);height:min(85vh,900px);background:var(--panel);
+    border:1px solid var(--rule);border-radius:14px;overflow:hidden;
+    box-shadow:0 24px 70px rgba(28,43,58,.3);display:flex;flex-direction:column;
     animation:pvslide .28s cubic-bezier(.22,.9,.3,1)}
-  @keyframes pvslide{from{transform:translateX(40px);opacity:0}to{transform:none;opacity:1}}
+  @keyframes pvslide{from{transform:translateY(14px) scale(.98);opacity:0}to{transform:none;opacity:1}}
   .pv-head{display:flex;align-items:center;gap:12px;padding:13px 20px;border-bottom:1px solid var(--rule);flex-shrink:0}
   .pv-head .t{font:600 14px var(--mono);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .pv-head .raw{font:500 12px var(--sans);color:var(--ink-2);white-space:nowrap}
@@ -911,7 +912,22 @@ CSS = """
   .dc .why::before{content:"为什么";font:600 10px/1.8 var(--mono);letter-spacing:.1em;flex-shrink:0}
   .dc .why .kl{color:#A0524A}
   .dc .why .kl::before{content:" · 否掉了";font:600 10px var(--mono)}
-  .assetbar{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0 14px}
+  .docbar{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0 2px}
+  .filebox{margin:18px 0 4px;padding:14px 16px;background:var(--panel);border:1px solid var(--rule);border-radius:11px}
+  .filebox h4{display:flex;align-items:center;gap:9px;font:600 13.5px var(--sans);margin:0 0 10px}
+  .filebox .badge{font:500 10.5px var(--mono);color:var(--ink-3);background:var(--bg);
+    border:1px solid var(--rule);border-radius:99px;padding:2px 9px}
+  .fbox-list{display:flex;flex-wrap:wrap;gap:7px;align-items:flex-start}
+  .fdir{width:100%}
+  .fdir summary{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 11px;
+    background:var(--row-hover,#F8FAFD);border:1px solid var(--rule);border-radius:8px;
+    font:500 11.5px var(--mono);color:var(--ink-2);cursor:pointer;list-style:none;transition:all .15s}
+  .fdir summary::-webkit-details-marker{display:none}
+  .fdir summary::before{content:"▣";font-size:10px;color:var(--ink-3)}
+  .fdir summary:hover{border-color:var(--open);color:var(--open)}
+  .fdir[open] summary{color:var(--open);border-color:var(--open)}
+  .fdir-list{display:flex;flex-wrap:wrap;gap:7px;padding:8px 0 2px 10px;
+    border-left:2px solid var(--rule-2);margin:6px 0 4px}
   .demos{margin:16px 0 6px}
   .demos h4{display:flex;align-items:center;gap:9px;font:600 13.5px var(--sans);margin:0 0 10px}
   .demos .badge{font:500 10.5px var(--mono);color:var(--ink-3);background:var(--bg);
@@ -933,8 +949,6 @@ CSS = """
     background:var(--panel);border:1px solid var(--rule);border-radius:8px;
     font:500 11.5px var(--mono);color:var(--ink-2);transition:all .15s}
   .chipf:hover{border-color:var(--open);color:var(--open)}
-  .chipf.dir{background:var(--row-hover,#F8FAFD)}
-  .chipf.dir::before{content:"▣";font-size:10px;color:var(--ink-3)}
   .raw{background:var(--bg);border:1px dashed var(--rule);border-radius:10px;padding:11px 14px;margin:9px 0}
   .raw .rl{font:600 10px var(--mono);color:var(--ink-3);letter-spacing:.12em;margin-bottom:7px}
   .raw pre{white-space:pre-wrap;word-break:break-word;margin:0;font:400 12px/1.68 var(--mono);color:var(--ink-2)}
@@ -1140,6 +1154,29 @@ def headline(efforts: list[Effort]) -> str:
     return f"{total} 张票里，<em>{len(open_now)} 张现在就能开工</em>{tail}"
 
 
+def md_title(text: str, name: str) -> str:
+    """md 展示标题:前 2KB、跳过 YAML frontmatter 与 ``` 围栏后,前 10 行内的
+    h1;命中返回「h1（文件名）」,否则回退文件名。仅 md 文件适用。"""
+    lines = text[:2048].split("\n")
+    if lines and lines[0].strip() == "---":  # 跳过 YAML frontmatter
+        i = 1
+        while i < len(lines) and lines[i].strip() != "---":
+            i += 1
+        lines = lines[i + 1 :]
+    in_fence = False
+    for line in lines[:10]:
+        s = line.strip()
+        if s.startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        m = re.match(r"#\s+(.+)", s)
+        if m:
+            return f"{m.group(1).strip()}（{name}）"
+    return name
+
+
 def minify_html(doc: str) -> str:
     """输出压缩:保护 pre/script/style 内部,标签间空白与注释全去掉。"""
     parts = re.split(
@@ -1156,6 +1193,10 @@ def minify_html(doc: str) -> str:
         seg = re.sub(r"\s{2,}", " ", seg)
         out.append(seg.strip())
     return "".join(out)
+
+
+# 弹窗内做内置美化渲染的数据附件后缀;其余非 md 附件回退新标签打开
+DATA_SUF = {".csv", ".tsv", ".json", ".yaml", ".yml"}
 
 
 def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
@@ -1190,6 +1231,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
     # 只能在生成期读。按相对路径去重,总字节封顶,超限的文件回退为新标签打开。
     pv_files: dict[str, str] = {}
     pv_budget = 2_000_000
+    pv_titles: dict[str, str] = {}
 
     def add_pv(*paths) -> None:
         nonlocal pv_budget
@@ -1201,6 +1243,8 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
                 text = p.read_text(encoding="utf-8", errors="replace")
             except OSError:
                 continue
+            # 标题与 2MB 正文预算解耦:超预算的文件没有内联正文,仍有 h1 标题
+            pv_titles[key] = md_title(text, p.name)
             if len(text) > pv_budget:
                 continue
             pv_files[key] = text
@@ -1212,6 +1256,10 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         if e.single:
             add_pv(e.single)
         add_pv(*[Path(s) for s in (t.source for t in e.tasks if t.from_file and t.source)])
+        # 数据附件(csv/tsv/json/yaml)与资产目录内的 md/数据文件也进预览通道
+        add_pv(*[p for p in e.extra_files if p.suffix.lower() in DATA_SUF])
+        add_pv(*[p for _nm, d, _cnt in e.asset_dirs for p in sorted(d.rglob("*"))
+                 if p.is_file() and (p.suffix.lower() in DATA_SUF or p.suffix.lower() == ".md")])
     add_pv(*unparsed)
 
     def human_size(p: Path) -> str:
@@ -1431,38 +1479,33 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         epct = round(ec[DONE] * 100 / et) if et else 0
         minibar, _ = stacked_bar(et, ec, "") if et else ("", "")
         name_html = esc(effort.name)
+        # 徽章纯标签不可点:展示入口统一收进 docbar(弹窗)与底部附件区块
         kinds = []
         if effort.is_map:
-            kinds.append(
-                f"<a class='kind' href='{esc(rel(str(effort.path / 'map.md'), scratch))}' "
-                f"target='_blank' rel='noopener'>wayfinder 地图</a>"
-            )
+            kinds.append("<span class='kind'>wayfinder 地图</span>")
         if effort.has_spec:
-            kinds.append(
-                f"<a class='kind' href='{esc(rel(str(effort.path / 'spec.md'), scratch))}' "
-                f"target='_blank' rel='noopener'>spec</a>"
-            )
+            kinds.append("<span class='kind'>spec</span>")
         if effort.single:
-            kinds.append(
-                f"<a class='kind tbd' href='{esc(rel(str(effort.single), scratch))}' "
-                f"target='_blank' rel='noopener'>单文件</a>"
-            )
-        if effort.assets or effort.asset_dirs or effort.extra_files:
-            chips = "".join(
-                f"<a class='chipf' href='{esc(rel(str(p), scratch))}' target='_blank' rel='noopener'>"
-                f"{esc(p.name)}</a>"
-                for p in sorted(effort.assets, key=lambda x: x.name)
-            ) + "".join(
-                f"<a class='chipf dir' href='{esc(rel(str(d), scratch))}' target='_blank' rel='noopener'>"
-                f"{esc(nm)}/ · {cnt} 文件</a>"
-                for nm, d, cnt in effort.asset_dirs
-            ) + "".join(
-                f"<a class='chipf' href='{esc(rel(str(p), scratch))}' target='_blank' rel='noopener'"
-                f" title='{esc(str(p.relative_to(effort.path)))}'>{esc(p.name)}</a>"
-                for p in effort.extra_files
-            )
-            n_extra = len(effort.assets) + len(effort.asset_dirs) + len(effort.extra_files)
-            kinds.append(f"<span class='kind'>附件 {n_extra}</span>")
+            kinds.append("<span class='kind tbd'>单文件</span>")
+        # 文档入口:spec / 地图 / 单文件。链接带 target=_blank,点击被拦截器
+        # 接住进居中弹窗;超预算文件不在 tp-files,回退真新标签,加 ↗ 区分
+        docs = []
+        if effort.is_map:
+            k = rel(str(effort.path / "map.md"), scratch)
+            docs.append((k, pv_titles.get(k, "map.md")))
+        if effort.has_spec:
+            k = rel(str(effort.path / "spec.md"), scratch)
+            docs.append((k, pv_titles.get(k, "spec.md")))
+        if effort.single:
+            k = rel(str(effort.single), scratch)
+            docs.append((k, pv_titles.get(k, effort.single.name)))
+        docbar = ""
+        if docs:
+            docbar = "<div class='docbar'>" + "".join(
+                f"<a class='chipf' href='{esc(k)}' target='_blank' rel='noopener'>"
+                f"{esc(t)}{' ↗' if k not in pv_files else ''}</a>"
+                for k, t in docs
+            ) + "</div>"
         # 未建票 = 只有 map.md/清单行、还没有票面文件的条目
         tbd = sum(1 for t in effort.tasks if not t.from_file)
         if et and tbd:
@@ -1480,13 +1523,38 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
             f"</span></span></h3>",
             *kinds,
             f"<span class='cnt'>{et} 张 · {ec[DONE]} 已完成</span></div>",
-            f"<div class='assetbar'>{chips}</div>" if (effort.assets or effort.asset_dirs or effort.extra_files) else "",
+            docbar,
             *design_gallery(effort, scratch),
             f"<div class='minibar'>{minibar}</div>",
             f"<div class='minicap'><span>{STATUS_LABEL[DONE]} {ec[DONE]}</span>"
             f"{('<span>未建票 %d</span>' % tbd) if tbd else ''}"
             f"<span>{epct}%({ec[DONE]} ÷ {et})</span></div>" if et else "",
         ]
+        # 附件区块:沉到视图底部;asset_dirs 目录条目可展开列出目录内每个文件,
+        # 文件条目规则与 docbar 一致(md/数据后缀弹窗,其余新标签 + ↗)
+        if effort.assets or effort.asset_dirs or effort.extra_files:
+            n_extra = len(effort.assets) + len(effort.asset_dirs) + len(effort.extra_files)
+
+            def chipf(p: Path) -> str:
+                k = rel(str(p), scratch)
+                mark = "" if k in pv_files else " ↗"
+                return (f"<a class='chipf' href='{esc(k)}' target='_blank' rel='noopener'>"
+                        f"{esc(p.name)}{mark}</a>")
+
+            items = [chipf(p) for p in sorted(effort.assets, key=lambda x: x.name)]
+            for nm, d, cnt in effort.asset_dirs:
+                inner = "".join(chipf(f) for f in sorted(d.rglob("*")) if f.is_file())
+                items.append(
+                    f"<details class='fdir'><summary>{esc(nm)}/ · {cnt} 文件</summary>"
+                    f"<div class='fdir-list'>{inner}</div></details>"
+                )
+            items += [chipf(p) for p in effort.extra_files]
+            out += [
+                "<section class='filebox'>",
+                f"<h4>附件 <span class='badge'>{n_extra}</span></h4>",
+                f"<div class='fbox-list'>{''.join(items)}</div>",
+                "</section>",
+            ]
         mmd = mermaid_graph(effort)
         if mmd:
             out.append(f"<pre class='mmd' data-spec='{esc(effort.name)}'>{esc(mmd)}</pre>")
@@ -1658,6 +1726,12 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         + _json.dumps(pv_files, ensure_ascii=False).replace("<", "\\u003c")
         + "</script>"
     )
+    # 生成期提取的 md h1 展示标题,openPv 只做 TITLES[k]||k 回退
+    out.append(
+        "<script id='tp-titles' type='application/json'>"
+        + _json.dumps(pv_titles, ensure_ascii=False).replace("<", "\\u003c")
+        + "</script>"
+    )
 
     out += [
         "<script>document.querySelectorAll('[data-copy-spec]').forEach(button => button.addEventListener('click', async () => {"
@@ -1820,9 +1894,11 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         # 侧栏一级分组折叠
         "<script>document.querySelectorAll('[data-navcap]').forEach(function(h){"
         "h.addEventListener('click',function(){h.classList.toggle('closed')})});</script>",
-        # 页内预览:点任何嵌入了原文的 md 链接,右侧抽屉渲染;没有嵌入的回退新标签
+        # 页内预览:点任何嵌入了原文的链接,居中弹窗渲染;没有嵌入的回退新标签。
+        # md 走 renderMd,csv/tsv/json/yaml 走内置美化,标题用生成期 tp-titles
         r"<script>(function(){"
         r"var PV={};try{PV=JSON.parse(document.getElementById('tp-files').textContent)}catch(e){}"
+        r"var TITLES={};try{TITLES=JSON.parse(document.getElementById('tp-titles').textContent)}catch(e){}"
         r"var wrap=document.getElementById('pvWrap'),body=document.getElementById('pvBody'),"
         r"title=document.getElementById('pvTitle'),raw=document.getElementById('pvRaw');"
         r"function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;')}"
@@ -1861,8 +1937,46 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         r"while(i<L.length&&L[i].trim()&&!/^(#{1,4}\s|```|>|\s*([-*]|\d+\.)\s)/.test(L[i])&&L[i].indexOf('|')<0){para.push(L[i]);i++}"
         r"out.push('<p>'+inline(para.join('<br>'))+'</p>')}"
         r"return out.join('\n')}"
-        r"function openPv(k){title.textContent=k;raw.href=k;"
-        r"body.innerHTML=renderMd(PV[k]||'(空文件)');body.scrollTop=0;wrap.classList.add('open')}"
+        # csv/tsv 解析成表格(支持 "" 转义);解析失败回退原文 pre
+        r"function parseCsv(src,sep){var rows=[[]],r=0,cur='',q=false,i;"
+        r"for(i=0;i<src.length;i++){var ch=src.charAt(i);"
+        r"if(q){if(ch==='\"'){if(src.charAt(i+1)==='\"'){cur+='\"';i++}else q=false}else cur+=ch}"
+        r"else if(ch==='\"')q=true;"
+        r"else if(ch===sep){rows[r].push(cur);cur=''}"
+        r"else if(ch==='\n'){rows[r].push(cur);rows.push([]);r++;cur=''}"
+        r"else if(ch!=='\r')cur+=ch}"
+        r"rows[r].push(cur);"
+        r"return rows.filter(function(row){return !(row.length===1&&row[0]==='')})}"
+        r"function renderCsv(src,sep){var rows=parseCsv(src,sep);"
+        r"if(!rows.length)return '<pre>'+escHtml(src)+'</pre>';"
+        r"var h='<table><thead><tr>'+rows[0].map(function(c){return '<th>'+escHtml(c)+'</th>'}).join('')+'</tr></thead><tbody>';"
+        r"for(var i=1;i<rows.length;i++)h+='<tr>'+rows[i].map(function(c){return '<td>'+escHtml(c)+'</td>'}).join('')+'</tr>';"
+        r"return h+'</tbody></table>'}"
+        # json 缩进美化 + 基本高亮:键/字符串/字面量/数字,一次替换避免嵌套重包
+        r"function renderJson(s){var o;try{o=JSON.parse(s)}catch(e){return '<pre>'+escHtml(s)+'</pre>'}"
+        r"var t=escHtml(JSON.stringify(o,null,2))"
+        r".replace(/&quot;([\s\S]*?)&quot;(\s*:)|&quot;([\s\S]*?)&quot;/g,function(m,k,c,str){"
+        r"return k!=null?'<span class=\"jkey\">&quot;'+k+'&quot;</span>'+c"
+        r":'<span class=\"jstr\">&quot;'+str+'&quot;</span>'})"
+        r".replace(/\b(true|false|null)\b/g,'<span class=\"jnum\">$1</span>')"
+        r".replace(/(^|[\s,\[])(-?\d+(?:\.\d+)?)(?=$|[\s,\]])/g,'$1<span class=\"jnum\">$2</span>');"
+        r"return '<pre><code>'+t+'</code></pre>'}"
+        # yaml 基本高亮:注释行整行、键、引号字符串、数字
+        r"function hlYaml(src){return src.split('\n').map(function(l){"
+        r"var e=escHtml(l);"
+        r"if(/^\s*#/.test(l))return '<span class=\"jcom\">'+e+'</span>';"
+        r"e=e.replace(/^(\s*(?:-\s+)?)([^:#]+?)(:)(\s|$)/,'$1<span class=\"jkey\">$2</span>$3$4');"
+        r"e=e.replace(/(&quot;[\s\S]*?&quot;|'[^']*')/g,'<span class=\"jstr\">$1</span>');"
+        r"e=e.replace(/(^|\s)(-?\d+(?:\.\d+)?)(?=$|\s)/g,'$1<span class=\"jnum\">$2</span>');"
+        r"return e}).join('\n')}"
+        r"function extOf(k){var m=k.toLowerCase().match(/\.([a-z0-9]+)$/);return m?m[1]:''}"
+        r"function openPv(k){title.textContent=TITLES[k]||k;raw.href=k;"
+        r"var s=PV[k]||'(空文件)',ext=extOf(k),html;"
+        r"if(ext==='csv'||ext==='tsv')html=renderCsv(s,ext==='tsv'?'\t':',');"
+        r"else if(ext==='json')html=renderJson(s);"
+        r"else if(ext==='yaml'||ext==='yml')html='<pre><code>'+hlYaml(s)+'</code></pre>';"
+        r"else html=renderMd(s);"
+        r"body.innerHTML=html;body.scrollTop=0;wrap.classList.add('open')}"
         r"function closePv(){wrap.classList.remove('open')}"
         r"document.getElementById('pvClose').addEventListener('click',closePv);"
         r"wrap.addEventListener('click',function(e){if(e.target===wrap)closePv()});"
