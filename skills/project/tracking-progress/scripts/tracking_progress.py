@@ -851,7 +851,7 @@ CSS = """
     box-shadow:0 24px 70px rgba(28,43,58,.3);display:flex;flex-direction:column;
     animation:pvslide .28s cubic-bezier(.22,.9,.3,1)}
   @keyframes pvslide{from{transform:translateY(14px) scale(.98);opacity:0}to{transform:none;opacity:1}}
-  .pv-head{display:flex;align-items:center;gap:12px;padding:13px 20px;border-bottom:1px solid var(--rule);flex-shrink:0}
+  .pv-head{display:flex;align-items:center;gap:12px;padding:13px 20px;border-bottom:1px solid var(--rule);flex-shrink:0;position:relative;z-index:1}
   .pv-head .t{font:600 14px var(--mono);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .pv-head .raw{font:500 12px var(--sans);color:var(--ink-2);white-space:nowrap}
   .pv-head .close{margin-left:auto;font:600 12px/1 var(--sans);color:var(--ink-2);background:var(--panel);
@@ -871,7 +871,7 @@ CSS = """
     padding:12px 10px;overflow-x:auto;margin:14px 0}
   .pv-body pre code{background:none;border:0;padding:0;font-size:12.5px;line-height:1.6}
   .pv-body blockquote{margin:12px 0;padding:2px 14px;border-left:3px solid var(--rule-2);color:var(--ink-2)}
-  .pv-frame{width:100%;height:calc(100% - 4px);border:1px solid var(--rule);border-radius:10px;background:#fff}
+  .pv-frame{display:block;width:100%;height:calc(100% - 4px);border:1px solid var(--rule);border-radius:10px;background:#fff}
   .pv-img{display:block;max-width:100%;max-height:calc(100% - 4px);margin:0 auto;border-radius:10px}
   .pv-body table{width:auto;max-width:100%;border-collapse:collapse;margin:14px 0;font-size:13px}
   .pv-body th{border:1px solid var(--rule);border-bottom-width:2px;padding:7px 12px;background:var(--row-hover)}
