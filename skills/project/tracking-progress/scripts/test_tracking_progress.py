@@ -828,6 +828,46 @@ def test_render_binary_non_image_falls_back_new_tab(tmp_path):
     assert ">blob.bin ↗</a>" in page
 
 
+def test_render_video_pdf_not_embedded_no_arrow(tmp_path):
+    """mp4/pdf 不进 tp-files/tp-imgs 通道、条目不带 ↗(拦截器接住进弹窗)。"""
+    root = build_repo(tmp_path)
+    scratch = root / ".scratch"
+    (scratch / "alpha" / "demo.mp4").write_bytes(b"\x00\x00\x00\x18ftypmp42")
+    (scratch / "alpha" / "doc.pdf").write_bytes(b"%PDF-1.4\n")
+    efforts, _ = tp.scan(scratch)
+    page = tp.render(efforts, [], scratch)
+    assert '"alpha/demo.mp4":' not in page
+    assert '"alpha/doc.pdf":' not in page
+    assert ">demo.mp4 ↗</a>" not in page
+    assert ">doc.pdf ↗</a>" not in page
+
+
+def test_render_docx_keeps_new_tab_arrow(tmp_path):
+    """office 与其余二进制维持 ↗ 新标签,不接进弹窗。"""
+    root = build_repo(tmp_path)
+    scratch = root / ".scratch"
+    (scratch / "alpha" / "r.docx").write_bytes(b"PK\x00\x00")
+    efforts, _ = tp.scan(scratch)
+    page = tp.render(efforts, [], scratch)
+    assert '"alpha/r.docx":' not in page
+    assert ">r.docx ↗</a>" in page
+
+
+def test_openpv_video_pdf_interceptor_source(tmp_path):
+    """openPv 有 video(相对 src + error 降级 ↗)与 pdf iframe 分支;拦截器
+    按 media 扩展名接住 _blank 条目,metaKey/ctrlKey 逃生口保留。"""
+    root = build_repo(tmp_path)
+    scratch = root / ".scratch"
+    efforts, _ = tp.scan(scratch)
+    page = tp.render(efforts, [], scratch)
+    assert "v.controls=true;v.preload='metadata'" in page
+    assert "v.src=k" in page
+    assert "该格式无法在浏览器播放" in page
+    assert 'iframe class=\\"pv-frame\\" src=' in page
+    assert "/^(mp4|m4v|mov|webm|pdf)$/.test(extOf(href))" in page
+    assert "!e.metaKey&&!e.ctrlKey" in page
+
+
 def test_render_webp_bmp_data_uri(tmp_path):
     """webp/bmp 按各自 MIME 转 base64 data URI 进 tp-imgs。"""
     root = build_repo(tmp_path)

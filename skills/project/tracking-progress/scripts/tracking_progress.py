@@ -873,6 +873,8 @@ CSS = """
   .pv-body blockquote{margin:12px 0;padding:2px 14px;border-left:3px solid var(--rule-2);color:var(--ink-2)}
   .pv-frame{display:block;width:100%;height:calc(100% - 4px);border:1px solid var(--rule);border-radius:10px;background:#fff}
   .pv-img{display:block;max-width:100%;max-height:calc(100% - 4px);margin:0 auto;border-radius:10px}
+  .pv-body video{display:block;max-width:100%;max-height:calc(100% - 4px);margin:0 auto;border-radius:10px;background:#000}
+  .pv-fallback{color:var(--ink-2)}
   .pv-body table{width:auto;max-width:100%;border-collapse:collapse;margin:14px 0;font-size:13px}
   .pv-body th{border:1px solid var(--rule);border-bottom-width:2px;padding:7px 12px;background:var(--row-hover)}
   .pv-body td{border:1px solid var(--rule);padding:6px 12px}
@@ -1227,6 +1229,9 @@ IMG_MIME = {
 }
 PV_HTML_BUDGET = 600_000
 PV_IMG_BUDGET = 1_400_000
+# 视频/PDF 不进 tp-files/tp-imgs 通道、不吃预算:前端按扩展名直接用相对路径
+# src/iframe 渲染(file:// 下 <video>/<iframe> 相对路径可用),渲染失败回退 ↗
+PV_MEDIA_EXTS = {".mp4", ".m4v", ".mov", ".webm", ".pdf"}
 
 
 def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
@@ -1310,6 +1315,8 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
             continue
         seen_rich.add(k)
         ext = p.suffix.lower()
+        if ext in PV_MEDIA_EXTS:
+            continue
         try:
             if ext == ".html":
                 if html_budget <= 0:
@@ -1620,7 +1627,8 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
 
             def chipf(p: Path) -> str:
                 k = rel(str(p), scratch)
-                mark = "" if (k in pv_files or k in pv_imgs) else " ↗"
+                in_pv = k in pv_files or k in pv_imgs or p.suffix.lower() in PV_MEDIA_EXTS
+                mark = "" if in_pv else " ↗"
                 return (f"<a class='chipf' href='{esc(k)}' target='_blank' rel='noopener'>"
                         f"{esc(p.name)}{mark}</a>")
 
@@ -2087,7 +2095,14 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         r"function openPv(k){title.textContent=TITLES[k]||k;raw.href=k;"
         r"var img=IMGS[k];"
         r"if(img){body.innerHTML='<img class=\"pv-img\" src=\"'+img+'\" alt=\"\">';body.scrollTop=0;wrap.classList.add('open');return}"
-        r"var s=PV[k]||'(空文件)',ext=extOf(k),html;"
+        r"var ext=extOf(k);"
+        # 视频:相对路径 src 直接播放;浏览器解不了的编码(如部分 mov)监听
+        # error 事件降级成 ↗ 外链;不吃预算、不内嵌
+        r"if(/^(mp4|m4v|mov|webm)$/.test(ext)){var v=document.createElement('video');v.controls=true;v.preload='metadata';v.src=k;"
+        r"v.addEventListener('error',function(){body.innerHTML='<p class=\"pv-fallback\">该格式无法在浏览器播放 <a href=\"'+escHtml(k)+'\" target=\"_blank\" rel=\"noopener\">↗</a></p>'});"
+        r"body.innerHTML='';body.appendChild(v);body.scrollTop=0;wrap.classList.add('open');return}"
+        r"if(ext==='pdf'){body.innerHTML='<iframe class=\"pv-frame\" src=\"'+escHtml(k)+'\"></iframe>';body.scrollTop=0;wrap.classList.add('open');return}"
+        r"var s=PV[k]||'(空文件)',html;"
         r"if(ext==='html'){body.innerHTML='<iframe class=\"pv-frame\" srcdoc=\"'+escHtml(s)+'\" sandbox=\"allow-scripts allow-same-origin\"></iframe>';body.scrollTop=0;wrap.classList.add('open');return}"
         r"if(ext==='csv'||ext==='tsv')html=renderCsv(s,ext==='tsv'?'\t':',');"
         r"else if(ext==='json')html=renderJson(s);"
@@ -2103,7 +2118,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         r"document.addEventListener('click',function(e){"
         r"var a=e.target.closest?e.target.closest('a'):null;if(!a)return;"
         r"var href=a.getAttribute('href')||'';"
-        r"if(a.target==='_blank'&&(PV.hasOwnProperty(href)||IMGS.hasOwnProperty(href))&&!e.metaKey&&!e.ctrlKey){"
+        r"if(a.target==='_blank'&&(PV.hasOwnProperty(href)||IMGS.hasOwnProperty(href)||/^(mp4|m4v|mov|webm|pdf)$/.test(extOf(href)))&&!e.metaKey&&!e.ctrlKey){"
         r"e.preventDefault();openPv(href)}});"
         r"})();</script>",
         LEDGER_JS,
