@@ -322,6 +322,28 @@ export async function completeAsk(dataRoot, askId, status = 'completed') {
     await atomicWriteJson(path.join(dataRoot, 'index.json'), { ...index, updatedAt: now() });
     return ask;
 }
+// 最后一次提问收尾后数据目录就没有存在价值了：asks/ 已空时默认目录整根删掉，
+// 不留 .ask-me 残壳；自定义 --data-dir 只清自有条目再尝试 rmdir，不碰目录里其他文件。
+// 判空看 asks/ 而不是 hasPendingAsk：已提交未读的答案同样不能删。
+export async function removeDataRootIfIdle(dataRoot) {
+    let entries;
+    try {
+        entries = await fs.readdir(path.join(dataRoot, 'asks'));
+    }
+    catch {
+        return;
+    }
+    if (entries.length)
+        return;
+    if (path.basename(dataRoot) === '.ask-me') {
+        await fs.rm(dataRoot, { recursive: true, force: true });
+        return;
+    }
+    for (const entry of ['asks', 'index.json', 'server.json', 'server.log']) {
+        await fs.rm(path.join(dataRoot, entry), { recursive: true, force: true });
+    }
+    await fs.rmdir(dataRoot).catch(() => { });
+}
 export async function hasPendingAsk(dataRoot) {
     const index = await readJson(path.join(dataRoot, 'index.json'), null);
     if (!index?.asks?.length)

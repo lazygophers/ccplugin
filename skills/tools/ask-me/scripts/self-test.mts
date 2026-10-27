@@ -124,9 +124,10 @@ try {
     ],
   });
   assert.equal(directSecond.status, 'submitted');
-  // 追问是独立的一次 ask，但常驻服务被复用：同一个 origin。
-  assert.equal(new URL(directSecond.testReadyUrl).origin, new URL(directFirst.testReadyUrl).origin);
+  // 追问是独立的一次 ask；直连模式每轮收尾即停服务、删数据目录，不复用端口。
   assert.notEqual(new URL(directSecond.testReadyUrl).pathname, new URL(directFirst.testReadyUrl).pathname);
+  // 直连收尾把数据目录整目录删掉，不留 .ask-me 残壳。
+  assert.ok(!existsSync(directDataRoot), 'direct ask 收尾后数据目录应整目录删除');
   assert.equal(directFirst.answers.answers.length, 2);
   assert.equal(directFirst.questions.questions.length, 2);
   assert.equal(directFirst.answers.answers[1].customText, '第一次提问完成');

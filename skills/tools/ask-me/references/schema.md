@@ -179,4 +179,5 @@ macOS 上多绕了一步：`open` 会按文件类型挑程序，`.md` 落到编�
 - 只要还有任何 `waiting_for_user` 的提问，服务一直运行。
 - 全部答完后，再有 24 小时无 HTTP 请求即退出。`ASK_ME_IDLE_TIMEOUT_MINUTES` 或 `serve --idle-timeout <分钟>` 可改这个时长。
 - 数据目录被删除时立即退出。
+- idle 退出（或收尾清空所有提问）时会把数据目录一并删掉。
 - `complete` 和 `cancel` 会在没有任何提问等待作答时当场停掉服务，返回值里的 `serverStopped` 表示是否真的停了。

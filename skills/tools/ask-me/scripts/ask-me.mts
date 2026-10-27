@@ -14,6 +14,7 @@ import {
   loadAskBundle,
   readAsk,
   readJson,
+  removeDataRootIfIdle,
   resumeAsk,
   submittedAskResult,
 } from './store.mjs';
@@ -127,6 +128,10 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
         process.stdout.write(`${JSON.stringify(result)}\n`, (error) => error ? reject(error) : resolve());
       });
       await completeAsk(dataRoot, created.askId);
+      // 直连提问每轮独立收尾：停掉常驻服务、整目录删掉数据目录。多轮复用
+      // 只保留给 create 分离式流程——那边由 Agent 读完后 complete 收摊。
+      await stopIdleServer(dataRoot);
+      await removeDataRootIfIdle(dataRoot);
     } finally {
       process.removeListener('SIGINT', onSigint);
       process.removeListener('SIGTERM', onSigterm);
@@ -184,9 +189,11 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
         onExit: (reason) => {
           process.stderr.write(`[${new Date().toISOString()}] serve exiting: ${reason}\n`);
           log('serve-exit', { reason });
-          started.server.close(() => resolve());
-          // 已建立的 keep-alive 连接会拖住 close，直接断掉。
-          started.server.closeAllConnections?.();
+          // idle 退出时没有任何待答表单，数据目录一并清掉；keep-alive 连接会拖住 close，直接断掉。
+          void removeDataRootIfIdle(dataRoot).finally(() => {
+            started.server.close(() => resolve());
+            started.server.closeAllConnections?.();
+          });
         },
       });
     });
@@ -216,7 +223,9 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
     log(command === 'cancel' ? 'ask-cancelled' : 'ask-completed', { askId });
     // 收尾时顺手关掉常驻服务，不必等它自己 idle 超时。
     // 目录已删、答案已陈旧，不再回显完整 questions/answers。
-    print({ status: completed.status, askId, serverStopped: await stopIdleServer(dataRoot) });
+    const serverStopped = await stopIdleServer(dataRoot);
+    await removeDataRootIfIdle(dataRoot);
+    print({ status: completed.status, askId, serverStopped });
     return;
   }
 

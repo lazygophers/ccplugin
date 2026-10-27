@@ -30,7 +30,7 @@ description: 开一个本地网页表单，一次把多个问题摆给用户、�
 按顺序往下退，退到能用的第一档为止：
 
 1. **Ask Me**（本 skill）——默认。
-2. **`AskUserQuestion`**——本 skill 用不了时改用它。用不了的情形有两种：harness 没有可执行命令的工具（Bash 或等价物），或服务/浏览器确实起不动。
+2. **`AskUserQuestion`**——本 skill 用不了时改用它。用不了的情形有两种：harness 没有可执行命令的工具（Bash 或等价物），或服务/浏览器确实起不动。Bash 只是被插件换成 MCP 沙箱工具（如 context-mode 的 `ctx_execute`）时**先走 `create` 分离式**（见故障速查表），它还走得通就不退到这一档。
 3. **对话里的编号文本问题**——只有在 `AskUserQuestion` 也拿不到时才允许。
 
 退档时说清真实原因，别把「没有 Bash 工具」写成「服务起不来」——前者换任何语言重写都没用，后者才是环境问题。用 `ToolSearch` 确认过工具确实不存在，再下结论。
@@ -67,7 +67,7 @@ description: 开一个本地网页表单，一次把多个问题摆给用户、�
 
 - URL 格式是 `http://127.0.0.1:<port>/<askId>`，不带 `/ask/`；`askId` 是随机 12 位十六进制字符串，不是标准完整 UUID。每次 `ask` 都会打开浏览器：提交后先保存 `answers.json`，再把完整问题、答案和 URL 写入 stdout，最后退出命令；页面在提交 3 秒后关闭。标准 `ask` 在 stdout 写完后立即调用 `complete` 清理；若使用 `create`，答案保留到 Agent 读完并执行 `complete`。
 - 用户填到一半的答案每改一下就写进 `<ask 目录>/draft.json`（停手 400 毫秒落一次，关标签页时补发一次）。刷新、关页重开、服务重启都接得回来；提交成功后这份草稿被删掉。**别把 `draft.json` 当答案读**，它是半成品，不过校验；正式答案只有 `answers.json`。
-- 常驻服务不需要手动清理，它自己管进退——退出规则见上一条与「故障速查」表里「表单挂了很久没人答」那一行。
+- 常驻服务不需要手动清理，它自己管进退——退出规则见上一条与「故障速查」表里「表单挂了很久没人答」那一行。最后一次提问收尾（`complete` / `cancel` / 直连 `ask` 自动收尾 / `serve` 空闲退出）会把数据目录整目录删掉；异常退出留下的 `.ask-me` 残壳可以整目录手动删除，里面没有别的状态。
 - 仅当浏览器打开由外部单独管理时才用 `--no-open`。仅当必须固定 localhost 端口时才用 `--port <number>`。
 
 ## 故障速查：出什么事，做什么
@@ -90,13 +90,14 @@ node <ASK_ME_SKILL_DIR>/scripts/ask-me.mjs resume --id <askId>
 | 表单挂了很久没人答，担心服务一直占着 | 什么都不做：有提问等着答服务就该一直跑，全部答完后 24 小时无访问自行退出，数据目录被删立即退出，`complete` / `cancel` 结束最后一个提问时当场停掉 | 🔴 不要手动 kill 进程；空闲时长要改就用 `ASK_ME_IDLE_TIMEOUT_MINUTES` |
 | 本地浏览器连不上临时服务 | 先看 `<dataRoot>/server.log` 最后一行确认服务为什么退出（`received SIGTERM` / `idle for N minutes` / `data directory is gone` / 崩溃栈），再走 `create` 分离式流程（见「手动回退与恢复」） | 仍连不上才退到 `AskUserQuestion` |
 | harness 没有 Bash 或等价的执行工具 | 用 `ToolSearch` 确认工具确实不存在，退到 `AskUserQuestion` | `AskUserQuestion` 也拿不到时才用对话里的编号文本问题 |
+| Bash 被插件换成 MCP 沙箱工具（如 context-mode 的 `ctx_execute`）：沙箱里没有 harness 后台任务、没有完成通知，stderr 用户也看不见 | 用沙箱跑 `create` 取 URL（不带 `--no-open` 时浏览器照常自动打开），回复第一行给 URL，并明说「提交后回我一句」；用户回话后 `resume` 取答案 | 🔴 别把 `ask` 丢进沙箱后台冒充后台任务——没有完成通知唤醒，只能干等；也不要 `sleep` 轮询 |
 | 唤醒适配器失败 | 保住答案，回到手动「已提交」流程 | 答案已落盘，用 `resume` 重取 |
 
 ## 手动回退与恢复
 
 🔴 **CHECKPOINT：这是最后手段，只在 `ask` 确实用不了时才走**——它是唯一需要用户回复「已提交」的路径。`ask` 在后台运行**不算**用不了，那是标准路径，按上面等通知即可。
 
-出现以下情况时走分离式（detached）流程：前台工具调用无法保持活跃、本地浏览器连不上临时服务、或需要恢复一个被中断的直连提问：
+出现以下情况时走分离式（detached）流程：前台工具调用无法保持活跃、Bash 被换成 MCP 沙箱工具（沙箱后台没有完成通知，见故障速查表）、本地浏览器连不上临时服务、或需要恢复一个被中断的直连提问：
 
 ```text
 node <ASK_ME_SKILL_DIR>/scripts/ask-me.mjs create --input <questions.json>
