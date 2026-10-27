@@ -934,7 +934,6 @@ CSS = """
   .dc .why::before{content:"为什么";font:600 10px/1.8 var(--mono);letter-spacing:.1em;flex-shrink:0}
   .dc .why .kl{color:#A0524A}
   .dc .why .kl::before{content:" · 否掉了";font:600 10px var(--mono)}
-  .docbar{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0 2px}
   .filebox{margin:18px 0 4px;padding:14px 16px;background:var(--panel);border:1px solid var(--rule);border-radius:11px}
   .filebox h4{display:flex;align-items:center;gap:9px;font:600 13.5px var(--sans);margin:0 0 10px}
   .filebox .badge{font:500 10.5px var(--mono);color:var(--ink-3);background:var(--bg);
@@ -1016,7 +1015,7 @@ def scan_index(scratch: Path) -> tuple[list[Path], list[Path]]:
     return ls(scratch / "memory"), ls(scratch / "research")
 
 
-def copy_btn(name: str, what: str = "spec 名称") -> str:
+def copy_btn(name: str, what: str = "feature 名称") -> str:
     """Small icon button next to an id/name; copies `name` on click."""
     icon = (
         "<svg width='12' height='12' viewBox='0 0 16 16' fill='none' "
@@ -1033,7 +1032,7 @@ def copy_btn(name: str, what: str = "spec 名称") -> str:
 def task_link(task: Task, scratch: Path, pv_files: dict[str, str]) -> str:
     if task.source:
         k = rel(task.source, scratch)
-        # 与 chipf/docbar 同口径:未嵌入正文的源文件回退新标签,标题后补 ↗
+        # 与 chipf 同口径:未嵌入正文的源文件回退新标签,标题后补 ↗
         mark = "" if k in pv_files else " ↗"
         return (
             f'<a href="{esc(k)}" target="_blank" '
@@ -1447,7 +1446,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
     icon_alert = "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8'><path d='M12 9v4M12 17h.01'/><circle cx='12' cy='12' r='9'/></svg>"
 
     side_proj = "".join(
-        f"<a href='#/spec-{esc(e.name)}'><span class='nm'>{esc(e.name)}</span>"
+        f"<a href='#/feature-{esc(e.name)}'><span class='nm'>{esc(e.name)}</span>"
         f"<span class='mini'><i style='width:{round(sum(1 for t in e.tasks if t.status == DONE) * 100 / len(e.tasks)) if e.tasks else 0}%'></i></span></a>"
         for e in efforts
     )
@@ -1540,9 +1539,9 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         f"<div class='v'><span data-n='{c[BLOCKED]}'>0</span></div>"
         f"<div class='meter'><i style='--w:{round(c[BLOCKED] * 100 / total) if total else 0}%;background:var(--blocked-fill)'></i></div></div>",
         "</div>",
-        f"<p class='statline rise d3'>spec <span>{len(efforts)}</span> 个 · 票 <span>{total}</span> 张 · "
+        f"<p class='statline rise d3'>feature <span>{len(efforts)}</span> 个 · 票 <span>{total}</span> 张 · "
         f"总进度 <span>{pct}%</span>（{c[DONE]} ÷ {total}） · 生成于 {time.strftime('%Y-%m-%d %H:%M')} · "
-        f"扫描 <code>{esc(str(scratch))}</code> 下 {len(efforts)} 个 spec 目录的票面文件与 "
+        f"扫描 <code>{esc(str(scratch))}</code> 下 {len(efforts)} 个 feature 目录的票面文件与 "
         f"<code>memory.md</code> 勾选行。一次快照，无历史记录——本页所有数字都由这一次扫描直接数出来。</p>",
         f"<div class='stack rise d3'>{band}</div><div class='ticks rise d3'>{ticks}</div>",
         "<p class='note rise d4'>",
@@ -1555,7 +1554,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "</p></section>",
     ]
 
-    # 功能台首页:每个 spec 一行,点名字进该 spec 的独立视图
+    # 功能台首页:每个 feature 一行,点名字进该 feature 的独立视图
     out += [
         "<section class='view' id='specs' data-route='specs'>",
         "<h2>功能台</h2>",
@@ -1582,7 +1581,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         epct = round(ec[DONE] * 100 / et) if et else 0
         band_e, _ = stacked_bar(et, ec, "") if et else ("", "")
         out.append(
-            f"<tr><td class='spec'><a href='#/spec-{esc(effort.name)}'>{esc(effort.name)}</a>{copy_btn(effort.name)}</td>"
+            f"<tr><td class='spec'><a href='#/feature-{esc(effort.name)}'>{esc(effort.name)}</a>{copy_btn(effort.name)}</td>"
             f"<td><div class='minibar' style='height:8px;border:1px solid var(--rule);border-radius:4px'>{band_e}</div></td>"
             f"<td class='num'>{ec[OPEN] or '·'}</td>"
             f"<td class='num'>{ec[ACTIVE] or '·'}</td>"
@@ -1608,7 +1607,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         out += [
             "<tbody>"
             + "".join(
-                f"<tr><td class='spec'><a href='#/spec-{esc(t.effort)}'>{esc(t.effort)}</a>{copy_btn(t.effort)}</td>"
+                f"<tr><td class='spec'><a href='#/feature-{esc(t.effort)}'>{esc(t.effort)}</a>{copy_btn(t.effort)}</td>"
                 f"<td class='lbl'>{esc(t.label)}{copy_btn(f'{t.effort}#{t.tid}', '票号') if t.tid else ''}</td>"
                 f"<td class='t'>{task_link(t, scratch, pv_files)}</td>"
                 f"<td class='meta'>{esc(t.kind) or '—'}</td>"
@@ -1622,9 +1621,9 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         out.append("<p class='empty'>没有可直接开工的票——要么全做完了，要么都卡在别的票后面。</p>")
     out.append("</section>")
 
-    # 每个 spec 一个独立视图(hash 路由 spec-<名>),代替原来的「按 spec 明细」长列表
+    # 每个 feature 一个独立视图(hash 路由 feature-<名>),代替原来的「按 spec 明细」长列表
     for effort in efforts:
-        out.append(f"<div class='view' id='view-spec-{esc(effort.name)}' data-route='spec-{esc(effort.name)}'>")
+        out.append(f"<div class='view' id='view-feature-{esc(effort.name)}' data-route='feature-{esc(effort.name)}'>")
         ec = {s: 0 for s in STATUS_LABEL}
         for t in effort.tasks:
             ec[t.status] += 1
@@ -1632,7 +1631,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         epct = round(ec[DONE] * 100 / et) if et else 0
         minibar, _ = stacked_bar(et, ec, "") if et else ("", "")
         name_html = esc(effort.name)
-        # 徽章纯标签不可点:展示入口统一收进 docbar(弹窗)与底部附件区块
+        # 徽章纯标签不可点:展示入口统一收进文档区块(弹窗)与底部附件区块
         kinds = []
         if effort.is_map:
             kinds.append("<span class='kind'>wayfinder 地图</span>")
@@ -1640,25 +1639,32 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
             kinds.append("<span class='kind'>spec</span>")
         if effort.single:
             kinds.append("<span class='kind tbd'>单文件</span>")
-        # 文档入口:spec / 地图 / 单文件。链接带 target=_blank,点击被拦截器
-        # 接住进居中弹窗;超预算文件不在 tp-files,回退真新标签,加 ↗ 区分
-        docs = []
+        # 文档入口:地图 / spec / memory / 单文件按类型各一个区块。链接带
+        # target=_blank,点击被拦截器接住进居中弹窗;超预算文件不在
+        # tp-files,回退真新标签,加 ↗ 区分
+        def fbox(label: str, cnt: int, body: str) -> str:
+            return (f"<section class='filebox'><h4>{label} "
+                    f"<span class='badge'>{cnt}</span></h4>"
+                    f"<div class='fbox-list'>{body}</div></section>")
+
+        def chip(k: str, t: str) -> str:
+            return (f"<a class='chipf' href='{esc(k)}' target='_blank' rel='noopener'>"
+                    f"{esc(t)}{' ↗' if k not in pv_files else ''}</a>")
+
+        doc_sections = []
         if effort.is_map:
             k = rel(str(effort.path / "map.md"), scratch)
-            docs.append((k, pv_titles.get(k, "map.md")))
+            doc_sections.append(fbox("map", 1, chip(k, pv_titles.get(k, "map.md"))))
         if effort.has_spec:
             k = rel(str(effort.path / "spec.md"), scratch)
-            docs.append((k, pv_titles.get(k, "spec.md")))
+            doc_sections.append(fbox("spec", 1, chip(k, pv_titles.get(k, "spec.md"))))
+        if (effort.name != ROOT and not effort.single
+                and (effort.path / "memory.md").exists()):
+            k = rel(str(effort.path / "memory.md"), scratch)
+            doc_sections.append(fbox("memory", 1, chip(k, pv_titles.get(k, "memory.md"))))
         if effort.single:
             k = rel(str(effort.single), scratch)
-            docs.append((k, pv_titles.get(k, effort.single.name)))
-        docbar = ""
-        if docs:
-            docbar = "<div class='docbar'>" + "".join(
-                f"<a class='chipf' href='{esc(k)}' target='_blank' rel='noopener'>"
-                f"{esc(t)}{' ↗' if k not in pv_files else ''}</a>"
-                for k, t in docs
-            ) + "</div>"
+            doc_sections.append(fbox("文档", 1, chip(k, pv_titles.get(k, effort.single.name))))
         # 未建票 = 只有 map.md/清单行、还没有票面文件的条目
         tbd = sum(1 for t in effort.tasks if not t.from_file)
         if et and tbd:
@@ -1676,7 +1682,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
             f"</span></span></h3>",
             *kinds,
             f"<span class='cnt'>{et} 张 · {ec[DONE]} 已完成</span></div>",
-            docbar,
+            *doc_sections,
             *design_gallery(effort, scratch),
             f"<div class='minibar'>{minibar}</div>",
             f"<div class='minicap'><span>{STATUS_LABEL[DONE]} {ec[DONE]}</span>"
@@ -1684,7 +1690,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
             f"<span>{epct}%({ec[DONE]} ÷ {et})</span></div>" if et else "",
         ]
         # 附件区块:沉到视图底部;asset_dirs 目录条目可展开(默认展开)列出
-        # 目录内每个文件,文件条目规则与 docbar 一致(文本/图片弹窗,二进制 ↗)
+        # 目录内每个文件,文件条目规则与 chip 一致(文本/图片弹窗,二进制 ↗)
         if effort.assets or effort.asset_dirs or effort.extra_files:
             n_extra = len(effort.assets) + len(effort.asset_dirs) + len(effort.extra_files)
 
@@ -1697,7 +1703,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
 
             def render_fdir(nm: str, d: Path, cnt: int) -> str:
                 """目录递归嵌套:每层子目录一个 details/summary(递归文件数),
-                文件条目为叶子;条目规则与 docbar 一致。"""
+                文件条目为叶子;条目规则与 chip 一致。"""
                 tree: dict = {}
                 for f in sorted(d.rglob("*")):
                     if f.is_file():
@@ -1738,6 +1744,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
             out.append(f"<pre class='mmd' data-spec='{esc(effort.name)}'>{esc(mmd)}</pre>")
         if et:
             out += [
+                f"<section class='filebox'><h4>票 <span class='badge'>{et}</span></h4>",
                 f"<table><thead><tr><th style='width:44px'>ticket</th>"
                 f"<th>标题<span class='share-wrap'><button type='button' class='share-btn'>分享</button>"
                 f"<span class='share-menu'>"
@@ -1771,29 +1778,27 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
                     f"<td class='num {'unlocks' if t.unlocks else 'unlocks-0'}'>"
                     f"{t.unlocks or '·'}</td></tr>"
                 )
-            out.append("</tbody></table>")
+            out.append("</tbody></table></section>")
         else:
             out.append("<p class='empty'>只有 spec / 地图，没扫到票。</p>")
         if effort.research:
-            links = "、".join(
-                f"<a href='{esc(rel(str(p), scratch))}' target='_blank' rel='noopener'>"
+            links = "".join(
+                f"<a class='chipf' href='{esc(rel(str(p), scratch))}' target='_blank' rel='noopener'>"
                 f"{esc(re.sub(r'^\\d+-', '', p.stem).replace('-', ' '))}</a>"
                 for p in effort.research
             )
-            out.append(
-                f"<p class='research'>research {len(effort.research)} 篇：{links}</p>"
-            )
+            out.append(fbox("调研", len(effort.research), links))
         out.append("</div>")
 
     if stale:
         rows = sorted(stale, key=lambda e: e.mtime)
         out += ["<section class='view' id='stale' data-route='stale'>", "<h2>久未动</h2>",
-                f"<p class='sub'>超过 {STALE_DAYS} 天没有任何文件改动、且还有未完成票的 spec。</p>"]
+                f"<p class='sub'>超过 {STALE_DAYS} 天没有任何文件改动、且还有未完成票的 feature。</p>"]
         out += [
             "<table><thead><tr><th>feature</th><th class='num'>未完成</th>"
             "<th class='num'>最后改动</th></tr></thead><tbody>",
             "".join(
-                f"<tr><td class='spec'><a href='#/spec-{esc(e.name)}'>{esc(e.name)}</a>{copy_btn(e.name)}</td>"
+                f"<tr><td class='spec'><a href='#/feature-{esc(e.name)}'>{esc(e.name)}</a>{copy_btn(e.name)}</td>"
                 f"<td class='num'>{sum(1 for t in e.tasks if t.status != DONE)} 张</td>"
                 f"<td class='num'>{int((now - e.mtime) / 86400)} 天前</td></tr>"
                 for e in rows
@@ -1814,7 +1819,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
             "".join(
                 f"<tr class='r-done'><td class='lbl'>"
                 f"{time.strftime('%Y-%m-%d', time.localtime(t.mtime))}</td>"
-                f"<td class='spec'><a href='#/spec-{esc(t.effort)}'>{esc(t.effort)}</a>{copy_btn(t.effort)}</td>"
+                f"<td class='spec'><a href='#/feature-{esc(t.effort)}'>{esc(t.effort)}</a>{copy_btn(t.effort)}</td>"
                 f"<td class='t'>{task_link(t, scratch, pv_files)}</td></tr>"
                 for t in recent
             ),

@@ -186,6 +186,8 @@ def build_repo(tmp_path: Path) -> Path:
         "# Map\n\n## Destination\n\n出一份 spec。\n\n"
         "- [ ] 04 后续扩展（还没建票）\n",
     )
+    # 无勾选行的 memory.md:只让 feature 视图出现 memory 区块,不影响任何计数
+    write(scratch / "alpha" / "memory.md", "## 工作区备忘\n\n（无勾选行）\n")
     write(
         scratch / "alpha" / "issues" / "01-first.md",
         "# 01 — 第一张票\n\nType: research\nStatus: resolved\nBlocked by: —\n",
@@ -258,9 +260,10 @@ def test_render_contains_every_section(tmp_path):
     assert "notes.md" in page
     assert "2026-09-18.md" in page
     assert "research/deep.md" in page
-    # 每个 spec 是侧栏的一个二级菜单项,指向它的独立视图(hash 路由)
-    assert "href='#/spec-alpha'" in page
-    assert "id='view-spec-alpha'" in page
+    # 每个 feature 是侧栏的一个二级菜单项,指向它的独立视图(hash 路由)
+    assert "href='#/feature-alpha'" in page
+    assert "id='view-feature-alpha'" in page
+    assert "data-route='feature-alpha'" in page
     assert "class='proj'" in page
     assert "class='mini'" in page
     # 页内预览:md 原文嵌进页面(tp-files),点击链接抽屉渲染
@@ -567,7 +570,7 @@ def test_now_view_feature_cells_link_to_detail(tmp_path):
     assert "<th style='width:130px'>feature</th>" in page  # 可开工表头
     assert ">spec</th>" not in page
     # 可开工行的 feature 名是指向详情视图的链接
-    assert "<a href='#/spec-alpha'>alpha</a>" in page
+    assert "<a href='#/feature-alpha'>alpha</a>" in page
 
 
 def test_memory_view_stubs_and_on_demand(tmp_path):
@@ -602,8 +605,8 @@ def test_top_level_unknown_md_becomes_single_file_feature(tmp_path):
     assert sf and sf[0].single is not None
     assert unparsed == []
     page = tp.render(efforts, unparsed, scratch)
-    assert "id='view-spec-平台管理页-重设计'" in page       # 独立视图
-    assert "href='#/spec-平台管理页-重设计'" in page        # 侧栏/功能台可进
+    assert "id='view-feature-平台管理页-重设计'" in page       # 独立视图
+    assert "href='#/feature-平台管理页-重设计'" in page        # 侧栏/功能台可进
     assert ">单文件</span>" in page                         # 徽标(纯标签不可点)
     assert "id='unknown'" not in page                       # 未识别桶已取消
     assert '"平台管理页-重设计.md":' in page                 # 原文已嵌入预览
@@ -698,14 +701,19 @@ def test_render_badges_are_plain_labels(tmp_path):
     assert "class='kind' href" not in page
 
 
-def test_render_docbar_and_tp_titles(tmp_path):
-    """docbar 是新展示入口,标题用生成期 h1;tp-titles JSON 通道存在。"""
+def test_render_doc_blocks_and_tp_titles(tmp_path):
+    """文档入口按类型分区块(map/spec/memory),标题用生成期 h1;tp-titles JSON 通道存在。"""
     root = build_repo(tmp_path)
     scratch = root / ".scratch"
     (scratch / "alpha" / "spec.md").write_text("# Alpha 规格\n正文\n", encoding="utf-8")
     efforts, _ = tp.scan(scratch)
     page = tp.render(efforts, [], scratch)
-    assert "class='docbar'" in page
+    assert "class='docbar'" not in page
+    assert "<h4>spec <span class='badge'>1</span></h4>" in page
+    assert "<h4>map <span class='badge'>1</span></h4>" in page
+    assert "<h4>memory <span class='badge'>1</span></h4>" in page
+    assert "<h4>票 <span class='badge'>" in page
+    assert "<h4>调研 <span class='badge'>" not in page  # fixture 无 alpha 级 research/
     assert "href='alpha/spec.md'" in page
     assert "id='tp-titles'" in page
     assert "Alpha 规格（spec.md）" in page  # 生成期提取,不是文件名
