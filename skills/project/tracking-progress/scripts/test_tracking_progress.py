@@ -878,8 +878,11 @@ def test_openpv_video_pdf_interceptor_source(tmp_path):
     assert "v.src=k" in page
     assert "该格式无法在浏览器播放" in page
     assert 'iframe class=\\"pv-frame\\" src=' in page
-    assert "/^(mp4|m4v|mov|webm|pdf)$/.test(extOf(href))" in page
+    assert "function isMedia(k){return /^(mp4|m4v|mov|webm|pdf)$/.test(extOf(k))||IEXT.test(extOf(k))}" in page
     assert "!e.metaKey&&!e.ctrlKey" in page
+    # iframe 预览的本地链接经 postMessage 回传父页,同一弹窗通道打开
+    assert "window.addEventListener('message'" in page and "tpPreview" in page
+    assert "injectBase(s)" in page and "pvResolve(u)" in page
 
 
 def test_render_webp_bmp_data_uri(tmp_path):

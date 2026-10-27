@@ -2070,10 +2070,25 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         r"var wrap=document.getElementById('pvWrap'),body=document.getElementById('pvBody'),"
         r"title=document.getElementById('pvTitle'),raw=document.getElementById('pvRaw');"
         r"function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;')}"
+        r"var pvDir='';var IEXT=/^(png|jpg|jpeg|gif|svg|webp|bmp|ico|avif)$/;"
+        r"function isMedia(k){return /^(mp4|m4v|mov|webm|pdf)$/.test(extOf(k))||IEXT.test(extOf(k))}"
+        # 预览文件内的相对链接按「所在文件目录」解析成仓库相对键(pvDir 在 openPv 里设置)
+        r"function pvResolve(h){h=String(h).replace(/^file:\/\//,'').replace(/^\.\//,'');"
+        r"var parts=(pvDir?pvDir+'/':'')+h,out=[];"
+        r"for(var i=0;i<parts.length;i++){var p=parts[i];if(!p||p==='.')continue;if(p==='..')out.pop();else out.push(p)}"
+        r"return out.join('/')}"
+        # srcdoc iframe 没有 URL 基准:注入 <base> 指到文件真实目录,并回传本地链接点击给父页弹窗
+        r"function injectBase(s){var dir='file://'+location.pathname.replace(/[^/]*$/,'')+(pvDir?pvDir+'/':'');"
+        r"var b='<base href=\"'+dir+'\"><script>document.addEventListener(\"click\",function(e){var a=e.target.closest?e.target.closest(\"a\"):null;if(!a)return;"
+        r"var h=a.getAttribute(\"href\")||\"\";if(!/^(https?:|mailto:|javascript:|#|data:)/i.test(h)){e.preventDefault();parent.postMessage({tpPreview:h},\"*\")}},true);<\/script>';"
+        r"if(/<head[^>]*>/i.test(s))return s.replace(/<head[^>]*>/i,function(m){return m+b});"
+        r"if(/<html[^>]*>/i.test(s))return s.replace(/<html[^>]*>/i,function(m){return m+b});"
+        r"return b+s}"
         r"function inline(s){return s"
         r".replace(/`([^`]+)`/g,'<code>$1</code>')"
         r".replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>')"
-        r".replace(/\[([^\]]+)\]\(([^)\s]+)\)/g,function(m,t,u){return '<a href=\"'+u+'\" target=\"_blank\" rel=\"noopener\">'+t+'</a>'})}"
+        r".replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g,function(m,t,u){var k=pvResolve(u);return '<img class=\"pv-img\" src=\"'+(IMGS[k]||k)+'\" alt=\"'+t+'\">'})"
+        r".replace(/\[([^\]]+)\]\(([^)\s]+)\)/g,function(m,t,u){return '<a href=\"'+pvResolve(u)+'\" target=\"_blank\" rel=\"noopener\">'+t+'</a>'})}"
         r"function renderMd(src){"
         r"var L=escHtml(src).split('\n'),out=[],i=0;"
         r"function cells(r){r=r.replace(/^\s*\|/,'').replace(/\|\s*$/,'');"
@@ -2138,10 +2153,9 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         r"e=e.replace(/(^|\s)(-?\d+(?:\.\d+)?)(?=$|\s)/g,'$1<span class=\"jnum\">$2</span>');"
         r"return e}).join('\n')}"
         r"function extOf(k){var m=k.toLowerCase().match(/\.([a-z0-9]+)$/);return m?m[1]:''}"
-        r"function openPv(k){title.textContent=TITLES[k]||k;raw.href=k;"
-        r"var img=IMGS[k];"
-        r"if(img){body.innerHTML='<img class=\"pv-img\" src=\"'+img+'\" alt=\"\">';body.scrollTop=0;wrap.classList.add('open');return}"
-        r"var ext=extOf(k);"
+        r"function openPv(k){title.textContent=TITLES[k]||k;raw.href=k;pvDir=k.indexOf('/')>=0?k.slice(0,k.lastIndexOf('/')):'';"
+        r"var img=IMGS[k],ext=extOf(k);"
+        r"if(img||IEXT.test(ext)){body.innerHTML='<img class=\"pv-img\" src=\"'+(img||k)+'\" alt=\"\">';body.scrollTop=0;wrap.classList.add('open');return}"
         # 视频:相对路径 src 直接播放;浏览器解不了的编码(如部分 mov)监听
         # error 事件降级成 ↗ 外链;不吃预算、不内嵌
         r"if(/^(mp4|m4v|mov|webm)$/.test(ext)){var v=document.createElement('video');v.controls=true;v.preload='metadata';v.src=k;"
@@ -2149,7 +2163,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         r"body.innerHTML='';body.appendChild(v);body.scrollTop=0;wrap.classList.add('open');return}"
         r"if(ext==='pdf'){body.innerHTML='<iframe class=\"pv-frame\" src=\"'+escHtml(k)+'\"></iframe>';body.scrollTop=0;wrap.classList.add('open');return}"
         r"var s=PV[k]||'(空文件)',html;"
-        r"if(ext==='html'){body.innerHTML='<iframe class=\"pv-frame\" srcdoc=\"'+escHtml(s)+'\" sandbox=\"allow-scripts allow-same-origin\"></iframe>';body.scrollTop=0;wrap.classList.add('open');return}"
+        r"if(ext==='html'){body.innerHTML='<iframe class=\"pv-frame\" srcdoc=\"'+escHtml(injectBase(s))+'\" sandbox=\"allow-scripts allow-same-origin\"></iframe>';body.scrollTop=0;wrap.classList.add('open');return}"
         r"if(ext==='csv'||ext==='tsv')html=renderCsv(s,ext==='tsv'?'\t':',');"
         r"else if(ext==='json')html=renderJson(s);"
         r"else if(ext==='yaml'||ext==='yml')html='<pre><code>'+hlYaml(s)+'</code></pre>';"
@@ -2164,8 +2178,12 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         r"document.addEventListener('click',function(e){"
         r"var a=e.target.closest?e.target.closest('a'):null;if(!a)return;"
         r"var href=a.getAttribute('href')||'';"
-        r"if(a.target==='_blank'&&(PV.hasOwnProperty(href)||IMGS.hasOwnProperty(href)||/^(mp4|m4v|mov|webm|pdf)$/.test(extOf(href)))&&!e.metaKey&&!e.ctrlKey){"
+        r"if(a.target==='_blank'&&(PV.hasOwnProperty(href)||IMGS.hasOwnProperty(href)||isMedia(href))&&!e.metaKey&&!e.ctrlKey){"
         r"e.preventDefault();openPv(href)}});"
+        # iframe 预览里点本地链接回传父页:在通道内走同一弹窗,不在通道内真开新标签
+        r"window.addEventListener('message',function(e){var h=e.data&&e.data.tpPreview;if(!h)return;"
+        r"var k=pvResolve(h);"
+        r"if(PV.hasOwnProperty(k)||IMGS.hasOwnProperty(k)||isMedia(k)){openPv(k)}else{window.open(k,'_blank')}});"
         r"})();</script>",
         LEDGER_JS,
         "<script>" + MERMAID_JS + "</script>",
