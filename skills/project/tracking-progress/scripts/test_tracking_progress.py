@@ -524,9 +524,11 @@ def test_ticket_establishment_marks(tmp_path):
     scratch = root / ".scratch"
     efforts, _ = tp.scan(scratch)
     page = tp.render(efforts, [], scratch)
-    # alpha: map 上有 04 无票文件 → 未建票徽章 + 票行「未建」标 + 图上虚线
+    # alpha: map 上有 04 无票文件 → 未建票徽章 + roadmap 路线列表 + 图上虚线
     assert "未建票 1" in page  # map 上的 04;根清单的无编号行算在根 effort 头上
-    assert "<i class='tbdmark'>未建</i>" in page
+    assert "<h4>roadmap <span class='badge'>1</span></h4>" in page
+    assert "04" in page.split("<ol class='maplist'>")[1].split("</ol>")[0]
+    assert "后续扩展" in page.split("<ol class='maplist'>")[1].split("</ol>")[0]
     assert "classDef tbd stroke-dasharray:5 5" in page
     assert "票已建齐" in page  # beta 全部有票面文件
     # 总览表带「未建」列
@@ -712,8 +714,8 @@ def test_render_doc_blocks_and_tp_titles(tmp_path):
     assert "<h4>spec <span class='badge'>1</span></h4>" in page
     assert "<h4>map <span class='badge'>1</span></h4>" in page
     assert "<h4>memory <span class='badge'>1</span></h4>" in page
-    assert "<h4>票 <span class='badge'>" in page
-    assert "<h4>调研 <span class='badge'>" not in page  # fixture 无 alpha 级 research/
+    assert "<h4>tickets <span class='badge'>" in page
+    assert "<h4>research <span class='badge'>" not in page  # fixture 无 alpha 级 research/
     assert "href='alpha/spec.md'" in page
     assert "id='tp-titles'" in page
     assert "Alpha 规格（spec.md）" in page  # 生成期提取,不是文件名
@@ -998,3 +1000,51 @@ def test_pv_resolve_strips_scratch_prefix(tmp_path):
     assert plain == "alpha/issues/02-second.md"  # 普通相对链接照旧吃 pvDir
     # 解析出的键就是 tp-files 里的内嵌键(能走内部预览)
     assert '"alpha/issues/01-first.md":' in page
+
+
+def test_feature_view_sections_classified_by_source(tmp_path):
+    """票区块只收票面文件;memory 勾选行进 memory 区块,map 行走 roadmap 列表;
+    分区标题用英文术语。"""
+    scratch = tmp_path / ".scratch"
+    solo = scratch / "solo"
+    solo.mkdir(parents=True)
+    (solo / "memory.md").write_text(
+        "# solo\n\n## checkpoint\n- [x] 记忆完成行\n- [ ] 07 记忆待办行\n",
+        encoding="utf-8",
+    )
+    (solo / "issues").mkdir()
+    (solo / "issues" / "01-ticket.md").write_text(
+        "# 01 — 真票面\n\nStatus: open\n", encoding="utf-8"
+    )
+    (solo / "extra.txt").write_text("x", encoding="utf-8")
+    (solo / "research").mkdir()
+    (solo / "research" / "deep.md").write_text("# 深挖\n", encoding="utf-8")
+    routed = scratch / "routed"
+    routed.mkdir()
+    (routed / "map.md").write_text(
+        "# routed map\n\n- [ ] 10 路线条目\n", encoding="utf-8"
+    )
+    (scratch / "flat.md").write_text("# 平铺\n\n说明文字,无勾选行。\n", encoding="utf-8")
+    efforts, _ = tp.scan(scratch)
+    solo_tasks = {t.title: t for t in next(e for e in efforts if e.name == "solo").tasks}
+    assert solo_tasks["真票面"].from_file is True
+    assert solo_tasks["记忆完成行"].from_file is False
+    page = tp.render(efforts, [], scratch)
+    # tickets 表只含票面行,memory 勾选行不进票表
+    tickets_seg = page.split("<h4>tickets")[1].split("</table>")[0]
+    assert "真票面" in tickets_seg
+    assert "记忆完成行" not in tickets_seg
+    assert "<h4>memory <span class='badge'>2</span>" in page
+    mem_seg = page.split("<h4>memory <span class='badge'>2</span>")[1].split("</table>")[0]
+    assert "记忆完成行" in mem_seg and "记忆待办行" in mem_seg
+    # map 行走 roadmap 路线列表,不是表格
+    assert "<h4>roadmap <span class='badge'>1</span></h4>" in page
+    assert "路线条目" in page.split("<ol class='maplist'>")[1].split("</ol>")[0]
+    # feature 视图分区标题统一英文术语
+    assert "<h4>assets <span class='badge'>1</span></h4>" in page
+    assert "<h4>research <span class='badge'>1</span></h4>" in page
+    assert "<h4>docs <span class='badge'>1</span></h4>" in page
+    assert "<h4>票 <span" not in page
+    assert "<h4>附件" not in page
+    assert "<h4>调研" not in page
+    assert "<h4>文档" not in page

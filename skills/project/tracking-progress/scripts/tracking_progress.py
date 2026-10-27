@@ -806,7 +806,6 @@ CSS = """
   .spec-head .cnt{font-size:12px;color:var(--ink-2);margin-left:auto;font-family:var(--mono);white-space:nowrap}
   .spec-head .kind.tbd{color:var(--active);border-color:var(--active);background:var(--amber-soft)}
   .spec-head .kind.ok{color:var(--done);border-color:var(--done);background:var(--green-soft)}
-  .tbdmark{font-style:normal;font-size:11px;color:var(--active);border:1px solid var(--active);border-radius:4px;padding:0 3px;margin-left:4px}
   .minibar{display:flex;height:8px;width:100%;margin:0 0 0;background:var(--row-hover);border:1px solid var(--rule-2);border-radius:0 0 0 0;overflow:hidden}
   .minibar i{display:block;height:100%}
   .minibar i+i{border-left:1px solid var(--gap)}
@@ -939,6 +938,10 @@ CSS = """
   .filebox .badge{font:500 10.5px var(--mono);color:var(--ink-3);background:var(--bg);
     border:1px solid var(--rule);border-radius:99px;padding:2px 9px}
   .fbox-list{display:flex;flex-wrap:wrap;gap:7px;align-items:flex-start}
+  .filebox h4 .cnt{margin-left:auto;font:500 11px var(--mono);color:var(--ink-3);white-space:nowrap}
+  .maplist{margin:0;padding-left:22px;font:400 13px/2 var(--sans)}
+  .maplist code{font:500 11.5px var(--mono);color:var(--ink-3);margin-right:4px}
+  .maplist .st{margin-left:8px;vertical-align:1px}
   .fdir{width:100%}
   .fdir summary{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 11px;
     background:var(--row-hover,#F8FAFD);border:1px solid var(--rule);border-radius:8px;
@@ -1664,7 +1667,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
             doc_sections.append(fbox("memory", 1, chip(k, pv_titles.get(k, "memory.md"))))
         if effort.single:
             k = rel(str(effort.single), scratch)
-            doc_sections.append(fbox("文档", 1, chip(k, pv_titles.get(k, effort.single.name))))
+            doc_sections.append(fbox("docs", 1, chip(k, pv_titles.get(k, effort.single.name))))
         # 未建票 = 只有 map.md/清单行、还没有票面文件的条目
         tbd = sum(1 for t in effort.tasks if not t.from_file)
         if et and tbd:
@@ -1735,18 +1738,28 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
             items += [chipf(p) for p in effort.extra_files]
             out += [
                 "<section class='filebox'>",
-                f"<h4>附件 <span class='badge'>{n_extra}</span></h4>",
+                f"<h4>assets <span class='badge'>{n_extra}</span></h4>",
                 f"<div class='fbox-list'>{''.join(items)}</div>",
                 "</section>",
             ]
         mmd = mermaid_graph(effort)
         if mmd:
             out.append(f"<pre class='mmd' data-spec='{esc(effort.name)}'>{esc(mmd)}</pre>")
-        if et:
+        # 分区按来源归类:票面文件(from_file)进 tickets 表;非票面勾选行按
+        # 来源文件分——map.md 行走 roadmap 路线列表,其余(memory.md 等)是
+        # 任务状态勾选行,进 memory 表。计数口径不变:两类来源同等计入总票数。
+        file_tasks = [t for t in effort.tasks if t.from_file]
+        map_rows = [t for t in effort.tasks
+                    if not t.from_file and Path(t.source).name == "map.md"]
+        mem_rows = [t for t in effort.tasks
+                    if not t.from_file and Path(t.source).name != "map.md"]
+        if file_tasks:
+            show_kind = any(t.kind for t in file_tasks)
             out += [
-                f"<section class='filebox'><h4>票 <span class='badge'>{et}</span></h4>",
+                f"<section class='filebox'><h4>tickets <span class='badge'>{len(file_tasks)}</span></h4>",
                 f"<table><thead><tr><th style='width:44px'>ticket</th>"
-                f"<th>标题<span class='share-wrap'><button type='button' class='share-btn'>分享</button>"
+                + ("<th style='width:72px'>类型</th>" if show_kind else "")
+                + f"<th>标题<span class='share-wrap'><button type='button' class='share-btn'>分享</button>"
                 f"<span class='share-menu'>"
                 f"<button type='button' data-share='table-md' data-spec='{esc(effort.name)}'>表格(文字)</button>"
                 f"<button type='button' data-share='table-img' data-spec='{esc(effort.name)}'>表格(图片)</button>"
@@ -1754,8 +1767,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
                 f"<th style='width:64px'>状态</th><th style='width:110px'>阻塞于</th>"
                 "<th class='num'>解锁</th></tr></thead><tbody>",
             ]
-            for t in effort.tasks:
-                mark = "<i class='tbdmark'>未建</i>" if not t.from_file else ""
+            for t in file_tasks:
                 meta = []
                 if t.dangling:
                     meta.append(
@@ -1768,10 +1780,15 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
                 blocked_cell = (
                     "、".join(meta) if meta else "—"
                 )
+                kind_cell = (
+                    f"<td class='meta'>{esc(t.kind) if t.kind else '—'}</td>"
+                    if show_kind else ""
+                )
                 out.append(
                     f"<tr class='r-{STATUS_CLASS[t.status]}'>"
-                    f"<td class='lbl'>{esc(t.label)}{mark}{copy_btn(f'{t.effort}#{t.tid}', '票号') if t.tid else ''}</td>"
-                    f"<td class='t'>{task_link(t, scratch, pv_files)}</td>"
+                    f"<td class='lbl'>{esc(t.label)}{copy_btn(f'{t.effort}#{t.tid}', '票号') if t.tid else ''}</td>"
+                    + kind_cell
+                    + f"<td class='t'>{task_link(t, scratch, pv_files)}</td>"
                     f"<td><span class='st st-{STATUS_CLASS[t.status]}'>"
                     f"{STATUS_LABEL[t.status]}</span></td>"
                     f"<td class='meta'>{blocked_cell}</td>"
@@ -1779,7 +1796,39 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
                     f"{t.unlocks or '·'}</td></tr>"
                 )
             out.append("</tbody></table></section>")
-        else:
+        if mem_rows:
+            srcs = sorted({Path(t.source).name for t in mem_rows if t.source})
+            days = int((now - max(t.mtime for t in mem_rows)) / 86400)
+            out += [
+                f"<section class='filebox'><h4>memory <span class='badge'>{len(mem_rows)}</span>"
+                f"<span class='cnt'>{'、'.join(srcs)} · {days} 天前更新</span></h4>",
+                "<table><thead><tr><th>任务</th>"
+                "<th style='width:64px'>勾选</th></tr></thead><tbody>",
+            ]
+            for t in mem_rows:
+                tid = f"<code class='lbl'>{esc(t.label)}</code> " if t.tid else ""
+                out.append(
+                    f"<tr class='r-{STATUS_CLASS[t.status]}'>"
+                    f"<td class='t'>{tid}{task_link(t, scratch, pv_files)}</td>"
+                    f"<td><span class='st st-{STATUS_CLASS[t.status]}'>"
+                    f"{STATUS_LABEL[t.status]}</span></td></tr>"
+                )
+            out.append("</tbody></table></section>")
+        if map_rows:
+            out += [
+                f"<section class='filebox'><h4>roadmap <span class='badge'>{len(map_rows)}</span></h4>",
+                "<ol class='maplist'>",
+            ]
+            for t in map_rows:
+                tid = f"<code class='lbl'>{esc(t.label)}</code> " if t.tid else ""
+                out.append(
+                    f"<li class='r-{STATUS_CLASS[t.status]}'>{tid}"
+                    f"{task_link(t, scratch, pv_files)}"
+                    f"<span class='st st-{STATUS_CLASS[t.status]}'>"
+                    f"{STATUS_LABEL[t.status]}</span></li>"
+                )
+            out.append("</ol></section>")
+        if not et:
             out.append("<p class='empty'>只有 spec / 地图，没扫到票。</p>")
         if effort.research:
             links = "".join(
@@ -1787,7 +1836,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
                 f"{esc(re.sub(r'^\\d+-', '', p.stem).replace('-', ' '))}</a>"
                 for p in effort.research
             )
-            out.append(fbox("调研", len(effort.research), links))
+            out.append(fbox("research", len(effort.research), links))
         out.append("</div>")
 
     if stale:
