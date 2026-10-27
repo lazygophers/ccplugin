@@ -1124,10 +1124,15 @@ def design_gallery(effort: "Effort", scratch: Path) -> list[str]:
             face = f"<img src='{esc(rel(str(p), scratch))}' alt='' loading='lazy'>"
         else:
             face = "<i>▣</i>"
+        label = p.stem
+        if p.suffix.lower() in ('.md', '.html', '.htm'):
+            extracted = display_title(p)
+            # 提到标题才替换展示;没有就维持原来的 stem
+            label = extracted if extracted != p.name else p.stem
         cards.append(
             f"<a class='democard' href='{esc(rel(str(p), scratch))}' target='_blank' rel='noopener'>"
             f"<span class='dthumb'>{face}</span>"
-            f"<span class='dname'>{esc(p.stem)}</span>"
+            f"<span class='dname'>{esc(label)}</span>"
             f"<span class='dmeta'>{p.suffix.lstrip('.').lower()} · {p.stat().st_size // 1024 or 1}K</span></a>"
         )
     return [
@@ -1189,6 +1194,45 @@ def md_title(text: str, name: str) -> str:
         if m:
             return f"{m.group(1).strip()}（{name}）"
     return name
+
+
+def html_title(head: str, name: str) -> str:
+    """html 展示标题:<head> 里的 <title> 优先,退第一个 <h1>(剥标签);
+    都没有回退文件名。命中时形态与 md_title 一致:「标题（文件名）」。"""
+    m = re.search(r"<title[^>]*>(.*?)</title>", head, re.I | re.S)
+    text = re.sub(r"\s+", " ", m.group(1)).strip() if m else ""
+    if not text:
+        m = re.search(r"<h1[^>]*>(.*?)</h1>", head, re.I | re.S)
+        if m:
+            text = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", m.group(1))).strip()
+    return f"{text}（{name}）" if text else name
+
+
+_TITLE_CACHE: dict[tuple[str, int], str] = {}
+
+
+def display_title(p: Path) -> str:
+    """文件条目的展示标题:md 取 h1,html/htm 取 <title>(退 <h1>),其余原文件名。
+    只读文件头 64KB,按 (路径, mtime) 缓存,同一份扫描内不重复读盘。"""
+    suffix = p.suffix.lower()
+    if suffix not in (".md", ".html", ".htm"):
+        return p.name
+    try:
+        st = p.stat()
+    except OSError:
+        return p.name
+    key = (str(p), st.st_mtime_ns)
+    hit = _TITLE_CACHE.get(key)
+    if hit:
+        return hit
+    try:
+        with p.open("r", encoding="utf-8", errors="replace") as fh:
+            head = fh.read(65536)
+    except OSError:
+        return p.name
+    title = md_title(head, p.name) if suffix == ".md" else html_title(head, p.name)
+    _TITLE_CACHE[key] = title
+    return title
 
 
 def minify_html(doc: str) -> str:
@@ -1632,7 +1676,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
                 in_pv = k in pv_files or k in pv_imgs or p.suffix.lower() in PV_MEDIA_EXTS
                 mark = "" if in_pv else " ↗"
                 return (f"<a class='chipf' href='{esc(k)}' target='_blank' rel='noopener'>"
-                        f"{esc(p.name)}{mark}</a>")
+                        f"{esc(display_title(p))}{mark}</a>")
 
             def render_fdir(nm: str, d: Path, cnt: int) -> str:
                 """目录递归嵌套:每层子目录一个 details/summary(递归文件数),

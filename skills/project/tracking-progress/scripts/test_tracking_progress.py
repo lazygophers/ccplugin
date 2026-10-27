@@ -617,7 +617,7 @@ def test_feature_assets_and_dirs(tmp_path):
     dd = scratch / "alpha" / "design-demos"
     dd.mkdir()
     (dd / "A.html").write_text("<b>a</b>", encoding="utf-8")
-    (dd / "B.html").write_text("<b>b</b>", encoding="utf-8")
+    (dd / "B.html").write_text("<html><head><title>板卡演示</title></head><body><b>b</b></body></html>", encoding="utf-8")
     (dd / "A-v2.png").write_bytes(b"\x89PNG fake")  # 同名 png 当封面(取 -v2 后缀最新)
     efforts, _ = tp.scan(scratch)
     alpha = next(e for e in efforts if e.name == "alpha")
@@ -629,7 +629,8 @@ def test_feature_assets_and_dirs(tmp_path):
     assert "class='chipf'" in page and "design.md" in page
     assert "design-demos/ · 2 文件" not in page
     assert "设计样例" in page and "class='democard'" in page
-    assert ">A<" in page and ">B<" in page  # 卡片名渲染用 stem
+    assert ">A<" in page                    # 无 title 的样例卡维持 stem
+    assert ">板卡演示（B.html）<" in page      # 有 <title> 的样例卡用「标题（文件名）」
     assert "html · " in page
     # html 样例卡面 = 活渲染 iframe;图片文件卡面 = img
     assert "<iframe src='alpha/design-demos/A.html'" in page
@@ -640,6 +641,19 @@ def test_feature_assets_and_dirs(tmp_path):
     assert any(p.name == "tmp.csv" for p in alpha.extra_files)
     assert "原型图.png" in page and "tmp.csv" in page
     assert '"alpha/design.md":' in page                     # 附件原文进预览嵌入
+
+
+def test_html_title_extraction(tmp_path):
+    # <head><title> 优先
+    assert tp.html_title("<html><head><title>看板</title></head></html>", "a.html") == "看板（a.html）"
+    # 没有 title 退第一个 <h1>(剥标签、压空白)
+    assert tp.html_title("<h1>  大 <b>标题</b> </h1>", "a.html") == "大 标题（a.html）"
+    # 都没有回退文件名
+    assert tp.html_title("<b>裸内容</b>", "a.html") == "a.html"
+    # display_title 只读文件头 64KB:窗口外的 title 取不到 → 回退文件名
+    f = tmp_path / "late.html"
+    f.write_text("<body>" + "x" * 70000 + "<title>太晚</title>", encoding="utf-8")
+    assert tp.display_title(f) == "late.html"
 
 
 def test_md_title_extraction():
