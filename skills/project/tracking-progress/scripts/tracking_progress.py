@@ -139,8 +139,8 @@ class Effort:
     # feature 目录内读不出任务的 md(design.md 等)与常规资产目录(design-demos/ 等)
     assets: list[Path] = field(default_factory=list)
     asset_dirs: list[tuple[str, Path, int]] = field(default_factory=list)
-    # 设计样例目录(design-demos/):按「设计样例」独立区块展示每个样例文件
-    design_dir: Path | None = None
+    # 设计样例目录(design-demos/ 等任意层级):每个目录一组「设计样例」区块
+    design_dirs: list[Path] = field(default_factory=list)
     # 文件清单:feature 目录下所有未归类的非 md 文件(html/图片/杂项),一个不漏
     extra_files: list[Path] = field(default_factory=list)
 
@@ -351,16 +351,24 @@ def scan(scratch: Path) -> tuple[list[Effort], list[Path]]:
         rdir = effort.path / "research"
         if effort.name != ROOT and rdir.is_dir():
             effort.research = sorted(rdir.glob("*.md"))
-        # 资产目录:design-demos 等按语义识别为设计样例区,其余进通用附件;
-        # 单文件 feature(path=scratch 根)不吸收任何目录
+        # 资产目录:design-demos 等按语义识别为设计样例区(任意层级,按父目录
+        # 分组展示),其余进通用附件;单文件 feature(path=scratch 根)不吸收任何目录
         if effort.name != ROOT and not effort.single:
+            # 任意层级的 DESIGN_DIRS 都归设计稿;隐藏目录里不找
+            ddirs = [
+                d for d in sorted(effort.path.rglob("*"))
+                if d.is_dir() and d.name in DESIGN_DIRS
+                and not any(part.startswith(".") for part in d.relative_to(effort.path).parts)
+            ]
+            effort.design_dirs = ddirs
             for d in sorted(effort.path.iterdir()):
                 if (d.is_dir() and not d.name.startswith(".")
                         and d.name not in SKIP_DIRS | {"issues", "impl", "research"}):
                     if d.name in DESIGN_DIRS:
-                        effort.design_dir = d
                         continue
-                    n = sum(1 for _ in d.rglob("*") if _.is_file())
+                    # 通用附件树不重复收设计稿子树
+                    n = sum(1 for f in d.rglob("*") if f.is_file()
+                            and not any(f.is_relative_to(ad) for ad in ddirs))
                     if n:
                         effort.asset_dirs.append((d.name, d, n))
             # 文件清单:md 全部已归口(spec/map/票面/附件),这里收非 md 的每个文件
@@ -372,7 +380,7 @@ def scan(scratch: Path) -> tuple[list[Effort], list[Path]]:
             effort.assets = [
                 p for p in effort.assets
                 if not any(p.is_relative_to(ad) for ad in adirs)
-                and not (effort.design_dir and p.is_relative_to(effort.design_dir))
+                and not any(p.is_relative_to(ad) for ad in effort.design_dirs)
             ]
             effort.extra_files = sorted(
                 (
@@ -380,7 +388,7 @@ def scan(scratch: Path) -> tuple[list[Effort], list[Path]]:
                     if p.is_file()
                     and p.suffix.lower() != ".md"
                     and p.name.lower() not in junk
-                    and not (effort.design_dir and p.is_relative_to(effort.design_dir))
+                    and not any(p.is_relative_to(ad) for ad in effort.design_dirs)
                     and not any(p.is_relative_to(ad) for ad in adirs)
                     and p not in srcs
                 ),
@@ -403,7 +411,7 @@ def scan(scratch: Path) -> tuple[list[Effort], list[Path]]:
     # spec 按更新时间倒序,最近动过的排最前
     ordered = sorted(efforts.values(), key=lambda e: (-e.mtime, e.name))
     kept = [e for e in ordered if e.tasks or e.is_map or e.has_spec or e.single
-            or e.assets or e.asset_dirs or e.design_dir or e.extra_files]
+            or e.assets or e.asset_dirs or e.design_dirs or e.extra_files]
     return kept, unparsed
 
 
@@ -1022,11 +1030,14 @@ def copy_btn(name: str, what: str = "spec 名称") -> str:
     )
 
 
-def task_link(task: Task, scratch: Path) -> str:
+def task_link(task: Task, scratch: Path, pv_files: dict[str, str]) -> str:
     if task.source:
+        k = rel(task.source, scratch)
+        # 与 chipf/docbar 同口径:未嵌入正文的源文件回退新标签,标题后补 ↗
+        mark = "" if k in pv_files else " ↗"
         return (
-            f'<a href="{esc(rel(task.source, scratch))}" target="_blank" '
-            f'rel="noopener">{esc(task.title)}</a>'
+            f'<a href="{esc(k)}" target="_blank" '
+            f'rel="noopener">{esc(task.title)}{mark}</a>'
         )
     return esc(task.title)
 
@@ -1103,42 +1114,45 @@ def mermaid_graph(effort: "Effort") -> str:
 
 
 def design_gallery(effort: "Effort", scratch: Path) -> list[str]:
-    """设计样例区:design-demos/ 里的每个文件一张卡,同名 png(-v2 等后缀)当封面。"""
-    if not effort.design_dir:
-        return []
-    files = sorted(
-        (p for p in effort.design_dir.iterdir() if p.is_file()),
-        key=lambda p: -p.stat().st_mtime,
-    )
-    if not files:
-        return []
-    cards = []
-    for p in files:
-        # html 样例:卡面就是活渲染(iframe 缩放铺满,lazy 到可视区才加载)
-        if p.suffix.lower() == ".html":
-            face = (
-                f"<iframe src='{esc(rel(str(p), scratch))}' title='{esc(p.stem)}' "
-                f"loading='lazy' scrolling='no' tabindex='-1'></iframe>"
-            )
-        elif p.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp", ".svg"):
-            face = f"<img src='{esc(rel(str(p), scratch))}' alt='' loading='lazy'>"
-        else:
-            face = "<i>▣</i>"
-        label = p.stem
-        if p.suffix.lower() in ('.md', '.html', '.htm'):
-            extracted = display_title(p)
-            # 提到标题才替换展示;没有就维持原来的 stem
-            label = extracted if extracted != p.name else p.stem
-        cards.append(
-            f"<a class='democard' href='{esc(rel(str(p), scratch))}' target='_blank' rel='noopener'>"
-            f"<span class='dthumb'>{face}</span>"
-            f"<span class='dname'>{esc(label)}</span>"
-            f"<span class='dmeta'>{p.suffix.lstrip('.').lower()} · {p.stat().st_size // 1024 or 1}K</span></a>"
+    """设计样例区:每个 design-demos/ 目录一组(相对路径标来源),组内每个文件
+    一张卡,同名 png(-v2 等后缀)当封面。"""
+    out: list[str] = []
+    for ddir in effort.design_dirs:
+        files = sorted(
+            (p for p in ddir.iterdir() if p.is_file()),
+            key=lambda p: -p.stat().st_mtime,
         )
-    return [
-        f"<div class='demos'><h4>设计样例 <span class='badge'>{esc(effort.design_dir.name)}/ · {len(files)}</span></h4>",
-        f"<div class='demogrid'>{''.join(cards)}</div></div>",
-    ]
+        if not files:
+            continue
+        label = ddir.relative_to(effort.path).as_posix()
+        cards = []
+        for p in files:
+            # html 样例:卡面就是活渲染(iframe 缩放铺满,lazy 到可视区才加载)
+            if p.suffix.lower() == ".html":
+                face = (
+                    f"<iframe src='{esc(rel(str(p), scratch))}' title='{esc(p.stem)}' "
+                    f"loading='lazy' scrolling='no' tabindex='-1'></iframe>"
+                )
+            elif p.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp", ".svg"):
+                face = f"<img src='{esc(rel(str(p), scratch))}' alt='' loading='lazy'>"
+            else:
+                face = "<i>▣</i>"
+            plabel = p.stem
+            if p.suffix.lower() in ('.md', '.html', '.htm'):
+                extracted = display_title(p)
+                # 提到标题才替换展示;没有就维持原来的 stem
+                plabel = extracted if extracted != p.name else p.stem
+            cards.append(
+                f"<a class='democard' href='{esc(rel(str(p), scratch))}' target='_blank' rel='noopener'>"
+                f"<span class='dthumb'>{face}</span>"
+                f"<span class='dname'>{esc(plabel)}</span>"
+                f"<span class='dmeta'>{p.suffix.lstrip('.').lower()} · {p.stat().st_size // 1024 or 1}K</span></a>"
+            )
+        out += [
+            f"<div class='demos'><h4>设计样例 <span class='badge'>{esc(label)}/ · {len(files)}</span></h4>",
+            f"<div class='demogrid'>{''.join(cards)}</div></div>",
+        ]
+    return out
 
 
 def mmd_label(text: str, n: int = 40) -> str:
@@ -1333,10 +1347,13 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
 
     add_pv(*mem_files, *res_files)
     for e in efforts:
-        add_pv(e.path / "spec.md", e.path / "map.md", *e.research, *e.assets)
+        # effort 自己的 memory.md(勾选行的来源)也进预览通道
+        add_pv(e.path / "spec.md", e.path / "map.md", *e.research, e.path / "memory.md")
+        # 票文件在 assets 之前嵌入:小文件优先吃 2MB 预算,大块头 assets 兜底
+        add_pv(*[Path(s) for s in (t.source for t in e.tasks if t.from_file and t.source)])
         if e.single:
             add_pv(e.single)
-        add_pv(*[Path(s) for s in (t.source for t in e.tasks if t.from_file and t.source)])
+        add_pv(*e.assets)
     add_pv(*unparsed)
 
     # 附件弹窗预览:html 原文进 tp-files(前端 iframe srcdoc 渲染),图片按
@@ -1347,8 +1364,8 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
     pv_imgs: dict[str, str] = {}
     rich: list[Path] = []
     for e in efforts:
-        if e.design_dir:
-            rich.extend(p for p in e.design_dir.iterdir() if p.is_file())
+        if e.design_dirs:
+            rich.extend(p for ad in e.design_dirs for p in ad.iterdir() if p.is_file())
         rich.extend(e.extra_files)
         rich.extend(
             p for _nm, d, _cnt in e.asset_dirs for p in d.rglob("*") if p.is_file()
@@ -1593,7 +1610,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
             + "".join(
                 f"<tr><td class='spec'><a href='#/spec-{esc(t.effort)}'>{esc(t.effort)}</a>{copy_btn(t.effort)}</td>"
                 f"<td class='lbl'>{esc(t.label)}{copy_btn(f'{t.effort}#{t.tid}', '票号') if t.tid else ''}</td>"
-                f"<td class='t'>{task_link(t, scratch)}</td>"
+                f"<td class='t'>{task_link(t, scratch, pv_files)}</td>"
                 f"<td class='meta'>{esc(t.kind) or '—'}</td>"
                 f"<td class='num {'unlocks' if t.unlocks else 'unlocks-0'}'>"
                 f"{t.unlocks or '·'}</td></tr>"
@@ -1747,7 +1764,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
                 out.append(
                     f"<tr class='r-{STATUS_CLASS[t.status]}'>"
                     f"<td class='lbl'>{esc(t.label)}{mark}{copy_btn(f'{t.effort}#{t.tid}', '票号') if t.tid else ''}</td>"
-                    f"<td class='t'>{task_link(t, scratch)}</td>"
+                    f"<td class='t'>{task_link(t, scratch, pv_files)}</td>"
                     f"<td><span class='st st-{STATUS_CLASS[t.status]}'>"
                     f"{STATUS_LABEL[t.status]}</span></td>"
                     f"<td class='meta'>{blocked_cell}</td>"
@@ -1798,7 +1815,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
                 f"<tr class='r-done'><td class='lbl'>"
                 f"{time.strftime('%Y-%m-%d', time.localtime(t.mtime))}</td>"
                 f"<td class='spec'><a href='#/spec-{esc(t.effort)}'>{esc(t.effort)}</a>{copy_btn(t.effort)}</td>"
-                f"<td class='t'>{task_link(t, scratch)}</td></tr>"
+                f"<td class='t'>{task_link(t, scratch, pv_files)}</td></tr>"
                 for t in recent
             ),
             "</tbody></table>",
@@ -2074,7 +2091,9 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         r"function isMedia(k){return /^(mp4|m4v|mov|webm|pdf)$/.test(extOf(k))||IEXT.test(extOf(k))}"
         # 预览文件内的相对链接按「所在文件目录」解析成仓库相对键(pvDir 在 openPv 里设置)
         r"function pvResolve(h){h=String(h).replace(/^file:\/\//,'').replace(/^\.\//,'');"
-        r"var parts=(pvDir?pvDir+'/':'')+h,out=[];"
+        # 仓库根相对的 .scratch/ 写法:剥前缀按 scratch 根归一化,不解成 <feature>/.scratch/
+        r"if(h.indexOf('.scratch/')===0)h='./'+h.slice(9);"
+        r"var parts=(((pvDir&&h.indexOf('./')!==0)?pvDir+'/':'')+h).split('/'),out=[];"
         r"for(var i=0;i<parts.length;i++){var p=parts[i];if(!p||p==='.')continue;if(p==='..')out.pop();else out.push(p)}"
         r"return out.join('/')}"
         # srcdoc iframe 没有 URL 基准:注入 <base> 指到文件真实目录,并回传本地链接点击给父页弹窗

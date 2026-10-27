@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import os
+import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -498,7 +500,7 @@ def test_headline_variants():
 def test_links_open_in_new_tab():
     # 票面和 spec/地图标题的链接都开新标签页，不顶掉进度页
     t = tp.Task("s", "01", "demo", tp.DONE, source="/r/.scratch/s/01.md")
-    assert 'target="_blank"' in tp.task_link(t, Path("/r/.scratch"))
+    assert 'target="_blank"' in tp.task_link(t, Path("/r/.scratch"), {})
 
 
 def test_research_docs_listed(tmp_path):
@@ -623,7 +625,7 @@ def test_feature_assets_and_dirs(tmp_path):
     alpha = next(e for e in efforts if e.name == "alpha")
     assert any(p.name == "design.md" for p in alpha.assets)
     # design-demos 按语义识别为设计样例区,不再进通用资产 chip
-    assert alpha.asset_dirs == [] and alpha.design_dir is not None and alpha.design_dir.name == "design-demos"
+    assert alpha.asset_dirs == [] and [d.name for d in alpha.design_dirs] == ["design-demos"]
     page = tp.render(efforts, _, scratch)
     # 附件条:文件 chip;设计样例区:每个样例一张卡
     assert "class='chipf'" in page and "design.md" in page
@@ -641,6 +643,24 @@ def test_feature_assets_and_dirs(tmp_path):
     assert any(p.name == "tmp.csv" for p in alpha.extra_files)
     assert "原型图.png" in page and "tmp.csv" in page
     assert '"alpha/design.md":' in page                     # 附件原文进预览嵌入
+
+
+def test_design_demos_nested_grouped(tmp_path):
+    """任意层级的 design-demos 都按设计稿归口,并按父目录相对路径分组标注来源。"""
+    root = build_repo(tmp_path)
+    scratch = root / ".scratch"
+    nested = scratch / "alpha" / "sub" / "design-demos"
+    nested.mkdir(parents=True)
+    (nested / "mock.html").write_text("<b>x</b>", encoding="utf-8")
+    (scratch / "alpha" / "sub" / "note.txt").write_text("n", encoding="utf-8")
+    efforts, _ = tp.scan(scratch)
+    alpha = next(e for e in efforts if e.name == "alpha")
+    assert [d.name for d in alpha.design_dirs] == ["design-demos"]
+    # 附件树里 sub 的计数不含设计稿子树(sub 还有别的文件,只剩 note.txt)
+    assert [(nm, n) for nm, _d, n in alpha.asset_dirs] == [("sub", 1)]
+    page = tp.render(efforts, [], scratch)
+    assert "sub/design-demos/ · 1" in page  # 分组徽章标父目录相对路径
+    assert "<iframe src='alpha/sub/design-demos/mock.html'" in page
 
 
 def test_html_title_extraction(tmp_path):
@@ -927,3 +947,46 @@ def test_fdir_default_open(tmp_path):
     assert "<details class='fdir' open><summary>mockups/" in page
     assert "<details class='fdir' open><summary>v1/" in page
     assert "<details class='fdir'><summary>" not in page  # 无一漏网
+
+
+def test_task_link_marks_unembedded_source(tmp_path):
+    """task_link 与 chipf 同口径:源文件未嵌入正文时标题后补 ↗。"""
+    scratch = tmp_path / ".scratch"
+    (scratch / "alpha" / "issues").mkdir(parents=True)
+    t = tp.Task(
+        effort="alpha", tid="1", title="第一张", status=tp.OPEN,
+        source=str(scratch / "alpha" / "issues" / "01-first.md"), from_file=True,
+    )
+    # 已嵌入 pv_files → 无标记
+    assert " ↗" not in tp.task_link(t, scratch, {"alpha/issues/01-first.md": "x"})
+    # 未嵌入 → 标题后补 ↗,href 不变
+    link = tp.task_link(t, scratch, {})
+    assert link.endswith(">第一张 ↗</a>")
+    assert 'href="alpha/issues/01-first.md"' in link
+    # 无 source → 纯标题,不受影响
+    bare = tp.Task(effort="alpha", tid="2", title="内联票", status=tp.OPEN)
+    assert tp.task_link(bare, scratch, {}) == "内联票"
+
+
+def test_pv_resolve_strips_scratch_prefix(tmp_path):
+    """md 正文里仓库根相对的 .scratch/ 链接按 scratch 根解析,不解成 <feature>/.scratch/。"""
+    if not shutil.which("node"):
+        pytest.skip("node 不可用")
+    root = build_repo(tmp_path)
+    scratch = root / ".scratch"
+    efforts, unparsed = tp.scan(scratch)
+    page = tp.render(efforts, unparsed, scratch)
+    m = re.search(r"function pvResolve\(h\)\{.*?return out\.join\('/'\)\}", page, re.DOTALL)
+    assert m, "pvResolve 未内嵌进页面"
+    js = (
+        "var pvDir='alpha';" + m.group(0)
+        + ";console.log([pvResolve('.scratch/alpha/issues/01-first.md'),"
+        + "pvResolve('issues/02-second.md')].join(' '))"
+    )
+    r = subprocess.run(["node", "-e", js], capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
+    resolved, plain = r.stdout.strip().split(" ")
+    assert resolved == "alpha/issues/01-first.md"  # .scratch/ 剥掉,不吃 pvDir 前缀
+    assert plain == "alpha/issues/02-second.md"  # 普通相对链接照旧吃 pvDir
+    # 解析出的键就是 tp-files 里的内嵌键(能走内部预览)
+    assert '"alpha/issues/01-first.md":' in page
