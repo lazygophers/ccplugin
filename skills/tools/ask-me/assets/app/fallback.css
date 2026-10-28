@@ -1417,16 +1417,16 @@ textarea {
    底色用白——预览的 html 多半是浅色页面，dark 主题里不给白底会看不清。 */
 .preview-canvas iframe {
   display: block;
-  width: min(1080px, 76vw);
-  height: 72vh;
+  width: 92vw;
+  height: 90vh;
   border: 0;
   background: white;
 }
 
 .preview-canvas img {
   display: block;
-  max-width: min(1080px, 76vw);
-  max-height: 72vh;
+  max-width: 92vw;
+  max-height: 90vh;
 }
 
 .preview-canvas th,
