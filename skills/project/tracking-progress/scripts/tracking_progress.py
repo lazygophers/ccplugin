@@ -939,9 +939,6 @@ CSS = """
     border:1px solid var(--rule);border-radius:99px;padding:2px 9px}
   .fbox-list{display:flex;flex-wrap:wrap;gap:7px;align-items:flex-start}
   .filebox h4 .cnt{margin-left:auto;font:500 11px var(--mono);color:var(--ink-3);white-space:nowrap}
-  .maplist{margin:0;padding-left:22px;font:400 13px/2 var(--sans)}
-  .maplist code{font:500 11.5px var(--mono);color:var(--ink-3);margin-right:4px}
-  .maplist .st{margin-left:8px;vertical-align:1px}
   .fdir{width:100%}
   .fdir summary{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 11px;
     background:var(--row-hover,#F8FAFD);border:1px solid var(--rule);border-radius:8px;
@@ -1814,20 +1811,36 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
                     f"{STATUS_LABEL[t.status]}</span></td></tr>"
                 )
             out.append("</tbody></table></section>")
-        if map_rows:
+        # map.md 里的 mermaid 图随 roadmap 区一起渲染:发成 pre.mmd,走页面
+        # 既有的 mermaid 懒渲染链路(视图显示时 paint,不用新接渲染代码)
+        map_mmd: list[str] = []
+        if effort.is_map:
+            map_path = effort.path / "map.md"
+            if map_path.exists():
+                map_text = map_path.read_text(encoding="utf-8", errors="replace")
+                map_mmd = re.findall(r"^```mermaid[^\n]*\n(.*?)^```", map_text,
+                                     re.M | re.S)
+        if map_rows or map_mmd:
             out += [
                 f"<section class='filebox'><h4>roadmap <span class='badge'>{len(map_rows)}</span></h4>",
-                "<ol class='maplist'>",
+                "<table><thead><tr><th>路线</th>"
+                "<th style='width:64px'>状态</th>"
+                "<th class='num'>解锁</th></tr></thead><tbody>",
             ]
             for t in map_rows:
                 tid = f"<code class='lbl'>{esc(t.label)}</code> " if t.tid else ""
                 out.append(
-                    f"<li class='r-{STATUS_CLASS[t.status]}'>{tid}"
-                    f"{task_link(t, scratch, pv_files)}"
-                    f"<span class='st st-{STATUS_CLASS[t.status]}'>"
-                    f"{STATUS_LABEL[t.status]}</span></li>"
+                    f"<tr class='r-{STATUS_CLASS[t.status]}'>"
+                    f"<td class='t'>{tid}{task_link(t, scratch, pv_files)}</td>"
+                    f"<td><span class='st st-{STATUS_CLASS[t.status]}'>"
+                    f"{STATUS_LABEL[t.status]}</span></td>"
+                    f"<td class='num {'unlocks' if t.unlocks else 'unlocks-0'}'>"
+                    f"{t.unlocks or '·'}</td></tr>"
                 )
-            out.append("</ol></section>")
+            out.append("</tbody></table>")
+            for mmd in map_mmd:
+                out.append(f"<pre class='mmd'>{esc(mmd)}</pre>")
+            out.append("</section>")
         if not et:
             out.append("<p class='empty'>只有 spec / 地图，没扫到票。</p>")
         if effort.research:

@@ -527,8 +527,9 @@ def test_ticket_establishment_marks(tmp_path):
     # alpha: map 上有 04 无票文件 → 未建票徽章 + roadmap 路线列表 + 图上虚线
     assert "未建票 1" in page  # map 上的 04;根清单的无编号行算在根 effort 头上
     assert "<h4>roadmap <span class='badge'>1</span></h4>" in page
-    assert "04" in page.split("<ol class='maplist'>")[1].split("</ol>")[0]
-    assert "后续扩展" in page.split("<ol class='maplist'>")[1].split("</ol>")[0]
+    roadmap_seg = page.split("<h4>roadmap")[1].split("</section>")[0]
+    assert "04" in roadmap_seg
+    assert "后续扩展" in roadmap_seg
     assert "classDef tbd stroke-dasharray:5 5" in page
     assert "票已建齐" in page  # beta 全部有票面文件
     # 总览表带「未建」列
@@ -1037,13 +1038,38 @@ def test_feature_view_sections_classified_by_source(tmp_path):
     assert "<h4>memory <span class='badge'>2</span>" in page
     mem_seg = page.split("<h4>memory <span class='badge'>2</span>")[1].split("</table>")[0]
     assert "记忆完成行" in mem_seg and "记忆待办行" in mem_seg
-    # map 行走 roadmap 路线列表,不是表格
+    # map 行走 roadmap 表格(列:路线 / 状态 / 解锁),不再是 ol 列表
     assert "<h4>roadmap <span class='badge'>1</span></h4>" in page
-    assert "路线条目" in page.split("<ol class='maplist'>")[1].split("</ol>")[0]
+    roadmap_seg = page.split("<h4>roadmap")[1].split("</section>")[0]
+    assert "<th>路线</th>" in roadmap_seg
+    assert "<th style='width:64px'>状态</th>" in roadmap_seg
+    assert "<th class='num'>解锁</th>" in roadmap_seg
+    assert "路线条目" in roadmap_seg
+    assert "<ol class='maplist'>" not in page
     # feature 视图分区标题统一英文术语
     assert "<h4>assets <span class='badge'>1</span></h4>" in page
     assert "<h4>research <span class='badge'>1</span></h4>" in page
     assert "<h4>docs <span class='badge'>1</span></h4>" in page
+
+
+def test_feature_view_roadmap_mermaid_blocks(tmp_path):
+    """map.md 的 ```mermaid 块随 roadmap 区发成 pre.mmd(无 map 行也渲染),
+    由页面既有 mermaid 链路接管;票依赖图 pre.mmd 带 data-spec,来源不同。"""
+    scratch = tmp_path / ".scratch"
+    solo = scratch / "solo"
+    solo.mkdir(parents=True)
+    (solo / "map.md").write_text(
+        "# solo map\n\n```mermaid\ngraph TD\nA[路线甲] --> B[路线乙]\n```\n",
+        encoding="utf-8",
+    )
+    efforts, _ = tp.scan(scratch)
+    page = tp.render(efforts, [], scratch)
+    assert "<h4>roadmap <span class='badge'>0</span></h4>" in page
+    roadmap_seg = page.split("<h4>roadmap")[1].split("</section>")[0]
+    assert "<pre class='mmd'>" in roadmap_seg
+    assert "graph TD" in roadmap_seg and "A[路线甲] --&gt; B[路线乙]" in roadmap_seg
+    # 本夹具无票,唯一的 pre.mmd 就是 map mermaid;票依赖图带 data-spec 区分
+    assert page.count("pre class='mmd'") == 1
     assert "<h4>票 <span" not in page
     assert "<h4>附件" not in page
     assert "<h4>调研" not in page
