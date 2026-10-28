@@ -1806,7 +1806,8 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
                 tid = f"<code class='lbl'>{esc(t.label)}</code> " if t.tid else ""
                 out.append(
                     f"<tr class='r-{STATUS_CLASS[t.status]}'>"
-                    f"<td class='t'>{tid}{task_link(t, scratch, pv_files)}</td>"
+                    f"<td class='t'>{tid}{task_link(t, scratch, pv_files)}"
+                    f"{copy_btn(t.title, '任务')}</td>"
                     f"<td><span class='st st-{STATUS_CLASS[t.status]}'>"
                     f"{STATUS_LABEL[t.status]}</span></td></tr>"
                 )
@@ -1987,8 +1988,11 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
     out += [
         "<script>document.querySelectorAll('[data-copy-spec]').forEach(button => button.addEventListener('click', async () => {"
         "if (button.classList.contains('copied')) return;"
-        "try { await navigator.clipboard.writeText(button.dataset.copySpec); button.classList.add('copied'); button.textContent = '已复制'; } "
-        "catch { button.textContent = '失败'; }"
+        "var ta; try { await navigator.clipboard.writeText(button.dataset.copySpec); } "
+        "catch { ta = document.createElement('textarea'); ta.value = button.dataset.copySpec;"
+        " ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta);"
+        " ta.select(); document.execCommand('copy'); ta.remove(); }"
+        " button.classList.add('copied'); button.textContent = '已复制'; "
         "setTimeout(function(){ button.classList.remove('copied'); button.innerHTML = button.dataset.icon; }, 1600);"
         "}));"
         "document.querySelectorAll('[data-copy-spec]').forEach(button => button.dataset.icon = button.innerHTML);</script>",
