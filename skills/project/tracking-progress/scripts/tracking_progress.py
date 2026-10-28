@@ -1769,9 +1769,10 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
             kinds.append("<span class='kind'>spec</span>")
         if effort.single:
             kinds.append("<span class='kind tbd'>单文件</span>")
-        # 文档入口:地图 / spec / memory / 单文件按类型各一个区块。链接带
+        # 文档入口:地图 / 单文件各一个区块。链接带
         # target=_blank,点击被拦截器接住进居中弹窗;超预算文件不在
-        # tp-files,回退真新标签,加 ↗ 区分
+        # tp-files,回退真新标签,加 ↗ 区分。spec/memory 清单已并入
+        # tickets 卡头与 memory 任务表,不再单设区块
         def fbox(label: str, cnt: int, body: str) -> str:
             return (f"<section class='filebox'><h4>{label} "
                     f"<span class='badge'>{cnt}</span></h4>"
@@ -1785,13 +1786,6 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         if effort.is_map:
             k = rel(str(effort.path / "map.md"), scratch)
             doc_sections.append(fbox("map", 1, chip(k, pv_titles.get(k, "map.md"))))
-        if effort.has_spec:
-            k = rel(str(effort.path / "spec.md"), scratch)
-            doc_sections.append(fbox("spec", 1, chip(k, pv_titles.get(k, "spec.md"))))
-        if (effort.name != ROOT and not effort.single
-                and (effort.path / "memory.md").exists()):
-            k = rel(str(effort.path / "memory.md"), scratch)
-            doc_sections.append(fbox("memory", 1, chip(k, pv_titles.get(k, "memory.md"))))
         if effort.single:
             k = rel(str(effort.single), scratch)
             doc_sections.append(fbox("docs", 1, chip(k, pv_titles.get(k, effort.single.name))))
@@ -1826,19 +1820,13 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
                     if not t.from_file and Path(t.source).name == "map.md"]
         mem_rows = [t for t in effort.tasks
                     if not t.from_file and Path(t.source).name != "map.md"]
-        # map.md 里的 mermaid 图随 tickets 区一起渲染:发成 pre.mmd,走页面
-        # 既有的 mermaid 懒渲染链路(视图显示时 paint,不用新接渲染代码)
-        map_mmd: list[str] = []
-        if effort.is_map:
-            map_path = effort.path / "map.md"
-            if map_path.exists():
-                map_text = map_path.read_text(encoding="utf-8", errors="replace")
-                map_mmd = re.findall(r"^```mermaid[^\n]*\n(.*?)^```", map_text,
-                                     re.M | re.S)
         mmd = mermaid_graph(effort)
-        # tickets 区最前:表格(含 frontmatter 徽章)+ 依赖图 + map.md mermaid 同卡
-        if file_tasks or mmd or map_mmd:
-            out.append(f"<section class='filebox'><h4>tickets <span class='badge'>{len(file_tasks)}</span></h4>")
+        # tickets 区最前:表格(含 frontmatter 徽章)+ 依赖图;spec 入口并进卡头
+        if file_tasks or mmd or effort.has_spec:
+            spec_chip = (chip(rel(str(effort.path / "spec.md"), scratch), "spec")
+                         if effort.has_spec else "")
+            out.append(f"<section class='filebox'>"
+                       f"<h4>tickets <span class='badge'>{len(file_tasks)}</span>{spec_chip}</h4>")
             if file_tasks:
                 out += [
                     f"<table><thead><tr><th style='width:44px'>ticket</th>"
@@ -1876,8 +1864,6 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
                 out.append("</tbody></table>")
             if mmd:
                 out.append(f"<pre class='mmd' data-spec='{esc(effort.name)}'>{esc(mmd)}</pre>")
-            for mm in map_mmd:
-                out.append(f"<pre class='mmd'>{esc(mm)}</pre>")
             out.append("</section>")
         if not et:
             out.append("<p class='empty'>只有 spec / 地图，没扫到票。</p>")

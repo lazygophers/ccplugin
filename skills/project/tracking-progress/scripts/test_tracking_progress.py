@@ -859,15 +859,31 @@ def test_render_doc_blocks_and_tp_titles(tmp_path):
     efforts, _ = tp.scan(scratch)
     page = tp.render(efforts, [], scratch)
     assert "class='docbar'" not in page
-    assert "<h4>spec <span class='badge'>1</span></h4>" in page
+    assert "<h4>spec <span class='badge'>1</span></h4>" not in page  # spec 清单已并入 tickets 卡头
     assert "<h4>map <span class='badge'>1</span></h4>" in page
-    assert "<h4>memory <span class='badge'>1</span></h4>" in page
+    assert "<h4>memory <span class='badge'>1</span></h4>" not in page  # memory 清单已删,只剩任务表
     assert "<h4>tickets <span class='badge'>" in page
     assert "<h4>research <span class='badge'>" not in page  # fixture 无 alpha 级 research/
     assert "href='alpha/spec.md'" in page
     assert "id='tp-titles'" in page
     assert "Alpha 规格（spec.md）" in page  # 生成期提取,不是文件名
     assert "TITLES[k]||k" in page
+
+
+def test_memory_block_table_without_section_list(tmp_path):
+    """memory 区块只渲染勾选行任务表(带复制按钮),不再渲染 memory.md 小节清单。"""
+    root = build_repo(tmp_path)
+    scratch = root / ".scratch"
+    (scratch / "alpha" / "memory.md").write_text(
+        "# 记忆标题\n\n- [ ] 09 记忆任务甲\n", encoding="utf-8")
+    efforts, _ = tp.scan(scratch)
+    page = tp.render(efforts, [], scratch)
+    # 任务表仍在:表头带 badge + 更新时间,行带复制按钮
+    assert "天前更新" in page
+    assert "记忆任务甲" in page
+    assert "aria-label='复制任务 记忆任务甲'" in page
+    # 小节清单(fbox 单条目形态)不再渲染
+    assert "<h4>memory <span class='badge'>1</span></h4>" not in page
 
 
 def test_render_data_attachments_embedded_and_beautify_fns(tmp_path):
@@ -1204,8 +1220,7 @@ def test_feature_view_sections_classified_by_source(tmp_path):
 
 
 def test_feature_view_roadmap_mermaid_blocks(tmp_path):
-    """map.md 的 ```mermaid 块随 tickets 区发成 pre.mmd(无 map 行也渲染),
-    由页面既有 mermaid 链路接管;票依赖图 pre.mmd 带 data-spec,来源不同。"""
+    """tickets 卡只渲染 issues 依赖图;map.md 的 ```mermaid 不再渲染。"""
     scratch = tmp_path / ".scratch"
     solo = scratch / "solo"
     solo.mkdir(parents=True)
@@ -1213,19 +1228,16 @@ def test_feature_view_roadmap_mermaid_blocks(tmp_path):
         "# solo map\n\n```mermaid\ngraph TD\nA[路线甲] --> B[路线乙]\n```\n",
         encoding="utf-8",
     )
+    (solo / "issues").mkdir()
+    (solo / "issues" / "01-a.md").write_text(
+        "# 01 — 甲\n\nStatus: open\nBlocked by: —\n", encoding="utf-8")
     efforts, _ = tp.scan(scratch)
     page = tp.render(efforts, [], scratch)
-    # 无票面文件时 tickets 卡只装 map mermaid,徽章计数为 0
-    assert "<h4>tickets <span class='badge'>0</span></h4>" in page
-    tickets_seg = page.split("<h4>tickets")[1].split("</section>")[0]
-    assert "<pre class='mmd'>" in tickets_seg
-    assert "graph TD" in tickets_seg and "A[路线甲] --&gt; B[路线乙]" in tickets_seg
-    # 本夹具无票,唯一的 pre.mmd 就是 map mermaid;票依赖图带 data-spec 区分
-    assert page.count("pre class='mmd'") == 1
-    assert "<h4>票 <span" not in page
-    assert "<h4>附件" not in page
-    assert "<h4>调研" not in page
-    assert "<h4>文档" not in page
+    # map.md 的 mermaid 块不再发成 pre.mmd(pv 嵌入正文不算渲染)
+    assert "<pre class='mmd'>" not in page
+    # issues 依赖图仍在:带 data-spec 的 pre.mmd
+    assert "<pre class='mmd' data-spec=" in page
+    assert "data-spec='solo'" in page
 
 
 def test_ticket_tags_renders_frontmatter_fields():
