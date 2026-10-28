@@ -2429,8 +2429,9 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         r"function inline(s){return s"
         r".replace(/`([^`]+)`/g,'<code>$1</code>')"
         r".replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>')"
-        r".replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g,function(m,t,u){var k=pvResolve(u);return '<img class=\"pv-img\" src=\"'+(IMGS[k]||k)+'\" alt=\"'+t+'\">'})"
-        r".replace(/\[([^\]]+)\]\(([^)\s]+)\)/g,function(m,t,u){return '<a href=\"'+pvResolve(u)+'\" target=\"_blank\" rel=\"noopener\">'+t+'</a>'})}"
+        r".replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g,function(m,t,u){var k=/^(https?:|data:|file:)/i.test(u)?u:pvResolve(u);return '<img class=\"pv-img\" src=\"'+(IMGS[k]||k)+'\" alt=\"'+t+'\">'})"
+        # 本地相对链接 pvResolve 进通道由拦截器接进弹窗;http(s)/mailto/# 锚点保持原样走浏览器默认新标签
+        r".replace(/\[([^\]]+)\]\(([^)\s]+)\)/g,function(m,t,u){var ext=/^(https?:|mailto:|#)/i.test(u);return '<a href=\"'+(ext?u:pvResolve(u))+'\" target=\"_blank\" rel=\"noopener\">'+t+'</a>'})}"
         r"function renderMd(src){"
         r"var L=escHtml(src).split('\n'),out=[],i=0;"
         r"function cells(r){r=r.replace(/^\s*\|/,'').replace(/\|\s*$/,'');"
@@ -2520,6 +2521,8 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         r"document.addEventListener('click',function(e){"
         r"var a=e.target.closest?e.target.closest('a'):null;if(!a)return;"
         r"var href=a.getAttribute('href')||'';"
+        # 弹窗头「新标签打开」是真导航出口,不吃拦截;其余通道内链接拦进弹窗
+        r"if(a.id==='pvRaw')return;"
         r"if(a.target==='_blank'&&(PV.hasOwnProperty(href)||IMGS.hasOwnProperty(href)||isMedia(href))&&!e.metaKey&&!e.ctrlKey){"
         r"e.preventDefault();openPv(href)}});"
         # iframe 预览里点本地链接回传父页:在通道内走同一弹窗,不在通道内真开新标签
