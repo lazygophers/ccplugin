@@ -57,6 +57,10 @@ TYPE_RE = re.compile(
     rf"^\s*\**{_SAME_LINE}(?:Type|类型)\s*\**{_SAME_LINE}[:：][^\S\n]*([^\n]+?)\s*$",
     re.I | re.M,
 )
+LABEL_RE = re.compile(
+    rf"^\s*\**{_SAME_LINE}(?:Labels?|标签)\s*\**{_SAME_LINE}[:：][^\S\n]*([^\n]+?)\s*$",
+    re.I | re.M,
+)
 BLOCKED_RE = re.compile(
     rf"^\s*\**{_SAME_LINE}(?:Blocked by|Blocked-by|阻塞于|依赖于)\s*\**{_SAME_LINE}"
     r"[:：]?[^\S\n]*([^\n]*?)\s*$",
@@ -100,6 +104,7 @@ class Task:
     status: str
     blocked_by: list[str] = field(default_factory=list)
     kind: str = ""
+    labels: str = ""
     source: str = ""
     mtime: float = 0.0
     raw_status: str = ""
@@ -231,6 +236,7 @@ def parse_issue_file(path: Path, effort: str) -> Task | None:
     raw = ""
     blocked = BLOCKED_RE.search(text)
     kind = TYPE_RE.search(text)
+    label = LABEL_RE.search(text)
     status_match = STATUS_RE.search(text)
     if status_match:
         raw = status_match.group(1)
@@ -251,6 +257,7 @@ def parse_issue_file(path: Path, effort: str) -> Task | None:
         status=status,
         blocked_by=parse_ids(blocked.group(1)) if blocked else [],
         kind=MD_NOISE_RE.sub("", kind.group(1)).strip() if kind else "",
+        labels=MD_NOISE_RE.sub("", label.group(1)).strip() if label else "",
         source=str(path),
         mtime=path.stat().st_mtime,
         raw_status=raw,
@@ -744,6 +751,7 @@ CSS = """
   .note b{color:var(--ink);font-weight:600}
   .note code{font:12px var(--mono)}
   .badge{font:600 11px var(--mono);color:var(--blue-2);background:var(--blue-soft);border-radius:99px;padding:2px 9px}
+  .tags{display:inline-flex;gap:4px;flex-wrap:wrap;margin-left:6px;vertical-align:2px}
   .panel{background:var(--panel);border:1px solid var(--rule);border-radius:12px;box-shadow:var(--sh-1);overflow:clip} /* hidden 会让卡片成为 sticky 表头的滚动参照,表头被推到表格中间;clip 同样裁圆角但不产生滚动容器 */
   .statline{display:flex;flex-wrap:wrap;gap:0 26px;margin:0 0 14px;font-size:13px;color:var(--ink-2)}
   .statline span{font:600 13.5px var(--mono);color:var(--ink)}
@@ -975,6 +983,51 @@ CSS = """
   .raw pre{white-space:pre-wrap;word-break:break-word;margin:0;font:400 12px/1.68 var(--mono);color:var(--ink-2)}
   .mzero{font:600 11px var(--mono);color:#b5813a;background:#FBF3E4;border:1px solid #EBDDBB;
     border-radius:7px;padding:5px 11px;display:inline-block;margin:4px 0 8px}
+  /* 全局搜索:常驻入口按钮 + ⌘K 覆盖层 */
+  .gsearch{flex:none;display:flex;align-items:center;gap:9px;height:34px;min-width:min(280px,30vw);
+    background:var(--row-hover);border:1px solid var(--rule);border-radius:8px;padding:0 12px;
+    color:var(--ink-3);font:400 13px var(--sans);cursor:pointer;transition:border-color .18s}
+  .gsearch:hover{border-color:var(--open);color:var(--ink-2)}
+  .gsearch kbd{margin-left:auto;font:600 10.5px var(--mono);color:var(--ink-3);background:var(--panel);
+    border:1px solid var(--rule);border-radius:5px;padding:2px 5px}
+  .s-wrap{position:fixed;inset:0;background:rgba(10,14,18,.5);z-index:80;display:none;
+    align-items:flex-start;justify-content:center;padding:9vh 16px 16px}
+  .s-wrap.open{display:flex}
+  .s-card{width:min(760px,100%);max-height:80vh;display:flex;flex-direction:column;
+    background:var(--panel);border:1px solid var(--rule-2);border-radius:14px;
+    box-shadow:0 18px 50px rgba(0,0,0,.35);overflow:hidden}
+  .s-bar{display:flex;align-items:center;gap:9px;padding:11px 14px;border-bottom:1px solid var(--rule)}
+  .s-bar svg{opacity:.7;flex:none}
+  .s-bar input[type=text]{flex:1;min-width:0;border:0;background:none;outline:0;
+    font:500 14px var(--sans);color:var(--ink)}
+  .s-bar input[type=text]::placeholder{color:var(--ink-3)}
+  .s-re{display:inline-flex;align-items:center;gap:4px;font:600 11px var(--mono);
+    color:var(--ink-3);cursor:pointer;white-space:nowrap}
+  .s-bar kbd{font:600 10.5px var(--mono);color:var(--ink-3);background:var(--row-hover);
+    border:1px solid var(--rule);border-radius:5px;padding:2px 5px}
+  .s-results{flex:1;overflow-y:auto;padding:6px 8px}
+  .s-hint{font:500 12.5px var(--sans);color:var(--ink-3);padding:12px 10px}
+  .s-item{padding:7px 10px;border-radius:9px;cursor:pointer}
+  .s-item:hover{background:var(--row-hover)}
+  .s-item.static,.s-item.static:hover{cursor:default;background:none}
+  .s-top{display:flex;align-items:center;gap:8px;min-width:0}
+  .s-path{font:500 12px var(--mono);color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .s-dim{font:600 10px var(--mono);border-radius:99px;padding:1px 8px;flex:none}
+  .s-dim.folder{color:var(--blue-2);background:var(--blue-soft)}
+  .s-dim.file{color:#8a6d2f;background:var(--amber-soft)}
+  .s-dim.content{color:var(--ink-3);background:var(--gray-soft)}
+  .s-line{display:flex;gap:9px;padding:1px 0 1px 14px;font:400 12px/1.7 var(--mono);color:var(--ink-2)}
+  .s-line .n{flex:none;min-width:26px;text-align:right;color:var(--ink-3);user-select:none}
+  .s-line .t{word-break:break-word;white-space:pre-wrap}
+  .s-line.hit .t{color:var(--ink)}
+  .s-results mark{background:var(--amber-soft);color:inherit;border-radius:2px;padding:0 1px}
+  .s-more{margin:3px 0 0 14px;border:0;background:none;cursor:pointer;
+    font:500 11.5px var(--mono);color:var(--open);padding:0}
+  .s-more:hover{text-decoration:underline}
+  /* 预览跳转定位:md 块锚点与 pre 行锚点的命中高亮 */
+  .pv-body pre .sl{display:block}
+  .s-hl{background:var(--amber-soft);outline:1px solid #d8b97a;border-radius:5px}
+  .s-flash{background:var(--amber-soft);outline:1px solid #d8b97a;border-radius:5px;transition:background 1.2s}
 """
 
 def esc(s: str) -> str:
@@ -1291,6 +1344,24 @@ PV_IMG_BUDGET = 1_400_000
 # 必须显式跳过下面的文本嗅探:pdf 头 "%PDF-" 是 ASCII,utf-8 严格解码成功且
 # 前 8KB 无 NUL,不跳过会被当文本收进 tp-files,弹窗显示原始字节而非渲染
 PV_MEDIA_EXTS = {".mp4", ".m4v", ".mov", ".webm", ".pdf"}
+# 搜索通道的目录黑名单:工具状态/依赖垃圾,不是用户产物,不进全文索引
+PV_SEARCH_SKIP_DIRS = {"node_modules", ".git", ".ask-me"}
+
+
+def ticket_tags(t: "Task") -> str:
+    """票面 frontmatter 四字段的徽章行:label / Status / Type / Blocked by。
+    空值与「无」不渲染;title 写全「字段名: 值」方便悬停识别。"""
+    parts: list[str] = []
+    if t.labels:
+        parts.append(f"<span class='badge' title='label: {esc(t.labels)}'>{esc(t.labels)}</span>")
+    if t.raw_status:
+        parts.append(f"<span class='st st-{STATUS_CLASS[t.status]}' title='Status: {esc(t.raw_status)}'>{esc(t.raw_status)}</span>")
+    if t.kind:
+        parts.append(f"<span class='badge' title='Type: {esc(t.kind)}'>{esc(t.kind)}</span>")
+    if t.blocked_by:
+        v = "、".join(t.blocked_by)
+        parts.append(f"<span class='badge' title='Blocked by: {esc(v)}'>{esc(v)}</span>")
+    return f"<span class='tags'>{''.join(parts)}</span>" if parts else ""
 
 
 def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
@@ -1414,6 +1485,27 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         except (OSError, UnicodeDecodeError):
             continue
 
+    # 搜索通道:全 .scratch 文本类全文嵌入,独立通道不吃任何预览预算,
+    # 不截断——搜索缺文件会出现「明明写了却搜不到」。嗅探规则与弹窗预览
+    # 一致:跳过视频/PDF/图片扩展,前 8KB 无 NUL 且 utf-8 严格解码成功才算
+    # 文本;progress.html 自身排除。
+    pv_search: dict[str, str] = {}
+    for p in scratch.rglob("*"):
+        if not p.is_file() or p == scratch / "progress.html":
+            continue
+        if any(part in PV_SEARCH_SKIP_DIRS for part in p.relative_to(scratch).parts):
+            continue
+        ext = p.suffix.lower()
+        if ext in PV_MEDIA_EXTS or ext in IMG_MIME:
+            continue
+        try:
+            data = p.read_bytes()
+            if b"\0" in data[:8192]:
+                continue
+            pv_search[rel(str(p), scratch)] = data.decode("utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+
     def human_size(p: Path) -> str:
         n = p.stat().st_size
         return f"{n / 1024:.1f}K" if n >= 1024 else f"{n}B"
@@ -1510,6 +1602,9 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "<input id='tpFilter' type='text' placeholder='过滤票号、标题、feature…' aria-label='过滤行'>",
         "<kbd>输入即滤</kbd>",
         "</label>",
+        "<button class='gsearch' type='button' id='tpSearchBtn' aria-label='全局搜索'>",
+        "<svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><circle cx='11' cy='11' r='7'/><path d='m21 21-4.3-4.3'/></svg>",
+        "搜索文件、内容…<kbd>⌘K</kbd></button>",
         "</header>",
         "<div class='pagebar'>",
         "<div class='row'>",
@@ -1683,12 +1778,119 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
             *kinds,
             f"<span class='cnt'>{et} 张 · {ec[DONE]} 已完成</span></div>",
             *doc_sections,
-            *design_gallery(effort, scratch),
             f"<div class='minibar'>{minibar}</div>",
             f"<div class='minicap'><span>{STATUS_LABEL[DONE]} {ec[DONE]}</span>"
             f"{('<span>未建票 %d</span>' % tbd) if tbd else ''}"
             f"<span>{epct}%({ec[DONE]} ÷ {et})</span></div>" if et else "",
         ]
+        # 分区按来源归类:票面文件(from_file)进 tickets 表;非票面勾选行按
+        # 来源文件分——map.md 行走 roadmap 路线列表,其余(memory.md 等)是
+        # 任务状态勾选行,进 memory 表。计数口径不变:两类来源同等计入总票数。
+        file_tasks = [t for t in effort.tasks if t.from_file]
+        map_rows = [t for t in effort.tasks
+                    if not t.from_file and Path(t.source).name == "map.md"]
+        mem_rows = [t for t in effort.tasks
+                    if not t.from_file and Path(t.source).name != "map.md"]
+        # map.md 里的 mermaid 图随 tickets 区一起渲染:发成 pre.mmd,走页面
+        # 既有的 mermaid 懒渲染链路(视图显示时 paint,不用新接渲染代码)
+        map_mmd: list[str] = []
+        if effort.is_map:
+            map_path = effort.path / "map.md"
+            if map_path.exists():
+                map_text = map_path.read_text(encoding="utf-8", errors="replace")
+                map_mmd = re.findall(r"^```mermaid[^\n]*\n(.*?)^```", map_text,
+                                     re.M | re.S)
+        mmd = mermaid_graph(effort)
+        # tickets 区最前:表格(含 frontmatter 徽章)+ 依赖图 + map.md mermaid 同卡
+        if file_tasks or mmd or map_mmd:
+            out.append(f"<section class='filebox'><h4>tickets <span class='badge'>{len(file_tasks)}</span></h4>")
+            if file_tasks:
+                out += [
+                    f"<table><thead><tr><th style='width:44px'>ticket</th>"
+                    f"<th>标题<span class='share-wrap'><button type='button' class='share-btn'>分享</button>"
+                    f"<span class='share-menu'>"
+                    f"<button type='button' data-share='table-md' data-spec='{esc(effort.name)}'>表格(文字)</button>"
+                    f"<button type='button' data-share='table-img' data-spec='{esc(effort.name)}'>表格(图片)</button>"
+                    f"</span></span></th>"
+                    f"<th style='width:64px'>状态</th><th style='width:110px'>阻塞于</th>"
+                    "<th class='num'>解锁</th></tr></thead><tbody>",
+                ]
+                for t in file_tasks:
+                    meta = []
+                    if t.dangling:
+                        meta.append(
+                            "<s class='dangling'>"
+                            + " ".join(esc(d) for d in t.dangling)
+                            + "</s>"
+                        )
+                    if t.deps:
+                        meta.append(" ".join(f"<a href='#'>{esc(d)}</a>" for d in t.deps))
+                    blocked_cell = (
+                        "、".join(meta) if meta else "—"
+                    )
+                    out.append(
+                        f"<tr class='r-{STATUS_CLASS[t.status]}'>"
+                        f"<td class='lbl'>{esc(t.label)}{copy_btn(f'{t.effort}#{t.tid}', '票号') if t.tid else ''}</td>"
+                        + f"<td class='t'>{task_link(t, scratch, pv_files)}{ticket_tags(t)}</td>"
+                        f"<td><span class='st st-{STATUS_CLASS[t.status]}'>"
+                        f"{STATUS_LABEL[t.status]}</span></td>"
+                        f"<td class='meta'>{blocked_cell}</td>"
+                        f"<td class='num {'unlocks' if t.unlocks else 'unlocks-0'}'>"
+                        f"{t.unlocks or '·'}</td></tr>"
+                    )
+                out.append("</tbody></table>")
+            if mmd:
+                out.append(f"<pre class='mmd' data-spec='{esc(effort.name)}'>{esc(mmd)}</pre>")
+            for mm in map_mmd:
+                out.append(f"<pre class='mmd'>{esc(mm)}</pre>")
+            out.append("</section>")
+        if not et:
+            out.append("<p class='empty'>只有 spec / 地图，没扫到票。</p>")
+        out += design_gallery(effort, scratch)
+        if map_rows:
+            out += [
+                f"<section class='filebox'><h4>roadmap <span class='badge'>{len(map_rows)}</span></h4>",
+                "<table><thead><tr><th>路线</th>"
+                "<th style='width:64px'>状态</th>"
+                "<th class='num'>解锁</th></tr></thead><tbody>",
+            ]
+            for t in map_rows:
+                tid = f"<code class='lbl'>{esc(t.label)}</code> " if t.tid else ""
+                out.append(
+                    f"<tr class='r-{STATUS_CLASS[t.status]}'>"
+                    f"<td class='t'>{tid}{task_link(t, scratch, pv_files)}</td>"
+                    f"<td><span class='st st-{STATUS_CLASS[t.status]}'>"
+                    f"{STATUS_LABEL[t.status]}</span></td>"
+                    f"<td class='num {'unlocks' if t.unlocks else 'unlocks-0'}'>"
+                    f"{t.unlocks or '·'}</td></tr>"
+                )
+            out.append("</tbody></table></section>")
+        if effort.research:
+            links = "".join(
+                f"<a class='chipf' href='{esc(rel(str(p), scratch))}' target='_blank' rel='noopener'>"
+                f"{esc(re.sub(r'^\d+-', '', p.stem).replace('-', ' '))}</a>"
+                for p in effort.research
+            )
+            out.append(fbox("research", len(effort.research), links))
+        if mem_rows:
+            srcs = sorted({Path(t.source).name for t in mem_rows if t.source})
+            days = int((now - max(t.mtime for t in mem_rows)) / 86400)
+            out += [
+                f"<section class='filebox'><h4>memory <span class='badge'>{len(mem_rows)}</span>"
+                f"<span class='cnt'>{'、'.join(srcs)} · {days} 天前更新</span></h4>",
+                "<table><thead><tr><th>任务</th>"
+                "<th style='width:64px'>勾选</th></tr></thead><tbody>",
+            ]
+            for t in mem_rows:
+                tid = f"<code class='lbl'>{esc(t.label)}</code> " if t.tid else ""
+                out.append(
+                    f"<tr class='r-{STATUS_CLASS[t.status]}'>"
+                    f"<td class='t'>{tid}{task_link(t, scratch, pv_files)}"
+                    f"{copy_btn(t.title, '任务')}</td>"
+                    f"<td><span class='st st-{STATUS_CLASS[t.status]}'>"
+                    f"{STATUS_LABEL[t.status]}</span></td></tr>"
+                )
+            out.append("</tbody></table></section>")
         # 附件区块:沉到视图底部;asset_dirs 目录条目可展开(默认展开)列出
         # 目录内每个文件,文件条目规则与 chip 一致(文本/图片弹窗,二进制 ↗)
         if effort.assets or effort.asset_dirs or effort.extra_files:
@@ -1739,118 +1941,6 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
                 f"<div class='fbox-list'>{''.join(items)}</div>",
                 "</section>",
             ]
-        mmd = mermaid_graph(effort)
-        if mmd:
-            out.append(f"<pre class='mmd' data-spec='{esc(effort.name)}'>{esc(mmd)}</pre>")
-        # 分区按来源归类:票面文件(from_file)进 tickets 表;非票面勾选行按
-        # 来源文件分——map.md 行走 roadmap 路线列表,其余(memory.md 等)是
-        # 任务状态勾选行,进 memory 表。计数口径不变:两类来源同等计入总票数。
-        file_tasks = [t for t in effort.tasks if t.from_file]
-        map_rows = [t for t in effort.tasks
-                    if not t.from_file and Path(t.source).name == "map.md"]
-        mem_rows = [t for t in effort.tasks
-                    if not t.from_file and Path(t.source).name != "map.md"]
-        if file_tasks:
-            show_kind = any(t.kind for t in file_tasks)
-            out += [
-                f"<section class='filebox'><h4>tickets <span class='badge'>{len(file_tasks)}</span></h4>",
-                f"<table><thead><tr><th style='width:44px'>ticket</th>"
-                + ("<th style='width:72px'>类型</th>" if show_kind else "")
-                + f"<th>标题<span class='share-wrap'><button type='button' class='share-btn'>分享</button>"
-                f"<span class='share-menu'>"
-                f"<button type='button' data-share='table-md' data-spec='{esc(effort.name)}'>表格(文字)</button>"
-                f"<button type='button' data-share='table-img' data-spec='{esc(effort.name)}'>表格(图片)</button>"
-                f"</span></span></th>"
-                f"<th style='width:64px'>状态</th><th style='width:110px'>阻塞于</th>"
-                "<th class='num'>解锁</th></tr></thead><tbody>",
-            ]
-            for t in file_tasks:
-                meta = []
-                if t.dangling:
-                    meta.append(
-                        "<s class='dangling'>"
-                        + " ".join(esc(d) for d in t.dangling)
-                        + "</s>"
-                    )
-                if t.deps:
-                    meta.append(" ".join(f"<a href='#'>{esc(d)}</a>" for d in t.deps))
-                blocked_cell = (
-                    "、".join(meta) if meta else "—"
-                )
-                kind_cell = (
-                    f"<td class='meta'>{esc(t.kind) if t.kind else '—'}</td>"
-                    if show_kind else ""
-                )
-                out.append(
-                    f"<tr class='r-{STATUS_CLASS[t.status]}'>"
-                    f"<td class='lbl'>{esc(t.label)}{copy_btn(f'{t.effort}#{t.tid}', '票号') if t.tid else ''}</td>"
-                    + kind_cell
-                    + f"<td class='t'>{task_link(t, scratch, pv_files)}</td>"
-                    f"<td><span class='st st-{STATUS_CLASS[t.status]}'>"
-                    f"{STATUS_LABEL[t.status]}</span></td>"
-                    f"<td class='meta'>{blocked_cell}</td>"
-                    f"<td class='num {'unlocks' if t.unlocks else 'unlocks-0'}'>"
-                    f"{t.unlocks or '·'}</td></tr>"
-                )
-            out.append("</tbody></table></section>")
-        if mem_rows:
-            srcs = sorted({Path(t.source).name for t in mem_rows if t.source})
-            days = int((now - max(t.mtime for t in mem_rows)) / 86400)
-            out += [
-                f"<section class='filebox'><h4>memory <span class='badge'>{len(mem_rows)}</span>"
-                f"<span class='cnt'>{'、'.join(srcs)} · {days} 天前更新</span></h4>",
-                "<table><thead><tr><th>任务</th>"
-                "<th style='width:64px'>勾选</th></tr></thead><tbody>",
-            ]
-            for t in mem_rows:
-                tid = f"<code class='lbl'>{esc(t.label)}</code> " if t.tid else ""
-                out.append(
-                    f"<tr class='r-{STATUS_CLASS[t.status]}'>"
-                    f"<td class='t'>{tid}{task_link(t, scratch, pv_files)}"
-                    f"{copy_btn(t.title, '任务')}</td>"
-                    f"<td><span class='st st-{STATUS_CLASS[t.status]}'>"
-                    f"{STATUS_LABEL[t.status]}</span></td></tr>"
-                )
-            out.append("</tbody></table></section>")
-        # map.md 里的 mermaid 图随 roadmap 区一起渲染:发成 pre.mmd,走页面
-        # 既有的 mermaid 懒渲染链路(视图显示时 paint,不用新接渲染代码)
-        map_mmd: list[str] = []
-        if effort.is_map:
-            map_path = effort.path / "map.md"
-            if map_path.exists():
-                map_text = map_path.read_text(encoding="utf-8", errors="replace")
-                map_mmd = re.findall(r"^```mermaid[^\n]*\n(.*?)^```", map_text,
-                                     re.M | re.S)
-        if map_rows or map_mmd:
-            out += [
-                f"<section class='filebox'><h4>roadmap <span class='badge'>{len(map_rows)}</span></h4>",
-                "<table><thead><tr><th>路线</th>"
-                "<th style='width:64px'>状态</th>"
-                "<th class='num'>解锁</th></tr></thead><tbody>",
-            ]
-            for t in map_rows:
-                tid = f"<code class='lbl'>{esc(t.label)}</code> " if t.tid else ""
-                out.append(
-                    f"<tr class='r-{STATUS_CLASS[t.status]}'>"
-                    f"<td class='t'>{tid}{task_link(t, scratch, pv_files)}</td>"
-                    f"<td><span class='st st-{STATUS_CLASS[t.status]}'>"
-                    f"{STATUS_LABEL[t.status]}</span></td>"
-                    f"<td class='num {'unlocks' if t.unlocks else 'unlocks-0'}'>"
-                    f"{t.unlocks or '·'}</td></tr>"
-                )
-            out.append("</tbody></table>")
-            for mmd in map_mmd:
-                out.append(f"<pre class='mmd'>{esc(mmd)}</pre>")
-            out.append("</section>")
-        if not et:
-            out.append("<p class='empty'>只有 spec / 地图，没扫到票。</p>")
-        if effort.research:
-            links = "".join(
-                f"<a class='chipf' href='{esc(rel(str(p), scratch))}' target='_blank' rel='noopener'>"
-                f"{esc(re.sub(r'^\\d+-', '', p.stem).replace('-', ' '))}</a>"
-                for p in effort.research
-            )
-            out.append(fbox("research", len(effort.research), links))
         out.append("</div>")
 
     if stale:
@@ -1984,6 +2074,12 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         + _json.dumps(pv_imgs, ensure_ascii=False).replace("<", "\\u003c")
         + "</script>"
     )
+    # 搜索通道:路径→全文,前端 tpSearch 现算
+    out.append(
+        "<script id='tp-search' type='application/json'>"
+        + _json.dumps(pv_search, ensure_ascii=False).replace("<", "\\u003c")
+        + "</script>"
+    )
 
     out += [
         "<script>document.querySelectorAll('[data-copy-spec]').forEach(button => button.addEventListener('click', async () => {"
@@ -2003,8 +2099,117 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "<button class='close' type='button' id='pvClose'>关闭</button></div>"
         "<div class='pv-body' id='pvBody'></div></div></div>",
         "<div class='toast' id='tpToast'></div>",
+        # 全局搜索覆盖层:⌘K 或页首按钮唤出,Esc/点外部关闭
+        "<div class='s-wrap' id='sWrap'><div class='s-card'>",
+        "<div class='s-bar'>",
+        "<svg width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><circle cx='11' cy='11' r='7'/><path d='m21 21-4.3-4.3'/></svg>",
+        "<input id='sInput' type='text' placeholder='搜索文件夹名、文件名、全文内容…' aria-label='全局搜索'>",
+        "<label class='s-re'><input type='checkbox' id='sRe'>.*</label>",
+        "<kbd>esc</kbd>",
+        "</div>",
+        "<div class='s-results' id='sResults'><div class='s-hint'>输入即搜:文件夹名 / 文件名 / 内容三维度,勾选 .* 切正则</div></div>",
+        "</div></div>",
+        # 搜索核心:纯函数 window.tpSearch(data,q,useRe,cap),node 可独立跑
+        r"<script id='tp-search-core'>window.tpSearch=function(data,q,useRe,cap){"
+        r"cap=cap||3;"
+        r"var files=Object.keys(data).map(function(k){"
+        r"var parts=k.split('/');"
+        r"return{k:k,name:parts[parts.length-1],dirs:parts.slice(0,-1),lines:data[k].split('\n')}});"
+        r"var test;"
+        r"if(useRe){try{var r=new RegExp(q,'i');test=function(s){return r.test(s)}}catch(e){return{err:String(e&&e.message||e),hits:[]}}}"
+        r"else{var ql=q.toLowerCase();test=function(s){return s.toLowerCase().indexOf(ql)>=0}}"
+        r"var hits=[];"
+        r"files.forEach(function(f){"
+        r"var folder=false;for(var i=0;i<f.dirs.length;i++)if(test(f.dirs[i])){folder=true;break}"
+        r"var file=test(f.name);"
+        r"var lines=[];for(var j=0;j<f.lines.length;j++)if(test(f.lines[j]))lines.push(j);"
+        r"if(folder)hits.push({k:f.k,dim:'folder'});"
+        r"if(file)hits.push({k:f.k,dim:'file'});"
+        r"if(lines.length)hits.push({k:f.k,dim:'content',lines:lines.slice(0,cap),more:lines.length>cap?lines.length-cap:0});"
+        r"});"
+        r"var rank={folder:0,file:1,content:2};"
+        r"hits.sort(function(a,b){return rank[a.dim]!==rank[b.dim]?rank[a.dim]-rank[b.dim]:(a.k<b.k?-1:a.k>b.k?1:0)});"
+        r"return{err:'',hits:hits.slice(0,100)}};</script>",
+        # 搜索 UI:200ms 防抖,内容命中跳预览定位/未嵌通道就地展开,维度徽章混排
+        r"<script>(function(){"
+        r"var SEARCH={};try{SEARCH=JSON.parse(document.getElementById('tp-search').textContent)}catch(e){}"
+        r"function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;')}"
+        r"var wrap=document.getElementById('sWrap'),input=document.getElementById('sInput'),"
+        r"re=document.getElementById('sRe'),box=document.getElementById('sResults'),"
+        r"btn=document.getElementById('tpSearchBtn');"
+        r"function open(){wrap.classList.add('open');input.focus();input.select();run()}"
+        r"function close(){wrap.classList.remove('open')}window._closeSearch=close;"
+        r"btn.addEventListener('click',open);"
+        r"wrap.addEventListener('click',function(e){if(e.target===wrap)close()});"
+        r"document.addEventListener('keydown',function(e){"
+        r"if(e.key==='Escape')close();"
+        r"if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();open()}});"
+        r"var tm;"
+        r"function run(){"
+        r"var q=input.value.trim(),res=window.tpSearch(SEARCH,q,re.checked);"
+        r"if(res.err){box.innerHTML='<div class=\'s-hint\'>正则无效:'+escHtml(res.err)+'</div>';return}"
+        r"if(!q){box.innerHTML='<div class=\'s-hint\'>输入即搜:文件夹名 / 文件名 / 内容三维度,勾选 .* 切正则</div>';return}"
+        r"if(!res.hits.length){box.innerHTML='<div class=\'s-hint\'>没有命中</div>';return}"
+        r"box.innerHTML=res.hits.map(renderHit).join('')}"
+        r"input.addEventListener('input',function(){clearTimeout(tm);tm=setTimeout(run,200)});"
+        r"re.addEventListener('change',run);"
+        r"function mark(s){"
+        r"s=String(s);var idx,len;"
+        r"if(re.checked){var m;try{m=s.match(new RegExp(input.value.trim(),'i'))}catch(e){return escHtml(s)}"
+        r"if(!m)return escHtml(s);idx=m.index;len=m[0].length}"
+        r"else{var ql=input.value.trim().toLowerCase();idx=s.toLowerCase().indexOf(ql);len=ql.length}"
+        r"if(idx<0||!len)return escHtml(s);"
+        r"return escHtml(s.slice(0,idx))+'<mark>'+escHtml(s.slice(idx,idx+len))+'</mark>'+escHtml(s.slice(idx+len))}"
+        r"function ctxHtml(text,ln,span){"
+        r"var lines=text.split('\n'),lo=Math.max(0,ln-span),hi=Math.min(lines.length-1,ln+span),out=[];"
+        r"for(var i=lo;i<=hi;i++)out.push('<div class=\'s-line'+(i===ln?' hit':'')+'\'><span class=\'n\'>'+(i+1)+'</span><span class=\'t\'>'+(i===ln?mark(lines[i]):escHtml(lines[i]))+'</span></div>');"
+        r"return out.join('')}"
+        r"function renderHit(h){"
+        r"var d='<span class=\'s-dim '+h.dim+'\'>'+h.dim+'</span>';"
+        r"if(h.dim==='content'){"
+        r"var text=SEARCH[h.k];"
+        r"var rows=h.lines.map(function(ln){"
+        r"return '<div class=\'s-line-wrap\' data-k=\"'+escHtml(h.k)+'\" data-ln=\"'+ln+'\">'"
+        r"+ctxHtml(text,ln,2)+'</div>'}).join('');"
+        r"var more=h.more?'<button type=\'button\' class=\'s-more\' data-k=\"'+escHtml(h.k)+'\">还有 '+h.more+' 条</button>':'';"
+        r"return '<div class=\'s-item\'><div class=\'s-top\'>'+d+'<span class=\'s-path\'>'+escHtml(h.k)+'</span></div>'+rows+more+'</div>'}"
+        r"var clickable=(h.dim==='file'&&window._pvHas&&window._pvHas(h.k))||h.dim==='folder';"
+        r"return '<div class=\'s-item'+(clickable?'':' static')+''"
+        r"+(clickable?' data-k=\"'+escHtml(h.k)+'\" data-dim=\"'+h.dim+'\"':'')"
+        r"+'><div class=\'s-top\'>'+d+'<span class=\'s-path\'>'+escHtml(h.k)+'</span></div></div>'}"
+        r"function expand(el){el.innerHTML=ctxHtml(SEARCH[el.dataset.k],+el.dataset.ln,10);el.classList.add('exp')}"
+        r"function jumpTo(k,ln){"
+        r"window._openPv(k);"
+        r"var body=document.getElementById('pvBody');"
+        r"var els=body.querySelectorAll('[data-ln]'),best=null,bestV=-1;"
+        r"for(var i=0;i<els.length;i++){var v=+els[i].getAttribute('data-ln');if(v<=ln&&v>bestV){best=els[i];bestV=v}}"
+        r"var old=body.querySelector('.s-hl');if(old)old.classList.remove('s-hl');"
+        r"if(best){best.classList.add('s-hl');if(best.scrollIntoView)best.scrollIntoView({block:'center'})}}"
+        r"box.addEventListener('click',function(e){"
+        r"var line=e.target.closest('.s-line-wrap'),more=e.target.closest('.s-more');"
+        r"if(more){"
+        r"var all=window.tpSearch(SEARCH,input.value.trim(),re.checked,1e9).hits.filter(function(h){return h.k===more.dataset.k&&h.dim==='content'})[0];"
+        r"if(all){more.outerHTML=all.lines.map(function(ln){"
+        r"return '<div class=\'s-line-wrap exp\' data-k=\"'+escHtml(all.k)+'\" data-ln=\"'+ln+'\">'+ctxHtml(SEARCH[all.k],ln,2)+'</div>'}).join('')}"
+        r"return}"
+        r"if(line){"
+        r"var k=line.dataset.k;"
+        r"if(window._pvHas&&window._pvHas(k)){close();jumpTo(k,+line.dataset.ln)}else expand(line);return}"
+        r"var item=e.target.closest('.s-item[data-k]');if(!item)return;"
+        r"var kk=item.dataset.k;"
+        r"if(item.dataset.dim==='folder'){"
+        r"var seg=kk.split('/')[0];"
+        r"if(window.TPDATA&&TPDATA[seg]){location.hash='#/feature-'+seg;close()}"
+        r"else if(seg==='research'||seg==='memory'){location.hash='#/'+seg;close();"
+        r"setTimeout(function(){var a=document.querySelector('.view.on a[href^=\"'+seg+'/\"]');"
+        r"if(a&&a.scrollIntoView){a.scrollIntoView({block:'center'});a.classList.add('s-flash');setTimeout(function(){a.classList.remove('s-flash')},1600)}},0)}"
+        r"return}"
+        r"if(window._pvHas(kk)){close();window._openPv(kk)}"
+        r"});"
+        r"})();</script>",
         "<script>(function(){"
         "var TPDATA={};try{TPDATA=JSON.parse(document.getElementById('tp-data').textContent)}catch(e){}"
+        "window.TPDATA=TPDATA;"
         "var STZH={done:'已完成',active:'进行中',open:'可开工',blocked:'被阻塞'};"
         "var STC={done:'#7ba888',active:'#c08a3e',open:'#6aa5e3',blocked:'#c98a80'};"
         r"function escMd(s){return String(s).replace(/\|/g,'\\|').replace(/\n/g,' ')}"
@@ -2114,7 +2319,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "try{localStorage.setItem('tp-theme',t)}catch(e){}}"
         "set(root.dataset.theme||'light');"
         "btn.addEventListener('click',function(){set(root.dataset.theme==='dark'?'light':'dark')});})();</script>",
-        # KPI 数字滚动 + ⌘K/输入即滤:过滤所有表格行和依赖图标题
+        # KPI 数字滚动 + 输入即滤:过滤所有表格行(⌘K 已归全局搜索覆盖层)
         "<script>(function(){"
         "document.querySelectorAll('.kpi [data-n]').forEach(function(el){"
         "var n=+el.dataset.n,t0=performance.now();"
@@ -2127,9 +2332,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "box.addEventListener('input',function(){"
         "var q=box.value.trim().toLowerCase();"
         "rows.forEach(function(r){"
-        "r.style.display=!q||r.textContent.toLowerCase().indexOf(q)>=0?'':'none'})});"
-        "document.addEventListener('keydown',function(e){"
-        "if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();box.focus()}})}})();</script>",
+        "r.style.display=!q||r.textContent.toLowerCase().indexOf(q)>=0?'':'none'})})}})();</script>",
         # hash 路由:每个 tab/菜单项是独立视图;#/路由切换,浏览器前进后退可用,未知路由回落总览
         "<script>(function(){"
         "var views={};document.querySelectorAll('.view').forEach(function(v){views[v.dataset.route]=v});"
@@ -2183,17 +2386,17 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         r"var L=escHtml(src).split('\n'),out=[],i=0;"
         r"function cells(r){r=r.replace(/^\s*\|/,'').replace(/\|\s*$/,'');"
         r"return r.split('|').map(function(c){return inline(c.trim())})}"
-        r"while(i<L.length){var s=L[i];"
+        r"while(i<L.length){var s=L[i],ln0=i;"
         r"if(/^```/.test(s)){var buf=[];i++;while(i<L.length&&!/^```/.test(L[i])){buf.push(L[i]);i++}i++;"
-        r"out.push('<pre><code>'+buf.join('\n')+'</code></pre>');continue}"
+        r"out.push('<pre data-ln=\"'+ln0+'\"><code>'+buf.join('\n')+'</code></pre>');continue}"
         r"var h=s.match(/^(#{1,4})\s+(.*)/);"
-        r"if(h){out.push('<h'+h[1].length+'>'+inline(h[2])+'</h'+h[1].length+'>');i++;continue}"
-        r"if(/^\s*(-{3,}|\*{3,})\s*$/.test(s)){out.push('<hr>');i++;continue}"
+        r"if(h){out.push('<h'+h[1].length+' data-ln=\"'+ln0+'\">'+inline(h[2])+'</h'+h[1].length+'>');i++;continue}"
+        r"if(/^\s*(-{3,}|\*{3,})\s*$/.test(s)){out.push('<hr data-ln=\"'+ln0+'\">');i++;continue}"
         r"if(/^>/.test(s)){var b=[];while(i<L.length&&/^>/.test(L[i])){b.push(L[i].replace(/^>\s?/,''));i++}"
-        r"out.push('<blockquote>'+inline(b.join(' '))+'</blockquote>');continue}"
+        r"out.push('<blockquote data-ln=\"'+ln0+'\">'+inline(b.join(' '))+'</blockquote>');continue}"
         r"if(s.indexOf('|')>=0&&i+1<L.length&&/^\s*\|?[\s:|-]+\|?\s*$/.test(L[i+1])&&L[i+1].indexOf('-')>=0){"
         r"var rows=[];while(i<L.length&&L[i].indexOf('|')>=0){rows.push(L[i]);i++}"
-        r"var t='<table><thead><tr>'+cells(rows[0]).map(function(c){return '<th>'+c+'</th>'}).join('')+'</tr></thead><tbody>';"
+        r"var t='<table data-ln=\"'+ln0+'\"><thead><tr>'+cells(rows[0]).map(function(c){return '<th>'+c+'</th>'}).join('')+'</tr></thead><tbody>';"
         r"for(var r=2;r<rows.length;r++){t+='<tr>'+cells(rows[r]).map(function(c){return '<td>'+c+'</td>'}).join('')+'</tr>'}"
         r"out.push(t+'</tbody></table>');continue}"
         r"var ml=s.match(/^(\s*)([-*]|\d+\.)\s+(.*)/);"
@@ -2204,11 +2407,11 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         r"if(cb){var ck=/[xX]/.test(cb[1])?' checked':'';"
         r"items.push('<li><input type=\"checkbox\" disabled'+ck+'> '+inline(cb[2])+'</li>')}"
         r"else items.push('<li>'+inline(m2[3])+'</li>');i++}"
-        r"out.push('<'+tag+'>'+items.join('')+'</'+tag+'>');continue}"
+        r"out.push('<'+tag+' data-ln=\"'+ln0+'\">'+items.join('')+'</'+tag+'>');continue}"
         r"if(!s.trim()){i++;continue}"
         r"var para=[s];i++;"
         r"while(i<L.length&&L[i].trim()&&!/^(#{1,4}\s|```|>|\s*([-*]|\d+\.)\s)/.test(L[i])&&L[i].indexOf('|')<0){para.push(L[i]);i++}"
-        r"out.push('<p>'+inline(para.join('<br>'))+'</p>')}"
+        r"out.push('<p data-ln=\"'+ln0+'\">'+inline(para.join('<br>'))+'</p>')}"
         r"return out.join('\n')}"
         # csv/tsv 解析成表格(支持 "" 转义);解析失败回退原文 pre
         r"function parseCsv(src,sep){var rows=[[]],r=0,cur='',q=false,i;"
@@ -2256,12 +2459,12 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         r"if(ext==='html'){body.innerHTML='<iframe class=\"pv-frame\" srcdoc=\"'+escHtml(injectBase(s))+'\" sandbox=\"allow-scripts allow-same-origin\"></iframe>';body.scrollTop=0;wrap.classList.add('open');return}"
         r"if(ext==='csv'||ext==='tsv')html=renderCsv(s,ext==='tsv'?'\t':',');"
         r"else if(ext==='json')html=renderJson(s);"
-        r"else if(ext==='yaml'||ext==='yml')html='<pre><code>'+hlYaml(s)+'</code></pre>';"
+        r"else if(ext==='yaml'||ext==='yml')html='<pre><code>'+hlYaml(s).split('\n').map(function(l,j){return '<span class=\"sl\" data-ln=\"'+j+'\">'+l+'</span>'}).join('')+'</code></pre>';"
         r"if(ext==='md'||ext==='markdown')html=renderMd(s);"
         # 未知文本扩展:原文 pre 展示(等宽,pre 自带 overflow-x 横向滚动)
-        r"else html='<pre>'+escHtml(s)+'</pre>';"
+        r"else html='<pre>'+escHtml(s).split('\n').map(function(l,j){return '<span class=\"sl\" data-ln=\"'+j+'\">'+l+'</span>'}).join('')+'</pre>';"
         r"body.innerHTML=html;body.scrollTop=0;wrap.classList.add('open')}"
-        r"function closePv(){wrap.classList.remove('open')}window._closePv=closePv;"
+        r"function closePv(){wrap.classList.remove('open')}window._closePv=closePv;window._openPv=openPv;window._pvHas=function(k){return PV.hasOwnProperty(k)};"
         r"document.getElementById('pvClose').addEventListener('click',closePv);"
         r"wrap.addEventListener('click',function(e){if(e.target===wrap)closePv()});"
         r"document.addEventListener('keydown',function(e){if(e.key==='Escape')closePv()});"

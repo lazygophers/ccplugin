@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import shutil
@@ -349,6 +350,81 @@ def test_main_without_scratch(tmp_path, capsys):
 
 
 
+def _search_channel(page: str) -> dict:
+    m = re.search(
+        r"<script id='tp-search' type='application/json'>(.*?)</script>", page, re.S
+    )
+    assert m, "tp-search 嵌入块缺失"
+    return json.loads(m.group(1))
+
+
+def _without_search(page: str) -> str:
+    """剥掉 tp-search 块再断言:预览预算/按需渲染的语义只看预览通道,
+    搜索通道全文嵌第二份是设计内的。"""
+    return re.sub(
+        r"<script id='tp-search' type='application/json'>.*?</script>", "", page, flags=re.S
+    )
+
+
+def test_search_channel_embeds_text_and_skips_binary(tmp_path):
+    """搜索通道:全文本类全文嵌入、路径剥 .scratch/ 前缀;二进制/图片/
+    progress.html 自身/依赖垃圾目录跳过,不占预览预算。"""
+    scratch = tmp_path / ".scratch"
+    write(scratch / "memory" / "2026-10-28.md", "# 决策\n\nneedle 正文\n")
+    write(scratch / "research" / "deep.md", "调研 needle\n")
+    write(scratch / "alpha" / "notes.md", "# 笔记\n")
+    write(scratch / "data.json", '{"k": "needle"}\n')
+    write(scratch / "blob.bin", "placeholder")
+    (scratch / "blob.bin").write_bytes(b"\x00\x01\x02not text")
+    write(scratch / "progress.html", "<html>旧的</html>")
+    write(scratch / "node_modules" / "x.js", "needle 依赖垃圾\n")
+    (scratch / "pic.png").write_bytes(b"\x89PNG\r\n\x1a\n")  # 伪图片:非 utf-8
+    efforts, unparsed = tp.scan(scratch)
+    page = tp.render(efforts, unparsed, scratch)
+    data = _search_channel(page)
+    assert "needle 正文" in data["memory/2026-10-28.md"]
+    assert "research/deep.md" in data
+    assert "alpha/notes.md" in data
+    assert "data.json" in data
+    assert "blob.bin" not in data
+    assert "progress.html" not in data
+    assert "pic.png" not in data
+    assert not any(k.startswith("node_modules/") for k in data)
+
+
+def test_search_channel_escapes_script_breaker(tmp_path):
+    """正文含 </script> 与 < 时经 \\u003c 转义,块结构不破、JSON 回读原样。"""
+    scratch = tmp_path / ".scratch"
+    payload = "script 炸弹: </script><b onmouseover=x> & \"quotes\"\n"
+    write(scratch / "note.md", payload)
+    efforts, unparsed = tp.scan(scratch)
+    page = tp.render(efforts, unparsed, scratch)
+    data = _search_channel(page)
+    assert data["note.md"] == payload
+
+
+def test_search_markup_and_hooks_present(tmp_path):
+    root = build_repo(tmp_path)
+    scratch = root / ".scratch"
+    efforts, unparsed = tp.scan(scratch)
+    page = tp.render(efforts, unparsed, scratch)
+    for anchor in (
+        "id='tp-search'",
+        "id='tpSearchBtn'",
+        "id='sWrap'",
+        "id='sInput'",
+        "id='sRe'",
+        "window.tpSearch=",
+        "window._openPv=openPv",
+        "window._pvHas=",
+        "window.TPDATA=TPDATA",
+        "data-ln=",  # 预览行/块锚点,内容命中跳转定位用
+    ):
+        assert anchor in page
+    # ⌘K 只归全局搜索,tpFilter 旧绑定必须移除
+    assert page.count("key.toLowerCase()==='k'") == 1
+
+
 def test_clip():
     assert tp.clip("短", 5) == "短"
     assert tp.clip("x" * 30, 20).endswith("…")
@@ -593,7 +669,8 @@ def test_memory_view_stubs_and_on_demand(tmp_path):
     assert "1 条规整 · 3 行原文" in page
     assert "class='mstats'" in page
     # 内容只在 tp-files 嵌入里出现一次,不在视图 HTML 里重复
-    assert page.count("网格分布") == 1
+    # (tp-search 全文索引的第二份是设计内的,剥掉再数)
+    assert _without_search(page).count("网格分布") == 1
     assert "LEDGER" not in page  # 脚本以内联 <script> 注入,不经名字引用
     assert "parseLedger" in page and "mstub" in page
 
@@ -840,12 +917,14 @@ def test_render_rich_budget_fallback_and_fair_share(tmp_path, monkeypatch):
     monkeypatch.setattr(tp, "PV_IMG_BUDGET", 100)
     efforts, _ = tp.scan(scratch)
     page = tp.render(efforts, [], scratch)
+    # 预算语义只看预览通道;tp-search 全文索引不吃预算,剥掉再断言
+    pv_page = _without_search(page)
     # small.html 在预算内进 tp-files;big.html 超预算回退 ↗ 新标签
-    assert '"alpha/small.html":' in page
-    assert '"alpha/big.html":' not in page
+    assert '"alpha/small.html":' in pv_page
+    assert '"alpha/big.html":' not in pv_page
     assert ">big.html ↗</a>" in page
     # big.png 超图片预算,回退 ↗
-    assert '"alpha/big.png":' not in page
+    assert '"alpha/big.png":' not in pv_page
     assert ">big.png ↗</a>" in page
 
 
@@ -1031,8 +1110,10 @@ def test_feature_view_sections_classified_by_source(tmp_path):
     assert solo_tasks["真票面"].from_file is True
     assert solo_tasks["记忆完成行"].from_file is False
     page = tp.render(efforts, [], scratch)
-    # tickets 表只含票面行,memory 勾选行不进票表
-    tickets_seg = page.split("<h4>tickets")[1].split("</table>")[0]
+    # tickets 表只含票面行,memory 勾选行不进票表(截到 solo 视图内,避免
+    # 吃到 routed 的 tickets 卡与 roadmap 表)
+    solo_view = page.split("id='view-feature-solo'")[1].split("<div class='view'")[0]
+    tickets_seg = solo_view.split("<h4>tickets")[1].split("</table>")[0]
     assert "真票面" in tickets_seg
     assert "记忆完成行" not in tickets_seg
     assert "<h4>memory <span class='badge'>2</span>" in page
@@ -1053,7 +1134,7 @@ def test_feature_view_sections_classified_by_source(tmp_path):
 
 
 def test_feature_view_roadmap_mermaid_blocks(tmp_path):
-    """map.md 的 ```mermaid 块随 roadmap 区发成 pre.mmd(无 map 行也渲染),
+    """map.md 的 ```mermaid 块随 tickets 区发成 pre.mmd(无 map 行也渲染),
     由页面既有 mermaid 链路接管;票依赖图 pre.mmd 带 data-spec,来源不同。"""
     scratch = tmp_path / ".scratch"
     solo = scratch / "solo"
@@ -1064,13 +1145,32 @@ def test_feature_view_roadmap_mermaid_blocks(tmp_path):
     )
     efforts, _ = tp.scan(scratch)
     page = tp.render(efforts, [], scratch)
-    assert "<h4>roadmap <span class='badge'>0</span></h4>" in page
-    roadmap_seg = page.split("<h4>roadmap")[1].split("</section>")[0]
-    assert "<pre class='mmd'>" in roadmap_seg
-    assert "graph TD" in roadmap_seg and "A[路线甲] --&gt; B[路线乙]" in roadmap_seg
+    # 无票面文件时 tickets 卡只装 map mermaid,徽章计数为 0
+    assert "<h4>tickets <span class='badge'>0</span></h4>" in page
+    tickets_seg = page.split("<h4>tickets")[1].split("</section>")[0]
+    assert "<pre class='mmd'>" in tickets_seg
+    assert "graph TD" in tickets_seg and "A[路线甲] --&gt; B[路线乙]" in tickets_seg
     # 本夹具无票,唯一的 pre.mmd 就是 map mermaid;票依赖图带 data-spec 区分
     assert page.count("pre class='mmd'") == 1
     assert "<h4>票 <span" not in page
     assert "<h4>附件" not in page
     assert "<h4>调研" not in page
     assert "<h4>文档" not in page
+
+
+def test_ticket_tags_renders_frontmatter_fields():
+    """label/Status/Type/Blocked by 渲染成带 title 的 tag;空值与「无」不渲染。"""
+    t = tp.Task(effort="s", tid="01", title="x", status=tp.DONE,
+                blocked_by=["2", "13"], kind="research", labels="wayfinder:research",
+                raw_status="resolved", from_file=True)
+    html = tp.ticket_tags(t)
+    assert "title='label: wayfinder:research'" in html
+    assert ">wayfinder:research</span>" in html
+    assert "title='Status: resolved'" in html and "st-done" in html
+    assert "title='Type: research'" in html
+    assert "title='Blocked by: 2、13'" in html
+    # 「无」被 parse_ids 吃掉 → 不渲染 Blocked by tag;全空 → 不渲染 tag 行
+    none_t = tp.Task(effort="s", tid="02", title="y", status=tp.OPEN,
+                     blocked_by=tp.parse_ids("无"))
+    assert tp.ticket_tags(none_t) == ""
+    assert tp.parse_ids("无") == []
