@@ -268,9 +268,10 @@ async function highlightCode(host) {
   }
 }
 
-// 点链接 = 让服务端把文件投给默认浏览器开新标签页，地址栏里是真 file:// 地址。
-// 不能直接导航过去：Chrome 禁止 http:// 页面跳 file://，点了静默失败。所以 href 只
-// 负责显示和复制（右键「复制链接」拿到的就是 file:// 全路径），真正的动作在 click 里。
+// 点「新标签打开」= 让服务端把文件投给默认浏览器开新标签页，地址栏里是真 file://
+// 地址。不能直接导航过去：Chrome 禁止 http:// 页面跳 file://，点了静默失败。所以
+// href 只负责显示和复制（右键「复制链接」拿到的就是 file:// 全路径），真正的动作
+// 在 click 里。
 function openLocalFile(target, hash) {
   const query = [
     `path=${encodeURIComponent(target)}`,
@@ -283,6 +284,68 @@ function openLocalFile(target, hash) {
       showToast(body.error || `打不开 ${target}`);
     })
     .catch((error) => showToast(`打不开 ${target}：${error.message}`));
+}
+
+// 文件预览弹层：点链接先按扩展名把内容渲染进宿主，渲染好再交给 openPreview——
+// 缩放、平移、焦点陷阱、Esc 全是现成的；工具栏加一颗「新标签打开」复用 /local。
+async function openLocalPreview(target, hash) {
+  const host = element('div', 'file-preview');
+  try {
+    await renderLocalFile(host, target, hash);
+  } catch (error) {
+    showToast(`打不开 ${target}：${error.message}`);
+    return;
+  }
+  const newTab = element('button', 'preview-button', '新标签打开');
+  newTab.type = 'button';
+  newTab.setAttribute('aria-label', '在浏览器新标签页打开');
+  newTab.addEventListener('click', (event) => {
+    event.stopPropagation();
+    openLocalFile(target, hash);
+  });
+  openPreview(host, '文件', { extraToolbar: [newTab] });
+}
+
+// /preview 与表单页同源，fetch 走 connect-src 'self' 放行；非 2xx 的错误体是 JSON。
+async function fetchPreviewText(target) {
+  const response = await fetch(`/preview?path=${encodeURIComponent(target)}`);
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.error || `请求失败：${response.status}`);
+  }
+  return response.text();
+}
+
+async function renderLocalFile(host, target, hash) {
+  const ext = (target.match(/\.([a-z0-9]+)$/i)?.[1] || '').toLowerCase();
+  if (['md', 'markdown'].includes(ext)) {
+    // 套上 .rich-text 外壳再走 renderProse：marked+DOMPurify 照常，mermaid 照常，
+    // 弹层内渲染出的本地文件链接由 renderProse 里的 rewriteLocalLinks 再拦截一轮。
+    host.classList.add('rich-text');
+    const block = element('div', 'prose');
+    host.append(block);
+    await renderProse(block, await fetchPreviewText(target));
+  } else if (['html', 'htm', 'pdf'].includes(ext)) {
+    // html 预览完整跑脚本（用户拍板 full 模式）：iframe 子文档吃 /preview 响应，
+    // 该响应不挂 CSP 和 X-Frame-Options，嵌入和内联脚本都放行。锚点进 src 供跳转。
+    const frame = element('iframe', 'file-frame');
+    frame.src = `/preview?path=${encodeURIComponent(target)}${hash}`;
+    host.append(frame);
+  } else if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext)) {
+    const image = element('img', 'file-image');
+    image.src = `/preview?path=${encodeURIComponent(target)}`;
+    image.alt = target;
+    host.append(image);
+  } else {
+    // 剩下的白名单类型（json/yaml/csv/txt/log）一律 fetch 原文进代码块；hljs 只上色
+    // 自己认得的语言，csv/txt/log 按素色显示，不猜。
+    const code = element('code', `language-${ext === 'yml' ? 'yaml' : ext}`);
+    code.textContent = await fetchPreviewText(target);
+    const pre = element('pre');
+    pre.append(code);
+    host.append(pre);
+    await highlightCode(host);
+  }
 }
 
 // 指向本机文件的链接（`.scratch/report.html`、`/abs/notes.md`、`file:///…`）。
@@ -309,19 +372,24 @@ function rewriteLocalLinks(host) {
     // 三道斜杠固定要有：`file:///C:/a` 和 `file:///a/b` 都靠它，少一道 Windows 认不出。
     anchor.href = `file:///${target.replace(/^\/+/, '')}${hash}`;
     anchor.classList.add('local-link');
-    anchor.title = `在浏览器新标签页打开：${target}`;
+    anchor.title = `预览：${target}`;
     anchor.addEventListener('click', (event) => {
       event.preventDefault();
-      openLocalFile(target, hash);
+      openLocalPreview(target, hash);
     });
   }
 }
+
+// DOMPurify 默认 URI 白名单不认 file:，file:// 链接的 href 会被整体剥掉，链接变
+// 成点了没反应的文字。加一个 file: 分支；javascript: 等危险 scheme 依然被默认
+// 正则的第三条分支拦下，其余放行/拦截行为保持默认。
+const SANITIZE_URI_REGEXP = /^(?:(?:(?:f|ht)tps?|file|mailto|tel|callto|sms|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i;
 
 async function renderProse(host, source) {
   try {
     const { marked, purify } = await loadMarkdown();
     // marked 只负责结构，DOMPurify 负责把脚本和事件属性剥干净，两步都不能省。
-    host.innerHTML = purify.sanitize(marked.parse(source, { gfm: true, breaks: true }));
+    host.innerHTML = purify.sanitize(marked.parse(source, { gfm: true, breaks: true }), { ALLOWED_URI_REGEXP: SANITIZE_URI_REGEXP });
     host.dataset.state = 'ready';
     rewriteLocalLinks(host);
     for (const table of host.querySelectorAll('table')) {
@@ -439,7 +507,7 @@ function focusableWithin(root) {
   );
 }
 
-function openPreview(host, label, { readable = false } = {}) {
+function openPreview(host, label, { readable = false, extraToolbar = [] } = {}) {
   const overlay = element('div', 'preview-overlay');
   const stage = element('div', 'preview-stage');
   const canvas = element('div', 'preview-canvas');
@@ -587,6 +655,7 @@ function openPreview(host, label, { readable = false } = {}) {
       button('＋', () => zoomTo(scale * 1.25), '放大'),
       button('重置', () => { scale = fitScale(); offsetX = 0; offsetY = 0; apply(); }, '重置缩放'),
     ]),
+    ...extraToolbar,
     button('关闭', close, '关闭预览'),
   );
 

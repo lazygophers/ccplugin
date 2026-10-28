@@ -63,7 +63,21 @@ function sendJson(response: ServerResponse, statusCode: number, value: unknown):
   response.end(`${JSON.stringify(value)}\n`);
 }
 
-function sendFile(response: ServerResponse, file: string): void {
+// /preview 直出各扩展名的正确 MIME：浏览器拿 octet-stream 的 pdf 只会下载不会渲染，
+// img 标签也认不出 octet-stream 的图片。
+function previewContentType(file: string): string {
+  if (/\.html?$/i.test(file)) return 'text/html; charset=utf-8';
+  if (/\.svg$/i.test(file)) return 'image/svg+xml';
+  if (/\.png$/i.test(file)) return 'image/png';
+  if (/\.jpe?g$/i.test(file)) return 'image/jpeg';
+  if (/\.gif$/i.test(file)) return 'image/gif';
+  if (/\.webp$/i.test(file)) return 'image/webp';
+  if (/\.pdf$/i.test(file)) return 'application/pdf';
+  if (/\.json$/i.test(file)) return 'application/json; charset=utf-8';
+  return 'text/plain; charset=utf-8';
+}
+
+function sendFile(response: ServerResponse, file: string, type = contentType(file), securityHeaders = true): void {
   const stream = createReadStream(file);
   // 读文件的错误是异步从流里冒出来的，路由里的 try/catch 接不住。不挂这个监听，
   // 一个权限不对的组件文件就会让整个服务连同全部活跃会话一起退出。
@@ -76,8 +90,8 @@ function sendFile(response: ServerResponse, file: string): void {
   });
   // 头留到确认打得开文件之后再发，否则失败时已经发出去 200，改不回错误状态码。
   stream.on('open', () => {
-    addSecurityHeaders(response);
-    response.writeHead(200, { 'Content-Type': contentType(file) });
+    if (securityHeaders) addSecurityHeaders(response);
+    response.writeHead(200, { 'Content-Type': type });
     stream.pipe(response);
   });
 }
@@ -146,6 +160,35 @@ async function openLocalFile(response: ServerResponse, requestUrl: URL, dataRoot
     windowsHide: true,
   }).unref();
   sendJson(response, 200, { opened: target });
+}
+
+// /preview：表单页内弹层预览的取内容端点，解析与 /local 完全同宽——同一套白名单、
+// 同样剥 file:// 前缀、同样相对路径按工作区解析，服务只绑 127.0.0.1。
+// html（连带 svg）要被 iframe 嵌进表单页：X-Frame-Options: DENY 和 CSP 的
+// frame-ancestors 'none' 会挡掉嵌入，严格 CSP 还会掐死预览页里的内联脚本
+// （用户拍板预览要完整跑脚本），所以这两类不挂那两样，只留 nosniff；其余类型照旧。
+function previewLocalFile(response: ServerResponse, requestUrl: URL, dataRoot: string): void {
+  const requested = requestUrl.searchParams.get('path') || '';
+  if (!requested) {
+    sendJson(response, 400, { error: 'path is required' });
+    return;
+  }
+  const target = path.resolve(path.dirname(dataRoot), requested.replace(/^file:\/\//, ''));
+  if (!existsSync(target)) {
+    sendJson(response, 404, { error: `文件不存在：${target}` });
+    return;
+  }
+  if (!OPENABLE.test(target)) {
+    sendJson(response, 403, { error: `只放行文档和图片，不给开这种文件：${path.basename(target)}` });
+    return;
+  }
+  const type = previewContentType(target);
+  if (/\.(html?|svg)$/i.test(target)) {
+    response.setHeader('X-Content-Type-Options', 'nosniff');
+    sendFile(response, target, type, false);
+  } else {
+    sendFile(response, target, type);
+  }
 }
 
 interface Lifecycle {
@@ -305,6 +348,10 @@ export async function startHttpServer({
     try {
       if (request.method === 'GET' && requestUrl.pathname === '/local') {
         await openLocalFile(response, requestUrl, dataRoot);
+        return;
+      }
+      if (request.method === 'GET' && requestUrl.pathname === '/preview') {
+        previewLocalFile(response, requestUrl, dataRoot);
         return;
       }
       if (requestUrl.pathname === '/health') {

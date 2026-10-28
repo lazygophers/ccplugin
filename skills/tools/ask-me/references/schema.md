@@ -128,15 +128,15 @@ Markdown 按 GFM 渲染：标题、粗体、斜体、行内代码、代码块、
 {"id":"q-scope","type":"single","text":"按[审计报告](.scratch/model-audit.html)的结论，先修哪一类\n\n背景见 [设计说明](docs/adr/0007-routing.md)。","options":[{"id":"opt-a","text":"先修路由"},{"id":"opt-b","text":"先修缓存"}]}
 ```
 
-点开就在默认浏览器的新标签页里打开那个文件，地址是真正的 `file://`：`.md`、图片、PDF 也一样走浏览器，不会拉起编辑器。链接尾部有 `↗` 标记，鼠标悬停显示完整绝对路径，右键「复制链接」拿到的是 `file:///…`。
+点开在表单页里弹层预览，不离开表单：`.md` 按 Markdown 渲染（mermaid 图表照常），`.html` / `.pdf` 在内嵌 iframe 里打开（`.html` 完整跑脚本），图片直出，`.json` / `.yaml` / `.csv` / `.txt` / `.log` 显示原文代码块。弹层带缩放和「新标签打开」——按钮走默认浏览器那套，地址是真 `file://`。链接尾部有 `↗` 标记，鼠标悬停显示完整绝对路径，右键「复制链接」拿到的是 `file:///…`。
 
-写 `notes.md#2-节点体系` 这种带锚点的链接也可以，`#` 之后那截不会被当成文件名。整条 `file://` URL 连锚点一起交给浏览器，网页里的锚点照常跳。
+写 `notes.md#2-节点体系` 这种带锚点的链接也可以，`#` 之后那截不会被当成文件名。锚点会拼到 `.html` / `.pdf` 预览的 iframe 地址上，网页里的锚点照常跳。
 
-macOS 上多绕了一步：`open` 会按文件类型挑程序，`.md` 落到编辑器；它打开 `file://` 时还会把 `#锚点` 剥掉（`open`、`open -u`、`open -a <浏览器>` 三种写法实测都一样）。所以固定先问 LaunchServices 默认浏览器是谁，再用 AppleScript 把整条 URL 投给它。查不到默认浏览器才退回 `open`，那时 `.md` 会回到编辑器、锚点会丢，但文件照常打开。
+「新标签打开」在 macOS 上多绕了一步：`open` 会按文件类型挑程序，`.md` 落到编辑器；它打开 `file://` 时还会把 `#锚点` 剥掉（`open`、`open -u`、`open -a <浏览器>` 三种写法实测都一样）。所以固定先问 LaunchServices 默认浏览器是谁，再用 AppleScript 把整条 URL 投给它。查不到默认浏览器才退回 `open`，那时 `.md` 会回到编辑器、锚点会丢，但文件照常打开。
 
 **只放行文档和图片**：`.html` / `.htm` / `.md` / `.markdown` / `.txt` / `.log` / `.json` / `.yaml` / `.csv` / `.pdf` / `.png` / `.jpg` / `.gif` / `.webp` / `.svg`。`.sh`、`.app`、`.command` 这类会被挡下并报 `只放行文档和图片，不给开这种文件：…`——兜底路径上的 `open` 在 macOS 上能启动程序，正文里的一条链接不该有这个本事。
 
-原理：浏览器禁止 `http://` 页面跳 `file://`（实测 `window.open('file://…')` 返回 `null`，不开标签），所以链接的 `href` 只负责显示和复制，点击被拦下来改成请求本服务的 `/local` 路由，由服务端把 `file://` URL 投给默认浏览器（macOS 走 AppleScript，Windows `cmd /c start`、Linux `xdg-open` 兜底）。服务只绑 `127.0.0.1`，能连上的就是本机。文件不存在时页面弹提示条显示完整路径，不会静默。
+原理：浏览器禁止 `http://` 页面跳 `file://`（实测 `window.open('file://…')` 返回 `null`，不开标签），所以链接的 `href` 只负责显示和复制。点击被拦下来改成请求本服务的 `/preview` 路由取内容，在页内弹层渲染；弹层里的「新标签打开」才走 `/local`，由服务端把 `file://` URL 投给默认浏览器（macOS 走 AppleScript，Windows `cmd /c start`、Linux `xdg-open` 兜底）。服务只绑 `127.0.0.1`，能连上的就是本机。`.html` / `.svg` 的预览响应不挂 CSP 和 `X-Frame-Options`——否则 iframe 拒嵌、内联脚本被掐死；其余响应照挂全套安全头。文件不存在或扩展名不在白名单时页面弹提示条显示完整路径，不会静默。
 
 调试或换打开方式时设 `ASK_ME_OPENER=<命令>` 覆盖上面那三个默认值。
 

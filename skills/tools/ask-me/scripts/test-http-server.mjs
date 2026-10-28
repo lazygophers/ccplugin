@@ -61,6 +61,39 @@ export async function test() {
             assert.equal(missing.status, 404, '文件不存在要报 404，不能静默当作打开了');
             delete process.env.ASK_ME_OPENER;
         }
+        // /preview：表单页内弹层的取内容端点。解析与 /local 完全同宽：同一套白名单、
+        // 同样剥 file:// 前缀、相对路径按工作区解析。
+        {
+            const preview = (query) => fetch(`${base}/preview?${query}`, { headers });
+            // html 预览要被 iframe 嵌进表单页且内联脚本能跑（full 模式）：X-Frame-Options
+            // 和 CSP 都不能挂，否则浏览器拒嵌 / 掐死脚本。
+            const html = await preview(`path=${encodeURIComponent('report.html')}`);
+            assert.equal(html.status, 200, '白名单内的 html 要能直出内容');
+            assert.equal(html.headers.get('content-type'), 'text/html; charset=utf-8');
+            assert.equal(html.headers.get('x-frame-options'), null, 'html 预览不能带 X-Frame-Options，否则 iframe 拒绝加载');
+            assert.equal(html.headers.get('content-security-policy'), null, 'html 预览不能带 CSP，否则内联脚本被掐死');
+            assert.equal(await html.text(), '<h1>审计报告</h1>\n');
+            const markdown = await preview(`path=${encodeURIComponent('notes.md')}`);
+            assert.equal(markdown.status, 200, '.md 要能直出原文');
+            assert.equal(markdown.headers.get('content-type'), 'text/plain; charset=utf-8');
+            assert.equal(await markdown.text(), '# 结论\n\n第一条\n');
+            const executable = await preview(`path=${encodeURIComponent('danger.sh')}`);
+            assert.equal(executable.status, 403, '可执行文件同样被白名单挡下');
+            // 绝对路径与 file:// 前缀：和 /local 同一套解析，file:/// 链接点开就是它。
+            const workspace = path.dirname(dataRoot);
+            const absolute = await preview(`path=${encodeURIComponent(path.join(workspace, 'notes.md'))}`);
+            assert.equal(absolute.status, 200, '绝对路径同样要能直出');
+            const fileUrl = await preview(`path=${encodeURIComponent(`file://${path.join(workspace, 'notes.md')}`)}`);
+            assert.equal(fileUrl.status, 200, 'file:// 前缀要被剥掉后照常直出');
+            const missing = await preview(`path=${encodeURIComponent('nope.md')}`);
+            assert.equal(missing.status, 404, '文件不存在报 404');
+            const noPath = await fetch(`${base}/preview`, { headers });
+            assert.equal(noPath.status, 400, '缺 path 参数报 400');
+            // 放宽只限预览路径：表单页自己的响应照挂全套安全头。
+            const index = await fetch(`${base}/`);
+            assert.ok(index.headers.get('x-frame-options'), '表单页自己的响应仍要带 X-Frame-Options');
+            assert.ok(index.headers.get('content-security-policy'), '表单页自己的响应仍要带 CSP');
+        }
         // 渲染组件命中缓存时必须直接回文件，绝不联网：这是离线可用的前提。
         const vendorDir = path.join(temporaryRoot, 'vendor');
         await fs.mkdir(vendorDir, { recursive: true });

@@ -46,7 +46,7 @@ description: 开一个本地网页表单，一次把多个问题摆给用户、�
    - **上下文字段**：一并写上，让用户不看对话就能判断在问什么：`projectName` / `title` / `summary` / `background`（左栏「本次背景」，右上角有独立按钮可放大）/ `purpose`，需要单独交代前情的题写题级 `background`。
    - **选项**：一律是 JSON 对象 `{"text":"…","description":"…","recommended":true,"reason":"…"}`，**不接受字符串**；`reason` 只能写在 `recommended: true` 的选项上。选项的 `id` 不写就按这题内的顺序自动生成 `option-1` / `option-2`…；**要被 `showWhen` 指到的选项必须自己写 `"id"`**，别去猜自动生成的序号。选择题没有「其他」选项。预设选项之外的答案由每题的补充说明承载，所以选项只列真正互斥的几种，不要凑「其他」。选择题至少要 2 个选项，脚本会直接报错 `第 X 题是选择题，至少要有两个选项` 并退出——只有一个候选的确认题改成 `type: "text"`，或者干脆在对话里问。
    - **条件题（分支）**：有依赖关系的问题写成同一次提问里的条件题——`q1` 的选项写成 `{"id":"yes","text":"要，分阶段放量"}`，这题写 `"showWhen": {"questionId":"q1","optionIds":["yes"]}`，于是只在 `q1` 选了那个选项时才出现，用户选完当场出现或消失。`optionIds` 里填的是**选项的 `id`**，不是选项的文字——填文字会报 `第 q2 题的 showWhen 引用了 q1 里不存在的选项：…`。`showWhen` 只能指向排在前面的题，分支树靠链式依赖搭；文本题作触发源时用 `answered` / `contains` / `matches`。隐藏题不校验必填、也不进 `answers.json`（id 列在 `hiddenQuestionIds`）。完整规则见 [references/schema.md](references/schema.md) 的「条件题（分支）」——`showWhen` 的三条跨字段硬规则（指向前面的题、匹配方式配得上题型、选项 id 真实存在）schema 拦不住，只有运行时会报错。
-   - **富文本与文件链接**：`background`、题目的 `text` 和 `background` 支持 **Markdown（GFM：标题、粗体、行内代码、代码块、列表、链接、引用、表格）+ Mermaid**；选项的 `description` 只支持 Markdown。**提到文件就写成链接**：`[审计报告](.scratch/model-audit.html)`（路径相对工作区，也收绝对路径和 `file:///…`），点开就在默认浏览器的新标签页里打开它，地址是真的 `file://`。只放行文档和图片（`.html` / `.md` / `.txt` / `.log` / `.json` / `.yaml` / `.csv` / `.pdf` / 图片），`.sh`、`.app` 这类会被挡下。光写路径点不了，用户得自己去开。细节见 [references/schema.md](references/schema.md) 的「本地文件链接」。
+   - **富文本与文件链接**：`background`、题目的 `text` 和 `background` 支持 **Markdown（GFM：标题、粗体、行内代码、代码块、列表、链接、引用、表格）+ Mermaid**；选项的 `description` 只支持 Markdown。**提到文件就写成链接**：`[审计报告](.scratch/model-audit.html)`（路径相对工作区，也收绝对路径和 `file:///…`），点开在表单页内弹层预览——md 按正文渲染、html/pdf 进 iframe（html 完整跑脚本）、图片直出、json/yaml/csv/txt/log 显示原文，弹层带缩放和「新标签打开」。只放行文档和图片（`.html` / `.md` / `.txt` / `.log` / `.json` / `.yaml` / `.csv` / `.pdf` / 图片），`.sh`、`.app` 这类会被挡下。光写路径点不了，用户得自己去开。细节见 [references/schema.md](references/schema.md) 的「本地文件链接」。
    - **图表与嵌套围栏**：流程、时序、架构这类讲不清的东西写成 ` ```mermaid ` 代码块，会渲染成跟随主题的图。表格、图表和代码块在页面上都能点击放大、缩放拖拽。代码块在围栏上标语言（` ```ts `、` ```sql `）就会按语言高亮。**嵌套规则**：要展示一段本身含 ``` 围栏的 markdown（或代码里含 ```）时，外层围栏必须用四反引号 ` ```` `——三反引号会被内层第一个 ``` 提前闭合，后面的内容漏成正文，页面上出现裸 ``` 字符。
 4. **在后台运行命令，只把 stdout 重定向到文件，stderr 留在控制台**：
 
@@ -150,7 +150,7 @@ node <ASK_ME_SKILL_DIR>/scripts/ask-me.mjs create --input <questions.json>
 | 把 stderr 也重定向进文件 | URL 和 `ask-me-id` 被埋进文件，用户看不到，页面没弹出来就没法自己打开 | 只重定向 stdout |
 | `sleep` 轮询、催用户、让用户回复「已提交」 | 后台任务的完成通知就是唤醒信号，等它即可 | 启动后立刻结束本轮 |
 | 从任务输出里找答案，或手拼 `.ask-me/` 路径 | 任务输出只有 stderr 的进度行，答案不在那里 | 答案读 `<run>.stdout.json` 或跑 `resume`；任务输出只用来取 URL、`ask-me-id` 和报错 |
-| 正文里写光秃秃的文件路径 | 页面上点不开，用户要自己去文件管理器里找 | 写成 Markdown 链接 `[报告](.scratch/report.html)`，点开就是新标签页 |
+| 正文里写光秃秃的文件路径 | 页面上点不开，用户要自己去文件管理器里找 | 写成 Markdown 链接 `[报告](.scratch/report.html)`，点开就是页内弹层预览 |
 | 给选择题加「其他」选项 | 预设外的答案由每题的补充说明承载 | 选项只列真正互斥的几种 |
 | 写只有一个选项的选择题 | 脚本硬拒收，整批问题连会话都建不起来 | 补足第二个真实互斥的选项，或改成 `type: "text"` |
 | 在 `text` 里写「（可留空）」却不写 `"required": false` | `required` 默认 `true`，页面照挂「必填」徽标、留空挡提交，文案和校验对不上 | 选填题显式写 `"required": false` |
