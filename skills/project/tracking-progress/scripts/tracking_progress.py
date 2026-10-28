@@ -23,14 +23,19 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
-# Directories under .scratch that never hold task state.
-SKIP_DIRS = {"memory", "research", ".ask-me", "node_modules", ".git"}
+# Directories under .scratch that never hold task state. "report" is the
+# wrap-up migration target .scratch/report/ (public archive), "reports" the
+# per-feature one-off report dir — neither is scanned for tasks.
+SKIP_DIRS = {"memory", "research", "report", "reports", ".ask-me", "node_modules", ".git"}
 
 # Files that are structural, not tasks — never reported as unrecognised.
-KNOWN_FILENAMES = {"map.md", "memory.md", "spec.md", "readme.md"}
+KNOWN_FILENAMES = {"map.md", "memory.md", "spec.md", "decisions.md", "readme.md"}
 
 # 设计样例目录:不是普通资产,按语义识别成独立的设计样例区
 DESIGN_DIRS = {"design-demos", "demos", "设计样例"}
+
+# 设计样例区只渲染卡片的两类文件:html 活预览 + 图片;其余扩展名折叠计数
+DESIGN_EXTS = {".html", ".png", ".jpg", ".jpeg", ".webp", ".svg", ".gif"}
 
 DONE_WORDS = (
     "resolved done closed completed complete fixed merged shipped wontfix "
@@ -139,6 +144,8 @@ class Effort:
     unknown_nodes: list[str] = field(default_factory=list)
     # spec 级 research/ 下的文档,页面只列链接不解析状态
     research: list[Path] = field(default_factory=list)
+    # spec 级 reports/ 的一次性报告,同 research:列链接+预览,不解析状态
+    reports: list[Path] = field(default_factory=list)
     # 单文件 feature:顶层 .scratch/<名字>.md,没建目录也该作为一个 feature 呈现
     single: Path | None = None
     # feature 目录内读不出任务的 md(design.md 等)与常规资产目录(design-demos/ 等)
@@ -358,6 +365,10 @@ def scan(scratch: Path) -> tuple[list[Effort], list[Path]]:
         rdir = effort.path / "research"
         if effort.name != ROOT and rdir.is_dir():
             effort.research = sorted(rdir.glob("*.md"))
+        # spec 级 reports/:一次性报告,收尾迁 .scratch/report/<feature>/ 保留
+        rdr = effort.path / "reports"
+        if effort.name != ROOT and rdr.is_dir():
+            effort.reports = sorted(p for p in rdr.iterdir() if p.is_file())
         # 资产目录:design-demos 等按语义识别为设计样例区(任意层级,按父目录
         # 分组展示),其余进通用附件;单文件 feature(path=scratch 根)不吸收任何目录
         if effort.name != ROOT and not effort.single:
@@ -397,6 +408,7 @@ def scan(scratch: Path) -> tuple[list[Effort], list[Path]]:
                     and p.name.lower() not in junk
                     and not any(p.is_relative_to(ad) for ad in effort.design_dirs)
                     and not any(p.is_relative_to(ad) for ad in adirs)
+                    and not p.is_relative_to(effort.path / "reports")
                     and p not in srcs
                 ),
                 key=lambda p: str(p.relative_to(effort.path)),
@@ -962,6 +974,7 @@ CSS = """
   .demos .badge{font:500 10.5px var(--mono);color:var(--ink-3);background:var(--bg);
     border:1px solid var(--rule);border-radius:99px;padding:2px 9px}
   .demogrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:11px}
+  .demos-skip{margin:8px 0 0;font:500 11.5px var(--sans);color:var(--ink-3)}
   .democard{display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--rule);
     border-radius:11px;overflow:hidden;text-decoration:none;transition:transform .18s,border-color .18s,box-shadow .18s}
   .democard:hover{transform:translateY(-2px);border-color:#C9D8EC;box-shadow:0 6px 18px rgba(28,60,110,.1)}
@@ -1055,17 +1068,26 @@ def ledger_counts(text: str) -> tuple[int, int]:
             raw += 1
     return dec, raw
 
-def scan_index(scratch: Path) -> tuple[list[Path], list[Path]]:
-    """入口目录索引:顶层 memory/ 与 research/ 的 markdown,按改动时间倒序。
+def scan_index(scratch: Path) -> tuple[list[Path], list[Path], list[Path]]:
+    """入口目录索引:顶层 memory/ 与 research/ 的 markdown、report/ 的一次性
+    报告(递归,含 <feature>/ 子层),按改动时间倒序。
 
-    两处目录都是历史账本,只列文件名不解析状态;目录不存在就返回空列表。
+    三处目录都是历史账本,只列文件名不解析状态;目录不存在就返回空列表。
     """
     def ls(d: Path) -> list[Path]:
         if not d.is_dir():
             return []
         return sorted(d.glob("*.md"), key=lambda p: -p.stat().st_mtime)
 
-    return ls(scratch / "memory"), ls(scratch / "research")
+    def lsr(d: Path) -> list[Path]:
+        # report/ 按 <feature>/ 子目录归档,递归收全部文件
+        if not d.is_dir():
+            return []
+        return sorted(
+            (p for p in d.rglob("*") if p.is_file()), key=lambda p: -p.stat().st_mtime
+        )
+
+    return ls(scratch / "memory"), ls(scratch / "research"), lsr(scratch / "report")
 
 
 def copy_btn(name: str, what: str = "feature 名称") -> str:
@@ -1166,8 +1188,8 @@ def mermaid_graph(effort: "Effort") -> str:
 
 
 def design_gallery(effort: "Effort", scratch: Path) -> list[str]:
-    """设计样例区:每个 design-demos/ 目录一组(相对路径标来源),组内每个文件
-    一张卡,同名 png(-v2 等后缀)当封面。"""
+    """设计样例区:每个 design-demos/ 目录一组(相对路径标来源),组内 html/图片
+    各一张卡,同名 png(-v2 等后缀)当封面;混入的非设计文件不渲染卡片,折叠一行计数。"""
     out: list[str] = []
     for ddir in effort.design_dirs:
         files = sorted(
@@ -1178,17 +1200,19 @@ def design_gallery(effort: "Effort", scratch: Path) -> list[str]:
             continue
         label = ddir.relative_to(effort.path).as_posix()
         cards = []
+        others = 0
         for p in files:
+            if p.suffix.lower() not in DESIGN_EXTS:
+                others += 1
+                continue
             # html 样例:卡面就是活渲染(iframe 缩放铺满,lazy 到可视区才加载)
             if p.suffix.lower() == ".html":
                 face = (
                     f"<iframe src='{esc(rel(str(p), scratch))}' title='{esc(p.stem)}' "
                     f"loading='lazy' scrolling='no' tabindex='-1'></iframe>"
                 )
-            elif p.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp", ".svg"):
-                face = f"<img src='{esc(rel(str(p), scratch))}' alt='' loading='lazy'>"
             else:
-                face = "<i>▣</i>"
+                face = f"<img src='{esc(rel(str(p), scratch))}' alt='' loading='lazy'>"
             plabel = p.stem
             if p.suffix.lower() in ('.md', '.html', '.htm'):
                 extracted = display_title(p)
@@ -1200,10 +1224,15 @@ def design_gallery(effort: "Effort", scratch: Path) -> list[str]:
                 f"<span class='dname'>{esc(plabel)}</span>"
                 f"<span class='dmeta'>{p.suffix.lstrip('.').lower()} · {p.stat().st_size // 1024 or 1}K</span></a>"
             )
-        out += [
-            f"<div class='demos'><h4>设计样例 <span class='badge'>{esc(label)}/ · {len(files)}</span></h4>",
-            f"<div class='demogrid'>{''.join(cards)}</div></div>",
-        ]
+        head = f"<div class='demos'><h4>设计样例 <span class='badge'>{esc(label)}/ · {len(cards)}</span></h4>"
+        if not cards:
+            # 只有非设计文件:没有卡可看,折叠行兜底,不让文件隐身
+            out += [head, f"<p class='demos-skip'>{others} 个非设计文件未展示</p></div>"]
+            continue
+        out += [head, f"<div class='demogrid'>{''.join(cards)}</div>"]
+        if others:
+            out.append(f"<p class='demos-skip'>{others} 个非设计文件未展示</p>")
+        out.append("</div>")
     return out
 
 
@@ -1390,7 +1419,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         (t for t in all_tasks if t.status == OPEN),
         key=lambda t: (-t.unlocks, t.effort, t.tid),
     )
-    mem_files, res_files = scan_index(scratch)
+    mem_files, res_files, rep_files = scan_index(scratch)
 
     # 页内预览:把 md 原文嵌进页面——file:// 下 fetch 本地文件会被 CORS 拦,
     # 只能在生成期读。按相对路径去重,总字节封顶,超限的文件回退为新标签打开。
@@ -1416,9 +1445,13 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
             pv_budget -= len(text)
 
     add_pv(*mem_files, *res_files)
+    add_pv(*(p for p in rep_files if p.suffix.lower() in (".md", ".txt")))
     for e in efforts:
-        # effort 自己的 memory.md(勾选行的来源)也进预览通道
-        add_pv(e.path / "spec.md", e.path / "map.md", *e.research, e.path / "memory.md")
+        # effort 自己的 memory.md(勾选行的来源)也进预览通道;decisions.md 只进
+        # 已知文件集与预览通道,没有独立区块
+        add_pv(e.path / "spec.md", e.path / "map.md", *e.research, e.path / "memory.md",
+               e.path / "decisions.md")
+        add_pv(*(p for p in e.reports if p.suffix.lower() in (".md", ".txt")))
         # 票文件在 assets 之前嵌入:小文件优先吃 2MB 预算,大块头 assets 兜底
         add_pv(*[Path(s) for s in (t.source for t in e.tasks if t.from_file and t.source)])
         if e.single:
@@ -1522,8 +1555,10 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
     tabs.append(f"<a href='#/specs'>功能台<span class='n'>{len(efforts)}</span></a>")
     if mem_files:
         tabs.append(f"<a href='#/memory'>决策档案<span class='n'>{len(mem_files)}</span></a>")
-    if res_files:
-        tabs.append(f"<a href='#/research'>调研<span class='n'>{len(res_files)}</span></a>")
+    if res_files or rep_files:
+        tabs.append(
+            f"<a href='#/research'>调研<span class='n'>{len(res_files) + len(rep_files)}</span></a>"
+        )
     if stale:
         tabs.append(f"<a href='#/stale'>久未动<span class='n'>{len(stale)}</span></a>")
     if recent:
@@ -1583,8 +1618,8 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
                     f"<a href='#/memory'>{icon_clock}决策档案<span class='cnt'>{len(mem_files)}</span></a>"
                     if mem_files
                     else "",
-                    f"<a href='#/research'>{icon_search}调研<span class='cnt'>{len(res_files)}</span></a>"
-                    if res_files
+                    f"<a href='#/research'>{icon_search}调研<span class='cnt'>{len(res_files) + len(rep_files)}</span></a>"
+                    if res_files or rep_files
                     else "",
                 ]
             ),
@@ -1872,6 +1907,14 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
                 for p in effort.research
             )
             out.append(fbox("research", len(effort.research), links))
+        # reports/:一次性报告独立区块,同 research 定位(清单+链接+预览)
+        if effort.reports:
+            links = "".join(
+                f"<a class='chipf' href='{esc(rel(str(p), scratch))}' target='_blank' rel='noopener'>"
+                f"{esc(p.stem if p.suffix.lower() == '.md' else p.name)}</a>"
+                for p in effort.reports
+            )
+            out.append(fbox("reports", len(effort.reports), links))
         if mem_rows:
             srcs = sorted({Path(t.source).name for t in mem_rows if t.source})
             days = int((now - max(t.mtime for t in mem_rows)) / 86400)
@@ -2015,7 +2058,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
             "".join(stubs),
             "</section>",
         ]
-    if res_files:
+    if res_files or rep_files:
         out += [
             "<section class='view' id='research' data-route='research'>",
             "<h2>调研 <span class='badge'>research/</span></h2>",
@@ -2030,8 +2073,28 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
                 f"<td class='num'>{human_size(p)}</td></tr>"
                 for p in res_files
             ),
-            "</tbody></table></div></section>",
+            "</tbody></table></div>",
         ]
+        if rep_files:
+            # 根级 report/(单数):收尾迁移的一次性报告,按 <feature>/ 子目录归档
+            out += [
+                "<h2 style='margin-top:28px'>公共报告 <span class='badge'>report/</span></h2>",
+                "<p class='sub'>收尾时迁到 .scratch/report/ 的一次性报告，按 feature 子目录归档保留，只读参考。</p>",
+                "<div class='panel'>",
+                "<table><thead><tr><th style='width:80px'>日期</th>"
+                "<th style='width:140px'>feature</th><th>文件</th>"
+                "<th class='num' style='width:90px'>大小</th></tr></thead><tbody>",
+                "".join(
+                    f"<tr><td class='lbl'>{day_mark(p)}</td>"
+                    f"<td class='lbl'>{esc(p.relative_to(scratch / 'report').parts[0] if len(p.relative_to(scratch / 'report').parts) > 1 else '·')}</td>"
+                    f"<td class='t'><a href='{esc(rel(str(p), scratch))}' target='_blank' rel='noopener'>"
+                    f"{esc(p.relative_to(scratch / 'report').name)}</a></td>"
+                    f"<td class='num'>{human_size(p)}</td></tr>"
+                    for p in rep_files
+                ),
+                "</tbody></table></div>",
+            ]
+        out.append("</section>")
 
     out += [
         "<footer>口径：进度 = 已完成 ÷ 总票数，被阻塞计入分母 · 一次快照，无历史统计 · "

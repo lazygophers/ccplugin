@@ -279,8 +279,78 @@ def test_render_contains_every_section(tmp_path):
     assert "关于这份报告" not in page
 
 
+def test_decisions_md_is_known_file(tmp_path):
+    """decisions.md 只进已知文件集:根级不升格单文件 feature,feature 级不当附件、不进未识别。"""
+    scratch = tmp_path / ".scratch"
+    write(scratch / "decisions.md", "- 改成: x | 原本: 首次决定 | 我说: 无 | 为什么: y | 否掉了: 无\n")
+    write(scratch / "alpha" / "spec.md", "# Spec\n")
+    write(scratch / "alpha" / "decisions.md", "- [ ] 决策账本行不该被当任务\n")
+    efforts, unparsed = tp.scan(scratch)
+    assert unparsed == []
+    names = {e.name for e in efforts}
+    assert names == {"alpha"}
+    assert all(p.name != "decisions.md" for p in efforts[0].assets)
+
+
+def test_feature_reports_section(tmp_path):
+    """feature 级 reports/:独立区块(清单+链接+预览),不进附件树与外层附件。"""
+    scratch = tmp_path / ".scratch"
+    write(scratch / "alpha" / "spec.md", "# Spec\n")
+    write(scratch / "alpha" / "reports" / "audit.md", "# 审计报告\n\n一次性报告。\n")
+    write(scratch / "alpha" / "reports" / "data.csv", "a,b\n1,2\n")
+    efforts, _ = tp.scan(scratch)
+    e = efforts[0]
+    assert sorted(p.name for p in e.reports) == ["audit.md", "data.csv"]
+    page = tp.render(efforts, [], scratch)
+    assert "<h4>reports <span class='badge'>2</span></h4>" in page
+    assert "alpha/reports/audit.md" in page
+    # 预览通道:md 原文嵌入,点链接开页内弹窗
+    assert '"alpha/reports/audit.md":' in page
+    # 不进通用附件树,csv 不在外层附件清单
+    assert e.asset_dirs == []
+    assert all(p.name != "data.csv" for p in e.extra_files)
+
+
+def test_root_report_dir_not_a_feature(tmp_path):
+    """根级 .scratch/report/(单数)不当 feature 扫,渲染成调研视图里的公共报告区块。"""
+    scratch = tmp_path / ".scratch"
+    write(scratch / "report" / "alpha" / "audit.md", "# 收尾迁移的报告\n\nStatus: open\n")
+    write(scratch / "beta" / "spec.md", "# Spec\n")
+    efforts, unparsed = tp.scan(scratch)
+    names = {e.name for e in efforts}
+    assert "report" not in names and "alpha" not in names
+    assert unparsed == [] and all(e.name != tp.ROOT for e in efforts)
+    page = tp.render(efforts, [], scratch)
+    assert "公共报告" in page
+    assert "report/alpha/audit.md" in page
+    # 预览通道同样嵌入
+    assert '"report/alpha/audit.md":' in page
+    # 只有 rep_files 没有 res_files 时页签也可达
+    assert "href='#/research'" in page
+
+
+def test_design_demos_filters_non_design(tmp_path):
+    """design-demos 只渲染 html/图片卡片;其它扩展名不渲染,折叠一行计数。"""
+    scratch = tmp_path / ".scratch"
+    write(scratch / "alpha" / "spec.md", "# Spec\n")
+    d = scratch / "alpha" / "design-demos"
+    write(d / "demo.html", "<html><body>x</body></html>\n")
+    write(d / "shot.png", "\x89PNG\r\n\x1a\nfake")
+    write(d / "shot.gif", "GIF89a fake")
+    write(d / "notes.md", "# 混进来的文档\n")
+    write(d / "spec.json", "{}\n")
+    efforts, _ = tp.scan(scratch)
+    page = tp.render(efforts, [], scratch)
+    assert "design-demos/demo.html" in page
+    assert "design-demos/shot.png" in page
+    assert "design-demos/shot.gif" in page
+    # 卡片只有 3 张(html+png+gif),md/json 不渲染卡片
+    assert page.count("class='democard'") == 3
+    assert "2 个非设计文件未展示" in page
+
+
 def test_scan_index_lists_memory_and_research(tmp_path):
-    """入口索引:memory/ 与 research/ 的 md 按改动时间倒序;目录缺失返回空。"""
+    """入口索引:memory/ 与 research/ 的 md、report/ 的文件按改动时间倒序;目录缺失返回空。"""
     scratch = tmp_path / ".scratch"
     (scratch / "memory").mkdir(parents=True)
     (scratch / "research").mkdir()
@@ -289,12 +359,12 @@ def test_scan_index_lists_memory_and_research(tmp_path):
     old.write_text("a")
     new.write_text("b")
     os.utime(old, (1_700_000_000, 1_700_000_000))
-    mem, res = tp.scan_index(scratch)
+    mem, res, rep = tp.scan_index(scratch)
     assert [p.name for p in mem] == ["2026-10-22.md", "2026-09-18.md"]
-    assert res == []
+    assert res == [] and rep == []
     # 目录不存在:空列表,不抛
-    mem2, res2 = tp.scan_index(tmp_path / "nowhere" / ".scratch")
-    assert mem2 == [] and res2 == []
+    mem2, res2, rep2 = tp.scan_index(tmp_path / "nowhere" / ".scratch")
+    assert mem2 == [] and res2 == [] and rep2 == []
 
 
 def test_render_memory_and_research_hidden_when_absent(tmp_path):
