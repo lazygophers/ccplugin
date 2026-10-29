@@ -1078,7 +1078,10 @@ def test_openpv_video_pdf_interceptor_source(tmp_path):
     assert "!e.metaKey&&!e.ctrlKey" in page
     # iframe 预览的本地链接经 postMessage 回传父页,同一弹窗通道打开
     assert "window.addEventListener('message'" in page and "tpPreview" in page
-    assert "injectBase(s)" in page and "pvResolve(u)" in page
+    assert "injectBase(s,furl)" in page and "pvResolve(u)" in page
+    # base 指到被预览文件本身(query-only 相对解析落回该文件),? 开头链接不拦、走真导航
+    assert "furl='file://'+location.pathname.replace(/[^/]*$/,'')+k.replace(/^\\.\\//,'')" in page
+    assert "|#|data:|\\?)/i.test(h)" in page
 
 
 def test_render_webp_bmp_data_uri(tmp_path):

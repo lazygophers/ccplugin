@@ -2419,10 +2419,11 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         r"var parts=(((pvDir&&h.indexOf('./')!==0)?pvDir+'/':'')+h).split('/'),out=[];"
         r"for(var i=0;i<parts.length;i++){var p=parts[i];if(!p||p==='.')continue;if(p==='..')out.pop();else out.push(p)}"
         r"return out.join('/')}"
-        # srcdoc iframe 没有 URL 基准:注入 <base> 指到文件真实目录,并回传本地链接点击给父页弹窗
-        r"function injectBase(s){var dir='file://'+location.pathname.replace(/[^/]*$/,'')+(pvDir?pvDir+'/':'');"
-        r"var b='<base href=\"'+dir+'\"><script>document.addEventListener(\"click\",function(e){var a=e.target.closest?e.target.closest(\"a\"):null;if(!a)return;"
-        r"var h=a.getAttribute(\"href\")||\"\";if(!/^(https?:|mailto:|javascript:|#|data:)/i.test(h)){e.preventDefault();parent.postMessage({tpPreview:h},\"*\")}},true);<\/script>';"
+        # srcdoc iframe 没有 URL 基准:注入 <base> 指到被预览文件本身(?v=a 这类
+        # query-only 相对解析落回该文件,而非所在目录);本地链接点击回传父页弹窗,
+        # ? 开头的不拦,交给 base 解析成「当前文件带 query」的真导航
+        r"function injectBase(s,furl){var b='<base href=\"'+furl+'\"><script>document.addEventListener(\"click\",function(e){var a=e.target.closest?e.target.closest(\"a\"):null;if(!a)return;"
+        r"var h=a.getAttribute(\"href\")||\"\";if(!/^(https?:|mailto:|javascript:|#|data:|\?)/i.test(h)){e.preventDefault();parent.postMessage({tpPreview:h},\"*\")}},true);<\/script>';"
         r"if(/<head[^>]*>/i.test(s))return s.replace(/<head[^>]*>/i,function(m){return m+b});"
         r"if(/<html[^>]*>/i.test(s))return s.replace(/<html[^>]*>/i,function(m){return m+b});"
         r"return b+s}"
@@ -2506,7 +2507,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         r"body.innerHTML='';body.appendChild(v);body.scrollTop=0;wrap.classList.add('open');return}"
         r"if(ext==='pdf'){body.innerHTML='<iframe class=\"pv-frame\" src=\"'+escHtml(k)+'\"></iframe>';body.scrollTop=0;wrap.classList.add('open');return}"
         r"var s=PV[k]||'(空文件)',html;"
-        r"if(ext==='html'){body.innerHTML='<iframe class=\"pv-frame\" srcdoc=\"'+escHtml(injectBase(s))+'\" sandbox=\"allow-scripts allow-same-origin\"></iframe>';body.scrollTop=0;wrap.classList.add('open');return}"
+        r"if(ext==='html'){var furl='file://'+location.pathname.replace(/[^/]*$/,'')+k.replace(/^\.\//,'');body.innerHTML='<iframe class=\"pv-frame\" srcdoc=\"'+escHtml(injectBase(s,furl))+'\" sandbox=\"allow-scripts allow-same-origin\"></iframe>';body.scrollTop=0;wrap.classList.add('open');return}"
         r"if(ext==='csv'||ext==='tsv')html=renderCsv(s,ext==='tsv'?'\t':',');"
         r"else if(ext==='json')html=renderJson(s);"
         r"else if(ext==='yaml'||ext==='yml')html='<pre><code>'+hlYaml(s).split('\n').map(function(l,j){return '<span class=\"sl\" data-ln=\"'+j+'\">'+l+'</span>'}).join('')+'</code></pre>';"
