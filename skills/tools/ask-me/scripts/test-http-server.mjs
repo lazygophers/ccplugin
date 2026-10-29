@@ -89,6 +89,18 @@ export async function test() {
             assert.equal(missing.status, 404, '文件不存在报 404');
             const noPath = await fetch(`${base}/preview`, { headers });
             assert.equal(noPath.status, 400, '缺 path 参数报 400');
+            // 路径形式 /preview/<abs>：iframe 里的 html 原型用 `?v=a` 这类查询形式相对
+            // 链接切方案，相对解析只换 query 不动 path，文件身份必须长在 path 段里。
+            const pathFormHtml = await fetch(`${base}/preview${encodeURI(path.join(workspace, 'report.html'))}?v=a`, { headers });
+            assert.equal(pathFormHtml.status, 200, '路径形式要能直出，query 变体落在同一文件');
+            assert.equal(pathFormHtml.headers.get('content-type'), 'text/html; charset=utf-8');
+            assert.equal(pathFormHtml.headers.get('x-frame-options'), null, '路径形式同样不挂 X-Frame-Options');
+            assert.equal(pathFormHtml.headers.get('content-security-policy'), null, '路径形式同样不挂 CSP');
+            assert.equal(await pathFormHtml.text(), '<h1>审计报告</h1>\n');
+            const pathFormDenied = await fetch(`${base}/preview${encodeURI(path.join(workspace, 'danger.sh'))}`, { headers });
+            assert.equal(pathFormDenied.status, 403, '路径形式同样被白名单挡下');
+            const pathFormMissing = await fetch(`${base}/preview${encodeURI(path.join(workspace, 'nope.md'))}`, { headers });
+            assert.equal(pathFormMissing.status, 404, '路径形式下不存在的文件报 404');
             // 放宽只限预览路径：表单页自己的响应照挂全套安全头。
             const index = await fetch(`${base}/`);
             assert.ok(index.headers.get('x-frame-options'), '表单页自己的响应仍要带 X-Frame-Options');

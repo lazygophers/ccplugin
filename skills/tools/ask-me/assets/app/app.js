@@ -328,8 +328,10 @@ async function renderLocalFile(host, target, hash) {
   } else if (['html', 'htm', 'pdf'].includes(ext)) {
     // html 预览完整跑脚本（用户拍板 full 模式）：iframe 子文档吃 /preview 响应，
     // 该响应不挂 CSP 和 X-Frame-Options，嵌入和内联脚本都放行。锚点进 src 供跳转。
+    // 文件身份长在 path 段（/preview/<abs>）里：原型用 `?v=a` 这类查询形式相对链接
+    // 切方案，相对解析只换 query 不动 path，文档内的相对链接也能落回 /preview 下。
     const frame = element('iframe', 'file-frame');
-    frame.src = `/preview?path=${encodeURIComponent(target)}${hash}`;
+    frame.src = `/preview${encodeURI(target).replace(/\?/g, '%3F').replace(/#/g, '%23')}${hash}`;
     host.append(frame);
   } else if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext)) {
     const image = element('img', 'file-image');

@@ -148,11 +148,17 @@ async function openLocalFile(response, requestUrl, dataRoot) {
 }
 // /preview：表单页内弹层预览的取内容端点，解析与 /local 完全同宽——同一套白名单、
 // 同样剥 file:// 前缀、同样相对路径按工作区解析，服务只绑 127.0.0.1。
+// 两种形式：旧查询形式 /preview?path=<abs>；路径形式 /preview/<abs>。iframe 里的
+// html 原型用 `?v=a` 这类查询形式相对链接切方案，相对解析只换 query 不动 path，
+// 文件身份必须长在 path 段里才保得住，所以 iframe 用路径形式。
 // html（连带 svg）要被 iframe 嵌进表单页：X-Frame-Options: DENY 和 CSP 的
 // frame-ancestors 'none' 会挡掉嵌入，严格 CSP 还会掐死预览页里的内联脚本
 // （用户拍板预览要完整跑脚本），所以这两类不挂那两样，只留 nosniff；其余类型照旧。
 function previewLocalFile(response, requestUrl, dataRoot) {
-    const requested = requestUrl.searchParams.get('path') || '';
+    const pathForm = requestUrl.pathname.match(/^\/preview(\/.+)$/);
+    const requested = pathForm
+        ? decodeURIComponent(pathForm[1])
+        : requestUrl.searchParams.get('path') || '';
     if (!requested) {
         sendJson(response, 400, { error: 'path is required' });
         return;
@@ -285,7 +291,7 @@ export async function startHttpServer({ dataRoot, port = 0, persistServerInfo = 
                 await openLocalFile(response, requestUrl, dataRoot);
                 return;
             }
-            if (request.method === 'GET' && requestUrl.pathname === '/preview') {
+            if (request.method === 'GET' && /^\/preview(?:$|\/)/.test(requestUrl.pathname)) {
                 previewLocalFile(response, requestUrl, dataRoot);
                 return;
             }
