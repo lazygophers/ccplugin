@@ -531,6 +531,10 @@ function openPreview(host, label, { readable = false, extraToolbar = [] } = {}) 
   for (const token of RICH_TOKENS) {
     canvas.style.setProperty(token, hostStyles.getPropertyValue(token));
   }
+  // 宿主是游离节点时（如文件预览的宿主还没挂进文档），getComputedStyle 取不到
+  // token，上面的拷贝全是空串——弹层底板就透明了。给 canvas 挂 .rich-text，
+  // 入文档后由 CSS 规则兜底出主题色；文档内宿主的 inline 拷贝照常覆盖它。
+  canvas.classList.add('rich-text');
   // append 会把节点从克隆体上摘走，先固化成数组再遍历，否则会漏掉一半。
   for (const node of [...host.cloneNode(true).childNodes]) {
     if (node.classList?.contains('preview-hint')) continue;
@@ -1069,6 +1073,12 @@ function renderRail(container) {
   container.append(rail);
 }
 
+// 导航条目只当索引用：剥掉 markdown 链接/强调语法，只留文字，免得左栏出现
+// 「[预览测试文件](.scratch/…)」这类原始记号。
+function railTitleText(title) {
+  return title.split('\n')[0].replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/[*_`]/g, '');
+}
+
 function fillRailNav(nav, form, editable, visible) {
   nav.replaceChildren();
   visible.forEach((question, index) => {
@@ -1080,7 +1090,7 @@ function fillRailNav(nav, form, editable, visible) {
     button.dataset.state = state;
     button.append(element('span', 'n', String(index + 1).padStart(2, '0')));
     // 导航是索引不是正文：多行标题只取第一行，免得把左栏撑乱。
-    button.append(element('span', 't', question.title.split('\n')[0]));
+    button.append(element('span', 't', railTitleText(question.title)));
     button.append(element('span', 'st', { done: '已答', current: '当前', todo: '未答' }[state]));
     button.addEventListener('click', () => {
       if (editable) focusedQuestionId = question.id;

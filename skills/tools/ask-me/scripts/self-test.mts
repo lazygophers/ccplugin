@@ -21,6 +21,7 @@ import { test as testVendor } from './test-vendor.mjs';
 import { test as testWake } from './test-wake.mjs';
 import { test as testAdapters } from './test-adapters.mjs';
 import { test as testBrowser } from './test-browser.mjs';
+import { test as testAssets } from './test-assets.mjs';
 import { test as testCli } from './test-cli.mjs';
 
 const answerSetSchema = JSON.parse(
@@ -36,6 +37,7 @@ const suites: [string, () => Promise<void>][] = [
   ['wake', testWake],
   ['adapters', testAdapters],
   ['browser', testBrowser],
+  ['assets', testAssets],
   ['cli', testCli],
 ];
 for (const [name, run] of suites) {
