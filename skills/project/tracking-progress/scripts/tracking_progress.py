@@ -148,13 +148,10 @@ class Effort:
     reports: list[Path] = field(default_factory=list)
     # 单文件 feature:顶层 .scratch/<名字>.md,没建目录也该作为一个 feature 呈现
     single: Path | None = None
-    # feature 目录内读不出任务的 md(design.md 等)与常规资产目录(design-demos/ 等)
-    assets: list[Path] = field(default_factory=list)
-    asset_dirs: list[tuple[str, Path, int]] = field(default_factory=list)
+    # 文件浏览器的底数:feature 目录里用户可见的文件总数(隐藏目录与系统垃圾除外)
+    n_files: int = 0
     # 设计样例目录(design-demos/ 等任意层级):每个目录一组「设计样例」区块
     design_dirs: list[Path] = field(default_factory=list)
-    # 文件清单:feature 目录下所有未归类的非 md 文件(html/图片/杂项),一个不漏
-    extra_files: list[Path] = field(default_factory=list)
 
 
 def negated(head: str, i: int) -> bool:
@@ -311,6 +308,19 @@ def iter_md(root: Path):
                 yield Path(dirpath) / name
 
 
+# 系统垃圾文件:文件浏览器不收(大小写不敏感)
+JUNK_FILES = {".ds_store", "thumbs.db"}
+
+
+def iter_visible(root: Path):
+    """feature 目录里用户可见的每个文件:隐藏目录与系统垃圾文件之外,一个不漏。"""
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if not d.startswith(".")]
+        for name in sorted(filenames):
+            if name.lower() not in JUNK_FILES:
+                yield Path(dirpath) / name
+
+
 def scan(scratch: Path) -> tuple[list[Effort], list[Path]]:
     efforts: dict[str, Effort] = {}
     unparsed: list[Path] = []
@@ -355,9 +365,6 @@ def scan(scratch: Path) -> tuple[list[Effort], list[Path]]:
                 # 顶层单文件:本身就是个 feature(如 平台管理页-重设计.md)
                 sf = effort_for_single(path, efforts, scratch)
                 sf.single = path
-            else:
-                # feature 目录内的附属文档(design.md 等):进附件区,不算未识别
-                effort.assets.append(path)
 
     absorb_root_checklist(efforts)
     for effort in efforts.values():
@@ -369,8 +376,8 @@ def scan(scratch: Path) -> tuple[list[Effort], list[Path]]:
         rdr = effort.path / "reports"
         if effort.name != ROOT and rdr.is_dir():
             effort.reports = sorted(p for p in rdr.iterdir() if p.is_file())
-        # 资产目录:design-demos 等按语义识别为设计样例区(任意层级,按父目录
-        # 分组展示),其余进通用附件;单文件 feature(path=scratch 根)不吸收任何目录
+        # 资产目录:design-demos 等按语义识别为设计样例区(任意层级);单文件
+        # feature(path=scratch 根)不吸收
         if effort.name != ROOT and not effort.single:
             # 任意层级的 DESIGN_DIRS 都归设计稿;隐藏目录里不找
             ddirs = [
@@ -379,40 +386,8 @@ def scan(scratch: Path) -> tuple[list[Effort], list[Path]]:
                 and not any(part.startswith(".") for part in d.relative_to(effort.path).parts)
             ]
             effort.design_dirs = ddirs
-            for d in sorted(effort.path.iterdir()):
-                if (d.is_dir() and not d.name.startswith(".")
-                        and d.name not in SKIP_DIRS | {"issues", "impl", "research"}):
-                    if d.name in DESIGN_DIRS:
-                        continue
-                    # 通用附件树不重复收设计稿子树
-                    n = sum(1 for f in d.rglob("*") if f.is_file()
-                            and not any(f.is_relative_to(ad) for ad in ddirs))
-                    if n:
-                        effort.asset_dirs.append((d.name, d, n))
-            # 文件清单:md 全部已归口(spec/map/票面/附件),这里收非 md 的每个文件
-            srcs = {Path(t.source) for t in effort.tasks if t.from_file and t.source}
-            junk = {".ds_store", "thumbs.db"}  # 系统垃圾文件不进清单
-            # 已在目录树或设计样例区里的文件(含 assets 里的 md)不重复进外层
-            # 附件区(判重按相对路径)
-            adirs = [d for _nm, d, _cnt in effort.asset_dirs]
-            effort.assets = [
-                p for p in effort.assets
-                if not any(p.is_relative_to(ad) for ad in adirs)
-                and not any(p.is_relative_to(ad) for ad in effort.design_dirs)
-            ]
-            effort.extra_files = sorted(
-                (
-                    p for p in effort.path.rglob("*")
-                    if p.is_file()
-                    and p.suffix.lower() != ".md"
-                    and p.name.lower() not in junk
-                    and not any(p.is_relative_to(ad) for ad in effort.design_dirs)
-                    and not any(p.is_relative_to(ad) for ad in adirs)
-                    and not p.is_relative_to(effort.path / "reports")
-                    and p not in srcs
-                ),
-                key=lambda p: str(p.relative_to(effort.path)),
-            )
+            # 文件浏览器:目录里每个文件都可见,只有隐藏目录与系统垃圾被排除
+            effort.n_files = sum(1 for _ in iter_visible(effort.path))
         effort.tasks = dedupe(effort.tasks)
         # analyse first: it splits blocked_by into real deps and dangling
         # refs, so blocking only counts ids that actually exist.
@@ -430,7 +405,7 @@ def scan(scratch: Path) -> tuple[list[Effort], list[Path]]:
     # spec 按更新时间倒序,最近动过的排最前
     ordered = sorted(efforts.values(), key=lambda e: (-e.mtime, e.name))
     kept = [e for e in ordered if e.tasks or e.is_map or e.has_spec or e.single
-            or e.assets or e.asset_dirs or e.design_dirs or e.extra_files]
+            or e.n_files]
     return kept, unparsed
 
 
@@ -1452,11 +1427,15 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         add_pv(e.path / "spec.md", e.path / "map.md", *e.research, e.path / "memory.md",
                e.path / "decisions.md")
         add_pv(*(p for p in e.reports if p.suffix.lower() in (".md", ".txt")))
-        # 票文件在 assets 之前嵌入:小文件优先吃 2MB 预算,大块头 assets 兜底
+        # 票文件在目录树 md 之前嵌入:小文件优先吃 2MB 预算,大块头由下方
+        # rich 轮按大小兜底
         add_pv(*[Path(s) for s in (t.source for t in e.tasks if t.from_file and t.source)])
         if e.single:
             add_pv(e.single)
-        add_pv(*e.assets)
+        elif e.name != ROOT:
+            # 目录树里的 md(design.md、notes.md 等附属文档)走 add_pv 的
+            # 宽松解码(errors=replace);其余文本类由 rich 轮按大小公平分配
+            add_pv(*(p for p in iter_visible(e.path) if p.suffix.lower() == ".md"))
     add_pv(*unparsed)
 
     # 附件弹窗预览:html 原文进 tp-files(前端 iframe srcdoc 渲染),图片按
@@ -1467,12 +1446,8 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
     pv_imgs: dict[str, str] = {}
     rich: list[Path] = []
     for e in efforts:
-        if e.design_dirs:
-            rich.extend(p for ad in e.design_dirs for p in ad.iterdir() if p.is_file())
-        rich.extend(e.extra_files)
-        rich.extend(
-            p for _nm, d, _cnt in e.asset_dirs for p in d.rglob("*") if p.is_file()
-        )
+        if e.name != ROOT and not e.single:
+            rich.extend(iter_visible(e.path))
     html_budget, img_budget = PV_HTML_BUDGET, PV_IMG_BUDGET
     seen_rich: set[str] = set()
     for p in sorted(rich, key=lambda p: (p.stat().st_size, str(p))):
@@ -1920,10 +1895,17 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
                     f"{STATUS_LABEL[t.status]}</span></td></tr>"
                 )
             out.append("</tbody></table></section>")
-        # 附件区块:沉到视图底部;asset_dirs 目录条目可展开(默认展开)列出
-        # 目录内每个文件,文件条目规则与 chip 一致(文本/图片弹窗,二进制 ↗)
-        if effort.assets or effort.asset_dirs or effort.extra_files:
-            n_extra = len(effort.assets) + len(effort.asset_dirs) + len(effort.extra_files)
+        # 文件浏览器:沉到视图底部,不做桶归类——feature 目录里每个文件都在
+        # 树里(隐藏目录与系统垃圾除外)。目录条目可展开(details/summary,
+        # 递归文件数),文件是叶子,条目规则与 chip 一致(文本/图片弹窗,二进制 ↗)
+        if effort.n_files:
+            files = list(iter_visible(effort.path))
+            tree: dict = {}
+            for f in files:
+                node = tree
+                for part in f.relative_to(effort.path).parts[:-1]:
+                    node = node.setdefault(part, {})
+                node[f.name] = f
 
             def chipf(p: Path) -> str:
                 k = rel(str(p), scratch)
@@ -1932,42 +1914,25 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
                 return (f"<a class='chipf' href='{esc(k)}' target='_blank' rel='noopener'>"
                         f"{esc(display_title(p))}{mark}</a>")
 
-            def render_fdir(nm: str, d: Path, cnt: int) -> str:
-                """目录递归嵌套:每层子目录一个 details/summary(递归文件数),
-                文件条目为叶子;条目规则与 chip 一致。"""
-                tree: dict = {}
-                for f in sorted(d.rglob("*")):
-                    if f.is_file():
-                        node = tree
-                        for part in f.relative_to(d).parts[:-1]:
-                            node = node.setdefault(part, {})
-                        node[f.name] = f
+            def count(node: dict) -> int:
+                return sum(count(v) if isinstance(v, dict) else 1
+                           for v in node.values())
 
-                def count(node: dict) -> int:
-                    return sum(count(v) if isinstance(v, dict) else 1
-                               for v in node.values())
-
-                def emit(node: dict) -> str:
-                    return "".join(
-                        f"<details class='fdir' open><summary>{esc(name)}/ · {count(sub)} 文件</summary>"
-                        f"<div class='fdir-list'>{emit(sub)}</div></details>"
-                        if isinstance(sub, dict)
-                        else chipf(sub)
-                        for name, sub in node.items()
-                    )
-
-                return (
-                    f"<details class='fdir' open><summary>{esc(nm)}/ · {cnt} 文件</summary>"
-                    f"<div class='fdir-list'>{emit(tree)}</div></details>"
+            def emit(node: dict) -> str:
+                return "".join(
+                    f"<details class='fdir' open><summary>{esc(name)}/ · {count(sub)} 文件</summary>"
+                    f"<div class='fdir-list'>{emit(sub)}</div></details>"
+                    if isinstance(sub, dict)
+                    else chipf(sub)
+                    for name, sub in node.items()
                 )
 
-            items = [chipf(p) for p in sorted(effort.assets, key=lambda x: x.name)]
-            items += [render_fdir(nm, d, cnt) for nm, d, cnt in effort.asset_dirs]
-            items += [chipf(p) for p in effort.extra_files]
+            n = len(files)
             out += [
                 "<section class='filebox'>",
-                f"<h4>assets <span class='badge'>{n_extra}</span></h4>",
-                f"<div class='fbox-list'>{''.join(items)}</div>",
+                f"<h4>文件 <span class='badge'>{n}</span></h4>",
+                f"<details class='fdir' open><summary>.scratch/{esc(effort.name)}/ · {n} 文件</summary>"
+                f"<div class='fdir-list'>{emit(tree)}</div></details>",
                 "</section>",
             ]
         out.append("</div>")

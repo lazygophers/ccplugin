@@ -224,9 +224,9 @@ def test_scan_end_to_end(tmp_path):
 
     # The unnumbered root row has nowhere to go, so it stays at the root.
     assert len(names[tp.ROOT].tasks) == 1
-    # 未识别桶取消:feature 内文件进附件(beta/notes.md),顶层文件升格单文件 feature
+    # 未识别桶取消:feature 内文件进文件浏览器(beta/notes.md),顶层文件升格单文件 feature
     assert unparsed == []
-    assert any(p.name == "notes.md" for p in names["beta"].assets)
+    assert names["beta"].n_files >= 1  # notes.md 在文件浏览器底数里
 
 
 def test_absorb_skips_ambiguous_ids(tmp_path):
@@ -280,7 +280,7 @@ def test_render_contains_every_section(tmp_path):
 
 
 def test_decisions_md_is_known_file(tmp_path):
-    """decisions.md 只进已知文件集:根级不升格单文件 feature,feature 级不当附件、不进未识别。"""
+    """decisions.md 只进已知文件集:根级不升格单文件 feature,feature 级在文件浏览器可见。"""
     scratch = tmp_path / ".scratch"
     write(scratch / "decisions.md", "- 改成: x | 原本: 首次决定 | 我说: 无 | 为什么: y | 否掉了: 无\n")
     write(scratch / "alpha" / "spec.md", "# Spec\n")
@@ -289,7 +289,8 @@ def test_decisions_md_is_known_file(tmp_path):
     assert unparsed == []
     names = {e.name for e in efforts}
     assert names == {"alpha"}
-    assert all(p.name != "decisions.md" for p in efforts[0].assets)
+    page = tp.render(efforts, [], scratch)
+    assert "href='alpha/decisions.md'" in page  # 文件浏览器可见
 
 
 def test_feature_reports_section(tmp_path):
@@ -306,9 +307,8 @@ def test_feature_reports_section(tmp_path):
     assert "alpha/reports/audit.md" in page
     # 预览通道:md 原文嵌入,点链接开页内弹窗
     assert '"alpha/reports/audit.md":' in page
-    # 不进通用附件树,csv 不在外层附件清单
-    assert e.asset_dirs == []
-    assert all(p.name != "data.csv" for p in e.extra_files)
+    # 文件浏览器覆盖整个目录:reports/ 下的 csv 也在树里
+    assert "href='alpha/reports/data.csv'" in page
 
 
 def test_root_report_dir_not_a_feature(tmp_path):
@@ -776,13 +776,12 @@ def test_feature_assets_and_dirs(tmp_path):
     (dd / "A-v2.png").write_bytes(b"\x89PNG fake")  # 同名 png 当封面(取 -v2 后缀最新)
     efforts, _ = tp.scan(scratch)
     alpha = next(e for e in efforts if e.name == "alpha")
-    assert any(p.name == "design.md" for p in alpha.assets)
-    # design-demos 按语义识别为设计样例区,不再进通用资产 chip
-    assert alpha.asset_dirs == [] and [d.name for d in alpha.design_dirs] == ["design-demos"]
+    # design-demos 按语义识别为设计样例区;文件浏览器不做桶归类
+    assert [d.name for d in alpha.design_dirs] == ["design-demos"]
     page = tp.render(efforts, _, scratch)
-    # 附件条:文件 chip;设计样例区:每个样例一张卡
+    # 文件浏览器:design.md 是树里的叶子;设计样例区:每个样例一张卡
     assert "class='chipf'" in page and "design.md" in page
-    assert "design-demos/ · 2 文件" not in page
+    assert "<summary>design-demos/ · 3 文件</summary>" in page
     assert "设计样例" in page and "class='democard'" in page
     assert ">A<" in page                    # 无 title 的样例卡维持 stem
     assert ">板卡演示（B.html）<" in page      # 有 <title> 的样例卡用「标题（文件名）」
@@ -791,11 +790,9 @@ def test_feature_assets_and_dirs(tmp_path):
     assert "<iframe src='alpha/design-demos/A.html'" in page
     assert "<iframe src='alpha/design-demos/B.html'" in page
     assert "<img src='alpha/design-demos/A-v2.png'" in page
-    # 文件清单:未归类的非 md 文件一个不漏
-    assert any(p.name == "原型图.png" for p in alpha.extra_files)
-    assert any(p.name == "tmp.csv" for p in alpha.extra_files)
-    assert "原型图.png" in page and "tmp.csv" in page
-    assert '"alpha/design.md":' in page                     # 附件原文进预览嵌入
+    # 文件浏览器:未归桶文件一个不漏
+    assert "href='alpha/原型图.png'" in page and "href='alpha/tmp.csv'" in page
+    assert '"alpha/design.md":' in page                     # 树里 md 进预览嵌入
 
 
 def test_design_demos_nested_grouped(tmp_path):
@@ -809,10 +806,11 @@ def test_design_demos_nested_grouped(tmp_path):
     efforts, _ = tp.scan(scratch)
     alpha = next(e for e in efforts if e.name == "alpha")
     assert [d.name for d in alpha.design_dirs] == ["design-demos"]
-    # 附件树里 sub 的计数不含设计稿子树(sub 还有别的文件,只剩 note.txt)
-    assert [(nm, n) for nm, _d, n in alpha.asset_dirs] == [("sub", 1)]
+    # 文件浏览器:sub/ 的递归计数含设计稿子树(design-demos/mock.html + note.txt)
+    assert alpha.n_files == 8  # build_repo 的 6 个 + sub/ 下 2 个
     page = tp.render(efforts, [], scratch)
-    assert "sub/design-demos/ · 1" in page  # 分组徽章标父目录相对路径
+    assert "<summary>sub/ · 2 文件</summary>" in page
+    assert "<summary>design-demos/ · 1 文件</summary>" in page
     assert "<iframe src='alpha/sub/design-demos/mock.html'" in page
 
 
@@ -922,7 +920,7 @@ def test_render_asset_dir_expandable(tmp_path):
     (dd / "B.png").write_bytes(b"\x89PNG")
     efforts, _ = tp.scan(scratch)
     alpha = next(e for e in efforts if e.name == "alpha")
-    assert alpha.asset_dirs and alpha.asset_dirs[0][0] == "mockups"
+    assert alpha.n_files >= 2
     page = tp.render(efforts, [], scratch)
     assert "<details class='fdir' open><summary>mockups/ · 2 文件</summary>" in page
     assert "href='alpha/mockups/A.png'" in page
@@ -940,9 +938,9 @@ def test_render_asset_dir_nested_tree(tmp_path):
     (dd / "top.md").write_text("# 顶\n", encoding="utf-8")
     efforts, _ = tp.scan(scratch)
     alpha = next(e for e in efforts if e.name == "alpha")
-    assert alpha.asset_dirs and alpha.asset_dirs[0][0] == "mockups"
     page = tp.render(efforts, [], scratch)
-    # 顶层 summary 用递归文件数
+    # 根 summary 用整个 feature 目录的递归文件数;mockups 顶层 summary 用递归文件数
+    assert f"<details class='fdir' open><summary>.scratch/alpha/ · {alpha.n_files} 文件</summary>" in page
     assert "<details class='fdir' open><summary>mockups/ · 3 文件</summary>" in page
     # 两层子目录各自一层 details,嵌套出现
     assert "<details class='fdir' open><summary>v1/ · 2 文件</summary>" in page
@@ -1096,22 +1094,25 @@ def test_render_webp_bmp_data_uri(tmp_path):
     assert '"alpha/q.bmp": "data:image/bmp;base64,' in page
 
 
-def test_dir_files_not_duplicated_in_extra_files(tmp_path):
-    """目录树内的文件不再在外层 extra_files 平铺区重复;顶层散文件保留。"""
+def test_orphan_md_visible_in_file_tree(tmp_path):
+    """不属于任何已知桶的 md(brief.md、嵌套 note.md)在文件浏览器可见且进预览通道。"""
     root = build_repo(tmp_path)
     scratch = root / ".scratch"
     dd = scratch / "alpha" / "mockups"
     dd.mkdir()
     (dd / "x.txt").write_text("x\n", encoding="utf-8")
     (dd / "note.md").write_text("普通文档,无任务清单\n", encoding="utf-8")
-    (scratch / "alpha" / "loose.txt").write_text("l\n", encoding="utf-8")
+    (scratch / "alpha" / "brief.md").write_text("# 附带说明\n无任务。\n", encoding="utf-8")
     efforts, _ = tp.scan(scratch)
     alpha = next(e for e in efforts if e.name == "alpha")
-    assert all("mockups" not in p.parts for p in alpha.extra_files)
-    assert all(p.name != "note.md" for p in alpha.assets)  # 目录内 md 也不进外层附件区
-    assert any(p.name == "loose.txt" for p in alpha.extra_files)
     page = tp.render(efforts, [], scratch)
+    # 树里可见,每条路径只出现一次
     assert page.count("href='alpha/mockups/x.txt'") == 1
+    assert page.count("href='alpha/mockups/note.md'") == 1
+    assert page.count("href='alpha/brief.md'") == 1
+    # 预览通道:两份 md 原文都嵌入,点链接开页内弹窗
+    assert '"alpha/mockups/note.md":' in page
+    assert '"alpha/brief.md":' in page
 
 
 def test_fdir_default_open(tmp_path):
@@ -1216,8 +1217,9 @@ def test_feature_view_sections_classified_by_source(tmp_path):
     assert "<th class='num'>解锁</th>" in roadmap_seg
     assert "路线条目" in roadmap_seg
     assert "<ol class='maplist'>" not in page
-    # feature 视图分区标题统一英文术语
-    assert "<h4>assets <span class='badge'>1</span></h4>" in page
+    # feature 视图分区:文件浏览器(整目录) + research / docs 区块
+    assert "<h4>文件 <span class='badge'>4</span></h4>" in page  # solo 的文件浏览器
+    assert "<h4>文件 <span class='badge'>1</span></h4>" in page  # routed 的文件浏览器
     assert "<h4>research <span class='badge'>1</span></h4>" in page
     assert "<h4>docs <span class='badge'>1</span></h4>" in page
 
