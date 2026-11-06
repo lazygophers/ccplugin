@@ -4,3 +4,4 @@
 - 编译即类型检查（strict）：`npm --prefix <ASK_ME_SKILL_DIR> run build`（首次先 `npm --prefix <ASK_ME_SKILL_DIR> install`）；只查不改用 `run typecheck`。pre-commit 钩子会自动编译、暂存产物并跑自测。
 - 运行时要求 Node ≥ 18（`fetch` / `AbortSignal.timeout`）；package.json 的 `engines` 已声明。
 - 浏览器资产 `assets/app/*.js` 保持 .js（Node 与浏览器共用，无构建），类型契约在同目录 `.d.ts`——改了 `.js` 的导出签名要同步改 `.d.ts`。
+- 验队列清单等「多条目」UI 时用占位表单凑数：`create` 一张只有一题的占位表单让队列有两行，即可实测列表渲染（2026-11-06 验队列清单剥 markdown 用的就是这手法，用户实测确认奏效）。
