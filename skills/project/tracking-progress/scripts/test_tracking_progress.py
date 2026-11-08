@@ -1261,3 +1261,32 @@ def test_ticket_tags_renders_frontmatter_fields():
                      blocked_by=tp.parse_ids("无"))
     assert tp.ticket_tags(none_t) == ""
     assert tp.parse_ids("无") == []
+
+
+def test_log_error_writes_line(tmp_path, monkeypatch):
+    log = tmp_path / "tp.log"
+    monkeypatch.setattr(tp, "LOG_PATH", log)
+    try:
+        raise OSError("boom")
+    except OSError as e:
+        tp.log_error("test.where", e, "/x/y")
+    rec = json.loads(log.read_text(encoding="utf-8").splitlines()[0])
+    assert rec["event"] == "error" and rec["where"] == "test.where"
+    assert "boom" in rec["message"] and "Traceback" in rec["traceback"] and rec["pid"] == os.getpid()
+
+
+def test_log_error_prunes_old_lines(tmp_path, monkeypatch):
+    from datetime import datetime, timedelta, timezone
+    log = tmp_path / "tp.log"
+    monkeypatch.setattr(tp, "LOG_PATH", log)
+    old = (datetime.now(timezone.utc) - timedelta(hours=4)).isoformat()
+    log.write_text(json.dumps({"t": old, "pid": 1, "event": "error", "where": "old"}) + "\n",
+                   encoding="utf-8")
+    tp.log_error("new")
+    wheres = [json.loads(ln)["where"] for ln in log.read_text(encoding="utf-8").splitlines()]
+    assert wheres == ["new"]
+
+
+def test_log_error_swallows_failure(tmp_path, monkeypatch):
+    monkeypatch.setattr(tp, "LOG_PATH", tmp_path / "no-such-dir" / "tp.log")
+    tp.log_error("x", ValueError("v"))  # 不抛即过

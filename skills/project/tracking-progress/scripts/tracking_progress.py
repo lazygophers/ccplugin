@@ -16,12 +16,62 @@ from __future__ import annotations
 
 import base64
 import html
+import json
 import os
 import re
 import sys
+import tempfile
 import time
+import traceback
+from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass, field
 from pathlib import Path
+
+# 错误日志:一行一条 JSON {"t","pid","event",...},只留最近 3 小时。
+# 测试 monkeypatch LOG_PATH 重定向,不写真 /tmp。
+LOG_PATH = Path("/tmp/tracking-progress.log" if os.name == "posix"
+                else os.path.join(tempfile.gettempdir(), "tracking-progress.log"))
+LOG_KEEP = timedelta(hours=3)
+
+
+def _prune_log(path: Path) -> None:
+    # 首行已超 3 小时才整文件重写;并发撞车只会丢旧行
+    cutoff = datetime.now(timezone.utc) - LOG_KEEP
+    with path.open("r", encoding="utf-8") as fh:
+        first = fh.readline()
+        if not first or datetime.fromisoformat(json.loads(first)["t"]) >= cutoff:
+            return
+        lines = [first] + fh.readlines()
+    keep = []
+    for ln in lines:
+        try:
+            if datetime.fromisoformat(json.loads(ln)["t"]) >= cutoff:
+                keep.append(ln)
+        except (ValueError, KeyError, TypeError):
+            pass
+    tmp = path.with_name(f"{path.name}.{os.getpid()}.tmp")
+    tmp.write_text("".join(keep), encoding="utf-8")
+    os.replace(tmp, path)
+
+
+def log_error(where: str, exc: BaseException | None = None, message: str = "") -> None:
+    """记一条 event=error;任何失败都吞掉,不许影响主流程。"""
+    try:
+        rec = {"t": datetime.now(timezone.utc).isoformat(), "pid": os.getpid(),
+               "event": "error", "where": where,
+               "message": " ".join(filter(None, [f"{type(exc).__name__}: {exc}" if exc else "", message]))}
+        if exc is not None and exc.__traceback__ is not None:
+            rec["traceback"] = "".join(
+                traceback.format_exception(type(exc), exc, exc.__traceback__))
+        try:
+            _prune_log(LOG_PATH)
+        except Exception:
+            pass
+        with LOG_PATH.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(rec, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
+
 
 # Directories under .scratch that never hold task state. "report" is the
 # wrap-up migration target .scratch/report/ (public archive), "reports" the
@@ -1289,7 +1339,8 @@ def display_title(p: Path) -> str:
         return p.name
     try:
         st = p.stat()
-    except OSError:
+    except OSError as e:
+        log_error("file_title.stat", e, str(p))
         return p.name
     key = (str(p), st.st_mtime_ns)
     hit = _TITLE_CACHE.get(key)
@@ -1298,7 +1349,8 @@ def display_title(p: Path) -> str:
     try:
         with p.open("r", encoding="utf-8", errors="replace") as fh:
             head = fh.read(65536)
-    except OSError:
+    except OSError as e:
+        log_error("file_title.read", e, str(p))
         return p.name
     title = md_title(head, p.name) if suffix == ".md" else html_title(head, p.name)
     _TITLE_CACHE[key] = title
@@ -1410,7 +1462,8 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
                 continue
             try:
                 text = p.read_text(encoding="utf-8", errors="replace")
-            except OSError:
+            except OSError as e:
+                log_error("render.preview_read", e, str(p))
                 continue
             # 标题与 2MB 正文预算解耦:超预算的文件没有内联正文,仍有 h1 标题
             pv_titles[key] = md_title(text, p.name)
@@ -1490,7 +1543,10 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
                 pv_files[k] = text
                 pv_titles[k] = md_title(text, p.name)
                 pv_budget -= len(text)
-        except (OSError, UnicodeDecodeError):
+        except OSError as e:
+            log_error("render.preview_read", e, str(p))
+            continue
+        except UnicodeDecodeError:  # 二进制,预期内
             continue
 
     # 搜索通道:全 .scratch 文本类全文嵌入,独立通道不吃任何预览预算,
@@ -1511,7 +1567,10 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
             if b"\0" in data[:8192]:
                 continue
             pv_search[rel(str(p), scratch)] = data.decode("utf-8")
-        except (OSError, UnicodeDecodeError):
+        except OSError as e:
+            log_error("render.search_read", e, str(p))
+            continue
+        except UnicodeDecodeError:  # 二进制,预期内
             continue
 
     def human_size(p: Path) -> str:
@@ -1982,7 +2041,8 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         for p in mem_files:
             try:
                 text = p.read_text(encoding="utf-8", errors="replace")
-            except OSError:
+            except OSError as e:
+                log_error("render.memory_read", e, str(p))
                 text = ""
             dec, raw = ledger_counts(text)
             tot_dec += dec
@@ -2581,6 +2641,7 @@ def main(argv: list[str]) -> int:
     scratch = root / ".scratch"
     if not scratch.is_dir():
         print(f"没有 {scratch}，这个项目还没有 .scratch 目录。", file=sys.stderr)
+        log_error("main", message=f"no .scratch dir: {scratch}")
         return 1
 
     efforts, unparsed = scan(scratch)
@@ -2591,4 +2652,8 @@ def main(argv: list[str]) -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main(sys.argv))
+    try:
+        raise SystemExit(main(sys.argv))
+    except Exception as e:  # SystemExit 不是 Exception,正常退出码不受影响
+        log_error("main", e)
+        raise
