@@ -46,7 +46,7 @@ rsync -a --delete --exclude node_modules --exclude .ask-me skills/tools/<name>/ 
 # ask-me 带 node_modules（typescript devDeps），cp -R 会把几十 MB 依赖拷过去，必须 rsync 排除
 ```
 
-编辑 `skills/**` 下的文件后，PostToolUse hook（`scripts/hooks/sync-skills-copy.mjs`）自动同步到 `~/.agents/skills/<name>/`，手工 rsync 仅作 hook 失效时的排查与兜底。
+编辑 `skills/**` 下的文件后，PostToolUse hook（`scripts/hooks/sync-skills-copy.mjs`）自动同步到 `~/.agents/skills/<name>/`，但只认 Edit/Write；Bash 写文件、build 产物不触发，收尾必须手动 rsync + `diff -rq`（见 `.claude/rules/tooling/skills-sync-hook-edit-write-only.md`）。
 
 只本地同步不 push 的改动，会在下次 skill 更新时被远端版本覆盖掉。改名不走 update（只更新同名）：`npx skills remove <旧名>` + `npx skills add lazygophers/ccplugin/skills/tools/<新名>`，全仓改名清单见 `.claude/rules/tooling/skill-rename-checklist.md` 与 `docs/ask-me-migration.md`。
 
