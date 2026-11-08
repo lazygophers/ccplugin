@@ -13,6 +13,7 @@ import { createHash, randomBytes, randomUUID } from 'node:crypto';
 
 import { normalizeQuestionSet, type Question, type QuestionSet, type WakeBinding } from './questionset.mjs';
 import { validateAnswers, type NormalizedAnswer } from './answers.mjs';
+import { logError } from './log.mjs';
 import { validateAgainstSchema, formatSchemaErrors } from './schema-validator.mjs';
 
 const SCHEMA_VERSION = '1.0';
@@ -361,7 +362,8 @@ async function listAsks(dataRoot: string): Promise<Ask[]> {
     if (!entry.isDirectory()) continue;
     try {
       asks.push(await readAsk(dataRoot, entry.name));
-    } catch {
+    } catch (error) {
+      logError(`listAsks ${entry.name}`, error);
       // A damaged ask is reported by status when addressed explicitly.
     }
   }

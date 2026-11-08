@@ -8,7 +8,7 @@ import { pathToFileURL } from 'node:url';
 import { completeAsk, createAsk, ensureDataRoot, loadAskBundle, readAsk, readJson, removeDataRootIfIdle, resumeAsk, submittedAskResult, } from './store.mjs';
 import { ensureServer, startHttpServer, stopIdleServer, watchForIdle } from './http-server.mjs';
 import { openBrowser } from './browser.mjs';
-import { log } from './log.mjs';
+import { log, logError } from './log.mjs';
 // 太短会在多轮提问之间反复重启服务、换掉用户手上的链接；答完的表单也要能隔天回去翻。
 const DEFAULT_IDLE_TIMEOUT_MS = 24 * 60 * 60 * 1000;
 function idleTimeoutMs(value) {
@@ -211,7 +211,15 @@ const isMain = process.argv[1]
 if (isMain) {
     main().catch((error) => {
         process.stderr.write(`${JSON.stringify({ error: error.message })}\n`);
-        log('cli-error', { error: error.message });
+        logError('cli', error);
         process.exitCode = 1;
     });
+    // 先落盘再退：log 是 async，exit 前必须 await。
+    for (const event of ['uncaughtException', 'unhandledRejection']) {
+        process.on(event, async (error) => {
+            process.stderr.write(`${event}: ${error?.stack || error}\n`);
+            await logError(event, error);
+            process.exit(1);
+        });
+    }
 }

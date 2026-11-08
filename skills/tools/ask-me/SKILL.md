@@ -63,7 +63,7 @@ description: 开一个本地网页表单，一次把多个问题摆给用户、�
 
 ### 服务与浏览器生命周期
 
-- 运行日志在 `$TEMP/ask-me.log`：一行一条 JSON（时间 / pid / 事件 / askId），10MB 轮转、最多留 3 份备份（`.1` `.2` `.3`）。排查服务起停、提交、唤醒失败先看它；`<dataRoot>/server.log` 只有常驻 serve 进程的 stderr 崩溃栈。
+- 运行日志在 `/tmp/ask-me.log`（Windows 为 `os.tmpdir()` 下）：一行一条 JSON（时间 / pid / 事件 / askId），只留最近 3 小时；所有错误记为 `event=error`（`where` / `message` / `stack`）。排查服务起停、提交、唤醒失败先看它；`<dataRoot>/server.log` 只有常驻 serve 进程的 stderr 崩溃栈。
 
 - URL 格式是 `http://127.0.0.1:<port>/<askId>`，不带 `/ask/`；`askId` 是随机 12 位十六进制字符串，不是标准完整 UUID。每次 `ask` 都会打开浏览器：提交后先保存 `answers.json`，再把完整问题、答案和 URL 写入 stdout，最后退出命令；页面在提交 3 秒后关闭。标准 `ask` 在 stdout 写完后立即调用 `complete` 清理；若使用 `create`，答案保留到 Agent 读完并执行 `complete`。
 - 用户填到一半的答案每改一下就写进 `<ask 目录>/draft.json`（停手 400 毫秒落一次，关标签页时补发一次）。刷新、关页重开、服务重启都接得回来；提交成功后这份草稿被删掉。**别把 `draft.json` 当答案读**，它是半成品，不过校验；正式答案只有 `answers.json`。

@@ -9,6 +9,7 @@ import process from 'node:process';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { normalizeQuestionSet } from './questionset.mjs';
 import { validateAnswers } from './answers.mjs';
+import { logError } from './log.mjs';
 import { validateAgainstSchema, formatSchemaErrors } from './schema-validator.mjs';
 const SCHEMA_VERSION = '1.0';
 export function now() {
@@ -269,7 +270,8 @@ async function listAsks(dataRoot) {
         try {
             asks.push(await readAsk(dataRoot, entry.name));
         }
-        catch {
+        catch (error) {
+            logError(`listAsks ${entry.name}`, error);
             // A damaged ask is reported by status when addressed explicitly.
         }
     }

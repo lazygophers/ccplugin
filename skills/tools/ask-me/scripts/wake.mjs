@@ -4,6 +4,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { wakeClaudeCode } from './adapters/claude-code.mjs';
 import { wakeCodexAppServer } from './adapters/codex-app-server.mjs';
+import { logError } from './log.mjs';
 import { askDirectory, atomicWriteJson, now, readAsk, updateIndex, writeAsk } from './store.mjs';
 async function recordWakeState(dataRoot, askId, value) {
     const ask = await readAsk(dataRoot, askId);
@@ -57,6 +58,7 @@ export async function triggerWake(dataRoot, askId) {
         return { status: 'succeeded', logFile };
     }
     catch (error) {
+        await logError(`wake ${askId}`, error);
         await recordWakeState(dataRoot, askId, {
             status: 'failed',
             provider: binding.provider,

@@ -11,7 +11,7 @@ import { assertSafeId, hasPendingAsk, loadAskBundle, readAsk, readJson, saveDraf
 import { closeBrowserTab, openInBrowser } from './browser.mjs';
 import { ensureVendor, VENDOR } from './vendor.mjs';
 import { triggerWake } from './wake.mjs';
-import { log } from './log.mjs';
+import { log, logError } from './log.mjs';
 const SCRIPT_FILE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), 'ask-me.mjs');
 const SKILL_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const APP_ROOT = path.join(SKILL_ROOT, 'assets', 'app');
@@ -67,6 +67,7 @@ function sendFile(response, file, type = contentType(file), securityHeaders = tr
     // 读文件的错误是异步从流里冒出来的，路由里的 try/catch 接不住。不挂这个监听，
     // 一个权限不对的组件文件就会让整个服务连同全部活跃会话一起退出。
     stream.on('error', (error) => {
+        logError(`sendFile ${file}`, error);
         if (response.headersSent) {
             response.destroy();
             return;
@@ -221,14 +222,15 @@ function afterSubmitted({ askId, result, dataRoot, server, onSubmitted, enableWa
             try {
                 onSubmitted({ askId, result });
             }
-            catch {
+            catch (error) {
+                logError('onSubmitted', error);
                 // Submission is already durable; observer failures must not alter it.
             }
         }, 0);
     }
     if (enableWake && result.ask.deliveryMode !== 'direct') {
         setTimeout(() => {
-            triggerWake(dataRoot, askId).catch(() => { });
+            triggerWake(dataRoot, askId).catch((error) => logError('triggerWake', error));
         }, 0);
     }
     // 答完就收摊：关掉那一页，没有别的提问还等着人答就连进程一起退。
@@ -282,6 +284,7 @@ export async function startHttpServer({ dataRoot, port = 0, persistServerInfo = 
                 sendFile(response, await ensureVendor(vendorMatch[1]));
             }
             catch (error) {
+                logError(`vendor ${vendorMatch[1]}`, error);
                 sendJson(response, 502, { error: error.message });
             }
             return;
@@ -314,6 +317,7 @@ export async function startHttpServer({ dataRoot, port = 0, persistServerInfo = 
             });
         }
         catch (error) {
+            logError(`${request.method} ${requestUrl.pathname}`, error);
             sendJson(response, error.statusCode || 500, { error: error.message });
         }
     });

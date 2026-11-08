@@ -5,6 +5,7 @@ import path from 'node:path';
 
 import { wakeClaudeCode } from './adapters/claude-code.mjs';
 import { wakeCodexAppServer } from './adapters/codex-app-server.mjs';
+import { logError } from './log.mjs';
 import { askDirectory, atomicWriteJson, now, readAsk, updateIndex, writeAsk, type Ask } from './store.mjs';
 
 export type WakeResult =
@@ -66,6 +67,7 @@ export async function triggerWake(dataRoot: string, askId: string): Promise<Wake
     });
     return { status: 'succeeded', logFile };
   } catch (error) {
+    await logError(`wake ${askId}`, error);
     await recordWakeState(dataRoot, askId, {
       status: 'failed',
       provider: binding.provider,

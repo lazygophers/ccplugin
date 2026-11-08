@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 // 聚合入口：按 module 顺序跑各 test-*.mjs，最后过一遍 CLI 端到端（symlink 调用、
-// 直连 ask 全流程、answers.json 契约）与日志轮转。pre-commit 钩子只认这个文件。
+// 直连 ask 全流程、answers.json 契约）与日志 3 小时保留。pre-commit 钩子只认这个文件。
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import fs from 'node:fs/promises';
@@ -40,10 +40,14 @@ const suites: [string, () => Promise<void>][] = [
   ['assets', testAssets],
   ['cli', testCli],
 ];
+// 各 suite 故意触发的错误别写进真实 /tmp/ask-me.log；子进程继承 env，一并重定向。
+const suitesLogRoot = await makeTempRoot('suites-log');
+process.env.ASK_ME_LOG = path.join(suitesLogRoot, 'ask-me.log');
 for (const [name, run] of suites) {
   await run();
   process.stdout.write(`ask-me ${name} ok\n`);
 }
+await fs.rm(suitesLogRoot, { recursive: true, force: true });
 
 // ---- CLI：经 symlink 调用必须照常执行 ----
 //
@@ -142,24 +146,31 @@ try {
     assert.ok(verdict.valid, `${result.askId} 的 answers.json 不符合 AnswerSet schema：\n${formatSchemaErrors(verdict.errors)}`);
   }
 
-  // ---- 日志轮转 ----
-  // $TEMP/ask-me.log 满 10MB 轮转，备份最多 3 份。TEMP 在 import log.mjs
-  // 之前指到临时目录，避免污染真实的 $TEMP。
+  // ---- 日志只留 3 小时 ----
+  // ASK_ME_LOG 指到临时目录，避免污染真实的 /tmp/ask-me.log。
   {
-    process.env.TEMP = path.join(temporaryRoot, 'log-test');
-    await fs.mkdir(process.env.TEMP, { recursive: true });
-    const { log, logPath } = await import('./log.mjs');
-    const overflow = 'x'.repeat(10 * 1024 * 1024 + 1024);
-    await fs.appendFile(logPath(), overflow, 'utf8');
-    await log('rotation-probe');
-    assert.ok(existsSync(`${logPath()}.1`), '满 10MB 应转出 .1 备份');
-    assert.match(await fs.readFile(logPath(), 'utf8'), /rotation-probe/, '转档后当前文件应从新行开始');
-    for (let round = 2; round <= 4; round += 1) {
-      await fs.appendFile(logPath(), overflow, 'utf8');
-      await log(`rotation-probe-${round}`);
-    }
-    assert.ok(existsSync(`${logPath()}.3`), '第三份备份存在');
-    assert.ok(!existsSync(`${logPath()}.4`), '第四份备份不该存在');
+    process.env.ASK_ME_LOG = path.join(temporaryRoot, 'log-test', 'ask-me.log');
+    await fs.mkdir(path.dirname(process.env.ASK_ME_LOG), { recursive: true });
+    const { log, logError, logPath, prune } = await import('./log.mjs');
+    const hoursAgo = (h: number) => new Date(Date.now() - h * 3600_000).toISOString();
+    await fs.writeFile(logPath(), [
+      JSON.stringify({ t: hoursAgo(4), event: 'old-1' }),
+      JSON.stringify({ t: hoursAgo(3.5), event: 'old-2' }),
+      'not json',
+      JSON.stringify({ t: hoursAgo(2), event: 'fresh' }),
+    ].join('\n') + '\n', 'utf8');
+    await prune();
+    const kept = (await fs.readFile(logPath(), 'utf8')).trim().split('\n');
+    assert.equal(kept.length, 1, '超过 3 小时的行和坏行都应被剔除');
+    assert.match(kept[0], /fresh/);
+    await logError('self-test', new Error('boom'));
+    const last = JSON.parse((await fs.readFile(logPath(), 'utf8')).trim().split('\n').pop() as string);
+    assert.equal(last.event, 'error');
+    assert.equal(last.where, 'self-test');
+    assert.equal(last.message, 'boom');
+    assert.match(last.stack, /boom/);
+    await log('probe');
+    assert.ok(!existsSync(`${logPath()}.${process.pid}.tmp`), '清理不留临时文件');
   }
 
   process.stdout.write('ask-me self-test passed\n');
@@ -169,11 +180,11 @@ try {
 
   // ---- log 写失败：目录不存在/不可写时吞掉异常，不拖挂主流程 ----
   {
-    const previousTemp = process.env.TEMP;
-    process.env.TEMP = path.join(temporaryRoot, 'no-such-dir', 'deeper');
+    const previousLog = process.env.ASK_ME_LOG;
+    process.env.ASK_ME_LOG = path.join(temporaryRoot, 'no-such-dir', 'deeper', 'ask-me.log');
     const { log: failingLog } = await import('./log.mjs');
     await failingLog('write-failure-probe'); // 不该抛
-    process.env.TEMP = previousTemp;
+    process.env.ASK_ME_LOG = previousLog;
   }
 
 }
