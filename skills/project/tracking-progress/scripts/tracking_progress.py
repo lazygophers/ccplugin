@@ -79,7 +79,7 @@ def log_error(where: str, exc: BaseException | None = None, message: str = "") -
 SKIP_DIRS = {"memory", "research", "report", "reports", ".ask-me", "node_modules", ".git"}
 
 # Files that are structural, not tasks — never reported as unrecognised.
-KNOWN_FILENAMES = {"map.md", "memory.md", "spec.md", "decisions.md", "readme.md"}
+KNOWN_FILENAMES = {"map.md", "spec.md", "decisions.md", "readme.md"}
 
 # 设计样例目录:不是普通资产,按语义识别成独立的设计样例区
 DESIGN_DIRS = {"design-demos", "demos", "设计样例"}
@@ -320,7 +320,7 @@ def parse_issue_file(path: Path, effort: str) -> Task | None:
 
 
 def parse_checklist_file(path: Path, effort: str) -> list[Task]:
-    """Pull `- [x] ...` checkpoint lines out of memory.md / INDEX files."""
+    """Pull `- [x] ...` checkpoint lines out of session/*.md / INDEX files."""
     tasks = []
     mtime = path.stat().st_mtime
     for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
@@ -377,8 +377,9 @@ def scan(scratch: Path) -> tuple[list[Effort], list[Path]]:
 
     def effort_for(path: Path) -> Effort:
         rel = path.relative_to(scratch)
-        name = rel.parts[0] if len(rel.parts) > 1 else ROOT
-        base = scratch / rel.parts[0] if len(rel.parts) > 1 else scratch
+        top = len(rel.parts) > 1 and path.parent != scratch / "session"
+        name = rel.parts[0] if top else ROOT
+        base = scratch / rel.parts[0] if top else scratch
         if name not in efforts:
             efforts[name] = Effort(name=name, path=base, mtime=base.stat().st_mtime)
         return efforts[name]
@@ -401,7 +402,7 @@ def scan(scratch: Path) -> tuple[list[Effort], list[Path]]:
             effort.has_spec = True
             continue
         # Ticket files live anywhere: issues/, impl/, or the effort root.
-        if name not in KNOWN_FILENAMES:
+        if name not in KNOWN_FILENAMES and path.parent != scratch / "session":
             task = parse_issue_file(path, effort.name)
             if task:
                 effort.tasks.append(task)
@@ -481,7 +482,7 @@ def dedupe(tasks: list[Task]) -> list[Task]:
 
 
 def absorb_root_checklist(efforts: dict[str, Effort]) -> None:
-    """The root `memory.md` mirrors a spec's tickets; don't count them twice.
+    """The root `.scratch/session/*.md` rows mirror a spec's tickets; don't count them twice.
 
     A root checklist row moves into the spec whose ticket files it matches, but
     only when exactly one spec claims that id — an ambiguous match stays put.
@@ -1504,10 +1505,10 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
     add_pv(*mem_files, *res_files)
     add_pv(*(p for p in rep_files if p.suffix.lower() in (".md", ".txt")))
     for e in efforts:
-        # effort 自己的 memory.md(勾选行的来源)也进预览通道;decisions.md 只进
-        # 已知文件集与预览通道,没有独立区块
-        add_pv(e.path / "spec.md", e.path / "map.md", *e.research, e.path / "memory.md",
-               e.path / "decisions.md")
+        # decisions.md 只进已知文件集与预览通道,没有独立区块
+        add_pv(e.path / "spec.md", e.path / "map.md", *e.research, e.path / "decisions.md")
+        if e.name == ROOT:  # 根级状态文件 session/*.md(勾选行的来源)
+            add_pv(*sorted((e.path / "session").glob("*.md")))
         add_pv(*(p for p in e.reports if p.suffix.lower() in (".md", ".txt")))
         # 票文件在目录树 md 之前嵌入:小文件优先吃 2MB 预算,大块头由下方
         # rich 轮按大小兜底
@@ -1743,14 +1744,14 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         f"<p class='statline rise d3'>feature <span>{len(efforts)}</span> 个 · 票 <span>{total}</span> 张 · "
         f"总进度 <span>{pct}%</span>（{c[DONE]} ÷ {total}） · 生成于 {time.strftime('%Y-%m-%d %H:%M')} · "
         f"扫描 <code>{esc(str(scratch))}</code> 下 {len(efforts)} 个 feature 目录的票面文件与 "
-        f"<code>memory.md</code> 勾选行。一次快照，无历史记录——本页所有数字都由这一次扫描直接数出来。</p>",
+        f"<code>.scratch/session/*.md</code> 勾选行。一次快照，无历史记录——本页所有数字都由这一次扫描直接数出来。</p>",
         f"<div class='stack rise d3'>{band}</div><div class='ticks rise d3'>{ticks}</div>",
         "<p class='note rise d4'>",
         "<b>进度 = 已完成 ÷ 总票数</b>，被阻塞的票也算在分母里——所以这个百分比是"
         "「全部要做的事完成了多少」，不是「手头能推进的事完成了多少」。<br>",
         "<b>四种状态是一条单向的路</b>：被阻塞 → 可开工 → 进行中 → 已完成，票只前进不后退。<br>",
         "<b>未建票</b> = 只在 map.md / 清单上有一行、还没有票面文件的条目；「票已建齐」= 每一条都有对应票面文件。<br>",
-        "<b>一张票 = 一个票面文件，或 <code>memory.md</code> 里的一行勾选</b>。两种来源同等计数，"
+        "<b>一张票 = 一个票面文件，或 <code>session/*.md</code> 里的一行勾选</b>。两种来源同等计数，"
         "所以「已完成」里可能包含「写 spec.md」这类过程记录，不等于功能数。",
         "</p></section>",
     ]
@@ -1884,7 +1885,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
             f"<span>{epct}%({ec[DONE]} ÷ {et})</span></div>" if et else "",
         ]
         # 分区按来源归类:票面文件(from_file)进 tickets 表;非票面勾选行按
-        # 来源文件分——map.md 行走 roadmap 路线列表,其余(memory.md 等)是
+        # 来源文件分——map.md 行走 roadmap 路线列表,其余(session/*.md 等)是
         # 任务状态勾选行,进 memory 表。计数口径不变:两类来源同等计入总票数。
         file_tasks = [t for t in effort.tasks if t.from_file]
         map_rows = [t for t in effort.tasks

@@ -21,7 +21,7 @@ Then:
 2. Report the headline (the page leads with a one-sentence conclusion) and the 现在能开工的 table. Link the HTML as `[任务进度](.scratch/progress.html)`.
 3. Open the page's 未能识别的文件 section if it is non-empty. For each file, decide whether it actually holds tasks. If any does, the script is missing a convention — ask the user whether to file an issue at `.scratch/tracking-progress/issues/` describing the unrecognised format, then add the rule to the script. (The script prints only the output path; the count, if any, lives on the page.)
 
-The `.scratch` directory layout this skill assumes — per-feature root files (`spec.md` / `decisions.md` / `map.md`; task status lives only in `.scratch/memory.md`), subdirectories (`issues/` / `research/` / `design-demos/` / `reports/`), reserved-name compatibility constraints, and wrap-up migration to `.scratch/research/` / `.scratch/report/` — is specified in [docs/agents/scratch-structure.md](../../../docs/agents/scratch-structure.md).
+The `.scratch` directory layout this skill assumes — per-feature root files (`spec.md` / `decisions.md` / `map.md`; task status lives only in `.scratch/session/<session-id>.md`, one file per session; `.scratch/memory/` holds only dated decision files), subdirectories (`issues/` / `research/` / `design-demos/` / `reports/`), reserved-name compatibility constraints, and wrap-up migration to `.scratch/research/` / `.scratch/report/` — is specified in [docs/agents/scratch-structure.md](../../../docs/agents/scratch-structure.md).
 
 ## What it recognises
 
@@ -30,7 +30,7 @@ The `.scratch` directory layout this skill assumes — per-feature root files (`
 | `<feature>/issues/NN-slug.md`, `<feature>/impl/NN-slug.md`, `<feature>/NN-slug.md` | `Status:` / `状态：` line, bare or bold |
 | `issues/open/` vs `issues/done/` | the directory name |
 | ticket file with `Blocked by:` / `Type:` but no status | open (nobody marked it done) |
-| `memory.md` checkpoint rows | `- [x]` done, `- [ ]` open, `- [~]` / `- [-]` in progress |
+| `.scratch/session/*.md` checkpoint rows (every session file is read; `<feature>/memory.md` is no longer recognised) | `- [x]` done, `- [ ]` open, `- [~]` / `- [-]` in progress |
 | wayfinder `map.md` + its children | `Status: claimed` / `resolved`, `Blocked by: NN` |
 
 `memory/`, the top-level `research/`, and the top-level `report/` (singular — the wrap-up archive of one-off reports) are never scanned for tasks — they are history, not work in flight. `report/` renders as a 公共报告 section in the 调研 archive view. A feature-level `<feature>/research/*.md` is listed under its feature with links (in-page modal, same `#pvWrap` channel), status-free, and so is `<feature>/reports/` (its own `reports` block). `decisions.md` is a known structural file: it joins the preview channel and is never reported as unrecognised, but gets no dedicated section. The 决策档案 (`#/memory`) view renders the ledger as 变更审计流: day stubs with counts only; clicking a day parses that day's text on demand from the inlined `tp-files` JSON (canonical `- 改成: … | 原本 | 我说 | 为什么 | 否掉了` lines become diff cards, everything else stays as verbatim 原文 blocks — nothing hidden, nothing dropped). Decision content is never written into the HTML at generation time, so page size and DOM stay bounded. A feature-level `<feature>/research/*.md` is listed under its feature with links (in-page modal, same `#pvWrap` channel), status-free.
@@ -42,4 +42,4 @@ Status strings are matched loosely: `resolved` / `done` / `已完成` / `定稿`
 - **Blocking only counts ids that exist.** A `Blocked by:` referencing a number no ticket owns (often a document reference like `ADR-0046` minted into an id) is shown as a dangling ref, not treated as a blocker.
 - **互相阻塞的票** (A blocks B, B blocks A) are drawn with dashed amber edges in the wave diagram — someone has to break the loop by hand.
 - **未建票 vs 票已建齐**: a map/checklist row with no ticket file behind it is marked 未建 (badge on the spec head, mark on the row, dashed node in the graph, count in the per-spec table). A spec where every row has a ticket file gets the 票已建齐 badge.
-- **口径写在页面上**: progress = done ÷ total, blockers in the denominator; one ticket = one ticket file or one `memory.md` checklist row, so "done" can include process notes like 「写 spec.md」. The page states this instead of hiding it.
+- **口径写在页面上**: progress = done ÷ total, blockers in the denominator; one ticket = one ticket file or one `session/*.md` checklist row, so "done" can include process notes like 「写 spec.md」. The page states this instead of hiding it.

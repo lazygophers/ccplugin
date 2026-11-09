@@ -184,7 +184,7 @@ def test_resolve_blocking():
 def build_repo(tmp_path: Path) -> Path:
     scratch = tmp_path / ".scratch"
     write(
-        scratch / "memory.md",
+        scratch / "session" / "3f2a9c1e-0000-4000-8000-000000000001.md",
         "## checkpoint\n\n- [x] **01** 第一张票\n- [ ] 没编号的收尾动作\n",
     )
     write(scratch / "alpha" / "spec.md", "# Spec\n")
@@ -193,8 +193,6 @@ def build_repo(tmp_path: Path) -> Path:
         "# Map\n\n## Destination\n\n出一份 spec。\n\n"
         "- [ ] 04 后续扩展（还没建票）\n",
     )
-    # 无勾选行的 memory.md:只让 feature 视图出现 memory 区块,不影响任何计数
-    write(scratch / "alpha" / "memory.md", "## 工作区备忘\n\n（无勾选行）\n")
     write(
         scratch / "alpha" / "issues" / "01-first.md",
         "# 01 — 第一张票\n\nType: research\nStatus: resolved\nBlocked by: —\n",
@@ -813,7 +811,7 @@ def test_design_demos_nested_grouped(tmp_path):
     alpha = next(e for e in efforts if e.name == "alpha")
     assert [d.name for d in alpha.design_dirs] == ["design-demos"]
     # 文件浏览器:sub/ 的递归计数含设计稿子树(design-demos/mock.html + note.txt)
-    assert alpha.n_files == 8  # build_repo 的 6 个 + sub/ 下 2 个
+    assert alpha.n_files == 7  # build_repo 的 5 个 + sub/ 下 2 个
     page = tp.render(efforts, [], scratch)
     assert "<summary>sub/ · 2 文件</summary>" in page
     assert "<summary>design-demos/ · 1 文件</summary>" in page
@@ -878,7 +876,7 @@ def test_memory_block_table_without_section_list(tmp_path):
     """memory 区块只渲染勾选行任务表(带复制按钮),不再渲染 memory.md 小节清单。"""
     root = build_repo(tmp_path)
     scratch = root / ".scratch"
-    (scratch / "alpha" / "memory.md").write_text(
+    (scratch / "alpha" / "checklist.md").write_text(
         "# 记忆标题\n\n- [ ] 09 记忆任务甲\n", encoding="utf-8")
     efforts, _ = tp.scan(scratch)
     page = tp.render(efforts, [], scratch)
@@ -1184,7 +1182,7 @@ def test_feature_view_sections_classified_by_source(tmp_path):
     scratch = tmp_path / ".scratch"
     solo = scratch / "solo"
     solo.mkdir(parents=True)
-    (solo / "memory.md").write_text(
+    (solo / "checklist.md").write_text(
         "# solo\n\n## checkpoint\n- [x] 记忆完成行\n- [ ] 07 记忆待办行\n",
         encoding="utf-8",
     )
@@ -1335,3 +1333,16 @@ def test_page_has_error_badge_and_hooks(tmp_path):
     assert "id='tpErrBadge'" in page and "id='tpErrPanel'" in page
     assert "window.onerror=" in page and "unhandledrejection" in page
     assert "ifErr(k)" in page and "tpErr('json:tp-data'" in page
+
+
+def test_session_files_counted_memory_ledger_and_feature_memory_not(tmp_path):
+    scratch = tmp_path / ".scratch"
+    write(scratch / "session" / "aaaa.md", "- [x] 会话甲完成\n- [ ] 会话甲待办\n")
+    write(scratch / "session" / "bbbb.md", "- [ ] 会话乙待办\n")
+    write(scratch / "memory" / "2026-11-09.md", "- [ ] 日期账本不计\n")
+    write(scratch / "alpha" / "spec.md", "# Spec\n")
+    efforts, _ = tp.scan(scratch)
+    root = next(e for e in efforts if e.name == tp.ROOT)
+    assert sorted(t.title for t in root.tasks) == ["会话乙待办", "会话甲完成", "会话甲待办"]
+    assert not any(e.name == "session" for e in efforts)
+    assert "memory.md" not in tp.KNOWN_FILENAMES
