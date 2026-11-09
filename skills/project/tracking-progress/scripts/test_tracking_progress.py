@@ -17,6 +17,12 @@ sys.path.insert(0, str(Path(__file__).parent))
 import tracking_progress as tp
 
 
+@pytest.fixture(autouse=True)
+def _isolate_log(tmp_path_factory, monkeypatch):
+    # 预检会对夹具里的假图片写日志,不许落进真 /tmp
+    monkeypatch.setattr(tp, "LOG_PATH", tmp_path_factory.mktemp("log") / "tp.log")
+
+
 @pytest.mark.parametrize(
     "raw,expected",
     [
@@ -1290,3 +1296,42 @@ def test_log_error_prunes_old_lines(tmp_path, monkeypatch):
 def test_log_error_swallows_failure(tmp_path, monkeypatch):
     monkeypatch.setattr(tp, "LOG_PATH", tmp_path / "no-such-dir" / "tp.log")
     tp.log_error("x", ValueError("v"))  # 不抛即过
+
+
+def test_precheck_logs_bad_preview_files(tmp_path, monkeypatch):
+    log = tmp_path / "tp.log"
+    monkeypatch.setattr(tp, "LOG_PATH", log)
+    root = build_repo(tmp_path)
+    write(root / ".scratch" / "alpha" / "bad.pdf", "not a pdf")
+    write(root / ".scratch" / "alpha" / "bad.png", "not a png")
+    (root / ".scratch" / "alpha" / "ok.pdf").write_bytes(b"%PDF-1.4\n")
+    (root / ".scratch" / "alpha" / "bad.html").write_bytes(b"<p>\xff\xfe</p>" + b" " * 20)
+    efforts, unparsed = tp.scan(root / ".scratch")
+    tp.render(efforts, unparsed, root / ".scratch")
+    recs = [json.loads(ln) for ln in log.read_text(encoding="utf-8").splitlines()]
+    msgs = " ".join(r["where"] + r["message"] for r in recs)
+    assert "bad.pdf" in msgs and "bad.png" in msgs and "bad.html" in msgs
+    assert "ok.pdf" not in msgs
+
+
+def test_precheck_unreadable_file(tmp_path, monkeypatch):
+    log = tmp_path / "tp.log"
+    monkeypatch.setattr(tp, "LOG_PATH", log)
+    f = tmp_path / "x.pdf"
+    f.write_bytes(b"%PDF-")
+    f.chmod(0)
+    try:
+        tp.precheck_preview(f)
+    finally:
+        f.chmod(0o644)
+    if os.geteuid() != 0:
+        assert "precheck.unreadable" in log.read_text(encoding="utf-8")
+
+
+def test_page_has_error_badge_and_hooks(tmp_path):
+    root = build_repo(tmp_path)
+    efforts, _ = tp.scan(root / ".scratch")
+    page = tp.render(efforts, [], root / ".scratch")
+    assert "id='tpErrBadge'" in page and "id='tpErrPanel'" in page
+    assert "window.onerror=" in page and "unhandledrejection" in page
+    assert "ifErr(k)" in page and "tpErr('json:tp-data'" in page

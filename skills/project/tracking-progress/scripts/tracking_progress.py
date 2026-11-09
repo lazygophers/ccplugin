@@ -579,7 +579,7 @@ def analyse(effort: Effort) -> None:
 #     --global-name=mermaid --alias:katex=stub.js --alias:cytoscape=stub.js \
 #     [--external every non-flowchart diagram chunk]
 LEDGER_JS = r"""<script>(function(){
-var PV2={};try{PV2=JSON.parse(document.getElementById('tp-files').textContent)}catch(e){}
+var PV2={};try{PV2=JSON.parse(document.getElementById('tp-files').textContent)}catch(e){tpErr('json:tp-files',e.message)}
 function esc(t){var d=document.createElement('div');d.textContent=t;return d.innerHTML}
 function parseLedger(text){
 var out=[],lines=text.split(/\r?\n/),buf=[];
@@ -842,6 +842,9 @@ CSS = """
   .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--ink);color:#fff;border:0;border-radius:8px;padding:9px 16px;font:600 13px var(--sans);opacity:0;transition:opacity .2s;z-index:60;pointer-events:none}
   .toast.show{opacity:1}
   .toast.err{background:var(--danger)}
+  .errbadge{margin-right:84px;font:600 12px var(--sans);color:#fff;background:var(--danger);border:0;border-radius:99px;padding:6px 12px;cursor:pointer}
+  .errpanel{position:fixed;right:18px;top:52px;z-index:61;width:min(560px,92vw);max-height:60vh;overflow:auto;background:var(--panel);border:1px solid var(--rule);border-radius:10px;box-shadow:var(--sh-1);padding:12px}
+  .errpanel pre{margin:0 0 10px;white-space:pre-wrap;word-break:break-all;font:12px var(--mono);color:var(--ink)}
   .copy-btn{font:inherit;line-height:1;color:var(--ink-3);background:none;border:0;padding:0 0 0 5px;cursor:pointer;vertical-align:-1px}
   .copy-btn:hover{color:var(--open)}
   .copy-btn svg{display:block}
@@ -1403,6 +1406,30 @@ PV_MEDIA_EXTS = {".mp4", ".m4v", ".mov", ".webm", ".pdf"}
 # 搜索通道的目录黑名单:工具状态/依赖垃圾,不是用户产物,不进全文索引
 PV_SEARCH_SKIP_DIRS = {"node_modules", ".git", ".ask-me"}
 
+# 生成期预检:能读 + 文件头对得上扩展名,否则页面里预览会静默坏掉;只记日志不拦生成
+MAGIC = {".pdf": (b"%PDF-",), ".png": (b"\x89PNG",), ".jpg": (b"\xff\xd8",),
+         ".jpeg": (b"\xff\xd8",), ".gif": (b"GIF8",), ".webp": (b"RIFF",)}
+
+
+def precheck_preview(p: Path) -> None:
+    ext = p.suffix.lower()
+    if ext not in MAGIC and ext not in PV_MEDIA_EXTS and ext != ".html":
+        return
+    try:
+        with p.open("rb") as fh:
+            head = fh.read(8192)
+    except OSError as e:
+        log_error("precheck.unreadable", e, str(p))
+        return
+    if ext in MAGIC and not head.startswith(MAGIC[ext]):
+        log_error("precheck.bad_header", message=f"{ext} 文件头不符: {p}")
+    elif ext == ".html":
+        try:
+            head.decode("utf-8")
+        except UnicodeDecodeError as e:
+            if e.start < len(head) - 4:  # 8KB 截断可能劈开多字节字符,只算中段
+                log_error("precheck.bad_html", e, str(p))
+
 
 def ticket_tags(t: "Task") -> str:
     """票面 frontmatter 四字段的徽章行:label / Status / Type / Blocked by。
@@ -1462,6 +1489,8 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
                 continue
             try:
                 text = p.read_text(encoding="utf-8", errors="replace")
+            except FileNotFoundError:  # spec/map/decisions 等候选文件不存在是常态
+                continue
             except OSError as e:
                 log_error("render.preview_read", e, str(p))
                 continue
@@ -1508,6 +1537,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         if k in seen_rich or k in pv_files:
             continue
         seen_rich.add(k)
+        precheck_preview(p)
         ext = p.suffix.lower()
         if ext in PV_MEDIA_EXTS:
             continue
@@ -1629,6 +1659,10 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         f"<title>{esc(project)}·任务进度</title>",
         f"<style>{CSS}</style>",
         "<script>try{var t=localStorage.getItem('tp-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>",
+        # 页面错误收集:file:// 页写不了日志,攒在数组里由右上角角标展示
+        "<script>window.TP_ERRS=[];window.tpErr=function(w,m){TP_ERRS.push(w+': '+m);window.tpErrRender&&tpErrRender()};"
+        "window.onerror=function(m,s,l){tpErr('onerror',m+' @'+(s||'')+':'+l)};"
+        "addEventListener('unhandledrejection',function(e){tpErr('promise',String(e.reason))})</script>",
         "</head><body>",
         "<button class='theme-btn' type='button' id='themeToggle' aria-label='切换深浅色'>深色</button>",
         "<div class='app'>",
@@ -1674,6 +1708,9 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "<button class='gsearch' type='button' id='tpSearchBtn' aria-label='全局搜索'>",
         "<svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><circle cx='11' cy='11' r='7'/><path d='m21 21-4.3-4.3'/></svg>",
         "搜索文件、内容…<kbd>⌘K</kbd></button>",
+        "<button class='errbadge' type='button' id='tpErrBadge' hidden></button>",
+        "<div class='errpanel' id='tpErrPanel' hidden><pre id='tpErrList'></pre>"
+        "<button class='btn' type='button' id='tpErrCopy'>复制全部</button></div>",
         "</header>",
         "<div class='pagebar'>",
         "<div class='row'>",
@@ -2206,7 +2243,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         r"return{err:'',hits:hits.slice(0,100)}};</script>",
         # 搜索 UI:200ms 防抖,内容命中跳预览定位/未嵌通道就地展开,维度徽章混排
         r"<script>(function(){"
-        r"var SEARCH={};try{SEARCH=JSON.parse(document.getElementById('tp-search').textContent)}catch(e){}"
+        r"var SEARCH={};try{SEARCH=JSON.parse(document.getElementById('tp-search').textContent)}catch(e){tpErr('json:tp-search',e.message)}"
         r"function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;')}"
         r"var wrap=document.getElementById('sWrap'),input=document.getElementById('sInput'),"
         r"re=document.getElementById('sRe'),box=document.getElementById('sResults'),"
@@ -2282,7 +2319,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         r"});"
         r"})();</script>",
         "<script>(function(){"
-        "var TPDATA={};try{TPDATA=JSON.parse(document.getElementById('tp-data').textContent)}catch(e){}"
+        "var TPDATA={};try{TPDATA=JSON.parse(document.getElementById('tp-data').textContent)}catch(e){tpErr('json:tp-data',e.message)}"
         "window.TPDATA=TPDATA;"
         "var STZH={done:'已完成',active:'进行中',open:'可开工',blocked:'被阻塞'};"
         "var STC={done:'#7ba888',active:'#c08a3e',open:'#6aa5e3',blocked:'#c98a80'};"
@@ -2313,7 +2350,13 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "t.textContent=msg;t.classList.toggle('err',true===err);t.classList.add('show');"
         "clearTimeout(t._h);t._h=setTimeout(function(){t.classList.remove('show')},1800)}"
         "function copyText(txt,label){navigator.clipboard.writeText(txt).then("
-        "function(){toast('已复制'+label)},function(){toast('复制失败',true)})}"
+        "function(){toast('已复制'+label)},function(){tpErr('copy','复制'+label+'失败');toast('复制失败',true)})}"
+        "var eb=document.getElementById('tpErrBadge'),ep=document.getElementById('tpErrPanel');"
+        "window.tpErrRender=function(){eb.hidden=!TP_ERRS.length;eb.textContent=TP_ERRS.length+' 个错误';"
+        "document.getElementById('tpErrList').textContent=TP_ERRS.join('\\n')};"
+        "eb.addEventListener('click',function(){ep.hidden=!ep.hidden});"
+        "document.getElementById('tpErrCopy').addEventListener('click',function(){copyText(TP_ERRS.join('\\n'),'错误')});"
+        "tpErrRender();"
         r"function svgPngBlob(svg,cb){var r={width:+svg.getAttribute('width')||svg.getBoundingClientRect().width,height:+svg.getAttribute('height')||svg.getBoundingClientRect().height};"
         "var s=new XMLSerializer().serializeToString(svg);"
         "var url=URL.createObjectURL(new Blob([s],{type:'image/svg+xml;charset=utf-8'}));"
@@ -2333,10 +2376,10 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "var clone=svg.cloneNode(true);clone.removeAttribute('style');"
         "if(vb&&vb.width){clone.setAttribute('width',vb.width);clone.setAttribute('height',vb.height)}"
         "svgPngBlob(clone,function(b){"
-        "if(!b){toast('复制失败',true);return}"
+        "if(!b){tpErr('copy','依赖图转 PNG 失败');toast('复制失败',true);return}"
         "try{navigator.clipboard.write([new ClipboardItem({'image/png':b})]).then("
-        "function(){toast('已复制依赖图')},function(){toast('复制失败',true)})"
-        "}catch(e){toast('复制失败',true)}})}"
+        "function(){toast('已复制依赖图')},function(e){tpErr('copy','复制依赖图失败');toast('复制失败',true)})"
+        "}catch(e){tpErr('copy','复制依赖图: '+e.message);toast('复制失败',true)}})}"
         "function clipCard(name){var d=TPDATA[name];if(!d)return null;"
         "var W=1080,RH=40,HH=48,TH=68,pad=24;"
         "var H=TH+HH+d.tasks.length*RH+pad*2;"
@@ -2363,8 +2406,8 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "if(!c){toast('没有票',true);return}"
         "c.toBlob(function(b){"
         "try{navigator.clipboard.write([new ClipboardItem({'image/png':b})]).then("
-        "function(){toast('已复制表格图片')},function(){toast('复制失败',true)})"
-        "}catch(e){toast('复制失败',true)}},'image/png')}"
+        "function(){toast('已复制表格图片')},function(){tpErr('copy','复制表格图片失败');toast('复制失败',true)})"
+        "}catch(e){tpErr('copy','复制表格图片: '+e.message);toast('复制失败',true)}},'image/png')}"
         "function wireShare(){"
         "document.querySelectorAll('[data-share]:not([data-wired])').forEach(function(b){"
         "b.dataset.wired=1;"
@@ -2429,9 +2472,9 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         # 页内预览:点任何嵌入了原文的链接,居中弹窗渲染;没有嵌入的回退新标签。
         # md 走 renderMd,csv/tsv/json/yaml 走内置美化,标题用生成期 tp-titles
         r"<script>(function(){"
-        r"var PV={};try{PV=JSON.parse(document.getElementById('tp-files').textContent)}catch(e){}"
-        r"var TITLES={};try{TITLES=JSON.parse(document.getElementById('tp-titles').textContent)}catch(e){}"
-        r"var IMGS={};try{IMGS=JSON.parse(document.getElementById('tp-imgs').textContent)}catch(e){}"
+        r"var PV={};try{PV=JSON.parse(document.getElementById('tp-files').textContent)}catch(e){tpErr('json:tp-files',e.message)}"
+        r"var TITLES={};try{TITLES=JSON.parse(document.getElementById('tp-titles').textContent)}catch(e){tpErr('json:tp-titles',e.message)}"
+        r"var IMGS={};try{IMGS=JSON.parse(document.getElementById('tp-imgs').textContent)}catch(e){tpErr('json:tp-imgs',e.message)}"
         r"var wrap=document.getElementById('pvWrap'),body=document.getElementById('pvBody'),"
         r"title=document.getElementById('pvTitle'),raw=document.getElementById('pvRaw');"
         r"function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;')}"
@@ -2522,6 +2565,8 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         r"e=e.replace(/(^|\s)(-?\d+(?:\.\d+)?)(?=$|\s)/g,'$1<span class=\"jnum\">$2</span>');"
         r"return e}).join('\n')}"
         r"function extOf(k){var m=k.toLowerCase().match(/\.([a-z0-9]+)$/);return m?m[1]:''}"
+        # file:// 下 iframe 加载失败多数不触发 error 事件(浏览器显示错误页但不通知父页),此处只能兜住会触发的情形
+        r"function ifErr(k){var f=body.querySelector('iframe');if(f)f.addEventListener('error',function(){tpErr('iframe',k)})}"
         r"function openPv(k){title.textContent=TITLES[k]||k;raw.href=k;pvDir=k.indexOf('/')>=0?k.slice(0,k.lastIndexOf('/')):'';"
         r"var img=IMGS[k],ext=extOf(k);"
         r"if(img||IEXT.test(ext)){body.innerHTML='<img class=\"pv-img\" src=\"'+(img||k)+'\" alt=\"\">';body.scrollTop=0;wrap.classList.add('open');return}"
@@ -2530,9 +2575,9 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         r"if(/^(mp4|m4v|mov|webm)$/.test(ext)){var v=document.createElement('video');v.controls=true;v.preload='metadata';v.src=k;"
         r"v.addEventListener('error',function(){body.innerHTML='<p class=\"pv-fallback\">该格式无法在浏览器播放 <a href=\"'+escHtml(k)+'\" target=\"_blank\" rel=\"noopener\">↗</a></p>'});"
         r"body.innerHTML='';body.appendChild(v);body.scrollTop=0;wrap.classList.add('open');return}"
-        r"if(ext==='pdf'){body.innerHTML='<iframe class=\"pv-frame\" src=\"'+escHtml(k)+'\"></iframe>';body.scrollTop=0;wrap.classList.add('open');return}"
+        r"if(ext==='pdf'){body.innerHTML='<iframe class=\"pv-frame\" src=\"'+escHtml(k)+'\"></iframe>';body.scrollTop=0;wrap.classList.add('open');ifErr(k);return}"
         r"var s=PV[k]||'(空文件)',html;"
-        r"if(ext==='html'){var furl='file://'+location.pathname.replace(/[^/]*$/,'')+k.replace(/^\.\//,'');body.innerHTML='<iframe class=\"pv-frame\" srcdoc=\"'+escHtml(injectBase(s,furl))+'\" sandbox=\"allow-scripts allow-same-origin\"></iframe>';body.scrollTop=0;wrap.classList.add('open');return}"
+        r"if(ext==='html'){var furl='file://'+location.pathname.replace(/[^/]*$/,'')+k.replace(/^\.\//,'');body.innerHTML='<iframe class=\"pv-frame\" srcdoc=\"'+escHtml(injectBase(s,furl))+'\" sandbox=\"allow-scripts allow-same-origin\"></iframe>';body.scrollTop=0;wrap.classList.add('open');ifErr(k);return}"
         r"if(ext==='csv'||ext==='tsv')html=renderCsv(s,ext==='tsv'?'\t':',');"
         r"else if(ext==='json')html=renderJson(s);"
         r"else if(ext==='yaml'||ext==='yml')html='<pre><code>'+hlYaml(s).split('\n').map(function(l,j){return '<span class=\"sl\" data-ln=\"'+j+'\">'+l+'</span>'}).join('')+'</code></pre>';"
@@ -2554,7 +2599,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         # iframe 预览里点本地链接回传父页:在通道内走同一弹窗,不在通道内真开新标签
         r"window.addEventListener('message',function(e){var h=e.data&&e.data.tpPreview;if(!h)return;"
         r"var k=pvResolve(h);"
-        r"if(PV.hasOwnProperty(k)||IMGS.hasOwnProperty(k)||isMedia(k)){openPv(k)}else{window.open(k,'_blank')}});"
+        r"if(PV.hasOwnProperty(k)||IMGS.hasOwnProperty(k)||isMedia(k)){openPv(k)}else if(!window.open(k,'_blank'))tpErr('window.open','被拦截: '+k)});"
         r"})();</script>",
         LEDGER_JS,
         "<script>" + MERMAID_JS + "</script>",
@@ -2587,7 +2632,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "if (!pre || pre.dataset.done) return; pre.dataset.done = '1';"
         "m.run({querySelector: '#' + pre.id}).then(function(){"
         "window.paintMmd(); addButtons(pre); })"
-        ".catch(function(e){ console.warn('mermaid 渲染失败，依赖图显示源码', e); });}"
+        ".catch(function(e){ console.warn('mermaid 渲染失败，依赖图显示源码', e); tpErr('mermaid', e && e.message || e); });}"
         "window._mmdShow = function(view){"
         "view.querySelectorAll('pre.mmd').forEach(paint); };"
         "document.querySelectorAll('.view.on pre.mmd').forEach(paint);"
@@ -2599,7 +2644,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         "mk('复制', function(e){ e.stopPropagation(); var b = e.currentTarget;"
         "navigator.clipboard.writeText(pre.dataset.src).then(function(){"
         "b.textContent = '已复制'; setTimeout(function(){ b.textContent = '复制'; }, 1600);"
-        "}, function(){ b.textContent = '失败'; setTimeout(function(){ b.textContent = '复制'; }, 1600); }); });"
+        "}, function(){ tpErr('copy','复制 mermaid 源码失败'); b.textContent = '失败'; setTimeout(function(){ b.textContent = '复制'; }, 1600); }); });"
         "mk('放大', function(){ openViewer(pre); });"
         "if(pre.dataset.spec)mk('复制图',function(e){e.stopPropagation();"
         "window._copyDepsImg&&window._copyDepsImg(pre.dataset.spec)});"
