@@ -1346,3 +1346,13 @@ def test_session_files_counted_memory_ledger_and_feature_memory_not(tmp_path):
     assert sorted(t.title for t in root.tasks) == ["会话乙待办", "会话甲完成", "会话甲待办"]
     assert not any(e.name == "session" for e in efforts)
     assert "memory.md" not in tp.KNOWN_FILENAMES
+
+
+def test_legacy_memory_md_skipped_at_scratch_and_feature_root_only(tmp_path):
+    scratch = tmp_path / ".scratch"
+    write(scratch / "memory.md", "- [x] 旧根账本不计\n")
+    write(scratch / "alpha" / "memory.md", "- [x] 旧feature账本不计\n")
+    write(scratch / "alpha" / "issues" / "memory.md", "- [ ] ticket子目录照计\n")
+    efforts, _ = tp.scan(scratch)
+    titles = sorted(t.title for e in efforts for t in e.tasks)
+    assert titles == ["ticket子目录照计"]

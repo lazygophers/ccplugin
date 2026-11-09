@@ -355,7 +355,11 @@ def iter_md(root: Path):
         dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
         for name in filenames:
             if name.endswith(".md"):
-                yield Path(dirpath) / name
+                p = Path(dirpath) / name
+                # 旧路径任务状态文件(scratch 根、feature 根下的 memory.md)已迁到 session/,不再计入
+                if name == "memory.md" and len(p.relative_to(root).parts) <= 2:
+                    continue
+                yield p
 
 
 # 系统垃圾文件:文件浏览器不收(大小写不敏感)
