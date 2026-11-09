@@ -6,9 +6,8 @@ The canonical layout of `.scratch/`, as fixed by the user's working spec. The tr
 
 `.scratch/<feature>/` is partitioned by concern. Directories are created on demand, never pre-created empty; files whose classification is unclear sit at the feature root until wrap-up.
 
-Root-level fixed files (four):
+Root-level fixed files (three). Task status lives only in the single `.scratch/memory.md` (checkpoints) — there is no `<feature>/memory.md`:
 
-- `memory.md` — task status file (checkpoints)
 - `spec.md` — requirements
 - `decisions.md` — decision ledger; at wrap-up its content merges into the day's `.scratch/memory/YYYY-MM-DD.md`, then the file is deleted
 - `map.md` — wayfinder map; created only when wayfinder is used
@@ -22,9 +21,9 @@ Subdirectories (four):
 
 ## Compatibility constraints
 
-The following are hard-coded or special-cased in to-spec / to-tickets / wayfinder / ask-matt / tracking-progress and must not be renamed: root-level `spec.md` / `map.md` / `memory.md`, `issues/NN-slug.md`, `research/`, `design-demos/`. New subdirectories must avoid the reserved names `issues`, `impl`, `research`, `memory`, `design-demos`, `.ask-me`.
+The following are hard-coded or special-cased in to-spec / to-tickets / wayfinder / ask-matt / tracking-progress and must not be renamed: feature-root `spec.md` / `map.md` and the single `.scratch/memory.md`, `issues/NN-slug.md`, `research/`, `design-demos/`. New subdirectories must avoid the reserved names `issues`, `impl`, `research`, `memory`, `design-demos`, `.ask-me`.
 
-`readme.md` is tolerated for legacy reasons (existing projects use it); it stays in tracking-progress's known-files set but is not part of the canonical four.
+`readme.md` is tolerated for legacy reasons (existing projects use it); it stays in tracking-progress's known-files set but is not part of the canonical three.
 
 ## Wrap-up cleanup
 
@@ -35,7 +34,7 @@ Two migration rules apply before deleting:
 - research-type docs — comparisons, explorations, explanatory write-ups — move to `.scratch/research/` from wherever they sat (new files get Chinese names, words joined by `-`) and are kept
 - one-off reports from `<feature>/reports/` move to `.scratch/report/<feature>/` (singular `report/`) and are kept
 
-The task status file (`memory.md`) is deleted once the task ends.
+The task status file (`.scratch/memory.md`) is deleted once the task ends.
 
 ## How tracking-progress renders this
 

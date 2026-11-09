@@ -21,7 +21,7 @@ Then:
 2. Report the headline (the page leads with a one-sentence conclusion) and the 现在能开工的 table. Link the HTML as `[任务进度](.scratch/progress.html)`.
 3. Open the page's 未能识别的文件 section if it is non-empty. For each file, decide whether it actually holds tasks. If any does, the script is missing a convention — ask the user whether to file an issue at `.scratch/tracking-progress/issues/` describing the unrecognised format, then add the rule to the script. (The script prints only the output path; the count, if any, lives on the page.)
 
-The `.scratch` directory layout this skill assumes — per-feature root files (`memory.md` / `spec.md` / `decisions.md` / `map.md`), subdirectories (`issues/` / `research/` / `design-demos/` / `reports/`), reserved-name compatibility constraints, and wrap-up migration to `.scratch/research/` / `.scratch/report/` — is specified in [docs/agents/scratch-structure.md](../../../docs/agents/scratch-structure.md).
+The `.scratch` directory layout this skill assumes — per-feature root files (`spec.md` / `decisions.md` / `map.md`; task status lives only in `.scratch/memory.md`), subdirectories (`issues/` / `research/` / `design-demos/` / `reports/`), reserved-name compatibility constraints, and wrap-up migration to `.scratch/research/` / `.scratch/report/` — is specified in [docs/agents/scratch-structure.md](../../../docs/agents/scratch-structure.md).
 
 ## What it recognises
 
