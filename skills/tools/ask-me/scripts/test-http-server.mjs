@@ -61,6 +61,51 @@ export async function test() {
             assert.equal(missing.status, 404, '文件不存在要报 404，不能静默当作打开了');
             delete process.env.ASK_ME_OPENER;
         }
+        // 错误日志：4xx、页面上报、打开器起不来都要落进 $ASK_ME_LOG（event=error），且服务不崩。
+        {
+            const previousLog = process.env.ASK_ME_LOG;
+            const logRoot = await makeTempRoot('http-log'); // 不放进 temporaryRoot：fire-and-forget 的日志写入会和它的清理抢目录
+            const logFile = path.join(logRoot, 'errors.log');
+            process.env.ASK_ME_LOG = logFile;
+            const logged = async (needle) => {
+                for (let i = 0; i < 40; i += 1) {
+                    const text = await fs.readFile(logFile, 'utf8').catch(() => '');
+                    const line = text.split('\n').find((l) => l.includes(needle));
+                    if (line)
+                        return JSON.parse(line);
+                    await new Promise((resolve) => setTimeout(resolve, 25));
+                }
+                throw new Error(`日志里没有 ${needle}`);
+            };
+            assert.equal((await fetch(`${base}/preview?path=${encodeURIComponent('gone-file.md')}`)).status, 404);
+            const previewLine = await logged('gone-file.md');
+            assert.equal(previewLine.event, 'error');
+            assert.equal(previewLine.status, 404);
+            assert.equal(previewLine.where, 'GET /preview');
+            assert.equal((await fetch(`${base}/api/nope/x`)).status, 404);
+            assert.equal((await logged('/api/nope/x')).status, 404);
+            const huge = 'x'.repeat(5000);
+            const reported = await fetch(`${base}/api/client-error`, {
+                method: 'POST', headers,
+                body: JSON.stringify({ where: 'onerror', message: huge, stack: 'at foo', url: 'http://127.0.0.1/x' }),
+            });
+            assert.equal(reported.status, 200);
+            const clientLine = await logged('client onerror');
+            assert.equal(clientLine.event, 'error');
+            assert.equal(clientLine.message.length, 2000, '超长字段要截到 2000 字符');
+            // opener 不存在：spawn 抛 'error'，服务不能崩，/local 如实回 500，日志有记录。
+            process.env.ASK_ME_OPENER = path.join(temporaryRoot, 'no-such-opener');
+            const broken = await fetch(`${base}/local?path=${encodeURIComponent('report.html')}`, { headers });
+            assert.equal(broken.status, 500, '打开器起不来不能回 200');
+            assert.equal((await logged('"where":"GET /local opener"')).status, 500);
+            delete process.env.ASK_ME_OPENER;
+            assert.equal((await fetch(`${base}/health`)).status, 200, 'opener 失败后服务必须还活着');
+            if (previousLog === undefined)
+                delete process.env.ASK_ME_LOG;
+            else
+                process.env.ASK_ME_LOG = previousLog;
+            await fs.rm(logRoot, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
+        }
         // /preview：表单页内弹层的取内容端点。解析与 /local 完全同宽：同一套白名单、
         // 同样剥 file:// 前缀、相对路径按工作区解析。
         {

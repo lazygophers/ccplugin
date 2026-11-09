@@ -5,15 +5,18 @@ import path from 'node:path';
 import process from 'node:process';
 import { spawn } from 'node:child_process';
 
-import { log } from './log.mjs';
+import { log, logError } from './log.mjs';
 
 function runCapturing(command: string, args: string[]): Promise<string | null> {
   return new Promise((resolve) => {
     const child = spawn(command, args);
     let out = '';
     child.stdout.on('data', (chunk) => { out += chunk; });
-    child.on('error', () => resolve(null));
-    child.on('close', (code) => resolve(code === 0 ? out : null));
+    child.on('error', (error) => { logError(`runCapturing ${command}`, error); resolve(null); });
+    child.on('close', (code) => {
+      if (code !== 0) log('error', { where: `runCapturing ${command}`, message: `exited with code ${code}` });
+      resolve(code === 0 ? out : null);
+    });
   });
 }
 

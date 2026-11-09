@@ -16,6 +16,7 @@ const SCRIPT_FILE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '
 const SKILL_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const APP_ROOT = path.join(SKILL_ROOT, 'assets', 'app');
 const MAX_BODY_BYTES = 1_048_576;
+const CLIENT_ERROR_MAX = 2000;
 // 提交后等这么久再关页、关进程：留一眼看「已提交」那张卡的时间。
 const SUBMIT_TEARDOWN_MS = Number(process.env.ASK_ME_CLOSE_DELAY_MS) || 3000;
 // 交给默认浏览器打开的白名单。兜底路径上的 `open` 会执行 `.app` / `.sh` / `.command`，
@@ -82,6 +83,11 @@ function sendFile(response, file, type = contentType(file), securityHeaders = tr
         stream.pipe(response);
     });
 }
+// 4xx 也进运行日志（event=error），带出处、状态码、原因和请求的路径；不记答案内容。
+function reject(response, where, statusCode, message, requested = '') {
+    log('error', { where, status: statusCode, message, path: requested });
+    sendJson(response, statusCode, { error: message });
+}
 async function readRequestJson(request) {
     const chunks = [];
     let size = 0;
@@ -111,17 +117,17 @@ async function openLocalFile(response, requestUrl, dataRoot) {
     const requested = requestUrl.searchParams.get('path') || '';
     const hash = requestUrl.searchParams.get('hash') || '';
     if (!requested) {
-        sendJson(response, 400, { error: 'path is required' });
+        reject(response, 'GET /local', 400, 'path is required');
         return;
     }
     // 相对路径按工作区解析：dataRoot 是 <workspace>/.ask-me。
     const target = path.resolve(path.dirname(dataRoot), requested.replace(/^file:\/\//, ''));
     if (!existsSync(target)) {
-        sendJson(response, 404, { error: `文件不存在：${target}` });
+        reject(response, 'GET /local', 404, `文件不存在：${target}`, requested);
         return;
     }
     if (!OPENABLE.test(target)) {
-        sendJson(response, 403, { error: `只放行文档和图片，不给开这种文件：${path.basename(target)}` });
+        reject(response, 'GET /local', 403, `只放行文档和图片，不给开这种文件：${path.basename(target)}`, requested);
         return;
     }
     const url = `${pathToFileURL(target).href}${hash}`;
@@ -140,11 +146,26 @@ async function openLocalFile(response, requestUrl, dataRoot) {
         : openers[process.platform] || ['xdg-open', []];
     // Windows 的 start 和 Linux 的 xdg-open 把 file:// URL 整条转交给默认处理器，
     // `#锚点` 留得住；macOS 只有上面那条 AppleScript 路留得住，这里是它的兜底。
-    spawn(opener, [...openerArgs, url], {
+    // 不挂 error 监听的话，opener 不存在会抛未处理的 'error' 事件、带崩整个服务。
+    const child = spawn(opener, [...openerArgs, url], {
         detached: true,
         stdio: 'ignore',
         windowsHide: true,
-    }).unref();
+    });
+    child.once('close', (code) => {
+        if (code)
+            log('error', { where: 'GET /local opener-exit', message: `opener exited with code ${code}`, path: requested });
+    });
+    child.unref();
+    // spawn 成功才回 200；起不来如实回 500，页面会把 error 弹成提示。
+    const failure = await new Promise((resolve) => {
+        child.once('spawn', () => resolve(null));
+        child.once('error', resolve);
+    });
+    if (failure) {
+        reject(response, 'GET /local opener', 500, `打开器 ${opener} 启动失败：${failure.message}`, requested);
+        return;
+    }
     sendJson(response, 200, { opened: target });
 }
 // /preview：表单页内弹层预览的取内容端点，解析与 /local 完全同宽——同一套白名单、
@@ -161,16 +182,16 @@ function previewLocalFile(response, requestUrl, dataRoot) {
         ? decodeURIComponent(pathForm[1])
         : requestUrl.searchParams.get('path') || '';
     if (!requested) {
-        sendJson(response, 400, { error: 'path is required' });
+        reject(response, 'GET /preview', 400, 'path is required');
         return;
     }
     const target = path.resolve(path.dirname(dataRoot), requested.replace(/^file:\/\//, ''));
     if (!existsSync(target)) {
-        sendJson(response, 404, { error: `文件不存在：${target}` });
+        reject(response, 'GET /preview', 404, `文件不存在：${target}`, requested);
         return;
     }
     if (!OPENABLE.test(target)) {
-        sendJson(response, 403, { error: `只放行文档和图片，不给开这种文件：${path.basename(target)}` });
+        reject(response, 'GET /preview', 403, `只放行文档和图片，不给开这种文件：${path.basename(target)}`, requested);
         return;
     }
     const type = previewContentType(target);
@@ -185,7 +206,7 @@ function previewLocalFile(response, requestUrl, dataRoot) {
 async function handleAskApi(response, requestUrl, request, dataRoot, lifecycle) {
     const apiMatch = requestUrl.pathname.match(/^\/api\/asks\/([^/]+)(?:\/(answers|status|draft))?$/);
     if (!apiMatch) {
-        sendJson(response, 404, { error: 'Not found' });
+        reject(response, `${request.method} ${requestUrl.pathname}`, 404, 'Not found');
         return;
     }
     const askId = assertSafeId(decodeURIComponent(apiMatch[1]), 'askId');
@@ -211,7 +232,7 @@ async function handleAskApi(response, requestUrl, request, dataRoot, lifecycle) 
             afterSubmitted({ askId, result, ...lifecycle });
         return;
     }
-    sendJson(response, 405, { error: 'Method not allowed' });
+    reject(response, `${request.method} ${requestUrl.pathname}`, 405, 'Method not allowed');
 }
 // 提交后的全部副作用集中在这一个出口：日志、调用方回调、唤醒、收摊。
 // wake 与 teardown 由同一个生命周期点驱动，路由层只管转发。
@@ -243,7 +264,7 @@ function afterSubmitted({ askId, result, dataRoot, server, onSubmitted, enableWa
 }
 // 答完收摊：关浏览器页、清 server.json、按条件退出进程。
 async function teardownAfterSubmit({ server, dataRoot, askId, persistServerInfo }) {
-    await closeBrowserTab(askId).catch(() => false);
+    await closeBrowserTab(askId).catch((error) => { logError('closeBrowserTab', error); return false; });
     if (!dataRoot || await hasPendingAsk(dataRoot))
         return;
     process.stderr.write(`[${new Date().toISOString()}] serve exiting: ${askId} submitted\n`);
@@ -296,6 +317,14 @@ export async function startHttpServer({ dataRoot, port = 0, persistServerInfo = 
             }
             if (request.method === 'GET' && /^\/preview(?:$|\/)/.test(requestUrl.pathname)) {
                 previewLocalFile(response, requestUrl, dataRoot);
+                return;
+            }
+            if (request.method === 'POST' && requestUrl.pathname === '/api/client-error') {
+                // 页面自己的报错上报：字段各限 2000 字符，只记出处和报错，不收答案内容。
+                const body = await readRequestJson(request);
+                const field = (key) => String(body[key] ?? '').slice(0, CLIENT_ERROR_MAX);
+                log('error', { where: `client ${field('where')}`, message: field('message'), stack: field('stack'), url: field('url') });
+                sendJson(response, 200, { ok: true });
                 return;
             }
             if (requestUrl.pathname === '/health') {

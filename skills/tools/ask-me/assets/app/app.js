@@ -22,6 +22,25 @@ let submissionConfirmationTimer = null;
 let submissionConfirmationInterval = null;
 let lastVisibilitySignature = '';
 
+// 页面报错上报到服务端运行日志（/tmp/ask-me.log）。上报本身失败一律吞掉，防止递归。
+const reportedErrors = new Set();
+function reportClientError(where, error) {
+  try {
+    const e = error instanceof Error ? error : new Error(String(error));
+    // 同一处同一条报错只报一次：3 秒一轮的轮询失败不能把日志灌满。
+    const key = `${where}|${e.message}`;
+    if (reportedErrors.has(key)) return;
+    reportedErrors.add(key);
+    const body = JSON.stringify({ where, message: e.message, stack: e.stack || '', url: location.href });
+    if (navigator.sendBeacon?.('/api/client-error', new Blob([body], { type: 'application/json' }))) return;
+    fetch('/api/client-error', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body, keepalive: true }).catch(() => {});
+  } catch {
+    // 上报失败不再上报。
+  }
+}
+window.addEventListener('error', (event) => reportClientError('window.onerror', event.error || event.message));
+window.addEventListener('unhandledrejection', (event) => reportClientError('unhandledrejection', event.reason));
+
 function element(tag, className = '', text = '') {
   const value = document.createElement(tag);
   if (className) value.className = className;
@@ -92,6 +111,7 @@ async function fetchVendor(name, globalName) {
   const error = new Error(`${name} 组件加载失败，点正文里的「重试」可重新加载`);
   // 有这个字段才说明是「下载不到」，值得给重试按钮；图表语法错误不是。
   error.vendorName = name;
+  reportClientError(`vendor ${name}`, error);
   throw error;
 }
 
@@ -214,7 +234,7 @@ function renderDiagram(host, code) {
   // 排队等待期间先接住失败，真正的处理在 renderDiagramNow 的 try 里。
   loading.catch(() => {});
   const task = diagramQueue.then(() => renderDiagramNow(host, code, loading));
-  diagramQueue = task.catch(() => {});
+  diagramQueue = task.catch((error) => reportClientError('diagramQueue', error));
   return task;
 }
 
@@ -234,6 +254,7 @@ async function renderDiagramNow(host, code, loading) {
     host.dataset.state = 'ready';
     makePreviewable(host, '图表');
   } catch (error) {
+    reportClientError('mermaid', error);
     // 渲染不出来时把原始图表源码亮出来，比留一个空框有用。
     host.replaceChildren();
     host.dataset.state = 'failed';
@@ -260,7 +281,8 @@ async function highlightCode(host) {
       block.innerHTML = hljs.highlight(block.textContent, { language }).value;
       block.classList.add('hljs');
     }
-  } catch {
+  } catch (error) {
+    reportClientError('highlight', error);
     // 高亮组件下载不到时代码块保持素色，正文和答题都不受影响。
     if (highlightWarned) return;
     highlightWarned = true;
@@ -281,9 +303,13 @@ function openLocalFile(target, hash) {
     .then(async (response) => {
       if (response.ok) return;
       const body = await response.json().catch(() => ({}));
+      reportClientError('open-local', new Error(`${target}: ${body.error || response.status}`));
       showToast(body.error || `打不开 ${target}`);
     })
-    .catch((error) => showToast(`打不开 ${target}：${error.message}`));
+    .catch((error) => {
+      reportClientError('open-local', error);
+      showToast(`打不开 ${target}：${error.message}`);
+    });
 }
 
 // 文件预览弹层：点链接先按扩展名把内容渲染进宿主，渲染好再交给 openPreview——
@@ -293,6 +319,7 @@ async function openLocalPreview(target, hash) {
   try {
     await renderLocalFile(host, target, hash);
   } catch (error) {
+    reportClientError('preview', new Error(`${target}: ${error.message}`));
     showToast(`打不开 ${target}：${error.message}`);
     return;
   }
@@ -332,11 +359,13 @@ async function renderLocalFile(host, target, hash) {
     // 切方案，相对解析只换 query 不动 path，文档内的相对链接也能落回 /preview 下。
     const frame = element('iframe', 'file-frame');
     frame.src = `/preview${encodeURI(target).replace(/\?/g, '%3F').replace(/#/g, '%23')}${hash}`;
+    frame.addEventListener('error', () => reportClientError('preview-iframe', new Error(`iframe 加载失败：${target}`)));
     host.append(frame);
   } else if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext)) {
     const image = element('img', 'file-image');
     image.src = `/preview?path=${encodeURIComponent(target)}`;
     image.alt = target;
+    image.addEventListener('error', () => reportClientError('preview-img', new Error(`图片加载失败：${target}`)));
     host.append(image);
   } else {
     // 剩下的白名单类型（json/yaml/csv/txt/log）一律 fetch 原文进代码块；hljs 只上色
@@ -410,6 +439,7 @@ async function renderProse(host, source) {
     }
     highlightCode(host);
   } catch (error) {
+    reportClientError('markdown', error);
     // 组件下载不到时保持纯文本：内容照样读得懂，答题不受影响。重试按钮是它的
     // 补充，不是替代——按钮没被点之前，正文照样读得到、表单照样能提交。
     host.dataset.state = 'plain';
@@ -886,7 +916,7 @@ function saveDraftNow() {
   api(`/api/asks/${encodeURIComponent(askId)}/draft`, {
     method: 'PUT',
     body: JSON.stringify(draftPayload()),
-  }).catch(() => {});
+  }).catch((error) => reportClientError('draft', error));
 }
 
 function saveDraftSoon() {
@@ -1408,8 +1438,10 @@ async function copyTranscript() {
     helper.style.opacity = '0';
     document.body.append(helper);
     helper.select();
-    document.execCommand('copy');
+    let copied = false;
+    try { copied = document.execCommand('copy'); } catch (error) { reportClientError('copy', error); }
     helper.remove();
+    if (!copied) reportClientError('copy', new Error('clipboard 与 execCommand 均失败'));
   }
   showToast('已复制全部问答（含补充说明）');
 }
@@ -1443,6 +1475,7 @@ async function submitForm(submitButton) {
     // 提交后答案以服务端存下的为准，内存里的草稿不再代表任何状态。
     await loadBundle(true);
   } catch (error) {
+    reportClientError('submit', error);
     showToast(error.message);
   } finally {
     submitting = false;
@@ -1613,7 +1646,10 @@ if (!askId) {
 } else {
   loadBundle(true)
     .then(() => {
-      setInterval(() => loadBundle(false).catch(() => {}), 3000);
+      setInterval(() => loadBundle(false).catch((error) => reportClientError('poll', error)), 3000);
     })
-    .catch(renderError);
+    .catch((error) => {
+      reportClientError('load', error);
+      renderError(error);
+    });
 }
