@@ -40,5 +40,5 @@ When a task ends, delete only this session's own status file (`.scratch/session/
 
 - `decisions.md` is in the known-files set: previewed via the in-page modal channel, never reported as unrecognised, no dedicated section
 - `<feature>/reports/` gets its own `reports` block in the feature view (file list + links + modal preview), like the `research` block
-- top-level `.scratch/report/` (singular) is never scanned as a feature; its files render as a 公共报告 section in the 调研 archive view
+- top-level `.scratch/report/` (singular) is never scanned as a feature; its files render as a standalone 公共报告 view (`#/report`), a top-level menu item alongside the 调研 view
 - `design-demos/` renders gallery cards only for html + images (png/jpg/webp/svg/gif); other extensions do not get cards — the section ends with a folded 「N 个非设计文件未展示」 count

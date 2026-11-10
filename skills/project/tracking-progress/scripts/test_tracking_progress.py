@@ -316,7 +316,7 @@ def test_feature_reports_section(tmp_path):
 
 
 def test_root_report_dir_not_a_feature(tmp_path):
-    """根级 .scratch/report/(单数)不当 feature 扫,渲染成调研视图里的公共报告区块。"""
+    """根级 .scratch/report/(单数)不当 feature 扫,渲染成独立的公共报告视图。"""
     scratch = tmp_path / ".scratch"
     write(scratch / "report" / "alpha" / "audit.md", "# 收尾迁移的报告\n\nStatus: open\n")
     write(scratch / "beta" / "spec.md", "# Spec\n")
@@ -329,8 +329,64 @@ def test_root_report_dir_not_a_feature(tmp_path):
     assert "report/alpha/audit.md" in page
     # 预览通道同样嵌入
     assert '"report/alpha/audit.md":' in page
-    # 只有 rep_files 没有 res_files 时页签也可达
-    assert "href='#/research'" in page
+    # 独立视图:有 report section,无 research section(本例无 research 文件)
+    assert "id='report'" in page
+    assert "id='research'" not in page
+    # 导航含「报告」项
+    assert "href='#/report'" in page
+
+
+def test_report_view_independent_of_research(tmp_path):
+    """报告与调研是两个平级视图:公共报告区块不嵌在调研 section 内。"""
+    scratch = tmp_path / ".scratch"
+    write(scratch / "research" / "2026-01-01-对比.md", "# 对比\n")
+    write(scratch / "report" / "alpha" / "audit.md", "# 收尾迁移的报告\n")
+    efforts, _ = tp.scan(scratch)
+    page = tp.render(efforts, [], scratch)
+    assert "id='research'" in page and "id='report'" in page
+    # 公共报告区块不在 research section 内
+    res_sec = page.split("id='research'", 1)[1].split("</section>", 1)[0]
+    assert "公共报告" not in res_sec
+    # 导航两项独立计数
+    assert "href='#/research'" in page and "href='#/report'" in page
+    # 搜索 folder 命中可跳 report 视图
+    assert "seg==='report'" in page
+
+
+def test_report_view_groups_by_subdir(tmp_path):
+    """报告视图按 report/ 一级子目录分块;根下散件归「(根目录)」组,文件各归各组。"""
+    scratch = tmp_path / ".scratch"
+    write(scratch / "report" / "alpha" / "a1.md", "# a1\n")
+    write(scratch / "report" / "alpha" / "a2.md", "# a2\n")
+    write(scratch / "report" / "beta" / "b1.md", "# b1\n")
+    write(scratch / "report" / "loose.md", "# 根散件\n")
+    efforts, _ = tp.scan(scratch)
+    page = tp.render(efforts, [], scratch)
+    rep_sec = page.split("id='report'", 1)[1].split("</section>", 1)[0]
+    # 两个具名组 + 一个 (根目录) 组
+    assert "<h4>alpha <span class='badge'>2</span></h4>" in rep_sec
+    assert "<h4>beta <span class='badge'>1</span></h4>" in rep_sec
+    assert "<h4>(根目录) <span class='badge'>1</span></h4>" in rep_sec
+    # 文件各归各组:alpha 组含 a1/a2、不含 b1/loose
+    a_sec = rep_sec.split("<h4>alpha", 1)[1].split("<h4>", 1)[0]
+    assert "a1.md" in a_sec and "a2.md" in a_sec
+    assert "b1.md" not in a_sec and "loose.md" not in a_sec
+    root_sec = rep_sec.split("<h4>(根目录)", 1)[1].split("<h4>", 1)[0]
+    assert "loose.md" in root_sec and "a1.md" not in root_sec
+
+
+def test_report_view_root_only_no_named_group(tmp_path):
+    """只有 report/ 根下散件时,不渲染任何具名子目录组。"""
+    scratch = tmp_path / ".scratch"
+    write(scratch / "report" / "loose.md", "# 根散件\n")
+    write(scratch / "beta" / "spec.md", "# Spec\n")
+    efforts, _ = tp.scan(scratch)
+    page = tp.render(efforts, [], scratch)
+    rep_sec = page.split("id='report'", 1)[1].split("</section>", 1)[0]
+    assert "<h4>(根目录) <span class='badge'>1</span></h4>" in rep_sec
+    assert "loose.md" in rep_sec
+    # 除 (根目录) 外无其它 h4 组标题
+    assert rep_sec.count("<h4>") == 1
 
 
 def test_design_demos_filters_non_design(tmp_path):
@@ -1346,6 +1402,21 @@ def test_session_files_counted_memory_ledger_and_feature_memory_not(tmp_path):
     assert sorted(t.title for t in root.tasks) == ["会话乙待办", "会话甲完成", "会话甲待办"]
     assert not any(e.name == "session" for e in efforts)
     assert "memory.md" not in tp.KNOWN_FILENAMES
+    page = tp.render(efforts, [], scratch)
+    # session 勾选行渲染进独立 session 视图(汇总行+勾选行),导航含「任务状态」项
+    assert "id='session'" in page
+    assert "href='#/session'" in page
+    sess_sec = page.split("id='session'", 1)[1].split("</section>", 1)[0]
+    assert "任务状态" in sess_sec and "已完成 1" in sess_sec
+    assert "会话甲完成" in sess_sec and "会话乙待办" in sess_sec
+    # 不在 (根目录) feature 卡内(卡在下一个视图开始处结束;最近完成等全局视图不受限)
+    seg = page.split("id='view-feature-(根目录)'", 1)[1]
+    ends = [x for x in (seg.find("</div><div class='view'"),
+                        seg.find("</div><section class='view'")) if x >= 0]
+    root_card = seg[:min(ends)]
+    assert "会话甲完成" not in root_card and "会话乙待办" not in root_card
+    # 全局计数不变:3 条 session 勾选行仍计入总票数(3 票 · 33%)
+    assert "3 票 · 33%" in page
 
 
 def test_legacy_memory_md_skipped_at_scratch_and_feature_root_only(tmp_path):

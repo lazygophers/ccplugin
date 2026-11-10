@@ -1479,6 +1479,10 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         key=lambda t: (-t.unlocks, t.effort, t.tid),
     )
     mem_files, res_files, rep_files = scan_index(scratch)
+    root_effort = next((e for e in efforts if e.name == ROOT), None)
+    # 根级 session 勾选行:渲染进独立的任务状态视图(不再出现在 (根目录) 卡)
+    sess_rows = [t for t in (root_effort.tasks if root_effort else [])
+                 if not t.from_file and Path(t.source).name != "map.md"]
 
     # 页内预览:把 md 原文嵌进页面——file:// 下 fetch 本地文件会被 CORS 拦,
     # 只能在生成期读。按相对路径去重,总字节封顶,超限的文件回退为新标签打开。
@@ -1624,9 +1628,15 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
     tabs.append(f"<a href='#/specs'>功能台<span class='n'>{len(efforts)}</span></a>")
     if mem_files:
         tabs.append(f"<a href='#/memory'>决策档案<span class='n'>{len(mem_files)}</span></a>")
-    if res_files or rep_files:
+    if sess_rows:
+        tabs.append(f"<a href='#/session'>任务状态<span class='n'>{len(sess_rows)}</span></a>")
+    if res_files:
         tabs.append(
-            f"<a href='#/research'>调研<span class='n'>{len(res_files) + len(rep_files)}</span></a>"
+            f"<a href='#/research'>调研<span class='n'>{len(res_files)}</span></a>"
+        )
+    if rep_files:
+        tabs.append(
+            f"<a href='#/report'>报告<span class='n'>{len(rep_files)}</span></a>"
         )
     if stale:
         tabs.append(f"<a href='#/stale'>久未动<span class='n'>{len(stale)}</span></a>")
@@ -1691,8 +1701,14 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
                     f"<a href='#/memory'>{icon_clock}决策档案<span class='cnt'>{len(mem_files)}</span></a>"
                     if mem_files
                     else "",
-                    f"<a href='#/research'>{icon_search}调研<span class='cnt'>{len(res_files) + len(rep_files)}</span></a>"
-                    if res_files or rep_files
+                    f"<a href='#/research'>{icon_search}调研<span class='cnt'>{len(res_files)}</span></a>"
+                    if res_files
+                    else "",
+                    f"<a href='#/report'>{icon_search}报告<span class='cnt'>{len(rep_files)}</span></a>"
+                    if rep_files
+                    else "",
+                    f"<a href='#/session'>{icon_clock}任务状态<span class='cnt'>{len(sess_rows)}</span></a>"
+                    if sess_rows
                     else "",
                 ]
             ),
@@ -1977,7 +1993,8 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
                 for p in effort.reports
             )
             out.append(fbox("reports", len(effort.reports), links))
-        if mem_rows:
+        if mem_rows and effort.name != ROOT:
+            # 根级 session 勾选行改渲染进独立任务状态视图,不出现在 (根目录) 卡
             srcs = sorted({Path(t.source).name for t in mem_rows if t.source})
             days = int((now - max(t.mtime for t in mem_rows)) / 86400)
             out += [
@@ -2111,7 +2128,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
             "".join(stubs),
             "</section>",
         ]
-    if res_files or rep_files:
+    if res_files:
         out += [
             "<section class='view' id='research' data-route='research'>",
             "<h2>调研 <span class='badge'>research/</span></h2>",
@@ -2127,27 +2144,80 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
                 for p in res_files
             ),
             "</tbody></table></div>",
+            "</section>",
         ]
-        if rep_files:
-            # 根级 report/(单数):收尾迁移的一次性报告,按 <feature>/ 子目录归档
-            out += [
-                "<h2 style='margin-top:28px'>公共报告 <span class='badge'>report/</span></h2>",
-                "<p class='sub'>收尾时迁到 .scratch/report/ 的一次性报告，按 feature 子目录归档保留，只读参考。</p>",
-                "<div class='panel'>",
-                "<table><thead><tr><th style='width:80px'>日期</th>"
-                "<th style='width:140px'>feature</th><th>文件</th>"
-                "<th class='num' style='width:90px'>大小</th></tr></thead><tbody>",
-                "".join(
+    if rep_files:
+        # 根级 report/(单数):收尾迁移的一次性报告,按 <feature>/ 子目录归档,独立视图
+        # 视图内按一级子目录分块,块标题=子目录名;report/ 根下散件归「(根目录)」组
+        root_rep = [p for p in rep_files if len(p.relative_to(scratch / "report").parts) == 1]
+        rep_groups: dict[str, list[Path]] = {}
+        for p in rep_files:
+            parts = p.relative_to(scratch / "report").parts
+            if len(parts) > 1:
+                rep_groups.setdefault(parts[0], []).append(p)
+
+        def rep_table(files: list[Path]) -> str:
+            return (
+                "<div class='panel'>"
+                "<table><thead><tr><th style='width:80px'>日期</th><th>文件</th>"
+                "<th class='num' style='width:90px'>大小</th></tr></thead><tbody>"
+                + "".join(
                     f"<tr><td class='lbl'>{day_mark(p)}</td>"
-                    f"<td class='lbl'>{esc(p.relative_to(scratch / 'report').parts[0] if len(p.relative_to(scratch / 'report').parts) > 1 else '·')}</td>"
                     f"<td class='t'><a href='{esc(rel(str(p), scratch))}' target='_blank' rel='noopener'>"
                     f"{esc(p.relative_to(scratch / 'report').name)}</a></td>"
                     f"<td class='num'>{human_size(p)}</td></tr>"
-                    for p in rep_files
-                ),
-                "</tbody></table></div>",
+                    for p in files
+                )
+                + "</tbody></table></div>"
+            )
+
+        out += [
+            "<section class='view' id='report' data-route='report'>",
+            "<h2>公共报告 <span class='badge'>report/</span></h2>",
+            "<p class='sub'>收尾时迁到 .scratch/report/ 的一次性报告，按 feature 子目录归档保留，只读参考。</p>",
+        ]
+        if root_rep:
+            out += [
+                f"<h4>(根目录) <span class='badge'>{len(root_rep)}</span></h4>",
+                rep_table(root_rep),
+            ]
+        for g in sorted(rep_groups):
+            out += [
+                f"<h4>{esc(g)} <span class='badge'>{len(rep_groups[g])}</span></h4>",
+                rep_table(rep_groups[g]),
             ]
         out.append("</section>")
+
+    if sess_rows:
+        # 根级 session/*.md 勾选行:独立任务状态视图(汇总行 + 勾选行,口径不变)
+        ss = {s: 0 for s in STATUS_LABEL}
+        for t in sess_rows:
+            ss[t.status] += 1
+        st = len(sess_rows)
+        st_pct = round(ss[DONE] * 100 / st) if st else 0
+        st_tbd = sum(1 for t in sess_rows if not t.from_file)
+        out += [
+            "<section class='view' id='session' data-route='session'>",
+            "<h2>任务状态 <span class='badge'>session/</span></h2>",
+            "<p class='sub'>.scratch/session/*.md 的勾选行，只读参考；勾选行仍计入全局进度（已完成 ÷ 总票数）。</p>",
+            f"<div class='minicap'><span>已完成 {ss[DONE]}</span>"
+            f"{('<span>未建票 %d</span>' % st_tbd) if st_tbd else ''}"
+            f"<span>{st_pct}%({ss[DONE]} ÷ {st})</span></div>",
+            "<section class='filebox'><h4>session <span class='badge'>"
+            f"{len(sess_rows)}</span></h4>",
+            "<table><thead><tr><th>任务</th>"
+            "<th style='width:64px'>勾选</th></tr></thead><tbody>",
+            "".join(
+                f"<tr class='r-{STATUS_CLASS[t.status]}'>"
+                f"<td class='t'>{task_link(t, scratch, pv_files)}"
+                f"{copy_btn(t.title, '任务')}</td>"
+                f"<td><span class='st st-{STATUS_CLASS[t.status]}'>"
+                f"{STATUS_LABEL[t.status]}</span></td></tr>"
+                for t in sess_rows
+            ),
+            "</tbody></table></section>",
+            "</section>",
+        ]
 
     out += [
         "<footer>口径：进度 = 已完成 ÷ 总票数，被阻塞计入分母 · 一次快照，无历史统计 · "
@@ -2316,7 +2386,7 @@ def render(efforts: list[Effort], unparsed: list[Path], scratch: Path) -> str:
         r"if(item.dataset.dim==='folder'){"
         r"var seg=kk.split('/')[0];"
         r"if(window.TPDATA&&TPDATA[seg]){location.hash='#/feature-'+seg;close()}"
-        r"else if(seg==='research'||seg==='memory'){location.hash='#/'+seg;close();"
+        r"else if(seg==='research'||seg==='report'||seg==='session'||seg==='memory'){location.hash='#/'+seg;close();"
         r"setTimeout(function(){var a=document.querySelector('.view.on a[href^=\"'+seg+'/\"]');"
         r"if(a&&a.scrollIntoView){a.scrollIntoView({block:'center'});a.classList.add('s-flash');setTimeout(function(){a.classList.remove('s-flash')},1600)}},0)}"
         r"return}"
