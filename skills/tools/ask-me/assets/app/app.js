@@ -399,7 +399,12 @@ function rewriteLocalLinks(host) {
     const absolute = /^([a-zA-Z]:[\\/]|\/|\\\\)/.test(written)
       ? written
       : `${workspace}/${written.replace(/^\.\//, '')}`;
-    const target = absolute.replace(/\\/g, '/');
+    let target = absolute.replace(/\\/g, '/');
+    // marked 对 href 做 encodeURI，非 ASCII 路径到这里是百分号编码；解码回文件系统
+    // 原样。路径含裸 % 不是编码串，解码会抛 URIError，保留原样。
+    try {
+      target = decodeURIComponent(target);
+    } catch {}
     // 三道斜杠固定要有：`file:///C:/a` 和 `file:///a/b` 都靠它，少一道 Windows 认不出。
     anchor.href = `file:///${target.replace(/^\/+/, '')}${hash}`;
     anchor.classList.add('local-link');
@@ -609,17 +614,27 @@ function openPreview(host, label, { readable = false, extraToolbar = [] } = {}) 
       (stage.clientWidth - margin) / width,
       (stage.clientHeight - margin) / height,
     );
-    return Math.min(8, Math.max(0.2, ratio));
+    return Math.min(8, ratio);
   };
 
   let scale = 1;
   let offsetX = 0;
   let offsetY = 0;
+  let manuallyAdjusted = false;
   const apply = () => {
     canvas.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
     readout.textContent = `${Math.round(scale * 100)}%`;
   };
+  const fitLoadedImages = () => {
+    const images = [...canvas.querySelectorAll('img')];
+    if (manuallyAdjusted || images.some((image) => !image.complete)) return;
+    scale = fitScale();
+    offsetX = 0;
+    offsetY = 0;
+    apply();
+  };
   const zoomTo = (next, anchorX = 0, anchorY = 0) => {
+    manuallyAdjusted = true;
     const clamped = Math.min(8, Math.max(0.2, next));
     const ratio = clamped / scale;
     offsetX = anchorX - (anchorX - offsetX) * ratio;
@@ -627,6 +642,10 @@ function openPreview(host, label, { readable = false, extraToolbar = [] } = {}) 
     scale = clamped;
     apply();
   };
+  // 监听克隆后真正显示的图片；未完成加载时等 load，缓存命中则由末尾初始适配处理。
+  for (const image of canvas.querySelectorAll('img')) {
+    if (!image.complete) image.addEventListener('load', fitLoadedImages, { once: true });
+  }
 
   const close = () => {
     overlay.remove();
@@ -689,7 +708,7 @@ function openPreview(host, label, { readable = false, extraToolbar = [] } = {}) 
       button('－', () => zoomTo(scale / 1.25), '缩小'),
       readout,
       button('＋', () => zoomTo(scale * 1.25), '放大'),
-      button('重置', () => { scale = fitScale(); offsetX = 0; offsetY = 0; apply(); }, '重置缩放'),
+      button('重置', () => { manuallyAdjusted = false; scale = fitScale(); offsetX = 0; offsetY = 0; apply(); }, '重置缩放'),
     ]),
     ...extraToolbar,
     button('关闭', close, '关闭预览'),
@@ -709,6 +728,7 @@ function openPreview(host, label, { readable = false, extraToolbar = [] } = {}) 
 
     let dragging = null;
     stage.addEventListener('pointerdown', (event) => {
+      manuallyAdjusted = true;
       dragging = { pointerId: event.pointerId, x: event.clientX - offsetX, y: event.clientY - offsetY };
       stage.setPointerCapture(event.pointerId);
       stage.classList.add('dragging');
@@ -739,8 +759,7 @@ function openPreview(host, label, { readable = false, extraToolbar = [] } = {}) 
   previewStack.push(overlay);
   document.addEventListener('keydown', onKeydown);
   if (!readable) {
-    scale = fitScale();
-    apply();
+    fitLoadedImages();
   }
   toolbar.querySelector('.preview-button')?.focus();
 }

@@ -15,4 +15,14 @@ export async function test() {
     // 导航条目净化：question.title 里的 markdown 链接不再原样进左栏。
     assert.match(app, /function railTitleText\(/, 'fillRailNav 必须经 railTitleText 净化标题');
     assert.match(app, /railTitleText\(question\.title\)/, 'fillRailNav 必须调用 railTitleText');
+    // 中文路径链接：marked 对 href 做 encodeURI，rewriteLocalLinks 必须解码回文件系统
+    // 原样；裸 % 不是编码串，解码抛 URIError 时保留原样（try/catch 兜底，不能裸调用）。
+    assert.match(app, /try \{\s*target = decodeURIComponent\(target\);\s*\} catch \{\}/, 'rewriteLocalLinks 必须解码 href 且带 URIError 兜底');
+    // 预览初始适配必须等图片加载完再算：img 未 complete 时 fitScale 量到旧尺寸，
+    // 缩放会超出屏幕。图片 load 后补适配，用户已手动缩放/拖动（manuallyAdjusted）
+    // 时不再覆盖其操作。
+    assert.match(app, /image\.addEventListener\('load', fitLoadedImages, \{ once: true \}\)/, '克隆体里的 img 必须挂一次性 load 监听补适配');
+    assert.match(app, /const fitLoadedImages = \(\) => \{/, '必须用 fitLoadedImages 统一初始与图片加载后的适配');
+    assert.match(app, /if \(manuallyAdjusted \|\| images\.some\(\(image\) => !image\.complete\)\) return;/, 'fitLoadedImages 必须在用户手动操作后或图片未加载完时跳过');
+    assert.match(app, /manuallyAdjusted = true;\s*const clamped = Math\.min\(8, Math\.max\(0\.2, next\)\);/, 'zoomTo 必须标记用户已手动缩放');
 }
