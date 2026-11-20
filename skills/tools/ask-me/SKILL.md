@@ -39,7 +39,7 @@ description: 开一个本地网页表单，一次把多个问题摆给用户、�
 
 1. 把包含本 `SKILL.md` 的目录解析为 `ASK_ME_SKILL_DIR`。
 2. 创建 JSON 前先读两份文件：[references/questionset.schema.json](references/questionset.schema.json) 是字段清单本身（JSON Schema 2020-12，每个字段带中文说明），[references/schema.md](references/schema.md) 讲 schema 表达不了的部分——跨字段硬规则、页面实际行为、为什么这样写。[references/example-question-set.json](references/example-question-set.json) 是一份可直接复制改字段的完整起手模板（单选 / 多选 / 自由文本各一题，带推荐答案和上下文字段）。
-3. 创建 QuestionSet JSON 文件。每次 `ask` 都是一次独立提问，id 由 CLI 自动生成。旧版字段（`sessionId` / `roundNumber` / `basedOnRound` / `sessionTitle` / `sessionSummary` / `sessionBackground`）已全部移除，写了会报错指路。以下七条逐条过一遍：
+3. 创建 QuestionSet JSON 文件。字段名与类型以 [references/questionset.schema.json](references/questionset.schema.json) 为准，禁止凭记忆写字段名；动手前先读该 schema 和 [references/schema.md](references/schema.md)。每次 `ask` 都是一次独立提问，id 由 CLI 自动生成。旧版字段（`sessionId` / `roundNumber` / `basedOnRound` / `sessionTitle` / `sessionSummary` / `sessionBackground`）已全部移除，写了会报错指路。以下七条逐条过一遍：
 
    - **必写字段**：每道题必写两个字段：`type`（`single` / `multiple` / `text`，**没有默认值，漏写报错**）和 `text`（问题正文，问题本身和描述都写在这里）。
    - **选填题**：允许留空的题必须显式写 `"required": false`——`required` 默认 `true`，漏写就是必填，页面挂「必填」徽标、留空挡提交。**别在 `text` 里写「（可留空）」代替这个字段**：文案和徽标对不上，用户只能被迫编一句。「还有别的补充吗」「其他备注」「可选参数」这类题一律 `type: "text"` + `"required": false`。
