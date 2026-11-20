@@ -168,14 +168,15 @@ def row_cells(line):
 
 
 def find_row(md, tid):
-    m = re.search(rf"(?m)^\| {re.escape(tid)} \|.*$", md)
-    return m
+    main = re.split(r"(?m)^## ", md, maxsplit=1)[0]
+    return re.search(rf"(?m)^\| {re.escape(tid)} \|.*$", main)
 
 
 def write_row(md, tid, cells):
     row = f"| {tid} | " + " | ".join(cells) + " |"
-    if find_row(md, tid):
-        return re.sub(rf"(?m)^\| {re.escape(tid)} \|.*$", row, md)
+    m = find_row(md, tid)
+    if m:
+        return md[:m.start()] + row + md[m.end():]
     # 新行插到主表末尾 (首个 `## ` 段之前), 不落到图段/映射区之后
     m = re.search(r"(?m)^## ", md)
     if m:
