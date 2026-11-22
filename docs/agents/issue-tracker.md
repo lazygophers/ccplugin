@@ -29,6 +29,10 @@ Used by `/wayfinder`. The **map** is a file with one **child** file per ticket.
 - **Claim**: set `Status: claimed` and save before any work.
 - **Resolve**: append the answer under an `## Answer` heading, set `Status: resolved`, then append a context pointer (gist + link) to the map's Decisions-so-far in `map.md`.
 
-## Note on the GitHub remote
+## GitHub Issues: external reports
 
-This repo has a GitHub remote (`lazygophers/ccplugin`), but issues are deliberately tracked locally in `.scratch/`. Do not call `gh issue create` or otherwise write to GitHub Issues from these skills.
+This repo has a GitHub remote (`lazygophers/ccplugin`). Planning work (specs, tickets, wayfinder maps) is tracked locally in `.scratch/`; GitHub Issues carries external bug reports and feature requests.
+
+- When the user passes a GitHub issue URL or number, read it with `gh issue view <N> --json title,body,comments` (see `.claude/rules/tooling/gh-issue-view-json.md`) and work from it directly.
+- Reference the issue in the fix commit message (`(#N)`); close it with a comment naming the commit only after the user confirms.
+- Skills that "publish to the issue tracker" still write to `.scratch/`; do not call `gh issue create` from them.

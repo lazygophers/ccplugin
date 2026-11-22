@@ -71,7 +71,7 @@ ln -sf ../../scripts/hooks/pre-commit .git/hooks/pre-commit
 对于 commands、skills、agents、agent.md 的优化、简化，必须通过以下命令检查 AI 是否可以正确理解识别，是否符合预期：
 
 ```bash
-cat <待测文件> | claude -p --bare "<问题>" --output-format stream-json 2>/dev/null \
+cat <待测文件> | claude -p --bare "<问题>" --output-format stream-json --verbose 2>/dev/null \
   | jq -r 'select(.type == "result" and .subtype == "success") | .result'
 ```
 
@@ -80,9 +80,10 @@ cat <待测文件> | claude -p --bare "<问题>" --output-format stream-json 2>/
 1. 待测内容走 stdin 管道，**禁用 `claude -p "$(cat ...)"` 插值** —— YAML frontmatter 的 `---` 会被解析成 CLI 选项，报 `error: unknown option '---'`
 2. `--bare` 必带 —— 否则 hook 注入劫持 prompt，或非 Anthropic 路由模型报 `API Error 400`
 3. `2>/dev/null` 必带 —— 否则 stderr 的 connector 警告混进 jq，报 `Invalid numeric literal`
-4. `<问题>` 问该文件的触发场景与主流程；返回需非空且切题，跑题或空返回属端点抖动，重跑而非当结论
-5. predictability 验法：同一 prompt 连跑 3 次，主流程描述一致才算过
-6. macOS 无 `timeout` 命令，别包 `timeout`，超时靠调用方自身机制
+4. `--verbose` 必带 —— `-p` 配 `stream-json` 缺它直接 exit 1，报 `--output-format=stream-json requires --verbose`；该报错走 stderr 被 `2>/dev/null` 吞掉，表现为空返回，不是端点抖动
+5. `<问题>` 问该文件的触发场景与主流程；返回需非空且切题，跑题或空返回属端点抖动，重跑而非当结论
+6. predictability 验法：同一 prompt 连跑 3 次，主流程描述一致才算过
+7. macOS 无 `timeout` 命令，别包 `timeout`，超时靠调用方自身机制
 
 ### 适用范围：
 
@@ -95,7 +96,7 @@ cat <待测文件> | claude -p --bare "<问题>" --output-format stream-json 2>/
 
 ### Issue tracker
 
-Issues live as markdown files under `.scratch/<feature>/` in this repo; GitHub Issues is not used. See `docs/agents/issue-tracker.md`.
+Planning issues (specs, tickets) live as markdown files under `.scratch/<feature>/` in this repo; GitHub Issues carries external bug reports and feature requests, read with `gh issue view <N> --json title,body,comments`. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 

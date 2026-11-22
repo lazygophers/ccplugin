@@ -21,7 +21,7 @@ color: green
    - 两者必须全绿。红的先判 stale test 还是自己改坏,别直接改测试让它变绿。
 6. **改过 command / skill / agent md 的额外验**(项目 CLAUDE.md 硬规范):
    ```bash
-   cat <待测文件> | claude -p --bare "<该文件的触发场景与主流程是什么>" --output-format stream-json 2>/dev/null \
+   cat <待测文件> | claude -p --bare "<该文件的触发场景与主流程是什么>" --output-format stream-json --verbose 2>/dev/null \
      | jq -r 'select(.type == "result" and .subtype == "success") | .result'
    ```
    同 prompt 连跑 3 次,主流程描述一致才算过。`--bare` 与 `2>/dev/null` 必带;禁 `claude -p "$(cat ...)"` 插值(frontmatter 的 `---` 会被当 CLI 选项)。macOS 无 `timeout`,别包。
