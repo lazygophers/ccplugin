@@ -58,7 +58,7 @@ description: 开一个本地网页表单，一次把多个问题摆给用户、�
 
 5. **把页面 URL 复述到回复第一行。**stderr 启动时立刻打出 `Ask Me ready at <url>` 和 `ask-me-id: <id>`，用 `TaskOutput` 读一次后台任务输出取这两行写进回复。浏览器是脚本自动打开的，但它可能没弹出来（无 GUI、默认浏览器没配、窗口被挡），URL 摆出来用户就能自己打开。读一次就够，读不到就照常结束本轮，不要 `sleep` 重试。
 6. 🛑 **STOP：输出 URL 后立刻结束本轮，什么都不用等。**`ask` 没有超时，会一直阻塞到用户提交；用户提交后进程退出，harness 主动把任务完成通知推给你，那就是唤醒信号。
-7. 收到完成通知后，读完 `<run>.stdout.json` 中的完整问题和答案，答案字段有疑问时读 [references/answerset.schema.json](references/answerset.schema.json)，再继续原工作流。标准 `ask` 已在 stdout 写完后自动清理提问目录；读完后只删除本次创建的 `<questions.json>` 和 `<run>.stdout.json`（不要清理其他请求文件）。使用 `create` 时立即运行 `node <ASK_ME_SKILL_DIR>/scripts/ask-me.mjs complete --id <askId>`（自定义数据目录带 `--data-dir`）。`complete` 先校验答案已提交，再只删除指定提问目录及其索引项，然后输出收尾状态（`status` / `askId` / `serverStopped`，不含问题和答案）；答案读取失败时保留文件，按故障速查恢复。
+7. 收到完成通知后，读完 `<run>.stdout.json` 中的完整问题和答案，答案字段有疑问时读 [references/answerset.schema.json](references/answerset.schema.json)，再继续原工作流。stdout 是一个对象：`{status:"submitted", askId, title, url, questionsPath, answersPath, questions, answers}`——**顶层 `answers` 是 AnswerSet 对象，答案数组在 `answers.answers[]`**，每条 `{questionId, selectedOptionIds, customText, supplementaryText}`；题面在 `questions.questions[]`，被分支隐藏的题 id 在 `answers.hiddenQuestionIds`。🔴 标准 `ask` 已在 stdout 写完后自动清理提问目录，**这个文件是答案唯一副本**（删了 `resume` 只会报 `ENOENT … ask.json`）：先用一条命令读出并核对答案，确认读到后**再单独一条命令**只删除本次创建的 `<questions.json>` 和 `<run>.stdout.json`（不要清理其他请求文件，不要用 `;` 把解析和 `rm` 串在一起）。使用 `create` 时立即运行 `node <ASK_ME_SKILL_DIR>/scripts/ask-me.mjs complete --id <askId>`（自定义数据目录带 `--data-dir`）。`complete` 先校验答案已提交，再只删除指定提问目录及其索引项，然后输出收尾状态（`status` / `askId` / `serverStopped`，不含问题和答案）；答案读取失败时保留文件，按故障速查恢复。
 8. 若还需要更多独立问题，再创建一份 QuestionSet JSON 并再次调用 `ask`——每次 `ask` 天然独立，互不干扰。
 
 ### 服务与浏览器生命周期
@@ -150,6 +150,7 @@ node <ASK_ME_SKILL_DIR>/scripts/ask-me.mjs create --input <questions.json>
 | 把 stderr 也重定向进文件 | URL 和 `ask-me-id` 被埋进文件，用户看不到，页面没弹出来就没法自己打开 | 只重定向 stdout |
 | `sleep` 轮询、催用户、让用户回复「已提交」 | 后台任务的完成通知就是唤醒信号，等它即可 | 启动后立刻结束本轮 |
 | 从任务输出里找答案，或手拼 `.ask-me/` 路径 | 任务输出只有 stderr 的进度行，答案不在那里 | 答案读 `<run>.stdout.json` 或跑 `resume`；任务输出只用来取 URL、`ask-me-id` 和报错 |
+| `解析 ; rm <run>.stdout.json` 一条命令串着跑，或按 `answers[]` 取答案 | 标准 `ask` 的提问目录已删，stdout 文件是唯一副本；顶层 `answers` 是对象，取值路径猜错解析就失败，`rm` 照跑，答案丢失 | 一条命令读 `answers.answers[]` 并核对；读到后另起一条命令删文件 |
 | 正文里写光秃秃的文件路径 | 页面上点不开，用户要自己去文件管理器里找 | 写成 Markdown 链接 `[报告](.scratch/report.html)`，点开就是页内弹层预览 |
 | 给选择题加「其他」选项 | 预设外的答案由每题的补充说明承载 | 选项只列真正互斥的几种 |
 | 写只有一个选项的选择题 | 脚本硬拒收，整批问题连会话都建不起来 | 补足第二个真实互斥的选项，或改成 `type: "text"` |

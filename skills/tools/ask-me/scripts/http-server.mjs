@@ -203,6 +203,9 @@ function previewLocalFile(response, requestUrl, dataRoot) {
         sendFile(response, target, type);
     }
 }
+// 本进程收下的提交：目录被 complete 删掉后，GET 仍按这份回「已提交」。
+// shortcut: 不淘汰，随进程退出清空；单进程提交量大到占内存时再加上限。
+const submittedBundles = new Map();
 async function handleAskApi(response, requestUrl, request, dataRoot, lifecycle) {
     const apiMatch = requestUrl.pathname.match(/^\/api\/asks\/([^/]+)(?:\/(answers|status|draft))?$/);
     if (!apiMatch) {
@@ -211,13 +214,19 @@ async function handleAskApi(response, requestUrl, request, dataRoot, lifecycle) 
     }
     const askId = assertSafeId(decodeURIComponent(apiMatch[1]), 'askId');
     const operation = apiMatch[2] || null;
-    if (request.method === 'GET' && operation === 'status') {
-        const ask = await readAsk(dataRoot, askId);
-        sendJson(response, 200, { ask });
-        return;
-    }
-    if (request.method === 'GET' && operation === null) {
-        sendJson(response, 200, await loadAskBundle(dataRoot, askId));
+    if (request.method === 'GET' && (operation === 'status' || operation === null)) {
+        try {
+            sendJson(response, 200, operation === 'status'
+                ? { ask: await readAsk(dataRoot, askId) }
+                : await loadAskBundle(dataRoot, askId));
+        }
+        catch (error) {
+            // 标准 ask 写完 stdout 就 complete 删掉目录；页面提交后的轮询和重开链接靠这份记忆回「已提交」。
+            const remembered = submittedBundles.get(askId);
+            if (error.code !== 'ENOENT' || !remembered)
+                throw error;
+            sendJson(response, 200, operation === 'status' ? { ask: remembered.ask } : remembered);
+        }
         return;
     }
     // PUT 是正常路径；关标签页那一下只能靠 sendBeacon，而它只发 POST。
@@ -226,7 +235,11 @@ async function handleAskApi(response, requestUrl, request, dataRoot, lifecycle) 
         return;
     }
     if (request.method === 'POST' && operation === 'answers') {
+        // 提交前取题面：提交一落盘，等着的 ask 进程随时可能 complete 删目录，事后再读会 ENOENT。
+        const before = await loadAskBundle(dataRoot, askId);
         const result = await submitAnswers(dataRoot, askId, await readRequestJson(request));
+        if (!result.duplicate)
+            submittedBundles.set(askId, { ...before, ask: result.ask, answers: result.answerSet, draft: null });
         sendJson(response, 200, result);
         if (!result.duplicate)
             afterSubmitted({ askId, result, ...lifecycle });

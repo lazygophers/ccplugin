@@ -5,7 +5,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 import { startHttpServer, ensureServer } from './http-server.mjs';
-import { createAsk, loadAskBundle } from './store.mjs';
+import { completeAsk, createAsk, loadAskBundle } from './store.mjs';
 import { makeTempRoot, ASK_ME_SCRIPT, stopDetachedServer, serverPidAlive } from './test-helpers.mjs';
 
 export async function test() {
@@ -269,6 +269,14 @@ export async function test() {
       !(await fs.stat(draftFile).catch(() => null)),
       '提交之后草稿要删掉，别留一份半成品在旁边',
     );
+
+    // 标准 ask 写完 stdout 立即 complete 删掉提问目录；页面提交后的轮询和重开链接
+    // 仍要拿到「已提交」，不能 500（ENOENT ask.json）进运行日志。
+    await completeAsk(dataRoot, first.askId);
+    const afterComplete = await fetch(`${base}/api/asks/${first.askId}`);
+    assert.equal(afterComplete.status, 200, '提问目录被 complete 删掉后，页面轮询不能报 ENOENT');
+    assert.equal(((await afterComplete.json()) as { ask: { status: string } }).ask.status, 'submitted');
+    assert.equal((await fetch(`${base}/api/asks/${first.askId}/status`)).status, 200);
 
     // 校验失败走 422，错误信息带回调用方。
     const invalidOther = await createAsk({
