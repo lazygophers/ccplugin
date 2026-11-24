@@ -38,10 +38,6 @@ const CLIENT_ERROR_MAX = 2000;
 // 提交后等这么久再关页、关进程：留一眼看「已提交」那张卡的时间。
 const SUBMIT_TEARDOWN_MS = Number(process.env.ASK_ME_CLOSE_DELAY_MS) || 3000;
 
-// 交给默认浏览器打开的白名单。兜底路径上的 `open` 会执行 `.app` / `.sh` / `.command`，
-// 所以这里只放行文档和图片——正文里的链接不该有本事启动程序。
-const OPENABLE = /\.(html?|md|markdown|txt|log|json|ya?ml|csv|pdf|png|jpe?g|gif|webp|svg)$/i;
-
 function contentType(file: string): string {
   if (file.endsWith('.html')) return 'text/html; charset=utf-8';
   if (file.endsWith('.js')) return 'text/javascript; charset=utf-8';
@@ -143,10 +139,6 @@ async function openLocalFile(response: ServerResponse, requestUrl: URL, dataRoot
     reject(response, 'GET /local', 404, `文件不存在：${target}`, requested);
     return;
   }
-  if (!OPENABLE.test(target)) {
-    reject(response, 'GET /local', 403, `只放行文档和图片，不给开这种文件：${path.basename(target)}`, requested);
-    return;
-  }
   const url = `${pathToFileURL(target).href}${hash}`;
   if (!process.env.ASK_ME_OPENER && await openInBrowser(url)) {
     sendJson(response, 200, { opened: target });
@@ -185,8 +177,8 @@ async function openLocalFile(response: ServerResponse, requestUrl: URL, dataRoot
   sendJson(response, 200, { opened: target });
 }
 
-// /preview：表单页内弹层预览的取内容端点，解析与 /local 完全同宽——同一套白名单、
-// 同样剥 file:// 前缀、同样相对路径按工作区解析，服务只绑 127.0.0.1。
+// /preview：表单页内弹层预览的取内容端点，解析与 /local 完全同宽——同样剥
+// file:// 前缀、同样相对路径按工作区解析，服务只绑 127.0.0.1。
 // 两种形式：旧查询形式 /preview?path=<abs>；路径形式 /preview/<abs>。iframe 里的
 // html 原型用 `?v=a` 这类查询形式相对链接切方案，相对解析只换 query 不动 path，
 // 文件身份必须长在 path 段里才保得住，所以 iframe 用路径形式。
@@ -205,10 +197,6 @@ function previewLocalFile(response: ServerResponse, requestUrl: URL, dataRoot: s
   const target = path.resolve(path.dirname(dataRoot), requested.replace(/^file:\/\//, ''));
   if (!existsSync(target)) {
     reject(response, 'GET /preview', 404, `文件不存在：${target}`, requested);
-    return;
-  }
-  if (!OPENABLE.test(target)) {
-    reject(response, 'GET /preview', 403, `只放行文档和图片，不给开这种文件：${path.basename(target)}`, requested);
     return;
   }
   const type = previewContentType(target);

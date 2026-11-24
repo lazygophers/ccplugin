@@ -54,9 +54,9 @@ export async function test() {
             assert.equal(anchored.status, 200, '带锚点的链接不能把 # 当成文件名的一部分');
             const markdown = await local(`path=${encodeURIComponent('notes.md')}`);
             assert.equal(markdown.status, 200, '.md 同样交给默认浏览器');
-            // `open` 能启动 .app / .sh / .command，正文里的一条链接不该有本事跑程序。
+            // 没有扩展名白名单：任意文件都交给打开器，.sql 这类也能点开。
             const executable = await local(`path=${encodeURIComponent('danger.sh')}`);
-            assert.equal(executable.status, 403, '可执行文件必须被白名单挡下');
+            assert.equal(executable.status, 200, '任意扩展名的文件都要能交给打开器');
             const missing = await local(`path=${encodeURIComponent('nope.md')}`);
             assert.equal(missing.status, 404, '文件不存在要报 404，不能静默当作打开了');
             delete process.env.ASK_ME_OPENER;
@@ -106,14 +106,14 @@ export async function test() {
                 process.env.ASK_ME_LOG = previousLog;
             await fs.rm(logRoot, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
         }
-        // /preview：表单页内弹层的取内容端点。解析与 /local 完全同宽：同一套白名单、
-        // 同样剥 file:// 前缀、相对路径按工作区解析。
+        // /preview：表单页内弹层的取内容端点。解析与 /local 完全同宽：同样剥 file://
+        // 前缀、相对路径按工作区解析。
         {
             const preview = (query) => fetch(`${base}/preview?${query}`, { headers });
             // html 预览要被 iframe 嵌进表单页且内联脚本能跑（full 模式）：X-Frame-Options
             // 和 CSP 都不能挂，否则浏览器拒嵌 / 掐死脚本。
             const html = await preview(`path=${encodeURIComponent('report.html')}`);
-            assert.equal(html.status, 200, '白名单内的 html 要能直出内容');
+            assert.equal(html.status, 200, 'html 要能直出内容');
             assert.equal(html.headers.get('content-type'), 'text/html; charset=utf-8');
             assert.equal(html.headers.get('x-frame-options'), null, 'html 预览不能带 X-Frame-Options，否则 iframe 拒绝加载');
             assert.equal(html.headers.get('content-security-policy'), null, 'html 预览不能带 CSP，否则内联脚本被掐死');
@@ -123,7 +123,9 @@ export async function test() {
             assert.equal(markdown.headers.get('content-type'), 'text/plain; charset=utf-8');
             assert.equal(await markdown.text(), '# 结论\n\n第一条\n');
             const executable = await preview(`path=${encodeURIComponent('danger.sh')}`);
-            assert.equal(executable.status, 403, '可执行文件同样被白名单挡下');
+            assert.equal(executable.status, 200, '任意扩展名的文件都要能直出');
+            assert.equal(executable.headers.get('content-type'), 'text/plain; charset=utf-8', '未知扩展名按纯文本直出');
+            assert.equal(await executable.text(), '#!/bin/sh\necho nope\n');
             // 绝对路径与 file:// 前缀：和 /local 同一套解析，file:/// 链接点开就是它。
             const workspace = path.dirname(dataRoot);
             const absolute = await preview(`path=${encodeURIComponent(path.join(workspace, 'notes.md'))}`);
@@ -142,8 +144,9 @@ export async function test() {
             assert.equal(pathFormHtml.headers.get('x-frame-options'), null, '路径形式同样不挂 X-Frame-Options');
             assert.equal(pathFormHtml.headers.get('content-security-policy'), null, '路径形式同样不挂 CSP');
             assert.equal(await pathFormHtml.text(), '<h1>审计报告</h1>\n');
-            const pathFormDenied = await fetch(`${base}/preview${encodeURI(path.join(workspace, 'danger.sh'))}`, { headers });
-            assert.equal(pathFormDenied.status, 403, '路径形式同样被白名单挡下');
+            const pathFormScript = await fetch(`${base}/preview${encodeURI(path.join(workspace, 'danger.sh'))}`, { headers });
+            assert.equal(pathFormScript.status, 200, '路径形式同样不设白名单');
+            assert.equal(await pathFormScript.text(), '#!/bin/sh\necho nope\n');
             const pathFormMissing = await fetch(`${base}/preview${encodeURI(path.join(workspace, 'nope.md'))}`, { headers });
             assert.equal(pathFormMissing.status, 404, '路径形式下不存在的文件报 404');
             // 放宽只限预览路径：表单页自己的响应照挂全套安全头。
