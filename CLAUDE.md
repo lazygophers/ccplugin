@@ -77,10 +77,10 @@ cat <待测文件> | claude -p --bare "<问题>" --output-format stream-json --v
 
 ### 使用说明：
 
-1. 待测内容走 stdin 管道，**禁用 `claude -p "$(cat ...)"` 插值**
-2. `--bare` 必带
-3. `2>/dev/null` 必带
-4. `--verbose` 必带；缺它时返回为空，不按端点抖动处理
+1. 出现 `error: unknown option '---'` 时改走 stdin 管道；待测内容走 stdin 管道，**禁用 `claude -p "$(cat ...)"` 插值**
+2. 出现 `API Error 400` 时补 `--bare`；`--bare` 必带
+3. 出现 `Invalid numeric literal` 时补 `2>/dev/null`；`2>/dev/null` 必带
+4. 出现 `--output-format=stream-json requires --verbose` 或返回为空时补 `--verbose`；`--verbose` 必带，不按端点抖动处理
 5. `<问题>` 问该文件的触发场景与主流程；返回需非空且切题，跑题或空返回属端点抖动，重跑而非当结论
 6. predictability 验法：同一 prompt 连跑 3 次，主流程描述一致才算过
 7. macOS 无 `timeout` 命令，别包 `timeout`，超时靠调用方自身机制
