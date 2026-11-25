@@ -6,6 +6,5 @@
    版本不走 mise。用 skill 目录里的 `node_modules/.bin/tsc`，或
    `npm --prefix <skill-dir> run build`。
 2. **`module: NodeNext` 下 `.mts` 源文件的相对 import 必须写编译后的 `.mjs` 后缀**
-   （`import { log } from './log.mjs'`）。写 `.mts` 编译不过（除非开
-   `allowImportingTsExtensions` + `noEmit`，本仓不用）。别用 sed 把 import 后缀批量改成
-   `.mts`——那是往错误方向改，改完还得改回来。
+   （`import { log } from './log.mjs'`）。不用 sed 把 import 后缀批量改成
+   `.mts`。

@@ -8,9 +8,6 @@
 - `npm run build` / tsc 生成的 `.mjs`
 - 子会话里没有 Edit/Write 工具的 agent
 
-脚本本身没坏：手工喂 `{"tool_input":{"file_path":".../skills/project/tracking-progress/SKILL.md"}}`
-给它，退出码 0 并输出 `synced tracking-progress → ...`。
-
 固定动作：改过 `skills/**` 的任务收尾，不信 hook，直接跑
 `rsync`（命令见项目 CLAUDE.md）再 `diff -rq skills/<类>/<name> ~/.agents/skills/<name>`，
 差异只剩 `.ask-me` 才算同步完。派 agent 改 skill 时把这条写进派单。

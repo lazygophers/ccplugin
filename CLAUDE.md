@@ -35,7 +35,7 @@
 
 `skills/` 下的 skill 被 skill 管理器装成独立拷贝放在 `~/.agents/skills/<name>/`（来源记在 `~/.agents/.skill-lock.json`，指向 GitHub 的 `lazygophers/ccplugin`）。Claude Code 加载的是那一份，**不是本仓库**。两份是各自独立的文件，不是软链接。
 
-改完 skill 必须同步副本，否则改动不生效。skill 的删除、安装、更新尽量用 `npx skills` 官方命令（它管 `~/.agents/.skill-lock.json` 的 hash，手改 lock 会漂）：
+改完 skill 必须同步副本。skill 的删除、安装、更新尽量用 `npx skills` 官方命令，不手改 `~/.agents/.skill-lock.json`：
 
 ```bash
 # 首选：push 后用官方 CLI 拉取（顺带重算 lock hash）
@@ -43,12 +43,12 @@ git push && npx skills update <name>
 
 # 或本地直接同步（不等 push）；之后跑一次 npx skills update <name> 让 CLI 重算 lock hash
 rsync -a --delete --exclude node_modules --exclude .ask-me skills/tools/<name>/ ~/.agents/skills/<name>/
-# ask-me 带 node_modules（typescript devDeps），cp -R 会把几十 MB 依赖拷过去，必须 rsync 排除
+# 同步用 rsync 排除 node_modules，不用 cp -R
 ```
 
 编辑 `skills/**` 下的文件后，PostToolUse hook（`scripts/hooks/sync-skills-copy.mjs`）自动同步到 `~/.agents/skills/<name>/`，但只认 Edit/Write；Bash 写文件、build 产物不触发，收尾必须手动 rsync + `diff -rq`（见 `.claude/rules/tooling/skills-sync-hook-edit-write-only.md`）。
 
-只本地同步不 push 的改动，会在下次 skill 更新时被远端版本覆盖掉。改名不走 update（只更新同名）：`npx skills remove <旧名>` + `npx skills add lazygophers/ccplugin/skills/tools/<新名>`，全仓改名清单见 `.claude/rules/tooling/skill-rename-checklist.md` 与 `docs/ask-me-migration.md`。
+本地同步后仍要 push。改名不走 update（只更新同名）：`npx skills remove <旧名>` + `npx skills add lazygophers/ccplugin/skills/tools/<新名>`，全仓改名清单见 `.claude/rules/tooling/skill-rename-checklist.md` 与 `docs/ask-me-migration.md`。
 
 排查「改了怎么没生效」第一条命令：
 
@@ -77,10 +77,10 @@ cat <待测文件> | claude -p --bare "<问题>" --output-format stream-json --v
 
 ### 使用说明：
 
-1. 待测内容走 stdin 管道，**禁用 `claude -p "$(cat ...)"` 插值** —— YAML frontmatter 的 `---` 会被解析成 CLI 选项，报 `error: unknown option '---'`
-2. `--bare` 必带 —— 否则 hook 注入劫持 prompt，或非 Anthropic 路由模型报 `API Error 400`
-3. `2>/dev/null` 必带 —— 否则 stderr 的 connector 警告混进 jq，报 `Invalid numeric literal`
-4. `--verbose` 必带 —— `-p` 配 `stream-json` 缺它直接 exit 1，报 `--output-format=stream-json requires --verbose`；该报错走 stderr 被 `2>/dev/null` 吞掉，表现为空返回，不是端点抖动
+1. 待测内容走 stdin 管道，**禁用 `claude -p "$(cat ...)"` 插值**
+2. `--bare` 必带
+3. `2>/dev/null` 必带
+4. `--verbose` 必带；缺它时返回为空，不按端点抖动处理
 5. `<问题>` 问该文件的触发场景与主流程；返回需非空且切题，跑题或空返回属端点抖动，重跑而非当结论
 6. predictability 验法：同一 prompt 连跑 3 次，主流程描述一致才算过
 7. macOS 无 `timeout` 命令，别包 `timeout`，超时靠调用方自身机制
@@ -108,7 +108,7 @@ Single-context: one `GLOSSARY.md` at the root plus `docs/adr/`. See `docs/agents
 
 ## 相关文档
 
-项目的详细开发规范和指导已分散到更合适的位置：
+项目的详细开发规范和指导：
 
 - **项目概览和架构**：参见 `README.md` 和 `AGENTS.md`
 - **插件开发指南**：参见 `docs/plugin-development.md`
