@@ -123,7 +123,9 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
       await waitForSubmission(dataRoot, created.askId, abortController.signal);
       // 转后台时 stdout 会和 stderr 混在一起，这行是「结果已就绪」的唯一可靠信号。
       process.stderr.write(`ask-me-submitted: ${created.askId}\n`);
-      const result = { ...await submittedAskResult(dataRoot, created.askId), url };
+      // 下面 completeAsk 会删掉提问目录，两个路径写进 stdout 就是死链，不往外给。
+      const { questionsPath: _questionsPath, answersPath: _answersPath, ...submitted } = await submittedAskResult(dataRoot, created.askId);
+      const result = { ...submitted, url };
       await new Promise<void>((resolve, reject) => {
         process.stdout.write(`${JSON.stringify(result)}\n`, (error) => error ? reject(error) : resolve());
       });

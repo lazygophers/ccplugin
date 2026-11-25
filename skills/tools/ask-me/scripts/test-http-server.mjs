@@ -1,6 +1,7 @@
 // http-server module 的测试：路由（静态/vendor/local/api）、代码版本换进程、
 // 提交后的生命周期。vendor 的缓存命中与读失败也经 /vendor 路由覆盖。
 import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { startHttpServer, ensureServer } from './http-server.mjs';
@@ -267,6 +268,34 @@ export async function test() {
             }
             finally {
                 await fs.utimes(ASK_ME_SCRIPT, original.atime, original.mtime);
+            }
+        }
+        // 有人正在答题时换代码要沿用原端口：旧进程收到 SIGTERM 后还没放端口，新进程
+        // 马上 listen 同一端口就会 EADDRINUSE，ensureServer 只能等到超时报「起不来」。
+        {
+            const pendingRoot = path.join(temporaryRoot, 'pending-restart-data');
+            await createAsk({
+                title: '换代码时沿用端口',
+                questions: [{ id: 'q', type: 'text', text: '随便写' }],
+            }, { dataDir: pendingRoot, cwd: temporaryRoot });
+            // 旧服务替身：收到 SIGTERM 后拖 1 秒才退，把「还没放端口」的窗口拉到稳定可复现。
+            const slowOld = spawn(process.execPath, ['-e', `
+        const server = require('node:http').createServer((q, r) => r.end('ok'));
+        server.listen(0, '127.0.0.1', () => console.log(server.address().port));
+        process.on('SIGTERM', () => setTimeout(() => process.exit(0), 1000));
+      `], { stdio: ['ignore', 'pipe', 'inherit'] });
+            try {
+                const oldPort = Number(await new Promise((resolve) => slowOld.stdout.once('data', (chunk) => resolve(String(chunk)))));
+                await fs.writeFile(path.join(pendingRoot, 'server.json'), JSON.stringify({
+                    pid: slowOld.pid, host: '127.0.0.1', port: oldPort, dataRoot: pendingRoot, codeVersion: 0,
+                }));
+                const restarted = await ensureServer(pendingRoot);
+                assert.notEqual(restarted.pid, slowOld.pid, '代码变了必须换掉旧进程');
+                assert.equal(restarted.port, oldPort, '有待答提问时端口和链接不变');
+            }
+            finally {
+                slowOld.kill('SIGKILL');
+                await stopDetachedServer(pendingRoot);
             }
         }
     }

@@ -180,7 +180,7 @@ function normalizeQuestion(raw: unknown, index: number): Question {
     const recommended = option.recommended === true;
     const reason = String(option.reason || '');
     if (reason && !recommended) {
-      issues.push(`${label}写了 reason 却没有 recommended: true——推荐原因只属于推荐项`);
+      issues.push(`${label}写了 reason 却没有 recommended: true——推荐原因只属于推荐项。改法：它是推荐项就补 "recommended": true；不是就删掉这个 reason，要交代这个选项的取舍写进 description`);
     }
     return {
       id: optionId,

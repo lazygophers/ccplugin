@@ -91,6 +91,16 @@ export async function test() {
                 options: [{ id: 'a', text: '乙', reason: '因为' }, { id: 'b', text: '丙' }],
             }],
     }), /没有 recommended: true/);
+    // 报错要直接给改法：Agent 只看报错就能一次改对，不靠外部注意事项。
+    assert.throws(() => normalizeQuestionSet({
+        title: 't',
+        questions: [{
+                id: 'q1',
+                type: 'single',
+                text: '甲',
+                options: [{ id: 'a', text: '乙', reason: '因为' }, { id: 'b', text: '丙' }],
+            }],
+    }), /删掉这个 reason.*description/);
     // 条件题：showWhen 只能指向前面的题，匹配方式必须配得上那道题的类型。
     assert.throws(() => normalizeQuestionSet({
         title: 't',

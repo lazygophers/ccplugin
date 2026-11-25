@@ -507,6 +507,11 @@ export async function ensureServer(dataRoot: string, { port = 0 } = {}): Promise
     }
     process.kill(existing.pid);
     await fs.rm(serverFile, { force: true });
+    // 旧进程收到 SIGTERM 到真正放掉端口有个窗口，沿用端口时新进程抢进去会 EADDRINUSE。
+    const releaseDeadline = Date.now() + 5000;
+    while (Date.now() < releaseDeadline && await serverIsAlive(existing)) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
   }
 
   if (reusePort) port = reusePort;

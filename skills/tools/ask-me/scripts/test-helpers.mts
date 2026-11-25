@@ -88,6 +88,9 @@ export async function runDirectAsk({ questionSet, answers, dataRoot, cwd, testDu
   assert.equal(JSON.parse(stdout).url, readyUrl);
   assert.equal(JSON.parse(stdout).answers.answers.length, (answers as unknown[]).length);
   await assert.rejects(fs.access(answersPath), /ENOENT/, '输出答案后自动清理本次提问');
+  for (const field of ['questionsPath', 'answersPath']) {
+    assert.equal(JSON.parse(stdout)[field], undefined, `stdout 不许带 ${field}：提问目录已清理，指过去只会读到 ENOENT`);
+  }
   return { ...JSON.parse(stdout), testReadyUrl: readyUrl };
 }
 
