@@ -11,7 +11,4 @@ plugins/tools/skein/assets/nextjs/pnpm-workspace.yaml 的
 - 观察期（一两周）过后、包龄超 24h 时删掉豁免条目，再跑 `pnpm install` 验证
   无感。
 
-2026-10-25 session 为装 next@16.4.3 豁免了 12 条，尚无移除记录——下次触碰该
-文件时先核对哪些包龄已超 24h，顺手清。
-
-出处：2026-10-25 skein dependabot 全清 session。
+触碰该文件时先核对豁免条目里哪些包龄已超 24h，超了即删。

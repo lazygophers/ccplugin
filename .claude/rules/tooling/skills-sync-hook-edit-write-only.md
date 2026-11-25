@@ -14,7 +14,3 @@
 固定动作：改过 `skills/**` 的任务收尾，不信 hook，直接跑
 `rsync`（命令见项目 CLAUDE.md）再 `diff -rq skills/<类>/<name> ~/.agents/skills/<name>`，
 差异只剩 `.ask-me` 才算同步完。派 agent 改 skill 时把这条写进派单。
-
-出处：2026-11-09 ask-me / tracking-progress 错误日志 session。该 session 5 个子 agent
-transcript（`~/.claude/projects/-Users-luoxin-persons-lyxamour-ccplugin/daa1dcf0-…/subagents/`）
-统计：Edit/Write 调用 0 次，只有 Bash/Read；两次副本都靠 agent 手动 rsync 补齐。

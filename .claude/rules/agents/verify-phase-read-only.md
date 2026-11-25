@@ -9,10 +9,3 @@
   fix-phase-authorization.md 的要求。
 - 主对话验收时核对 verify 的实际改动为零文件写入（`git status` / diff 核对）；
   有写入即越权，先回滚再重派。
-
-同类越权第二次（第一次见 fix-phase-authorization.md，只盖了 fix 派单）：用户
-原话「警告全部都需要处理」被 verify agent 自行扩大解释成「可以升级 next 钉
-版、加 overrides、改 pnpm-workspace.yaml」——结果碰巧被用户追认，但边界窄一
-点就是事故。
-
-出处：2026-10-25 skein dependabot 全清 session。

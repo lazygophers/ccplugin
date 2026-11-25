@@ -13,7 +13,3 @@ gitnexus 的 PostToolUse 在每条 commit 后注入「index is stale, run gitnex
 analyze」。每票一 commit 的 worktree 流程中途会连环触发；中途不停下来重建索引
 ——每票验收靠真跑测试（见 `workflow/ticket-acceptance.md`），全部票关完、合回
 主干后一次性 `gitnexus analyze --index-only`。
-
-出处：2026-10-22 watchtower session transcript d5852c1b L716-729：15 行内 7 次
-graphify 注入，对象是 `.scratch/` 票面与 docs 文档读取（图谱不含其正文）；L1257
-commit 后 gitnexus stale 提示。同日 retro session 读 /tmp 文件也被注入。

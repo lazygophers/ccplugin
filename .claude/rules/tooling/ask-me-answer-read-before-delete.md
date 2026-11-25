@@ -8,7 +8,3 @@ ask-me 的 stdout.json 是用户答案的唯一副本：ask 返回后会自动�
 - 解析命令和 `rm` 不用 `;` 串联（`;` 在前一条失败时照样执行后一条）。分两次调用：
   第一次只读/解析，输出里确认拿到了答案；第二次才 `rm`。
 - 确认读到之前，答案内容先记进任务状态文件「已确认」段，再删。
-
-出处：2026-11-09 tracking-progress 任务状态文件路径 session：`python3 -c "…json.load…"; rm -f
-<questions.json> <stdout.json>` 因取值路径猜错（答案在 answers.answers）报错，rm 照跑，
-答案文件丢失，用户被重问一次。

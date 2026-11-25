@@ -10,6 +10,3 @@ Edit 整段替换，要原文匹配几百行——缩进、引号转义任何一
 对 JS 块 `node --check`、对整文件跑既有 pytest 回归。
 
 适用判断：替换块 > ~50 行且在字符串常量里 → 标记拼接脚本；小片段仍用 Edit。
-
-出处：2026-10-23 tracking-progress 进度页重设计 session，重写 CSS 与 render()
-（commits 2932d20、1ff1dfa3、08fc85ff）。

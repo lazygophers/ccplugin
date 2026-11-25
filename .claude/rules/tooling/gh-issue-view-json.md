@@ -5,7 +5,3 @@ agent 的 Bash 不是 TTY。非 TTY 下 `gh issue view <N> --comments` 只输出
 写的「includes the issue details and comments」只对终端输出成立。
 
 固定写法：`gh issue view <N> --json title,body,comments`（要精简再加 `--jq`）。
-
-出处：2026-11-22 ask-me 问题单 19 session 实录；同日 retro 复现（gh 2.105.0）：
-`gh issue view 19 --comments` EXIT=0、0 行；不带 `--comments` 32 行；
-`--json comments --jq '.comments|length'` 输出 0。

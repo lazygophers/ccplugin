@@ -14,9 +14,3 @@ implementer agent 回报「票完成」后，主对话验收固定四步，缺�
 
 agent 不会主动区分「验过」和「验不了但勾了」；spec 轴审查的价值就在抓这个，
 别等到 code-review 才发现。
-
-出处：2026-10-22 watchtower session 两次被抓：ticket 03 把「从 marketplace 安装
-并确认装出副本可用」勾成 [x]，实测只覆盖模块加载与解析器，pane 核心功能未验
-（code-review Spec 轴审查发现，fixer 把第 13 项改回 `[ ]` + 尾注）；ticket 01 漏做
-票面第 4 条验收（locateTranscript），靠主对话验收 grep 抓出（transcript d5852c1b
-L738）。四步走全的 ticket 04 无返工。

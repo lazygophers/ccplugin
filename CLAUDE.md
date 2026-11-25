@@ -56,7 +56,7 @@ rsync -a --delete --exclude node_modules --exclude .ask-me skills/tools/<name>/ 
 diff -rq skills/tools/<name> ~/.agents/skills/<name>
 ```
 
-副本固定在 `$HOME/.agents/`（本机即 `/Users/luoxin/.agents`），**不随仓库路径走**：给 agent 派单写绝对路径前先 `ls -d` 核对，不要从仓库所在目录往上拼（2026-10-26 tracking-progress session 曾误拼成 `/Users/luoxin/persons/lyxamour/.agents`，目录不存在，验收 agent 找不到副本）。
+副本固定在 `$HOME/.agents/`（本机即 `/Users/luoxin/.agents`），**不随仓库路径走**：给 agent 派单写绝对路径前先 `ls -d` 核对，不要从仓库所在目录往上拼。
 
 ## 提交前检查
 

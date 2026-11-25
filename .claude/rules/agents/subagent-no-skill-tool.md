@@ -8,8 +8,3 @@ subagent 工具集里没有 Skill，它只会回一句「调不了，我用别�
 
 顺带写明票面文件的去向：ticket 在主仓 `.scratch/<feature>/issues/`（gitignored），
 worktree 里的 agent 改主仓票面直接改、无需 commit。
-
-出处：2026-10-22 watchtower session，ticket 02 agent 回报「本 subagent 无 Skill
-工具，Skill(plugin-authoring) 调不了；用它的同一参照替代」——派单 prompt（transcript
-d5852c1b L816）写了「开工先调 Skill(plugin-authoring)」，浪费一轮往返；同 session
-ticket 01/04 的派单改成抄报告路径后无此问题。
