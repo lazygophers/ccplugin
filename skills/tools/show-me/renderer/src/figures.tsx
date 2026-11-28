@@ -205,6 +205,8 @@ export function useWidth<T extends HTMLElement>() {
   const [w, setW] = useState(0)
   useLayoutEffect(() => {
     const el = ref.current!
+    // 首帧前同步取宽：ResizeObserver 回调异步，到达前宽度为 0 会让 flow/graph 按单排缩成小字
+    setW(el.clientWidth)
     const ro = new ResizeObserver(() => setW(el.clientWidth))
     ro.observe(el)
     return () => ro.disconnect()
