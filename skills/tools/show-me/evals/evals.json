@@ -1,0 +1,55 @@
+{
+  "skill_name": "show-me",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "我们组要选一个本地分析用的数据库，帮我调研一下 SQLite、DuckDB、PostgreSQL 三个在「单机跑几十 GB 日志分析」场景下的取舍，出一份报告给我看，最后给推荐。",
+      "expected_output": "一页科研风（默认 paper）离线 HTML 调研报告：结论先行、对比表、指标或图表、出处、固定页脚；回复给一句结论与文件绝对路径",
+      "files": [],
+      "assertions": [
+        "outputs 目录下有一个给用户阅读的 HTML 文件",
+        "HTML 外部资源引用为 0（src=/href=/url(/@import 后接 http(s)，<link>、<script src> 均为 0），断网可开",
+        "HTML 文件大小 ≤ 1.5MB",
+        "HTML 不含 @font-face 与 data:font（不注入字体文件）",
+        "页脚含 skill 名与版本（show-me v…）和项目地址 github.com/lazygophers/ccplugin",
+        "reply.md 给出一句结论和产物文件的绝对路径",
+        "页面为科研风：衬线排版、图/表编号、编号参考文献或出处",
+        "SQLite、DuckDB、PostgreSQL 三者都有对比，且给出明确推荐"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "用手绘风给我讲讲 git rebase 到底是怎么回事，我完全不懂 git，越简单越好，最好有图。",
+      "expected_output": "一页手绘风（sketch）离线 HTML 讲解：大图少字，流程图示意 rebase 前后提交关系",
+      "files": [],
+      "assertions": [
+        "outputs 目录下有一个给用户阅读的 HTML 文件",
+        "HTML 外部资源引用为 0（src=/href=/url(/@import 后接 http(s)，<link>、<script src> 均为 0），断网可开",
+        "HTML 文件大小 ≤ 1.5MB",
+        "HTML 不含 @font-face 与 data:font（不注入字体文件）",
+        "页脚含 skill 名与版本（show-me v…）和项目地址 github.com/lazygophers/ccplugin",
+        "reply.md 给出一句结论和产物文件的绝对路径",
+        "页面为手绘风：手绘线条框/箭头、白板底等手绘元素",
+        "有图示 rebase 前后提交关系（不只是文字）",
+        "正文文字少、面向零基础读者（无未解释的术语）"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "用程序员风帮我梳理一下这个仓库 skills/tools/ask-me 的代码结构，以及一次 ask 命令从启动到返回答案的调用链，整理成文档给我看。",
+      "expected_output": "一页程序员风（terminal）离线 HTML：目录结构、调用链流程图、关键代码片段，内容来自真实代码",
+      "files": [],
+      "assertions": [
+        "outputs 目录下有一个给用户阅读的 HTML 文件",
+        "HTML 外部资源引用为 0（src=/href=/url(/@import 后接 http(s)，<link>、<script src> 均为 0），断网可开",
+        "HTML 文件大小 ≤ 1.5MB",
+        "HTML 不含 @font-face 与 data:font（不注入字体文件）",
+        "页脚含 skill 名与版本（show-me v…）和项目地址 github.com/lazygophers/ccplugin",
+        "reply.md 给出一句结论和产物文件的绝对路径",
+        "页面为程序员风：深色底、等宽字体、编辑器窗口式卡片",
+        "目录结构与调用链引用真实存在的文件（如 skills/tools/ask-me/scripts/ask-me.mjs）",
+        "有调用链流程图"
+      ]
+    }
+  ]
+}
